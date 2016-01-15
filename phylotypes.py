@@ -38,7 +38,7 @@ FileForAlignedReadsInEachWindow_basename = 'AlignedReads'
 FileForAllBootstrappedTrees_basename = 'temp_AllBootstrappedTrees'
 FileForDiscardedReadPairs_basename = 'DiscardedReads_'
 ################################################################################
-
+GapChar = '-'
 
 import pysam
 import argparse
@@ -84,16 +84,16 @@ parser.add_argument('ListOfRefFiles', type=File, help='A file containing the '+\
 'names (and paths) of the reference fasta files for the bam files, one per '+\
 'line. The file basenames (i.e. the filename minus the directory) should be'+\
 ' unique and free of whitespace.')
-parser.add_argument('AlignmentWindowCoord', type=int, nargs='+', \
+parser.add_argument('WindowCoord', type=int, nargs='+', \
 help='A set of paired coordinates defining the boundaries of the windows. '+\
 'e.g. 1 300 11 310 21 320 would define windows 1-300, 11-310, 21-320.')
 parser.add_argument('-A', '--alignment-of-other-refs', type=File,\
 help='An alignment of any reference sequences (which need not be those used '+\
 'to produce the bam files) to be cut into the same windows as the bam files '+\
 'and included in the alignment of reads (e.g. to help root trees).')
-
-
-
+parser.add_argument('-C', '--ref-for-coords', help='The coordinates are '\
+'specified with respect to the reference named after this flag. (By default '\
++'coordinates are with respect to the alignment of all references.)')
 parser.add_argument('-D', '--discard-improper-pairs', action='store_true', \
 help='Any improperly paired reads will be discarded')
 parser.add_argument('-Q1', '--quality-trim-ends', type=int, help='Each end of '+\
@@ -107,8 +107,8 @@ help='Keep the whole read. (By default, only the part of the read inside the'+\
 'window is kept, i.e. overhangs are trimmed.)')
 parser.add_argument('-P', '--merge-paired-reads', action='store_true', \
 help='Merge overlapping paired reads into a single read.')
-
-
+parser.add_argument('-R', '--ref-for-rooting', help='Used to name a reference'\
+'to be an outgroup in the tree (requires the -A flag).')
 parser.add_argument('-N', '--number-of-bootstraps', type=int,\
 help='The number of bootstraps to be calculated for RAxML trees (by default, '+\
 'none i.e. only the ML tree is calculated).')
@@ -134,47 +134,47 @@ args = parser.parse_args()
 #  '\nQuitting.', file=sys.stderr)
 #  exit(1)
 
-# Was the -A flag specified:
-IncludeOtherRefs = (args.alignment_of_other_refs != None)
-
 # Shorthand
 NumBootstraps = args.number_of_bootstraps
+IncludeOtherRefs = args.alignment_of_other_refs != None
+QualTrimEnds  = args.quality_trim_ends != None
+ImposeMinQual = args.min_internal_quality != None
+WindowCoords  = args.WindowCoord
+
+def CheckRefIsPresent(flag, ref):
+  'Checks that a reference (named with a flag) is in the alignment of refs.'
+  if ref == None:
+    return
+  if not IncludeOtherRefs:
+    print('The', flag, 'flag requires the --alignment-of-other-refs',\
+    'flag. Quitting.', file=sys.stderr)
+    exit(1)  
+  if not any(seq.id == ref for seq in \
+  SeqIO.parse(open(args.alignment_of_other_refs),'fasta')):
+    print('Reference', ref +', specified with the', flag, \
+    'flag, was not found in', args.alignment_of_other_refs +'. Quitting.', \
+    file=sys.stderr)
+    exit(1)
+  return
+
+CheckRefIsPresent('--ref-for-coords',  args.ref_for_coords)
+CheckRefIsPresent('--ref-for-rooting', args.ref_for_rooting)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Sanity checks on the AlignmentWindowCoords
-NumCoords = len(args.AlignmentWindowCoord)
+# Sanity checks on the WindowCoords
+NumCoords = len(WindowCoords)
 if NumCoords % 2 != 0:
-  print('An even number of AlignmentWindowCoord must be specified. Quitting.',\
+  print('An even number of WindowCoords must be specified. Quitting.',\
   file=sys.stderr)
   exit(1)
-if any(coord < 1 for coord in args.AlignmentWindowCoord):
-  print('All AlignmentWindowCoord must be greater than zero. Quitting.',\
+if any(coord < 1 for coord in WindowCoords):
+  print('All WindowCoords must be greater than zero. Quitting.',\
   file=sys.stderr)
   exit(1)
-LeftWindowEdges  = args.AlignmentWindowCoord[::2]
-RightWindowEdges = args.AlignmentWindowCoord[1::2]
-PairedAlignmentWindowCoord = zip(LeftWindowEdges, RightWindowEdges)
-for LeftWindowEdge, RightWindowEdge in PairedAlignmentWindowCoord:
+LeftWindowEdges  = WindowCoords[::2]
+RightWindowEdges = WindowCoords[1::2]
+PairedWindowCoords = zip(LeftWindowEdges, RightWindowEdges)
+for LeftWindowEdge, RightWindowEdge in PairedWindowCoords:
   if LeftWindowEdge >= RightWindowEdge:
     print('You specified a window as having left edge', LeftWindowEdge, \
     'and right edge', str(RightWindowEdge)+'. Left edges should be less than',\
@@ -184,7 +184,7 @@ for LeftWindowEdge, RightWindowEdge in PairedAlignmentWindowCoord:
 # Check that the bootstrap threshold is between 0 and 100
 #if not (0 <= args.min_support <= 100):
 #  print('MIN_SUPPORT was given as', str(args.min_support)+'; it should be',
-#  'between 0 and 100 inclusive.\nQuitting', file=sys.stderr)
+#  'between 0 and 100 inclusive.\nQuitting.', file=sys.stderr)
 
 
 TranslateCoordsCode = pf.FindAndCheckCode('TranslateCoords.py')
@@ -222,7 +222,7 @@ if len(BamlessBasenames) == len(set(BamlessBasenames)):
 # Check that there are the same number of bam and reference files
 if len(BamFiles) != len(RefFiles):
   print('Different numbers of files are listed in', ListOfBamFiles, 'and', \
-  ListOfRefFiles+'.\nQuitting', file=sys.stderr)
+  ListOfRefFiles+'.\nQuitting.', file=sys.stderr)
   exit(1)
 
 # Read in all the reference sequences
@@ -251,32 +251,32 @@ with open(FileForAlignedRefs, 'w') as f:
     FinalMafftOptions, stdout=f)
     assert ExitStatus == 0
   except:
-    print('Problem calling mafft. Quitting', file=sys.stderr)
+    print('Problem calling mafft. Quitting.', file=sys.stderr)
     exit(1)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# If coords were specified with respect to one particular reference, translate
+# them to alignment coordinates.
+UserCoords = WindowCoords
+if args.ref_for_coords != None:
+  AlignmentCoords = []
+  for seq in SeqIO.parse(open(FileForAlignedRefs),'fasta'):
+    if seq.id == args.ref_for_coords:
+      PositionInRef = 0
+      for AlignmentPostitionMin1,base in enumerate(str(seq.seq)):
+        if base == GapChar:
+          continue
+        PositionInRef += 1
+        if PositionInRef in WindowCoords:
+          AlignmentCoords.append(AlignmentPostitionMin1+1)
+  WindowCoords = AlignmentCoords
 
 # Translate alignment coordinates to reference coordinates
 CoordsInRefs = {}
 try:
   CoordsString = subprocess.check_output([TranslateCoordsCode, \
-  FileForAlignedRefs, '-A']+[str(coord) for coord in args.AlignmentWindowCoord])
+  FileForAlignedRefs, '-A']+[str(coord) for coord in WindowCoords])
 except:
-  print('Problem executing', TranslateCoordsCode, '\nQuitting', file=sys.stderr)
+  print('Problem executing', TranslateCoordsCode, '\nQuitting.', file=sys.stderr)
   exit(1)
 
 for line in CoordsString.splitlines():
@@ -347,7 +347,7 @@ for BamFileName in BamFiles:
 #print(foo.ProcessRead(2,5,29,True))
 #exit(0)
 
-
+DiscardedReadPairsFiles = []
 
 # For each window, find all unique reads from each bam file
 ReadsByWindow = ['' for j in range(NumCoords/2)]
@@ -386,12 +386,12 @@ for i,BamFileName in enumerate(BamFiles):
     elif coord == 'NaN':
       coords[j] = RefLength
 
-  LeftWindowEdges  = coords[::2]
-  RightWindowEdges = coords[1::2]
-  PairedWindowCoords = zip(LeftWindowEdges, RightWindowEdges)
-
-  for window, (LeftWindowEdge,RightWindowEdge) in enumerate(PairedWindowCoords):
-
+  ThisBamLeftWindowEdges  = coords[::2]
+  ThisBamRightWindowEdges = coords[1::2]
+  ThisBamPairedWindowCoords = zip(ThisBamLeftWindowEdges, \
+  ThisBamRightWindowEdges)
+  for window, (LeftWindowEdge,RightWindowEdge) in \
+  enumerate(ThisBamPairedWindowCoords):
 
     # Find all unique reads in this window and count their occurrences.
     # NB pysam uses zero-based coordinates for positions w.r.t the reference
@@ -524,36 +524,36 @@ for i,BamFileName in enumerate(BamFiles):
     for read in DiscardedReadPairs:
       DiscardedReadPairsOut.write(read)
     DiscardedReadPairsOut.close()
-    print('WARNING: in', BamFileBasename, 'read pairs that overlapped but',\
-    'disagreed on the overlap were found. These have been written to', OutFile+\
-    '.', file=sys.stderr)
+    DiscardedReadPairsFiles.append(OutFile)
 
-
+if DiscardedReadPairsFiles != []:
+  print('Info: read pairs that overlapped but disagreed on the overlap were ',\
+  'found. These have been written to', ' '.join(DiscardedReadPairsFiles) +'.')
 
 # This regex matches "_read_" then any integer then "_count_" then any integer,
 # constrained to come at the end of the string.
 SampleRegex = re.compile('_read_\d+_count_\d+$')
 
 # Iterate through the windows
-for window, (LeftWindowEdge, RightWindowEdge) in \
-enumerate(PairedAlignmentWindowCoord):
+for window in range(NumCoords / 2):
 
-
-
-
-
+  LeftWindowEdge  = WindowCoords[window*2]
+  RightWindowEdge = WindowCoords[window*2 +1]
+  UserLeftWindowEdge  = UserCoords[window*2]
+  UserRightWindowEdge = UserCoords[window*2 +1]
+  print(LeftWindowEdge, RightWindowEdge, UserLeftWindowEdge, UserRightWindowEdge)
 
   # Skip empty windows
   if ReadsByWindow[window] == '':
     print('WARNING: no bam file had any reads (after a minimum post-merging '+\
     'read count of ', args.MinReadCount,' was imposed) in the window', \
-    str(LeftWindowEdge)+'-'+str(RightWindowEdge)+'. Skipping to the next window.', \
-    file=sys.stderr)
+    str(UserLeftWindowEdge)+'-'+str(UserRightWindowEdge)+'. Skipping to the', \
+    'next window.', file=sys.stderr)
     continue
 
   # Create a fasta file with all reads in this window.
-  ThisWindowSuffix = 'InWindow_'+str(LeftWindowEdge)+'_to_'+str(RightWindowEdge)
-
+  ThisWindowSuffix = 'InWindow_'+str(UserLeftWindowEdge)+'_to_'+\
+  str(UserRightWindowEdge)
   FileForReadsHere = FileForReadsInEachWindow_basename + ThisWindowSuffix+\
   '.fasta'
   FileForAlnReadsHere = FileForAlignedReadsInEachWindow_basename + \
@@ -656,12 +656,12 @@ enumerate(PairedAlignmentWindowCoord):
 
   # Create the ML tree
   MLtreeFile = 'RAxML_bestTree.' +ThisWindowSuffix +'.tree'
-
-
-
+  RAxMLcall = [args.x_raxml, '-m', args.raxml_model, '-p', str(RAxMLseed),\
+  '-s', FileForAlnReadsHere, '-n', ThisWindowSuffix+'.tree']
+  if args.ref_for_rooting != None:
+    RAxMLcall += ['-o', args.ref_for_rooting]
   try:
-    ExitStatus = subprocess.call([args.x_raxml, '-m', args.raxml_model, '-p', \
-    str(RAxMLseed), '-s', FileForAlnReadsHere, '-n', ThisWindowSuffix+'.tree'] )
+    ExitStatus = subprocess.call(RAxMLcall)
     assert ExitStatus == 0
   except:
     print('Problem making the ML tree with RAxML.\nSkipping to the next window.', \
