@@ -1,0 +1,662 @@
+#!/usr/bin/env python
+from __future__ import print_function
+
+## Author: Chris Wymant, c.wymant@imperial.ac.uk
+## Acknowledgement: I wrote this while funded by ERC Advanced Grant PBDR-339251
+##
+## Overview:
+ExplanatoryMessage = '''This script creates between-sample alignments of reads.
+The reference sequences used to create a number of bam files (i.e. the sequences
+to which the reads were mapped) are aligned. User-specified coordinates with
+respect to this alignment are translated to coordinates with respect to each
+separate reference, dividing each reference into a set of matching windows. For
+each sample, for each window: all reads mapped to that window are found,
+identical reads are collected together with an associated count, similar reads
+are merged together based on the counts, then a minimum count is imposed. Then,
+for each window, all reads from all samples are aligned using mafft and a
+phylogeny is constructed using RAxML.
+Output files are written to the current working directory; to avoid overwriting
+existing files, you might to want to call this code from an empty directory.
+'''
+
+################################################################################
+# USER INPUT
+
+RAxMLseed = 1
+RAxMLbootstrapSeed = 1
+
+# Some temporary working files we'll create
+FileForRefs = 'temp_refs.fasta'
+FileForAlignedRefs = 'temp_RefsAln.fasta'
+FileForReadsInEachWindow_basename = 'temp_UnalignedReads'
+FileForOtherRefsInEachWindow_basename = 'temp_OtherRefs'
+FileForAlignedReadsInEachWindow_basename = 'AlignedReads'
+FileForAllBootstrappedTrees_basename = 'temp_AllBootstrappedTrees'
+################################################################################
+
+import pysam
+import argparse
+import os
+import collections
+import subprocess
+import sys
+import re
+from MergeSimilarStrings import MergeSimilarStrings
+from Bio import SeqIO
+from matplotlib import pyplot as plt
+#from Bio import AlignIO
+from Bio import Phylo
+#from Bio.Phylo.Consenss import bootstrap_trees, majority_consensus, get_support
+#from Bio.Phylo.TreeConstruction import DistanceTreeConstructor, \
+#DistanceCalculator
+
+# Define a function to check files exist, as a type for the argparse.
+def File(MyFile):
+  if not os.path.isfile(MyFile):
+    raise argparse.ArgumentTypeError(MyFile+' does not exist or is not a file.')
+  return MyFile
+
+# Set up the arguments for this script
+ExplanatoryMessage = ExplanatoryMessage.replace('\n', ' ').replace('  ', ' ')
+parser = argparse.ArgumentParser(description=ExplanatoryMessage)
+parser.add_argument('MergingThreshold', type=int, help=\
+'Reads that differ by a number of bases equal to or less than this are merged'+\
+', following the algorithm in MergeSimilarStrings.py. A value equal to or '+\
+'less than 0 turns off merging.')
+parser.add_argument('MinReadCount', type=int, help=\
+'Reads with a count less than this value (after merging) are discarded. A '+\
+'value equal to or less than 1 means all reads are kept.')
+parser.add_argument('ListOfBamFiles', type=File, help='A file containing the '+\
+'names (and paths) of the bam files to be included, one per line. The file '+\
+'basenames (i.e. the filename minus the directory) should be unique and free '+\
+'of whitespace.')
+parser.add_argument('ListOfRefFiles', type=File, help='A file containing the '+\
+'names (and paths) of the reference fasta files for the bam files, one per '+\
+'line. The file basenames (i.e. the filename minus the directory) should be'+\
+' unique and free of whitespace.')
+parser.add_argument('-A', '--alignment-of-other-refs', type=File,\
+help='An alignment of any reference sequences (which need not be those used '+\
+'to produce the bam files) to be cut into the same windows as the bam files '+\
+'and included in the alignment of reads (e.g. to help root trees).')
+parser.add_argument('AlignmentWindowCoord', type=int, nargs='+', \
+help='A set of paired coordinates defining the boundaries of the windows. '+\
+'e.g. 1 300 11 310 21 320 would define windows 1-300, 11-310, 21-320.')
+parser.add_argument('-Q', '--min-base-quality', type=int, help='Each end of '+\
+'the read is trimmed inwards until a base of this quality is met.')
+parser.add_argument('-O', '--trim-overhangs', action='store_true', \
+help='Only the part of the read that is inside the window is kept')
+parser.add_argument('-N', '--number-of-bootstraps', type=int,\
+help='The number of bootstraps to be calculated for RAxML trees (by default, '+\
+'none i.e. only the ML tree is calculated).')
+parser.add_argument('-M', '--raxml-model', default='GTRCAT',\
+help='The evoltionary model used by RAxML')
+#parser.add_argument('-S', '--min-support', default=60, type=float, help=\
+#'The bootstrap support below which nodes will be collapsed, as a percentage.')
+parser.add_argument('--x-raxml', default='raxmlHPC-AVX', help=\
+'The command required to invoke RAxML (by default: raxmlHPC-AVX).')
+parser.add_argument('--x-mafft', default='mafft', help=\
+'The command required to invoke mafft (by default: mafft).')
+parser.add_argument('--x-samtools', default='samtools', help=\
+'The command required to invoke samtools, if needed (by default: samtools).')
+parser.add_argument('--no-trees', action='store_true', help='Generate aligned'+\
+' sets of reads for each window then quit without making trees.')
+args = parser.parse_args()
+
+# Was the -A flag specified:
+IncludeOtherRefs = (args.alignment_of_other_refs != None)
+
+# Shorthand
+NumBootstraps = args.number_of_bootstraps
+
+# Sanity checks on the AlignmentWindowCoords
+NumCoords = len(args.AlignmentWindowCoord)
+if NumCoords % 2 != 0:
+  print('An even number of AlignmentWindowCoord must be specified. Quitting.',\
+  file=sys.stderr)
+  exit(1)
+if any(coord < 1 for coord in args.AlignmentWindowCoord):
+  print('All AlignmentWindowCoord must be greater than zero. Quitting.',\
+  file=sys.stderr)
+  exit(1)
+LeftWindowEdges  = args.AlignmentWindowCoord[::2]
+RightWindowEdges = args.AlignmentWindowCoord[1::2]
+PairedAlignmentWindowCoord = zip(LeftWindowEdges, RightWindowEdges)
+for LeftWindowEdge, RightWindowEdge in PairedAlignmentWindowCoord:
+  if LeftWindowEdge >= RightWindowEdge:
+    print('You specified a window as having left edge', LeftWindowEdge, \
+    'and right edge', str(RightWindowEdge)+'. Left edges should be less than',\
+    'their right edges. Quitting.', file=sys.stderr)
+    exit(1)
+
+# Check that the bootstrap threshold is between 0 and 100
+#if not (0 <= args.min_support <= 100):
+#  print('MIN_SUPPORT was given as', str(args.min_support)+'; it should be',
+#  'between 0 and 100 inclusive.\nQuitting', file=sys.stderr)
+
+
+# Test that we can run code we'll need
+DirectoryOfThisScript = os.path.dirname(os.path.realpath(__file__))
+def FindAndCheckCode(CodeBasename):
+  '''Checks that code exists in the same directory as this script, that it's
+  executable with a -h flag, and returns its path.'''
+  CodeFullPath = os.path.join(DirectoryOfThisScript, CodeBasename)
+  if not os.path.isfile(CodeFullPath):
+    print(CodeBasename, 'is not in the same directory as', sys.argv[0] +\
+    '\nQuitting', file=sys.stderr)
+    exit(1)
+  FNULL = open(os.devnull, 'w')
+  if subprocess.call([CodeFullPath, '-h'], stdout=FNULL, \
+  stderr=subprocess.STDOUT) != 0:
+    print('Problem running', CodeFullPath+'.\nTry running\nchmod u+x ', \
+    CodeFullPath+'\nIt might help...', file=sys.stderr)
+    exit(1)
+  return CodeFullPath
+
+TranslateCoordsCode = FindAndCheckCode('TranslateCoords.py')
+FindSeqsInFastaCode = FindAndCheckCode('FindSeqsInFasta.py')
+
+FNULL = open(os.devnull, 'w')
+if subprocess.call([args.x_raxml, '-h'], stdout=FNULL, \
+stderr=subprocess.STDOUT) != 0:
+  print('Problem running', args.x_raxml, '\nQuitting.', file=sys.stderr)
+  exit(1)
+
+
+def ReadFilenamesFromFile(TheFile):
+  '''Reads the filenames in a file, and also their basenames, into two lists.
+
+  The files are checked to exist and to have unique basenames without whitespace
+  in them. No filenames being present causes a non-zero exit.'''
+
+  files = []
+  basenames = []
+  with open(TheFile, 'r') as f:
+    for line in f:
+      filename = line.strip()
+      if filename == '':
+        continue
+      if not os.path.isfile(filename):
+        print(filename, 'does not exist or is not a file.', file=sys.stderr)
+        exit(1)
+      basename = os.path.basename(filename)
+      if len(basename.split(None,1)) > 1:
+        print('File', filename, 'in', TheFile, 'contains whitespace in the',\
+        'basename. Rename to avoid this and try again. Quitting.',\
+        file=sys.stderr)
+        exit(1)
+      if basename in basenames:
+        print('Multiple files in', TheFile, 'have basename', basename+\
+        '. Basenames should be unique, as they are used as labels. Quitting.',\
+        file=sys.stderr)
+        exit(1)
+      files.append(filename)
+      basenames.append(basename)
+  if files == []:
+    print(TheFile, 'contains no filenames. This is assumed to be an error.\n'+\
+    'Quitting.', file=sys.stderr)
+    exit(1)
+  return files, basenames
+
+# Read in lists of bam and reference files
+BamFiles, BamFileBasenames = ReadFilenamesFromFile(args.ListOfBamFiles)
+RefFiles, RefFileBasenames = ReadFilenamesFromFile(args.ListOfRefFiles)
+
+# If the BamFileBasenames are all still unique after removing ".bam" from the
+# ends, do so, for aesthetics in output files.
+BamlessBasenames = []
+for BamFileBasename in BamFileBasenames:
+  if len(BamFileBasename) >= 4 and BamFileBasename[-4:] == '.bam':
+    BamlessBasenames.append(BamFileBasename[:-4])
+  else:
+    BamlessBasenames.append(BamFileBasename)
+if len(BamlessBasenames) == len(set(BamlessBasenames)):
+  BamFileBasenames = BamlessBasenames
+
+# Check that there are the same number of bam and reference files
+if len(BamFiles) != len(RefFiles):
+  print('Different numbers of files are listed in', ListOfBamFiles, 'and', \
+  ListOfRefFiles+'.\nQuitting', file=sys.stderr)
+  exit(1)
+
+
+
+# Read in all the reference sequences
+RefsAsFasta = ''
+for i,RefFile in enumerate(RefFiles):
+  SeqList = list(SeqIO.parse(open(RefFile),'fasta'))
+  if len(SeqList) != 1:
+    print('There are', len(SeqList), 'sequences in', RefFile+'. There should',\
+    'be exactly 1.\nQuitting.', file=sys.stderr)
+    exit(1)
+  RefBasename = RefFileBasenames[i]
+  RefsAsFasta += '>'+RefBasename+'\n'+str(SeqList[0].seq)+'\n'
+
+# Put all the mapping reference sequences into one file. If an alignment of 
+# other references was supplied, add the mapping references to that alignment;
+# if not, align the mapping references to each other.
+with open(FileForRefs, 'w') as f:
+  f.write(RefsAsFasta)
+with open(FileForAlignedRefs, 'w') as f:
+  if IncludeOtherRefs:
+    MafftExitStatus = subprocess.call([args.x_mafft, '--quiet',  '--preservecase', \
+    '--add', FileForRefs, args.alignment_of_other_refs], stdout=f)
+  else:
+    MafftExitStatus = subprocess.call([args.x_mafft, '--quiet',  '--preservecase', \
+    FileForRefs], stdout=f)
+  if MafftExitStatus != 0:
+    print('Problem calling mafft. Quitting', file=sys.stderr)
+    exit(1)
+
+# Translate alignment coordinates to reference coordinates
+CoordsInRefs = {}
+CoordsString = subprocess.check_output([TranslateCoordsCode, \
+FileForAlignedRefs, '-A']+[str(coord) for coord in args.AlignmentWindowCoord])
+for line in CoordsString.splitlines():
+
+  # Trim leading & trailing whitespace and skip blank lines
+  line = line.strip()
+  if line == '':
+    continue
+
+  # Each line in the output of the TranslateCoordsCode should be the basename of
+  # one of the reference files and then the coordinates.
+  fields = line.split()
+  if len(fields) != NumCoords +1:
+    print('Unexpected number of fields in line\n' +line +'\nin the output of '+\
+    TranslateCoordsCode+'\nQuitting.', file=sys.stderr)
+    exit(1)
+  RefBasename = fields[0]
+  coords = fields[1:]
+
+  # If other refs have been included, their names will appear in the output of
+  # TranslateCoordsCode but we're not interested. If other refs have not been
+  # included, only the refs for mapping should appear in this output.
+  if not RefBasename in RefFileBasenames:
+    if IncludeOtherRefs:
+      continue
+    else:  
+      print('Encountered sequence name '+RefBasename+', which is not the '+\
+      'basename of any of the file from '+args.ListOfRefFiles +', in line\n' +\
+      line +'\nin the output of '+TranslateCoordsCode+'\nQuitting.', \
+      file=sys.stderr)
+      exit(1)
+
+  # Convert the coordinates to integers.
+  # Where an alignment coordinate is inside a deletion in a particular sequence,
+  # TranslateCoords.py returns an integer + 0.5 for the coordinate with respect
+  # to that sequence. Python won't convert such figures directly from string to
+  # int, but we can do so via a float intermediate. This rounds down, i.e. to
+  # the coordinate of the base immediately to the left of the deletion.
+  for i in range(len(coords)):
+    if coords[i] != 'NaN':
+      try:
+        coords[i] = int(coords[i])
+      except ValueError:
+        if '.5' in coords[i]:
+          coords[i] = int(float(coords[i]))
+        else:
+          print('Unable to understand the coordinate', coords[i], \
+          'as an integer in line\n' +line +'\nin the output of '+\
+          TranslateCoordsCode+'\nQuitting.', file=sys.stderr)
+          exit(1)
+
+  CoordsInRefs[RefBasename] = coords
+
+
+# Make index files for the bam files if needed.
+for BamFileName in BamFiles:
+  if not os.path.isfile(BamFileName+'.bai'):
+    subprocess.call([args.x_samtools, 'index', BamFileName])
+
+# For each window, find all unique reads from each bam file
+ReadsByWindow = ['' for j in range(NumCoords/2)]
+
+for i,BamFileName in enumerate(BamFiles):
+
+  BamFileBasename = BamFileBasenames[i]
+  RefBasename = RefFileBasenames[i]
+  coords = CoordsInRefs[RefBasename]
+
+  BamFile = pysam.AlignmentFile(BamFileName, "rb")
+
+  # Find the reference in the bam file; there should only be one.
+  AllReferences = BamFile.references
+  if len(AllReferences) != 1:
+    print('Expected exactly one reference in', BamFileName+'; found',\
+    str(len(AllReferences))+'.\nQuitting.', file=sys.stderr)
+    exit(1)
+  RefSeqName = AllReferences[0]
+
+  # Get the length of the reference.
+  AllReferenceLengths = BamFile.lengths
+  if len(AllReferenceLengths) != 1:
+    print('Pysam error: found one reference but', len(AllReferenceLengths), \
+    'reference lengths.\nQuitting.', file=sys.stderr)
+    exit(1)
+  RefLength = AllReferenceLengths[0]
+
+  # When translating coordinates, -1 means before the sequence starts; 'NaN'
+  # means after it ends. These should be replaced by 1 and the reference length
+  # respectively.
+  for j,coord in enumerate(coords):
+    if coord == -1:
+      coords[j] = 1
+    elif coord == 'NaN':
+      coords[j] = RefLength
+
+  LeftWindowEdges  = coords[::2]
+  RightWindowEdges = coords[1::2]
+  PairedWindowCoords = zip(LeftWindowEdges, RightWindowEdges)
+  for window, (LeftWindowEdge,RightWindowEdge) in enumerate(PairedWindowCoords):
+
+    # Find all unique reads in this window and count their occurrences
+    # NB pysam uses zero-based coordinates for positions w.r.t the reference
+    UniqueReads = {}
+    for read in BamFile.fetch(RefSeqName, LeftWindowEdge-1, RightWindowEdge-1):
+
+      # Skip reads that only partially overlap the window
+      MappedRefPositions = read.get_reference_positions()
+      if len(MappedRefPositions) < 2 or \
+      MappedRefPositions[0] > LeftWindowEdge-1 or \
+      MappedRefPositions[-1] < RightWindowEdge-1:
+        continue
+
+      ReadSeq = read.query_sequence
+      ReadLength = len(ReadSeq)
+      RefPositions = read.get_reference_positions(full_length=True)
+      assert len(RefPositions) == ReadLength
+
+      # Trim low-quality ends if desired. Start by finding the positions of the
+      # first and last bases with sufficient quality.
+      if args.min_base_quality > 0:
+        FirstHighQBase = 0
+        assert(len(read.query_qualities)) == ReadLength
+        try:
+          while read.query_qualities[FirstHighQBase] < args.min_base_quality:
+            FirstHighQBase += 1
+        except IndexError:
+          # Every base in the read is below the threshold - skip this read.
+          continue
+        LastHighQBase = ReadLength-1
+        while read.query_qualities[LastHighQBase] < args.min_base_quality:
+          LastHighQBase -= 1
+        # Check that after ignoring leading and trailing bases below the quality
+        # threshold, the read still fully overlaps the window.
+        LeftMostMappedBase = FirstHighQBase
+        try:
+          while RefPositions[LeftMostMappedBase] == None:
+            LeftMostMappedBase += 1
+        except IndexError:
+          # After trimming low Q bases, no surviving bases map.
+          continue
+        RightMostMappedBase = LastHighQBase
+        while RefPositions[RightMostMappedBase] == None:
+          RightMostMappedBase -= 1
+        if RefPositions[LeftMostMappedBase] > LeftWindowEdge-1 or \
+        RefPositions[RightMostMappedBase] < RightWindowEdge-1:
+          continue
+        ReadSeq = ReadSeq[FirstHighQBase:LastHighQBase+1]
+        RefPositions = RefPositions[FirstHighQBase:LastHighQBase+1]
+
+      # Trim the part of the read overhanging the window if desired.
+      if args.trim_overhangs:
+        try:
+          LeftEdgePositionInThisRead = 0
+          while RefPositions[LeftEdgePositionInThisRead] == None or \
+          RefPositions[LeftEdgePositionInThisRead] < LeftWindowEdge-1:
+            LeftEdgePositionInThisRead += 1
+          RightEdgePositionInThisRead = len(RefPositions)-1
+          while RefPositions[RightEdgePositionInThisRead] == None or \
+          RefPositions[RightEdgePositionInThisRead] > RightWindowEdge-1:
+            RightEdgePositionInThisRead -= 1
+          assert LeftEdgePositionInThisRead < RightEdgePositionInThisRead
+        except (IndexError, AssertionError):
+          print('Unexpected behaviour from pysam: read', read.query_name, \
+          'maps to the following positions in the reference:\n'+ \
+          ' '.join(map(str,RefPositions)) +'\nUnable to determine where the',\
+          'window edges ('+str(LeftWindowEdge), 'and', str(RightWindowEdge)+\
+          ') are in this read. Quitting.', file=sys.stderr)
+          exit(1)
+        ReadSeq = ReadSeq[LeftEdgePositionInThisRead:\
+        RightEdgePositionInThisRead+1]
+
+      # Update the counts for all unique reads
+      if ReadSeq in UniqueReads:
+        UniqueReads[ReadSeq] += 1
+      else:
+        UniqueReads[ReadSeq] = 1
+
+    # Merge reads if desired
+    if args.MergingThreshold > 0:
+      UniqueReads = MergeSimilarStrings(UniqueReads, args.MergingThreshold)
+
+    # Implement the minimum read count
+    if args.MinReadCount > 1:
+      UniqueReads = {read:count for read, count in UniqueReads.items() if \
+      count >= args.MinReadCount}
+
+    # Add all reads from this window & this bam file to the set of all reads
+    # from this window and ALL bam files, in fasta format, most common reads
+    # first.
+    if len(UniqueReads) == 0:
+      print('Warning: bam file', BamFileBasename, 'has no reads in window', \
+      str(LeftWindowEdge)+'-'+   str(RightWindowEdge), file=sys.stderr)
+    else:
+      for k, (read, count) in \
+      enumerate(sorted(UniqueReads.items(), key=lambda x: x[1], reverse=True)):
+        SeqHeader = '>'+BamFileBasename+'_read_'+str(k+1)+'_count_'+str(count)
+        ReadsByWindow[window] += SeqHeader+'\n'+read+'\n'
+
+# This regex matches "_read_" then any integer then "_count_" then any integer,
+# constrained to come at the end of the string.
+SampleRegex = re.compile('_read_\d+_count_\d+$')
+
+def IsMonoSampleClade(clade):
+  '''Checks whether all tips inside this clade come from the same sample.
+
+  We check that all tip names match the regex, and have the same string
+  before the regex, and that string is one of the BamFileBasenames. If so, a 
+  list of the tip names is returned; if not, the value False is returned.'''
+
+  TipNames = []
+  for tip in clade.get_terminals():
+    TipName = tip.name
+    RegexMatch = SampleRegex.search(TipName)
+    if RegexMatch and TipName[:RegexMatch.start()] in BamFileBasenames:
+      SampleName = TipName[:RegexMatch.start()]
+    else:
+      return False
+    if TipNames == []:
+      FirstSample = SampleName
+    elif SampleName != FirstSample:
+      return False
+    TipNames.append(TipName)
+  return TipNames
+
+# TODO: how to make this work for unrooted trees? find_clades assumes a root, I 
+# think.
+def ResolveTree(tree):
+  '''Resolves a tree into a list, each element of which is either a) a list of
+  tip names where these tips form a mono-sample clade, or b) a tip name.'''
+  ResolvedCladesAtThisLevel = []
+  for clade in tree.find_clades(order='level'):
+    CladeLevel = len(tree.get_path(clade))
+    if CladeLevel == 0:
+      continue
+    elif CladeLevel == 1:
+      if clade.is_terminal():
+        ResolvedCladesAtThisLevel.append(clade.name)
+      else:
+        TipNamesIfMonoSample = IsMonoSampleClade(clade)
+        if TipNamesIfMonoSample:
+          ResolvedCladesAtThisLevel.append(TipNamesIfMonoSample)
+        else:
+          ResolvedCladesAtThisLevel += ResolveTree(clade)
+    else:
+      break
+  return ResolvedCladesAtThisLevel
+
+
+# Iterate through the windows
+for window, (LeftWindowEdge, RightWindowEdge) in \
+enumerate(PairedAlignmentWindowCoord):
+
+  # Create a fasta file with all reads in this window, then align them.
+  ThisWindowSuffix = 'InWindow_'+str(LeftWindowEdge)+'_to_'+str(RightWindowEdge)
+  FileForReadsHere = FileForReadsInEachWindow_basename + ThisWindowSuffix+\
+  '.fasta'
+  FileForAlnReadsHere = FileForAlignedReadsInEachWindow_basename + \
+  ThisWindowSuffix +'.fasta'
+  with open(FileForReadsHere, 'w') as f:
+    f.write(ReadsByWindow[window])
+  if IncludeOtherRefs:
+    FileForOtherRefsHere = FileForOtherRefsInEachWindow_basename + \
+    ThisWindowSuffix +'.fasta'
+    with open(FileForOtherRefsHere, 'w') as f:
+      if subprocess.call([FindSeqsInFastaCode, FileForAlignedRefs, \
+      '-W', str(LeftWindowEdge)+','+str(RightWindowEdge), '-v']+ \
+      RefFileBasenames, stdout=f) != 0:
+        print('Problem calling', FindSeqsInFastaCode+'. Skipping to next window.', \
+        file=sys.stderr)
+        continue
+  with open(FileForAlnReadsHere, 'w') as f:
+    if IncludeOtherRefs:
+      MafftExitStatus = subprocess.call([args.x_mafft, '--quiet', '--preservecase', \
+      '--add', FileForReadsHere, FileForOtherRefsHere], stdout=f)
+    else:
+      MafftExitStatus = subprocess.call([args.x_mafft, '--quiet', '--preservecase', \
+      FileForReadsHere], stdout=f)
+    if MafftExitStatus != 0:
+      print('Problem calling mafft. Skipping to next window.', file=sys.stderr)
+      continue
+
+  if args.no_trees:
+    continue
+
+  # Create the ML tree
+  MLtreeFile = 'RAxML_bestTree.' +ThisWindowSuffix +'.tree'
+  if subprocess.call([args.x_raxml, '-m', args.raxml_model, '-p', str(RAxMLseed), \
+  '-s', FileForAlnReadsHere, '-n', ThisWindowSuffix+'.tree'] ) != 0:
+    print('Problem making the ML tree with RAxML.\nSkipping to next window.', \
+    file=sys.stderr)
+    continue
+  if not os.path.isfile(MLtreeFile):
+    print(MLtreeFile +', expected to be produced by RAxML, does not exist.'+\
+    '\nSkipping to next window.', file=sys.stderr)
+    continue
+
+  # If desired, make bootstrapped alignments
+  if NumBootstraps != None:
+    if subprocess.call([args.x_raxml, '-m', args.raxml_model, '-p', str(RAxMLseed), \
+    '-b', str(RAxMLbootstrapSeed), '-f', 'j', '-#', str(NumBootstraps), \
+    '-s', FileForAlnReadsHere, '-n', ThisWindowSuffix+'_bootstraps']) != 0:
+      print('Problem generating bootstrapped alignments with RAxML', \
+      '\nSkipping to next window.', file=sys.stderr)
+      continue
+    BootstrappedAlignments = [FileForAlnReadsHere+'.BS'+str(bootstrap) for \
+    bootstrap in range(NumBootstraps)]
+    if not all(os.path.isfile(BootstrappedAlignment) \
+    for BootstrappedAlignment in BootstrappedAlignments):
+      print('At least one of the following files, expected to be produced by'+\
+      ' RAxML, is missing:\n', ' '.join(BootstrappedAlignments)+'\nSkipping to next window.', \
+      file=sys.stderr)
+      continue
+
+    # Make a tree for each bootstrap
+    for bootstrap,BootstrappedAlignment in enumerate(BootstrappedAlignments):
+      if subprocess.call([args.x_raxml, '-m', args.raxml_model, '-p', str(RAxMLseed), \
+      '-s', BootstrappedAlignment, '-n', ThisWindowSuffix+'_bootstrap_'+\
+      str(bootstrap)+'.tree']) != 0:
+        print('Problem generating a tree with RAxML for bootstrap', \
+        str(bootstrap), '\Breaking.', file=sys.stderr)
+        break
+    BootstrappedTrees = ['RAxML_bestTree.' +ThisWindowSuffix +'_bootstrap_' +\
+    str(bootstrap) +'.tree' for bootstrap in range(NumBootstraps)]
+    if not all(os.path.isfile(BootstrappedTree) \
+    for BootstrappedTree in BootstrappedTrees):
+      print('At least one of the following files, expected to be produced by'+\
+      ' RAxML, is missing:\n', ' '.join(BootstrappedTrees)+'\nSkipping to next window.', \
+      file=sys.stderr)
+      continue
+
+    # Collect the trees from all bootstraps into one file
+    AllBootstrappedTreesFile = FileForAllBootstrappedTrees_basename +\
+    ThisWindowSuffix+'.tree'
+    with open(AllBootstrappedTreesFile, 'w') as outfile:
+      for BootstrappedTree in BootstrappedTrees:
+        with open(BootstrappedTree, 'r') as infile:
+          outfile.write(infile.read())
+
+    # Collect the trees from all bootstraps onto the ML tree
+    MainTreeFile = 'MLtreeWbootstraps' +ThisWindowSuffix +'.tree'
+    if subprocess.call([args.x_raxml, '-m', args.raxml_model, '-p', str(RAxMLseed), \
+    '-f', 'b', '-t', MLtreeFile, '-z', AllBootstrappedTreesFile, '-n', \
+    MainTreeFile]) != 0:
+      print('Problem collecting all the bootstrapped trees onto the ML tree', \
+      'with RAxML.\nSkipping to next window.', file=sys.stderr)
+      continue
+    MainTreeFile = 'RAxML_bipartitions.' +MainTreeFile
+    if not os.path.isfile(MainTreeFile):
+      print(MainTreeFile +', expected to be produced by RAxML, does not '+\
+      'exist.\nSkipping to next window.', file=sys.stderr)
+      continue
+
+  # With no bootstraps, just use the ML tree:
+  else:
+    MainTreeFile = MLtreeFile
+
+  #MainTree = Phylo.read(MainTreeFile, 'newick')
+  #for TipOrMonoSampleClade in ResolveTree(MainTree):
+  #  print(TipOrMonoSampleClade)
+
+  #MainTree.collapse_all(lambda c: c.confidence is not None and \
+  #c.confidence < args.min_support)
+  #for clade in MainTree.find_clades(order='level'):
+  #  node_path = MainTree.get_path(clade)
+  #  if len(node_path) == 0:     
+  #    print('whole tree?')
+  #    parent = 'N/A'
+  #  elif len(node_path) == 1: 
+  #    parent = MainTree.root 
+  #  else:
+  #    parent = node_path[-2]
+  #  if  len(node_path) == 1: 
+  #    print(clade.is_terminal(), MainTree.get_path(clade))
+  #    print('parent:', parent)
+  #    print(' '.join([tip.name for tip in clade.get_terminals()]))
+  #  continue
+  #  if not clade.is_terminal():
+  #    print('Subclade:')
+  #    for clade2 in clade.find_clades(order='level'):
+  #      print(clade2.is_terminal())
+  #      print('MainTree.get_path(clade):', MainTree.get_path(clade2))
+  #      print('clade.get_path(clade):', clade.get_path(clade2))
+  #      print(' '.join([tip.name for tip in clade2.get_terminals()]))
+  #  print()
+
+  
+
+
+  #  #if clade.name == None:
+  #  #  for clade2 in clade.find_clades():
+  #  #print(clade2.name, clade2.confidence, clade2.count_terminals(), \
+  #  #clade2.is_preterminal(), '\n', clade2, '\n\n')
+  #  if clade2.is_preterminal()
+
+  #MainTree.ladderize()   # Flip branches so deeper clades are displayed at top
+  #with open(MainTreeFile+'_image.txt', 'w') as f:
+  #  Phylo.draw_ascii(MainTree, file=f, column_width=1000)
+
+  #plt.ion()
+  #Phylo.draw(MainTree)
+  #plt.savefig('foo.pdf')
+
+  '''
+  msa = AlignIO.read(FileForAlnReadsHere, 'fasta')
+  calculator = DistanceCalculator('blosum62')
+  constructor = DistanceTreeConstructor(calculator)
+  trees = bootstrap_trees(msa, 100, constructor)
+  majority_tree = majority_consensus(trees, 0.5)
+  support_tree = get_support(majority_tree, trees)
+  '''
+
