@@ -37,18 +37,18 @@ if (command.line) {
   #id.file <- "inputs/ListOfIDs_IDUs_IncNotOK.txt"
   #id.file <- "inputs/ListOfIDs_SubtypeCclade.txt"
   #id.file <- "inputs/ListOfIDs_CFRandom.txt"
-  id.file <- "ListOfIDs_run20160110.txt"
+  id.file <- "ListOfIDs_run20160111.txt"
   id.delimiter <- "-1"
-  font.size <- 0.3
+  font.size <- 0.15
   line.width <- 1
   seed <- 1
   #output.dir <- "CF_TREES/IDUs"
   #output.dir <- "CF_TREES/SubtypeCclade"
   #output.dir <- "CF_TREES/CF_RandomSelection"
-  output.dir <- "run20160110/R_output"
+  output.dir <- "run20160111/R_output"
   #input.dir<-"PhylotypeOutput/SubtypeCclade"
   #input.dir<-"/Users/cfraser/Dropbox (Infectious Disease)/PROJECTS/BEEHIVE/Christophe_notebook/phylotypes/run20151011/"
-  input.dir<-"/Users/Christophe/phylotypes/run20160110/"
+  input.dir<-"/Users/Christophe/phylotypes/run20160111/RAxML_bestTree"
   root.name<-"Ref.B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
   #tree.files <- list.files("PhylotypeOutput/IDUs", pattern="*.tree")
   tree.files <- list.files(input.dir, pattern="*\\.tree") 
@@ -56,6 +56,7 @@ if (command.line) {
 }
 
 require(phytools)
+require(dplyr)
 
 dir.create(output.dir, showWarnings=F)
 #StatsList <- list()
@@ -88,7 +89,7 @@ pat.stats$patient.id <- as.character(pat.stats$patient.id)
 
 for (tree.file in tree.files) {
   
-  tree.file <- tree.files[[1]]
+#  tree.file <- tree.files[[1]]
   
   tree.file.name<-paste(input.dir,tree.file,sep="/")
   
@@ -117,7 +118,7 @@ for (tree.file in tree.files) {
   # First make the automatic tip labels transparent, then replot with colour.
   out.tree.basename <- paste(basename(tree.file), ".pdf", sep="")
   out.tree <- file.path(output.dir, out.tree.basename)
-  pdf(out.tree)
+  pdf(out.tree, height = num.tips/10, width = 5)
   opar <- par()
   par(fg="transparent")
   plotTree(tree, color="black", fsize=font.size, lwd=line.width, ylim=c(-1, num.tips))
@@ -127,6 +128,7 @@ for (tree.file in tree.files) {
        cex=font.size, col=this.tree.colours, pos=4, offset=0.1, font=0.1)
   dev.off()
   par <- opar
+}
   
   # Associate each tip to its patient.
   patient.tips <- list()
@@ -202,7 +204,7 @@ pat.stats$size.significantly.big <- ifelse(pat.stats$size.mono.p.value<0.05/leng
 
 
 pdf(file.path(output.dir, "Patient.Statistics.pdf"), paper = "a4")
-for (id in ids) {
+for (id in sort(ids)) {
   par(mfrow=c(3, 2))
   pat <- pat.stats[pat.stats$patient.id==id, ]
   plot(pat$window, pat$num.leaves, main=pat$patient.id[1],
@@ -235,4 +237,14 @@ dev.off()
 
 write.csv(pat.stats,file.path(output.dir, "Patient.Statistics.csv"))
 
+mean.na.rm <- function(x) mean(x,na.rm = T)
 
+pat.stats$window.has.data <- as.numeric(pat.stats$num.leaves > 0)
+pat.stats$num.leaves <- as.numeric(as.character(pat.stats$num.leaves))
+pat.stats$num.reads <- as.numeric(as.character(pat.stats$num.reads))
+pat.stats$monophyletic <- as.numeric(as.character(pat.stats$monophyletic))
+
+by.patient <- pat.stats %>% group_by(patient.id)
+pat.stats.summary <- as.data.frame( by.patient %>% summarise_each(funs(mean.na.rm)) )
+
+write.csv(pat.stats.summary,file.path(output.dir, "Patient.Statistics.Summary.csv"))

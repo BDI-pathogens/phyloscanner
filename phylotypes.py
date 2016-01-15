@@ -53,7 +53,7 @@ from Bio import SeqIO
 from Bio import Seq
 from Bio import Phylo
 #from Bio import AlignIO
-from matplotlib import pyplot as plt
+#from matplotlib import pyplot as plt
 import glob
 from shutil import copy2
 #from Bio.Phylo.Consenss import bootstrap_trees, majority_consensus, get_support
@@ -418,7 +418,7 @@ for i,BamFileName in enumerate(BamFiles):
           Read2asPseudoRead = ReadAsPseudoRead
           MergedRead = Read1asPseudoRead.MergeReadPairOverWindow( \
           Read2asPseudoRead, LeftWindowEdge, RightWindowEdge, \
-          args.quality_trim_ends)
+          args.quality_trim_ends, args.min_internal_quality)
           if MergedRead == None:
             del AllReads[read.query_name]
             continue

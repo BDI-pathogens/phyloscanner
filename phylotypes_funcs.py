@@ -159,7 +159,7 @@ class PseudoRead:
 
     # Skip reads containing more than one low-quality base
     if MinInternalQual != None and \
-    (self.IsLowQual(MinInternalQual):
+    (self.IsLowQual(MinInternalQual)):
       return None
 
     SeqToReturn = self.sequence
