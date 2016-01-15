@@ -30,7 +30,7 @@ FileForRefs = 'temp_refs.fasta'
 FileForAlignedRefs = 'temp_RefsAln.fasta'
 FileForReadsInEachWindow_basename = 'temp_UnalignedReads'
 FileForOtherRefsInEachWindow_basename = 'temp_OtherRefs'
-FileForAlignedReadsInEachWindow_basename = 'AlignedReads'
+FileForAlignedReadsInEachWindow_basename = 'old_AlignedReads'
 FileForAllBootstrappedTrees_basename = 'temp_AllBootstrappedTrees'
 ################################################################################
 
@@ -43,6 +43,7 @@ import sys
 import re
 from MergeSimilarStrings import MergeSimilarStrings
 from Bio import SeqIO
+from Bio import Seq
 from matplotlib import pyplot as plt
 #from Bio import AlignIO
 from Bio import Phylo
@@ -156,7 +157,7 @@ TranslateCoordsCode = FindAndCheckCode('TranslateCoords.py')
 FindSeqsInFastaCode = FindAndCheckCode('FindSeqsInFasta.py')
 
 FNULL = open(os.devnull, 'w')
-if subprocess.call([args.x_raxml, '-h'], stdout=FNULL, \
+if not args.no_trees and subprocess.call([args.x_raxml, '-h'], stdout=FNULL, \
 stderr=subprocess.STDOUT) != 0:
   print('Problem running', args.x_raxml, '\nQuitting.', file=sys.stderr)
   exit(1)
@@ -501,7 +502,15 @@ def ResolveTree(tree):
 for window, (LeftWindowEdge, RightWindowEdge) in \
 enumerate(PairedAlignmentWindowCoord):
 
-  # Create a fasta file with all reads in this window, then align them.
+  # Skip empty windows
+  if ReadsByWindow[window] == '':
+    print('WARNING: no bam file had any reads (after a minimum post-merging '+\
+    'read count of ', args.MinReadCount,' was imposed) in the window', \
+    str(LeftWindowEdge)+'-'+str(RightWindowEdge)+'. Skipping to the next window.', \
+    file=sys.stderr)
+    continue
+
+  # Create a fasta file with all reads in this window.
   ThisWindowSuffix = 'InWindow_'+str(LeftWindowEdge)+'_to_'+str(RightWindowEdge)
   FileForReadsHere = FileForReadsInEachWindow_basename + ThisWindowSuffix+\
   '.fasta'
@@ -516,10 +525,16 @@ enumerate(PairedAlignmentWindowCoord):
       if subprocess.call([FindSeqsInFastaCode, FileForAlignedRefs, \
       '-W', str(LeftWindowEdge)+','+str(RightWindowEdge), '-v']+ \
       RefFileBasenames, stdout=f) != 0:
-        print('Problem calling', FindSeqsInFastaCode+'. Skipping to next window.', \
+        print('Problem calling', FindSeqsInFastaCode+'. Skipping to the next window.', \
         file=sys.stderr)
         continue
-  with open(FileForAlnReadsHere, 'w') as f:
+
+  # Align the reads. Prepend 'temp_' if we'll merge again after aligning.
+  if args.MergingThreshold > 0:
+    FileForReads = 'temp_'+FileForAlnReadsHere
+  else:
+    FileForReads = FileForAlnReadsHere
+  with open(FileForReads, 'w') as f:
     if IncludeOtherRefs:
       MafftExitStatus = subprocess.call([args.x_mafft, '--quiet', '--preservecase', \
       '--add', FileForReadsHere, FileForOtherRefsHere], stdout=f)
@@ -527,8 +542,66 @@ enumerate(PairedAlignmentWindowCoord):
       MafftExitStatus = subprocess.call([args.x_mafft, '--quiet', '--preservecase', \
       FileForReadsHere], stdout=f)
     if MafftExitStatus != 0:
-      print('Problem calling mafft. Skipping to next window.', file=sys.stderr)
+      print('Problem calling mafft. Skipping to the next window.', file=sys.stderr)
       continue
+
+  # Do a second round of within-sample read merging now the reads are aligned. 
+  # Make a dict (indexed by sample name) of dicts (indexed by the sequences
+  # themselves) of read counts. Those sequences that are from a sample are 
+  # found by matching the RegexMatch '_read_\d+_count_\d+$'; other sequences
+  # must be external references the user included, and are not processed.
+  if args.MergingThreshold > 0:
+    SampleReadCounts = collections.OrderedDict()
+    AllSeqsToPrint = []
+    for seq in SeqIO.parse(open(FileForReads),'fasta'):
+      RegexMatch = SampleRegex.search(seq.id)
+      if RegexMatch and seq.id[:RegexMatch.start()] in BamFileBasenames:
+        SampleName = seq.id[:RegexMatch.start()]
+        read = str(seq.seq)
+        SeqCount = int(seq.id.rsplit('_',1)[1])
+        if SampleName in SampleReadCounts:
+          if read in SampleReadCounts[SampleName]:
+            print('Malfunction of phylotypes:', FileForAlnReadsHere, \
+            'contains two identical sequences for sample', SampleName+\
+            '. This should not happen. Quitting.', file=sys.stderr)
+            exit(1)
+          SampleReadCounts[SampleName][read] = SeqCount
+        else:
+          SampleReadCounts[SampleName] = {read : SeqCount}
+      else:
+        AllSeqsToPrint.append(seq)
+    SampleSeqsToPrint = []
+    for SampleName in SampleReadCounts:
+      SampleReadCounts[SampleName] = \
+      MergeSimilarStrings(SampleReadCounts[SampleName], args.MergingThreshold)
+      for k, (read, count) in enumerate(sorted(\
+      SampleReadCounts[SampleName].items(), key=lambda x: x[1], reverse=True)):
+        ID = SampleName+'_read_'+str(k+1)+'_count_'+str(count)
+        SeqObject = SeqIO.SeqRecord(Seq.Seq(read), id=ID)
+        SampleSeqsToPrint.append(SeqObject)
+    AllSeqsToPrint = SampleSeqsToPrint + AllSeqsToPrint
+    # Merging after alignment means some columns could be pure gap.
+    # Remove these.
+    PureGapColumns = []
+    FirstSeq = str(AllSeqsToPrint[0].seq)
+    for position,base in enumerate(FirstSeq):
+      if base == '-':
+        PureGapColumns.append(position)
+    if PureGapColumns != []:
+      for seq in AllSeqsToPrint[1:]:
+        SeqAsString = str(seq.seq)
+        for i,position in enumerate(PureGapColumns):
+          if SeqAsString[position] != '-':
+            del PureGapColumns[i]
+        if PureGapColumns == []:
+          break
+      if PureGapColumns != []:
+        for i,seq in enumerate(AllSeqsToPrint):
+          SeqAsString = str(seq.seq)
+          for position in PureGapColumns[::-1]:
+            SeqAsString = SeqAsString[:position]+SeqAsString[position+1:]
+          AllSeqsToPrint[i].seq = Seq.Seq(SeqAsString)
+    SeqIO.write(AllSeqsToPrint, FileForAlnReadsHere, "fasta")
 
   if args.no_trees:
     continue
@@ -537,12 +610,12 @@ enumerate(PairedAlignmentWindowCoord):
   MLtreeFile = 'RAxML_bestTree.' +ThisWindowSuffix +'.tree'
   if subprocess.call([args.x_raxml, '-m', args.raxml_model, '-p', str(RAxMLseed), \
   '-s', FileForAlnReadsHere, '-n', ThisWindowSuffix+'.tree'] ) != 0:
-    print('Problem making the ML tree with RAxML.\nSkipping to next window.', \
+    print('Problem making the ML tree with RAxML.\nSkipping to the next window.', \
     file=sys.stderr)
     continue
   if not os.path.isfile(MLtreeFile):
     print(MLtreeFile +', expected to be produced by RAxML, does not exist.'+\
-    '\nSkipping to next window.', file=sys.stderr)
+    '\nSkipping to the next window.', file=sys.stderr)
     continue
 
   # If desired, make bootstrapped alignments
@@ -551,15 +624,15 @@ enumerate(PairedAlignmentWindowCoord):
     '-b', str(RAxMLbootstrapSeed), '-f', 'j', '-#', str(NumBootstraps), \
     '-s', FileForAlnReadsHere, '-n', ThisWindowSuffix+'_bootstraps']) != 0:
       print('Problem generating bootstrapped alignments with RAxML', \
-      '\nSkipping to next window.', file=sys.stderr)
+      '\nSkipping to the next window.', file=sys.stderr)
       continue
     BootstrappedAlignments = [FileForAlnReadsHere+'.BS'+str(bootstrap) for \
     bootstrap in range(NumBootstraps)]
     if not all(os.path.isfile(BootstrappedAlignment) \
     for BootstrappedAlignment in BootstrappedAlignments):
       print('At least one of the following files, expected to be produced by'+\
-      ' RAxML, is missing:\n', ' '.join(BootstrappedAlignments)+'\nSkipping to next window.', \
-      file=sys.stderr)
+      ' RAxML, is missing:\n', ' '.join(BootstrappedAlignments)+\
+      '\nSkipping to the next window.', file=sys.stderr)
       continue
 
     # Make a tree for each bootstrap
@@ -575,8 +648,8 @@ enumerate(PairedAlignmentWindowCoord):
     if not all(os.path.isfile(BootstrappedTree) \
     for BootstrappedTree in BootstrappedTrees):
       print('At least one of the following files, expected to be produced by'+\
-      ' RAxML, is missing:\n', ' '.join(BootstrappedTrees)+'\nSkipping to next window.', \
-      file=sys.stderr)
+      ' RAxML, is missing:\n', ' '.join(BootstrappedTrees)+\
+      '\nSkipping to the next window.', file=sys.stderr)
       continue
 
     # Collect the trees from all bootstraps into one file
@@ -593,12 +666,12 @@ enumerate(PairedAlignmentWindowCoord):
     '-f', 'b', '-t', MLtreeFile, '-z', AllBootstrappedTreesFile, '-n', \
     MainTreeFile]) != 0:
       print('Problem collecting all the bootstrapped trees onto the ML tree', \
-      'with RAxML.\nSkipping to next window.', file=sys.stderr)
+      'with RAxML.\nSkipping to the next window.', file=sys.stderr)
       continue
     MainTreeFile = 'RAxML_bipartitions.' +MainTreeFile
     if not os.path.isfile(MainTreeFile):
       print(MainTreeFile +', expected to be produced by RAxML, does not '+\
-      'exist.\nSkipping to next window.', file=sys.stderr)
+      'exist.\nSkipping to the next window.', file=sys.stderr)
       continue
 
   # With no bootstraps, just use the ML tree:

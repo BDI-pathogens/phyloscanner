@@ -110,12 +110,12 @@ class PseudoRead:
       RightMostMappedBase -= 1
     return self.positions[RightMostMappedBase] >= RightWindowEdge
 
-  def QualityTrimEnds(self, quality_trim_ends):
+  def QualityTrimEnds(self, MinQual):
     '''Trims inwards until a base of sufficient quality is met.
     Returns a blank read if no bases are of sufficient quality.'''
     FirstHighQBase = 0
     try:
-      while self.qualities[FirstHighQBase] < quality_trim_ends:
+      while self.qualities[FirstHighQBase] < MinQual:
         FirstHighQBase += 1
     except IndexError:
       self.sequence = ''
@@ -123,25 +123,25 @@ class PseudoRead:
       self.qualities = []
     else:
       LastHighQBase = len(self.positions)-1
-      while self.qualities[LastHighQBase] < quality_trim_ends:
+      while self.qualities[LastHighQBase] < MinQual:
         LastHighQBase -= 1
-      self.sequence = self.sequence[FirstHighQBase:LastHighQBase+1]
+      self.sequence  = self.sequence[FirstHighQBase:LastHighQBase+1]
       self.positions = self.positions[FirstHighQBase:LastHighQBase+1]
       self.qualities = self.qualities[FirstHighQBase:LastHighQBase+1]
 
-  def CheckInternalQuality(self, min_internal_quality):
-    '''Returns true if at most one base is below the quality threshold, false
+  def IsLowQual(self, MinQual):
+    '''Returns True if two or more bases are below the quality threshold, False
     otherwise.'''
     NumLowQbases = 0
     for qual in self.qualities:
-      if qual < min_internal_quality:
+      if qual < MinQual:
         NumLowQbases += 1
         if NumLowQbases == 2:
-          return False
-    return True
+          return True
+    return False
 
-  def ProcessRead(self, LeftWindowEdge, RightWindowEdge, quality_trim_ends, \
-  min_internal_quality, KeepOverhangs):
+  def ProcessRead(self, LeftWindowEdge, RightWindowEdge, MinQualForEnds, \
+  MinInternalQual, KeepOverhangs):
     '''Returns reads that span a given window.
     Overhangs & low-Q bases are trimmed if desired. None is returned for reads
     that do not span the window. The coordinates of the window edges should be
@@ -152,15 +152,15 @@ class PseudoRead:
       return None
 
     # Trim low-Q ends if desired. Skip if that leaves only a partial overlap.
-    if quality_trim_ends > 0:
-      self.QualityTrimEnds(quality_trim_ends)
+    if MinQualForEnds != None:
+      self.QualityTrimEnds(MinQualForEnds)
       if not self.SpansWindow(LeftWindowEdge, RightWindowEdge):
         return None
 
-
-
-
-
+    # Skip reads containing more than one low-quality base
+    if MinInternalQual != None and \
+    (self.IsLowQual(MinInternalQual):
+      return None
 
     SeqToReturn = self.sequence
 
@@ -190,7 +190,7 @@ class PseudoRead:
 
 
   def MergeReadPairOverWindow(self, other, LeftWindowEdge, RightWindowEdge, \
-  quality_trim_ends):
+  MinQualForEnds, MinInternalQual):
     '''TODO:
     Returns the value None if the pair do not overlap each other and span the
     window. Returns the value False if the pair overlap but disagree on the
@@ -200,9 +200,9 @@ class PseudoRead:
 
     # Trim low-Q ends if desired. If either read has no sequence left after 
     # trimming, return None.
-    if quality_trim_ends > 0:
-      self.QualityTrimEnds(quality_trim_ends)
-      other.QualityTrimEnds(quality_trim_ends)
+    if MinQualForEnds != None:
+      self.QualityTrimEnds(MinQualForEnds)
+      other.QualityTrimEnds(MinQualForEnds)
       if self.sequence == '' or other.sequence == '':
         return None
 
