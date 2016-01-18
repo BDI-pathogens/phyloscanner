@@ -116,6 +116,9 @@ parser.add_argument('-M', '--raxml-model', default='GTRCAT',\
 help='The evoltionary model used by RAxML')
 #parser.add_argument('-S', '--min-support', default=60, type=float, help=\
 #'The bootstrap support below which nodes will be collapsed, as a percentage.')
+parser.add_argument('--renaming-file', type=File, help='Specify a file with '\
+'one line per bam file, showing how reads from that bam file should be named '\
+'in the output files.')
 parser.add_argument('-T', '--no-trees', action='store_true', help='Generate '+\
 'aligned sets of reads for each window then quit without making trees.')
 parser.add_argument('--x-raxml', default='raxmlHPC-AVX', help=\
@@ -205,8 +208,10 @@ if not args.no_trees:
 
 
 # Read in lists of bam and reference files
-BamFiles, BamFileBasenames = pf.ReadFilenamesFromFile(args.ListOfBamFiles)
-RefFiles, RefFileBasenames = pf.ReadFilenamesFromFile(args.ListOfRefFiles)
+BamFiles, BamFileBasenames = pf.ReadNamesFromFile(args.ListOfBamFiles)
+RefFiles, RefFileBasenames = pf.ReadNamesFromFile(args.ListOfRefFiles)
+if args.renaming_file != None:
+  BamFileNickNames = pf.ReadNamesFromFile(args.renaming_file, False)
 
 # If the BamFileBasenames are all still unique after removing ".bam" from the
 # ends, do so, for aesthetics in output files.
@@ -221,8 +226,12 @@ if len(BamlessBasenames) == len(set(BamlessBasenames)):
 
 # Check that there are the same number of bam and reference files
 if len(BamFiles) != len(RefFiles):
-  print('Different numbers of files are listed in', ListOfBamFiles, 'and', \
-  ListOfRefFiles+'.\nQuitting.', file=sys.stderr)
+  print('Different numbers of files are listed in', args.ListOfBamFiles, 'and',\
+  args.ListOfRefFiles+'.\nQuitting.', file=sys.stderr)
+  exit(1)
+if args.renaming_file != None and len(BamFileNickNames) != len(BamFiles):
+  print('Different numbers of files are listed in', args.ListOfBamFiles, 'and',\
+  args.renaming_file+'.\nQuitting.', file=sys.stderr)
   exit(1)
 
 # Read in all the reference sequences
@@ -496,6 +505,11 @@ for i,BamFileName in enumerate(BamFiles):
       UniqueReads = {read:count for read, count in UniqueReads.items() if \
       count >= args.MinReadCount}
 
+    if args.renaming_file == None:
+      BasenameForReads = BamFileBasename
+    else:
+      BasenameForReads = BamFileNickNames[i]
+
     # Add all reads from this window & this bam file to the set of all reads
     # from this window and ALL bam files, in fasta format, most common reads
     # first.
@@ -505,7 +519,7 @@ for i,BamFileName in enumerate(BamFiles):
     else:
       for k, (read, count) in \
       enumerate(sorted(UniqueReads.items(), key=lambda x: x[1], reverse=True)):
-        SeqHeader = '>'+BamFileBasename+'_read_'+str(k+1)+'_count_'+str(count)
+        SeqHeader = '>'+BasenameForReads+'_read_'+str(k+1)+'_count_'+str(count)
         ReadsByWindow[window] += SeqHeader+'\n'+read+'\n'
 
   # Make a bam file of discarded read pairs if there are any, and warn.

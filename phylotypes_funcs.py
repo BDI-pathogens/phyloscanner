@@ -25,40 +25,52 @@ def FindAndCheckCode(CodeBasename):
   return CodeFullPath
 
 
-def ReadFilenamesFromFile(TheFile):
-  '''Reads the filenames in a file, and also their basenames, into two lists.
+def ReadNamesFromFile(TheFile, IsFile=True):
+  '''Reads names from each line of a file into a list.
 
-  The files are checked to exist and to have unique basenames without whitespace
-  in them. No filenames being present causes a non-zero exit.'''
+  Names are checked to be unique, as they will be used as labels, and may not
+  contain whitespace as they may be used as sequence IDs in fasta files.
+  If IsFile=True, each name is checked to be a file that exists, and a second
+  list - containing the files' basenames - is also returned.
+  No names being present causes a non-zero exit.'''
 
+  assert IsFile == True or IsFile == False
+
+  NamesChecked = []
   files = []
-  basenames = []
   with open(TheFile, 'r') as f:
     for line in f:
-      filename = line.strip()
-      if filename == '':
+      name = line.strip()
+      if name == '':
         continue
-      if not os.path.isfile(filename):
-        print(filename, 'does not exist or is not a file.', file=sys.stderr)
-        exit(1)
-      basename = os.path.basename(filename)
-      if len(basename.split(None,1)) > 1:
-        print('File', filename, 'in', TheFile, 'contains whitespace in the',\
-        'basename. Rename to avoid this and try again. Quitting.',\
+      if IsFile:
+        if not os.path.isfile(name):
+          print(name, 'does not exist or is not a file.', file=sys.stderr)
+          exit(1)
+        NameToCheck = os.path.basename(name)
+      else:
+        NameToCheck = name
+      if len(NameToCheck.split(None,1)) > 1:
+        print('Name', NameToCheck, 'in', TheFile, 'contains whitespace.',\
+        'Rename to avoid this and try again. Quitting.',\
         file=sys.stderr)
         exit(1)
-      if basename in basenames:
-        print('Multiple files in', TheFile, 'have basename', basename+\
-        '. Basenames should be unique, as they are used as labels. Quitting.',\
+      if NameToCheck in NamesChecked:
+        print('Encountered name', NameToCheck, 'multiple times in', TheFile +\
+        '. names should be unique, as they are used as labels. Quitting.',\
         file=sys.stderr)
         exit(1)
-      files.append(filename)
-      basenames.append(basename)
-  if files == []:
-    print(TheFile, 'contains no filenames. This is assumed to be an error.\n'+\
+      NamesChecked.append(NameToCheck)
+      if IsFile:
+        files.append(name)
+  if NamesChecked == []:
+    print(TheFile, 'contains no names. This is assumed to be an error.\n'+\
     'Quitting.', file=sys.stderr)
     exit(1)
-  return files, basenames
+  if IsFile:
+    return files, NamesChecked
+  else:
+    return NamesChecked
 
 
 
