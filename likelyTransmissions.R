@@ -13,6 +13,13 @@ get.tips.for.patient <- function(patient.string, tree, patient.ids){
   return(node.numbers)
 }
 
+# Edge length by node number (probably in some library somewhere)
+
+get.edge.length <- function(node, tree){
+  index <- which(tree$edge[,2]==node)
+  return(tree$edge.length[index])
+}
+
 # Get the sequence of ancestors from one node to the other
 
 get.ancestral.sequence <- function(desc, anc, tree){
@@ -69,14 +76,30 @@ depths <- node.depth.edgelength(tree)
 patients <- unique(patient.ids)
 patients <- patients[which(patients!="Ref")]
 
-# Need a MRCA function which if given a single tip, returns that tip rather than NA
+# Need a MRCA function which if given a single tip, returns that tip rather than NA. Also, since the tree is really
+# multifurcating but cheats with zero branch lengths, the MRCA node should the last one that can be reached by moving
+# up 0 (actually 1E-6) from the MRCA than phangorn gives
 
 mrca.phylo.or.unique.tip <- function(x, node){
+#  cat("Node set: ",node,"\n")
   if(length(node)==1){
-    return(node)
+#    cat("Node ",node," is unique for this patient.\n")
+    mrca = node
   } else {
-    return(mrca.phylo(x, node))
+    mrca = mrca.phylo(x, node)
+#    cat("Node ",mrca," is the MRCA of this set.\n")
   }
+  too.long <- FALSE
+  while(!too.long){
+    if(mrca==getRoot(tree)){
+      too.long <- TRUE
+    }else if(get.edge.length(mrca, tree)>1E-5){
+      too.long <- TRUE
+    } else {
+      mrca <- Ancestors(tree,mrca,type="parent")
+    }
+  }
+  return(mrca)
 }
 
 # Is desc _unambiguously_ a descendant of anc? I.e. is the MRCA node of desc a descendant of the MRCA
@@ -110,7 +133,7 @@ is.direct.descendant.of <- function(desc, anc, tree, mrca.list, tip.list, all.mr
   
   #check that there are no other MRCAs in the sequence of ancestors from desc to anc - this means that either
   #there is an intervening sampled host, or one or the other MRCA is shared with another patient and hence
-  #situtation is too ambiguous
+  #situation is too ambiguous
   
   anc.sequence <- get.ancestral.sequence(mrca.desc, mrca.anc, tree)
   
@@ -134,8 +157,8 @@ patient.mrcas <- lapply(patient.tips, function(node) mrca.phylo.or.unique.tip(tr
 
 all.mrca.nodes <- unique(unlist(patient.mrcas))
 
-total.pairs <- length(patients)^2 - length(patients)
 
+total.pairs <- length(patients)^2 - length(patients)
 
 
 count <- 0
@@ -146,11 +169,11 @@ for(desc in seq(1, length(patients))){
     if(desc!=anc){
       count <- count + 1
       
-      desc.patient <- patients[desc]
-      anc.patient <- patients[anc]
-      
-      descendant.matrix[desc, anc] <- is.descendant.of(desc.patient, anc.patient, tree, patient.mrcas, patient.tips)
-      direct.descendant.matrix[desc, anc] <- is.direct.descendant.of(desc.patient, anc.patient, tree, patient.mrcas, patient.tips, all.mrca.nodes)
+      descendant.matrix[desc, anc] <- is.descendant.of(desc, anc, tree, patient.mrcas, patient.tips)
+      direct.descendant.matrix[desc, anc] <- is.direct.descendant.of(desc, anc, tree, patient.mrcas, patient.tips, all.mrca.nodes)
+      if(direct.descendant.matrix[desc, anc]){
+        cat(patients[desc],"is a descendant of",patients[anc],"\n")
+      }
       if(count %% 100==0){
         cat(paste("Done ",count," of ",total.pairs," pairwise calculations\n", sep=""))
       }
@@ -166,6 +189,8 @@ rownames(direct.descendant.table) <- patients
 
 dddf = as.data.frame(direct.descendant.table)
 dddf = dddf[complete.cases(dddf),]
+
+colnames(dddf) <- c("Descendant", "Ancestor", "Present")
 
 dddf <- dddf[dddf$Present,]
 
