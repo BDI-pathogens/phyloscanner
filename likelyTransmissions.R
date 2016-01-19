@@ -32,6 +32,17 @@ get.ancestral.sequence <- function(desc, anc, tree){
   return(out)
 }
 
+# Output the set of patients whose mrca is this node
+
+get.patients.with.these.mrcas <- function(node, tree, patient.mrcas){
+  out <- vector()
+  mrca.vec <- sapply(patient.mrcas, "[[", 1)
+  
+  numbers <- which(mrca.vec==node)
+  
+  return(names(numbers))
+}
+
 
 tree <- read.tree("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160111/RAxML_bestTree/RAxML_bestTree.InWindow_4101_to_4450.tree")
 
@@ -68,8 +79,6 @@ mrca.phylo.or.unique.tip <- function(x, node){
   }
 }
 
-# Output the tree in NEXUS format with the node numbers as node attributes
-
 # Is desc _unambiguously_ a descendant of anc? I.e. is the MRCA node of desc a descendant of the MRCA
 # node of anc, but no tips of anc are descended from the MRCA node of desc?
 
@@ -99,17 +108,20 @@ is.direct.descendant.of <- function(desc, anc, tree, mrca.list, tip.list, all.mr
   mrca.anc <- mrca.list[[anc]]
   
   
-  #if there are no intervening MRCA nodes, the intersection of the path from mrca.desc to mrca.anc
-  #with all.mrcas has size 2
+  #check that there are no other MRCAs in the sequence of ancestors from desc to anc - this means that either
+  #there is an intervening sampled host, or one or the other MRCA is shared with another patient and hence
+  #situtation is too ambiguous
   
   anc.sequence <- get.ancestral.sequence(mrca.desc, mrca.anc, tree)
   
-  if(length(intersect(anc.sequence, all.mrcas))<2){
+  patients.involved <- unlist(lapply(anc.sequence, get.patients.with.these.mrcas, patient.mrcas=patient.mrcas))
+  
+  if(length(patients.involved)<2){
     #something is seriously wrong
     stop("Sequence of ancestors contains less than two MRCAs")
   }
   
-  if(length(intersect(anc.sequence, all.mrcas))>2){
+  if(length(patients.involved)>2){
     return(FALSE)
   }
   
@@ -133,9 +145,15 @@ for(desc in seq(1, length(patients))){
   for(anc in seq(1, length(patients))){
     if(desc!=anc){
       count <- count + 1
-      descendant.matrix[desc, anc] <- is.descendant.of(desc, anc, tree, patient.mrcas, patient.tips)
-      direct.descendant.matrix[desc, anc] <- is.direct.descendant.of(desc, anc, tree, patient.mrcas, patient.tips, all.mrca.nodes)
-      cat(paste("Done ",count," of ",total.pairs," pairwise calculations\n", sep=""))
+      
+      desc.patient <- patients[desc]
+      anc.patient <- patients[anc]
+      
+      descendant.matrix[desc, anc] <- is.descendant.of(desc.patient, anc.patient, tree, patient.mrcas, patient.tips)
+      direct.descendant.matrix[desc, anc] <- is.direct.descendant.of(desc.patient, anc.patient, tree, patient.mrcas, patient.tips, all.mrca.nodes)
+      if(count %% 100==0){
+        cat(paste("Done ",count," of ",total.pairs," pairwise calculations\n", sep=""))
+      }
     }
   }
 }
