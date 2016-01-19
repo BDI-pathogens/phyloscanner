@@ -1,4 +1,3 @@
-library(ape)
 library(phangorn)
 
 # Get the tip number of the named taxon
@@ -59,7 +58,7 @@ depths <- node.depth.edgelength(tree)
 patients <- unique(patient.ids)
 patients <- patients[which(patients!="Ref")]
 
-patients <- patients[1:50]
+# Need a MRCA function which if given a single tip, returns that tip rather than NA
 
 mrca.phylo.or.unique.tip <- function(x, node){
   if(length(node)==1){
@@ -68,6 +67,8 @@ mrca.phylo.or.unique.tip <- function(x, node){
     return(mrca.phylo(x, node))
   }
 }
+
+# Output the tree in NEXUS format with the node numbers as node attributes
 
 # Is desc _unambiguously_ a descendant of anc? I.e. is the MRCA node of desc a descendant of the MRCA
 # node of anc, but no tips of anc are descended from the MRCA node of desc?
