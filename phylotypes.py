@@ -336,18 +336,18 @@ for BamFileName in BamFiles:
       print('Problem running samtools index.\nQuitting.', file=sys.stderr)
       exit(1)
 
-DiscardedReadPairsFiles = []
-
 # For each window, find all unique reads from each bam file
 ReadsByWindow = ['' for j in range(NumCoords/2)]
 
+# Gather some data from each bam file
+BamFileRefSeqNames = {}
+BamFileRefLengths  = {}
 for i,BamFileName in enumerate(BamFiles):
 
   BamFileBasename = BamFileBasenames[i]
   RefBasename = RefFileBasenames[i]
-  coords = CoordsInRefs[RefBasename]
-  DiscardedReadPairs = []
 
+  # Prep for pysam
   BamFile = pysam.AlignmentFile(BamFileName, "rb")
 
   # Find the reference in the bam file; there should only be one.
@@ -356,7 +356,7 @@ for i,BamFileName in enumerate(BamFiles):
     print('Expected exactly one reference in', BamFileName+'; found',\
     str(len(AllReferences))+'.\nQuitting.', file=sys.stderr)
     exit(1)
-  RefSeqName = AllReferences[0]
+  BamFileRefSeqNames[BamFileBasename] = AllReferences[0]
 
   # Get the length of the reference.
   AllReferenceLengths = BamFile.lengths
@@ -364,30 +364,60 @@ for i,BamFileName in enumerate(BamFiles):
     print('Pysam error: found one reference but', len(AllReferenceLengths), \
     'reference lengths.\nQuitting.', file=sys.stderr)
     exit(1)
-  RefLength = AllReferenceLengths[0]
+  BamFileRefLengths[BamFileBasename] = AllReferenceLengths[0]
 
   # When translating coordinates, -1 means before the sequence starts; 'NaN'
   # means after it ends. These should be replaced by 1 and the reference length
   # respectively.
-  for j,coord in enumerate(coords):
+  for j,coord in enumerate(CoordsInRefs[RefBasename]):
     if coord == -1:
-      coords[j] = 1
+      CoordsInRefs[RefBasename][j] = 1
     elif coord == 'NaN':
-      coords[j] = RefLength
+      CoordsInRefs[RefBasename][j] = RefLength
 
-  ThisBamLeftWindowEdges  = coords[::2]
-  ThisBamRightWindowEdges = coords[1::2]
-  ThisBamPairedWindowCoords = zip(ThisBamLeftWindowEdges, \
-  ThisBamRightWindowEdges)
-  for window, (LeftWindowEdge,RightWindowEdge) in \
-  enumerate(ThisBamPairedWindowCoords):
+# This regex matches "_read_" then any integer then "_count_" then any integer,
+# constrained to come at the end of the string. We'll need it later.
+SampleRegex = re.compile('_read_\d+_count_\d+$')
+
+# We'll keep a list of discarded read pairs for each bam file:
+DiscardedReadPairsDict = \
+{BamFileBasename:[] for BamFileBasename in BamFileBasenames}
+
+# Iterate through the windows
+for window in range(NumCoords / 2):
+
+  # If coords were specified with respect to one particular reference, 
+  # WindowCoords is the translation of those coords to alignment coordinates.
+  # UserCoords are the original coords, which we use for labelling things to
+  # keep labels intuitive for the user.
+  UserLeftWindowEdge  = UserCoords[window*2]
+  UserRightWindowEdge = UserCoords[window*2 +1]
+
+  print('Now processing window ', UserLeftWindowEdge, '-', UserRightWindowEdge,\
+  sep='')
+
+  # Iterate through the bam files
+  for i,BamFileName in enumerate(BamFiles):
+
+    # Recall some things we've already worked out for this bam file and stored.
+    BamFileBasename = BamFileBasenames[i]
+    RefSeqName = BamFileRefSeqNames[BamFileBasename]
+    RefLength = BamFileRefLengths[BamFileBasename]
+    RefBasename = RefFileBasenames[i]
+    ThisBamCoords = CoordsInRefs[RefBasename]
+    LeftWindowEdge  = ThisBamCoords[window*2]
+    RightWindowEdge = ThisBamCoords[window*2 +1]
+
+    # TODO: should be a dict of empty lists, indexed by bam file name
+    DiscardedReadPairs = []
 
     # Find all unique reads in this window and count their occurrences.
     # NB pysam uses zero-based coordinates for positions w.r.t the reference
-    LeftWindowEdge  = LeftWindowEdge  -1
-    RightWindowEdge = RightWindowEdge -1
     AllReads = {}
     UniqueReads = {}
+    LeftWindowEdge  = LeftWindowEdge  -1
+    RightWindowEdge = RightWindowEdge -1
+    BamFile = pysam.AlignmentFile(BamFileName, "rb")
     for read in BamFile.fetch(RefSeqName, LeftWindowEdge, RightWindowEdge):
 
       # Skip improperly paired reads if desired
@@ -412,7 +442,7 @@ for i,BamFileName in enumerate(BamFiles):
             del AllReads[read.query_name]
             continue
           elif MergedRead == False:
-            DiscardedReadPairs += [Read1,Read2]
+            DiscardedReadPairsDict[BamFileBasename] += [Read1,Read2]
             del AllReads[read.query_name]
             continue
           AllReads[read.query_name] = MergedRead
@@ -483,40 +513,10 @@ for i,BamFileName in enumerate(BamFiles):
         SeqHeader = '>'+BasenameForReads+'_read_'+str(k+1)+'_count_'+str(count)
         ReadsByWindow[window] += SeqHeader+'\n'+read+'\n'
 
-  # Make a bam file of discarded read pairs if there are any, and warn.
-  # Copy the reference for this bam file to the working directory, so that it's
-  # together with the bam file.
-  if DiscardedReadPairs != []:
-    RefFile = RefFiles[i]
-    LocalRefFileName = BamFileBasename+'_ref.fasta'
-    copy2(RefFile, LocalRefFileName)
-
-    if len(BamFileBasename) >= 4 and BamFileBasename[-4:] == '.bam':
-      OutFile = FileForDiscardedReadPairs_basename +BamFileBasename
-    else:
-      OutFile = FileForDiscardedReadPairs_basename +BamFileBasename +'.bam'
-    DiscardedReadPairsOut = pysam.AlignmentFile(OutFile, "wb", template=BamFile)
-    for read in DiscardedReadPairs:
-      DiscardedReadPairsOut.write(read)
-    DiscardedReadPairsOut.close()
-    DiscardedReadPairsFiles.append(OutFile)
-
-if DiscardedReadPairsFiles != []:
-  print('Info: read pairs that overlapped but disagreed on the overlap were ',\
-  'found. These have been written to', ' '.join(DiscardedReadPairsFiles) +'.')
-
-# This regex matches "_read_" then any integer then "_count_" then any integer,
-# constrained to come at the end of the string.
-SampleRegex = re.compile('_read_\d+_count_\d+$')
-
-# Iterate through the windows
-for window in range(NumCoords / 2):
-
+  # We've now gathered together reads from all bam files for this window.
+  # These two quantities are defined with respect to the alignment of refs:
   LeftWindowEdge  = WindowCoords[window*2]
   RightWindowEdge = WindowCoords[window*2 +1]
-  UserLeftWindowEdge  = UserCoords[window*2]
-  UserRightWindowEdge = UserCoords[window*2 +1]
-  print(LeftWindowEdge, RightWindowEdge, UserLeftWindowEdge, UserRightWindowEdge)
 
   # Skip empty windows
   if ReadsByWindow[window] == '':
@@ -759,4 +759,27 @@ for window in range(NumCoords / 2):
   #plt.ion()
   #Phylo.draw(MainTree)
   #plt.savefig('foo.pdf')
+
+# Make a bam file of discarded read pairs for each input bam file.
+# Copy the relevant reference file to the working directory, so that it's
+# together with the discarded reads file.
+DiscardedReadPairsFiles = []
+for BamFileBasename, DiscardedReadPairs in DiscardedReadPairsDict.items():
+  if DiscardedReadPairs != []:
+    WhichBamFile = BamFileBasenames.index(BamFileBasename)
+    RefFile = RefFiles[WhichBamFile]
+    LocalRefFileName = BamFileBasename+'_ref.fasta'
+    copy2(RefFile, LocalRefFileName)
+    if len(BamFileBasename) >= 4 and BamFileBasename[-4:] == '.bam':
+      OutFile = FileForDiscardedReadPairs_basename +BamFileBasename
+    else:
+      OutFile = FileForDiscardedReadPairs_basename +BamFileBasename +'.bam'
+    DiscardedReadPairsOut = pysam.AlignmentFile(OutFile, "wb", template=BamFile)
+    for read in DiscardedReadPairs:
+      DiscardedReadPairsOut.write(read)
+    DiscardedReadPairsOut.close()
+    DiscardedReadPairsFiles.append(OutFile)
+if DiscardedReadPairsFiles != []:
+  print('Info: read pairs that overlapped but disagreed on the overlap were ',\
+  'found. These have been written to', ' '.join(DiscardedReadPairsFiles) +'.')
 
