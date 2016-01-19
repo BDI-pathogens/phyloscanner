@@ -130,13 +130,6 @@ parser.add_argument('--x-samtools', default='samtools', help=\
 
 args = parser.parse_args()
 
-# Quit if there are files beginning with 
-#if glob.glob(FileForDiscardedReadPairs_basename+'*') != []:
-#  print('Files beginning "'+FileForDiscardedReadPairs_basename+\
-#  '" exist in the current directory already. Remove them and try again.'+\
-#  '\nQuitting.', file=sys.stderr)
-#  exit(1)
-
 # Shorthand
 NumBootstraps = args.number_of_bootstraps
 IncludeOtherRefs = args.alignment_of_other_refs != None
@@ -163,7 +156,6 @@ def CheckRefIsPresent(flag, ref):
 CheckRefIsPresent('--ref-for-coords',  args.ref_for_coords)
 CheckRefIsPresent('--ref-for-rooting', args.ref_for_rooting)
 
-
 # Sanity checks on the WindowCoords
 NumCoords = len(WindowCoords)
 if NumCoords % 2 != 0:
@@ -189,7 +181,6 @@ for LeftWindowEdge, RightWindowEdge in PairedWindowCoords:
 #  print('MIN_SUPPORT was given as', str(args.min_support)+'; it should be',
 #  'between 0 and 100 inclusive.\nQuitting.', file=sys.stderr)
 
-
 TranslateCoordsCode = pf.FindAndCheckCode('TranslateCoords.py')
 FindSeqsInFastaCode = pf.FindAndCheckCode('FindSeqsInFasta.py')
 
@@ -203,9 +194,6 @@ if not args.no_trees:
   except:
     print('Problem running', args.x_raxml, '\nQuitting.', file=sys.stderr)
     exit(1)
-
-
-
 
 # Read in lists of bam and reference files
 BamFiles, BamFileBasenames = pf.ReadNamesFromFile(args.ListOfBamFiles)
@@ -336,9 +324,7 @@ for line in CoordsString.splitlines():
           'as an integer in line\n' +line +'\nin the output of '+\
           TranslateCoordsCode+'\nQuitting.', file=sys.stderr)
           exit(1)
-
   CoordsInRefs[RefBasename] = coords
-
 
 # Make index files for the bam files if needed.
 for BamFileName in BamFiles:
@@ -349,12 +335,6 @@ for BamFileName in BamFiles:
     except:
       print('Problem running samtools index.\nQuitting.', file=sys.stderr)
       exit(1)
-
-
-#foo = pf.PseudoRead('MyName', 'acgtacgta', [1,2,3,4,5,6,7,8,9], [29,29,29,30,30,30,29,29,29])
-#print(foo)
-#print(foo.ProcessRead(2,5,29,True))
-#exit(0)
 
 DiscardedReadPairsFiles = []
 
@@ -453,25 +433,6 @@ for i,BamFileName in enumerate(BamFiles):
           UniqueReads[seq] += 1
         else:
           UniqueReads[seq] = 1
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     # If we did merge paired reads, we now need to process them.
     # AllReads will be a mixture of PseudoRead instances (for merged read pairs)
@@ -784,9 +745,6 @@ for window in range(NumCoords / 2):
   #      print('clade.get_path(clade):', clade.get_path(clade2))
   #      print(' '.join([tip.name for tip in clade2.get_terminals()]))
   #  print()
-
-  
-
 
   #  #if clade.name == None:
   #  #  for clade2 in clade.find_clades():
