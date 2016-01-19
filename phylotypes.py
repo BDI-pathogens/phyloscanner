@@ -336,9 +336,6 @@ for BamFileName in BamFiles:
       print('Problem running samtools index.\nQuitting.', file=sys.stderr)
       exit(1)
 
-# For each window, find all unique reads from each bam file
-ReadsByWindow = ['' for j in range(NumCoords/2)]
-
 # Gather some data from each bam file
 BamFileRefSeqNames = {}
 BamFileRefLengths  = {}
@@ -395,6 +392,8 @@ for window in range(NumCoords / 2):
 
   print('Now processing window ', UserLeftWindowEdge, '-', UserRightWindowEdge,\
   sep='')
+
+  AllReadsInThisWindow = ''
 
   # Iterate through the bam files
   for i,BamFileName in enumerate(BamFiles):
@@ -511,7 +510,7 @@ for window in range(NumCoords / 2):
       for k, (read, count) in \
       enumerate(sorted(UniqueReads.items(), key=lambda x: x[1], reverse=True)):
         SeqHeader = '>'+BasenameForReads+'_read_'+str(k+1)+'_count_'+str(count)
-        ReadsByWindow[window] += SeqHeader+'\n'+read+'\n'
+        AllReadsInThisWindow += SeqHeader+'\n'+read+'\n'
 
   # We've now gathered together reads from all bam files for this window.
   # These two quantities are defined with respect to the alignment of refs:
@@ -519,7 +518,7 @@ for window in range(NumCoords / 2):
   RightWindowEdge = WindowCoords[window*2 +1]
 
   # Skip empty windows
-  if ReadsByWindow[window] == '':
+  if AllReadsInThisWindow == '':
     print('WARNING: no bam file had any reads (after a minimum post-merging '+\
     'read count of ', args.MinReadCount,' was imposed) in the window', \
     str(UserLeftWindowEdge)+'-'+str(UserRightWindowEdge)+'. Skipping to the', \
@@ -534,7 +533,7 @@ for window in range(NumCoords / 2):
   FileForAlnReadsHere = FileForAlignedReadsInEachWindow_basename + \
   ThisWindowSuffix +'.fasta'
   with open(FileForReadsHere, 'w') as f:
-    f.write(ReadsByWindow[window])
+    f.write(AllReadsInThisWindow)
   if IncludeOtherRefs:
     FileForOtherRefsHere = FileForOtherRefsInEachWindow_basename + \
     ThisWindowSuffix +'.fasta'
