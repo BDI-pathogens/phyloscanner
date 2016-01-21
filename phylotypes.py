@@ -543,7 +543,7 @@ for window in range(NumCoords / 2):
 
   # If we're checking for duplicate reads between samples, do so now.
   # Check every dict against every other dict, and record the ratio of counts
-  # for any shared reads.
+  # for any shared reads...
   if not args.dont_check_duplicates:
     DuplicateDetails = []
     for i, (BamFile1Basename, ReadDict1, LeftWindowEdge1, RightWindowEdge1) \
@@ -565,18 +565,15 @@ for window in range(NumCoords / 2):
         ' for each duplicated read"\n')
         f.write('\n'.join(','.join(map(str,data)) for data in DuplicateDetails))
 
-    # Process the read dicts.
+    # ... and process the read dicts.
     for i, (BamFileBasename, ReadDict, LeftWindowEdge, RightWindowEdge) \
     in enumerate(AllReadDictsInThisWindow):
       AllReadsInThisWindow += \
       ProcessReadDict(ReadDict, i, LeftWindowEdge, RightWindowEdge)
 
-  # Re-define the window edge coords to be with respect to the alignment of refs
-  # rather than a bam file.
-  LeftWindowEdge  = WindowCoords[window*2]
-  RightWindowEdge = WindowCoords[window*2 +1]
+  # All read dicts have now been processed into the list AllReadsInThisWindow.
 
-  # Skip empty windows
+  # Skip empty windows.
   if AllReadsInThisWindow == []:
     print('WARNING: no bam file had any reads (after a minimum post-merging '+\
     'read count of ', args.MinReadCount,' was imposed) in the window', \
@@ -584,11 +581,22 @@ for window in range(NumCoords / 2):
     'next window.', file=sys.stderr)
     continue
 
-  # Create a fasta file with all reads in this window.
+  # Re-define the window edge coords to be with respect to the alignment of refs
+  # rather than a bam file.
+  LeftWindowEdge  = WindowCoords[window*2]
+  RightWindowEdge = WindowCoords[window*2 +1]
+
+  # Create a fasta file with all reads+refs in this window, ready for aligning.
+  # If there's only one, we don't need to align (or make trees!).
   FileForReadsHere = FileForReadsInEachWindow_basename + ThisWindowSuffix+\
   '.fasta'
   FileForAlnReadsHere = FileForAlignedReadsInEachWindow_basename + \
   ThisWindowSuffix +'.fasta'
+  if len(AllReadsInThisWindow) == 1 and not IncludeOtherRefs:
+    SeqIO.write(AllReadsInThisWindow, FileForAlnReadsHere, "fasta")
+    print('There is only one read in this window, written to ' +\
+    FileForAlnReadsHere +'. Skipping to the next window.')
+    continue
   SeqIO.write(AllReadsInThisWindow, FileForReadsHere, "fasta")
   if IncludeOtherRefs:
     FileForOtherRefsHere = FileForOtherRefsInEachWindow_basename + \
@@ -659,6 +667,10 @@ for window in range(NumCoords / 2):
         SeqObject = SeqIO.SeqRecord(Seq.Seq(read), id=ID)
         SampleSeqsToPrint.append(SeqObject)
     AllSeqsToPrint = SampleSeqsToPrint + AllSeqsToPrint
+    if AllSeqsToPrint == []:
+      print('Malfunction of phylotypes: no sequences were found in', \
+      FileForReads +'. Quitting.', file=sys.stderr)
+      exit(1)
     # Merging after alignment means some columns could be pure gap.
     # Remove these.
     PureGapColumns = []
