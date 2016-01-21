@@ -1,5 +1,6 @@
 library(phangorn)
 
+verbose <- FALSE
 # Get the tip number of the named taxon
 
 get.tip.no <- function(tree, name){
@@ -91,12 +92,17 @@ is.descendant.of <- function(desc, anc, tree, mrca.list, tip.list){
   return(TRUE)
 }
 
-is.direct.descendant.of <- function(desc, anc, tree, mrca.list, tip.list, all.mrcas){
+is.direct.descendant.of <- function(desc, anc, tree, mrca.list, tip.list, all.mrcas, polytomy.list){
+  
+  #cat("Testing if any ancestry exists\n")
   
   if(!is.descendant.of(desc,anc,tree,mrca.list,tip.list)){
     return(FALSE)
   }
-  
+  if(verbose){
+    cat("Getting MRCA nodes involved\n")
+  }
+    
   mrca.desc <- mrca.list[[desc]]
   mrca.anc <- mrca.list[[anc]]
   
@@ -104,12 +110,21 @@ is.direct.descendant.of <- function(desc, anc, tree, mrca.list, tip.list, all.mr
   #check that there are no other MRCAs in the sequence of ancestors from desc to anc - this means that either
   #there is an intervening sampled host, or one or the other MRCA is shared with another patient and hence
   #situation is too ambiguous
+  if(verbose){
+    cat("Getting ancestral sequence\n")
+  }
   
   anc.sequence <- get.ancestral.sequence(mrca.desc, mrca.anc, tree)
   
-  anc.nodes <- unique(unlist(lapply(anc.sequence, all.nodes.in.polytomy, tree=tree, include.tips=TRUE)))
+  if(verbose){
+    cat("Getting ancestral nodes\n")
+  }
   
+  anc.nodes <- unique(unlist(polytomy.list[anc.sequence]))
   
+  if(verbose){
+    cat("Checking for intervening hosts\n")
+  }
   
   for(node in anc.nodes){
     children <- Children(tree, node)
@@ -210,6 +225,14 @@ all.nodes.in.polytomy <- function(tree, node, include.tips=FALSE, upwards=TRUE){
   return(out)
 }
 
+compareNA <- function(v1,v2) {
+  # This function returns TRUE wherever elements are the same, including NA's,
+  # and false everywhere else.
+  same <- (v1 == v2)  |  (is.na(v1) & is.na(v2))
+  same[is.na(same)] <- FALSE
+  return(same)
+}
+
 setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160111/")
 
 for(start in seq(501, 9301, by=100)){
@@ -253,19 +276,43 @@ for(start in seq(501, 9301, by=100)){
     
     total.pairs <- length(patients)^2 - length(patients)
     
+    cat("Building polytomy list...")
+    # do a sweep for polytomies only once
+    polys <-  vector("list", tree$Nnode+ length(tree$tip.label))
+    done.polys <- vector(length = tree$Nnode+ length(tree$tip.label))
+    for(node in seq(1, tree$Nnode)){
+      if(!done.polys[node]){
+        poly.clade <- all.nodes.in.polytomy(tree, node, include.tips=TRUE)
+        done.polys[poly.clade]<- TRUE
+        for(a.poly in poly.clade){
+          polys[[a.poly]] <- poly.clade
+        }
+      }
+    }
+    cat("done\n")
+    
     count <- 0
     direct.descendant.matrix <- matrix(NA, length(patients), length(patients))
     for(desc in seq(1, length(patients))){
       for(anc in seq(1, length(patients))){
         if(desc!=anc){
-          #     cat("Testing if ",patients[desc]," is directly descended from ",patients[anc],".\n")
+          if(verbose){
+            cat("Testing if ",patients[desc]," is directly descended from ",patients[anc],".\n", sep="")
+          }
           
           count <- count + 1
-    
-          direct.descendant.matrix[desc, anc] <- is.direct.descendant.of(desc, anc, tree, patient.mrcas, patient.tips, all.mrca.nodes)
-          if(direct.descendant.matrix[desc, anc]){
-            cat(patients[desc],"is a descendant of",patients[anc],"\n")
+          
+
+          if(!compareNA(direct.descendant.matrix[anc, desc],TRUE)){
+            
+            direct.descendant.matrix[desc, anc] <- is.direct.descendant.of(desc, anc, tree, patient.mrcas, patient.tips, all.mrca.nodes, polys)
+            if(direct.descendant.matrix[desc, anc]){
+              cat(patients[desc],"is a descendant of",patients[anc],"\n")
+            }
+          } else {
+            direct.descendant.matrix[desc, anc] <- FALSE
           }
+          
           if(count %% 100==0){
             cat(paste("Done ",count," of ",total.pairs," pairwise calculations\n", sep=""))
           }
