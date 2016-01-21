@@ -20,6 +20,12 @@ get.edge.length <- function(node, tree){
   return(tree$edge.length[index])
 }
 
+# Node is a tip (likewise)
+
+is.tip <- function(node, tree){
+  return(node <= length(tree$tip.label))
+}
+
 # Get the sequence of ancestors from one node to the other
 
 get.ancestral.sequence <- function(desc, anc, tree){
@@ -32,19 +38,38 @@ get.ancestral.sequence <- function(desc, anc, tree){
   while(current!=anc){
     
     current <- Ancestors(tree, current, type="parent")
-
+    
     out <- c(out, current)
     
   }
   return(out)
 }
 
-# Output the set of patients whose tips are descended 
+get.patient.from.tip <- function(node, tree){
+  # is it a tip?
+  if(!(is.tip(node,tree))){
+    stop("Not a tip")
+  }
+  patient.id <- strsplit(tree$tip.label[node], "_")[[1]][1]
+  return(patient.id)
+  
+}
+
+# Output the set of patients whose tips are descended from node (or the host of the node itself if a tip)
 
 get.patients.from.this.clade <- function(node, tree, patient.tips){
-  out <- vector()
-  tips <- Descendants(tree, node, type="tips")
+  if(is.tip(node,tree)){
+    return(get.patient.from.tip(node, tree))
+  }
   
+  out <- vector()
+  tips <- Descendants(tree, node, type="tips")[[1]]
+  for(tip in tips){
+    if(!(get.patient.from.tip(tip,tree) %in% out)){
+      out <- c(out, get.patient.from.tip(tip, tree))
+    }
+  }
+  return(out)
 }
 
 # Output the set of patients whose mrca is this node
@@ -78,37 +103,78 @@ patient.ids <- sapply(split.tip.labels, "[[", 1)
 get.last <- function(vec) return(vec[length(vec)])
 
 read.counts <- as.numeric(sapply(split.tip.labels, get.last))
-                          
+
 depths <- node.depth.edgelength(tree)
 
 patients <- unique(patient.ids)
 patients <- patients[which(patients!="Ref")]
 
-# Need a MRCA function which if given a single tip, returns that tip rather than NA. Also, since the tree is really
-# multifurcating but cheats with zero branch lengths, the MRCA node should the last one that can be reached by moving
-# up 0 (actually 1E-6) from the MRCA than phangorn gives
+# Need a MRCA function which if given a single tip, returns that tip rather than NA. Also, since the tree is basically
+# multifurcating but cheats with very short branch lengths, the MRCA node should the last one that can be reached by moving
+# up 1E-6 from the MRCA than phangorn gives.
 
 mrca.phylo.or.unique.tip <- function(x, node){
-#  cat("Node set: ",node,"\n")
+  #  cat("Node set: ",node,"\n")
   if(length(node)==1){
-#    cat("Node ",node," is unique for this patient.\n")
+    #    cat("Node ",node," is unique for this patient.\n")
     mrca = node
   } else {
     mrca = mrca.phylo(x, node)
-#    cat("Node ",mrca," is the MRCA of this set.\n")
+    #    cat("Node ",mrca," is the MRCA of this set.\n")
   }
   too.long <- FALSE
-  while(!too.long){
-    if(mrca==getRoot(tree)){
-      too.long <- TRUE
-    }else if(get.edge.length(mrca, tree)>1E-5){
-      too.long <- TRUE
-    } else {
-      mrca <- Ancestors(tree,mrca,type="parent")
+    while(!too.long){
+      if(mrca==getRoot(tree)){
+        too.long <- TRUE
+      }else if(get.edge.length(mrca, tree)>1E-5){
+        too.long <- TRUE
+      } else {
+        mrca <- Ancestors(tree, mrca, type="parent")
+      }
     }
-  }
   return(mrca)
 }
+
+#return all of the bifuracting nodes in what looks like a polytomy. If include.tips = TRUE, also include any tips
+#attached to the "polytomy" by "zero" length branches.
+
+all.nodes.in.polytomy <- function(tree, node, include.tips=FALSE, upwards=TRUE){
+  
+  out <- vector()
+  
+  if(upwards){
+    too.long <- FALSE
+    while(!too.long){
+      if(node==getRoot(tree)){
+        too.long <- TRUE
+        mrca <- node 
+      } else if(get.edge.length(node, tree)>1E-5) {
+        too.long <- TRUE
+        mrca <- node 
+      } else {
+        node <- Ancestors(tree, node, type="parent")
+      }
+    }
+  } else {
+    mrca <- node
+  }
+  
+  out <- mrca
+  
+  children <- Children(tree, mrca)
+  
+  for(child in children){
+    if(get.edge.length(child, tree)<1E-5){
+      if(include.tips | !is.tip(child, tree)){
+        out <- c(out, all.nodes.in.polytomy(tree, child, include.tips, FALSE))
+      }
+    }
+  }
+  return(out)
+}
+  
+  
+
 
 # Is desc _unambiguously_ a descendant of anc? I.e. is the MRCA node of desc a descendant of the MRCA
 # node of anc, but no tips of anc are descended from the MRCA node of desc?
@@ -130,7 +196,7 @@ is.descendant.of <- function(desc, anc, tree, mrca.list, tip.list){
 }
 
 is.direct.descendant.of <- function(desc, anc, tree, mrca.list, tip.list, all.mrcas){
-
+  
   if(!is.descendant.of(desc,anc,tree,mrca.list,tip.list)){
     return(FALSE)
   }
@@ -145,15 +211,29 @@ is.direct.descendant.of <- function(desc, anc, tree, mrca.list, tip.list, all.mr
   
   anc.sequence <- get.ancestral.sequence(mrca.desc, mrca.anc, tree)
   
-  patients.involved <- unlist(lapply(anc.sequence, get.patients.with.these.mrcas, patient.mrcas=patient.mrcas))
+  anc.nodes <- unique(unlist(lapply(anc.sequence, all.nodes.in.polytomy, tree=tree, include.tips=TRUE)))
   
-  if(length(patients.involved)<2){
-    #something is seriously wrong
-    stop("Sequence of ancestors contains less than two MRCAs")
-  }
+
   
-  if(length(patients.involved)>2){
-    return(FALSE)
+  for(node in anc.nodes){
+    children <- Children(tree, node)
+    if(length(children)>0){ 
+      patients.1 <- get.patients.from.this.clade(children[1], tree, tip.list)
+      patients.2 <- get.patients.from.this.clade(children[2], tree, tip.list)
+      
+      patients.1 <- patients.1[! patients.1 %in% c(patients[anc], patients[desc])]
+      patients.2 <- patients.2[! patients.2 %in% c(patients[anc], patients[desc])]
+      
+      if(length(intersect(patients.1,patients.2))>0){
+        return(FALSE)
+      }
+    } else {
+      # if node is a tip, then need to check it isn't associated with another host
+      patient <- get.patient.from.tip(node, tree)
+      if(patient!=patients[anc] & patient!=patients[desc]){
+        return(FALSE)
+      }
+    }
   }
   
   return(TRUE)
@@ -175,6 +255,8 @@ direct.descendant.matrix <- matrix(NA, length(patients), length(patients))
 for(desc in seq(1, length(patients))){
   for(anc in seq(1, length(patients))){
     if(desc!=anc){
+ #     cat("Testing if ",patients[desc]," is directly descended from ",patients[anc],".\n")
+      
       count <- count + 1
       
       descendant.matrix[desc, anc] <- is.descendant.of(desc, anc, tree, patient.mrcas, patient.tips)
