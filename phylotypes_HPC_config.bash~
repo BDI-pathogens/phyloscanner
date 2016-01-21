@@ -22,6 +22,7 @@ ExtraArgs='-T --x-raxml raxml -D'
 # A file in which each line is an even number of integers specifying
 # (alternately) left- and right-hand edges of a window, in the usual phylotypes
 # argument format; each line will run as its own job.
+# The PBS -J array above should run from 1 to the number of lines in this file.
 # To create such a file easily from a list of space-separated numbers all on the
 # same line, see this example:
 # IntsPerLine=2; count=0; for i in 1 100 101 200 201 300; do echo -n "$i "; 

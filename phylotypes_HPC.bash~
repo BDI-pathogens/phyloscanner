@@ -3,11 +3,10 @@
 #PBS -l walltime=0:29:59
 #PBS -l select=1:ncpus=1:mem=3GB
 #PBS -J 1-155
+PBS_ARRAY_INDEX=1
 
 # This script requires input variables chosen by the user, and stored in the
-# following file - make sure it exists with your chosen values! The PBJ -J
-# directive above should run from 1 to the number of lines in the "$WindowFile"
-# variable you set there.
+# following file - make sure it exists with your chosen values!
 source "$HOME/phylotypes_HPC_config.bash"
 
 
