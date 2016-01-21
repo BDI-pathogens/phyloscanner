@@ -39,6 +39,14 @@ get.ancestral.sequence <- function(desc, anc, tree){
   return(out)
 }
 
+# Output the set of patients whose tips are descended 
+
+get.patients.from.this.clade <- function(node, tree, patient.tips){
+  out <- vector()
+  tips <- Descendants(tree, node, type="tips")
+  
+}
+
 # Output the set of patients whose mrca is this node
 
 get.patients.with.these.mrcas <- function(node, tree, patient.mrcas){
