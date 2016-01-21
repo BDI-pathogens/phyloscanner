@@ -37,6 +37,7 @@ FileForOtherRefsInEachWindow_basename = 'temp_OtherRefs'
 FileForAlignedReadsInEachWindow_basename = 'AlignedReads'
 FileForAllBootstrappedTrees_basename = 'temp_AllBootstrappedTrees'
 FileForDiscardedReadPairs_basename = 'DiscardedReads_'
+FileForDuplicates_basename = 'DuplicateReads_'
 ################################################################################
 GapChar = '-'
 
@@ -94,26 +95,29 @@ help='An alignment of any reference sequences (which need not be those used '+\
 parser.add_argument('-C', '--ref-for-coords', help='The coordinates are '\
 'specified with respect to the reference named after this flag. (By default '\
 +'coordinates are with respect to the alignment of all references.)')
-parser.add_argument('-D', '--discard-improper-pairs', action='store_true', \
+parser.add_argument('-D', '--dont-check-duplicates', action='store_true', \
+help="Don't compare reads between samples to find duplicates - a possible "+\
+"indication of contamination. (By default this check is done.)")
+parser.add_argument('-I', '--discard-improper-pairs', action='store_true', \
 help='Any improperly paired reads will be discarded')
+parser.add_argument('-M', '--raxml-model', default='GTRCAT',\
+help='The evoltionary model used by RAxML')
+parser.add_argument('-N', '--number-of-bootstraps', type=int,\
+help='The number of bootstraps to be calculated for RAxML trees (by default, '+\
+'none i.e. only the ML tree is calculated).')
+parser.add_argument('-O', '--keep-overhangs', action='store_true', \
+help='Keep the whole read. (By default, only the part of the read inside the'+\
+'window is kept, i.e. overhangs are trimmed.)')
+parser.add_argument('-P', '--merge-paired-reads', action='store_true', \
+help='Merge overlapping paired reads into a single read.')
 parser.add_argument('-Q1', '--quality-trim-ends', type=int, help='Each end of '+\
 'the read is trimmed inwards until a base of this quality is met.')
 parser.add_argument('-Q2', '--min-internal-quality', type=int, help=\
 'Discard reads containing more than one base of a quality below this parameter'\
 +'. If used in conjuction with the --quality-trim-ends option, the trimming '+\
 'of the ends is done first.')
-parser.add_argument('-O', '--keep-overhangs', action='store_true', \
-help='Keep the whole read. (By default, only the part of the read inside the'+\
-'window is kept, i.e. overhangs are trimmed.)')
-parser.add_argument('-P', '--merge-paired-reads', action='store_true', \
-help='Merge overlapping paired reads into a single read.')
 parser.add_argument('-R', '--ref-for-rooting', help='Used to name a reference'\
 'to be an outgroup in the tree (requires the -A flag).')
-parser.add_argument('-N', '--number-of-bootstraps', type=int,\
-help='The number of bootstraps to be calculated for RAxML trees (by default, '+\
-'none i.e. only the ML tree is calculated).')
-parser.add_argument('-M', '--raxml-model', default='GTRCAT',\
-help='The evoltionary model used by RAxML')
 #parser.add_argument('-S', '--min-support', default=60, type=float, help=\
 #'The bootstrap support below which nodes will be collapsed, as a percentage.')
 parser.add_argument('--renaming-file', type=File, help='Specify a file with '\
@@ -376,6 +380,41 @@ for i,BamFileName in enumerate(BamFiles):
 # constrained to come at the end of the string. We'll need it later.
 SampleRegex = re.compile('_read_\d+_count_\d+$')
 
+def ProcessReadDict(ReadDict, WhichBam, LeftWindowEdge, RightWindowEdge):
+  '''Turns a dict of reads into a list of reads, merging & imposing a minimum
+  count.'''
+
+  # For naming things
+  BamFileBasename = BamFileBasenames[WhichBam]
+  if args.renaming_file == None:
+    BasenameForReads = BamFileBasename
+  else:
+    BasenameForReads = BamFileNickNames[WhichBam]
+
+  # Merge similar reads if desired
+  if args.MergingThreshold > 0:
+    ReadDict = MergeSimilarStrings(ReadDict, args.MergingThreshold)
+
+  # Implement the minimum read count
+  if args.MinReadCount > 1:
+    ReadDict = {read:count for read, count in ReadDict.items() if \
+    count >= args.MinReadCount}
+
+  # Warn if there are no reads
+  if len(ReadDict) == 0:
+    print('Warning: bam file', BamFileBasename, 'has no reads in window', \
+    str(LeftWindowEdge+1)+'-'+   str(RightWindowEdge+1), file=sys.stderr)
+    return []
+
+  # Return a list of reads named according to their count.
+  reads = []
+  for k, (read, count) in \
+  enumerate(sorted(ReadDict.items(), key=lambda x: x[1], reverse=True)):
+    SeqName = BasenameForReads+'_read_'+str(k+1)+'_count_'+str(count)
+    SeqObject = SeqIO.SeqRecord(Seq.Seq(read), id=SeqName)
+    reads.append(SeqObject)
+  return reads
+
 # We'll keep a list of discarded read pairs for each bam file:
 DiscardedReadPairsDict = \
 {BamFileBasename:[] for BamFileBasename in BamFileBasenames}
@@ -389,11 +428,16 @@ for window in range(NumCoords / 2):
   # keep labels intuitive for the user.
   UserLeftWindowEdge  = UserCoords[window*2]
   UserRightWindowEdge = UserCoords[window*2 +1]
+  ThisWindowSuffix = 'InWindow_'+str(UserLeftWindowEdge)+'_to_'+\
+  str(UserRightWindowEdge)
 
   print('Now processing window ', UserLeftWindowEdge, '-', UserRightWindowEdge,\
   sep='')
 
-  AllReadsInThisWindow = ''
+  # Get ready to record reads here from all samples
+  AllReadsInThisWindow = []
+  if not args.dont_check_duplicates:
+    AllReadDictsInThisWindow = []
 
   # Iterate through the bam files
   for i,BamFileName in enumerate(BamFiles):
@@ -406,9 +450,6 @@ for window in range(NumCoords / 2):
     ThisBamCoords = CoordsInRefs[RefBasename]
     LeftWindowEdge  = ThisBamCoords[window*2]
     RightWindowEdge = ThisBamCoords[window*2 +1]
-
-    # TODO: should be a dict of empty lists, indexed by bam file name
-    DiscardedReadPairs = []
 
     # Find all unique reads in this window and count their occurrences.
     # NB pysam uses zero-based coordinates for positions w.r.t the reference
@@ -486,54 +527,77 @@ for window in range(NumCoords / 2):
         else:
           UniqueReads[seq] = 1
 
-    # Merge similar reads if desired
-    if args.MergingThreshold > 0:
-      UniqueReads = MergeSimilarStrings(UniqueReads, args.MergingThreshold)
+    # If we are checking for read duplication between samples, record the file 
+    # name and read dict for this sample and move on to the next sample.
+    if not args.dont_check_duplicates:
+      AllReadDictsInThisWindow.append((BamFileBasename, UniqueReads, \
+      LeftWindowEdge, RightWindowEdge))
 
-    # Implement the minimum read count
-    if args.MinReadCount > 1:
-      UniqueReads = {read:count for read, count in UniqueReads.items() if \
-      count >= args.MinReadCount}
-
-    if args.renaming_file == None:
-      BasenameForReads = BamFileBasename
+    # If we're not checking for read duplication between samples, process the
+    # read dict for this sample now and add it to the list of all reads here.
     else:
-      BasenameForReads = BamFileNickNames[i]
-
-    # Add all reads from this window & this bam file to the set of all reads
-    # from this window and ALL bam files, in fasta format, most common reads
-    # first.
-    if len(UniqueReads) == 0:
-      print('Warning: bam file', BamFileBasename, 'has no reads in window', \
-      str(LeftWindowEdge+1)+'-'+   str(RightWindowEdge+1), file=sys.stderr)
-    else:
-      for k, (read, count) in \
-      enumerate(sorted(UniqueReads.items(), key=lambda x: x[1], reverse=True)):
-        SeqHeader = '>'+BasenameForReads+'_read_'+str(k+1)+'_count_'+str(count)
-        AllReadsInThisWindow += SeqHeader+'\n'+read+'\n'
+      AllReadsInThisWindow += \
+      ProcessReadDict(UniqueReads, i, LeftWindowEdge, RightWindowEdge)
 
   # We've now gathered together reads from all bam files for this window.
-  # These two quantities are defined with respect to the alignment of refs:
-  LeftWindowEdge  = WindowCoords[window*2]
-  RightWindowEdge = WindowCoords[window*2 +1]
 
-  # Skip empty windows
-  if AllReadsInThisWindow == '':
+  # If we're checking for duplicate reads between samples, do so now.
+  # Check every dict against every other dict, and record the ratio of counts
+  # for any shared reads...
+  if not args.dont_check_duplicates:
+    DuplicateDetails = []
+    for i, (BamFile1Basename, ReadDict1, LeftWindowEdge1, RightWindowEdge1) \
+    in enumerate(AllReadDictsInThisWindow):
+      for j, (BamFile2Basename, ReadDict2, LeftWindowEdge1, RightWindowEdge1) \
+      in enumerate(AllReadDictsInThisWindow[i+1:]):
+        DuplicateReadRatios = []
+        for read in ReadDict1:
+          if read in ReadDict2:
+            DuplicateReadRatios.append(float(ReadDict1[read])/ReadDict2[read])
+        if DuplicateReadRatios != []:
+          DuplicateDetails.append([BamFile1Basename, BamFile2Basename] + \
+          DuplicateReadRatios)
+    if DuplicateDetails != []:
+      DuplicateDetails.sort(key=lambda entry: len(entry), reverse=True)
+      FileForDuplicates = FileForDuplicates_basename + ThisWindowSuffix + '.csv'
+      with open(FileForDuplicates, 'w') as f:
+        f.write('"BamFile1","BamFile2","BamFile1Count/BamFile2Count'+\
+        ' for each duplicated read"\n')
+        f.write('\n'.join(','.join(map(str,data)) for data in DuplicateDetails))
+
+    # ... and process the read dicts.
+    for i, (BamFileBasename, ReadDict, LeftWindowEdge, RightWindowEdge) \
+    in enumerate(AllReadDictsInThisWindow):
+      AllReadsInThisWindow += \
+      ProcessReadDict(ReadDict, i, LeftWindowEdge, RightWindowEdge)
+
+  # All read dicts have now been processed into the list AllReadsInThisWindow.
+
+  # Skip empty windows.
+  if AllReadsInThisWindow == []:
     print('WARNING: no bam file had any reads (after a minimum post-merging '+\
     'read count of ', args.MinReadCount,' was imposed) in the window', \
     str(UserLeftWindowEdge)+'-'+str(UserRightWindowEdge)+'. Skipping to the', \
     'next window.', file=sys.stderr)
     continue
 
-  # Create a fasta file with all reads in this window.
-  ThisWindowSuffix = 'InWindow_'+str(UserLeftWindowEdge)+'_to_'+\
-  str(UserRightWindowEdge)
+  # Re-define the window edge coords to be with respect to the alignment of refs
+  # rather than a bam file.
+  LeftWindowEdge  = WindowCoords[window*2]
+  RightWindowEdge = WindowCoords[window*2 +1]
+
+  # Create a fasta file with all reads+refs in this window, ready for aligning.
+  # If there's only one, we don't need to align (or make trees!).
   FileForReadsHere = FileForReadsInEachWindow_basename + ThisWindowSuffix+\
   '.fasta'
   FileForAlnReadsHere = FileForAlignedReadsInEachWindow_basename + \
   ThisWindowSuffix +'.fasta'
-  with open(FileForReadsHere, 'w') as f:
-    f.write(AllReadsInThisWindow)
+  if len(AllReadsInThisWindow) == 1 and not IncludeOtherRefs:
+    SeqIO.write(AllReadsInThisWindow, FileForAlnReadsHere, "fasta")
+    print('There is only one read in this window, written to ' +\
+    FileForAlnReadsHere +'. Skipping to the next window.')
+    continue
+  SeqIO.write(AllReadsInThisWindow, FileForReadsHere, "fasta")
   if IncludeOtherRefs:
     FileForOtherRefsHere = FileForOtherRefsInEachWindow_basename + \
     ThisWindowSuffix +'.fasta'
@@ -548,7 +612,8 @@ for window in range(NumCoords / 2):
         'Skipping to the next window.', file=sys.stderr)
         continue
 
-  # Align the reads. Prepend 'temp_' if we'll merge again after aligning.
+  # Align the reads. Prepend 'temp_' to the file name if we'll merge again after
+  # aligning.
   if args.MergingThreshold > 0:
     FileForReads = 'temp_'+FileForAlnReadsHere
   else:
@@ -602,6 +667,10 @@ for window in range(NumCoords / 2):
         SeqObject = SeqIO.SeqRecord(Seq.Seq(read), id=ID)
         SampleSeqsToPrint.append(SeqObject)
     AllSeqsToPrint = SampleSeqsToPrint + AllSeqsToPrint
+    if AllSeqsToPrint == []:
+      print('Malfunction of phylotypes: no sequences were found in', \
+      FileForReads +'. Quitting.', file=sys.stderr)
+      exit(1)
     # Merging after alignment means some columns could be pure gap.
     # Remove these.
     PureGapColumns = []
