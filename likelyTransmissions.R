@@ -94,7 +94,9 @@ is.descendant.of <- function(desc, anc, tree, mrca.list, tip.list){
 
 is.direct.descendant.of <- function(desc, anc, tree, mrca.list, tip.list, all.mrcas, polytomy.list){
   
-  #cat("Testing if any ancestry exists\n")
+  if(verbose){
+    cat("Testing if any ancestry exists\n")
+  }
   
   if(!is.descendant.of(desc,anc,tree,mrca.list,tip.list)){
     return(FALSE)
@@ -107,8 +109,9 @@ is.direct.descendant.of <- function(desc, anc, tree, mrca.list, tip.list, all.mr
   mrca.anc <- mrca.list[[anc]]
   
   
-  #check that there are no other MRCAs in the sequence of ancestors from desc to anc - this means that either
-  #there is an intervening sampled host, or one or the other MRCA is shared with another patient and hence
+  #check that there are no nodes with two children with descendent tips belonging to the same host (other than
+  #anc and desc) in the sequence of ancestors from desc to anc (taking polytomies into account) - this means that 
+  #either there is an intervening sampled host, or one or the other MRCA is shared with another patient and hence
   #situation is too ambiguous
   if(verbose){
     cat("Getting ancestral sequence\n")
