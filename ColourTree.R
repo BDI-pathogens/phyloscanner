@@ -6,12 +6,13 @@ if (command.line) {
   args <- commandArgs(TRUE)
   if (length(args) < 7) {
     cat(paste("At least 7 arguments must be specified:\n* a file containing",
-              "the IDs to be coloured, one per line;\n* the string/character that",
-              "follows the ID part of the tip name (i.e. those tip names to be coloured",
-              "should equal one of the IDs followed by this string/character then",
-              "anything at all);\n* the font size for the tip labels;\n* the line width", 
-              "for the tree;\n* a seed for randomising the order of colour allocation to", 
-              "the IDs file (use -1 to turn off shuffle;\n* the directory where output",
+              "the IDs to be coloured, one per line;\n* the string/character ",
+              "that follows the ID part of the tip name (i.e. those tip names ",
+              "to be coloured should equal one of the IDs followed by this ",
+              "string/character then anything at all);\n* the font size for ", 
+              "the tip labels;\n* the line width for the tree;\n* a seed for ", 
+              "randomising the order of colour allocation to the IDs file ",
+              "(use -1 to turn off shuffle;\n* the directory where output ",
               "tree pdfs will be produced;\n* finally, any number of tree",
               "files.\nQuitting.\n"))
     quit("no", 1)
@@ -29,6 +30,7 @@ if (command.line) {
       quit("no", 1)
     }
   }
+  tree.files.basenames <- lapply(tree.files, basename)
 } else {
   # Some options to run within R
   #setwd("/Users/cfraser/Dropbox (Infectious Disease)/PROJECTS/BEEHIVE/phylotypes")
@@ -48,10 +50,14 @@ if (command.line) {
   output.dir <- "run20160111/R_output"
   #input.dir<-"PhylotypeOutput/SubtypeCclade"
   #input.dir<-"/Users/cfraser/Dropbox (Infectious Disease)/PROJECTS/BEEHIVE/Christophe_notebook/phylotypes/run20151011/"
-  input.dir<-"/Users/Christophe/phylotypes/run20160111/RAxML_bestTree"
-  root.name<-"Ref.B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
-  #tree.files <- list.files("PhylotypeOutput/IDUs", pattern="*.tree")
-  tree.files <- list.files(input.dir, pattern="*\\.tree") 
+  input.dir <- "/Users/Christophe/phylotypes/run20160111/RAxML_bestTree"
+  root.name <- "Ref.B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
+  tree.files.basenames <- list.files(input.dir, pattern="*\\.tree") 
+  tree.files <- lapply(list.files(input.dir, pattern="*\\.tree"),
+                       function(x) file.path(input.dir, x))
+    
+  }
+  
   # has to include \\. otherwise ignores the dot
 }
 
@@ -83,22 +89,25 @@ id.colours <- setNames(palette(rainbow(num.ids))[1:num.ids], ids)
 #dummy <- rep(0, num.ids)
 #pat.stats <- data.frame(patient.id=ids, num.leaves=dummy, monophyletic=dummy, mean.size=dummy, coeff.of.var.size=dummy)
 #pat.stats <- data.frame(patient.id=character(), window=integer(), num.leaves=integer(), monophyletic=integer(), mean.size=double(), coeff.of.var.size=double())
-pat.stats <- data.frame(patient.id="test", window=0, num.leaves=1, num.reads=1, monophyletic=1,
-                        mean.size=1, coeff.of.var.size=1, root.to.tip=0)
+pat.stats <- data.frame(patient.id="test", window=0, num.leaves=1, num.reads=1,
+                        monophyletic=1, mean.size=1, coeff.of.var.size=1,
+                        root.to.tip=0)
 pat.stats$patient.id <- as.character(pat.stats$patient.id)
 
-for (tree.file in tree.files) {
+num.trees <- length(tree.files)
+
+for (tree.number in 1:num.trees) {
+
+  # Read in the tree.  
+  tree.file <- tree.files[[tree.number]]
+  tree.file.basename <- tree.files.basenames[[tree.number]]
+  tree <- read.tree(file=tree.file)
   
-#  tree.file <- tree.files[[1]]
-  
-  tree.file.name<-paste(input.dir,tree.file,sep="/")
-  
-  tree <- read.tree(file=tree.file.name)
-  
-  tree<-root(phy = tree,outgroup = root.name)
-  num.tips <- length(tree$tip.label)
-  
+  # Root the tree
+  tree <- root(phy=tree, outgroup=root.name)
+
   # Assign each tip its colour
+  num.tips <- length(tree$tip.label)
   this.tree.colours <- vector()
   for (i in 1:num.tips) {
     tip.label <- tree$tip.label[i]
@@ -116,12 +125,13 @@ for (tree.file in tree.files) {
   
   # Plot the tree.
   # First make the automatic tip labels transparent, then replot with colour.
-  out.tree.basename <- paste(basename(tree.file), ".pdf", sep="")
+  out.tree.basename <- paste(tree.file.basename, ".pdf", sep="")
   out.tree <- file.path(output.dir, out.tree.basename)
   pdf(out.tree, height = num.tips/10, width = 5)
   opar <- par()
   par(fg="transparent")
-  plotTree(tree, color="black", fsize=font.size, lwd=line.width, ylim=c(-1, num.tips))
+  plotTree(tree, color="black", fsize=font.size, lwd=line.width,
+           ylim=c(-1, num.tips))
   lastPP <- get("last_plot.phylo", env=.PlotPhyloEnv)
   par(fg="black")
   text(lastPP$xx[1:num.tips], lastPP$yy[1:num.tips], tree$tip.label,
@@ -140,18 +150,18 @@ for (tree.file in tree.files) {
     }
   }
   
-  # This is exceptionally bad code - how else to pull out window coordinate though?
+  # Is there a cleaner way to pull out the window coordinate?
   window <- as.numeric(strsplit(tree.file, "_")[[1]][3])
   
   # For each patient: record whether his/her tips are monophyletic, find the
   # pairwise patristic distances between the tips - the 'cophenetic distances' -
   # and characterise those distances. 
-  dummy.p.value<-0
+  dummy.p.value <- 0
   
   for (i in 1:num.ids) {
     id <- ids[i]
     num.leaves <- length(patient.tips[[id]])
-    num.reads<-0
+    num.reads <- 0
     for (tip in patient.tips[[id]]) num.reads <- num.reads + as.numeric(unlist(strsplit(tip,"count_"))[2])
     if (num.leaves>0) {
       monophyletic <- as.numeric(is.monophyletic(tree, patient.tips[[id]]))
@@ -176,14 +186,14 @@ for (tree.file in tree.files) {
         mean.size <- NA
         coeff.of.var.size <- NA
       }
-      root.to.tip<-0
-      for (i in 1:length(subtree$tip.label)) root.to.tip<-root.to.tip+nodeheight(subtree,i)
-      root.to.tip<-root.to.tip/length(subtree$tip.label)
+      root.to.tip <- 0
+      for (i in 1:length(subtree$tip.label)) root.to.tip <- root.to.tip+nodeheight(subtree,i)
+      root.to.tip <- root.to.tip/length(subtree$tip.label)
     } else {
-      monophyletic<-NA
-      mean.size<-NA
-      coeff.of.var.size<-NA
-      root.to.tip<-NA
+      monophyletic <- NA
+      mean.size <- NA
+      coeff.of.var.size <- NA
+      root.to.tip <- NA
     }
     pat.stats <- rbind(pat.stats, c(id, window, num.leaves, num.reads, monophyletic,
                                     mean.size, coeff.of.var.size,root.to.tip))
@@ -221,7 +231,7 @@ for (id in sort(ids)) {
           xlab="Genome location", ylab="Mean cophenetic distance",
           ylim=c(0, max(pat.stats$mean.size, na.rm=T)))
   points(1:length(pat$mean.size), pat$mean.size, col="red",pch=19,cex=1)
-  significant.stars<-ifelse(pat$size.significantly.big==1,1,NA)
+  significant.stars <- ifelse(pat$size.significantly.big==1,1,NA)
   points(1:length(pat$mean.size), -0.01*significant.stars, col="red",pch=8,cex=1)
   
   plot(pat$window, pat$coeff.of.var.size, main=pat$patient.id[1],
