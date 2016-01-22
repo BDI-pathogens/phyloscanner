@@ -111,8 +111,8 @@ is.direct.descendant.of <- function(desc, anc, tree, mrca.list, tip.list, all.mr
   
   #check that there are no nodes with two children with descendent tips belonging to the same host (other than
   #anc and desc) in the sequence of ancestors from desc to anc (taking polytomies into account) - this means that 
-  #either there is an intervening sampled host, or one or the other MRCA is shared with another patient and hence
-  #situation is too ambiguous
+  #either an intervening sampled host cannot be ruled out, or one or the other MRCA is shared with another patient 
+  #and hence the situation is too ambiguous
   if(verbose){
     cat("Getting ancestral sequence\n")
   }
@@ -281,9 +281,9 @@ for(start in seq(501, 9301, by=100)){
     
     cat("Building polytomy list...")
     # do a sweep for polytomies only once
-    polys <-  vector("list", tree$Nnode+ length(tree$tip.label))
-    done.polys <- vector(length = tree$Nnode+ length(tree$tip.label))
-    for(node in seq(1, tree$Nnode)){
+    polys <-  vector("list", tree$Nnode + length(tree$tip.label))
+    done.polys <- vector(length = tree$Nnode + length(tree$tip.label))
+    for(node in seq(1, tree$Nnode + length(tree$tip.label))){
       if(!done.polys[node]){
         poly.clade <- all.nodes.in.polytomy(tree, node, include.tips=TRUE)
         done.polys[poly.clade]<- TRUE
