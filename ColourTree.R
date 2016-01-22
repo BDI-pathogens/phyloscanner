@@ -31,24 +31,27 @@ if (command.line) {
   }
 } else {
   # Some options to run within R
-  #setwd("/Users/cfraser/Dropbox (Infectious Disease)/PROJECTS/BEEHIVE/phylotypes")
-  setwd("/Users/Christophe/phylotypes")
+  setwd("/Users/cfraser/Dropbox (Infectious Disease)/PROJECTS/HIV/phylotypes")
+  #setwd("/Users/Christophe/phylotypes")
   rm(list=ls())
   #id.file <- "inputs/ListOfIDs_IDUs_IncNotOK.txt"
   #id.file <- "inputs/ListOfIDs_SubtypeCclade.txt"
   #id.file <- "inputs/ListOfIDs_CFRandom.txt"
-  id.file <- "ListOfIDs_run20160111.txt"
+  #id.file <- "ListOfIDs_run20160111.txt"
   id.delimiter <- "-1"
+  ids.as.folder <- T
+  id.folder <- "/Users/cfraser/Dropbox (Infectious Disease)/PROJECTS/BEEHIVE/phylotypes/run20160111/ref.fasta"
+  id.folder.tag <- "-1_ref.fasta"
   font.size <- 0.15
   line.width <- 1
   seed <- 1
   #output.dir <- "CF_TREES/IDUs"
   #output.dir <- "CF_TREES/SubtypeCclade"
   #output.dir <- "CF_TREES/CF_RandomSelection"
-  output.dir <- "run20160111/R_output"
+  output.dir <- "/Users/cfraser/Dropbox (Infectious Disease)/PROJECTS/BEEHIVE/phylotypes/run20160111/R_output_experimental"
   #input.dir<-"PhylotypeOutput/SubtypeCclade"
-  #input.dir<-"/Users/cfraser/Dropbox (Infectious Disease)/PROJECTS/BEEHIVE/Christophe_notebook/phylotypes/run20151011/"
-  input.dir<-"/Users/Christophe/phylotypes/run20160111/RAxML_bestTree"
+  input.dir<-"/Users/cfraser/Dropbox (Infectious Disease)/PROJECTS/BEEHIVE/phylotypes/run20160111/RAxML_bestTree"
+  #input.dir<-"/Users/Christophe/phylotypes/run20160111/RAxML_bestTree"
   root.name<-"Ref.B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
   #tree.files <- list.files("PhylotypeOutput/IDUs", pattern="*.tree")
   tree.files <- list.files(input.dir, pattern="*\\.tree") 
@@ -58,11 +61,18 @@ if (command.line) {
 require(phytools)
 require(dplyr)
 
-dir.create(output.dir, showWarnings=F)
+dir.create(output.dir, showWarnings=T)
 #StatsList <- list()
 
 # Read in the IDs. Remove duplicates. Shuffle their order if desired.
-ids <- scan(id.file, what="", sep="\n", quiet=TRUE)
+if (ids.as.folder) { 
+  # reads in the IDs from the list of files in the folder - unusually named files might get a bit garbled. 
+  ids <- list.files(id.folder, pattern = "*\\.fasta")
+  ids <- sapply(ids, function (x) unlist(strsplit(x, split = id.folder.tag)[[1]][1]))
+} else {
+  # alternatively reads in the IDs from a specific file
+  ids <- scan(id.file, what="", sep="\n", quiet=TRUE)
+}
 num.ids <- length(ids)
 if (num.ids == 0) {
   cat(paste("No IDs found in ", id.file, ". Quitting.\n", sep=""))
@@ -89,45 +99,45 @@ pat.stats$patient.id <- as.character(pat.stats$patient.id)
 
 for (tree.file in tree.files) {
   
-#  tree.file <- tree.files[[1]]
-  
-  tree.file.name<-paste(input.dir,tree.file,sep="/")
-  
-  tree <- read.tree(file=tree.file.name)
-  
-  tree<-root(phy = tree,outgroup = root.name)
-  num.tips <- length(tree$tip.label)
-  
-  # Assign each tip its colour
-  this.tree.colours <- vector()
-  for (i in 1:num.tips) {
-    tip.label <- tree$tip.label[i]
-    id <- unlist(strsplit(tip.label, id.delimiter))[1]
-    if (id %in% ids) {
-      this.tree.colours[i] <- id.colours[which(ids==id)]
-    } else {
-      this.tree.colours[i] <- "black"
+    #tree.file <- tree.files[[1]]
+    
+    tree.file.name<-paste(input.dir,tree.file,sep="/")
+    
+    tree <- read.tree(file=tree.file.name)
+    
+    tree<-root(phy = tree,outgroup = root.name)
+    num.tips <- length(tree$tip.label)
+    
+    # Assign each tip its colour
+    this.tree.colours <- vector()
+    for (i in 1:num.tips) {
+      tip.label <- tree$tip.label[i]
+      id <- unlist(strsplit(tip.label, id.delimiter))[1]
+      if (id %in% ids) {
+        this.tree.colours[i] <- id.colours[which(ids==id)]
+      } else {
+        this.tree.colours[i] <- "black"
+      }
     }
-  }
-  
-  # Rotate internal nodes to have right daughter clades more species rich than
-  # left daughter clades. 
-  tree <- ladderize(tree)  
-  
-  # Plot the tree.
-  # First make the automatic tip labels transparent, then replot with colour.
-  out.tree.basename <- paste(basename(tree.file), ".pdf", sep="")
-  out.tree <- file.path(output.dir, out.tree.basename)
-  pdf(out.tree, height = num.tips/10, width = 5)
-  opar <- par()
-  par(fg="transparent")
-  plotTree(tree, color="black", fsize=font.size, lwd=line.width, ylim=c(-1, num.tips))
-  lastPP <- get("last_plot.phylo", env=.PlotPhyloEnv)
-  par(fg="black")
-  text(lastPP$xx[1:num.tips], lastPP$yy[1:num.tips], tree$tip.label,
-       cex=font.size, col=this.tree.colours, pos=4, offset=0.1, font=0.1)
-  dev.off()
-  par <- opar
+    
+    # Rotate internal nodes to have right daughter clades more species rich than
+    # left daughter clades. 
+    tree <- ladderize(tree)  
+    
+    # Plot the tree.
+    # First make the automatic tip labels transparent, then replot with colour.
+    out.tree.basename <- paste(basename(tree.file), ".pdf", sep="")
+    out.tree <- file.path(output.dir, out.tree.basename)
+    pdf(out.tree, height = num.tips/10, width = 5)
+    opar <- par()
+    par(fg="transparent")
+    plotTree(tree, color="black", fsize=font.size, lwd=line.width, ylim=c(-1, num.tips))
+    lastPP <- get("last_plot.phylo", env=.PlotPhyloEnv)
+    par(fg="black")
+    text(lastPP$xx[1:num.tips], lastPP$yy[1:num.tips], tree$tip.label,
+         cex=font.size, col=this.tree.colours, pos=4, offset=0.1, font=0.1)
+    dev.off()
+    par <- opar
 }
   
   # Associate each tip to its patient.
