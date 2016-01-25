@@ -1,44 +1,45 @@
 library(phangorn)
 
-verbose <- FALSE
+verbose <- TRUE
 # Get the tip number of the named taxon
 
-get.tip.no <- function(tree, name){
+zero.length.tips.count <- TRUE
+
+get.tip.no <- function(tree, name) {
   return(match(name, tree$tip.label))
 }
 
 # Get all tips associated with a patient
 
-get.tips.for.patient <- function(tree, patient.string, patient.ids){
-  node.numbers <- which(patient.ids==patient.string)
+get.tips.for.patient <- function(tree, patient.string, patient.ids) {
+  node.numbers <- which(patient.ids == patient.string)
   return(node.numbers)
 }
 
 # Edge length by node number (probably in some library somewhere)
 
-get.edge.length <- function(tree, node){
-  index <- which(tree$edge[,2]==node)
+get.edge.length <- function(tree, node) {
+  index <- which(tree$edge[,2] == node)
   return(tree$edge.length[index])
 }
 
 # Node is a tip (likewise)
 
-is.tip <- function(tree, node){
+is.tip <- function(tree, node) {
   return(node <= length(tree$tip.label))
 }
 
 # Get the sequence of ancestors from one node to the other
 
-get.ancestral.sequence <- function(tree, desc, anc){
-  if(!(anc %in% Ancestors(tree, desc, type="all"))){
+get.ancestral.sequence <- function(tree, desc, anc) {
+  if (!(anc %in% Ancestors(tree, desc, type = "all"))) {
     stop("anc is not an ancestor of desc at all")
   }
   current <- desc
   out <- desc
   
-  while(current!=anc){
-    
-    current <- Ancestors(tree, current, type="parent")
+  while (current != anc) {
+    current <- Ancestors(tree, current, type = "parent")
     
     out <- c(out, current)
     
@@ -46,9 +47,9 @@ get.ancestral.sequence <- function(tree, desc, anc){
   return(out)
 }
 
-get.patient.from.tip <- function(tree, node){
+get.patient.from.tip <- function(tree, node) {
   # is it a tip?
-  if(!(is.tip(tree, node))){
+  if (!(is.tip(tree, node))) {
     stop("Not a tip")
   }
   patient.id <- strsplit(tree$tip.label[node], "_")[[1]][1]
@@ -58,16 +59,16 @@ get.patient.from.tip <- function(tree, node){
 
 # Output the set of patients whose tips are descended from node (or the host of the node itself if a tip)
 
-get.patients.from.this.clade <- function(tree, node, patient.tips){
-  if(is.tip(tree,node)){
+get.patients.from.this.clade <- function(tree, node, patient.tips) {
+  if (is.tip(tree,node)) {
     return(get.patient.from.tip(tree, node))
   }
   
   out <- vector()
-  tips <- Descendants(tree, node, type="tips")[[1]]
-  for(tip in tips){
-    if(!(get.patient.from.tip(tip,tree) %in% out)){
-      out <- c(out, get.patient.from.tip(tip, tree))
+  tips <- Descendants(tree, node, type = "tips")[[1]]
+  for (tip in tips) {
+    if (!(get.patient.from.tip(tree,tip) %in% out)) {
+      out <- c(out, get.patient.from.tip(tree, tip))
     }
   }
   return(out)
@@ -76,15 +77,15 @@ get.patients.from.this.clade <- function(tree, node, patient.tips){
 # Is desc _unambiguously_ a descendant of anc? I.e. is the MRCA node of desc a descendant of the MRCA
 # node of anc, but no tips of anc are descended from the MRCA node of desc?
 
-is.descendant.of <- function(tree, desc, anc, mrca.list, tip.list){
+is.descendant.of <- function(tree, desc, anc, mrca.list, tip.list) {
   mrca.desc <- mrca.list[[desc]]
   mrca.anc <- mrca.list[[anc]]
   
-  if(!(mrca.anc %in% Ancestors(tree, mrca.desc, type="all"))){
+  if (!(mrca.anc %in% Ancestors(tree, mrca.desc, type = "all"))) {
     return(FALSE)
   } else {
-    for(tip in tip.list[[anc]]){
-      if(mrca.desc %in% Ancestors(tree, tip, type="all")){
+    for (tip in tip.list[[anc]]) {
+      if (mrca.desc %in% Ancestors(tree, tip, type = "all")) {
         return(FALSE)
       }
     }
@@ -92,141 +93,118 @@ is.descendant.of <- function(tree, desc, anc, mrca.list, tip.list){
   return(TRUE)
 }
 
-is.direct.descendant.of <- function(tree, desc, anc, mrca.list, tip.list, all.mrcas, polytomy.list){
-  
-  if(verbose){
-    cat("Testing if any ancestry exists\n")
-  }
-  
-  if(!is.descendant.of(desc,anc,tree,mrca.list,tip.list)){
-    return(FALSE)
-  }
-  if(verbose){
-    cat("Getting MRCA nodes involved\n")
-  }
+nonempty.intersection <- function(x,y) {
+  return(length(intersect(x,y)) > 0)
+}
+
+is.direct.descendant.of <-
+  function(tree, desc, anc, mrca.list, tip.list) {
+    if (verbose) {
+      cat("Testing if any ancestry exists\n")
+    }
     
-  mrca.desc <- mrca.list[[desc]]
-  mrca.anc <- mrca.list[[anc]]
-  
-  
-  #check that there are no nodes with two children with descendent tips belonging to the same host (other than
-  #anc and desc) in the sequence of ancestors from desc to anc (taking polytomies into account) - this means that 
-  #either an intervening sampled host cannot be ruled out, or one or the other MRCA is shared with another patient 
-  #and hence the situation is too ambiguous
-  if(verbose){
-    cat("Getting ancestral sequence\n")
-  }
-  
-  anc.sequence <- get.ancestral.sequence(mrca.desc, mrca.anc, tree)
-  
-  if(verbose){
-    cat("Getting ancestral nodes\n")
-  }
-  
-  anc.nodes <- unique(unlist(polytomy.list[anc.sequence]))
-  
-  if(verbose){
-    cat("Checking for intervening hosts\n")
-  }
-  
-  for(node in anc.nodes){
-    children <- Children(tree, node)
-    if(length(children)>0){ 
-      patients.1 <- get.patients.from.this.clade(children[1], tree, tip.list)
-      patients.2 <- get.patients.from.this.clade(children[2], tree, tip.list)
-      
-      patients.1 <- patients.1[! patients.1 %in% c(patients[anc], patients[desc])]
-      patients.2 <- patients.2[! patients.2 %in% c(patients[anc], patients[desc])]
-      
-      if(length(intersect(patients.1,patients.2))>0){
-        return(FALSE)
-      }
-    } else {
-      # if node is a tip, then need to check it isn't associated with another host
-      patient <- get.patient.from.tip(tree, node)
-      if(patient!=patients[anc] & patient!=patients[desc]){
-        return(FALSE)
+    if (!is.descendant.of(tree,desc,anc,mrca.list,tip.list)) {
+      return(FALSE)
+    }
+    if (verbose) {
+      cat("Getting MRCA nodes involved\n")
+    }
+    
+    mrca.desc <- mrca.list[[desc]]
+    mrca.anc <- mrca.list[[anc]]
+    
+    
+    #check that there are no nodes with two children with descendent tips belonging to the same host (other than
+    #anc and desc) in the sequence of ancestors from desc to anc (taking polytomies into account) - this means that
+    #either an intervening sampled host cannot be ruled out, or one or the other MRCA is shared with another patient
+    #and hence the situation is too ambiguous
+    if (verbose) {
+      cat("Getting ancestral sequence\n")
+    }
+    
+    anc.sequence <- get.ancestral.sequence(tree, mrca.desc, mrca.anc)
+    
+    if (verbose) {
+      cat("Checking for intervening hosts\n")
+    }
+    
+    for (node in anc.sequence) {
+      if (!is.tip(tree, node)) {
+        children <- Children(tree, node)
+        
+        all.descendant.hosts <-
+          unlist(sapply(children, get.patients.from.this.clade, tree = tree))
+        
+        # all.descendant.hosts will contain duplicates if any patient is attached to a descendant of more than
+        # one element of children
+        
+        duplicates <-
+          unique(all.descendant.hosts[duplicated(all.descendant.hosts)])
+        
+        # anc or desc being in the set is OK
+        
+        duplicates <-
+          duplicates[!duplicates %in% c(patients[anc], patients[desc])]
+        
+        if (length(duplicates) > 0) {
+          cat("Duplicate found")
+          return(FALSE)
+        }
+        
+        if (zero.length.tips.count) {
+          # if zero length tips count, then a tip attached to an internal node on the ancestral sequence by a branch
+          # of length zero counts as an ancestor
+          for (child in Children(tree, node)) {
+            if (is.tip(tree, child) & get.edge.length(tree, child) < 1E-5) {
+              if (!(get.patient.from.tip(tree, child) %in% c(patients[anc], patients[desc]))) {
+                return(FALSE)
+              }
+            }
+          }
+        }
       }
     }
+    
+    return(TRUE)
   }
-  
-  return(TRUE)
-}
 
 # Output the set of patients whose mrca is this node
 
-get.patients.with.these.mrcas <- function(tree, node, patient.mrcas){
-  out <- vector()
-  mrca.vec <- sapply(patient.mrcas, "[[", 1)
-  
-  numbers <- which(mrca.vec==node)
-  
-  return(names(numbers))
-}
+get.patients.with.these.mrcas <-
+  function(tree, node, patient.mrcas) {
+    out <- vector()
+    mrca.vec <- sapply(patient.mrcas, "[[", 1)
+    
+    numbers <- which(mrca.vec == node)
+    
+    return(names(numbers))
+  }
 
-# Need a MRCA function which if given a single tip, returns that tip rather than NA. Also, since the tree is basically
-# multifurcating but cheats with very short branch lengths, the MRCA node should the last one that can be reached by moving
-# up 1E-6 from the MRCA than phangorn gives.
+# Need a MRCA function which if given a single tip, returns that tip rather than NA.
 
-mrca.phylo.or.unique.tip <- function(tree, node){
-  #  cat("Node set: ",node,"\n")
-  if(length(node)==1){
+mrca.phylo.or.unique.tip <- function(tree, node) {
+  if (length(node) == 1) {
     #    cat("Node ",node," is unique for this patient.\n")
-    mrca <- node
+    if(!zero.length.tips.count){
+      return(node)
+    } else {
+      length <- get.edge.length(tree, node)
+      while(length<1E-5){
+        node <- Ancestors(tree, node, type="parent")
+        length <- get.edge.length(tree, node)
+      }
+      return(node)
+    }
   } else {
-    mrca <- mrca.phylo(x, node)
+    return(mrca.phylo(tree, node))
     #    cat("Node ",mrca," is the MRCA of this set.\n")
   }
-  too.long <- FALSE
-  while(!too.long){
-    if(mrca==getRoot(tree)){
-      too.long <- TRUE
-    }else if(get.edge.length(mrca, tree)>1E-5){
-      too.long <- TRUE
-    } else {
-      mrca <- Ancestors(tree, mrca, type="parent")
-    }
-  }
-  return(mrca)
 }
 
-#return all of the bifuracting nodes in what looks like a polytomy. If include.tips = TRUE, also include any tips
-#attached to the "polytomy" by "zero" length branches.
+#Turns the tree into a multifurcating tree; all internal nodes with zero edge lengths are removed and their children
+#directly attached to their earliest ancestor with nonzero edge length
 
-all.nodes.in.polytomy <- function(tree, node, include.tips=FALSE, upwards=TRUE){
-  
-  out <- vector()
-  
-  if(upwards){
-    too.long <- FALSE
-    while(!too.long){
-      if(node==getRoot(tree)){
-        too.long <- TRUE
-        mrca <- node 
-      } else if(get.edge.length(tree, node)>1E-5) {
-        too.long <- TRUE
-        mrca <- node 
-      } else {
-        node <- Ancestors(tree, node, type="parent")
-      }
-    }
-  } else {
-    mrca <- node
-  }
-  
-  out <- mrca
-  
-  children <- Children(tree, mrca)
-  
-  for(child in children){
-    if(get.edge.length(child, tree)<1E-5){
-      if(include.tips | !is.tip(child, tree)){
-        out <- c(out, all.nodes.in.polytomy(tree, child, include.tips, FALSE))
-      }
-    }
-  }
-  return(out)
-}
+
 
 compareNA <- function(v1,v2) {
   # This function returns TRUE wherever elements are the same, including NA's,
@@ -236,25 +214,39 @@ compareNA <- function(v1,v2) {
   return(same)
 }
 
-setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160111/")
+setwd(
+  "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160111/"
+)
 
-for(start in seq(3601, 9301, by=100)){
+for (start in seq(501, 9301, by = 100)) {
+  end <- start + 349
   
-  end <- start+349 
-  
-  if(file.exists(paste("RAxML_bestTree/RAxML_bestTree.InWindow_",start,"_to_",end,".tree",sep=""))){
+  if (file.exists(
+    paste(
+      "RAxML_bestTree/RAxML_bestTree.InWindow_",start,"_to_",end,".tree",sep =
+      ""
+    )
+  )) {
+    cat("Opening file: RAxML_bestTree.InWindow_",start,"_to_",end,".tree\n", sep =
+          "")
     
-    cat("Opening file: RAxML_bestTree.InWindow_",start,"_to_",end,".tree\n", sep="")
-    
-    tree <- read.tree(paste("RAxML_bestTree/RAxML_bestTree.InWindow_",start,"_to_",end,".tree",sep=""))
+    tree <-
+      read.tree(
+        paste(
+          "RAxML_bestTree/RAxML_bestTree.InWindow_",start,"_to_",end,".tree",sep =
+            ""
+        )
+      )
     
     root.name <- "Ref.B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
     
     tree <- root(tree, root.name)
     
+    tree <- di2multi(tree, tol = 1E-5)
+    
     tip.labels <- tree$tip.label
     
-    outgroup.no <- which(substr(tip.labels, 1, 3)=="Ref")
+    outgroup.no <- which(substr(tip.labels, 1, 3) == "Ref")
     
     tip.labels[outgroup.no] <- "Ref_read_NA_count_NA"
     
@@ -262,62 +254,58 @@ for(start in seq(3601, 9301, by=100)){
     
     patient.ids <- sapply(split.tip.labels, "[[", 1)
     
-    get.last <- function(vec) return(vec[length(vec)])
+    get.last <- function(vec)
+      return(vec[length(vec)])
     
     read.counts <- as.numeric(sapply(split.tip.labels, get.last))
     
     depths <- node.depth.edgelength(tree)
     
     patients <- unique(patient.ids)
-    patients <- patients[which(patients!="Ref")]
+    patients <- patients[which(patients != "Ref")]
     
-    patient.tips <- sapply(tree, patients, get.tips.for.patient, patient.ids = patient.ids)
+    patient.tips <-
+      sapply(patients, get.tips.for.patient, tree = tree, patient.ids = patient.ids)
     
-    patient.mrcas <- lapply(patient.tips, function(node) mrca.phylo.or.unique.tip(tree, node))
+    patient.mrcas <-
+      lapply(patient.tips, function(node)
+        mrca.phylo.or.unique.tip(tree, node))
     
-    all.mrca.nodes <- unique(unlist(patient.mrcas))
-    
-    total.pairs <- length(patients)^2 - length(patients)
-    
-    cat("Building polytomy list...")
-    # do a sweep for polytomies only once
-    polys <-  vector("list", tree$Nnode + length(tree$tip.label))
-    done.polys <- vector(length = tree$Nnode + length(tree$tip.label))
-    for(node in seq(1, tree$Nnode + length(tree$tip.label))){
-      if(!done.polys[node]){
-        poly.clade <- all.nodes.in.polytomy(tree, node, include.tips=TRUE)
-        done.polys[poly.clade]<- TRUE
-        for(a.poly in poly.clade){
-          polys[[a.poly]] <- poly.clade
-        }
-      }
-    }
-    cat("done\n")
+  
+    total.pairs <- length(patients) ^ 2 - length(patients)
+  
     
     count <- 0
     direct.descendant.matrix <- matrix(NA, length(patients), length(patients))
-    for(desc in seq(1, length(patients))){
-      for(anc in seq(1, length(patients))){
-        if(desc!=anc){
-          if(verbose){
-            cat("Testing if ",patients[desc]," is directly descended from ",patients[anc],".\n", sep="")
+    for (desc in seq(1, length(patients))) {
+      for (anc in seq(1, length(patients))) {
+        if (desc != anc) {
+          if (verbose) {
+            cat(
+              "Testing if ",patients[desc]," is directly descended from ",patients[anc],".\n", sep =
+                ""
+            )
           }
           
           count <- count + 1
           
-
-          if(!compareNA(direct.descendant.matrix[anc, desc],TRUE)){
-            
-            direct.descendant.matrix[desc, anc] <- is.direct.descendant.of(tree, desc, anc, patient.mrcas, patient.tips, all.mrca.nodes, polys)
-            if(direct.descendant.matrix[desc, anc]){
+          
+          if (!compareNA(direct.descendant.matrix[anc, desc],TRUE)) {
+            direct.descendant.matrix[desc, anc] <-
+              is.direct.descendant.of(tree, desc, anc, patient.mrcas, patient.tips)
+            if (direct.descendant.matrix[desc, anc]) {
               cat(patients[desc],"is a descendant of",patients[anc],"\n")
             }
           } else {
             direct.descendant.matrix[desc, anc] <- FALSE
           }
           
-          if(count %% 100==0){
-            cat(paste("Done ",count," of ",total.pairs," pairwise calculations\n", sep=""))
+          if (count %% 100 == 0) {
+            cat(
+              paste(
+                "Done ",count," of ",total.pairs," pairwise calculations\n", sep = ""
+              )
+            )
           }
         }
       }
@@ -336,6 +324,10 @@ for(start in seq(3601, 9301, by=100)){
     
     dddf <- dddf[dddf$Present,]
     
-    write.table(dddf, file=paste("transmissions/transmissions.InWindow_",start,"_to_",end,".csv", sep=""), sep=",", row.names=FALSE, col.names=TRUE)
+    write.table(
+      dddf, file = paste(
+        "transmissions/transmissions.InWindow_",start,"_to_",end,"_altTest.csv", sep = ""
+      ), sep = ",", row.names = FALSE, col.names = TRUE
+    )
   }
 }
