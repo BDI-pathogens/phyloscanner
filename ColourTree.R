@@ -1,3 +1,13 @@
+# Last updated 25 Jan 2016
+
+# TODO: 
+# 1. Code reads in lengthy patient IDs, that don't correspond to reads
+# 2. Update plot of patients statistics & cross window mean of patient statistics
+# 3. Code is now slow: either paralellise or speed up
+# Needs profiling, but slowness is probably the code that finds monophyletic 
+# subclades
+
+
 #!/usr/bin/env Rscript
 
 command.line <- FALSE
@@ -31,38 +41,39 @@ if (command.line) {
   }
 } else {
   # Some options to run within R
-  setwd("/Users/cfraser/Dropbox (Infectious Disease)/PROJECTS/HIV/phylotypes")
-  #setwd("/Users/Christophe/phylotypes")
   rm(list=ls())
-  #id.file <- "inputs/ListOfIDs_IDUs_IncNotOK.txt"
-  #id.file <- "inputs/ListOfIDs_SubtypeCclade.txt"
-  #id.file <- "inputs/ListOfIDs_CFRandom.txt"
-  #id.file <- "ListOfIDs_run20160111.txt"
-  id.delimiter <- "-1"
-  ids.as.folder <- T
-  id.folder <- "/Users/cfraser/Dropbox (Infectious Disease)/PROJECTS/BEEHIVE/phylotypes/run20160111/ref.fasta"
-  id.folder.tag <- "-1_ref.fasta"
-  font.size <- 0.15
-  line.width <- 1
-  seed <- 1
-  #output.dir <- "CF_TREES/IDUs"
-  #output.dir <- "CF_TREES/SubtypeCclade"
-  #output.dir <- "CF_TREES/CF_RandomSelection"
-  output.dir <- "/Users/cfraser/Dropbox (Infectious Disease)/PROJECTS/BEEHIVE/phylotypes/run20160111/R_output_experimental"
-  #input.dir<-"PhylotypeOutput/SubtypeCclade"
-  input.dir<-"/Users/cfraser/Dropbox (Infectious Disease)/PROJECTS/BEEHIVE/phylotypes/run20160111/RAxML_bestTree"
-  #input.dir<-"/Users/Christophe/phylotypes/run20160111/RAxML_bestTree"
-  root.name<-"Ref.B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
-  #tree.files <- list.files("PhylotypeOutput/IDUs", pattern="*.tree")
+  
+  # Folder locations
+  setwd("/Users/cfraser/Dropbox (Infectious Disease)/PROJECTS/HIV/phylotypes")
+  input.dir<-"/Users/cfraser/Dropbox (Infectious Disease)/PROJECTS/BEEHIVE/phylotypes/run20160111/RAxML_bestTree"  
   tree.files <- list.files(input.dir, pattern="*\\.tree") 
+  # list of all the trees to analyse
   # has to include \\. otherwise ignores the dot
+
+  output.dir <- "/Users/cfraser/Dropbox (Infectious Disease)/PROJECTS/BEEHIVE/phylotypes/run20160111/R_output_experimental"
+  
+  ids.as.folder <- T 
+  # if true, reads IDs from file names in folder 'id.folder'
+  # if false, reads ID from text file 'id.file'
+  #id.file <- "ListOfIDs_run20160111.txt"
+  id.folder <- "/Users/cfraser/Dropbox (Infectious Disease)/PROJECTS/BEEHIVE/phylotypes/run20160111/ref.fasta"
+  id.folder.tag <- "-1_ref.fasta" 
+  # only reads IDs from file names that contain this string
+  id.delimiter <- "-1" # string that precedes this is the patient ID
+
+  print.trees <- F # whether or not to print separate PDF files for each tree
+  font.size <- 0.15 # for the tip labels in the tree
+  line.width <- 1 # in the tree
+  seed <- -1 # seed for randomising the colours associated with IDs
+  # no randomisation if = -1
+  root.name<-"Ref.B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
+  # the tip name associated with the root of the phylogeny
 }
 
 require(phytools)
 require(dplyr)
+if(!dir.exists(output.dir)) dir.create(output.dir)
 
-dir.create(output.dir, showWarnings=T)
-#StatsList <- list()
 
 # Read in the IDs. Remove duplicates. Shuffle their order if desired.
 if (ids.as.folder) { 
@@ -90,23 +101,37 @@ if (seed != -1) {
 id.colours <- setNames(palette(rainbow(num.ids))[1:num.ids], ids)
 id.colours <- setNames(palette(rainbow(num.ids))[1:num.ids], ids)
 
-#dummy <- rep(0, num.ids)
-#pat.stats <- data.frame(patient.id=ids, num.leaves=dummy, monophyletic=dummy, mean.size=dummy, coeff.of.var.size=dummy)
-#pat.stats <- data.frame(patient.id=character(), window=integer(), num.leaves=integer(), monophyletic=integer(), mean.size=double(), coeff.of.var.size=double())
-pat.stats <- data.frame(patient.id="test", window=0, num.leaves=1, num.reads=1, monophyletic=1,
-                        mean.size=1, coeff.of.var.size=1, root.to.tip=0)
-pat.stats$patient.id <- as.character(pat.stats$patient.id)
+# Define the data frame to which summary statistics will be written
+# First row is later deleted
+pat.stats <- data.frame(patient.id = "test", 
+                        window = 0, 
+                        num.reads.total = 1,
+                        num.leaves = 1,  
+                        nu.clades = 1,
+                        overall.root.to.tip = 0, 
+                        prop.reads.clade.1 = 0, 
+                        prop.reads.clade.2 = 0, 
+                        prop.reads.clade.3 = 0, 
+                        prop.reads.clade.4 = 0, 
+                        prop.reads.clade.5 = 0, 
+                        root.to.tip.clade.1 = 0,
+                        root.to.tip.clade.2 = 0,
+                        root.to.tip.clade.3 = 0,
+                        root.to.tip.clade.4 = 0,
+                        root.to.tip.clade.5 = 0,
+                        stringsAsFactors = F)
+
 
 for (tree.file in tree.files) {
+
+  tree.file <- tree.files[10]  
+  tree.file.name<-paste(input.dir,tree.file,sep="/")
+  tree <- read.tree(file=tree.file.name)
   
-    #tree.file <- tree.files[[1]]
-    
-    tree.file.name<-paste(input.dir,tree.file,sep="/")
-    
-    tree <- read.tree(file=tree.file.name)
-    
-    tree<-root(phy = tree,outgroup = root.name)
-    num.tips <- length(tree$tip.label)
+  tree<-root(phy = tree,outgroup = root.name)
+  num.tips <- length(tree$tip.label)
+  
+  if(print.trees) {
     
     # Assign each tip its colour
     this.tree.colours <- vector()
@@ -124,6 +149,7 @@ for (tree.file in tree.files) {
     # left daughter clades. 
     tree <- ladderize(tree)  
     
+
     # Plot the tree.
     # First make the automatic tip labels transparent, then replot with colour.
     out.tree.basename <- paste(basename(tree.file), ".pdf", sep="")
@@ -138,7 +164,8 @@ for (tree.file in tree.files) {
          cex=font.size, col=this.tree.colours, pos=4, offset=0.1, font=0.1)
     dev.off()
     par <- opar
-}
+  }
+  
   
   # Associate each tip to its patient.
   patient.tips <- list()
@@ -153,108 +180,247 @@ for (tree.file in tree.files) {
   # This is exceptionally bad code - how else to pull out window coordinate though?
   window <- as.numeric(strsplit(tree.file, "_")[[1]][3])
   
-  # For each patient: record whether his/her tips are monophyletic, find the
-  # pairwise patristic distances between the tips - the 'cophenetic distances' -
-  # and characterise those distances. 
-  dummy.p.value<-0
+  # For each patient: 
+  # Determine all the distinct monophyletic clades that the patient's tips make
+  # N.b. a single isolated read is considered a type of monophyletic clade
+  # Count the number of reads associated with each clade
+  # ordered.clades is a list of these clades, ordered by decreasing number of reads
+  # Compute the overall root-to-tip distance for all reads associated with a patient
+  # and for each of the monophyletic subclades
+  # Root to tip distance is considered zero for single isolated read
+  # Record details for the five largest subclades in the summary statistic data frame
+  
+  makeSingleTipTree <- function(tip.label, num.reads) {
+    # creates a clade object based on a single tip label
+    # num.reads is a named vector of all number of reads for all labels
+    return( list(tree = tip.label, is.a.tip = T, num.reads = num.reads[tip.label] ))
+  }
+  
+  getLargestClade <- function( patient.subtree, tree, num.reads ) {
+    # from a 'patient.subtree' of 'tree', this function returns the largest 
+    # monophyletic subtree, as a clade object. 
+    # Clade objects can be a single tip.
+    # This function only currently works if the patient.subtree is a tree (not
+    # a clade object). This could be modified, which might simplify the main
+    # code for finding all monophyletic subclades
+    subtrees <- subtrees( patient.subtree  )
+    subtrees[[length(subtrees) + 1]] <- patient.subtree
+    subtrees.monophyletic <- sapply( subtrees, function(x) is.monophyletic(tree, tips = x$tip.label))
+    monophyletic.subtrees <- subtrees[ subtrees.monophyletic == T ]
+    
+    num.reads.largest.clade <- 0
+    if (length(monophyletic.subtrees) > 0) {
+      # if there is a monphyletic subtree
+      for(subtree in monophyletic.subtrees){
+        num.reads.sub <- 0
+        for(tip in subtree$tip.label){
+          num.reads.sub <- num.reads.sub + num.reads[tip]
+        }
+        if(num.reads.sub > num.reads.largest.clade){
+          num.reads.largest.clade <- num.reads.sub
+          largest.mononophyletic.clade <- subtree 
+          largest.mononophyletic.clade.is.a.tip <- F
+        }
+      }
+    } 
+    for(tip in patient.subtree$tip.label){
+      # this will either find the most common tip if there isn't a monophyletic
+      # subtree, or find a tip which isn't in the monophyletic subtree which is
+      # more common than that the sum of all the reads in that tree. 
+      # For that second option to work, this loop must come after the one above. 
+      num.reads.sub <- num.reads[tip]
+      if(num.reads.sub > num.reads.largest.clade){
+        num.reads.largest.clade <- num.reads.sub
+        largest.mononophyletic.clade <- tip 
+        largest.mononophyletic.clade.is.a.tip <- T
+      }
+    }
+    return(list(tree = largest.mononophyletic.clade, is.a.tip = largest.mononophyletic.clade.is.a.tip, num.reads = unname(num.reads.largest.clade)))  
+  }
+  
+  calcMeanRootToTip <- function( clade, num.reads ) {
+    # Mean root-to-tip distance, weighted by the number of reads associated with 
+    # each tip. Returns 0 if the clade is a single tip. 
+    # Input is a clade object (a named list), with three items: 
+    # $is.a.tip is a logical, indicating whether the tree is a single tip of a 
+    # 'proper' tree
+    # $tree is either the tree, or the label of the tip
+    # $num.reads is the number of reads associated with the whole clade
+    # The second input is num.reads, a vector with named entries, which 
+    # returns the number of reads associated with each tip label in the tree
+    root.to.tip <- 0
+    if(clade$is.a.tip == F) {
+      for (i in 1:length(clade$tree$tip.label)) {
+        root.to.tip <- root.to.tip +
+          nodeheight(clade$tree,i) * num.reads[ clade$tree$tip.label[i] ]
+      }
+      root.to.tip <- root.to.tip/clade$num.reads
+    }
+    return( unname(root.to.tip) )
+  }
+  
   
   for (i in 1:num.ids) {
+    # The main looop for finding all sub-clades of the patient-specific subtree
     id <- ids[i]
     num.leaves <- length(patient.tips[[id]])
-    num.reads<-0
-    for (tip in patient.tips[[id]]) num.reads <- num.reads + as.numeric(unlist(strsplit(tip,"count_"))[2])
+    num.reads <- list() 
+    for (tip in patient.tips[[id]]) num.reads[[tip]] <- as.numeric(unlist(strsplit(tip,"count_"))[2])
+    num.reads <- unlist( num.reads )
+    num.reads.total <- sum( num.reads )
+    ordered.clades <- list() 
+    current.clade <- 1
+    
     if (num.leaves>0) {
-      monophyletic <- as.numeric(is.monophyletic(tree, patient.tips[[id]]))
-      if (num.leaves > 1) {
-        subtree <- drop.tip(phy=tree,
-                            tip=tree$tip.label[!(tree$tip.label %in% patient.tips[[id]])])
-        subtree.dist.matrix <- cophenetic(subtree)
-        subtree.dist <- subtree.dist.matrix[lower.tri(subtree.dist.matrix)]
-        mean.size <- mean(subtree.dist)
-        variance <- var(subtree.dist)
-        coeff.of.var.size <- ifelse(num.leaves > 2, sqrt(variance)/mean.size, 0)
-        ## Distances are not weighted for the number of reads for each tip. 
-        ## Corrections are included because mean and variance of distance matrices
-        ## include zeros on diagonal, but shouldn't.
-        #subtree.dist.cf <- as.vector(subtree.dist.matrix)
-        #mean.size.cf <- mean(subtree.dist.cf)/(1-1/num.leaves)
-        #variance.cf <- var(subtree.dist.cf)*(1+1/num.leaves)-mean.size.cf^2/num.leaves
-        #cat("CF mean & var: ", mean.size.cf, variance.cf, '\n')
-        #cat("CW mean & var: ", mean.size.cw, variance.cw, '\n')
-        #cat('\n')
-      } else {
-        mean.size <- NA
-        coeff.of.var.size <- NA
+      # otherwise, there were no reads
+      if (num.leaves == 1) {
+        # only one tip for that patient
+        ordered.clades[[current.clade]] <- makeSingleTipTree(tip, num.reads)
+        overall.root.to.tip <- 0
+      } else if (num.leaves > 1) {
+        # define the subtree of all tips associated with the patient
+        patient.subtree <- drop.tip(phy = tree,
+                                    tip = tree$tip.label[!(tree$tip.label %in% patient.tips[[id]])])
+        patient.clade <- list(tree = patient.subtree, is.a.tip = F, num.reads = num.reads.total)
+        overall.root.to.tip <- calcMeanRootToTip( patient.clade, num.reads )
+        ordered.clades[[current.clade]] <- getLargestClade( patient.subtree, tree, num.reads )
+        # first find the largest sub clade
+        
+        done <- F
+        while( done == F) {
+          # Then find all the other subclades, in order
+          # It would probably be much more efficient to find all of the subclades
+          # in one go, and then order them.
+          if ( ordered.clades[[current.clade]]$is.a.tip ) {
+            test.length <- 1
+            tips <- ordered.clades[[current.clade]]$tree
+          } else {
+            test.length <- length(ordered.clades[[current.clade]]$tree$tip.label)
+            tips <- ordered.clades[[current.clade]]$tree$tip.label
+          }
+          
+          if ( test.length  < (length(patient.subtree$tip.label) - 1) ) {
+            patient.subtree <- drop.tip(patient.subtree, 
+                                        tip = patient.subtree$tip.label[(patient.subtree$tip.label %in% tips)])
+            current.clade <- current.clade + 1
+            next.clade <- getLargestClade( patient.subtree, tree, num.reads )
+            ordered.clades <- c(ordered.clades, list(next.clade))
+          } else if ( test.length == (length(patient.subtree$tip.label) - 1)) {
+            tip.label <- patient.subtree$tip.label[which(!(patient.subtree$tip.label %in% tips))]
+            current.clade <- current.clade + 1
+            ordered.clades <- c(ordered.clades,  
+                                list(makeSingleTipTree(tip.label, num.reads)) )
+            done <- T
+          } else {
+            done <- T
+          }
+        }
       }
-      root.to.tip<-0
-      for (i in 1:length(subtree$tip.label)) root.to.tip<-root.to.tip+nodeheight(subtree,i)
-      root.to.tip<-root.to.tip/length(subtree$tip.label)
-    } else {
-      monophyletic<-NA
-      mean.size<-NA
-      coeff.of.var.size<-NA
-      root.to.tip<-NA
+      num.clades <- length(ordered.clades)
+      # The patient subtree has now been split into num.clades clades
+      
+      prop.reads.per.clade <- root.to.tip.per.clade <- vector(length = 5)
+      # We only compute data on the five largest clades
+      root.to.tip.per.clade
+      for (i in 1:5) {
+        if (i > num.clades){
+          prop.reads.per.clade[i] <- 0
+          root.to.tip.per.clade[i] <- NA
+          # zeros are plotted, NAs are ommitted
+        } else {
+          prop.reads.per.clade[i] <- 
+            ordered.clades[[i]]$num.reads/num.reads.total
+          root.to.tip.per.clade[i] <- 
+            calcMeanRootToTip( ordered.clades[[i]], num.reads)
+        }
+      }
+      print(paste(id, num.clades ,  num.reads.total), 
+            round(prop.reads.per.clade[1], 3) )
+    } else { # if there are no reads for this patient in this window
+      num.clades <- NA
+      ordered.clades <- NA
+      overall.root.to.tip <- NA
+      prop.reads.per.clade <- NA
+      root.to.tip.per.clade <- NA
+      print(paste(i, id, "no reads"))
     }
-    pat.stats <- rbind(pat.stats, c(id, window, num.leaves, num.reads, monophyletic,
-                                    mean.size, coeff.of.var.size,root.to.tip))
+    pat.stats <- rbind(pat.stats, c(id, 
+                                    window, 
+                                    num.reads.total, 
+                                    num.leaves, 
+                                    num.clades,
+                                    overall.root.to.tip,
+                                    prop.reads.per.clade[1],
+                                    prop.reads.per.clade[2],
+                                    prop.reads.per.clade[3],
+                                    prop.reads.per.clade[4],
+                                    prop.reads.per.clade[5],
+                                    root.to.tip.per.clade[1],
+                                    root.to.tip.per.clade[2],
+                                    root.to.tip.per.clade[3],
+                                    root.to.tip.per.clade[4],
+                                    root.to.tip.per.clade[5]) )
   }
-}
-
-
-
-pat.stats$mean.size <- as.numeric(pat.stats$mean.size)
-pat.stats$coeff.of.var.size <- as.numeric(pat.stats$coeff.of.var.size)
-pat.stats$root.to.tip <- as.numeric(pat.stats$root.to.tip)
-pat.stats <- pat.stats[!pat.stats$patient.id=="test", ]
-pat.stats <- pat.stats[order(pat.stats$patient.id), ]
-
-pat.stats$size.mono.p.value <- 1-ecdf(x = pat.stats[pat.stats$monophyletic==1,]$mean.size)(pat.stats$mean.size)
-pat.stats$size.significantly.big <- ifelse(pat.stats$size.mono.p.value<0.05/length(pat.stats$size.mono.p.value),1,0) 
-# inlcudes a Bonferoni correction
-
-
-pdf(file.path(output.dir, "Patient.Statistics.pdf"), paper = "a4")
-for (id in sort(ids)) {
-  par(mfrow=c(3, 2))
-  pat <- pat.stats[pat.stats$patient.id==id, ]
-  plot(pat$window, pat$num.leaves, main=pat$patient.id[1],
-       xlab="Genome location", ylab="Number of tips")
-  plot(pat$window, pat$num.reads, main=pat$patient.id[1],
-       xlab="Genome location", ylab="Number of reads")
-  plot(pat$window, pat$monophyletic, main=pat$patient.id[1],
-       xlab="Genome location", ylab="Monophyletic (1=yes, 0=no)", ylim=c(0, 1))
-  #plot(pat$window, pat$mean.size, main=pat$patient.id[1],
-  #  xlab="Genome location", ylab="Mean cophenetic distance",
-  #  ylim=c(0, max(pat.stats$mean.size, na.rm=T)))
-  boxplot(mean.size~window,data = pat.stats[pat.stats$monophyletic==1,],
-          main=pat$patient.id[1],
-          xlab="Genome location", ylab="Mean cophenetic distance",
-          ylim=c(0, max(pat.stats$mean.size, na.rm=T)))
-  points(1:length(pat$mean.size), pat$mean.size, col="red",pch=19,cex=1)
-  significant.stars<-ifelse(pat$size.significantly.big==1,1,NA)
-  points(1:length(pat$mean.size), -0.01*significant.stars, col="red",pch=8,cex=1)
   
-  plot(pat$window, pat$coeff.of.var.size, main=pat$patient.id[1],
-       xlab="Genome location",
-       ylab="Coefficient of variation of cophenetic distances",
-       ylim=c(0, max(pat.stats$coeff.of.var.size, na.rm=T)))
-  plot(pat$window, pat$root.to.tip, main=pat$patient.id[1],
-       xlab="Genome location",
-       ylab="Mean root to tip patristic distance",
-       ylim=c(0, max(pat.stats$root.to.tip, na.rm=T)))
 }
-dev.off()
 
-write.csv(pat.stats,file.path(output.dir, "Patient.Statistics.csv"))
+        
 
-mean.na.rm <- function(x) mean(x,na.rm = T)
 
-pat.stats$window.has.data <- as.numeric(pat.stats$num.leaves > 0)
-pat.stats$num.leaves <- as.numeric(as.character(pat.stats$num.leaves))
-pat.stats$num.reads <- as.numeric(as.character(pat.stats$num.reads))
-pat.stats$monophyletic <- as.numeric(as.character(pat.stats$monophyletic))
 
-by.patient <- pat.stats %>% group_by(patient.id)
-pat.stats.summary <- as.data.frame( by.patient %>% summarise_each(funs(mean.na.rm)) )
+# pat.stats$mean.size <- as.numeric(pat.stats$mean.size)
+# pat.stats$coeff.of.var.size <- as.numeric(pat.stats$coeff.of.var.size)
+# pat.stats$root.to.tip <- as.numeric(pat.stats$root.to.tip)
+# pat.stats <- pat.stats[!pat.stats$patient.id=="test", ]
+# pat.stats <- pat.stats[order(pat.stats$patient.id), ]
+# 
+# pat.stats$size.mono.p.value <- 1-ecdf(x = pat.stats[pat.stats$monophyletic==1,]$mean.size)(pat.stats$mean.size)
+# pat.stats$size.significantly.big <- ifelse(pat.stats$size.mono.p.value<0.05/length(pat.stats$size.mono.p.value),1,0) 
+# # inlcudes a Bonferoni correction
 
-write.csv(pat.stats.summary,file.path(output.dir, "Patient.Statistics.Summary.csv"))
+
+# pdf(file.path(output.dir, "Patient.Statistics.pdf"), paper = "a4")
+# for (id in sort(ids)) {
+#   par(mfrow=c(3, 2))
+#   pat <- pat.stats[pat.stats$patient.id==id, ]
+#   plot(pat$window, pat$num.leaves, main=pat$patient.id[1],
+#        xlab="Genome location", ylab="Number of tips")
+#   plot(pat$window, pat$num.reads, main=pat$patient.id[1],
+#        xlab="Genome location", ylab="Number of reads")
+#   plot(pat$window, pat$monophyletic, main=pat$patient.id[1],
+#        xlab="Genome location", ylab="Monophyletic (1=yes, 0=no)", ylim=c(0, 1))
+#   #plot(pat$window, pat$mean.size, main=pat$patient.id[1],
+#   #  xlab="Genome location", ylab="Mean cophenetic distance",
+#   #  ylim=c(0, max(pat.stats$mean.size, na.rm=T)))
+#   boxplot(mean.size~window,data = pat.stats[pat.stats$monophyletic==1,],
+#           main=pat$patient.id[1],
+#           xlab="Genome location", ylab="Mean cophenetic distance",
+#           ylim=c(0, max(pat.stats$mean.size, na.rm=T)))
+#   points(1:length(pat$mean.size), pat$mean.size, col="red",pch=19,cex=1)
+#   significant.stars<-ifelse(pat$size.significantly.big==1,1,NA)
+#   points(1:length(pat$mean.size), -0.01*significant.stars, col="red",pch=8,cex=1)
+#   
+#   plot(pat$window, pat$coeff.of.var.size, main=pat$patient.id[1],
+#        xlab="Genome location",
+#        ylab="Coefficient of variation of cophenetic distances",
+#        ylim=c(0, max(pat.stats$coeff.of.var.size, na.rm=T)))
+#   plot(pat$window, pat$root.to.tip, main=pat$patient.id[1],
+#        xlab="Genome location",
+#        ylab="Mean root to tip patristic distance",
+#        ylim=c(0, max(pat.stats$root.to.tip, na.rm=T)))
+# }
+# dev.off()
+# 
+# write.csv(pat.stats,file.path(output.dir, "Patient.Statistics.csv"))
+# 
+# mean.na.rm <- function(x) mean(x,na.rm = T)
+# 
+# pat.stats$window.has.data <- as.numeric(pat.stats$num.leaves > 0)
+# pat.stats$num.leaves <- as.numeric(as.character(pat.stats$num.leaves))
+# pat.stats$num.reads <- as.numeric(as.character(pat.stats$num.reads))
+# pat.stats$monophyletic <- as.numeric(as.character(pat.stats$monophyletic))
+# 
+# by.patient <- pat.stats %>% group_by(patient.id)
+# pat.stats.summary <- as.data.frame( by.patient %>% summarise_each(funs(mean.na.rm)) )
+# 
+# write.csv(pat.stats.summary,file.path(output.dir, "Patient.Statistics.Summary.csv"))
