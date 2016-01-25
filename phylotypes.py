@@ -203,6 +203,8 @@ BamFiles, BamFileBasenames = pf.ReadNamesFromFile(args.ListOfBamFiles)
 RefFiles, RefFileBasenames = pf.ReadNamesFromFile(args.ListOfRefFiles)
 if args.renaming_file != None:
   BamAliases = pf.ReadNamesFromFile(args.renaming_file, False)
+else:
+  BamAliases = BamFileBasenames
 
 # If the BamFileBasenames are all still unique after removing ".bam" from the
 # ends, do so, for aesthetics in output files.
@@ -402,10 +404,7 @@ def ProcessReadDict(ReadDict, WhichBam, LeftWindowEdge, RightWindowEdge):
 
   # For naming things
   BamFileBasename = BamFileBasenames[WhichBam]
-  if args.renaming_file == None:
-    BasenameForReads = BamFileBasename
-  else:
-    BasenameForReads = BamAliases[WhichBam]
+  BasenameForReads = BamAliases[WhichBam]
 
   # Merge similar reads if desired
   if args.MergingThreshold > 0:
@@ -658,7 +657,7 @@ for window in range(NumCoords / 2):
     AllSeqsToPrint = []
     for seq in SeqIO.parse(open(FileForReads),'fasta'):
       RegexMatch = SampleRegex.search(seq.id)
-      if RegexMatch and seq.id[:RegexMatch.start()] in BamFileBasenames:
+      if RegexMatch and seq.id[:RegexMatch.start()] in BamAliases:
         SampleName = seq.id[:RegexMatch.start()]
         read = str(seq.seq)
         SeqCount = int(seq.id.rsplit('_',1)[1])
