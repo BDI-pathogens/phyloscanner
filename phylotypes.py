@@ -217,118 +217,135 @@ if len(BamlessBasenames) == len(set(BamlessBasenames)):
   BamFileBasenames = BamlessBasenames
 
 # Check that there are the same number of bam and reference files
-if len(BamFiles) != len(RefFiles):
+NumberOfBams = len(BamFiles)
+if NumberOfBams != len(RefFiles):
   print('Different numbers of files are listed in', args.ListOfBamFiles, 'and',\
   args.ListOfRefFiles+'.\nQuitting.', file=sys.stderr)
   exit(1)
-if args.renaming_file != None and len(BamFileNickNames) != len(BamFiles):
+if args.renaming_file != None and len(BamFileNickNames) != NumberOfBams:
   print('Different numbers of files are listed in', args.ListOfBamFiles, 'and',\
   args.renaming_file+'.\nQuitting.', file=sys.stderr)
   exit(1)
 
-# Read in all the reference sequences
-RefsAsFasta = ''
+# Read in all the reference sequences. Set each name by the file from which the
+# ref comes.
+RefSeqs = []
 for i,RefFile in enumerate(RefFiles):
   SeqList = list(SeqIO.parse(open(RefFile),'fasta'))
   if len(SeqList) != 1:
     print('There are', len(SeqList), 'sequences in', RefFile+'. There should',\
     'be exactly 1.\nQuitting.', file=sys.stderr)
     exit(1)
-  RefBasename = RefFileBasenames[i]
-  RefsAsFasta += '>'+RefBasename+'\n'+str(SeqList[0].seq)+'\n'
+  SeqList[0].id = RefFileBasenames[i]
+  RefSeqs += SeqList
 
-# Put all the mapping reference sequences into one file. If an alignment of 
-# other references was supplied, add the mapping references to that alignment;
-# if not, align the mapping references to each other.
-with open(FileForRefs, 'w') as f:
-  f.write(RefsAsFasta)
-if IncludeOtherRefs:
-  FinalMafftOptions = ['--add', FileForRefs, args.alignment_of_other_refs]
+# If there are at least two bam files, or if there is one but we're including
+# other refs, we'll be aligning references and translating the user-specified
+# coords with respect to each sequence, then storing those coords in a dict
+# indexed by the ref's name.
+# If not, i.e. there's just one bam and no other refs, no coordinate translation
+# is necessary - we use the coords as they are, though setting any after the end
+# of the reference to be equal to the end of the reference.
+if NumberOfBams == 1 and not IncludeOtherRefs:
+  RefSeqLength = len(RefSeqs[0])
+  UserCoords = WindowCoords
+  CoordsToUse = [min(coord, RefSeqLength) for coord in WindowCoords]
+  CoordsInRefs = {RefFileBasenames[0] : CoordsToUse}
 else:
-  FinalMafftOptions = [FileForRefs]
-with open(FileForAlignedRefs, 'w') as f:
-  try:
-    ExitStatus = subprocess.call([args.x_mafft, '--quiet',  '--preservecase']+\
-    FinalMafftOptions, stdout=f)
-    assert ExitStatus == 0
-  except:
-    print('Problem calling mafft. Quitting.', file=sys.stderr)
-    exit(1)
 
-# If coords were specified with respect to one particular reference, translate
-# them to alignment coordinates.
-UserCoords = WindowCoords
-if args.ref_for_coords != None:
-  AlignmentCoords = []
-  for seq in SeqIO.parse(open(FileForAlignedRefs),'fasta'):
-    if seq.id == args.ref_for_coords:
-      PositionInRef = 0
-      for AlignmentPostitionMin1,base in enumerate(str(seq.seq)):
-        if base == GapChar:
-          continue
-        PositionInRef += 1
-        if PositionInRef in WindowCoords:
-          AlignmentCoords.append(AlignmentPostitionMin1+1)
-  WindowCoords = AlignmentCoords
-
-# Translate alignment coordinates to reference coordinates
-CoordsInRefs = {}
-try:
-  CoordsString = subprocess.check_output([TranslateCoordsCode, \
-  FileForAlignedRefs, '-A']+[str(coord) for coord in WindowCoords])
-except:
-  print('Problem executing', TranslateCoordsCode, '\nQuitting.', file=sys.stderr)
-  exit(1)
-
-for line in CoordsString.splitlines():
-
-  # Trim leading & trailing whitespace and skip blank lines
-  line = line.strip()
-  if line == '':
-    continue
-
-  # Each line in the output of the TranslateCoordsCode should be the basename of
-  # one of the reference files and then the coordinates.
-  fields = line.split()
-  if len(fields) != NumCoords +1:
-    print('Unexpected number of fields in line\n' +line +'\nin the output of '+\
-    TranslateCoordsCode+'\nQuitting.', file=sys.stderr)
-    exit(1)
-  RefBasename = fields[0]
-  coords = fields[1:]
-
-  # If other refs have been included, their names will appear in the output of
-  # TranslateCoordsCode but we're not interested. If other refs have not been
-  # included, only the refs for mapping should appear in this output.
-  if not RefBasename in RefFileBasenames:
-    if IncludeOtherRefs:
-      continue
-    else:  
-      print('Encountered sequence name '+RefBasename+', which is not the '+\
-      'basename of any of the file from '+args.ListOfRefFiles +', in line\n' +\
-      line +'\nin the output of '+TranslateCoordsCode+'\nQuitting.', \
-      file=sys.stderr)
+  # Put all the mapping reference sequences into one file. If an alignment of 
+  # other references was supplied, add the mapping references to that alignment;
+  # if not, align the mapping references to each other.
+  SeqIO.write(RefSeqs, FileForRefs, "fasta")
+  if IncludeOtherRefs:
+    FinalMafftOptions = ['--add', FileForRefs, args.alignment_of_other_refs]
+  else:
+    FinalMafftOptions = [FileForRefs]
+  with open(FileForAlignedRefs, 'w') as f:
+    try:
+      ExitStatus = subprocess.call([args.x_mafft, '--quiet',  \
+      '--preservecase'] + FinalMafftOptions, stdout=f)
+      assert ExitStatus == 0
+    except:
+      print('Problem calling mafft. Quitting.', file=sys.stderr)
       exit(1)
 
-  # Convert the coordinates to integers.
-  # Where an alignment coordinate is inside a deletion in a particular sequence,
-  # TranslateCoords.py returns an integer + 0.5 for the coordinate with respect
-  # to that sequence. Python won't convert such figures directly from string to
-  # int, but we can do so via a float intermediate. This rounds down, i.e. to
-  # the coordinate of the base immediately to the left of the deletion.
-  for i in range(len(coords)):
-    if coords[i] != 'NaN':
-      try:
-        coords[i] = int(coords[i])
-      except ValueError:
-        if '.5' in coords[i]:
-          coords[i] = int(float(coords[i]))
-        else:
-          print('Unable to understand the coordinate', coords[i], \
-          'as an integer in line\n' +line +'\nin the output of '+\
-          TranslateCoordsCode+'\nQuitting.', file=sys.stderr)
-          exit(1)
-  CoordsInRefs[RefBasename] = coords
+  # If coords were specified with respect to one particular reference, translate
+  # them to alignment coordinates.
+  UserCoords = WindowCoords
+  if args.ref_for_coords != None:
+    AlignmentCoords = []
+    for seq in SeqIO.parse(open(FileForAlignedRefs),'fasta'):
+      if seq.id == args.ref_for_coords:
+        PositionInRef = 0
+        for AlignmentPostitionMin1,base in enumerate(str(seq.seq)):
+          if base == GapChar:
+            continue
+          PositionInRef += 1
+          if PositionInRef in WindowCoords:
+            AlignmentCoords.append(AlignmentPostitionMin1+1)
+    WindowCoords = AlignmentCoords
+
+  # Translate alignment coordinates to reference coordinates
+  CoordsInRefs = {}
+  try:
+    CoordsString = subprocess.check_output([TranslateCoordsCode, \
+    FileForAlignedRefs, '-A']+[str(coord) for coord in WindowCoords])
+  except:
+    print('Problem executing', TranslateCoordsCode, '\nQuitting.', \
+    file=sys.stderr)
+    exit(1)
+
+  for line in CoordsString.splitlines():
+
+    # Trim leading & trailing whitespace and skip blank lines
+    line = line.strip()
+    if line == '':
+      continue
+
+    # Each line in the output of the TranslateCoordsCode should be the basename
+    # of one of the reference files and then the coordinates.
+    fields = line.split()
+    if len(fields) != NumCoords +1:
+      print('Unexpected number of fields in line\n' +line +'\nin the output '+\
+      'of ' +TranslateCoordsCode+'\nQuitting.', file=sys.stderr)
+      exit(1)
+    RefBasename = fields[0]
+    coords = fields[1:]
+
+    # If other refs have been included, their names will appear in the output of
+    # TranslateCoordsCode but we're not interested. If other refs have not been
+    # included, only the refs for mapping should appear in this output.
+    if not RefBasename in RefFileBasenames:
+      if IncludeOtherRefs:
+        continue
+      else:  
+        print('Encountered sequence name '+RefBasename+', which is not the '+\
+        'basename of any of the file from '+args.ListOfRefFiles +\
+        ', in line\n' +line +'\nin the output of '+TranslateCoordsCode+\
+        '\nQuitting.', file=sys.stderr)
+        exit(1)
+
+    # Convert the coordinates to integers.
+    # Where an alignment coordinate is inside a deletion in a particular
+    # sequence, TranslateCoords.py returns an integer + 0.5 for the coordinate 
+    # with respect to that sequence. Python won't convert such figures directly 
+    # from string to int, but we can do so via a float intermediate. This rounds 
+    # down, i.e. to the coordinate of the base immediately to the left of the
+    # deletion.
+    for i in range(len(coords)):
+      if coords[i] != 'NaN':
+        try:
+          coords[i] = int(coords[i])
+        except ValueError:
+          if '.5' in coords[i]:
+            coords[i] = int(float(coords[i]))
+          else:
+            print('Unable to understand the coordinate', coords[i], \
+            'as an integer in line\n' +line +'\nin the output of '+\
+            TranslateCoordsCode+'\nQuitting.', file=sys.stderr)
+            exit(1)
+    CoordsInRefs[RefBasename] = coords
 
 # Make index files for the bam files if needed.
 for BamFileName in BamFiles:
@@ -411,7 +428,7 @@ def ProcessReadDict(ReadDict, WhichBam, LeftWindowEdge, RightWindowEdge):
   for k, (read, count) in \
   enumerate(sorted(ReadDict.items(), key=lambda x: x[1], reverse=True)):
     SeqName = BasenameForReads+'_read_'+str(k+1)+'_count_'+str(count)
-    SeqObject = SeqIO.SeqRecord(Seq.Seq(read), id=SeqName)
+    SeqObject = SeqIO.SeqRecord(Seq.Seq(read), id=SeqName, description='')
     reads.append(SeqObject)
   return reads
 
@@ -576,7 +593,7 @@ for window in range(NumCoords / 2):
   # Skip empty windows.
   if AllReadsInThisWindow == []:
     print('WARNING: no bam file had any reads (after a minimum post-merging '+\
-    'read count of ', args.MinReadCount,' was imposed) in the window', \
+    'read count of', args.MinReadCount, 'was imposed) in the window', \
     str(UserLeftWindowEdge)+'-'+str(UserRightWindowEdge)+'. Skipping to the', \
     'next window.', file=sys.stderr)
     continue
@@ -664,7 +681,7 @@ for window in range(NumCoords / 2):
       for k, (read, count) in enumerate(sorted(\
       SampleReadCounts[SampleName].items(), key=lambda x: x[1], reverse=True)):
         ID = SampleName+'_read_'+str(k+1)+'_count_'+str(count)
-        SeqObject = SeqIO.SeqRecord(Seq.Seq(read), id=ID)
+        SeqObject = SeqIO.SeqRecord(Seq.Seq(read), id=ID, description='')
         SampleSeqsToPrint.append(SeqObject)
     AllSeqsToPrint = SampleSeqsToPrint + AllSeqsToPrint
     if AllSeqsToPrint == []:
