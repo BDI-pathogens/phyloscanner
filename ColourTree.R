@@ -1,20 +1,20 @@
 #!/usr/bin/env Rscript
 
-command.line <- FALSE
+command.line <- TRUE
 if (command.line) {
   # Read in the arguments
   args <- commandArgs(TRUE)
   if (length(args) < 7) {
     cat(paste("At least 7 arguments must be specified:\n* a file containing",
-              "the IDs to be coloured, one per line;\n* the string/character ",
-              "that follows the ID part of the tip name (i.e. those tip names ",
-              "to be coloured should equal one of the IDs followed by this ",
-              "string/character then anything at all);\n* the font size for ", 
-              "the tip labels;\n* the line width for the tree;\n* a seed for ", 
-              "randomising the order of colour allocation to the IDs file ",
-              "(use -1 to turn off shuffle;\n* the directory where output ",
-              "tree pdfs will be produced;\n* finally, any number of tree",
-              "files.\nQuitting.\n"))
+              "the IDs to be coloured, one per line;\n* the string/character",
+              "that follows the ID part of the tip name (i.e. those tip names",
+              "to be coloured should equal one of the IDs followed by this",
+              "string/character then anything at all);\n* the font size for", 
+              "the tip labels;\n* the line width for the tree;\n* a seed for", 
+              "randomising the order of colour allocation to the IDs file",
+              "(use -1 to turn off randomisation);\n* the directory where",
+              "output tree pdfs will be produced;\n* finally, any number of",
+              "tree files.\nQuitting.\n"))
     quit("no", 1)
   }
   id.file <- args[1]
@@ -31,34 +31,37 @@ if (command.line) {
     }
   }
   tree.files.basenames <- lapply(tree.files, basename)
+  ids.as.folder <- FALSE
+  root.name<-"Ref.B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
 } else {
   # Some options to run within R
-  #setwd("/Users/cfraser/Dropbox (Infectious Disease)/PROJECTS/BEEHIVE/phylotypes")
-  setwd("/Users/Christophe/phylotypes")
+  setwd("/Users/cfraser/Dropbox (Infectious Disease)/PROJECTS/HIV/phylotypes")
+  #setwd("/Users/Christophe/phylotypes")
   rm(list=ls())
   #id.file <- "inputs/ListOfIDs_IDUs_IncNotOK.txt"
   #id.file <- "inputs/ListOfIDs_SubtypeCclade.txt"
   #id.file <- "inputs/ListOfIDs_CFRandom.txt"
-  id.file <- "ListOfIDs_run20160111.txt"
+  #id.file <- "ListOfIDs_run20160111.txt"
   id.delimiter <- "-1"
+  ids.as.folder <- TRUE
+  id.folder <- "/Users/cfraser/Dropbox (Infectious Disease)/PROJECTS/BEEHIVE/phylotypes/run20160111/ref.fasta"
+  id.folder.tag <- "-1_ref.fasta"
   font.size <- 0.15
   line.width <- 1
   seed <- 1
   #output.dir <- "CF_TREES/IDUs"
   #output.dir <- "CF_TREES/SubtypeCclade"
   #output.dir <- "CF_TREES/CF_RandomSelection"
-  output.dir <- "run20160111/R_output"
+  output.dir <- "/Users/cfraser/Dropbox (Infectious Disease)/PROJECTS/BEEHIVE/phylotypes/run20160111/R_output_experimental"
   #input.dir<-"PhylotypeOutput/SubtypeCclade"
-  #input.dir<-"/Users/cfraser/Dropbox (Infectious Disease)/PROJECTS/BEEHIVE/Christophe_notebook/phylotypes/run20151011/"
-  input.dir <- "/Users/Christophe/phylotypes/run20160111/RAxML_bestTree"
-  root.name <- "Ref.B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
+  input.dir<-"/Users/cfraser/Dropbox (Infectious Disease)/PROJECTS/BEEHIVE/phylotypes/run20160111/RAxML_bestTree"
+  #input.dir<-"/Users/Christophe/phylotypes/run20160111/RAxML_bestTree"
+  root.name<-"Ref.B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
+  # Find the files; we have to include \\. otherwise it ignores the dot.
   tree.files.basenames <- list.files(input.dir, pattern="*\\.tree") 
-  tree.files <- lapply(list.files(input.dir, pattern="*\\.tree"),
+  tree.files <- lapply(tree.files.basenames, 
                        function(x) file.path(input.dir, x))
-    
-  }
-  
-  # has to include \\. otherwise ignores the dot
+
 }
 
 require(phytools)
@@ -68,7 +71,14 @@ dir.create(output.dir, showWarnings=F)
 #StatsList <- list()
 
 # Read in the IDs. Remove duplicates. Shuffle their order if desired.
-ids <- scan(id.file, what="", sep="\n", quiet=TRUE)
+if (ids.as.folder) { 
+  # reads in the IDs from the list of files in the folder - unusually named files might get a bit garbled. 
+  ids <- list.files(id.folder, pattern = "*\\.fasta")
+  ids <- sapply(ids, function (x) unlist(strsplit(x, split = id.folder.tag)[[1]][1]))
+} else {
+  # alternatively reads in the IDs from a specific file
+  ids <- scan(id.file, what="", sep="\n", quiet=TRUE)
+}
 num.ids <- length(ids)
 if (num.ids == 0) {
   cat(paste("No IDs found in ", id.file, ". Quitting.\n", sep=""))
@@ -118,11 +128,11 @@ for (tree.number in 1:num.trees) {
       this.tree.colours[i] <- "black"
     }
   }
-  
+
   # Rotate internal nodes to have right daughter clades more species rich than
   # left daughter clades. 
-  tree <- ladderize(tree)  
-  
+  tree <- ladderize(tree)
+
   # Plot the tree.
   # First make the automatic tip labels transparent, then replot with colour.
   out.tree.basename <- paste(tree.file.basename, ".pdf", sep="")
@@ -138,8 +148,7 @@ for (tree.number in 1:num.trees) {
        cex=font.size, col=this.tree.colours, pos=4, offset=0.1, font=0.1)
   dev.off()
   par <- opar
-}
-  
+
   # Associate each tip to its patient.
   patient.tips <- list()
   for (id in ids) patient.tips[[id]] <- vector()
