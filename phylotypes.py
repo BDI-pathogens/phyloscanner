@@ -97,7 +97,7 @@ help="Don't compare reads between samples to find duplicates - a possible "+\
 parser.add_argument('-I', '--discard-improper-pairs', action='store_true', \
 help='Any improperly paired reads will be discarded')
 parser.add_argument('-M', '--raxml-model', default='GTRCAT',\
-help='The evoltionary model used by RAxML')
+help='The evoltionary model used by RAxML (GTRCAT by default).')
 parser.add_argument('-N', '--number-of-bootstraps', type=int,\
 help='The number of bootstraps to be calculated for RAxML trees (by default, '+\
 'none i.e. only the ML tree is calculated).')
@@ -140,24 +140,30 @@ QualTrimEnds  = args.quality_trim_ends != None
 ImposeMinQual = args.min_internal_quality != None
 WindowCoords  = args.WindowCoord
 
-def CheckRefIsPresent(flag, ref):
-  'Checks that a reference (named with a flag) is in the alignment of refs.'
-  if ref == None:
-    return
+# Keep track of the names of any external refs being included.
+ExternalRefNames = []
+if IncludeOtherRefs:
+  for ref in SeqIO.parse(open(args.alignment_of_other_refs),'fasta'):
+    ExternalRefNames.append(ref.id)
+  if ExternalRefNames == []:
+    print('No sequences found in', args.alignment_of_other_refs +'. Quitting.',
+    file=sys.stderr)
+    exit(1)
+
+# Consistency checks on flags that require a ref.
+for FlagName, FlagValue in (('--ref-for-coords',  args.ref_for_coords),\
+('--ref-for-rooting', args.ref_for_rooting)):
+  if FlagValue == None:
+    continue
   if not IncludeOtherRefs:
-    print('The', flag, 'flag requires the --alignment-of-other-refs',\
+    print('The', FlagName, 'flag requires the --alignment-of-other-refs',\
     'flag. Quitting.', file=sys.stderr)
-    exit(1)  
-  if not any(seq.id == ref for seq in \
-  SeqIO.parse(open(args.alignment_of_other_refs),'fasta')):
-    print('Reference', ref +', specified with the', flag, \
+    exit(1)
+  if not FlagValue in ExternalRefNames:
+    print('Reference', FlagValue +', specified with the', FlagName, \
     'flag, was not found in', args.alignment_of_other_refs +'. Quitting.', \
     file=sys.stderr)
     exit(1)
-  return
-
-CheckRefIsPresent('--ref-for-coords',  args.ref_for_coords)
-CheckRefIsPresent('--ref-for-rooting', args.ref_for_rooting)
 
 # Sanity checks on the WindowCoords
 NumCoords = len(WindowCoords)
@@ -651,7 +657,7 @@ for window in range(NumCoords / 2):
   # Make a dict (indexed by sample name) of dicts (indexed by the sequences
   # themselves) of read counts. Those sequences that are from a sample are 
   # found by matching the RegexMatch '_read_\d+_count_\d+$'; other sequences
-  # must be external references the user included, and are not processed.
+  # should be external references the user included, and are not processed.
   if args.MergingThreshold > 0:
     SampleReadCounts = collections.OrderedDict()
     AllSeqsToPrint = []
@@ -671,6 +677,11 @@ for window in range(NumCoords / 2):
         else:
           SampleReadCounts[SampleName] = {read : SeqCount}
       else:
+        if not seq.id in ExternalRefNames:
+          print('Malfunction of phylotypes: sequence', seq.id, 'in', \
+          FileForReads, 'not recognised as a read nor an external reference.',\
+          'Quitting.', file=sys.stderr)
+          exit(1)
         AllSeqsToPrint.append(seq)
     SampleSeqsToPrint = []
     for SampleName in SampleReadCounts:
@@ -686,6 +697,7 @@ for window in range(NumCoords / 2):
       print('Malfunction of phylotypes: no sequences were found in', \
       FileForReads +'. Quitting.', file=sys.stderr)
       exit(1)
+
     # Merging after alignment means some columns could be pure gap.
     # Remove these.
     PureGapColumns = []
