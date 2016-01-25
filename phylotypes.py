@@ -19,10 +19,6 @@ Output files are written to the current working directory; to avoid overwriting
 existing files, you might to want to call this code from an empty directory.
 '''
 
-# TODO: make it work with just a single sample and no external references -
-# currently breaks because mafft produces no output when given one sequence to
-# align (and coordinate translation will probably have to change).
-
 ################################################################################
 # USER INPUT
 
@@ -31,7 +27,7 @@ RAxMLbootstrapSeed = 1
 
 # Some temporary working files we'll create
 FileForRefs = 'temp_refs.fasta'
-FileForAlignedRefs = 'temp_RefsAln.fasta'
+FileForAlignedRefs = 'RefsAln.fasta'
 FileForReadsInEachWindow_basename = 'temp_UnalignedReads'
 FileForOtherRefsInEachWindow_basename = 'temp_OtherRefs'
 FileForAlignedReadsInEachWindow_basename = 'AlignedReads'
@@ -134,6 +130,9 @@ parser.add_argument('--x-samtools', default='samtools', help=\
 
 args = parser.parse_args()
 
+# TODO: remove this testing
+#read1 = pf.PseudoRead('read1', 'abcdefghij', [1,2,3,4,5,6,7,8,9,10], [30]*10)
+
 # Shorthand
 NumBootstraps = args.number_of_bootstraps
 IncludeOtherRefs = args.alignment_of_other_refs != None
@@ -203,7 +202,7 @@ if not args.no_trees:
 BamFiles, BamFileBasenames = pf.ReadNamesFromFile(args.ListOfBamFiles)
 RefFiles, RefFileBasenames = pf.ReadNamesFromFile(args.ListOfRefFiles)
 if args.renaming_file != None:
-  BamFileNickNames = pf.ReadNamesFromFile(args.renaming_file, False)
+  BamAliases = pf.ReadNamesFromFile(args.renaming_file, False)
 
 # If the BamFileBasenames are all still unique after removing ".bam" from the
 # ends, do so, for aesthetics in output files.
@@ -222,7 +221,7 @@ if NumberOfBams != len(RefFiles):
   print('Different numbers of files are listed in', args.ListOfBamFiles, 'and',\
   args.ListOfRefFiles+'.\nQuitting.', file=sys.stderr)
   exit(1)
-if args.renaming_file != None and len(BamFileNickNames) != NumberOfBams:
+if args.renaming_file != None and len(BamAliases) != NumberOfBams:
   print('Different numbers of files are listed in', args.ListOfBamFiles, 'and',\
   args.renaming_file+'.\nQuitting.', file=sys.stderr)
   exit(1)
@@ -406,7 +405,7 @@ def ProcessReadDict(ReadDict, WhichBam, LeftWindowEdge, RightWindowEdge):
   if args.renaming_file == None:
     BasenameForReads = BamFileBasename
   else:
-    BasenameForReads = BamFileNickNames[WhichBam]
+    BasenameForReads = BamAliases[WhichBam]
 
   # Merge similar reads if desired
   if args.MergingThreshold > 0:
@@ -698,9 +697,12 @@ for window in range(NumCoords / 2):
     if PureGapColumns != []:
       for seq in AllSeqsToPrint[1:]:
         SeqAsString = str(seq.seq)
-        for i,position in enumerate(PureGapColumns):
-          if SeqAsString[position] != '-':
-            del PureGapColumns[i]
+        GapColsToRemove = []
+        for i,col in enumerate(PureGapColumns):
+          if SeqAsString[col] != '-':
+            GapColsToRemove.append(col)
+        PureGapColumns = \
+        [col for col in PureGapColumns if not col in GapColsToRemove]
         if PureGapColumns == []:
           break
       if PureGapColumns != []:
