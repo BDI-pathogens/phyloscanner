@@ -1,5 +1,7 @@
 library(phangorn)
 
+zero.length.tips.count <- TRUE
+
 get.tip.no <- function(tree, name) {
   return(match(name, tree$tip.label))
 }
