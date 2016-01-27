@@ -26,6 +26,12 @@ is.tip <- function(tree, node) {
   return(node <= length(tree$tip.label))
 }
 
+# Node is root (likewise)
+
+is.root <- function(tree, node) {
+  return(Ancestors(tree, node, type="parent")==0)
+}
+
 # Get the sequence of ancestors from one node to the other
 
 get.ancestral.sequence <- function(tree, desc, anc) {
@@ -180,20 +186,36 @@ get.patients.with.these.mrcas <-
 
 mrca.phylo.or.unique.tip <- function(tree, node) {
   if (length(node) == 1) {
-    #    cat("Node ",node," is unique for this patient.\n")
-    if(!zero.length.tips.count){
+    if(verbose){
+      cat("Node ",node," is unique for this patient.\n")
+    }
+    if(!zero.length.tips.count | !is.tip(tree,node)){
       return(node)
     } else {
       length <- get.edge.length(tree, node)
       while(length<1E-5){
+        
         node <- Ancestors(tree, node, type="parent")
+        if(is.root(tree, node)){
+          break
+        }
+        if(verbose){
+          cat("Length short, moving up to node ",node,"\n",sep="")
+        }
         length <- get.edge.length(tree, node)
+        
       }
       return(node)
     }
   } else {
-    return(mrca.phylo(tree, node))
-    #    cat("Node ",mrca," is the MRCA of this set.\n")
+    
+    mrca <- mrca.phylo(tree, node)
+    if(verbose){
+      cat("Node ",mrca," is the MRCA of this set.\n")
+    }
+    
+    return(mrca)
+    
   }
 }
 

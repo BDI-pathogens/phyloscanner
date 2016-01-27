@@ -12,7 +12,7 @@ setwd(
   "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160111/"
 )
 
-for (start in seq(4401, 9301, by = 100)) {
+for (start in seq(6701, 9301, by = 100)) {
   end <- start + 349
   
   if (file.exists(
@@ -36,7 +36,16 @@ for (start in seq(4401, 9301, by = 100)) {
     
     tree <- root(tree, root.name)
     
+    if(verbose){
+      cat("Making tree multiphyletic\n")
+    }
+    
     tree <- di2multi(tree, tol = 1E-5)
+    
+    if(verbose){
+      cat("Getting patient IDs\n")
+    }
+    
     
     tip.labels <- tree$tip.label
     
@@ -68,6 +77,9 @@ for (start in seq(4401, 9301, by = 100)) {
   
     total.pairs <- length(patients) ^ 2 - length(patients)
   
+    if(verbose){
+      cat("Testing pairs\n")
+    }
     
     count <- 0
     direct.descendant.matrix <- matrix(NA, length(patients), length(patients))
