@@ -1,6 +1,6 @@
 library(phangorn)
 
-zero.length.tips.count <- TRUE
+
 
 get.tip.no <- function(tree, name) {
   return(match(name, tree$tip.label))
@@ -101,7 +101,7 @@ nonempty.intersection <- function(x,y) {
 }
 
 is.direct.descendant.of <-
-  function(tree, desc, anc, mrca.list, tip.list) {
+  function(tree, desc, anc, mrca.list, tip.list, zero.length.tips.count=TRUE) {
     if (verbose) {
       cat("Testing if any ancestry exists\n")
     }
@@ -184,7 +184,7 @@ get.patients.with.these.mrcas <-
 
 # Need a MRCA function which if given a single tip, returns that tip rather than NA.
 
-mrca.phylo.or.unique.tip <- function(tree, node) {
+mrca.phylo.or.unique.tip <- function(tree, node, zero.length.tips.count=TRUE) {
   if (length(node) == 1) {
     if(verbose){
       cat("Node ",node," is unique for this patient.\n")

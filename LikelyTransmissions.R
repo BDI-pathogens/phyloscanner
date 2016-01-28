@@ -1,6 +1,7 @@
 library(phangorn)
 
 verbose <- FALSE
+zero.length.tips.count <- TRUE
 # Get the tip number of the named taxon
 
 
@@ -12,7 +13,7 @@ setwd(
   "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160111/"
 )
 
-for (start in seq(6701, 9301, by = 100)) {
+for (start in seq(8201, 9301, by = 100)) {
   end <- start + 349
   
   if (file.exists(
@@ -72,7 +73,7 @@ for (start in seq(6701, 9301, by = 100)) {
     
     patient.mrcas <-
       lapply(patient.tips, function(node)
-        mrca.phylo.or.unique.tip(tree, node))
+        mrca.phylo.or.unique.tip(tree, node, zero.length.tips.count))
     
   
     total.pairs <- length(patients) ^ 2 - length(patients)
@@ -98,7 +99,7 @@ for (start in seq(6701, 9301, by = 100)) {
           
           if (!compareNA(direct.descendant.matrix[anc, desc],TRUE)) {
             direct.descendant.matrix[desc, anc] <-
-              is.direct.descendant.of(tree, desc, anc, patient.mrcas, patient.tips)
+              is.direct.descendant.of(tree, desc, anc, patient.mrcas, patient.tips, zero.length.tips.count)
             if (direct.descendant.matrix[desc, anc]) {
               cat(patients[desc],"is a descendant of",patients[anc],"\n")
             }

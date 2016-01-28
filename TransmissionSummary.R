@@ -11,7 +11,7 @@ names(parent.list) <- patient.ids
 
 window.count <- 0
 
-for(start in seq(501, 5201, by=100)){
+for(start in seq(501, 6501, by=100)){
   end <- start+349 
   
   if(file.exists(paste("transmissions/transmissions.InWindow_",start,"_to_",end,".csv",sep=""))){
