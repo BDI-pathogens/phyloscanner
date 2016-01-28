@@ -33,7 +33,8 @@ FileForOtherRefsInEachWindow_basename = 'temp_OtherRefs'
 FileForAlignedReadsInEachWindow_basename = 'AlignedReads'
 FileForAllBootstrappedTrees_basename = 'temp_AllBootstrappedTrees'
 FileForDiscardedReadPairs_basename = 'DiscardedReads_'
-FileForDuplicates_basename = 'DuplicateReads_'
+FileForSurvivingDuplicates_basename = 'DuplicateReads_surviving_'
+FileForEliminatedDuplicates_basename = 'DuplicateReads_eliminated_'
 ################################################################################
 GapChar = '-'
 
@@ -854,11 +855,15 @@ for window in range(NumCoords / 2):
         else:
           SurvivingDuplicates.append((DuplicateSeqName, TheOtherAlias, \
           CountRatio))
-    FileForDuplicates = FileForDuplicates_basename + ThisWindowSuffix + '.csv'
-    with open(FileForDuplicates, 'w') as f:
+    FileForSurvivingDuplicates = FileForSurvivingDuplicates_basename + \
+    ThisWindowSuffix + '.csv'
+    with open(FileForSurvivingDuplicates, 'w') as f:
       f.write('"SeqName","SharedWith","SeqCount/SharedCount"\n')
       f.write('\n'.join(','.join(data) for data in SurvivingDuplicates))
-      f.write('\n,,\n')
+    FileForEliminatedDuplicates = FileForEliminatedDuplicates_basename + \
+    ThisWindowSuffix + '.csv'
+    with open(FileForEliminatedDuplicates, 'w') as f:
+      f.write('"BamFile","SharedWith","SeqCount/SharedCount"\n')
       f.write('\n'.join(','.join(data) for data in EliminatedDuplicates))
 
   if args.no_trees:
