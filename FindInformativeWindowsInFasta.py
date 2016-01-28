@@ -9,7 +9,11 @@ ExplanatoryMessage = '''This script picks out a series of window coordinates
 with respect to an alignment, such that each window contains the desired number
 of columns with each column weighted by it's non-gap fraction. e.g. a gapless
 column counts for 1, a column that's half gaps and half bases counts for 0.5,
-etc.'''
+etc. The window coordinates are printed as a left coord then the corresponding
+right coord, then the next left coord then its right coord, etc. all separated
+by commas. For example the output
+1,10,5,15
+would mean windows 1-10, 5-15.'''
 
 import argparse
 import os
@@ -95,7 +99,7 @@ while True:
     break
   if NextLeftEdge <= LeftEdge:
     print('Error: one of the windows is ', LeftEdge, '-', RightEdge, \
-    '; with an overlap of ', args.Overlap, ', the next window would start at',\
+    '; with an overlap of ', args.Overlap, ', the next window would start at ',\
     NextLeftEdge, ', whereas we need each window to be after the previous ',\
     'one. Decrease the overlap and/or increase the WeightedWindowWidth, and ',\
     'try again. Quitting.', sep='', file=sys.stderr)
@@ -108,8 +112,7 @@ if len(WindowLeftEdges) != len(WindowRightEdges):
   'edges. Quitting.', file=sys.stderr)
   exit(1)
 
-for i in range(len(WindowLeftEdges)):
-  print(WindowLeftEdges[i], WindowRightEdges[i], end=' ')
-print()
+print(','.join(str(WindowLeftEdges[i])+','+str(WindowRightEdges[i]) \
+for i in range(len(WindowLeftEdges))))
   
 
