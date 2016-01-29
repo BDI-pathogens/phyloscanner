@@ -3,9 +3,12 @@
 # TODO: 
 # 1. Code reads in lengthy patient IDs, that don't correspond to reads
 # 2. Update plot of patients statistics & cross window mean of patient statistics
-# 3. Code is now slow: either paralellise or speed up
-# Needs profiling, but slowness is probably the code that finds monophyletic 
-# subclades
+# 3. Code is now slow:
+# Main problem is that repeatedly generating and searching all possible 
+# subclades is just plain stupid
+# Solution: generate subclades only once, document their size, and then 
+# thin them as the loop goes
+# 4. Plots should be by midpoint of the window, not start coordinate
 
 
 #!/usr/bin/env Rscript
@@ -65,15 +68,28 @@ if (command.line) {
   font.size <- 0.15 # for the tip labels in the tree
   line.width <- 1 # in the tree
   seed <- -1 # seed for randomising the colours associated with IDs
-  # no randomisation if = -1
+  # no randomisation if seed <- -1
   root.name<-"Ref.B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
   # the tip name associated with the root of the phylogeny
 }
 
 require(phytools)
 require(dplyr)
+require(ggplot2)
+require(plotrix)
+
 if(!dir.exists(output.dir)) dir.create(output.dir)
 
+# Utlities ##################
+unfactorDataFrame <- function( x ) {
+  x <- data.frame( lapply(x, as.character), stringsAsFactors = F)
+  x <- data.frame( lapply(x, function(y) type.convert(y, as.is=T)), stringsAsFactors = F)
+}
+
+#############################
+
+pat$window <- factor(pat$window)
+test <- unfactorDataFrame( pat )
 
 # Read in the IDs. Remove duplicates. Shuffle their order if desired.
 if (ids.as.folder) { 
@@ -107,7 +123,7 @@ pat.stats <- data.frame(patient.id = "test",
                         window = 0, 
                         num.reads.total = 1,
                         num.leaves = 1,  
-                        nu.clades = 1,
+                        num.clades = 1,
                         overall.root.to.tip = 0, 
                         prop.reads.clade.1 = 0, 
                         prop.reads.clade.2 = 0, 
@@ -124,7 +140,6 @@ pat.stats <- data.frame(patient.id = "test",
 
 for (tree.file in tree.files) {
 
-  tree.file <- tree.files[10]  
   tree.file.name<-paste(input.dir,tree.file,sep="/")
   tree <- read.tree(file=tree.file.name)
   
@@ -261,7 +276,7 @@ for (tree.file in tree.files) {
   
   
   for (i in 1:num.ids) {
-    # The main looop for finding all sub-clades of the patient-specific subtree
+      # The main looop for finding all sub-clades of the patient-specific subtree
     id <- ids[i]
     num.leaves <- length(patient.tips[[id]])
     num.reads <- list() 
@@ -334,7 +349,7 @@ for (tree.file in tree.files) {
             calcMeanRootToTip( ordered.clades[[i]], num.reads)
         }
       }
-      print(paste(id, num.clades ,  num.reads.total), 
+      print(paste(window, id, num.clades ,  num.reads.total), 
             round(prop.reads.per.clade[1], 3) )
     } else { # if there are no reads for this patient in this window
       num.clades <- NA
@@ -364,31 +379,90 @@ for (tree.file in tree.files) {
   
 }
 
-        
+pat.stats <- pat.stats[!pat.stats$patient.id=="test", ]
+# Delete the first dummy line         
+pat.stats <- pat.stats[order(pat.stats$patient.id), ]
+# TODO: replace pat.stats$num.leaves = 0 by NA
 
+pdf(file.path(output.dir, "Patient.Statistics.pdf"), paper = "a4")
+for (id in sort(ids)) {
+  par(mfrow=c(3, 2))
+  # putting this here also sets new page, in case there aren't six plots
+  pat <- pat.stats[pat.stats$patient.id==id, ]
+  pat <- unfactorDataFrame( pat )
+  pat <- pat[order(pat$window),]
+  plot(pat$window, pat$num.reads.total, main=pat$patient.id[1],
+       xlab="Genome location", ylab="Number of reads",
+       log = "y", ylim = c(1,1e+5))
+  if(sum(pat$num.reads.total) >0 ){
+    plot(pat$window, pat$num.leaves, main=pat$patient.id[1],
+         xlab="Genome location", ylab="Number of tips")
+    plot(pat$window, pat$num.clades, main = pat$patient.id[1],
+         ylim = c(0,10),
+         xlab="Genome location", ylab="Number of clades")
+    
+    opar <- par(mar = c(2.1,4.1,2.1,5.1) + 0.3) 
+    plot(pat$window, pat$prop.reads.clade.1, main = pat$patient.id[1],
+         xlab="Genome location", ylab="Proportion of reads in largest clade",
+         type = "b", pch = 16, cex = 0.6, ylim = c(0, 1))
+    par(new = T)
+    plot(pat$window, pat$overall.root.to.tip, 
+         type = "b", pch = 1, col = "red", ylim = c(0, 0.4), cex = 0.6,
+         axes = F, xlab = NA, ylab = NA)
+    axis(4, ylim = c(0, 0.4), col = "red")
+    mtext(side = 4, line = 3, "Root to tip distance", cex=0.7)
+    points(pat$window, pat$root.to.tip.clade.1, 
+           type = "l", col = "darkgreen", lty = 2 )
+    par( opar )
+    
+    plot(pat$window, pat$root.to.tip.clade.1, main = pat$patient.id[1],
+         type = "b", pch = 16, cex = 0.6,
+         xlab="Genome location", ylab="Root to tip distance in largest clade")
+    
+    ydat <- matrix(
+      c(pat$prop.reads.clade.1, 
+        pat$prop.reads.clade.2),
+      nrow = length(pat$prop.reads.clade.1),
+      ncol = 2
+    )
+    ydat <- t(ydat)
+    xdat <- matrix(
+      c(pat$window, pat$window),
+      nrow = length(pat$prop.reads.clade.1),
+      ncol = 2
+    )
+    xdat <- t(xdat)
+    stackpoly(x = xdat, y = ydat,  
+              ylim = c(0,1),
+              axis4 = F, stack = T)
+    
+    
+  }
+}
+dev.off()
 
-
-# pat.stats$mean.size <- as.numeric(pat.stats$mean.size)
-# pat.stats$coeff.of.var.size <- as.numeric(pat.stats$coeff.of.var.size)
-# pat.stats$root.to.tip <- as.numeric(pat.stats$root.to.tip)
-# pat.stats <- pat.stats[!pat.stats$patient.id=="test", ]
-# pat.stats <- pat.stats[order(pat.stats$patient.id), ]
-# 
-# pat.stats$size.mono.p.value <- 1-ecdf(x = pat.stats[pat.stats$monophyletic==1,]$mean.size)(pat.stats$mean.size)
-# pat.stats$size.significantly.big <- ifelse(pat.stats$size.mono.p.value<0.05/length(pat.stats$size.mono.p.value),1,0) 
-# # inlcudes a Bonferoni correction
-
-
-# pdf(file.path(output.dir, "Patient.Statistics.pdf"), paper = "a4")
-# for (id in sort(ids)) {
-#   par(mfrow=c(3, 2))
-#   pat <- pat.stats[pat.stats$patient.id==id, ]
-#   plot(pat$window, pat$num.leaves, main=pat$patient.id[1],
-#        xlab="Genome location", ylab="Number of tips")
-#   plot(pat$window, pat$num.reads, main=pat$patient.id[1],
-#        xlab="Genome location", ylab="Number of reads")
-#   plot(pat$window, pat$monophyletic, main=pat$patient.id[1],
-#        xlab="Genome location", ylab="Monophyletic (1=yes, 0=no)", ylim=c(0, 1))
+  
+    # create the ggplot2 data, using Year and thousands (of people) and filled by age group.
+#    clade.1 <- pat[ ,c("patient.id", "window", "prop.reads.clade.1")]
+#    clade.2 <- pat[ ,c("patient.id", "window", "prop.reads.clade.2")]
+#    clade.3 <- pat[ ,c("patient.id", "window", "prop.reads.clade.3")]
+#    clade.4 <- pat[ ,c("patient.id", "window", "prop.reads.clade.4")]
+#    clade.5 <- pat[ ,c("patient.id", "window", "prop.reads.clade.5")]
+#    colnames(clade.1)[3] <- "prop.reads"
+#    colnames(clade.2)[3] <- "prop.reads"
+#    colnames(clade.3)[3] <- "prop.reads"
+#    colnames(clade.4)[3] <- "prop.reads"
+#    colnames(clade.5)[3] <- "prop.reads"
+#    clade.1$clade <-1
+#    clade.2$clade <-2
+#    clade.3$clade <-1
+#    clade.4$clade <-2
+#    clade.5$clade <-1
+#    plot.data <- rbind(clade.1, clade.2, clade.3, clade.4, clade.5)
+#    plot.data$window <- as.numeric(plot.data$window)
+#    plot.data$prop.reads <- as.numeric(plot.data$prop.reads)
+#    plot.data$clade <- as.factor(plot.data$clade)
+   
 #   #plot(pat$window, pat$mean.size, main=pat$patient.id[1],
 #   #  xlab="Genome location", ylab="Mean cophenetic distance",
 #   #  ylim=c(0, max(pat.stats$mean.size, na.rm=T)))
@@ -408,19 +482,18 @@ for (tree.file in tree.files) {
 #        xlab="Genome location",
 #        ylab="Mean root to tip patristic distance",
 #        ylim=c(0, max(pat.stats$root.to.tip, na.rm=T)))
-# }
-# dev.off()
 # 
 # write.csv(pat.stats,file.path(output.dir, "Patient.Statistics.csv"))
 # 
-# mean.na.rm <- function(x) mean(x,na.rm = T)
+mean.na.rm <- function(x) mean(x,na.rm = T)
 # 
+# TODO: Update this list for turning pat.stats columns into numeric
 # pat.stats$window.has.data <- as.numeric(pat.stats$num.leaves > 0)
 # pat.stats$num.leaves <- as.numeric(as.character(pat.stats$num.leaves))
 # pat.stats$num.reads <- as.numeric(as.character(pat.stats$num.reads))
 # pat.stats$monophyletic <- as.numeric(as.character(pat.stats$monophyletic))
 # 
-# by.patient <- pat.stats %>% group_by(patient.id)
-# pat.stats.summary <- as.data.frame( by.patient %>% summarise_each(funs(mean.na.rm)) )
-# 
-# write.csv(pat.stats.summary,file.path(output.dir, "Patient.Statistics.Summary.csv"))
+by.patient <- pat.stats %>% group_by(patient.id)
+pat.stats.summary <- as.data.frame( by.patient %>% summarise_each(funs(mean.na.rm)) )
+ 
+write.csv(pat.stats.summary,file.path(output.dir, "Patient.Statistics.Summary.csv"))
