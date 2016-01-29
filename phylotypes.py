@@ -19,10 +19,6 @@ Output files are written to the current working directory; to avoid overwriting
 existing files, you might to want to call this code from an empty directory.
 '''
 
-# TODO: make it work with just a single sample and no external references -
-# currently breaks because mafft produces no output when given one sequence to
-# align (and coordinate translation will probably have to change).
-
 ################################################################################
 # USER INPUT
 
@@ -31,13 +27,14 @@ RAxMLbootstrapSeed = 1
 
 # Some temporary working files we'll create
 FileForRefs = 'temp_refs.fasta'
-FileForAlignedRefs = 'temp_RefsAln.fasta'
+FileForAlignedRefs = 'RefsAln.fasta'
 FileForReadsInEachWindow_basename = 'temp_UnalignedReads'
 FileForOtherRefsInEachWindow_basename = 'temp_OtherRefs'
 FileForAlignedReadsInEachWindow_basename = 'AlignedReads'
 FileForAllBootstrappedTrees_basename = 'temp_AllBootstrappedTrees'
 FileForDiscardedReadPairs_basename = 'DiscardedReads_'
-FileForDuplicates_basename = 'DuplicateReads_'
+FileForSurvivingDuplicates_basename = 'DuplicateReads_surviving_'
+FileForEliminatedDuplicates_basename = 'DuplicateReads_eliminated_'
 ################################################################################
 GapChar = '-'
 
@@ -67,6 +64,16 @@ def File(MyFile):
     raise argparse.ArgumentTypeError(MyFile+' does not exist or is not a file.')
   return MyFile
 
+# Define a comma-separated integers object, as a type for the argparse.
+def CommaSeparatedInts(MyCommaSeparatedInts):
+  try:
+    ListOfInts = [int(value) for value in MyCommaSeparatedInts.split(',')]
+  except:
+    raise argparse.ArgumentTypeError('Unable to understand the window '+\
+    'coordinates as comma-separated integers.')
+  else:
+    return ListOfInts
+
 # Set up the arguments for this script
 ExplanatoryMessage = ExplanatoryMessage.replace('\n', ' ').replace('  ', ' ')
 parser = argparse.ArgumentParser(description=ExplanatoryMessage)
@@ -85,9 +92,17 @@ parser.add_argument('ListOfRefFiles', type=File, help='A file containing the '+\
 'names (and paths) of the reference fasta files for the bam files, one per '+\
 'line. The file basenames (i.e. the filename minus the directory) should be'+\
 ' unique and free of whitespace.')
-parser.add_argument('WindowCoord', type=int, nargs='+', \
-help='A set of paired coordinates defining the boundaries of the windows. '+\
-'e.g. 1 300 11 310 21 320 would define windows 1-300, 11-310, 21-320.')
+parser.add_argument('-W', '--window-coords', type=CommaSeparatedInts, \
+help='A comma-separated series of paired coordinates defining the boundaries '+\
+'of the windows. e.g. 1,300,11,310,21,320 would define windows 1-300, 11-310,'+\
+' 21-320.')
+parser.add_argument('-AW', '--auto-window-params', \
+type=CommaSeparatedInts, help='Two or three comma-separated integers '+\
+'controlling automatic window finding: the first integer is the length you '+\
+'want windows to be, when weighting each column by its non-gap fraction; the '+\
+'second is the overlap between the end of one window and the start of the next'\
++'(which can be negative); the optional third integer is the start position '+\
+'for the first window (by default, 1).')
 parser.add_argument('-A', '--alignment-of-other-refs', type=File,\
 help='An alignment of any reference sequences (which need not be those used '+\
 'to produce the bam files) to be cut into the same windows as the bam files '+\
@@ -101,7 +116,7 @@ help="Don't compare reads between samples to find duplicates - a possible "+\
 parser.add_argument('-I', '--discard-improper-pairs', action='store_true', \
 help='Any improperly paired reads will be discarded')
 parser.add_argument('-M', '--raxml-model', default='GTRCAT',\
-help='The evoltionary model used by RAxML')
+help='The evoltionary model used by RAxML (GTRCAT by default).')
 parser.add_argument('-N', '--number-of-bootstraps', type=int,\
 help='The number of bootstraps to be calculated for RAxML trees (by default, '+\
 'none i.e. only the ML tree is calculated).')
@@ -117,7 +132,7 @@ parser.add_argument('-Q2', '--min-internal-quality', type=int, help=\
 +'. If used in conjuction with the --quality-trim-ends option, the trimming '+\
 'of the ends is done first.')
 parser.add_argument('-R', '--ref-for-rooting', help='Used to name a reference'\
-'to be an outgroup in the tree (requires the -A flag).')
+' to be an outgroup in the tree (requires the -A flag).')
 #parser.add_argument('-S', '--min-support', default=60, type=float, help=\
 #'The bootstrap support below which nodes will be collapsed, as a percentage.')
 parser.add_argument('--renaming-file', type=File, help='Specify a file with '\
@@ -134,50 +149,101 @@ parser.add_argument('--x-samtools', default='samtools', help=\
 
 args = parser.parse_args()
 
+# Check that window coords have been specified either manually or automatically.
+UserSpecifiedCoords = args.window_coords != None
+AutoWindows = args.auto_window_params != None
+if (UserSpecifiedCoords and AutoWindows) or \
+(not UserSpecifiedCoords and not AutoWindows):
+  print('Exactly one of the --window-coords or --auto-window-params', \
+  'options should specified. (Not neither, not both.) Quitting.', \
+  file=sys.stderr)
+  exit(1)
+
+# The user shouldn't specify a reference for their coords to be interpreted with
+# to, and choose automatic windows (i.e. not specify any coordinates).
+if AutoWindows and args.ref_for_coords != None:
+  print('The --ref-for-coords and --auto-window-params', \
+  'options should not be specified together: the first means your coordinates',\
+  'should be interpreted with respect to a named reference, and the second',\
+  "means you're not specfiying any coordinates. Quitting.", file=sys.stderr)
+  exit(1)
+
+# TODO: remove this testing
+#read1 = pf.PseudoRead('read1', 'abcdefghij', [1,2,3,4,5,6,7,8,9,10], [30]*10)
+
 # Shorthand
 NumBootstraps = args.number_of_bootstraps
 IncludeOtherRefs = args.alignment_of_other_refs != None
 QualTrimEnds  = args.quality_trim_ends != None
 ImposeMinQual = args.min_internal_quality != None
-WindowCoords  = args.WindowCoord
+WindowCoords  = args.window_coords
 
-def CheckRefIsPresent(flag, ref):
-  'Checks that a reference (named with a flag) is in the alignment of refs.'
-  if ref == None:
-    return
+# Keep track of the names of any external refs being included.
+ExternalRefNames = []
+if IncludeOtherRefs:
+  for ref in SeqIO.parse(open(args.alignment_of_other_refs),'fasta'):
+    ExternalRefNames.append(ref.id)
+  if ExternalRefNames == []:
+    print('No sequences found in', args.alignment_of_other_refs +'. Quitting.',
+    file=sys.stderr)
+    exit(1)
+
+# Consistency checks on flags that require a ref.
+for FlagName, FlagValue in (('--ref-for-coords',  args.ref_for_coords),\
+('--ref-for-rooting', args.ref_for_rooting)):
+  if FlagValue == None:
+    continue
   if not IncludeOtherRefs:
-    print('The', flag, 'flag requires the --alignment-of-other-refs',\
+    print('The', FlagName, 'flag requires the --alignment-of-other-refs',\
     'flag. Quitting.', file=sys.stderr)
-    exit(1)  
-  if not any(seq.id == ref for seq in \
-  SeqIO.parse(open(args.alignment_of_other_refs),'fasta')):
-    print('Reference', ref +', specified with the', flag, \
+    exit(1)
+  if not FlagValue in ExternalRefNames:
+    print('Reference', FlagValue +', specified with the', FlagName, \
     'flag, was not found in', args.alignment_of_other_refs +'. Quitting.', \
     file=sys.stderr)
     exit(1)
-  return
 
-CheckRefIsPresent('--ref-for-coords',  args.ref_for_coords)
-CheckRefIsPresent('--ref-for-rooting', args.ref_for_rooting)
+def SanityCheckWindowCoords(WindowCoords):
+  'Check window coordinates come in pairs, all positive, the right > the left.'
+  NumCoords = len(WindowCoords)
+  if NumCoords % 2 != 0:
+    raise ValueError('An even number of WindowCoords must be specified. '+\
+    'Quitting.')
+  if any(coord < 1 for coord in WindowCoords):
+    raise ValueError('All WindowCoords must be greater than zero. Quitting.')
+  LeftWindowEdges  = WindowCoords[::2]
+  RightWindowEdges = WindowCoords[1::2]
+  PairedWindowCoords = zip(LeftWindowEdges, RightWindowEdges)
+  for LeftWindowEdge, RightWindowEdge in PairedWindowCoords:
+    if LeftWindowEdge >= RightWindowEdge:
+      raise ValueError('You specified a window as having left edge ' +\
+      str(LeftWindowEdge) +' and right edge ' +str(RightWindowEdge)+\
+      '. Left edges should be less than their right edges. Quitting.')
+      exit(1)
+  return NumCoords
 
-# Sanity checks on the WindowCoords
-NumCoords = len(WindowCoords)
-if NumCoords % 2 != 0:
-  print('An even number of WindowCoords must be specified. Quitting.',\
-  file=sys.stderr)
-  exit(1)
-if any(coord < 1 for coord in WindowCoords):
-  print('All WindowCoords must be greater than zero. Quitting.',\
-  file=sys.stderr)
-  exit(1)
-LeftWindowEdges  = WindowCoords[::2]
-RightWindowEdges = WindowCoords[1::2]
-PairedWindowCoords = zip(LeftWindowEdges, RightWindowEdges)
-for LeftWindowEdge, RightWindowEdge in PairedWindowCoords:
-  if LeftWindowEdge >= RightWindowEdge:
-    print('You specified a window as having left edge', LeftWindowEdge, \
-    'and right edge', str(RightWindowEdge)+'. Left edges should be less than',\
-    'their right edges. Quitting.', file=sys.stderr)
+# Sanity checks on user specified WindowCoords
+if UserSpecifiedCoords:
+  NumCoords = SanityCheckWindowCoords(WindowCoords)
+else:
+  # Sanity checks on auto window parameters
+  if not len(args.auto_window_params) in [2,3]:
+    print('The --auto-window-params option requires either 2 or 3 integers.',\
+    'Quitting.', file=sys.stderr)
+    exit(1)
+  WeightedWindowWidth = args.auto_window_params[0]
+  WindowOverlap       = args.auto_window_params[1]
+  if len(args.auto_window_params) == 3:
+    WindowStartPos    = args.auto_window_params[2]
+    if WindowStartPos < 1:
+      print('The start position for the --auto-window-params option must be',\
+      'greater than zero. Quitting.', file=sys.stderr)
+      exit(1)
+  else:
+    WindowStartPos = 1
+  if WeightedWindowWidth <= 0:
+    print('The weighted window width for the --auto-window-params option must',\
+    'be greater than zero. Quitting.', file=sys.stderr)
     exit(1)
 
 # Check that the bootstrap threshold is between 0 and 100
@@ -187,6 +253,7 @@ for LeftWindowEdge, RightWindowEdge in PairedWindowCoords:
 
 TranslateCoordsCode = pf.FindAndCheckCode('TranslateCoords.py')
 FindSeqsInFastaCode = pf.FindAndCheckCode('FindSeqsInFasta.py')
+FindWindowsCode     = pf.FindAndCheckCode('FindInformativeWindowsInFasta.py')
 
 # Test RAxML works, if trees are to be made.
 if not args.no_trees:
@@ -203,7 +270,9 @@ if not args.no_trees:
 BamFiles, BamFileBasenames = pf.ReadNamesFromFile(args.ListOfBamFiles)
 RefFiles, RefFileBasenames = pf.ReadNamesFromFile(args.ListOfRefFiles)
 if args.renaming_file != None:
-  BamFileNickNames = pf.ReadNamesFromFile(args.renaming_file, False)
+  BamAliases = pf.ReadNamesFromFile(args.renaming_file, False)
+else:
+  BamAliases = BamFileBasenames
 
 # If the BamFileBasenames are all still unique after removing ".bam" from the
 # ends, do so, for aesthetics in output files.
@@ -217,118 +286,165 @@ if len(BamlessBasenames) == len(set(BamlessBasenames)):
   BamFileBasenames = BamlessBasenames
 
 # Check that there are the same number of bam and reference files
-if len(BamFiles) != len(RefFiles):
+NumberOfBams = len(BamFiles)
+if NumberOfBams != len(RefFiles):
   print('Different numbers of files are listed in', args.ListOfBamFiles, 'and',\
   args.ListOfRefFiles+'.\nQuitting.', file=sys.stderr)
   exit(1)
-if args.renaming_file != None and len(BamFileNickNames) != len(BamFiles):
+if args.renaming_file != None and len(BamAliases) != NumberOfBams:
   print('Different numbers of files are listed in', args.ListOfBamFiles, 'and',\
   args.renaming_file+'.\nQuitting.', file=sys.stderr)
   exit(1)
 
-# Read in all the reference sequences
-RefsAsFasta = ''
+# Read in all the reference sequences. Set each name by the file from which the
+# ref comes.
+RefSeqs = []
 for i,RefFile in enumerate(RefFiles):
   SeqList = list(SeqIO.parse(open(RefFile),'fasta'))
   if len(SeqList) != 1:
     print('There are', len(SeqList), 'sequences in', RefFile+'. There should',\
     'be exactly 1.\nQuitting.', file=sys.stderr)
     exit(1)
-  RefBasename = RefFileBasenames[i]
-  RefsAsFasta += '>'+RefBasename+'\n'+str(SeqList[0].seq)+'\n'
+  SeqList[0].id = RefFileBasenames[i]
+  RefSeqs += SeqList
 
-# Put all the mapping reference sequences into one file. If an alignment of 
-# other references was supplied, add the mapping references to that alignment;
-# if not, align the mapping references to each other.
-with open(FileForRefs, 'w') as f:
-  f.write(RefsAsFasta)
-if IncludeOtherRefs:
-  FinalMafftOptions = ['--add', FileForRefs, args.alignment_of_other_refs]
+# If there are at least two bam files, or if there is one but we're including
+# other refs, we'll be aligning references and translating the user-specified
+# coords with respect to each sequence, then storing those coords in a dict
+# indexed by the ref's name.
+# If not, i.e. there's just one bam and no other refs, no coordinate translation
+# is necessary - we use the coords as they are, though setting any after the end
+# of the reference to be equal to the end of the reference.
+if NumberOfBams == 1 and not IncludeOtherRefs:
+  if AutoWindows:
+    print('As you are supplying a single bam file and no external references,',\
+    'please specify coordinates manually - the automatic option is designed',\
+    "for an alignment of multiple sequences. Quitting.", file=sys.stderr)
+    exit(1)
+  RefSeqLength = len(RefSeqs[0])
+  UserCoords = WindowCoords
+  CoordsToUse = [min(coord, RefSeqLength) for coord in WindowCoords]
+  CoordsInRefs = {RefFileBasenames[0] : CoordsToUse}
 else:
-  FinalMafftOptions = [FileForRefs]
-with open(FileForAlignedRefs, 'w') as f:
-  try:
-    ExitStatus = subprocess.call([args.x_mafft, '--quiet',  '--preservecase']+\
-    FinalMafftOptions, stdout=f)
-    assert ExitStatus == 0
-  except:
-    print('Problem calling mafft. Quitting.', file=sys.stderr)
-    exit(1)
 
-# If coords were specified with respect to one particular reference, translate
-# them to alignment coordinates.
-UserCoords = WindowCoords
-if args.ref_for_coords != None:
-  AlignmentCoords = []
-  for seq in SeqIO.parse(open(FileForAlignedRefs),'fasta'):
-    if seq.id == args.ref_for_coords:
-      PositionInRef = 0
-      for AlignmentPostitionMin1,base in enumerate(str(seq.seq)):
-        if base == GapChar:
-          continue
-        PositionInRef += 1
-        if PositionInRef in WindowCoords:
-          AlignmentCoords.append(AlignmentPostitionMin1+1)
-  WindowCoords = AlignmentCoords
-
-# Translate alignment coordinates to reference coordinates
-CoordsInRefs = {}
-try:
-  CoordsString = subprocess.check_output([TranslateCoordsCode, \
-  FileForAlignedRefs, '-A']+[str(coord) for coord in WindowCoords])
-except:
-  print('Problem executing', TranslateCoordsCode, '\nQuitting.', file=sys.stderr)
-  exit(1)
-
-for line in CoordsString.splitlines():
-
-  # Trim leading & trailing whitespace and skip blank lines
-  line = line.strip()
-  if line == '':
-    continue
-
-  # Each line in the output of the TranslateCoordsCode should be the basename of
-  # one of the reference files and then the coordinates.
-  fields = line.split()
-  if len(fields) != NumCoords +1:
-    print('Unexpected number of fields in line\n' +line +'\nin the output of '+\
-    TranslateCoordsCode+'\nQuitting.', file=sys.stderr)
-    exit(1)
-  RefBasename = fields[0]
-  coords = fields[1:]
-
-  # If other refs have been included, their names will appear in the output of
-  # TranslateCoordsCode but we're not interested. If other refs have not been
-  # included, only the refs for mapping should appear in this output.
-  if not RefBasename in RefFileBasenames:
-    if IncludeOtherRefs:
-      continue
-    else:  
-      print('Encountered sequence name '+RefBasename+', which is not the '+\
-      'basename of any of the file from '+args.ListOfRefFiles +', in line\n' +\
-      line +'\nin the output of '+TranslateCoordsCode+'\nQuitting.', \
-      file=sys.stderr)
+  # Put all the mapping reference sequences into one file. If an alignment of 
+  # other references was supplied, add the mapping references to that alignment;
+  # if not, align the mapping references to each other.
+  SeqIO.write(RefSeqs, FileForRefs, "fasta")
+  if IncludeOtherRefs:
+    FinalMafftOptions = ['--add', FileForRefs, args.alignment_of_other_refs]
+  else:
+    FinalMafftOptions = [FileForRefs]
+  with open(FileForAlignedRefs, 'w') as f:
+    try:
+      ExitStatus = subprocess.call([args.x_mafft, '--quiet',  \
+      '--preservecase'] + FinalMafftOptions, stdout=f)
+      assert ExitStatus == 0
+    except:
+      print('Problem calling mafft. Quitting.', file=sys.stderr)
       exit(1)
 
-  # Convert the coordinates to integers.
-  # Where an alignment coordinate is inside a deletion in a particular sequence,
-  # TranslateCoords.py returns an integer + 0.5 for the coordinate with respect
-  # to that sequence. Python won't convert such figures directly from string to
-  # int, but we can do so via a float intermediate. This rounds down, i.e. to
-  # the coordinate of the base immediately to the left of the deletion.
-  for i in range(len(coords)):
-    if coords[i] != 'NaN':
-      try:
-        coords[i] = int(coords[i])
-      except ValueError:
-        if '.5' in coords[i]:
-          coords[i] = int(float(coords[i]))
-        else:
-          print('Unable to understand the coordinate', coords[i], \
-          'as an integer in line\n' +line +'\nin the output of '+\
-          TranslateCoordsCode+'\nQuitting.', file=sys.stderr)
-          exit(1)
-  CoordsInRefs[RefBasename] = coords
+  # If coords were specified with respect to one particular reference, translate
+  # them to alignment coordinates.
+  UserCoords = WindowCoords
+  if args.ref_for_coords != None:
+    AlignmentCoords = []
+    for seq in SeqIO.parse(open(FileForAlignedRefs),'fasta'):
+      if seq.id == args.ref_for_coords:
+        PositionInRef = 0
+        for AlignmentPostitionMin1,base in enumerate(str(seq.seq)):
+          if base == GapChar:
+            continue
+          PositionInRef += 1
+          if PositionInRef in WindowCoords:
+            AlignmentCoords.append(AlignmentPostitionMin1+1)
+    WindowCoords = AlignmentCoords
+
+  # Determine windows automatically if desired
+  if AutoWindows:
+    try:
+      WindowsString = subprocess.check_output([FindWindowsCode, \
+      FileForAlignedRefs, str(WeightedWindowWidth), str(WindowOverlap), '-S', \
+      str(WindowStartPos)])
+    except:
+      print('Problem executing', FindWindowsCode +'. Quitting.', \
+      file=sys.stderr)
+      exit(1)
+    try:
+      WindowCoords = [int(value) for value in WindowsString.split(',')]
+    except:
+      print('Unable to understand the', FindWindowsCode, 'output -', \
+      WindowsString, '- as comma-separated integers. Quitting.',file=sys.stderr)
+      exit(1)
+    try:
+      NumCoords = SanityCheckWindowCoords(WindowCoords)
+    except ValueError as err:
+      if not err.args: 
+        err.args=('',)
+      err.args += ('Problematic output from ' +FindWindowsCode,)
+      raise
+    UserCoords = WindowCoords
+
+  # Translate alignment coordinates to reference coordinates
+  CoordsInRefs = {}
+  try:
+    CoordsString = subprocess.check_output([TranslateCoordsCode, \
+    FileForAlignedRefs, '-A']+[str(coord) for coord in WindowCoords])
+  except:
+    print('Problem executing', TranslateCoordsCode +'. Quitting.', \
+    file=sys.stderr)
+    exit(1)
+
+  for line in CoordsString.splitlines():
+
+    # Trim leading & trailing whitespace and skip blank lines
+    line = line.strip()
+    if line == '':
+      continue
+
+    # Each line in the output of the TranslateCoordsCode should be the basename
+    # of one of the reference files and then the coordinates.
+    fields = line.split()
+    if len(fields) != NumCoords +1:
+      print('Unexpected number of fields in line\n' +line +'\nin the output '+\
+      'of ' +TranslateCoordsCode+'\nQuitting.', file=sys.stderr)
+      exit(1)
+    RefBasename = fields[0]
+    coords = fields[1:]
+
+    # If other refs have been included, their names will appear in the output of
+    # TranslateCoordsCode but we're not interested. If other refs have not been
+    # included, only the refs for mapping should appear in this output.
+    if not RefBasename in RefFileBasenames:
+      if IncludeOtherRefs:
+        continue
+      else:  
+        print('Encountered sequence name '+RefBasename+', which is not the '+\
+        'basename of any of the file from '+args.ListOfRefFiles +\
+        ', in line\n' +line +'\nin the output of '+TranslateCoordsCode+\
+        '\nQuitting.', file=sys.stderr)
+        exit(1)
+
+    # Convert the coordinates to integers.
+    # Where an alignment coordinate is inside a deletion in a particular
+    # sequence, TranslateCoords.py returns an integer + 0.5 for the coordinate 
+    # with respect to that sequence. Python won't convert such figures directly 
+    # from string to int, but we can do so via a float intermediate. This rounds 
+    # down, i.e. to the coordinate of the base immediately to the left of the
+    # deletion.
+    for i in range(len(coords)):
+      if coords[i] != 'NaN':
+        try:
+          coords[i] = int(coords[i])
+        except ValueError:
+          if '.5' in coords[i]:
+            coords[i] = int(float(coords[i]))
+          else:
+            print('Unable to understand the coordinate', coords[i], \
+            'as an integer in line\n' +line +'\nin the output of '+\
+            TranslateCoordsCode+'\nQuitting.', file=sys.stderr)
+            exit(1)
+    CoordsInRefs[RefBasename] = coords
 
 # Make index files for the bam files if needed.
 for BamFileName in BamFiles:
@@ -376,20 +492,13 @@ for i,BamFileName in enumerate(BamFiles):
     elif coord == 'NaN':
       CoordsInRefs[RefBasename][j] = RefLength
 
-# This regex matches "_read_" then any integer then "_count_" then any integer,
-# constrained to come at the end of the string. We'll need it later.
-SampleRegex = re.compile('_read_\d+_count_\d+$')
-
 def ProcessReadDict(ReadDict, WhichBam, LeftWindowEdge, RightWindowEdge):
   '''Turns a dict of reads into a list of reads, merging & imposing a minimum
   count.'''
 
   # For naming things
   BamFileBasename = BamFileBasenames[WhichBam]
-  if args.renaming_file == None:
-    BasenameForReads = BamFileBasename
-  else:
-    BasenameForReads = BamFileNickNames[WhichBam]
+  BasenameForReads = BamAliases[WhichBam]
 
   # Merge similar reads if desired
   if args.MergingThreshold > 0:
@@ -411,9 +520,47 @@ def ProcessReadDict(ReadDict, WhichBam, LeftWindowEdge, RightWindowEdge):
   for k, (read, count) in \
   enumerate(sorted(ReadDict.items(), key=lambda x: x[1], reverse=True)):
     SeqName = BasenameForReads+'_read_'+str(k+1)+'_count_'+str(count)
-    SeqObject = SeqIO.SeqRecord(Seq.Seq(read), id=SeqName)
+    SeqObject = SeqIO.SeqRecord(Seq.Seq(read), id=SeqName, description='')
     reads.append(SeqObject)
   return reads
+
+# This regex matches "_read_" then any integer then "_count_" then any integer,
+# constrained to come at the end of the string. We'll need it later.
+SampleRegex = re.compile('_read_\d+_count_\d+$')
+
+def ReadFastaOfReadsIntoDicts(FastaFile, ValuesAreCounts=True):
+  '''Collects sample seqs and into dicts, and other seqs into a list.
+
+  The values of the dicts are either the seq count (inferred from the seq name)
+  or simply the seq name.'''
+  SampleReadCounts = collections.OrderedDict()
+  NonSampleSeqs = []
+  for seq in SeqIO.parse(open(FastaFile),'fasta'):
+    RegexMatch = SampleRegex.search(seq.id)
+    if RegexMatch and seq.id[:RegexMatch.start()] in BamAliases:
+      SampleName = seq.id[:RegexMatch.start()]
+      read = str(seq.seq)
+      if ValuesAreCounts:
+        value = int(seq.id.rsplit('_',1)[1])
+      else:
+        value = seq.id
+      if SampleName in SampleReadCounts:
+        if read in SampleReadCounts[SampleName]:
+          print('Malfunction of phylotypes:', FastaFile, \
+          'contains two identical sequences for sample', SampleName+\
+          '. This should not happen. Quitting.', file=sys.stderr)
+          exit(1)
+        SampleReadCounts[SampleName][read] = value
+      else:
+        SampleReadCounts[SampleName] = {read : value}
+    else:
+      if not seq.id in ExternalRefNames:
+        print('Malfunction of phylotypes: sequence', seq.id, 'in', \
+        FileForReads, 'not recognised as a read nor an external reference.',\
+        'Quitting.', file=sys.stderr)
+        exit(1)
+      AllSeqsToPrint.append(seq)
+  return SampleReadCounts, NonSampleSeqs
 
 # We'll keep a list of discarded read pairs for each bam file:
 DiscardedReadPairsDict = \
@@ -553,18 +700,12 @@ for window in range(NumCoords / 2):
         DuplicateReadRatios = []
         for read in ReadDict1:
           if read in ReadDict2:
-            DuplicateReadRatios.append(float(ReadDict1[read])/ReadDict2[read])
-        if DuplicateReadRatios != []:
-          DuplicateDetails.append([BamFile1Basename, BamFile2Basename] + \
-          DuplicateReadRatios)
-    if DuplicateDetails != []:
-      DuplicateDetails.sort(key=lambda entry: len(entry), reverse=True)
-      FileForDuplicates = FileForDuplicates_basename + ThisWindowSuffix + '.csv'
-      with open(FileForDuplicates, 'w') as f:
-        f.write('"BamFile1","BamFile2","BamFile1Count/BamFile2Count'+\
-        ' for each duplicated read"\n')
-        f.write('\n'.join(','.join(map(str,data)) for data in DuplicateDetails))
-
+            BamFile1Alias = BamAliases[BamFileBasenames.index(BamFile1Basename)]
+            BamFile2Alias = BamAliases[BamFileBasenames.index(BamFile2Basename)]
+            Bam1Count = ReadDict1[read]
+            Bam2Count = ReadDict2[read]
+            DuplicateDetails.append(\
+            (BamFile1Alias, BamFile2Alias, read, Bam1Count, Bam2Count))
     # ... and process the read dicts.
     for i, (BamFileBasename, ReadDict, LeftWindowEdge, RightWindowEdge) \
     in enumerate(AllReadDictsInThisWindow):
@@ -576,7 +717,7 @@ for window in range(NumCoords / 2):
   # Skip empty windows.
   if AllReadsInThisWindow == []:
     print('WARNING: no bam file had any reads (after a minimum post-merging '+\
-    'read count of ', args.MinReadCount,' was imposed) in the window', \
+    'read count of', args.MinReadCount, 'was imposed) in the window', \
     str(UserLeftWindowEdge)+'-'+str(UserRightWindowEdge)+'. Skipping to the', \
     'next window.', file=sys.stderr)
     continue
@@ -636,27 +777,9 @@ for window in range(NumCoords / 2):
   # Make a dict (indexed by sample name) of dicts (indexed by the sequences
   # themselves) of read counts. Those sequences that are from a sample are 
   # found by matching the RegexMatch '_read_\d+_count_\d+$'; other sequences
-  # must be external references the user included, and are not processed.
+  # should be external references the user included, and are not processed.
   if args.MergingThreshold > 0:
-    SampleReadCounts = collections.OrderedDict()
-    AllSeqsToPrint = []
-    for seq in SeqIO.parse(open(FileForReads),'fasta'):
-      RegexMatch = SampleRegex.search(seq.id)
-      if RegexMatch and seq.id[:RegexMatch.start()] in BamFileBasenames:
-        SampleName = seq.id[:RegexMatch.start()]
-        read = str(seq.seq)
-        SeqCount = int(seq.id.rsplit('_',1)[1])
-        if SampleName in SampleReadCounts:
-          if read in SampleReadCounts[SampleName]:
-            print('Malfunction of phylotypes:', FileForAlnReadsHere, \
-            'contains two identical sequences for sample', SampleName+\
-            '. This should not happen. Quitting.', file=sys.stderr)
-            exit(1)
-          SampleReadCounts[SampleName][read] = SeqCount
-        else:
-          SampleReadCounts[SampleName] = {read : SeqCount}
-      else:
-        AllSeqsToPrint.append(seq)
+    SampleReadCounts, RefSeqs = ReadFastaOfReadsIntoDicts(FileForReads)
     SampleSeqsToPrint = []
     for SampleName in SampleReadCounts:
       SampleReadCounts[SampleName] = \
@@ -664,13 +787,14 @@ for window in range(NumCoords / 2):
       for k, (read, count) in enumerate(sorted(\
       SampleReadCounts[SampleName].items(), key=lambda x: x[1], reverse=True)):
         ID = SampleName+'_read_'+str(k+1)+'_count_'+str(count)
-        SeqObject = SeqIO.SeqRecord(Seq.Seq(read), id=ID)
+        SeqObject = SeqIO.SeqRecord(Seq.Seq(read), id=ID, description='')
         SampleSeqsToPrint.append(SeqObject)
-    AllSeqsToPrint = SampleSeqsToPrint + AllSeqsToPrint
+    AllSeqsToPrint = SampleSeqsToPrint + RefSeqs
     if AllSeqsToPrint == []:
       print('Malfunction of phylotypes: no sequences were found in', \
       FileForReads +'. Quitting.', file=sys.stderr)
       exit(1)
+
     # Merging after alignment means some columns could be pure gap.
     # Remove these.
     PureGapColumns = []
@@ -681,9 +805,12 @@ for window in range(NumCoords / 2):
     if PureGapColumns != []:
       for seq in AllSeqsToPrint[1:]:
         SeqAsString = str(seq.seq)
-        for i,position in enumerate(PureGapColumns):
-          if SeqAsString[position] != '-':
-            del PureGapColumns[i]
+        GapColsToRemove = []
+        for i,col in enumerate(PureGapColumns):
+          if SeqAsString[col] != '-':
+            GapColsToRemove.append(col)
+        PureGapColumns = \
+        [col for col in PureGapColumns if not col in GapColsToRemove]
         if PureGapColumns == []:
           break
       if PureGapColumns != []:
@@ -693,6 +820,51 @@ for window in range(NumCoords / 2):
             SeqAsString = SeqAsString[:position]+SeqAsString[position+1:]
           AllSeqsToPrint[i].seq = Seq.Seq(SeqAsString)
     SeqIO.write(AllSeqsToPrint, FileForAlnReadsHere, "fasta")
+
+  # If we're checking for duplicates, read in the file of aligned reads (which
+  # may have gone through a second round of merging), remove gaps, and see which
+  # of the duplicates we found before merging (and imposing a minimum count) are
+  # are still there.
+  if not args.dont_check_duplicates and DuplicateDetails != []:
+    SampleReadNames, RefSeqs = \
+    ReadFastaOfReadsIntoDicts(FileForAlnReadsHere, False)
+    UngappedReadNames = {}
+    for SampleName,ReadDict in SampleReadNames.items():
+      UngappedReadNames[SampleName] = \
+      {read.replace('-',''):SeqName for read,SeqName in ReadDict.items()}
+    SurvivingDuplicates  = []
+    EliminatedDuplicates = []
+    for BamFile1Alias, BamFile2Alias, read, Bam1Count, Bam2Count in \
+    DuplicateDetails:
+      for WhichBam,alias in enumerate([BamFile1Alias, BamFile2Alias]):
+        if not alias in UngappedReadNames:
+          print('Malfunction of phylotypes: could not find', alias,' in', \
+          FileForAlnReadsHere +'. Quitting.', file=sys.stderr)
+          exit(1)
+        if WhichBam == 0:
+          ThisCount, TheOtherCount = Bam1Count, Bam2Count
+          ThisAlias, TheOtherAlias = BamFile1Alias, BamFile2Alias
+        else:
+          ThisCount, TheOtherCount = Bam2Count, Bam1Count
+          ThisAlias, TheOtherAlias = BamFile2Alias, BamFile1Alias
+        CountRatio = str(float(ThisCount)/TheOtherCount)
+        try:
+          DuplicateSeqName = UngappedReadNames[alias][read]
+        except KeyError:
+          EliminatedDuplicates.append((ThisAlias, TheOtherAlias, CountRatio))
+        else:
+          SurvivingDuplicates.append((DuplicateSeqName, TheOtherAlias, \
+          CountRatio))
+    FileForSurvivingDuplicates = FileForSurvivingDuplicates_basename + \
+    ThisWindowSuffix + '.csv'
+    with open(FileForSurvivingDuplicates, 'w') as f:
+      f.write('"SeqName","SharedWith","SeqCount/SharedCount"\n')
+      f.write('\n'.join(','.join(data) for data in SurvivingDuplicates))
+    FileForEliminatedDuplicates = FileForEliminatedDuplicates_basename + \
+    ThisWindowSuffix + '.csv'
+    with open(FileForEliminatedDuplicates, 'w') as f:
+      f.write('"BamFile","SharedWith","SeqCount/SharedCount"\n')
+      f.write('\n'.join(','.join(data) for data in EliminatedDuplicates))
 
   if args.no_trees:
     continue
@@ -848,6 +1020,19 @@ for BamFileBasename, DiscardedReadPairs in DiscardedReadPairsDict.items():
     DiscardedReadPairsOut.close()
     DiscardedReadPairsFiles.append(OutFile)
 if DiscardedReadPairsFiles != []:
-  print('Info: read pairs that overlapped but disagreed on the overlap were ',\
+  print('Info: read pairs that overlapped but disagreed on the overlap were',\
   'found. These have been written to', ' '.join(DiscardedReadPairsFiles) +'.')
 
+
+# Some code not being used at the moment:
+'''DuplicateReadRatios.append(float(ReadDict1[read])/ReadDict2[read])
+        if DuplicateReadRatios != []:
+          DuplicateDetails.append([BamFile1Basename, BamFile2Basename] + \
+          DuplicateReadRatios)
+    if DuplicateDetails != []:
+      DuplicateDetails.sort(key=lambda entry: len(entry), reverse=True)
+      FileForDuplicates = FileForDuplicates_basename + ThisWindowSuffix + '.csv'
+      with open(FileForDuplicates, 'w') as f:
+        f.write('"BamFile1","BamFile2","BamFile1Count/BamFile2Count'+\
+        ' for each duplicated read"\n')
+        f.write('\n'.join(','.join(map(str,data)) for data in DuplicateDetails))'''
