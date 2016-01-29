@@ -125,8 +125,8 @@ help='Keep the whole read. (By default, only the part of the read inside the'+\
 'window is kept, i.e. overhangs are trimmed.)')
 parser.add_argument('-P', '--merge-paired-reads', action='store_true', \
 help='Merge overlapping paired reads into a single read.')
-parser.add_argument('-Q1', '--quality-trim-ends', type=int, help='Each end of '+\
-'the read is trimmed inwards until a base of this quality is met.')
+parser.add_argument('-Q1', '--quality-trim-ends', type=int, help='Each end of'+\
+' the read is trimmed inwards until a base of this quality is met.')
 parser.add_argument('-Q2', '--min-internal-quality', type=int, help=\
 'Discard reads containing more than one base of a quality below this parameter'\
 +'. If used in conjuction with the --quality-trim-ends option, the trimming '+\
@@ -138,6 +138,9 @@ parser.add_argument('-R', '--ref-for-rooting', help='Used to name a reference'\
 parser.add_argument('--renaming-file', type=File, help='Specify a file with '\
 'one line per bam file, showing how reads from that bam file should be named '\
 'in the output files.')
+parser.add_argument('--align-refs-only', action='store_true', help='Align the'+\
+'references in the bam files (plus any extras specified with -A) then quit '+\
+'without parsing the reads.')
 parser.add_argument('-T', '--no-trees', action='store_true', help='Generate '+\
 'aligned sets of reads for each window then quit without making trees.')
 parser.add_argument('--x-raxml', default='raxmlHPC-AVX', help=\
@@ -321,6 +324,11 @@ if NumberOfBams == 1 and not IncludeOtherRefs:
     'please specify coordinates manually - the automatic option is designed',\
     "for an alignment of multiple sequences. Quitting.", file=sys.stderr)
     exit(1)
+  if args.align_refs_only:
+    print('As you are supplying a single bam file and no external references,',\
+    "the --align-refs-only option makes no sense - there's nothing to align.",\
+    "Quitting.", file=sys.stderr)
+    exit(1)
   RefSeqLength = len(RefSeqs[0])
   UserCoords = WindowCoords
   CoordsToUse = [min(coord, RefSeqLength) for coord in WindowCoords]
@@ -343,6 +351,11 @@ else:
     except:
       print('Problem calling mafft. Quitting.', file=sys.stderr)
       exit(1)
+
+  if args.align_refs_only:
+    print('References aligned in', FileForAlignedRefs+ \
+    '. Quitting successfully.')
+    exit(0)
 
   # If coords were specified with respect to one particular reference, translate
   # them to alignment coordinates.
