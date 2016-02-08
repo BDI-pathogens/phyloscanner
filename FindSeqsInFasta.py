@@ -78,11 +78,8 @@ NumSeqsToSearchFor = len(args.SequenceName)
 # Find the seqs
 AllSeqNamesEncountered = []
 SeqsWeWant = []
+SeqsWeWant_names = []
 for seq in SeqIO.parse(open(args.FastaFile),'fasta'):
-  if seq.id in AllSeqNamesEncountered:
-    print('Sequence', seq.id, 'occurs multiple times in', args.FastaFile+\
-    '\nQuitting.', file=sys.stderr)
-    exit(1)
   AllSeqNamesEncountered.append(seq.id)
   if args.match_start:
     ThisSeqWasSearchedFor = False
@@ -93,11 +90,21 @@ for seq in SeqIO.parse(open(args.FastaFile),'fasta'):
   else:
     ThisSeqWasSearchedFor = seq.id in args.SequenceName
   if ThisSeqWasSearchedFor and (not args.invert_search):
+    if seq.id in SeqsWeWant_names:
+      print('Sequence', seq.id, 'occurs multiple times in', args.FastaFile+\
+      '\nQuitting.', file=sys.stderr)
+      exit(1)
     SeqsWeWant.append(seq)
+    SeqsWeWant_names.append(seq.id)
     if not args.match_start and len(SeqsWeWant) == NumSeqsToSearchFor:
       break
   elif args.invert_search and (not ThisSeqWasSearchedFor):
+    if seq.id in SeqsWeWant_names:
+      print('Sequence', seq.id, 'occurs multiple times in', args.FastaFile+\
+      '\nQuitting.', file=sys.stderr)
+      exit(1)
     SeqsWeWant.append(seq)
+    SeqsWeWant_names.append(seq.id)
 
 # Check we found some sequences for printing!
 if SeqsWeWant == []:
