@@ -494,7 +494,8 @@ for i,BamFileName in enumerate(BamFiles):
     print('Pysam error: found one reference but', len(AllReferenceLengths), \
     'reference lengths.\nQuitting.', file=sys.stderr)
     exit(1)
-  BamFileRefLengths[BamFileBasename] = AllReferenceLengths[0]
+  RefLength = AllReferenceLengths[0]
+  BamFileRefLengths[BamFileBasename] = RefLength
 
   # When translating coordinates, -1 means before the sequence starts; 'NaN'
   # means after it ends. These should be replaced by 1 and the reference length
