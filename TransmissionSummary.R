@@ -11,7 +11,7 @@ names(parent.list) <- patient.ids
 
 window.count <- 0
 
-for(start in seq(501, 6501, by=100)){
+for(start in seq(501, 9301, by=100)){
   end <- start+349 
   
   if(file.exists(paste("transmissions/transmissions.InWindow_",start,"_to_",end,".csv",sep=""))){
@@ -67,6 +67,8 @@ for(child in patient.ids){
 
 out <- data.frame(parents, children, presence, presence.where.recorded)
 out.2 <- data.frame(parents.2, children.2, presence.2, presence.where.recorded.2)
+
+colnames(out.2) <- colnames(out)
 
 write.table(out, file="transmissionSummary.csv", sep=",", col.names = TRUE, row.names = FALSE)
 write.table(out.2, file="transmissionSummary_noSingletons.csv", sep=",", col.names = TRUE, row.names = FALSE)

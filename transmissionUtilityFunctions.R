@@ -1,6 +1,4 @@
-library(phangorn)
-
-
+require(phangorn)
 
 get.tip.no <- function(tree, name) {
   return(match(name, tree$tip.label))
