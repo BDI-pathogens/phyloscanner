@@ -8,7 +8,7 @@ source("transmissionUtilityFunctions.R")
 
 setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160111/")
 
-for(start in seq(501, 4801, by=100)){
+for(start in seq(501, 9301, by=100)){
   end <- start+349 
   if(file.exists(paste("RAxML_bestTree/RAxML_bestTree.InWindow_",start,"_to_",end,".tree",sep =""))){
     

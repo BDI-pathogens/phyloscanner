@@ -1,10 +1,7 @@
 library(phangorn)
 
 verbose <- FALSE
-zero.length.tips.count <- TRUE
-# Get the tip number of the named taxon
-
-
+zero.length.tips.count <- FALSE
 
 setwd("/Users/twoseventwo/Documents/phylotypes/")
 source("transmissionUtilityFunctions.R")
@@ -13,25 +10,13 @@ setwd(
   "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160111/"
 )
 
-for (start in seq(8201, 9301, by = 100)) {
+for (start in seq(2601, 9301, by = 100)) {
   end <- start + 349
   
-  if (file.exists(
-    paste(
-      "RAxML_bestTree/RAxML_bestTree.InWindow_",start,"_to_",end,".tree",sep =
-      ""
-    )
-  )) {
-    cat("Opening file: RAxML_bestTree.InWindow_",start,"_to_",end,".tree\n", sep =
-          "")
+  if (file.exists(paste("RAxML_bestTree/RAxML_bestTree.InWindow_",start,"_to_",end,".tree",sep =""))) {
+    cat("Opening file: RAxML_bestTree.InWindow_",start,"_to_",end,".tree\n", sep = "")
     
-    tree <-
-      read.tree(
-        paste(
-          "RAxML_bestTree/RAxML_bestTree.InWindow_",start,"_to_",end,".tree",sep =
-            ""
-        )
-      )
+    tree <-read.tree(paste("RAxML_bestTree/RAxML_bestTree.InWindow_",start,"_to_",end,".tree",sep =""))
     
     root.name <- "Ref.B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
     
@@ -133,7 +118,7 @@ for (start in seq(8201, 9301, by = 100)) {
     
     write.table(
       dddf, file = paste(
-        "transmissions/transmissions.InWindow_",start,"_to_",end,".csv", sep = ""
+        "transmissions/transmissions_alt.InWindow_",start,"_to_",end,".csv", sep = ""
       ), sep = ",", row.names = FALSE, col.names = TRUE
     )
   }
