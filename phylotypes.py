@@ -851,10 +851,6 @@ for window in range(NumCoords / 2):
     for BamFile1Alias, BamFile2Alias, read, Bam1Count, Bam2Count in \
     DuplicateDetails:
       for WhichBam,alias in enumerate([BamFile1Alias, BamFile2Alias]):
-        if not alias in UngappedReadNames:
-          print('Malfunction of phylotypes: could not find', alias,' in', \
-          FileForAlnReadsHere +'. Quitting.', file=sys.stderr)
-          exit(1)
         if WhichBam == 0:
           ThisCount, TheOtherCount = Bam1Count, Bam2Count
           ThisAlias, TheOtherAlias = BamFile1Alias, BamFile2Alias
@@ -862,6 +858,10 @@ for window in range(NumCoords / 2):
           ThisCount, TheOtherCount = Bam2Count, Bam1Count
           ThisAlias, TheOtherAlias = BamFile2Alias, BamFile1Alias
         CountRatio = str(float(ThisCount)/TheOtherCount)
+        # The read may no longer exist for this alias; also this alias may have
+        # no reads present in the file at all (if all merged reads failed the
+        # minimum count). Either will cause a KeyError, meaning this is an
+        # eliminated duplicate.
         try:
           DuplicateSeqName = UngappedReadNames[alias][read]
         except KeyError:
