@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 
-#PBS -l walltime=0:29:59
-#PBS -l select=1:ncpus=1:mem=3GB
-#PBS -J 1-155
+#PBS -l walltime=215:59:59
+#PBS -l select=1:ncpus=2:mem=6GB
+#PBS -q pqeelab
+#PBS -J 1-8
 
 # This script requires input variables chosen by the user, and stored in the
 # following file - make sure it exists with your chosen values! The PBJ -J
 # directive above should run from 1 to the number of lines in the "$WindowFile"
 # variable you set there.
-source "$HOME/phylotypes_HPC_config.bash"
+source "$HOME/phylotypes_HPC_config_BEEHIVE.bash"
 
 
 ################################################################################
@@ -83,16 +84,18 @@ MakeRemoteFilesLocal "$ListOfRefFiles" "$ListOfLocalRefs"
 if [[ "$UseWindowFile" == "true" ]]; then
   "$PhylotypesCode" $MergingParam $MinReadCount "$ListOfLocalBams" \
   "$ListOfLocalRefs" $ExtraArgs '--window-coords' "$WindowsForThisJob"
-else;
+else
   "$PhylotypesCode" $MergingParam $MinReadCount "$ListOfLocalBams" \
   "$ListOfLocalRefs" $ExtraArgs
 fi
 
 cp \
 AlignedReadsInWindow*.fasta \
-*_ref.fasta \
-DiscardedReads*.bam \
 RAxML_* \
 RefsAln.fasta \
 DuplicateReads_* \
 -t "$OutputDir"
+
+#*_ref.fasta \
+#DiscardedReads*.bam \
+
