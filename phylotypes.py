@@ -572,7 +572,7 @@ def ReadFastaOfReadsIntoDicts(FastaFile, ValuesAreCounts=True):
         FileForReads, 'not recognised as a read nor an external reference.',\
         'Quitting.', file=sys.stderr)
         exit(1)
-      AllSeqsToPrint.append(seq)
+      NonSampleSeqs.append(seq)
   return SampleReadCounts, NonSampleSeqs
 
 # We'll keep a list of discarded read pairs for each bam file:
@@ -1014,15 +1014,19 @@ for window in range(NumCoords / 2):
   #plt.savefig('foo.pdf')
 
 # Make a bam file of discarded read pairs for each input bam file.
-# Copy the relevant reference file to the working directory, so that it's
-# together with the discarded reads file.
 DiscardedReadPairsFiles = []
 for BamFileBasename, DiscardedReadPairs in DiscardedReadPairsDict.items():
   if DiscardedReadPairs != []:
     WhichBamFile = BamFileBasenames.index(BamFileBasename)
     RefFile = RefFiles[WhichBamFile]
     LocalRefFileName = BamFileBasename+'_ref.fasta'
-    copy2(RefFile, LocalRefFileName)
+    # Copy the relevant reference file to the working directory, so that it's
+    # together with the discarded reads file. This might fail e.g. if the same
+    # file exists already - then do nothing.
+    try:
+      copy2(RefFile, LocalRefFileName)
+    except:
+      pass
     if len(BamFileBasename) >= 4 and BamFileBasename[-4:] == '.bam':
       OutFile = FileForDiscardedReadPairs_basename +BamFileBasename
     else:
