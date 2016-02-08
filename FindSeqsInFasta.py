@@ -60,6 +60,9 @@ help='Remove all gap characters ("-" and "?") before printing. NB if '+\
 parser.add_argument('-S', '--match-start', action='store_true', \
 help='Sequences whose names begin with one of the strings-to-be-searched for '+\
 'are returned.')
+parser.add_argument('-B', '--skip-blanks', action='store_true', \
+help='Sequences consisting entirely of gap characters ("-" and "?") are '+\
+'ignored. (By default they are included.)')
 
 args = parser.parse_args()
 
@@ -132,6 +135,14 @@ if args.window != None:
     seq.seq = seq.seq[LeftCoord-1:RightCoord]
     if args.gap_strip:
       seq.seq = seq.seq.ungap("-").ungap("?")
+
+# Skip blank sequences if desired
+if args.skip_blanks:
+  NewSeqsWeWant = []
+  for seq in SeqsWeWant:
+    if len(seq.seq.ungap("-").ungap("?")) != 0:
+      NewSeqsWeWant.append(seq)
+  SeqsWeWant = NewSeqsWeWant
 
 SeqIO.write(SeqsWeWant, sys.stdout, "fasta")
 

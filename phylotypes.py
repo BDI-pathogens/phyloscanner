@@ -759,12 +759,12 @@ for window in range(NumCoords / 2):
     with open(FileForOtherRefsHere, 'w') as f:
       try:
         ExitStatus = subprocess.call([FindSeqsInFastaCode, FileForAlignedRefs, \
-        '-W', str(LeftWindowEdge)+','+str(RightWindowEdge), '-v']+ \
+        '-B', '-W', str(LeftWindowEdge)+','+str(RightWindowEdge), '-v']+ \
         RefFileBasenames, stdout=f)
         assert ExitStatus == 0
       except:
         print('Problem calling', FindSeqsInFastaCode+\
-        'Skipping to the next window.', file=sys.stderr)
+        '. Skipping to the next window.', file=sys.stderr)
         continue
 
   # Align the reads. Prepend 'temp_' to the file name if we'll merge again after
