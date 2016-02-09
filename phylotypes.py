@@ -28,6 +28,8 @@ RAxMLbootstrapSeed = 1
 # Some temporary working files we'll create
 FileForRefs = 'temp_refs.fasta'
 FileForAlignedRefs = 'RefsAln.fasta'
+FileForPairwiseUnalignedRefs = 'temp_2Refs.fasta'
+FileForPairwiseAlignedRefs = 'temp_2RefsAln.fasta'
 FileForReadsInEachWindow_basename = 'temp_UnalignedReads'
 FileForOtherRefsInEachWindow_basename = 'temp_OtherRefs'
 FileForAlignedReadsInEachWindow_basename = 'AlignedReads'
@@ -38,22 +40,24 @@ FileForEliminatedDuplicates_basename = 'DuplicateReads_eliminated_'
 ################################################################################
 GapChar = '-'
 
-import pysam
-import argparse
 import os
 import collections
 import subprocess
 import sys
 import re
-from MergeSimilarStrings import MergeSimilarStrings
-import phylotypes_funcs as pf
+import copy
+import glob
+from shutil import copy2
+import argparse
+import pysam
 from Bio import SeqIO
 from Bio import Seq
 from Bio import Phylo
+from Bio import AlignIO
+from MergeSimilarStrings import MergeSimilarStrings
+import phylotypes_funcs as pf
 #from Bio import AlignIO
 #from matplotlib import pyplot as plt
-import glob
-from shutil import copy2
 #from Bio.Phylo.Consenss import bootstrap_trees, majority_consensus, get_support
 #from Bio.Phylo.TreeConstruction import DistanceTreeConstructor, \
 #DistanceCalculator
@@ -143,6 +147,11 @@ parser.add_argument('--align-refs-only', action='store_true', help='Align the'+\
 'without parsing the reads.')
 parser.add_argument('-T', '--no-trees', action='store_true', help='Generate '+\
 'aligned sets of reads for each window then quit without making trees.')
+parser.add_argument('-2', '--pairwise-align-to', help='Sequentially, and '+\
+'separately, align the bam file references to this reference (which must be '+\
+'present in the file you specify with -A) instead of aligning all references '+\
+'together. Window coordinates will be interpreted with respect to this '+\
+'reference.')
 parser.add_argument('--x-raxml', default='raxmlHPC-AVX', help=\
 'The command required to invoke RAxML (by default: raxmlHPC-AVX).')
 parser.add_argument('--x-mafft', default='mafft', help=\
@@ -181,19 +190,28 @@ QualTrimEnds  = args.quality_trim_ends != None
 ImposeMinQual = args.min_internal_quality != None
 WindowCoords  = args.window_coords
 
-# Keep track of the names of any external refs being included.
-ExternalRefNames = []
+# Record the names of any external refs being included.
+# If we're doing pairwise reference alignments, we'll need the seqs too; we'll
+# also need gappy and gapless copies of the chosen ref.
 if IncludeOtherRefs:
-  for ref in SeqIO.parse(open(args.alignment_of_other_refs),'fasta'):
-    ExternalRefNames.append(ref.id)
-  if ExternalRefNames == []:
-    print('No sequences found in', args.alignment_of_other_refs +'. Quitting.',
+  try:
+    ExternalRefAlignment = AlignIO.read(args.alignment_of_other_refs, "fasta")
+  except:
+    print('Problem reading', args.alignment_of_other_refs + ':', \
     file=sys.stderr)
-    exit(1)
+    raise
+  ExternalRefNames = []
+  for ref in ExternalRefAlignment:
+    ExternalRefNames.append(ref.id)
+    if ref.id == args.pairwise_align_to:
+      RefForPairwiseAlnsGappySeq = str(ref.seq)
+      RefForPairwiseAlns = copy.deepcopy(ref)
+      RefForPairwiseAlns.seq = RefForPairwiseAlns.seq.ungap("-")
 
 # Consistency checks on flags that require a ref.
 for FlagName, FlagValue in (('--ref-for-coords',  args.ref_for_coords),\
-('--ref-for-rooting', args.ref_for_rooting)):
+('--ref-for-rooting', args.ref_for_rooting), \
+('--pairwise-align-to', args.pairwise_align_to)):
   if FlagValue == None:
     continue
   if not IncludeOtherRefs:
@@ -206,6 +224,22 @@ for FlagName, FlagValue in (('--ref-for-coords',  args.ref_for_coords),\
     file=sys.stderr)
     exit(1)
 
+# Sanity checks on using the pairwise alignment option.
+if args.pairwise_align_to != None:
+  if args.ref_for_coords != None:
+    print('Note that if the --pairwise-align-to option is used, using the',\
+    '--ref-for-coords as well is redundant.', file=sys.stderr)
+    if args.ref_for_coords != args.pairwise_align_to:
+      print('Furthermore you have chosen two different values for these flags,'\
+      , 'indicating some confusion as to their use. Try again.')
+      exit(1)
+  if AutoWindows:
+    print('As you have chosen that references are aligned in a pairwise',\
+    'manner, please specify coordinates manually - the automatic option is',\
+    "for stepping through a global alignment of all references. Quitting.",
+    file=sys.stderr)
+    exit(1)
+  
 def SanityCheckWindowCoords(WindowCoords):
   'Check window coordinates come in pairs, all positive, the right > the left.'
   NumCoords = len(WindowCoords)
@@ -267,7 +301,7 @@ if not args.no_trees:
     assert ExitStatus == 0
   except:
     print('Problem running', args.x_raxml, '\nQuitting.', file=sys.stderr)
-    exit(1)
+    raise
 
 # Read in lists of bam and reference files
 BamFiles, BamFileBasenames = pf.ReadNamesFromFile(args.ListOfBamFiles)
@@ -311,103 +345,19 @@ for i,RefFile in enumerate(RefFiles):
   SeqList[0].id = RefFileBasenames[i]
   RefSeqs += SeqList
 
-# If there are at least two bam files, or if there is one but we're including
-# other refs, we'll be aligning references and translating the user-specified
-# coords with respect to each sequence, then storing those coords in a dict
-# indexed by the ref's name.
-# If not, i.e. there's just one bam and no other refs, no coordinate translation
-# is necessary - we use the coords as they are, though setting any after the end
-# of the reference to be equal to the end of the reference.
-if NumberOfBams == 1 and not IncludeOtherRefs:
-  if AutoWindows:
-    print('As you are supplying a single bam file and no external references,',\
-    'please specify coordinates manually - the automatic option is designed',\
-    "for an alignment of multiple sequences. Quitting.", file=sys.stderr)
-    exit(1)
-  if args.align_refs_only:
-    print('As you are supplying a single bam file and no external references,',\
-    "the --align-refs-only option makes no sense - there's nothing to align.",\
-    "Quitting.", file=sys.stderr)
-    exit(1)
-  RefSeqLength = len(RefSeqs[0])
-  UserCoords = WindowCoords
-  CoordsToUse = [min(coord, RefSeqLength) for coord in WindowCoords]
-  CoordsInRefs = {RefFileBasenames[0] : CoordsToUse}
-else:
 
-  # Put all the mapping reference sequences into one file. If an alignment of 
-  # other references was supplied, add the mapping references to that alignment;
-  # if not, align the mapping references to each other.
-  SeqIO.write(RefSeqs, FileForRefs, "fasta")
-  if IncludeOtherRefs:
-    FinalMafftOptions = ['--add', FileForRefs, args.alignment_of_other_refs]
-  else:
-    FinalMafftOptions = [FileForRefs]
-  with open(FileForAlignedRefs, 'w') as f:
-    try:
-      ExitStatus = subprocess.call([args.x_mafft, '--quiet',  \
-      '--preservecase'] + FinalMafftOptions, stdout=f)
-      assert ExitStatus == 0
-    except:
-      print('Problem calling mafft. Quitting.', file=sys.stderr)
-      exit(1)
+def TranslateCoords(CodeArgs):
+  '''Runs TranslateCoordsCode with the supplied args, and returns the results as
+  a dict.'''
 
-  if args.align_refs_only:
-    print('References aligned in', FileForAlignedRefs+ \
-    '. Quitting successfully.')
-    exit(0)
-
-  # If coords were specified with respect to one particular reference, translate
-  # them to alignment coordinates.
-  UserCoords = WindowCoords
-  if args.ref_for_coords != None:
-    AlignmentCoords = []
-    for seq in SeqIO.parse(open(FileForAlignedRefs),'fasta'):
-      if seq.id == args.ref_for_coords:
-        PositionInRef = 0
-        for AlignmentPostitionMin1,base in enumerate(str(seq.seq)):
-          if base == GapChar:
-            continue
-          PositionInRef += 1
-          if PositionInRef in WindowCoords:
-            AlignmentCoords.append(AlignmentPostitionMin1+1)
-    WindowCoords = AlignmentCoords
-
-  # Determine windows automatically if desired
-  if AutoWindows:
-    try:
-      WindowsString = subprocess.check_output([FindWindowsCode, \
-      FileForAlignedRefs, str(WeightedWindowWidth), str(WindowOverlap), '-S', \
-      str(WindowStartPos)])
-    except:
-      print('Problem executing', FindWindowsCode +'. Quitting.', \
-      file=sys.stderr)
-      exit(1)
-    try:
-      WindowCoords = [int(value) for value in WindowsString.split(',')]
-    except:
-      print('Unable to understand the', FindWindowsCode, 'output -', \
-      WindowsString, '- as comma-separated integers. Quitting.',file=sys.stderr)
-      exit(1)
-    try:
-      NumCoords = SanityCheckWindowCoords(WindowCoords)
-    except ValueError as err:
-      if not err.args: 
-        err.args=('',)
-      err.args += ('Problematic output from ' +FindWindowsCode,)
-      raise
-    UserCoords = WindowCoords
-
-  # Translate alignment coordinates to reference coordinates
-  CoordsInRefs = {}
   try:
-    CoordsString = subprocess.check_output([TranslateCoordsCode, \
-    FileForAlignedRefs, '-A']+[str(coord) for coord in WindowCoords])
+    CoordsString = subprocess.check_output([TranslateCoordsCode]+CodeArgs)
   except:
     print('Problem executing', TranslateCoordsCode +'. Quitting.', \
     file=sys.stderr)
-    exit(1)
+    raise
 
+  CoordsDict = {}
   for line in CoordsString.splitlines():
 
     # Trim leading & trailing whitespace and skip blank lines
@@ -415,28 +365,15 @@ else:
     if line == '':
       continue
 
-    # Each line in the output of the TranslateCoordsCode should be the basename
-    # of one of the reference files and then the coordinates.
+    # Each line in the output of the TranslateCoordsCode should be a sequence 
+    # name then the coordinates.
     fields = line.split()
     if len(fields) != NumCoords +1:
       print('Unexpected number of fields in line\n' +line +'\nin the output '+\
       'of ' +TranslateCoordsCode+'\nQuitting.', file=sys.stderr)
       exit(1)
-    RefBasename = fields[0]
+    SeqName = fields[0]
     coords = fields[1:]
-
-    # If other refs have been included, their names will appear in the output of
-    # TranslateCoordsCode but we're not interested. If other refs have not been
-    # included, only the refs for mapping should appear in this output.
-    if not RefBasename in RefFileBasenames:
-      if IncludeOtherRefs:
-        continue
-      else:  
-        print('Encountered sequence name '+RefBasename+', which is not the '+\
-        'basename of any of the file from '+args.ListOfRefFiles +\
-        ', in line\n' +line +'\nin the output of '+TranslateCoordsCode+\
-        '\nQuitting.', file=sys.stderr)
-        exit(1)
 
     # Convert the coordinates to integers.
     # Where an alignment coordinate is inside a deletion in a particular
@@ -457,7 +394,143 @@ else:
             'as an integer in line\n' +line +'\nin the output of '+\
             TranslateCoordsCode+'\nQuitting.', file=sys.stderr)
             exit(1)
-    CoordsInRefs[RefBasename] = coords
+    CoordsDict[SeqName] = coords
+  return CoordsDict
+
+
+# If there is only one bam and no other refs, no coordinate translation
+# is necessary - we use the coords as they are, though setting any after the end
+# of the reference to be equal to the end of the reference.
+UserCoords = WindowCoords
+if NumberOfBams == 1 and not IncludeOtherRefs:
+  if AutoWindows:
+    print('As you are supplying a single bam file and no external references,',\
+    'please specify coordinates manually - the automatic option is designed',\
+    "for an alignment of multiple sequences. Quitting.", file=sys.stderr)
+    exit(1)
+  if args.align_refs_only:
+    print('As you are supplying a single bam file and no external references,',\
+    "the --align-refs-only option makes no sense - there's nothing to align.",\
+    "Quitting.", file=sys.stderr)
+    exit(1)
+  RefSeqLength = len(RefSeqs[0])
+  CoordsToUse = [min(coord, RefSeqLength) for coord in WindowCoords]
+  CoordsInRefs = {RefFileBasenames[0] : CoordsToUse}
+
+# If there are at least two bam files, or if there is one but we're including
+# other refs, we'll be aligning references and translating the user-specified
+# coords with respect to each sequence, then storing those coords in a dict
+# indexed by the ref's name.
+else:
+
+  # If we're separately and sequentially pairwise aligning our references to
+  # a chosen ref in order to determine window coordinates, do so now.
+  if args.pairwise_align_to != None:
+
+    # Find the coordinates with respect to the chosen ref, in the alignment of
+    # just the external refs - we'll need these later.
+    ExternalRefWindowCoords = \
+    pf.TranslateSeqCoordsToAlnCoords(RefForPairwiseAlnsGappySeq, WindowCoords)
+
+    CoordsInRefs = {}
+    for BamRefSeq in RefSeqs:
+
+      # Align
+      SeqIO.write([RefForPairwiseAlns,BamRefSeq], FileForPairwiseUnalignedRefs,\
+      "fasta")
+      with open(FileForPairwiseAlignedRefs, 'w') as f:
+        try:
+          ExitStatus = subprocess.call([args.x_mafft, '--quiet',  \
+          '--preservecase', FileForPairwiseUnalignedRefs], stdout=f)
+          assert ExitStatus == 0
+        except:
+          print('Problem calling mafft. Quitting.', file=sys.stderr)
+          raise
+
+      # Translate.
+      # The index names in the PairwiseCoordsDict, labelling the coords found by
+      # coord translation, should coincide with the two seqs we're considering.
+      PairwiseCoordsDict = TranslateCoords([FileForPairwiseAlignedRefs, \
+      args.pairwise_align_to] + [str(coord) for coord in WindowCoords])
+      if set(PairwiseCoordsDict.keys()) != \
+      set([BamRefSeq.id,args.pairwise_align_to]):
+        print('Malfunction of phylotypes: mismatch between the sequences',\
+        'found in the output of', TranslateCoordsCode, 'and the two names "' + \
+        BamRefSeq.id+'", "'+args.pairwise_align_to +'". Quitting.', 
+        file=sys.stderr)
+        exit(1)
+      CoordsInRefs[BamRefSeq.id] = PairwiseCoordsDict[BamRefSeq.id]
+
+  # We're creating a global alignment of all references:
+  else:
+
+    # Put all the mapping reference sequences into one file. If an alignment of 
+    # other references was supplied, add the mapping references to that 
+    # alignment; if not, align the mapping references to each other.
+    SeqIO.write(RefSeqs, FileForRefs, "fasta")
+    if IncludeOtherRefs:
+      FinalMafftOptions = ['--add', FileForRefs, args.alignment_of_other_refs]
+    else:
+      FinalMafftOptions = [FileForRefs]
+    with open(FileForAlignedRefs, 'w') as f:
+      try:
+        ExitStatus = subprocess.call([args.x_mafft, '--quiet',  \
+        '--preservecase'] + FinalMafftOptions, stdout=f)
+        assert ExitStatus == 0
+      except:
+        print('Problem calling mafft. Quitting.', file=sys.stderr)
+        raise
+
+    if args.align_refs_only:
+      print('References aligned in', FileForAlignedRefs+ \
+      '. Quitting successfully.')
+      exit(0)
+
+    # If coords were specified with respect to one particular reference,
+    # translate them to alignment coordinates.
+    if args.ref_for_coords != None:
+      for seq in SeqIO.parse(open(FileForAlignedRefs),'fasta'):
+        if seq.id == args.ref_for_coords:
+          WindowCoords = \
+          pf.TranslateSeqCoordsToAlnCoords(str(seq.seq), WindowCoords)
+          break
+
+    # Determine windows automatically if desired
+    if AutoWindows:
+      try:
+        WindowsString = subprocess.check_output([FindWindowsCode, \
+        FileForAlignedRefs, str(WeightedWindowWidth), str(WindowOverlap), \
+        '-S', str(WindowStartPos)])
+      except:
+        print('Problem executing', FindWindowsCode +'. Quitting.', \
+        file=sys.stderr)
+        raise
+      try:
+        WindowCoords = [int(value) for value in WindowsString.split(',')]
+      except:
+        print('Unable to understand the', FindWindowsCode, 'output -', \
+        WindowsString, '- as comma-separated integers. Quitting.', \
+        file=sys.stderr)
+        raise
+      try:
+        NumCoords = SanityCheckWindowCoords(WindowCoords)
+      except ValueError:
+        print('Problematic output from ' +FindWindowsCode, file=sys.stderr)
+        raise
+      UserCoords = WindowCoords
+
+    # Translate alignment coordinates to reference coordinates
+    CoordsInRefs = TranslateCoords([FileForAlignedRefs, '-A']+\
+    [str(coord) for coord in WindowCoords])
+
+    # The index names in the CoordsInSeqs dicts, labelling the coords found by
+    # coord translation, should cooincide with all seqs we're considering (i.e.
+    # those in FileForAlignedRefs).
+    if set(CoordsInRefs.keys()) != set(RefFileBasenames+ExternalRefNames):
+      print('Malfunction of phylotypes: mismatch between the sequences found', \
+      'in the output of', TranslateCoordsCode, 'and those in', \
+      FileForAlignedRefs +'. Quitting.', file=sys.stderr)
+      exit(1)
 
 # Make index files for the bam files if needed.
 for BamFileName in BamFiles:
@@ -467,7 +540,7 @@ for BamFileName in BamFiles:
       assert ExitStatus == 0
     except:
       print('Problem running samtools index.\nQuitting.', file=sys.stderr)
-      exit(1)
+      raise
 
 # Gather some data from each bam file
 BamFileRefSeqNames = {}
@@ -741,7 +814,7 @@ for window in range(NumCoords / 2):
   LeftWindowEdge  = WindowCoords[window*2]
   RightWindowEdge = WindowCoords[window*2 +1]
 
-  # Create a fasta file with all reads+refs in this window, ready for aligning.
+  # Create a fasta file with all reads in this window, ready for aligning.
   # If there's only one, we don't need to align (or make trees!).
   FileForReadsHere = FileForReadsInEachWindow_basename + ThisWindowSuffix+\
   '.fasta'
@@ -753,19 +826,32 @@ for window in range(NumCoords / 2):
     FileForAlnReadsHere +'. Skipping to the next window.')
     continue
   SeqIO.write(AllReadsInThisWindow, FileForReadsHere, "fasta")
+
+  # If external refs are included, find the part of each one's seq corresponding
+  # to this window and put them all in another file.
+  # If we did pairwise aligning of refs, we know the coordinates we want in the
+  # ExternalRefAlignment object. If we did a global alignment, we slice the
+  # desired window out of that alignment.
   if IncludeOtherRefs:
     FileForOtherRefsHere = FileForOtherRefsInEachWindow_basename + \
     ThisWindowSuffix +'.fasta'
-    with open(FileForOtherRefsHere, 'w') as f:
-      try:
-        ExitStatus = subprocess.call([FindSeqsInFastaCode, FileForAlignedRefs, \
-        '-B', '-W', str(LeftWindowEdge)+','+str(RightWindowEdge), '-v']+ \
-        RefFileBasenames, stdout=f)
-        assert ExitStatus == 0
-      except:
-        print('Problem calling', FindSeqsInFastaCode+\
-        '. Skipping to the next window.', file=sys.stderr)
-        continue
+    if args.pairwise_align_to != None:
+      ExternalRefLeftWindowEdge  = ExternalRefWindowCoords[window*2]
+      ExternalRefRightWindowEdge = ExternalRefWindowCoords[window*2 +1]
+      RefAlignmentInWindow = ExternalRefAlignment[:, \
+      ExternalRefLeftWindowEdge-1:ExternalRefRightWindowEdge]
+      AlignIO.write(RefAlignmentInWindow, FileForOtherRefsHere, 'fasta')
+    else:
+      with open(FileForOtherRefsHere, 'w') as f:
+        try:
+          ExitStatus = subprocess.call([FindSeqsInFastaCode, \
+          FileForAlignedRefs, '-B', '-W', str(LeftWindowEdge) + ',' + \
+          str(RightWindowEdge), '-v'] + RefFileBasenames, stdout=f)
+          assert ExitStatus == 0
+        except:
+          print('Problem calling', FindSeqsInFastaCode+\
+          '. Skipping to the next window.', file=sys.stderr)
+          continue
 
   # Align the reads. Prepend 'temp_' to the file name if we'll merge again after
   # aligning.
@@ -893,8 +979,8 @@ for window in range(NumCoords / 2):
     ExitStatus = subprocess.call(RAxMLcall)
     assert ExitStatus == 0
   except:
-    print('Problem making the ML tree with RAxML.\nSkipping to the next window.', \
-    file=sys.stderr)
+    print('Problem making the ML tree with RAxML.\nSkipping to the next', \
+    'window.', file=sys.stderr)
     continue
   if not os.path.isfile(MLtreeFile):
     print(MLtreeFile +', expected to be produced by RAxML, does not exist.'+\

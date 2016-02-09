@@ -73,6 +73,41 @@ def ReadNamesFromFile(TheFile, IsFile=True):
     return NamesChecked
 
 
+def TranslateSeqCoordsToAlnCoords(seq, coords):
+  '''Takes a sequence that contains gaps (in general), and a set of coordinates
+  specified with a respect to that sequence without gaps. The coordinates are
+  translated to their positions in the gappy version of the sequence.
+  e.g. called with the arguments "-a--cg-t-" and [1,2,3], we return [2,5,6].
+  '''
+  assert type(seq) == type('abc')
+  assert all(type(coord) == int for coord in coords)
+  assert all(coord > 0 for coord in coords)
+  TranslatedCoords = [-1 for coord in coords]
+  PositionInSeq = 0
+  for GappyPostitionMin1,base in enumerate(seq):
+    if base != '-':
+      PositionInSeq += 1
+      for i,coord in enumerate(coords):
+        if coord == PositionInSeq:
+          TranslatedCoords[i] = GappyPostitionMin1+1
+      if not -1 in TranslatedCoords:
+        break
+  assert not -1 in TranslatedCoords
+  assert len(TranslatedCoords) == len(coords)
+  return TranslatedCoords
+
+  # Find the coordinates.
+  PositionInRef=0
+  CoordsInAlignment_ZeroBased = [-1 for coord in coords]
+  for PositionMin1,base in enumerate(ChosenRefSeq):
+    if not base in GapChars:
+      PositionInRef += 1
+      for i,coord in enumerate(coords):
+        if coord == PositionInRef:
+          CoordsInAlignment_ZeroBased[i] = PositionMin1
+      if not -1 in CoordsInAlignment_ZeroBased:
+        break
+
 
 class PseudoRead:
   "A class similar to pysam.AlignedSegment. Writable, and with extra features."
