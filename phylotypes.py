@@ -25,18 +25,21 @@ existing files, you might to want to call this code from an empty directory.
 RAxMLseed = 1
 RAxMLbootstrapSeed = 1
 
-# Some temporary working files we'll create
-FileForRefs = 'temp_refs.fasta'
+# Some output files
+FileForAlignedReads_basename = 'AlignedReads'
+FileForAlignedReads_PositionsExcised_basename = 'AlignedReads_PositionsExcised_'
 FileForAlignedRefs = 'RefsAln.fasta'
-FileForPairwiseUnalignedRefs = 'temp_2Refs.fasta'
-FileForPairwiseAlignedRefs = 'temp_2RefsAln.fasta'
-FileForReadsInEachWindow_basename = 'temp_UnalignedReads'
-FileForOtherRefsInEachWindow_basename = 'temp_OtherRefs'
-FileForAlignedReadsInEachWindow_basename = 'AlignedReads'
-FileForAllBootstrappedTrees_basename = 'temp_AllBootstrappedTrees'
 FileForDiscardedReadPairs_basename = 'DiscardedReads_'
 FileForSurvivingDuplicates_basename = 'DuplicateReads_surviving_'
 FileForEliminatedDuplicates_basename = 'DuplicateReads_eliminated_'
+
+# Some temporary working files we'll create
+FileForRefs = 'temp_refs.fasta'
+FileForPairwiseUnalignedRefs = 'temp_2Refs.fasta'
+FileForPairwiseAlignedRefs = 'temp_2RefsAln.fasta'
+FileForReads_basename = 'temp_UnalignedReads'
+FileForOtherRefs_basename = 'temp_OtherRefs'
+FileForAllBootstrappedTrees_basename = 'temp_AllBootstrappedTrees'
 ################################################################################
 GapChar = '-'
 
@@ -117,6 +120,9 @@ parser.add_argument('-C', '--ref-for-coords', help='The coordinates are '\
 parser.add_argument('-D', '--dont-check-duplicates', action='store_true', \
 help="Don't compare reads between samples to find duplicates - a possible "+\
 "indication of contamination. (By default this check is done.)")
+parser.add_argument('-F', '--renaming-file', type=File, help='Specify a file '\
+'with one line per bam file, showing how reads from that bam file should be '\
+'named in the output files.')
 parser.add_argument('-I', '--discard-improper-pairs', action='store_true', \
 help='Any improperly paired reads will be discarded')
 parser.add_argument('-M', '--raxml-model', default='GTRCAT',\
@@ -136,17 +142,22 @@ parser.add_argument('-Q2', '--min-internal-quality', type=int, help=\
 +'. If used in conjuction with the --quality-trim-ends option, the trimming '+\
 'of the ends is done first.')
 parser.add_argument('-R', '--ref-for-rooting', help='Used to name a reference'\
-' to be an outgroup in the tree (requires the -A flag).')
+'(which must be present in the file you specify with -A) to be an outgroup'+\
+' in the tree.')
 #parser.add_argument('-S', '--min-support', default=60, type=float, help=\
 #'The bootstrap support below which nodes will be collapsed, as a percentage.')
-parser.add_argument('--renaming-file', type=File, help='Specify a file with '\
-'one line per bam file, showing how reads from that bam file should be named '\
-'in the output files.')
 parser.add_argument('--align-refs-only', action='store_true', help='Align the'+\
 'references in the bam files (plus any extras specified with -A) then quit '+\
 'without parsing the reads.')
 parser.add_argument('-T', '--no-trees', action='store_true', help='Generate '+\
 'aligned sets of reads for each window then quit without making trees.')
+parser.add_argument('-XC', '--excision-coords', type=CommaSeparatedInts, \
+help='Used to specify a comma-separated set of integer coordinates that will '+\
+'be excised from the aligned reads. Useful for sites of non-neutral '+\
+'evolution. Requires the -XR flag.')
+parser.add_argument('-XR', '--excision-ref', help='Used to specify the '+\
+'name of a reference (which must be present in the file you specify with -A)'+\
+'with respect to which the coordinates specified with -XC are interpreted.')
 parser.add_argument('-2', '--pairwise-align-to', help='Sequentially, and '+\
 'separately, align the bam file references to this reference (which must be '+\
 'present in the file you specify with -A) instead of aligning all references '+\
@@ -161,9 +172,19 @@ parser.add_argument('--x-samtools', default='samtools', help=\
 
 args = parser.parse_args()
 
-# Check that window coords have been specified either manually or automatically.
+# Shorthand
+WindowCoords  = args.window_coords
+NumBootstraps = args.number_of_bootstraps
 UserSpecifiedCoords = args.window_coords != None
 AutoWindows = args.auto_window_params != None
+IncludeOtherRefs = args.alignment_of_other_refs != None
+QualTrimEnds  = args.quality_trim_ends != None
+ImposeMinQual = args.min_internal_quality != None
+ExcisePositions = args.excision_coords != None
+PairwiseAlign = args.pairwise_align_to != None
+
+
+# Check that window coords have been specified either manually or automatically.
 if (UserSpecifiedCoords and AutoWindows) or \
 (not UserSpecifiedCoords and not AutoWindows):
   print('Exactly one of the --window-coords or --auto-window-params', \
@@ -180,19 +201,19 @@ if AutoWindows and args.ref_for_coords != None:
   "means you're not specfiying any coordinates. Quitting.", file=sys.stderr)
   exit(1)
 
+# The -XR and -XC flags should be used together or not all.
+if (ExcisePositions and args.excision_ref == None) or \
+((not ExcisePositions) and args.excision_ref != None):
+  print('The --excision-coords and --excision-ref options require each other:',\
+  'use both, or neither. Quitting.', file=sys.stderr)
+  exit(1)
+
 # TODO: remove this testing
 #read1 = pf.PseudoRead('read1', 'abcdefghij', [1,2,3,4,5,6,7,8,9,10], [30]*10)
 
-# Shorthand
-NumBootstraps = args.number_of_bootstraps
-IncludeOtherRefs = args.alignment_of_other_refs != None
-QualTrimEnds  = args.quality_trim_ends != None
-ImposeMinQual = args.min_internal_quality != None
-WindowCoords  = args.window_coords
-
 # Record the names of any external refs being included.
-# If we're doing pairwise reference alignments, we'll need the seqs too; we'll
-# also need gappy and gapless copies of the chosen ref.
+# If we're doing pairwise reference alignments, we'll need the seqs too. We'll
+# also need gappy and gapless copies of the ref chosen for pairwise alignment.
 if IncludeOtherRefs:
   try:
     ExternalRefAlignment = AlignIO.read(args.alignment_of_other_refs, "fasta")
@@ -208,10 +229,12 @@ if IncludeOtherRefs:
       RefForPairwiseAlns = copy.deepcopy(ref)
       RefForPairwiseAlns.seq = RefForPairwiseAlns.seq.ungap("-")
 
+
 # Consistency checks on flags that require a ref.
 for FlagName, FlagValue in (('--ref-for-coords',  args.ref_for_coords),\
 ('--ref-for-rooting', args.ref_for_rooting), \
-('--pairwise-align-to', args.pairwise_align_to)):
+('--pairwise-align-to', args.pairwise_align_to), \
+('--excision-ref', args.excision_ref)):
   if FlagValue == None:
     continue
   if not IncludeOtherRefs:
@@ -225,7 +248,7 @@ for FlagName, FlagValue in (('--ref-for-coords',  args.ref_for_coords),\
     exit(1)
 
 # Sanity checks on using the pairwise alignment option.
-if args.pairwise_align_to != None:
+if PairwiseAlign:
   if args.ref_for_coords != None:
     print('Note that if the --pairwise-align-to option is used, using the',\
     '--ref-for-coords as well is redundant.', file=sys.stderr)
@@ -239,6 +262,12 @@ if args.pairwise_align_to != None:
     "for stepping through a global alignment of all references. Quitting.",
     file=sys.stderr)
     exit(1)
+  if ExcisePositions and args.excision_ref != args.pairwise_align_to:
+    print('The --pairwise-align-to and --excision-ref options can only be',\
+    'used at once if the same reference is specified for both. Qutting.',\
+    file=sys.stderr)
+    exit(1)
+
   
 def SanityCheckWindowCoords(WindowCoords):
   'Check window coordinates come in pairs, all positive, the right > the left.'
@@ -282,6 +311,10 @@ else:
     print('The weighted window width for the --auto-window-params option must',\
     'be greater than zero. Quitting.', file=sys.stderr)
     exit(1)
+
+# Sort excision coords, largest to smallest
+if ExcisePositions:
+  args.excision_coords = sorted(args.excision_coords, reverse=True)
 
 # Check that the bootstrap threshold is between 0 and 100
 #if not (0 <= args.min_support <= 100):
@@ -425,7 +458,7 @@ else:
 
   # If we're separately and sequentially pairwise aligning our references to
   # a chosen ref in order to determine window coordinates, do so now.
-  if args.pairwise_align_to != None:
+  if PairwiseAlign:
 
     # Find the coordinates with respect to the chosen ref, in the alignment of
     # just the external refs - we'll need these later.
@@ -486,14 +519,18 @@ else:
       '. Quitting successfully.')
       exit(0)
 
-    # If coords were specified with respect to one particular reference,
-    # translate them to alignment coordinates.
-    if args.ref_for_coords != None:
+    # If window coords were specified with respect to one particular reference, 
+    # or if we are excising certain coords, translate to alignment coords.
+    if args.ref_for_coords != None or ExcisePositions:
       for seq in SeqIO.parse(open(FileForAlignedRefs),'fasta'):
         if seq.id == args.ref_for_coords:
           WindowCoords = \
           pf.TranslateSeqCoordsToAlnCoords(str(seq.seq), WindowCoords)
-          break
+        if seq.id == args.excision_ref:
+          RefForExcisionGappySeq = str(seq.seq)
+          AlignmentExcisionCoords = pf.TranslateSeqCoordsToAlnCoords(\
+          RefForExcisionGappySeq, args.excision_coords)
+
 
     # Determine windows automatically if desired
     if AutoWindows:
@@ -643,7 +680,7 @@ def ReadFastaOfReadsIntoDicts(FastaFile, ValuesAreCounts=True):
     else:
       if not seq.id in ExternalRefNames:
         print('Malfunction of phylotypes: sequence', seq.id, 'in', \
-        FileForReads, 'not recognised as a read nor an external reference.',\
+        FileForReads, 'not recognised as a read nor as an external reference.',\
         'Quitting.', file=sys.stderr)
         exit(1)
       NonSampleSeqs.append(seq)
@@ -782,7 +819,7 @@ for window in range(NumCoords / 2):
     DuplicateDetails = []
     for i, (BamFile1Basename, ReadDict1, LeftWindowEdge1, RightWindowEdge1) \
     in enumerate(AllReadDictsInThisWindow):
-      for j, (BamFile2Basename, ReadDict2, LeftWindowEdge1, RightWindowEdge1) \
+      for j, (BamFile2Basename, ReadDict2, LeftWindowEdge2, RightWindowEdge2) \
       in enumerate(AllReadDictsInThisWindow[i+1:]):
         DuplicateReadRatios = []
         for read in ReadDict1:
@@ -816,9 +853,9 @@ for window in range(NumCoords / 2):
 
   # Create a fasta file with all reads in this window, ready for aligning.
   # If there's only one, we don't need to align (or make trees!).
-  FileForReadsHere = FileForReadsInEachWindow_basename + ThisWindowSuffix+\
+  FileForReadsHere = FileForReads_basename + ThisWindowSuffix+\
   '.fasta'
-  FileForAlnReadsHere = FileForAlignedReadsInEachWindow_basename + \
+  FileForAlnReadsHere = FileForAlignedReads_basename + \
   ThisWindowSuffix +'.fasta'
   if len(AllReadsInThisWindow) == 1 and not IncludeOtherRefs:
     SeqIO.write(AllReadsInThisWindow, FileForAlnReadsHere, "fasta")
@@ -833,9 +870,9 @@ for window in range(NumCoords / 2):
   # ExternalRefAlignment object. If we did a global alignment, we slice the
   # desired window out of that alignment.
   if IncludeOtherRefs:
-    FileForOtherRefsHere = FileForOtherRefsInEachWindow_basename + \
+    FileForOtherRefsHere = FileForOtherRefs_basename + \
     ThisWindowSuffix +'.fasta'
-    if args.pairwise_align_to != None:
+    if PairwiseAlign:
       ExternalRefLeftWindowEdge  = ExternalRefWindowCoords[window*2]
       ExternalRefRightWindowEdge = ExternalRefWindowCoords[window*2 +1]
       RefAlignmentInWindow = ExternalRefAlignment[:, \
@@ -920,6 +957,7 @@ for window in range(NumCoords / 2):
             SeqAsString = SeqAsString[:position]+SeqAsString[position+1:]
           AllSeqsToPrint[i].seq = Seq.Seq(SeqAsString)
     SeqIO.write(AllSeqsToPrint, FileForAlnReadsHere, "fasta")
+    FileForTrees = FileForAlnReadsHere
 
   # If we're checking for duplicates, read in the file of aligned reads (which
   # may have gone through a second round of merging), remove gaps, and see which
@@ -966,13 +1004,73 @@ for window in range(NumCoords / 2):
       f.write('"BamFile","SharedWith","SeqCount/SharedCount"\n')
       f.write('\n'.join(','.join(data) for data in EliminatedDuplicates))
 
+  # See if there are positions to excise in this window.
+  if ExcisePositions:
+    FileForAlignedReads_PositionsExcised = \
+    FileForAlignedReads_PositionsExcised_basename + ThisWindowSuffix +'.fasta'
+    if PairwiseAlign:
+      CoordsToExciseInThisWindow = [coord for coord in args.excision_coords \
+      if LeftWindowEdge <= coord <= RightWindowEdge]
+    else:
+      CoordsToExciseInThisWindow = [coord for coord in AlignmentExcisionCoords \
+      if LeftWindowEdge <= coord <= RightWindowEdge]
+    print('CoordsToExciseInThisWindow', CoordsToExciseInThisWindow)
+    if CoordsToExciseInThisWindow != []:
+
+      # Define PositionsInUngappedRef to be how far the positions are from the
+      # start of the window, in an ungapped version of the ref.
+      if PairwiseAlign:
+        PositionsInUngappedRef = \
+        [coord - LeftWindowEdge + 1 for coord in CoordsToExciseInThisWindow]
+        UngappedRefHere = \
+        str(RefForPairwiseAlns.seq)[LeftWindowEdge-1:RightWindowEdge]
+      else:
+        RefInThisWindowGappy = \
+        RefForExcisionGappySeq[LeftWindowEdge-1:RightWindowEdge]
+        PositionsInUngappedRef = []
+        for coord in CoordsToExciseInThisWindow:
+          DistanceIntoWindow = coord - LeftWindowEdge
+          PositionsInUngappedRef.append(\
+          len(RefInThisWindowGappy[:DistanceIntoWindow+1].replace('-','')))
+        UngappedRefHere = RefInThisWindowGappy.replace('-','')
+
+      # Read in the aligned reads, and check the ref looks as expected.
+      RefInAlignment = None
+      SeqAlignmentHere = AlignIO.read(FileForAlnReadsHere, "fasta")
+      for seq in SeqAlignmentHere:
+        if seq.id == args.excision_ref:
+          RefInAlignment = str(seq.seq)
+          break
+      if RefInAlignment == None:
+        print('Malfunction of phylotypes: unable to find', args.excision_ref, \
+        'in', FileForAlnReadsHere +'. Quitting.', file=sys.stderr)
+        exit(1)
+      if RefInAlignment.replace('-','') != UngappedRefHere:
+        print('Malfunction of phylotypes: mismatch between the ref for',\
+        'excision we expected to find in this window:\n', UngappedRefHere,\
+        '\nand the ref for excision we actually found in this window:\n',\
+        RefInAlignment.replace('-',''), '\nQuitting.', file=sys.stderr)
+        exit(1)
+
+      # Excise the positions in the aligned set of reads.
+      PositionsInAlignment = \
+      pf.TranslateSeqCoordsToAlnCoords(RefInAlignment, PositionsInUngappedRef)
+      assert PositionsInAlignment == sorted(PositionsInAlignment, reverse=True)
+      for pos in PositionsInAlignment:
+        for record in SeqAlignmentHere:
+        SeqAlignmentHere = \
+        SeqAlignmentHere[:, :pos-1] + SeqAlignmentHere[:, pos:]
+      AlignIO.write(SeqAlignmentHere, FileForAlignedReads_PositionsExcised, \
+      'fasta')
+      FileForTrees = FileForAlignedReads_PositionsExcised
+
   if args.no_trees:
     continue
 
   # Create the ML tree
   MLtreeFile = 'RAxML_bestTree.' +ThisWindowSuffix +'.tree'
   RAxMLcall = [args.x_raxml, '-m', args.raxml_model, '-p', str(RAxMLseed),\
-  '-s', FileForAlnReadsHere, '-n', ThisWindowSuffix+'.tree']
+  '-s', FileForTrees, '-n', ThisWindowSuffix+'.tree']
   if args.ref_for_rooting != None:
     RAxMLcall += ['-o', args.ref_for_rooting]
   try:
@@ -992,14 +1090,14 @@ for window in range(NumCoords / 2):
     try:
       ExitStatus = subprocess.call([args.x_raxml, '-m', args.raxml_model, '-p',\
       str(RAxMLseed), '-b', str(RAxMLbootstrapSeed), '-f', 'j', '-#', \
-      str(NumBootstraps), '-s', FileForAlnReadsHere, '-n', ThisWindowSuffix+\
+      str(NumBootstraps), '-s', FileForTrees, '-n', ThisWindowSuffix+\
       '_bootstraps'])
       assert ExitStatus == 0
     except:
       print('Problem generating bootstrapped alignments with RAxML', \
       '\nSkipping to the next window.', file=sys.stderr)
       continue
-    BootstrappedAlignments = [FileForAlnReadsHere+'.BS'+str(bootstrap) for \
+    BootstrappedAlignments = [FileForTrees+'.BS'+str(bootstrap) for \
     bootstrap in range(NumBootstraps)]
     if not all(os.path.isfile(BootstrappedAlignment) \
     for BootstrappedAlignment in BootstrappedAlignments):
