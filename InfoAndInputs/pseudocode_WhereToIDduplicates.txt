@@ -1,0 +1,28 @@
+
+
+def ProcessReadDict(ReadDict):
+  if merging & implementing a minimum count:  
+    do so
+  return what's left
+
+(What follows is done for each window separately...)
+
+AllReadsInThisWindow = empty list
+for bam in bams:
+  create UniqueReads dict
+  if not args.dont_check_duplicates:
+    AllReadDictsInThisWindow.append((BamFileBasename, UniqueReads))
+  else:
+    AllReadsInThisWindow += ProcessReadDict(UniqueReads)
+
+if not args.dont_check_duplicates:
+  find & record duplicates
+  for ReadDict in AllReadDictsInThisWindow:
+    AllReadsInThisWindow += ProcessReadDict(UniqueReads)
+
+write AllReadsInThisWindow to file, align
+if merging:
+  read in reads from file
+  collect into ReadDicts
+  merge
+  impose minimum read count if desired
