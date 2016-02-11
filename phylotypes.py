@@ -1057,7 +1057,6 @@ for window in range(NumCoords / 2):
       pf.TranslateSeqCoordsToAlnCoords(RefInAlignment, PositionsInUngappedRef)
       assert PositionsInAlignment == sorted(PositionsInAlignment, reverse=True)
       for pos in PositionsInAlignment:
-        for record in SeqAlignmentHere:
         SeqAlignmentHere = \
         SeqAlignmentHere[:, :pos-1] + SeqAlignmentHere[:, pos:]
       AlignIO.write(SeqAlignmentHere, FileForAlignedReads_PositionsExcised, \
