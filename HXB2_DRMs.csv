@@ -1,0 +1,404 @@
+"HXB2-base","HXB2-Position","protein number","protein feature","Reference(s)",
+"g",823,12,,,
+"a",824,12,"E12K drug resistance associated","Gatanaga et al. 2002 PMID 11741936",
+"a",825,12,,,
+
+"g",892,35,,,
+"t",893,35,"V35I drug resistance associated","Gatanaga et al. 2002 PMID 11741936",
+"a",894,35,,,
+
+"g",907,40,,,
+"a",908,40,"E40K drug resistance associated","Gatanaga et al. 2002 PMID 11741936",
+"g",909,40,,,
+
+"c",1012,75,,,
+"t",1013,75,"L75R drug resistance associated","Gatanaga et al. 2002 PMID 11741936",
+"t",1014,75,,,
+
+"g",1156,123,,,
+"g",1157,123,"G123E drug resistance associated","Gatanaga et al. 2002 PMID 11741936",
+"a",1158,123,,,
+
+"c",1384,199,,,
+"a",1385,199,"Q199H drug resistance associated","Gatanaga et al. 2002 PMID 11741936",
+"a",1386,199,,,
+
+"c",1444,219,"H219Q drug resistance associated","Gatanaga et al. 2002 PMID 11741936",
+"a",1445,219,,,
+"t",1446,219,,,
+
+"g",1930,381,,,
+"g",1931,381,"G381S drug resistance associated","Gatanaga et al. 2002 PMID 11741936",
+"c",1932,381,,,
+
+"g",1957,390,,,
+"t",1958,390,"V390A/D drug resistance associated","Gatanaga et al. 2002 PMID 11741936",
+"t",1959,390,,,
+
+"a",2014,409,,,
+"g",2015,409,"R409K drug resistance associated","Gatanaga et al. 2002 PMID 11741936",
+"g",2016,409,,,
+
+"g",2023,412,,,
+"g",2024,412,"G412D drug resistance associated","Gatanaga et al. 2002 PMID 11741936",
+"c",2025,412,,,
+
+"g",2080,431,,,
+"c",2081,431,"A431V drug resistance associated","Gatanaga et al. 2002 PMID 11741936",
+"t",2082,431,,,
+
+"c",2134,449,,,
+"t",2135,449,"L449F drug resistance associated","Gatanaga et al. 2002 PMID 11741936",
+"t",2136,449,,,
+
+"g",2191,468,"E468K drug resistance associated","Gatanaga et al. 2002 PMID 11741936",
+"a",2192,468,,,
+"g",2193,468,,,
+
+"g",2298,72,,,
+"g",2299,72,"G16A/E drug resistance","Johnson et al. 2011 PMID 22156218",
+"g",2300,72,,,
+
+"a",2310,76,,,
+"a",2311,76,"K20T/I/M/R drug resistance","Johnson et al. 2011 PMID 22156218",
+"g",2312,76,,,
+
+"g",2316,78,,,
+"c",2317,78,"A22V drug resistance","Johnson et al. 2011 PMID 22156218",
+"t",2318,78,,,
+
+"c",2319,79,,,
+"t",2320,79,"L23I drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2321,79,,,
+
+"g",2346,88,,,
+"t",2347,88,"V32I drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2348,88,,,
+
+"t",2349,89,,,
+"t",2350,89,"L33F/I drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2351,89,,,
+
+"g",2352,90,,,
+"a",2353,90,"E34Q drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2354,90,,,
+
+"g",2355,91,,,
+"a",2356,91,"E35G/D drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2357,91,,,
+
+"a",2358,92,,,
+"t",2359,92,"M36V/I/L drug resistance","Johnson et al. 2011 PMID 22156218",
+"g",2360,92,,,
+
+"a",2373,97,,,
+"g",2374,97,"R41T/K drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2375,97,,,
+
+"a",2379,99,,,
+"a",2380,99,"K43T drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2381,99,,,
+
+"a",2385,101,,,
+"a",2386,101,"K45R/I drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2387,101,,,
+
+"a",2391,103,,,
+"t",2392,103,"I47A/V drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2393,103,,,
+
+"a",2412,110,,,
+"t",2413,110,"I54V/A/M/S/T/V drug resistance","Johnson et al. 2011 PMID 22156218",
+"c",2414,110,,,
+
+"a",2415,111,,,
+"a",2416,111,"K55R drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2417,111,,,
+
+"c",2439,119,,,
+"t",2440,119,"L63A/C/Q/S/P/T drug resistance","Johnson et al. 2011 PMID 22156218",
+"c",2441,119,,,
+
+"a",2442,120,,,
+"t",2443,120,"I64V drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2444,120,,,
+
+"a",2460,126,,,
+"a",2461,126,"K70E drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2462,126,,,
+
+"g",2463,127,,,
+"c",2464,127,"A71V/I/L/T drug resistance","Johnson et al. 2011 PMID 22156218",
+"t",2465,127,,,
+
+"a",2472,130,,,
+"c",2473,130,"T74S drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2474,130,,,
+
+"t",2478,132,,,
+"t",2479,132,"L76V drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2480,132,,,
+
+"g",2496,138,,,
+"t",2497,138,"V82L/M/A/F/I/S/T drug resistance","Johnson et al. 2011 PMID 22156218",
+"c",2498,138,,,
+
+"a",2502,140,,,
+"t",2503,140,"I84V/A drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2504,140,,,
+
+"a",2505,141,,,
+"t",2506,141,"I85V drug resistance",,
+"t",2507,141,,,
+
+"a",2514,144,,,
+"a",2515,144,"N88G/D/S drug resistance","Johnson et al. 2011 PMID 22156218",
+"t",2516,144,,,
+
+"c",2526,148,,,
+"a",2527,148,"Q92K drug resistance","Johnson et al. 2011 PMID 22156218",
+"g",2528,148,,,
+
+"t",2535,151,,,
+"g",2536,151,"C95F drug resistance","Johnson et al. 2011 PMID 22156218",
+"c",2537,151,,,
+
+"a",2670,196,"M41L Multi-drug Resistance Complex","Johnson et al. 2011 PMID 22156218",
+"t",2671,196,,,
+"g",2672,196,,,
+
+"g",2679,199,,,
+"a",2680,199,"E44A/D drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2681,199,,,
+
+"c",2703,207,,,
+"c",2704,207,"P52R drug resistance","Johnson et al. 2011 PMID 22156218",
+"t",2705,207,,,
+
+"a",2709,209,,,
+"a",2710,209,"N54D drug resistance","Johnson et al. 2011 PMID 22156218",
+"t",2711,209,,,
+
+"g",2733,217,"A62V drug resistance","Johnson et al. 2011 PMID 22156218",
+"c",2734,217,,,
+"c",2735,217,,,
+
+"a",2742,220,,,
+"a",2743,220,"K65R drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2744,220,,,
+
+"g",2748,222,"D67A/E/G/N/S drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2749,222,,,
+"c",2750,222,,,
+
+"a",2751,223,,,
+"g",2752,223,"S68G/N/S/Y drug resistance","Johnson et al. 2011 PMID 22156218",
+"t",2753,223,,,
+
+"a",2754,224,,,
+"c",2755,224,"ins69TRVMG drug resistance","Johnson et al. 2011 PMID 22156218",
+"t",2756,224,,,
+
+"a",2757,225,,,
+"a",2758,225,"K70E/R/S drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2759,225,,,
+
+"t",2769,229,,,
+"t",2770,229,"L74I/V drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2771,229,,,
+
+"g",2772,230,,,
+"t",2773,230,"V75I/L/M/T drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2774,230,,,
+
+"t",2778,232,,,
+"t",2779,232,"F77L drug resistance","Johnson et al. 2011 PMID 22156218",
+"c",2780,232,,,
+
+"t",2811,243,,,
+"g",2812,243,"W88G/S drug resistance","Johnson et al. 2011 PMID 22156218",
+"g",2813,243,,,
+
+"g",2814,244,,,
+"a",2815,244,"E89G/K drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2816,244,,,
+
+"t",2823,247,,,
+"t",2824,247,"L92I drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2825,247,,,
+
+"g",2841,253,,,
+"c",2842,253,"A98G drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2843,253,,,
+
+"t",2847,255,,,
+"t",2848,255,"L100I drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2849,255,,,
+
+"a",2850,256,,,
+"a",2851,256,"K101E/I/P/Q drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2852,256,,,
+
+"a",2856,258,,,
+"a",2857,258,"K103E/H/N/Q/R/S/T drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2858,258,,,
+
+"g",2865,261,,,
+"t",2866,261,"V106A/I/M drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2867,261,,,
+
+"g",2871,263,,,
+"t",2872,263,"V108I drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2873,263,,,
+
+"t",2892,270,,,
+"a",2893,270,"Y115F drug resistance","Johnson et al. 2011 PMID 22156218",
+"t",2894,270,,,
+
+"t",2895,271,,,
+"t",2896,271,"F116Y drug resistance","Johnson et al. 2011 PMID 22156218",
+"t",2897,271,,,
+
+"g",2901,273,,,
+"t",2902,273,"V118I drug resistance","Johnson et al. 2011 PMID 22156218",
+"t",2903,273,,,
+
+"c",2904,274,,,
+"c",2905,274,"P119S drug resistance","Johnson et al. 2011 PMID 22156218",
+"c",2906,274,,,
+
+"a",2952,290,,,
+"t",2953,290,"I135L/M/T drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",2954,290,,,
+
+"g",2961,293,,,
+"a",2962,293,"E138A/K drug resistance","Johnson et al. 2011 PMID 22156218",
+"g",2963,293,,,
+
+"c",3000,306,,,
+"a",3001,306,"Q151M drug resistance","Johnson et al. 2011 PMID 22156218",
+"g",3002,306,"Gln quite conserved in RTs","http://pfam.sanger.ac.uk/family/PF00078",
+
+"t",3015,311,,,
+"c",3016,311,"S156A drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",3017,311,,,
+
+"c",3018,312,,,
+"c",3019,312,"P157S drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",3020,312,"Pro quite conserved in RTs","http://pfam.sanger.ac.uk/family/PF00078",
+
+"c",3030,316,,,
+"a",3031,316,"Q161L drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",3032,316,,,
+
+"a",3042,320,,,
+"c",3043,320,"T165A drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",3044,320,,,
+
+"g",3084,334,,,
+"t",3085,334,"V179D/E/F drug resistance","Johnson et al. 2011 PMID 22156218",
+"t",3086,334,,,
+
+"t",3090,336,,,
+"a",3091,336,"Y181C/I/V drug resistance","Johnson et al. 2011 PMID 22156218",
+"t",3092,336,,,
+
+"a",3099,339,,,
+"t",3100,339,"M184I/V/T drug resistance","Johnson et al. 2011 PMID 22156218",
+"g",3101,339,,,
+
+"t",3111,343,,,
+"a",3112,343,"Y188C/H/L drug resistance","Johnson et al. 2011 PMID 22156218",
+"t",3113,343,,,
+
+"g",3117,345,,,
+"g",3118,345,"G190A/C/E/Q/R/S/T/V drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",3119,345,,,
+
+"g",3135,351,,,
+"g",3136,351,"G196E drug resistance","Johnson et al. 2011 PMID 22156218",
+"g",3137,351,,,
+
+"c",3171,363,,,
+"a",3172,363,"H208Y drug resistance","Johnson et al. 2011 PMID 22156218",
+"t",3173,363,,,
+
+"t",3177,365,,,
+"t",3178,365,"L210W drug resistance","Johnson et al. 2011 PMID 22156218",
+"g",3179,365,,,
+
+"a",3180,366,,,
+"g",3181,366,"R211K drug resistance","Johnson et al. 2011 PMID 22156218",
+"g",3182,366,,,
+
+"c",3189,369,,,
+"t",3190,369,"L214F drug resistance","Johnson et al. 2011 PMID 22156218",
+"t",3191,369,,,
+
+"a",3192,370,,,
+"c",3193,370,"T215F/Y drug resistance","Johnson et al. 2011 PMID 22156218",
+"c",3194,370,,,
+
+"a",3204,374,,,
+"a",3205,374,"K219E/N/Q/R/W drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",3206,374,,,
+
+"c",3222,380,,,
+"c",3223,380,"P225H drug resistance","Johnson et al. 2011 PMID 22156218",
+"t",3224,380,,,
+
+"t",3228,382,,,
+"t",3229,382,"F227C/L drug resistance","Johnson et al. 2011 PMID 22156218",
+"c",3230,382,,,
+
+"g",3246,388,,,
+"a",3247,388,"V233E drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",3248,388,,,
+
+"c",3249,389,,,
+"t",3250,389,"L234I drug resistance","Johnson et al. 2011 PMID 22156218",
+"c",3251,389,,,
+
+"c",3255,391,,,
+"c",3256,391,"P236L drug resistance","Johnson et al. 2011 PMID 22156218",
+"t",3257,391,,,
+
+"a",3261,393,,,
+"a",3262,393,"K238S/T drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",3263,393,,,
+
+"c",3396,438,,,
+"t",3397,438,,,
+"t",3398,438,"L283I drug resistance","Johnson et al. 2011 PMID 22156218",
+
+"t",3501,473,,,
+"a",3502,473,"Y318F drug resistance","Johnson et al. 2011 PMID 22156218",
+"t",3503,473,,,
+
+"g",3546,488,,,
+"g",3547,488,"G333D/E drug resistance","Johnson et al. 2011 PMID 22156218",
+"g",3548,488,,,
+
+"a",3705,541,,,
+"c",3706,541,"T386I drug resistance","Johnson et al. 2011 PMID 22156218",
+"t",3707,541,,,
+
+"g",4647,855,,,
+"g",4648,855,"G140S drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",4649,855,,,
+
+"g",4722,880,,,
+"t",4723,880,"V165I drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",4724,880,,,
+
+"t",4782,900,,,
+"t",4783,900,"F185K drug resistance","Johnson et al. 2011 PMID 22156218",
+"t",4784,900,,,
+
+"g",4974,964,,,
+"t",4975,964,"V249I drug resistance","Johnson et al. 2011 PMID 22156218",
+"a",4976,964,,,
+
+"t",5067,995,,,
+"g",5068,995,"C280S/Y drug resistance","Johnson et al. 2011 PMID 22156218",
+"t",5069,995,,,
