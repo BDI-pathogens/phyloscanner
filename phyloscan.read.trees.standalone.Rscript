@@ -76,54 +76,54 @@ if(exists("args"))
 if( is.na(indir) )
 {
 	cat('\nusage: Rscript phyloscan.read.trees.standalone.Rscript -indir=INDIR
-\t\t\t[-infile=INFILE]  [-outdir=OUTDIR] [-outgroup=OUTGROUP]
-\t\t\t[-select=SELECT] [-references.pattern=REFPATTERN] [-run.pattern=RUNPATTERN]
-\t\t\t[-tree.pattern=TREEPATTERN] [-rm.newick=RMNEWICK] [-rm.fasta=RMFASTA]
-\t\t\t[-plot.trees.per.page=TREESPERPAGE] [-plot.w=PLOTW] [-plot.h=PLOTH] 
-\nThis R script processes phylotype newick files for further analyses. Processing includes 
-\t\t\tthe following steps. Rooting. Ancestral state reconstruction with maximum parsimony. 
-\t\t\tSave trees as a named list of trees in R ape format, and basic file info in an R object 
-\t\t\tfile. Plot trees. The R object file contains the trees in "pty.ph" and the basic file 
-\t\t\tinfo in "ptyfiles". The output file names are derived from the input file names, and end 
-\t\t\twith ".rda" and ".pdf" respectively.
-\nR users can use the function "pty.evaluate.tree" directly.    
-\narguments:\n
-\t-indir=INDIR: Input directory with newick trees.
-\noptional arguments:\n
-\t-infile=INFILE: Deprecated.
-\t-outdir=OUTDIR: Output directory. By default set to INDIR.
-\t-outgroup=OUTGROUP: Regular expression that uniquely identifies the root name. 
-\t\t\tMust be specified if infile is ommitted.
-\t-tree.pattern=TREEPATTERN: File name extension that identifies the newick files. By default "newick$";
-\t\t\tDo not include the dot. 
-\t-references.pattern=REFPATTERN: Regular expression that identifies all reference 
-\t\t\tsequences. By default "REF".
-\t-run.pattern=RUNPATTERN: String that identifies files of separate phylotype runs. 
-\t\t\tThe string must be followed by a number. Output is produced for each run separately.
-\t\t\tThis option is useful to group output as desired. Without the SELECT option, all 
-\t\t\tgroups will be processed sequentially. By default ""; could e.g. be "^ptyr" to 
-\t\t\tgroup newick files starting with "ptyr1_" and "ptyr2_" into two separate runs 
-\t\t\t"1" and "2".
-\t-select=SELECT: Regular expression that selects a subset of newick files in the 
-\t\t\tinput directory. This is useful to avoid very large file sizes and memory consumption 
-\t\t\tof this Rscript. Also useful to parallelize this processing step. By default ""; 
-\t\t\tcould e.g. be "^ptyr22_".
-\t-rm.newick=RMNEWICK: 1 to delete all newick files in the input directory. 
-\t\t\tBy default 0.
-\t-rm.fasta=RMFASTA: 1 to delete all fasta files in the input directory. 
-\t\t\tBy default 0.
-\t-plot.trees.per.page=TREESPERPAGE: Number of trees to plot per page. If >1, the number
-\t\t\tmust be divisible by 2. By default "10".
-\t-plot.w=PLOTW: Width of the plot page in inches. By default "20".
-\t-plot.h=PLOTH: Height of the plot page in inches. By default "40".
-\ninstallation notes:\n
-\tThis script requires a number of packages, and "ggtree" can be tricky to install.
-\t\t\tI had the most luck with the latest "scales0.3.0" and "ggplot2.0.0" from CRAN;
-\t\t\tI then cloned "ggtree" from github, built from source with "R CMD build
-\t\t\t--no-build-vignettes", and then installed the package. The required packages are
-\t\t\tape, phytools, phangorn, reshape2, data.table, RColorBrewer, colorspace, grid,
-\t\t\tgridExtra, ggplot2, ggtree, zoo.
-')
+					\t\t\t[-infile=INFILE]  [-outdir=OUTDIR] [-outgroup=OUTGROUP]
+					\t\t\t[-select=SELECT] [-references.pattern=REFPATTERN] [-run.pattern=RUNPATTERN]
+					\t\t\t[-tree.pattern=TREEPATTERN] [-rm.newick=RMNEWICK] [-rm.fasta=RMFASTA]
+					\t\t\t[-plot.trees.per.page=TREESPERPAGE] [-plot.w=PLOTW] [-plot.h=PLOTH] 
+					\nThis R script processes phylotype newick files for further analyses. Processing includes 
+					\t\t\tthe following steps. Rooting. Ancestral state reconstruction with maximum parsimony. 
+					\t\t\tSave trees as a named list of trees in R ape format, and basic file info in an R object 
+					\t\t\tfile. Plot trees. The R object file contains the trees in "pty.ph" and the basic file 
+					\t\t\tinfo in "ptyfiles". The output file names are derived from the input file names, and end 
+					\t\t\twith ".rda" and ".pdf" respectively.
+					\nR users can use the function "pty.evaluate.tree" directly.    
+					\narguments:\n
+					\t-indir=INDIR: Input directory with newick trees.
+					\noptional arguments:\n
+					\t-infile=INFILE: Deprecated.
+					\t-outdir=OUTDIR: Output directory. By default set to INDIR.
+					\t-outgroup=OUTGROUP: Regular expression that uniquely identifies the root name. 
+					\t\t\tMust be specified if infile is ommitted.
+					\t-tree.pattern=TREEPATTERN: File name extension that identifies the newick files. By default "newick$";
+					\t\t\tDo not include the dot. 
+					\t-references.pattern=REFPATTERN: Regular expression that identifies all reference 
+					\t\t\tsequences. By default "REF".
+					\t-run.pattern=RUNPATTERN: String that identifies files of separate phylotype runs. 
+					\t\t\tThe string must be followed by a number. Output is produced for each run separately.
+					\t\t\tThis option is useful to group output as desired. Without the SELECT option, all 
+					\t\t\tgroups will be processed sequentially. By default ""; could e.g. be "^ptyr" to 
+					\t\t\tgroup newick files starting with "ptyr1_" and "ptyr2_" into two separate runs 
+					\t\t\t"1" and "2".
+					\t-select=SELECT: Regular expression that selects a subset of newick files in the 
+					\t\t\tinput directory. This is useful to avoid very large file sizes and memory consumption 
+					\t\t\tof this Rscript. Also useful to parallelize this processing step. By default ""; 
+					\t\t\tcould e.g. be "^ptyr22_".
+					\t-rm.newick=RMNEWICK: 1 to delete all newick files in the input directory. 
+					\t\t\tBy default 0.
+					\t-rm.fasta=RMFASTA: 1 to delete all fasta files in the input directory. 
+					\t\t\tBy default 0.
+					\t-plot.trees.per.page=TREESPERPAGE: Number of trees to plot per page. If >1, the number
+					\t\t\tmust be divisible by 2. By default "10".
+					\t-plot.w=PLOTW: Width of the plot page in inches. By default "20".
+					\t-plot.h=PLOTH: Height of the plot page in inches. By default "40".
+					\ninstallation notes:\n
+					\tThis script requires a number of packages, and "ggtree" can be tricky to install.
+					\t\t\tI had the most luck with the latest "scales0.3.0" and "ggplot2.0.0" from CRAN;
+					\t\t\tI then cloned "ggtree" from github, built from source with "R CMD build
+					\t\t\t--no-build-vignettes", and then installed the package. The required packages are
+					\t\t\tape, phytools, phangorn, reshape2, data.table, RColorBrewer, colorspace, grid,
+					\t\t\tgridExtra, ggplot2, ggtree, zoo.
+					')
 	quit('no')
 }
 if( is.na(outdir) )
@@ -513,9 +513,9 @@ if(!is.na(infile))
 	load( infile )		# loads pty.runs, only used to define outgroup if not specified
 }
 pty.evaluate.tree(	indir, pty.runs=pty.runs, outdir=outdir, select=select, outgroup=outgroup, 
-					references.pattern=references.pattern, run.pattern=run.pattern, tree.pattern=tree.pattern, 
-					rm.newick=rm.newick, rm.fasta=rm.fasta,
-					plot.trees.per.page=plot.trees.per.page, plot.w=plot.w, plot.h=plot.h)
+		references.pattern=references.pattern, run.pattern=run.pattern, tree.pattern=tree.pattern, 
+		rm.newick=rm.newick, rm.fasta=rm.fasta,
+		plot.trees.per.page=plot.trees.per.page, plot.w=plot.w, plot.h=plot.h)
 #
 #	plot additional smaller trees, not do for now
 #
