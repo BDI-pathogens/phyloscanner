@@ -127,7 +127,7 @@ parser.add_argument('-I', '--discard-improper-pairs', action='store_true', \
 help='Any improperly paired reads will be discarded')
 parser.add_argument('-M', '--raxml-model', default='GTRCAT',\
 help='The evoltionary model used by RAxML (GTRCAT by default).')
-parser.add_argument('-N', '--number-of-bootstraps', type=int,\
+parser.add_argument('-N', '--num-bootstraps', type=int,\
 help='The number of bootstraps to be calculated for RAxML trees (by default, '+\
 'none i.e. only the ML tree is calculated).')
 parser.add_argument('-O', '--keep-overhangs', action='store_true', \
@@ -147,7 +147,7 @@ parser.add_argument('-R', '--ref-for-rooting', help='Used to name a reference'\
 #parser.add_argument('-S', '--min-support', default=60, type=float, help=\
 #'The bootstrap support below which nodes will be collapsed, as a percentage.')
 parser.add_argument('--align-refs-only', action='store_true', help='Align the'+\
-'references in the bam files (plus any extras specified with -A) then quit '+\
+' references in the bam files (plus any extras specified with -A) then quit '+\
 'without parsing the reads.')
 parser.add_argument('-T', '--no-trees', action='store_true', help='Generate '+\
 'aligned sets of reads for each window then quit without making trees.')
@@ -157,7 +157,7 @@ help='Used to specify a comma-separated set of integer coordinates that will '+\
 'evolution. Requires the -XR flag.')
 parser.add_argument('-XR', '--excision-ref', help='Used to specify the '+\
 'name of a reference (which must be present in the file you specify with -A)'+\
-'with respect to which the coordinates specified with -XC are interpreted.')
+' with respect to which the coordinates specified with -XC are interpreted.')
 parser.add_argument('-2', '--pairwise-align-to', help='Sequentially, and '+\
 'separately, align the bam file references to this reference (which must be '+\
 'present in the file you specify with -A) instead of aligning all references '+\
@@ -174,7 +174,6 @@ args = parser.parse_args()
 
 # Shorthand
 WindowCoords  = args.window_coords
-NumBootstraps = args.number_of_bootstraps
 UserSpecifiedCoords = args.window_coords != None
 AutoWindows = args.auto_window_params != None
 IncludeOtherRefs = args.alignment_of_other_refs != None
@@ -366,8 +365,8 @@ if args.renaming_file != None and len(BamAliases) != NumberOfBams:
   args.renaming_file+'.\nQuitting.', file=sys.stderr)
   exit(1)
 
-# Read in all the reference sequences. Set each name by the file from which the
-# ref comes.
+# Read in all the reference sequences. Set each seq name to be the corresponding
+# alias.
 RefSeqs = []
 for i,RefFile in enumerate(RefFiles):
   SeqList = list(SeqIO.parse(open(RefFile),'fasta'))
@@ -375,7 +374,7 @@ for i,RefFile in enumerate(RefFiles):
     print('There are', len(SeqList), 'sequences in', RefFile+'. There should',\
     'be exactly 1.\nQuitting.', file=sys.stderr)
     exit(1)
-  SeqList[0].id = RefFileBasenames[i]
+  SeqList[0].id = BamAliases[i]
   RefSeqs += SeqList
 
 
@@ -448,7 +447,7 @@ if NumberOfBams == 1 and not IncludeOtherRefs:
     exit(1)
   RefSeqLength = len(RefSeqs[0])
   CoordsToUse = [min(coord, RefSeqLength) for coord in WindowCoords]
-  CoordsInRefs = {RefFileBasenames[0] : CoordsToUse}
+  CoordsInRefs = {BamAliases[0] : CoordsToUse}
 
 # If there are at least two bam files, or if there is one but we're including
 # other refs, we'll be aligning references and translating the user-specified
@@ -563,7 +562,7 @@ else:
     # The index names in the CoordsInSeqs dicts, labelling the coords found by
     # coord translation, should cooincide with all seqs we're considering (i.e.
     # those in FileForAlignedRefs).
-    if set(CoordsInRefs.keys()) != set(RefFileBasenames+ExternalRefNames):
+    if set(CoordsInRefs.keys()) != set(BamAliases+ExternalRefNames):
       print('Malfunction of phylotypes: mismatch between the sequences found', \
       'in the output of', TranslateCoordsCode, 'and those in', \
       FileForAlignedRefs +'. Quitting.', file=sys.stderr)
@@ -585,7 +584,7 @@ BamFileRefLengths  = {}
 for i,BamFileName in enumerate(BamFiles):
 
   BamFileBasename = BamFileBasenames[i]
-  RefBasename = RefFileBasenames[i]
+  BamAlias = BamAliases[i]
 
   # Prep for pysam
   BamFile = pysam.AlignmentFile(BamFileName, "rb")
@@ -610,11 +609,11 @@ for i,BamFileName in enumerate(BamFiles):
   # When translating coordinates, -1 means before the sequence starts; 'NaN'
   # means after it ends. These should be replaced by 1 and the reference length
   # respectively.
-  for j,coord in enumerate(CoordsInRefs[RefBasename]):
+  for j,coord in enumerate(CoordsInRefs[BamAlias]):
     if coord == -1:
-      CoordsInRefs[RefBasename][j] = 1
+      CoordsInRefs[BamAlias][j] = 1
     elif coord == 'NaN':
-      CoordsInRefs[RefBasename][j] = RefLength
+      CoordsInRefs[BamAlias][j] = RefLength
 
 def ProcessReadDict(ReadDict, WhichBam, LeftWindowEdge, RightWindowEdge):
   '''Turns a dict of reads into a list of reads, merging & imposing a minimum
@@ -717,8 +716,8 @@ for window in range(NumCoords / 2):
     BamFileBasename = BamFileBasenames[i]
     RefSeqName = BamFileRefSeqNames[BamFileBasename]
     RefLength = BamFileRefLengths[BamFileBasename]
-    RefBasename = RefFileBasenames[i]
-    ThisBamCoords = CoordsInRefs[RefBasename]
+    BamAlias = BamAliases[i]
+    ThisBamCoords = CoordsInRefs[BamAlias]
     LeftWindowEdge  = ThisBamCoords[window*2]
     RightWindowEdge = ThisBamCoords[window*2 +1]
 
@@ -883,7 +882,7 @@ for window in range(NumCoords / 2):
         try:
           ExitStatus = subprocess.call([FindSeqsInFastaCode, \
           FileForAlignedRefs, '-B', '-W', str(LeftWindowEdge) + ',' + \
-          str(RightWindowEdge), '-v'] + RefFileBasenames, stdout=f)
+          str(RightWindowEdge), '-v'] + BamAliases, stdout=f)
           assert ExitStatus == 0
         except:
           print('Problem calling', FindSeqsInFastaCode+\
@@ -1085,11 +1084,11 @@ for window in range(NumCoords / 2):
     continue
 
   # If desired, make bootstrapped alignments
-  if NumBootstraps != None:
+  if args.num_bootstraps != None:
     try:
       ExitStatus = subprocess.call([args.x_raxml, '-m', args.raxml_model, '-p',\
       str(RAxMLseed), '-b', str(RAxMLbootstrapSeed), '-f', 'j', '-#', \
-      str(NumBootstraps), '-s', FileForTrees, '-n', ThisWindowSuffix+\
+      str(args.num_bootstraps), '-s', FileForTrees, '-n', ThisWindowSuffix+\
       '_bootstraps'])
       assert ExitStatus == 0
     except:
@@ -1097,7 +1096,7 @@ for window in range(NumCoords / 2):
       '\nSkipping to the next window.', file=sys.stderr)
       continue
     BootstrappedAlignments = [FileForTrees+'.BS'+str(bootstrap) for \
-    bootstrap in range(NumBootstraps)]
+    bootstrap in range(args.num_bootstraps)]
     if not all(os.path.isfile(BootstrappedAlignment) \
     for BootstrappedAlignment in BootstrappedAlignments):
       print('At least one of the following files, expected to be produced by'+\
@@ -1117,7 +1116,7 @@ for window in range(NumCoords / 2):
         str(bootstrap), '\Breaking.', file=sys.stderr)
         break
     BootstrappedTrees = ['RAxML_bestTree.' +ThisWindowSuffix +'_bootstrap_' +\
-    str(bootstrap) +'.tree' for bootstrap in range(NumBootstraps)]
+    str(bootstrap) +'.tree' for bootstrap in range(args.num_bootstraps)]
     if not all(os.path.isfile(BootstrappedTree) \
     for BootstrappedTree in BootstrappedTrees):
       print('At least one of the following files, expected to be produced by'+\
