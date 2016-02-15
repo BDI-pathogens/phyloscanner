@@ -77,8 +77,8 @@ def FindWindowEnd(StartPos):
     if position == NumCols-1:
       return position
     column = alignment[:, position]
-    GapFrac = 1 - float(column.count('-'))/NumSeqs
-    CurrentWindowWeight += GapFrac
+    NonGapFrac = 1 - float(column.count('-'))/NumSeqs
+    CurrentWindowWeight += NonGapFrac
     if CurrentWindowWeight >= args.WeightedWindowWidth:
       return position
 
