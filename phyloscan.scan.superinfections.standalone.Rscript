@@ -41,35 +41,35 @@ if(exists("args"))
 if( is.na(indir) )
 {
 	cat('\nusage: Rscript phyloscan.scan.superinfections.Rscript -indir=INDIR
-\t\t\t[-outdir=OUTDIR] [-select=SELECT] [-references.pattern=REFPATTERN]
-\t\t\t[-run.pattern=RUNPATTERN] [-plot.max.clade=PMAXCLADE]
-\nThis R script scans short read trees for phylogenetic evidence of super-infections. 
-\t\t\tShort read trees must have been pre-processed with "phyloscan.evaluate.examl.Rscript"
-\t\t\tand stored in an R object file ending in "_preprtr.rda". The script reads these files from
-\t\t\tdirectory INDIR and calculates several tree statistics. Tree statistics are stored in
-\t\t\tcorresponding R object files ending in "_stat.rda", as well as several ".csv" files. 
-\t\t\tIf PMAXCLADE is set to a value >1, scan statistics for each individual are plotted to a 
-\t\t\tcorresponding pdf file.
-\nR users can use the functions "pty.stat.superinfections.XXX" and "pty.stat.superinfections.XXX.plot" directly.    
-\narguments:\n
-\t-indir=INDIR: Input directory with pre-processed short read trees in files ending with "_examl.rda".
-\noptional arguments:\n
-\t-outdir=OUTDIR: Output directory. By default set to INDIR.
-\t-references.pattern=REFPATTERN: Regular expression that identifies all reference 
-\t\t\tsequences. By default "REF".
-\t-run.pattern=RUNPATTERN: String that identifies files of separate phylotype runs. 
-\t\t\tThe string must be followed by a number. Output is produced for each run separately.
-\t\t\tThis option is useful to group output as desired. Without the SELECT option, all 
-\t\t\tgroups will be processed sequentially. By default ""; could e.g. be "^ptyr" to 
-\t\t\tgroup newick files starting with "ptyr1_" and "ptyr2_" into two separate runs 
-\t\t\t"1" and "2".
-\t-select=SELECT: Regular expression that selects a subset of newick files in the 
-\t\t\tinput directory. This is useful to avoid very large file sizes and memory consumption 
-\t\t\tof this Rscript. Also useful to parallelize this processing step. By default ""; 
-\t\t\tcould e.g. be "^ptyr22_".
-\t-plot.max.clade=PMAXCLADE: Plot scan statistics for the largest PMAXCLADE monophyletic 
-\t\t\tclades of every individual in each window. By default 0.
-')
+					\t\t\t[-outdir=OUTDIR] [-select=SELECT] [-references.pattern=REFPATTERN]
+					\t\t\t[-run.pattern=RUNPATTERN] [-plot.max.clade=PMAXCLADE]
+					\nThis R script scans short read trees for phylogenetic evidence of super-infections. 
+					\t\t\tShort read trees must have been pre-processed with "phyloscan.evaluate.examl.Rscript"
+					\t\t\tand stored in an R object file ending in "_preprtr.rda". The script reads these files from
+					\t\t\tdirectory INDIR and calculates several tree statistics. Tree statistics are stored in
+					\t\t\tcorresponding R object files ending in "_stat.rda", as well as several ".csv" files. 
+					\t\t\tIf PMAXCLADE is set to a value >1, scan statistics for each individual are plotted to a 
+					\t\t\tcorresponding pdf file.
+					\nR users can use the functions "pty.stat.superinfections.XXX" and "pty.stat.superinfections.XXX.plot" directly.    
+					\narguments:\n
+					\t-indir=INDIR: Input directory with pre-processed short read trees in files ending with "_examl.rda".
+					\noptional arguments:\n
+					\t-outdir=OUTDIR: Output directory. By default set to INDIR.
+					\t-references.pattern=REFPATTERN: Regular expression that identifies all reference 
+					\t\t\tsequences. By default "REF".
+					\t-run.pattern=RUNPATTERN: String that identifies files of separate phylotype runs. 
+					\t\t\tThe string must be followed by a number. Output is produced for each run separately.
+					\t\t\tThis option is useful to group output as desired. Without the SELECT option, all 
+					\t\t\tgroups will be processed sequentially. By default ""; could e.g. be "^ptyr" to 
+					\t\t\tgroup newick files starting with "ptyr1_" and "ptyr2_" into two separate runs 
+					\t\t\t"1" and "2".
+					\t-select=SELECT: Regular expression that selects a subset of newick files in the 
+					\t\t\tinput directory. This is useful to avoid very large file sizes and memory consumption 
+					\t\t\tof this Rscript. Also useful to parallelize this processing step. By default ""; 
+					\t\t\tcould e.g. be "^ptyr22_".
+					\t-plot.max.clade=PMAXCLADE: Plot scan statistics for the largest PMAXCLADE monophyletic 
+					\t\t\tclades of every individual in each window. By default 0.
+					')
 	quit('no')
 }
 if( is.na(outdir) )
@@ -101,6 +101,18 @@ require(zoo)
 ###############################################################################
 #	standalone: define functions
 ###############################################################################
+#
+#	This function calculates in the sub-clade of tree 'ph' that is defined by 'mrca'
+#	- the number of tips (UREAD_N),
+#	- the sum of reads (READ_N),
+#	- the average node depth of all tips to the mrca of the sub-clade (AVG_ROOT2TIP)
+#	Optionally, calculations can be restricted to taxa with taxon names that contain the string 'select'.
+#
+#	The function returns a list.
+#
+#	I use the select argument to count taxa/tips only from a specific individual, e.g. the selected
+#	taxon names all contain the string 'Individual1' or 'BEEHIVE123' or 'R22_TASP2353'; whatever is 
+#	specified in 'select'.
 pty.stat.avgnodedepth.and.counts<- function(ph, mrca, select=NA)
 {
 	if(mrca<=Ntip(ph))
@@ -122,6 +134,12 @@ pty.stat.avgnodedepth.and.counts<- function(ph, mrca, select=NA)
 		phb		<- subset(phb, grepl(select,IND))
 	list(AVG_ROOT2TIP=phb[, sum(DEPTH*COUNT) / sum(COUNT)], READ_N=phb[, sum(COUNT)], UREAD_N=phb[, length(COUNT)])	
 }
+#	This function calculates all monophyletic sub-clades of each individual in the phylogeny 'ph'
+#	
+#	The function returns a data.table with columns
+#	- IND: individual name
+#	- MRCA: node ID in 'ph' of the mrca of all taxa of the individual IND
+#	- CLADE: node ID in 'ph' of the mrca of one monophyletic clade of the individual IND
 pty.stat.monophyletic.clades<- function(ph)
 {
 	phb			<- data.table(IDX=seq_along(ph$tip.label), BAM=ph$tip.label, IND= gsub('_read.*','',ph$tip.label), REF=grepl(references.pattern,ph$tip.label))
@@ -150,6 +168,8 @@ pty.stat.monophyletic.clades<- function(ph)
 	#		find change points on these unique paths below which the subtree contains reads from the current patient
 	#		the idea is that all monophyletic clades of this patient must break off from one of these paths	
 	tmp			<- subset(z, DIFF_IND>0, c(IND, MRCA))
+	if(!nrow(tmp))
+		z[, CLADE:=NA_integer_]
 	if(nrow(tmp))
 	{
 		#	find all tips that belong to another patient than the current individual
@@ -222,16 +242,25 @@ pty.stat.monophyletic.clades<- function(ph)
 	tmp	<- z[, which(DIFF_IND==0)]
 	set(z, tmp, 'CLADE', z[tmp,MRCA])
 	#	double check CLADEs (the MONOPH_PA condition is key)
-	tmp	<- z[,{
-				if(CLADE<=Ntip(ph))
-					tmp	<- grepl(IND, ph$tip.label[CLADE])
-				if(CLADE>Ntip(ph))
-					tmp	<- all(grepl(IND, extract.clade(ph,CLADE)$tip.label))
-				list(MONOPH=tmp, MONOPH_PA=all(grepl(IND, extract.clade(ph,Ancestors(ph, CLADE, type="parent"))$tip.label)))
-			}, by=c('IND','CLADE')]
-	stopifnot(tmp[, all(MONOPH)], tmp[, !any(MONOPH_PA)])
+	if(nrow(z))
+	{
+		tmp	<- z[,{
+					if(CLADE<=Ntip(ph))
+						tmp	<- grepl(IND, ph$tip.label[CLADE])
+					if(CLADE>Ntip(ph))
+						tmp	<- all(grepl(IND, extract.clade(ph,CLADE)$tip.label))
+					list(MONOPH=tmp, MONOPH_PA=all(grepl(IND, extract.clade(ph,Ancestors(ph, CLADE, type="parent"))$tip.label)))
+				}, by=c('IND','CLADE')]
+		stopifnot(tmp[, all(MONOPH)], tmp[, !any(MONOPH_PA)])	
+	}	
 	z	
 }
+#
+#	This function calculates the scan statistics used in Christophe's last ColourTree.R file
+#	The changes are:
+#	- are faster and less mem intensive clade finding algorithm
+#	- this algorithm returns only the node id that defines monophyletic clades
+#	- this allows us to calculate all kinds of statistics afterwards
 pty.stat.superinfections.160208<- function(pty.ph, ptyfiles, references.pattern='REF')
 {	
 	#	@CF: with data.table, the df[, {}, by=BY] syntax specifies the columns BY to loop over
@@ -349,38 +378,53 @@ pty.stat.superinfections.160208.plot<- function(stat.clades, stat.ind, outfile, 
 ###############################################################################
 #	run script
 ###############################################################################
+#
+#	find all pre-processed tree files (FILE)
 infiles		<- data.table(FILE=list.files(indir, pattern='preprtr.rda$'))
+#	reconstruct the phylotype run ID (PTY_RUN)
+#	(useful to store output by phylotype run)
 if(nchar(run.pattern))
 	infiles[, PTY_RUN:= as.numeric(gsub(run.pattern,'',sapply(strsplit(FILE,'_'),'[[',1)))]
 if(!nchar(run.pattern))
 	infiles[, PTY_RUN:= 1L]
 setkey(infiles, PTY_RUN)
+#	process only the selected files
+#	(useful to run this in parallelel)
 infiles		<- subset(infiles, grepl(select, FILE))
-
+#	now loop over all selected files
 for(i in seq_len(nrow(infiles)))		
 {
-		cat('\nprocess',infiles[i,FILE])
-		file		<- file.path(indir,infiles[i,FILE])
-		load( file )	#loads "pty.ph"   "ptyfiles"		
-		#pty.stat	<- pty.stat.all.160128(pty.ph, ptyfiles)
-		tmp			<- pty.stat.superinfections.160208(pty.ph, ptyfiles, references.pattern=references.pattern)
-		stat.ind	<- tmp$stat.ind
-		stat.clades	<- tmp$stat.clades
-		#	save to file
-		file		<- file.path(outdir, basename(gsub('preprtr\\.rda','stat\\.rda',file)))
-		cat('\nsave to file',file)
-		save(stat.ind, stat.clades, pty.ph, ptyfiles, file=file)		
-		cat('\nwrite "stat.ind" to file',gsub('\\.rda','_ind.csv',file))
-		write.csv( subset(stat.ind, select=setdiff(colnames(stat.ind),'FILE')), row.names=FALSE, file=gsub('\\.rda','_ind.csv',file) )
-		cat('\nwrite "stat.clades" to file',gsub('\\.rda','_clades.csv',file))
-		write.csv( subset(stat.clades, select=setdiff(colnames(stat.clades),'FILE')), row.names=FALSE, file=gsub('\\.rda','_clades.csv',file) )
-		#	plot to file
-		if(!is.na(plot.max.clade) & plot.max.clade>0)
-		{
-			file		<- gsub('\\.rda','\\.pdf',file)
-			cat('\nplot to file',file)
-			pty.stat.superinfections.160208.plot(stat.clades, stat.ind, file, plot.max.clade=plot.max.clade)	
-		}		
-		gc()
+	cat('\nprocess',infiles[i,FILE])
+	file		<- file.path(indir,infiles[i,FILE])
+	# load the pre-processed objects "pty.ph"   "ptyfiles"
+	# pty.ph 	is a named list of rooted phylogenies in ape format, with max pars state reconstruction
+	#			the name refers to the original file name
+	# ptyfiles 	is a data.table that maps the original file name to phylotype run and window coordinates 
+	load( file )	
+	#
+	# run the latest version to calculate the scan statistics
+	#
+	#pty.stat	<- pty.stat.all.160128(pty.ph, ptyfiles)
+	tmp			<- pty.stat.superinfections.160208(pty.ph, ptyfiles, references.pattern=references.pattern)
+	stat.ind	<- tmp$stat.ind
+	stat.clades	<- tmp$stat.clades
+	#	save to file
+	file		<- file.path(outdir, basename(gsub('preprtr\\.rda','stat\\.rda',file)))
+	cat('\nsave to file',file)
+	save(stat.ind, stat.clades, pty.ph, ptyfiles, file=file)		
+	cat('\nwrite "stat.ind" to file',gsub('\\.rda','_ind.csv',file))
+	write.csv( subset(stat.ind, select=setdiff(colnames(stat.ind),'FILE')), row.names=FALSE, file=gsub('\\.rda','_ind.csv',file) )
+	cat('\nwrite "stat.clades" to file',gsub('\\.rda','_clades.csv',file))
+	write.csv( subset(stat.clades, select=setdiff(colnames(stat.clades),'FILE')), row.names=FALSE, file=gsub('\\.rda','_clades.csv',file) )
+	#
+	#	plot to file
+	#	this must be bumped to the latest version that is compatible with the calculated scan statistics 
+	if(!is.na(plot.max.clade) & plot.max.clade>0)
+	{
+		file		<- gsub('\\.rda','\\.pdf',file)
+		cat('\nplot to file',file)
+		pty.stat.superinfections.160208.plot(stat.clades, stat.ind, file, plot.max.clade=plot.max.clade)	
+	}		
+	gc()
 }
 
