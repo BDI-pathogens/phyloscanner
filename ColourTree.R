@@ -45,31 +45,39 @@ if (command.line) {
 } else {
 	# Some options to run within R
 	rm(list=ls())
+  
+  root.folder <- "/Users/Christophe/Dropbox (Infectious Disease)/PROJECTS"
+  nameFolder <- function( name ) paste(root.folder, name, sep = "")
 	
 	# Folder locations
-	setwd("/Users/cfraser/Dropbox (Infectious Disease)/PROJECTS/HIV/phylotypes")
-	input.dir<-"/Users/cfraser/Dropbox (Infectious Disease)/PROJECTS/BEEHIVE/phylotypes/run20160111/RAxML_bestTree"  
+	setwd( nameFolder( "/HIV/phylotypes" ) )
+	input.dir <- nameFolder( "/BEEHIVE/phylotypes/run20160209/RAxML_bestTree" )
 	tree.files <- list.files(input.dir, pattern="*\\.tree") 
 	# list of all the trees to analyse
 	# has to include \\. otherwise ignores the dot
 	
-	output.dir <- "/Users/cfraser/Dropbox (Infectious Disease)/PROJECTS/BEEHIVE/phylotypes/run20160111/R_output_experimental"
+	output.dir <- nameFolder( "/BEEHIVE/phylotypes/run20160209/R_Output" )
 	
-	ids.as.folder <- T 
-	# if true, reads IDs from file names in folder 'id.folder'
-	# if false, reads ID from text file 'id.file'
+	how.to.read.ids <- "Trees"
+	# Options are: "List", "Alignment" and "Trees"
+	# "List" reads in all the patient IDs from a list in file 'id.file'
+	# "Alignment" reads in the patient IDs from the master alignment 'alignment.file'
+	# !!! Option "Alignment" is somehow messed up 
+	# "Trees" reads IDs from the tip labels of the trees
+
 	#id.file <- "ListOfIDs_run20160111.txt"
-	id.folder <- "/Users/cfraser/Dropbox (Infectious Disease)/PROJECTS/BEEHIVE/phylotypes/run20160111/ref.fasta"
-	id.folder.tag <- "-1_ref.fasta" 
+	alignment.file <- nameFolder( "/BEEHIVE/phylotypes/run20160209/RefsAln.fasta" )
+	alignment.file.tag <- "-1_ref.fasta" 
 	# only reads IDs from file names that contain this string
 	id.delimiter <- "-1" # string that precedes this is the patient ID
 	
-	print.trees <- F # whether or not to print separate PDF files for each tree
+	print.trees <- T # whether or not to print separate PDF files for each tree
 	font.size <- 0.15 # for the tip labels in the tree
 	line.width <- 1 # in the tree
 	seed <- -1 # seed for randomising the colours associated with IDs
 	# no randomisation if seed <- -1
-	root.name<-"Ref.B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
+	# root.name <- "Ref.B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
+  root.name <- "B.FR.83.HXB2_LAI_IIIB_BRU.K03455" 
 	# the tip name associated with the root of the phylogeny
 }
 
@@ -77,6 +85,7 @@ require(phytools)
 require(dplyr)
 require(ggplot2)
 require(plotrix)
+require(RColorBrewer)
 
 if(!dir.exists(output.dir)) dir.create(output.dir)
 
@@ -88,11 +97,35 @@ unfactorDataFrame <- function( x ) {
 
 #############################
 
-pat$window <- factor(pat$window)
-test <- unfactorDataFrame( pat )
+# Read in the trees.
 
+trees <- list()
+
+for (tree.file in tree.files) {
+  
+  tree.file.name<-paste(input.dir,tree.file,sep="/")
+  tree <- read.tree(file=tree.file.name)
+  trees[[tree.file]] <- tree
+  
+}
+  
 # Read in the IDs. Remove duplicates. Shuffle their order if desired.
-if (ids.as.folder) { 
+
+ids <- vector()
+
+if (how.to.read.ids == "Trees" ) {
+  for (tree.file in tree.files) {
+    id.list <- sapply(trees[[tree.file]]$tip.label, function(x) strsplit(x, split = "_")[[1]][1])
+    id.list <- sapply(id.list, function(x) strsplit(x, split = id.delimiter)[[1]][1])
+    id.list <- unique(id.list)
+    ids <- c(ids, id.list)
+  }
+  ids <- unique( ids )
+  ids <- ids[ order(ids) ]
+  ids <- ids[ grep("BEE", ids) ]
+  
+} else if (how.to.read.ids == "Alignment" ) {
+  # !!!!!This option seems messed up, and likely won't work!!!!
 	# reads in the IDs from the list of files in the folder - unusually named files might get a bit garbled. 
 	ids <- list.files(id.folder, pattern = "*\\.fasta")
 	ids <- sapply(ids, function (x) unlist(strsplit(x, split = id.folder.tag)[[1]][1]))
@@ -100,6 +133,7 @@ if (ids.as.folder) {
 	# alternatively reads in the IDs from a specific file
 	ids <- scan(id.file, what="", sep="\n", quiet=TRUE)
 }
+
 num.ids <- length(ids)
 if (num.ids == 0) {
 	cat(paste("No IDs found in ", id.file, ". Quitting.\n", sep=""))
@@ -140,8 +174,9 @@ pat.stats <- data.frame(patient.id = "test",
 
 for (tree.file in tree.files) {
 	
-	tree.file.name<-paste(input.dir,tree.file,sep="/")
-	tree <- read.tree(file=tree.file.name)
+#	tree.file.name<-paste(input.dir,tree.file,sep="/")
+#	tree <- read.tree(file=tree.file.name)
+  tree <- trees[[tree.file]]
 	
 	tree<-root(phy = tree,outgroup = root.name)
 	num.tips <- length(tree$tip.label)
@@ -420,22 +455,22 @@ for (id in sort(ids)) {
 				xlab="Genome location", ylab="Root to tip distance in largest clade")
 		
 		ydat <- matrix(
-				c(pat$prop.reads.clade.1, 
-						pat$prop.reads.clade.2),
+		  c(pat$prop.reads.clade.1, 
+		    pat$prop.reads.clade.2,
+		    pat$prop.reads.clade.3,
+		    pat$prop.reads.clade.4,
+		    pat$prop.reads.clade.5
+		  ),
 				nrow = length(pat$prop.reads.clade.1),
-				ncol = 2
+				ncol = 5
 		)
 		ydat <- t(ydat)
-		xdat <- matrix(
-				c(pat$window, pat$window),
-				nrow = length(pat$prop.reads.clade.1),
-				ncol = 2
-		)
-		xdat <- t(xdat)
-		stackpoly(x = xdat, y = ydat,  
-				ylim = c(0,1),
-				axis4 = F, stack = T)
-		
+
+		barplot(ydat, 
+		        xlab = "Genome location",
+		        ylab = "Proportion of reads in each of 5 largest clades",
+		        col = brewer.pal(5,"Blues")[5:1],
+		        names.arg = pat$window)
 		
 	}
 }
@@ -493,9 +528,8 @@ mean.na.rm <- function(x) mean(x,na.rm = T)
 # pat.stats$num.reads <- as.numeric(as.character(pat.stats$num.reads))
 # pat.stats$monophyletic <- as.numeric(as.character(pat.stats$monophyletic))
 # 
+pat.stats <- unfactorDataFrame( pat.stats )
 by.patient <- pat.stats %>% group_by(patient.id)
 pat.stats.summary <- as.data.frame( by.patient %>% summarise_each(funs(mean.na.rm)) )
 
 write.csv(pat.stats.summary,file.path(output.dir, "Patient.Statistics.Summary.csv"))
-Status API Training Shop Blog About Pricing
-© 2016 GitHub, Inc. Terms Privacy Security Contact Help
