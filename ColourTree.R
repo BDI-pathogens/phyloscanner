@@ -1,3 +1,5 @@
+#!/usr/bin/env Rscript
+
 # Last updated 25 Jan 2016
 
 # TODO: 
@@ -11,9 +13,7 @@
 # 4. Plots should be by midpoint of the window, not start coordinate
 
 
-#!/usr/bin/env Rscript
-
-command.line <- FALSE
+command.line <- TRUE
 if (command.line) {
 	# Read in the arguments
 	args <- commandArgs(TRUE)
@@ -42,6 +42,8 @@ if (command.line) {
 			quit("no", 1)
 		}
 	}
+  tree.files.basenames <- lapply(tree.files, basename)
+	how.to.read.ids <- "List"
 } else {
 	# Some options to run within R
 	rm(list=ls())
@@ -52,9 +54,11 @@ if (command.line) {
 	# Folder locations
 	setwd( nameFolder( "/HIV/phylotypes" ) )
 	input.dir <- nameFolder( "/BEEHIVE/phylotypes/run20160209/RAxML_bestTree" )
-	tree.files <- list.files(input.dir, pattern="*\\.tree") 
+	tree.files.basenames <- list.files(input.dir, pattern="*\\.tree") 
 	# list of all the trees to analyse
 	# has to include \\. otherwise ignores the dot
+  tree.files <- lapply(list.files(input.dir, pattern="*\\.tree"),
+                       function(x) file.path(input.dir, x))
 	
 	output.dir <- nameFolder( "/BEEHIVE/phylotypes/run20160209/R_Output" )
 	
@@ -71,15 +75,16 @@ if (command.line) {
 	# only reads IDs from file names that contain this string
 	id.delimiter <- "-1" # string that precedes this is the patient ID
 	
-	print.trees <- T # whether or not to print separate PDF files for each tree
 	font.size <- 0.15 # for the tip labels in the tree
 	line.width <- 1 # in the tree
 	seed <- -1 # seed for randomising the colours associated with IDs
 	# no randomisation if seed <- -1
-	# root.name <- "Ref.B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
-  root.name <- "B.FR.83.HXB2_LAI_IIIB_BRU.K03455" 
-	# the tip name associated with the root of the phylogeny
 }
+#root.name <- "Ref.B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
+#root.name <- "B.FR.83.HXB2_LAI_IIIB_BRU.K03455" 
+root.name <- "C.BW.00.00BW07621.AF443088"
+# the tip name associated with the root of the phylogeny
+print.trees <- T # whether or not to print separate PDF files for each tree
 
 require(phytools)
 require(dplyr)
@@ -88,6 +93,8 @@ require(plotrix)
 require(RColorBrewer)
 
 if(!dir.exists(output.dir)) dir.create(output.dir)
+
+exit.after.colouring.trees <- TRUE
 
 # Utlities ##################
 unfactorDataFrame <- function( x ) {
@@ -100,11 +107,12 @@ unfactorDataFrame <- function( x ) {
 # Read in the trees.
 
 trees <- list()
-
-for (tree.file in tree.files) {
+num.trees <- length(tree.files)
+for (tree.number in 1:num.trees) {
   
-  tree.file.name<-paste(input.dir,tree.file,sep="/")
-  tree <- read.tree(file=tree.file.name)
+  tree.file <- tree.files[[tree.number]]
+  tree.file.basename <- tree.files.basenames[[tree.number]]
+  tree <- read.tree(file=tree.file)
   trees[[tree.file]] <- tree
   
 }
@@ -172,10 +180,10 @@ pat.stats <- data.frame(patient.id = "test",
 		stringsAsFactors = F)
 
 
-for (tree.file in tree.files) {
+for (tree.number in 1:num.trees) {
 	
-#	tree.file.name<-paste(input.dir,tree.file,sep="/")
-#	tree <- read.tree(file=tree.file.name)
+  tree.file <- tree.files[[tree.number]]
+  tree.file.basename <- tree.files.basenames[[tree.number]]
   tree <- trees[[tree.file]]
 	
 	tree<-root(phy = tree,outgroup = root.name)
@@ -202,7 +210,7 @@ for (tree.file in tree.files) {
 		
 		# Plot the tree.
 		# First make the automatic tip labels transparent, then replot with colour.
-		out.tree.basename <- paste(basename(tree.file), ".pdf", sep="")
+		out.tree.basename <- paste(tree.file.basename, ".pdf", sep="")
 		out.tree <- file.path(output.dir, out.tree.basename)
 		pdf(out.tree, height = num.tips/10, width = 5)
 		opar <- par()
@@ -215,6 +223,10 @@ for (tree.file in tree.files) {
 		dev.off()
 		par <- opar
 	}
+
+  if (exit.after.colouring.trees) {
+    next
+  }
 	
 	
 	# Associate each tip to its patient.
@@ -412,6 +424,11 @@ for (tree.file in tree.files) {
 						root.to.tip.per.clade[5]) )
 	}
 	
+}
+
+if (exit.after.colouring.trees) {
+  print("All trees coloured; exiting successfully.")
+  quit("no", 0)
 }
 
 pat.stats <- pat.stats[!pat.stats$patient.id=="test", ]
