@@ -6,8 +6,10 @@ get.tip.no <- function(tree, name) {
 
 # Get all tips associated with a patient
 
-get.tips.for.patient <- function(tree, patient.string, patient.ids) {
+get.tips.for.patient <- function(tree, patient.string, patient.ids, blacklist) {
   node.numbers <- which(patient.ids == patient.string)
+  
+  node.numbers <- node.numbers[which(!(node.numbers %in% blacklist))]
   return(node.numbers)
 }
 
@@ -185,7 +187,7 @@ get.patients.with.these.mrcas <-
 mrca.phylo.or.unique.tip <- function(tree, node, zero.length.tips.count=TRUE) {
   if (length(node) == 1) {
     if(verbose){
-      cat("Node ",node," is unique for this patient.\n")
+      cat("Node ",node," is unique for this patient.\n", sep="")
     }
     if(!zero.length.tips.count | !is.tip(tree,node)){
       return(node)
@@ -209,7 +211,7 @@ mrca.phylo.or.unique.tip <- function(tree, node, zero.length.tips.count=TRUE) {
     
     mrca <- mrca.phylo(tree, node)
     if(verbose){
-      cat("Node ",mrca," is the MRCA of this set.\n")
+      cat("Node ",mrca," is the MRCA of this set.\n", sep="")
     }
     
     return(mrca)

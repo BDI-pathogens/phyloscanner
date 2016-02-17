@@ -11,7 +11,7 @@ names(parent.list) <- patient.ids
 
 window.count <- 0
 
-for(start in seq(501, 9301, by=100)){
+for(start in seq(701, 9301, by=100)){
   end <- start+349 
   
   if(file.exists(paste("transmissions/transmissions.InWindow_",start,"_to_",end,".csv",sep=""))){
@@ -42,6 +42,10 @@ children.2 <- vector()
 presence.2 <- vector()
 presence.where.recorded.2 <- vector()
 
+parents.3 <- vector()
+children.3 <- vector()
+presence.3 <- vector()
+presence.where.recorded.3 <- vector()
 
 for(child in patient.ids){
   for(parent in unique(parent.list[[child]])){
@@ -61,14 +65,26 @@ for(child in patient.ids){
       
     }
     
+    if(count>=3){
+      
+      parents.3 <- c(parents.3, parent)
+      children.3 <- c(children.3, child)
+      presence.3 <- c(presence.3, count)
+      presence.where.recorded.3 <- c(presence.where.recorded.3, count/length(parent.list[[child]]))
+      
+    }
+    
   }
 }
 
 
 out <- data.frame(parents, children, presence, presence.where.recorded)
 out.2 <- data.frame(parents.2, children.2, presence.2, presence.where.recorded.2)
+out.3 <- data.frame(parents.3, children.3, presence.3, presence.where.recorded.3)
 
 colnames(out.2) <- colnames(out)
+colnames(out.3) <- colnames(out)
 
 write.table(out, file="transmissionSummary.csv", sep=",", col.names = TRUE, row.names = FALSE)
 write.table(out.2, file="transmissionSummary_noSingletons.csv", sep=",", col.names = TRUE, row.names = FALSE)
+write.table(out.3, file="transmissionSummary_min3.csv", sep=",", col.names = TRUE, row.names = FALSE)
