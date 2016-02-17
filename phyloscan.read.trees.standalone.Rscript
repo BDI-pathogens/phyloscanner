@@ -281,6 +281,16 @@ pty.evaluate.tree.groupindividuals<- function(ph, phb)
 }
 pty.evaluate.tree<- function(indir, pty.runs=NULL, outdir=indir, select='', outgroup=NA, references.pattern='REF', run.pattern='ptyr', tree.pattern='newick$', rm.newick=FALSE, rm.fasta=FALSE, plot.trees.per.page=10, plot.w=20, plot.h=40)
 {	
+	if(0)
+	{
+		indir		<- "~/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/coinf_ptoutput_150121"
+		indir		<- "~/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/coinf_ptoutput_150201"
+		outdir		<- indir
+		pty.infile	<- "~/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/data/PANGEA_HIV_n5003_Imperial_v160110_ZA_examlbs500_coinfrunsinput.rda"
+		select		<- '^ptyr22_In'
+		outgroup	<- NA
+		outgroup	<- "CPX_AF460972"
+	}
 	stopifnot(!is.null(pty.runs) || (is.null(pty.runs) & !is.na(outgroup)))
 	#
 	#	collect ML tree files
@@ -314,7 +324,7 @@ pty.evaluate.tree<- function(indir, pty.runs=NULL, outdir=indir, select='', outg
 	#
 	ptyfiles[, IND_N:= sapply(seq_along(pty.ph), function(i)  length(unique(gsub('_read.*','',pty.ph[[i]]$tip.label)))		)]
 	#	rm trees with just one individual if no outgroup specified	
-	if(is.na(outgroup) & pty.runs[, any(FILL==1)])
+	if(is.na(outgroup) && pty.runs[, any(FILL==1)])
 	{
 		cat('\nignoring trees with only one individual (only when no root specified)', subset(ptyfiles, IND_N==1)[, paste(unique(FILE),collapse=', ')])
 		ptyfiles		<- subset(ptyfiles, IND_N>1)
@@ -345,14 +355,14 @@ pty.evaluate.tree<- function(indir, pty.runs=NULL, outdir=indir, select='', outg
 		ptyfiles	<- merge(ptyfiles,pty.root, by=c('FILE','PTY_RUN'))
 	}
 	#	root not specified; determine root for each run: find taxon with largest distance from BAM of selected individuals (these have FILL==0)
-	if(is.na(outgroup) & pty.runs[, any(FILL==1)])
+	if(is.na(outgroup) && pty.runs[, any(FILL==1)])
 	{
 		cat('\ndetermine root among fillers')
 		pty.root	<- pty.evaluate.tree.root.withfill(ptyfiles, pty.ph, pty.runs)
 		ptyfiles	<- merge(ptyfiles,pty.root, by=c('FILE','PTY_RUN'))
 	}
 	#	root not specified; determine root for each run: 
-	if(is.na(outgroup) & pty.runs[, all(FILL==0)])
+	if(is.na(outgroup) && pty.runs[, all(FILL==0)])
 	{
 		cat('\ndetermine root among all individuals')
 		pty.root	<- pty.evaluate.tree.root.nofill(ptyfiles, pty.ph, pty.runs)
@@ -503,7 +513,7 @@ pty.evaluate.tree<- function(indir, pty.runs=NULL, outdir=indir, select='', outg
 			dev.off()
 		}					
 	}
-}	
+}		
 ###############################################################################
 #	run script
 ###############################################################################
