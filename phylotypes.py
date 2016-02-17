@@ -862,6 +862,7 @@ for window in range(NumCoords / 2):
     FileForAlnReadsHere +'. Skipping to the next window.')
     continue
   SeqIO.write(AllReadsInThisWindow, FileForReadsHere, "fasta")
+  FileForTrees = FileForAlnReadsHere
 
   # If external refs are included, find the part of each one's seq corresponding
   # to this window and put them all in another file.
@@ -956,7 +957,6 @@ for window in range(NumCoords / 2):
             SeqAsString = SeqAsString[:position]+SeqAsString[position+1:]
           AllSeqsToPrint[i].seq = Seq.Seq(SeqAsString)
     SeqIO.write(AllSeqsToPrint, FileForAlnReadsHere, "fasta")
-    FileForTrees = FileForAlnReadsHere
 
   # If we're checking for duplicates, read in the file of aligned reads (which
   # may have gone through a second round of merging), remove gaps, and see which
