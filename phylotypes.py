@@ -57,6 +57,7 @@ from Bio import SeqIO
 from Bio import Seq
 from Bio import Phylo
 from Bio import AlignIO
+from Bio import Align
 from MergeSimilarStrings import MergeSimilarStrings
 import phylotypes_funcs as pf
 #from Bio import AlignIO
@@ -877,7 +878,16 @@ for window in range(NumCoords / 2):
       ExternalRefRightWindowEdge = ExternalRefWindowCoords[window*2 +1]
       RefAlignmentInWindow = ExternalRefAlignment[:, \
       ExternalRefLeftWindowEdge-1:ExternalRefRightWindowEdge]
-      AlignIO.write(RefAlignmentInWindow, FileForOtherRefsHere, 'fasta')
+      RefsThatAreNotPureGap = []
+      for seq in RefAlignmentInWindow:
+        if len(seq.seq.ungap('-')) != 0:
+          RefsThatAreNotPureGap.append(seq)
+      if len(RefsThatAreNotPureGap) == 0:
+        print('Error: all external references are pure gap in this window;', \
+        'skipping to the next window.', file=sys.stderr)
+        continue
+      AlignIO.write(Align.MultipleSeqAlignment(RefsThatAreNotPureGap), \
+      FileForOtherRefsHere, 'fasta')
     else:
       with open(FileForOtherRefsHere, 'w') as f:
         try:
@@ -1013,7 +1023,6 @@ for window in range(NumCoords / 2):
     else:
       CoordsToExciseInThisWindow = [coord for coord in AlignmentExcisionCoords \
       if LeftWindowEdge <= coord <= RightWindowEdge]
-    print('CoordsToExciseInThisWindow', CoordsToExciseInThisWindow)
     if CoordsToExciseInThisWindow != []:
 
       # Define PositionsInUngappedRef to be how far the positions are from the
