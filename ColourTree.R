@@ -1,21 +1,21 @@
 #!/usr/bin/env Rscript
 
-# Some style points from https://google.github.io/styleguide/Rguide.xml enforced 
+# Some style points from https://google.github.io/styleguide/Rguide.xml enforced
 # by Chris:
 # Exactly one space either side of +, -, <-, <, >, ==, etc.
 # Always a space after a comma, never before.
-# Opening brackets should have a space before but not after, closing brackets 
+# Opening brackets should have a space before but not after, closing brackets
 # should have a space after but not before.
 # Line length <= 80 characters.
 
-# TODO: 
+# TODO:
 # 1. Code reads in lengthy patient IDs, that don't correspond to reads
 # 2. Update plot of patients statistics & cross window mean of patient
 # statistics
 # 3. Code is now slow:
-# Main problem is that repeatedly generating and searching all possible 
+# Main problem is that repeatedly generating and searching all possible
 # subclades is just plain stupid
-# Solution: generate subclades only once, document their size, and then 
+# Solution: generate subclades only once, document their size, and then
 # thin them as the loop goes
 # 4. Plots should be by midpoint of the window, not start coordinate
 
@@ -55,14 +55,14 @@ if (command.line) {
 } else {
 	# Some options to run within R
 	rm(list=ls())
-  
+
   root.folder <- "/Users/Christophe/Dropbox (Infectious Disease)/PROJECTS"
   nameFolder <- function(name) paste(root.folder, name, sep = "")
 	
 	# Folder locations
 	setwd(nameFolder("/HIV/phylotypes"))
 	input.dir <- nameFolder("/BEEHIVE/phylotypes/run20160209/RAxML_bestTree")
-	tree.files.basenames <- list.files(input.dir, pattern="*\\.tree") 
+	tree.files.basenames <- list.files(input.dir, pattern="*\\.tree")
 	# list of all the trees to analyse
 	# has to include \\. otherwise ignores the dot
   tree.files <- lapply(list.files(input.dir, pattern="*\\.tree"),
@@ -75,12 +75,12 @@ if (command.line) {
 	# "List" reads in all the patient IDs from a list in file 'id.file'
 	# "Alignment" reads in the patient IDs from the master alignment
   # 'alignment.file'
-	# !!! Option "Alignment" is somehow messed up 
+	# !!! Option "Alignment" is somehow messed up
 	# "Trees" reads IDs from the tip labels of the trees
 
 	#id.file <- "ListOfIDs_run20160111.txt"
 	alignment.file <- nameFolder("/BEEHIVE/phylotypes/run20160209/RefsAln.fasta")
-	alignment.file.tag <- "-1_ref.fasta" 
+	alignment.file.tag <- "-1_ref.fasta"
 	# only reads IDs from file names that contain this string
 	id.delimiter <- "-1" # string that precedes this is the patient ID
 	
@@ -91,7 +91,7 @@ if (command.line) {
 }
 # The tip name associated with the root of the phylogeny:
 #root.name <- "Ref.B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
-#root.name <- "B.FR.83.HXB2_LAI_IIIB_BRU.K03455" 
+#root.name <- "B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
 root.name <- "C.BW.00.00BW07621.AF443088"
 print.trees <- T # whether or not to print separate PDF files for each tree
 exit.after.colouring.trees <- TRUE
@@ -118,14 +118,14 @@ unfactorDataFrame <- function(x) {
 trees <- list()
 num.trees <- length(tree.files)
 for (tree.number in 1:num.trees) {
-  
+
   tree.file <- tree.files[[tree.number]]
   tree.file.basename <- tree.files.basenames[[tree.number]]
   tree <- read.tree(file=tree.file)
   trees[[tree.file]] <- tree
-  
+
 }
-  
+
 # Read in the IDs. Remove duplicates. Shuffle their order if desired.
 
 ids <- vector()
@@ -142,13 +142,13 @@ if (how.to.read.ids == "Trees") {
   ids <- unique(ids)
   ids <- ids[ order(ids) ]
   ids <- ids[ grep("BEE", ids) ]
-  
+
 } else if (how.to.read.ids == "Alignment") {
   # !!!!!This option seems messed up, and likely won't work!!!!
 	# reads in the IDs from the list of files in the folder - unusually named
-  # files might get a bit garbled. 
+  # files might get a bit garbled.
 	ids <- list.files(id.folder, pattern = "*\\.fasta")
-	ids <- sapply(ids, function (x) unlist(strsplit(x, 
+	ids <- sapply(ids, function (x) unlist(strsplit(x,
   split = id.folder.tag)[[1]][1]))
 } else {
 	# alternatively reads in the IDs from a specific file
@@ -177,7 +177,7 @@ id.colours <- setNames(palette(rainbow(num.ids))[1:num.ids], ids)
 pat.stats <- data.frame(patient.id = "test",
 		window = 0,
 		num.reads.total = 1,
-		num.leaves = 1,  
+		num.leaves = 1,
 		num.clades = 1,
 		overall.root.to.tip = 0,
 		prop.reads.clade.1 = 0,
@@ -217,8 +217,8 @@ for (tree.number in 1:num.trees) {
 		}
 		
 		# Rotate internal nodes to have right daughter clades more species rich than
-		# left daughter clades. 
-		tree <- ladderize(tree)  
+		# left daughter clades.
+		tree <- ladderize(tree)
 		
 		
 		# Plot the tree.
@@ -256,7 +256,7 @@ for (tree.number in 1:num.trees) {
 	# Is there a more robust way to pull out the window coordinate?
 	window <- as.numeric(strsplit(tree.file, "_")[[1]][3])
 	
-	# For each patient: 
+	# For each patient:
 	# Determine all the distinct monophyletic clades that the patient's tips make
 	# N.b. a single isolated read is considered a type of monophyletic clade
 	# Count the number of reads associated with each clade
@@ -275,8 +275,8 @@ for (tree.number in 1:num.trees) {
 	}
 	
 	getLargestClade <- function(patient.subtree, tree, num.reads) {
-		# from a 'patient.subtree' of 'tree', this function returns the largest 
-		# monophyletic subtree, as a clade object. 
+		# from a 'patient.subtree' of 'tree', this function returns the largest
+		# monophyletic subtree, as a clade object.
 		# Clade objects can be a single tip.
 		# This function only currently works if the patient.subtree is a tree (not
 		# a clade object). This could be modified, which might simplify the main
@@ -297,20 +297,20 @@ for (tree.number in 1:num.trees) {
 				}
 				if (num.reads.sub > num.reads.largest.clade) {
 					num.reads.largest.clade <- num.reads.sub
-					largest.mononophyletic.clade <- subtree 
+					largest.mononophyletic.clade <- subtree
 					largest.mononophyletic.clade.is.a.tip <- F
 				}
 			}
-		} 
+		}
 		for (tip in patient.subtree$tip.label) {
 			# this will either find the most common tip if there isn't a monophyletic
 			# subtree, or find a tip which isn't in the monophyletic subtree which is
-			# more common than that the sum of all the reads in that tree. 
-			# For that second option to work, this loop must come after the one above. 
+			# more common than that the sum of all the reads in that tree.
+			# For that second option to work, this loop must come after the one above.
 			num.reads.sub <- num.reads[tip]
 			if (num.reads.sub > num.reads.largest.clade) {
 				num.reads.largest.clade <- num.reads.sub
-				largest.mononophyletic.clade <- tip 
+				largest.mononophyletic.clade <- tip
 				largest.mononophyletic.clade.is.a.tip <- T
 			}
 		}
@@ -320,14 +320,14 @@ for (tree.number in 1:num.trees) {
 	}
 	
 	calcMeanRootToTip <- function(clade, num.reads) {
-		# Mean root-to-tip distance, weighted by the number of reads associated with 
-		# each tip. Returns 0 if the clade is a single tip. 
-		# Input is a clade object (a named list), with three items: 
-		# $is.a.tip is a logical, indicating whether the tree is a single tip of a 
+		# Mean root-to-tip distance, weighted by the number of reads associated with
+		# each tip. Returns 0 if the clade is a single tip.
+		# Input is a clade object (a named list), with three items:
+		# $is.a.tip is a logical, indicating whether the tree is a single tip of a
 		# 'proper' tree
 		# $tree is either the tree, or the label of the tip
 		# $num.reads is the number of reads associated with the whole clade
-		# The second input is num.reads, a vector with named entries, which 
+		# The second input is num.reads, a vector with named entries, which
 		# returns the number of reads associated with each tip label in the tree
 		root.to.tip <- 0
 		if (clade$is.a.tip == F) {
@@ -345,13 +345,13 @@ for (tree.number in 1:num.trees) {
 		# The main looop for finding all sub-clades of the patient-specific subtree
 		id <- ids[i]
 		num.leaves <- length(patient.tips[[id]])
-		num.reads <- list() 
+		num.reads <- list()
 		for (tip in patient.tips[[id]]) {
       num.reads[[tip]] <- as.numeric(unlist(strsplit(tip, "count_"))[2])
     }
 		num.reads <- unlist(num.reads)
 		num.reads.total <- sum(num.reads)
-		ordered.clades <- list() 
+		ordered.clades <- list()
 		current.clade <- 1
 		
 		if (num.leaves > 0) {
@@ -396,7 +396,7 @@ for (tree.number in 1:num.trees) {
 						tip.label <-patient.subtree$tip.label[which(!(
             patient.subtree$tip.label %in% tips))]
 						current.clade <- current.clade + 1
-						ordered.clades <- c(ordered.clades,  
+						ordered.clades <- c(ordered.clades,
 								list(makeSingleTipTree(tip.label, num.reads)))
 						done <- T
 					} else {
@@ -416,9 +416,9 @@ for (tree.number in 1:num.trees) {
 					root.to.tip.per.clade[i] <- NA
 					# zeros are plotted, NAs are ommitted
 				} else {
-					prop.reads.per.clade[i] <- 
+					prop.reads.per.clade[i] <-
 							ordered.clades[[i]]$num.reads/num.reads.total
-					root.to.tip.per.clade[i] <- 
+					root.to.tip.per.clade[i] <-
 							calcMeanRootToTip(ordered.clades[[i]], num.reads)
 				}
 			}
@@ -458,7 +458,7 @@ if (exit.after.colouring.trees) {
 }
 
 pat.stats <- pat.stats[!pat.stats$patient.id=="test", ]
-# Delete the first dummy line         
+# Delete the first dummy line
 pat.stats <- pat.stats[order(pat.stats$patient.id), ]
 # TODO: replace pat.stats$num.leaves = 0 by NA
 
@@ -479,7 +479,7 @@ for (id in sort(ids)) {
 				ylim = c(0, 10),
 				xlab="Genome location", ylab="Number of clades")
 		
-		opar <- par(mar = c(2.1, 4.1, 2.1, 5.1) + 0.3) 
+		opar <- par(mar = c(2.1, 4.1, 2.1, 5.1) + 0.3)
 		plot(pat$window, pat$prop.reads.clade.1, main = pat$patient.id[1],
 				xlab="Genome location", ylab="Proportion of reads in largest clade",
 				type = "b", pch = 16, cex = 0.6, ylim = c(0, 1))
@@ -553,7 +553,7 @@ dev.off()
 #   significant.stars <- ifelse(pat$size.significantly.big == 1, 1, NA)
 #   points(1:length(pat$mean.size), -0.01*significant.stars, col="red", pch=8,
 #   cex=1)
-#   
+#
 #   plot(pat$window, pat$coeff.of.var.size, main=pat$patient.id[1],
 #        xlab="Genome location",
 #        ylab="Coefficient of variation of cophenetic distances",
@@ -562,17 +562,17 @@ dev.off()
 #        xlab="Genome location",
 #        ylab="Mean root to tip patristic distance",
 #        ylim=c(0, max(pat.stats$root.to.tip, na.rm=T)))
-# 
+#
 # write.csv(pat.stats, file.path(output.dir, "Patient.Statistics.csv"))
-# 
+#
 mean.na.rm <- function(x) mean(x, na.rm = T)
-# 
+#
 # TODO: Update this list for turning pat.stats columns into numeric
 # pat.stats$window.has.data <- as.numeric(pat.stats$num.leaves > 0)
 # pat.stats$num.leaves <- as.numeric(as.character(pat.stats$num.leaves))
 # pat.stats$num.reads <- as.numeric(as.character(pat.stats$num.reads))
 # pat.stats$monophyletic <- as.numeric(as.character(pat.stats$monophyletic))
-# 
+#
 pat.stats <- unfactorDataFrame(pat.stats)
 by.patient <- pat.stats %>% group_by(patient.id)
 pat.stats.summary <-
