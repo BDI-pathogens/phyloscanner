@@ -38,7 +38,7 @@ def MergeSimilarStrings(DictOfStringCounts, SimilarityThreshold=1):
     file=sys.stderr)
     exit(1)
       
-  # Nothing needs to be done to dicts with less than two entries.
+  # Nothing needs to be done to dicts with fewer than two entries.
   NumberOfUniqueStrings = len(DictOfStringCounts)
   if NumberOfUniqueStrings < 2:
     return DictOfStringCounts
