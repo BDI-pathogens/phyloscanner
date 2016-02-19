@@ -21,6 +21,7 @@
 
 
 command.line <- TRUE
+
 if (command.line) {
 	# Read in the arguments
 	args <- commandArgs(TRUE)
@@ -37,6 +38,7 @@ if (command.line) {
             "files.\nQuitting.\n"))
 		quit("no", 1)
 	}
+	if(verbose) cat("Reading command line arguments\n")
 	id.file <- args[1]
 	id.delimiter <- args[2]
 	font.size <- as.numeric(args[3])
@@ -60,7 +62,7 @@ if (command.line) {
   nameFolder <- function(name) paste(root.folder, name, sep = "")
 	
 	# Folder locations
-	setwd(nameFolder("/HIV/phylotypes"))
+  setwd(nameFolder("/HIV/phylotypes"))
 	input.dir <- nameFolder("/BEEHIVE/phylotypes/run20160209/RAxML_bestTree")
 	tree.files.basenames <- list.files(input.dir, pattern="*\\.tree")
 	# list of all the trees to analyse
@@ -79,7 +81,7 @@ if (command.line) {
 	# "Trees" reads IDs from the tip labels of the trees
 
 	#id.file <- "ListOfIDs_run20160111.txt"
-	alignment.file <- nameFolder("/BEEHIVE/phylotypes/run20160209/RefsAln.fasta")
+	alignment.file <- nameFolder("/BEEHIVE/phylotypes/run20160211/RefsAln.fasta")
 	alignment.file.tag <- "-1_ref.fasta"
 	# only reads IDs from file names that contain this string
 	id.delimiter <- "-1" # string that precedes this is the patient ID
@@ -89,13 +91,15 @@ if (command.line) {
 	seed <- -1 # seed for randomising the colours associated with IDs
 	# no randomisation if seed <- -1
 }
+verbose <- TRUE
 # The tip name associated with the root of the phylogeny:
 #root.name <- "Ref.B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
+root.name <- "B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
 #root.name <- "B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
-root.name <- "C.BW.00.00BW07621.AF443088"
 print.trees <- T # whether or not to print separate PDF files for each tree
-exit.after.colouring.trees <- TRUE
+exit.after.colouring.trees <- FALSE
 
+if(verbose) cat("Loading packages\n")
 require(phytools)
 require(dplyr)
 require(ggplot2)
@@ -117,8 +121,11 @@ unfactorDataFrame <- function(x) {
 
 trees <- list()
 num.trees <- length(tree.files)
-for (tree.number in 1:num.trees) {
 
+if(verbose) cat("Loading trees\n")
+for (tree.number in 1:num.trees) {
+  if(verbose) cat("Opening file: ",tree.files.basenames[[tree.number]],"\n",sep = "")
+  
   tree.file <- tree.files[[tree.number]]
   tree.file.basename <- tree.files.basenames[[tree.number]]
   tree <- read.tree(file=tree.file)
@@ -131,7 +138,10 @@ for (tree.number in 1:num.trees) {
 ids <- vector()
 
 if (how.to.read.ids == "Trees") {
+  if(verbose) cat("Reading IDs from trees\n")
   for (tree.file in tree.files) {
+    if(verbose) cat("Reading from tree: ",tree.file,"\n",sep = "")
+    
     id.list <- sapply(trees[[tree.file]]$tip.label, function(x) strsplit(x,
     split = "_")[[1]][1])
     id.list <- sapply(id.list, function(x) strsplit(x,
@@ -144,6 +154,7 @@ if (how.to.read.ids == "Trees") {
   ids <- ids[ grep("BEE", ids) ]
 
 } else if (how.to.read.ids == "Alignment") {
+  if(verbose) cat("Reading IDs from alignment\n")
   # !!!!!This option seems messed up, and likely won't work!!!!
 	# reads in the IDs from the list of files in the folder - unusually named
   # files might get a bit garbled.
@@ -152,6 +163,7 @@ if (how.to.read.ids == "Trees") {
   split = id.folder.tag)[[1]][1]))
 } else {
 	# alternatively reads in the IDs from a specific file
+  if(verbose) cat("Reading IDs from file\n")
 	ids <- scan(id.file, what="", sep="\n", quiet=TRUE)
 }
 
@@ -169,6 +181,7 @@ if (seed != -1) {
 
 # Define a colour for each unique ID.
 # Needs to be written twice to work properly for some reason!
+if(verbose) cat("Generating colours\n")
 id.colours <- setNames(palette(rainbow(num.ids))[1:num.ids], ids)
 id.colours <- setNames(palette(rainbow(num.ids))[1:num.ids], ids)
 
@@ -192,8 +205,11 @@ pat.stats <- data.frame(patient.id = "test",
 		root.to.tip.clade.5 = 0,
 		stringsAsFactors = F)
 
+if(verbose) cat("Processing trees\n")
 
 for (tree.number in 1:num.trees) {
+  
+  if(verbose) cat("Tree: ",tree.number," of ",num.trees,"\n",sep = "")
 	
   tree.file <- tree.files[[tree.number]]
   tree.file.basename <- tree.files.basenames[[tree.number]]
