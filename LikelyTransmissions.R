@@ -161,13 +161,14 @@ verbose <- opt$verbose
 zero.length.tips.count <- opt$zeroLengthTipsCount
 
 file.name <- opt$file
+output.name <- opt$out
 blacklist.file <- opt$blacklist
 root.name <- opt$refSeqName
 label.separator <- opt$labelSeparator
 patient.id.position <- opt$patientIDPosition
-split.threshold <- opt$fullSplitThreshold
+split.threshold <- opt$splitThreshold
 
-cat("Opening file: ", file.name, sep = "")
+cat("Opening file: ", file.name, "\n", sep = "")
 
 tree <-read.tree(file.name)
 
@@ -178,9 +179,6 @@ if(!is.null(blacklist.file)){
     cat("Processing blacklist")
   }
   blacklist.table <- read.table(blacklist.file, sep=",", stringsAsFactors = FALSE)
-  if(ncol(blacklist)!=1){
-    stop("Blacklist should be a single column CSV file")
-  }
   blacklist <- sapply(blacklist.table[,1], get.tip.no, tree=tree)
 } else {
   blacklist <- NULL
@@ -211,7 +209,12 @@ patient.ids[outgroup.no] <- "Ref"
 
 #if all tips from a given patient are on the blacklist, safe to ignore him/her
 
-patients <- unique(patient.ids[-blacklist])
+if(!is.null(blacklist)){
+  patients <- unique(patient.ids[-blacklist])
+} else {
+  patients <- unique(patient.ids)
+}
+
 patients <- patients[which(substr(patients, 1,3) == "BEE")]
 
 patient.tips <-
@@ -283,4 +286,4 @@ colnames(dddf) <- c("Descendant", "Ancestor", "Present")
 
 dddf <- dddf[dddf$Present,]
 
-write.table(dddf, file = opt$out, sep = ",", row.names = FALSE, col.names = TRUE)
+write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE)
