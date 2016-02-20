@@ -2,7 +2,7 @@
 Generating phylogenies between and within hosts at once.
 Dependencies: [samtools](http://www.htslib.org/), [pysam](https://github.com/pysam-developers/pysam) and [biopython](http://biopython.org/wiki/Download).
 
-<img src="InfoAndInputs/PhylotypesDiagram.jpg" alt="Phyloscanner" style="width:128px;height:128px;"/>
+<p align="center"><img src="InfoAndInputs/PhylotypesDiagram.pdf" alt="Phyloscanner" width=1" height="1"/></p>
 
 Basic usage: e.g.
 ```bash
