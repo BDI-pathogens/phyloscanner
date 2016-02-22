@@ -20,7 +20,7 @@
 # 4. Plots should be by midpoint of the window, not start coordinate
 
 
-command.line <- TRUE
+command.line <- FALSE
 
 if (command.line) {
 	# Read in the arguments
@@ -56,21 +56,21 @@ if (command.line) {
 	how.to.read.ids <- "List"
 } else {
 	# Some options to run within R
-	rm(list=ls())
+	rm(list=ls()) 
 
-  root.folder <- "/Users/Christophe/Dropbox (Infectious Disease)/PROJECTS"
+  root.folder <- "/Users/twoseventwo/Dropbox (Infectious Disease)"
   nameFolder <- function(name) paste(root.folder, name, sep = "")
 	
 	# Folder locations
-  setwd(nameFolder("/HIV/phylotypes"))
-	input.dir <- nameFolder("/BEEHIVE/phylotypes/run20160209/RAxML_bestTree")
-	tree.files.basenames <- list.files(input.dir, pattern="*\\.tree")
+  setwd(nameFolder("/BEEHIVE"))
+	input.dir <- nameFolder("/BEEHIVE/phylotypes/run20160211/")
+	tree.files.basenames <- list.files(input.dir, pattern="RAxML_bestTree.*\\.tree$")
 	# list of all the trees to analyse
 	# has to include \\. otherwise ignores the dot
-  tree.files <- lapply(list.files(input.dir, pattern="*\\.tree"),
+  tree.files <- lapply(list.files(input.dir, pattern="RAxML_bestTree.*\\.tree$"),
                        function(x) file.path(input.dir, x))
 	
-	output.dir <- nameFolder("/BEEHIVE/phylotypes/run20160209/R_Output")
+	output.dir <- nameFolder("/BEEHIVE/phylotypes/run20160211/")
 	
 	how.to.read.ids <- "Trees"
 	# Options are: "List", "Alignment" and "Trees"
@@ -84,7 +84,7 @@ if (command.line) {
 	alignment.file <- nameFolder("/BEEHIVE/phylotypes/run20160211/RefsAln.fasta")
 	alignment.file.tag <- "-1_ref.fasta"
 	# only reads IDs from file names that contain this string
-	id.delimiter <- "-1" # string that precedes this is the patient ID
+	id.delimiter <- "_" # string that precedes this is the patient ID
 	
 	font.size <- 0.15 # for the tip labels in the tree
 	line.width <- 1 # in the tree
@@ -144,8 +144,8 @@ if (how.to.read.ids == "Trees") {
     
     id.list <- sapply(trees[[tree.file]]$tip.label, function(x) strsplit(x,
     split = "_")[[1]][1])
-    id.list <- sapply(id.list, function(x) strsplit(x,
-    split = id.delimiter)[[1]][1])
+#    id.list <- sapply(id.list, function(x) strsplit(x,
+#    split = id.delimiter)[[1]][1])
     id.list <- unique(id.list)
     ids <- c(ids, id.list)
   }
