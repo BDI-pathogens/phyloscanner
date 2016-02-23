@@ -2,128 +2,6 @@ library(phangorn)
 library(optparse)
 library(phytools)
 
-get.last <- function(vec)
-  return(vec[length(vec)])
-
-split.patient <- function(tree, id, split.threshold, patients, patient.tips, patient.mrcas, split.counts, 
-                          original.id=NULL, already.split=FALSE){
-  
-  patients <<- patients
-  patient.tips <<- patient.tips
-  patient.mrcas <<- patient.mrcas
-  split.counts <<- split.counts
-  
-  if(verbose){
-    cat("Testing if ",id," needs to be split\n",sep="")
-  }
-  
-  if(is.null(original.id)){
-    original.id = id
-  }
-  
-  if(!already.split){
-    #this patient has not previously been split
-    split.counts[[id]] <- 0
-  }
-  
-  if(verbose){
-    cat("Extracting subtree...")
-  }
-  
-  if(length(patient.tips[[id]])<=1){
-    if(verbose){
-      cat(id,": single tip, no split possible\n", sep="")
-    }
-  } else {
-    patient.subtree <- drop.tip(phy = tree, tip = tree$tip.label[-patient.tips[[id]]])
-    if(verbose){
-      cat(length(patient.subtree$tip.label)," tips\n",sep="")
-    }
-    
-    # temporary multifurcation check
-    #     
-    #     if(length(Children(patient.subtree, getRoot(patient.subtree)))>2){
-    #       stop(paste("Found a multifurcating root ",id, sep=""))
-    #     }
-    #     
-    #can't unroot a tree with less than three edges (a bit weirdly)
-    
-    if(length(patient.subtree$edge.length)>=3){
-      unrooted.patient.subtree <- unroot(patient.subtree)
-      max.branch.length <- max(unrooted.patient.subtree$edge.length)
-    } else {
-      max.branch.length <- sum(patient.subtree$edge.length)
-    }
-    
-    if(max.branch.length>split.threshold){
-      if(verbose){
-        cat("Splitting ",id," due to exceeding longest branch length threshold\n", sep="")
-      }
-
-      if(length(patient.subtree$edge.length)>=3){
-        
-        if(verbose){
-          cat("More than two edges")
-        }
-        edge.index <- which(unrooted.patient.subtree$edge.length==max.branch.length)
-        
-        start.node.index <- unrooted.patient.subtree$edge[edge.index,2]
-        end.node.index <- unrooted.patient.subtree$edge[edge.index,1]
-        
-        split.set <- list()
-        split.set[[1]] <- vector()
-        split.set[[2]] <- vector()
-        
-        for(tip in seq(1,length(unrooted.patient.subtree$tip.label))){
-          current.node <- tip
-          while(!(current.node %in% c(start.node.index, end.node.index))){
-            current.node <- Ancestors(unrooted.patient.subtree, current.node, type="parent")
-          }
-          if(current.node==start.node.index){
-            split.set[[1]] <- c(split.set[[1]], unrooted.patient.subtree$tip.label[tip] )
-          } else {
-            split.set[[2]] <- c(split.set[[2]], unrooted.patient.subtree$tip.label[tip] )
-          }
-          
-        }
-      } else {
-        split.set <- list()
-        split.set[[1]] <- patient.subtree$tip.label[1]
-        split.set[[2]] <- patient.subtree$tip.label[2]
-      }
-      
-      patients <- patients[patients!=id]
-      patient.tips[[id]] <- NULL
-      patient.mrcas[[id]] <- NULL
-      
-      if(already.split){
-        #this gets to split count right, but is a bit of a hack
-        split.counts[[original.id]] <- split.counts[[original.id]]-1
-      }
-      
-      for(tip.group in split.set){
-        split.counts[[original.id]] <- split.counts[[original.id]]+1
-        
-        new.name <- paste(original.id,"_split",split.counts[[original.id]], sep="")
-        if(verbose){
-          cat("Child ",counter,": ", new.name,"\n", sep="")
-        } 
-        
-        patients <- c(patients, new.name)
-     
-        tip.group.in.full.tree <- which(tree$tip.label %in% tip.group)
-        
-        patient.tips[[new.name]] <- tip.group.in.full.tree
-        patient.mrcas[[new.name]] <- mrca.phylo.or.unique.tip(tree, tip.group.in.full.tree, zero.length.tips.count)
-        
-        split.patient(tree, new.name, split.threshold, patients, patient.tips, patient.mrcas, split.counts, original.id, already.split = TRUE)
-      }
-    } else if(verbose){
-      cat("No split needed\n")
-    }
-  }
-}
-
 source("TransmissionUtilityFunctions.R")
 
 
@@ -227,7 +105,7 @@ split.counts <- list()
 #splitting
 if(split.threshold<Inf){
   for(id in patients){
-    split.patient(tree, id, split.threshold, patients, patient.tips, patient.mrcas, split.counts)
+    split.patient(tree, id, split.threshold, patients, patient.tips, patient.mrcas, patient.ids, split.counts)
   }
 }
 
