@@ -1,6 +1,6 @@
 # summarises transmission information
 
-setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160111/")
+setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/JuicyCladeOrig_NoMerge/")
 
 patient.seq <- seq(1,907)
 patient.ids <- paste("BEE", formatC(patient.seq, width = 4, format = "d", flag = "0"), "-1", sep="")
@@ -11,25 +11,32 @@ names(parent.list) <- patient.ids
 
 window.count <- 0
 
-for(start in seq(701, 9301, by=100)){
-  end <- start+349 
+for(start in seq(800, 9200, by=200)){
+  print(start)
+  end <- start+300 
   
-  if(file.exists(paste("transmissions/transmissions.InWindow_",start,"_to_",end,".csv",sep=""))){
+  if(file.exists(paste("LikelyTransmissions_",start,"_to_",end,".csv",sep=""))){
     
     window.count <- window.count + 1
     
-    transmissions.table <- read.table(paste("transmissions/transmissions.InWindow_",start,"_to_",end,".csv",sep=""), 
+    transmissions.table <- read.table(paste("LikelyTransmissions_",start,"_to_",end,".csv",sep=""), 
                                       sep=",", 
                                       header=TRUE,
                                       stringsAsFactors=FALSE)
     
-    
-    for(row in seq(1,nrow(transmissions.table))){
-      parent.list[[transmissions.table[row,1]]] <- c(parent.list[[transmissions.table[row,1]]], transmissions.table[row,2])
+    if(nrow(transmissions.table)>0){
+      for(row in seq(1,nrow(transmissions.table))){
+        parent <- transmissions.table[row,1]
+        child <- transmissions.table[row,2]
+        
+        parent <- substr(parent, 1, 9)
+        child <- substr(child, 1, 9)
+        
+        parent.list[[parent]] <- c(parent.list[[parent]], child)
+      }
     }
     
   }
-  
 }
 
 parents <- vector()
