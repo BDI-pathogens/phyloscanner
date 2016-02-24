@@ -1,5 +1,5 @@
 # Phyloscanner
-Generating phylogenies between and within hosts at once.  
+Generating phylogenies between and within hosts at once, using mapped reads (bam files) as input.  
 Dependencies: [samtools](http://www.htslib.org/), [pysam](https://github.com/pysam-developers/pysam), [biopython](http://biopython.org/wiki/Download), [mafft](http://mafft.cbrc.jp/alignment/software/) and [RAxML](http://sco.h-its.org/exelixis/web/software/raxml/index.html).  
 
 <p align="center"><img src="InfoAndInputs/PhylotypesDiagram.jpg" alt="Phyloscanner" width=500" height="290"/></p>
