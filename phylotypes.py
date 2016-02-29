@@ -7,16 +7,17 @@ from __future__ import print_function
 ## Overview:
 ExplanatoryMessage = '''This script creates between-sample alignments of reads.
 The reference sequences used to create a number of bam files (i.e. the sequences
-to which the reads were mapped) are aligned. User-specified coordinates with
-respect to this alignment are translated to coordinates with respect to each
-separate reference, dividing each reference into a set of matching windows. For
-each sample, for each window: all reads mapped to that window are found,
-identical reads are collected together with an associated count, similar reads
-are merged together based on the counts, then a minimum count is imposed. Then,
-for each window, all reads from all samples are aligned using mafft and a
-phylogeny is constructed using RAxML.
-Output files are written to the current working directory; to avoid overwriting
-existing files, you might to want to call this code from an empty directory.
+to which the reads were mapped) are aligned. User-specified coordinates,
+interpreted with respect to this alignment, are translated to coordinates with
+respect to (ungapped versions of) each separate reference, dividing each
+reference into a set of matching windows. For each window: for each sample, all
+reads mapped to that window are found, identical reads are collected together
+with an associated count, similar reads are merged together based on the counts,
+then a minimum count is imposed. Then all reads from all samples in this window 
+are aligned using mafft and a phylogeny is constructed using RAxML.
+Temporary files and output files are written to the current working directory;
+to avoid overwriting existing files, you might to want to call this code from an
+empty directory.
 '''
 
 ################################################################################
@@ -100,7 +101,7 @@ parser.add_argument('ListOfRefFiles', type=File, help='A file containing the '+\
 'names (and paths) of the reference fasta files for the bam files, one per '+\
 'line. The file basenames (i.e. the filename minus the directory) should be'+\
 ' unique and free of whitespace.')
-parser.add_argument('-W', '--window-coords', type=CommaSeparatedInts, \
+parser.add_argument('-W', '--windows', type=CommaSeparatedInts, \
 help='A comma-separated series of paired coordinates defining the boundaries '+\
 'of the windows. e.g. 1,300,11,310,21,320 would define windows 1-300, 11-310,'+\
 ' 21-320.')
@@ -115,9 +116,11 @@ parser.add_argument('-A', '--alignment-of-other-refs', type=File,\
 help='An alignment of any reference sequences (which need not be those used '+\
 'to produce the bam files) to be cut into the same windows as the bam files '+\
 'and included in the alignment of reads (e.g. to help root trees).')
-parser.add_argument('-C', '--ref-for-coords', help='The coordinates are '\
-'specified with respect to the reference named after this flag. (By default '\
-+'coordinates are with respect to the alignment of all references.)')
+parser.add_argument('-C', '--ref-for-coords', help='The coordinates are to be '\
+'interpreted with respect to (an ungapped version of) the reference named '\
++'after this flag, which must be present in the file you specify with -A. (By '\
++'default coordinates are interpreted with respect to the alignment of all '+\
+'bam and external references.)')
 parser.add_argument('-D', '--dont-check-duplicates', action='store_true', \
 help="Don't compare reads between samples to find duplicates - a possible "+\
 "indication of contamination. (By default this check is done.)")
@@ -174,8 +177,8 @@ parser.add_argument('--x-samtools', default='samtools', help=\
 args = parser.parse_args()
 
 # Shorthand
-WindowCoords  = args.window_coords
-UserSpecifiedCoords = args.window_coords != None
+WindowCoords  = args.windows
+UserSpecifiedCoords = args.windows != None
 AutoWindows = args.auto_window_params != None
 IncludeOtherRefs = args.alignment_of_other_refs != None
 QualTrimEnds  = args.quality_trim_ends != None
@@ -187,7 +190,7 @@ PairwiseAlign = args.pairwise_align_to != None
 # Check that window coords have been specified either manually or automatically.
 if (UserSpecifiedCoords and AutoWindows) or \
 (not UserSpecifiedCoords and not AutoWindows):
-  print('Exactly one of the --window-coords or --auto-window-params', \
+  print('Exactly one of the --windows or --auto-window-params', \
   'options should specified. (Not neither, not both.) Quitting.', \
   file=sys.stderr)
   exit(1)
@@ -211,9 +214,21 @@ if (ExcisePositions and args.excision_ref == None) or \
 # TODO: remove this testing
 #read1 = pf.PseudoRead('read1', 'abcdefghij', [1,2,3,4,5,6,7,8,9,10], [30]*10)
 
+def CheckMaxCoord(coords, ref):
+  '''Check that no coordinate is after the end of the reference with respect to
+  which it is supposed to be interpreted.'''
+  if max(coords) > len(ref.seq.ungap("-")):
+    print('You have specified at least one coordinate (', max(coords), \
+    ') that is larger than the length of the reference with respect to which', \
+    ' those coordinates are to be interpreted - ', ref.id, '. Quitting.', \
+    sep='', file=sys.stderr)
+    exit(1)
+
 # Record the names of any external refs being included.
-# If we're doing pairwise reference alignments, we'll need the seqs too. We'll
-# also need gappy and gapless copies of the ref chosen for pairwise alignment.
+# If we're doing pairwise alignments, we'll also need gappy and gapless copies
+# of the ref chosen for pairwise alignment.
+# Check that any coordinates that are to be interpreted with respect to a named
+# reference do not go past the end of that reference.
 if IncludeOtherRefs:
   try:
     ExternalRefAlignment = AlignIO.read(args.alignment_of_other_refs, "fasta")
@@ -228,7 +243,11 @@ if IncludeOtherRefs:
       RefForPairwiseAlnsGappySeq = str(ref.seq)
       RefForPairwiseAlns = copy.deepcopy(ref)
       RefForPairwiseAlns.seq = RefForPairwiseAlns.seq.ungap("-")
-
+      CheckMaxCoord(WindowCoords, ref)
+    if ref.id == args.ref_for_coords:
+      CheckMaxCoord(WindowCoords, ref)
+    if ref.id == args.excision_ref:
+      CheckMaxCoord(args.excision_coords, ref)
 
 # Consistency checks on flags that require a ref.
 for FlagName, FlagValue in (('--ref-for-coords',  args.ref_for_coords),\
