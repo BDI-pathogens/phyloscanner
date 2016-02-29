@@ -19,8 +19,6 @@ option_list = list(
               help="Path to a .csv file listing tips to ignore"),
   make_option(c("-t", "--splitThreshold"), type="double", default=Inf, 
               help="Tree length threshold at which two MRCAs are determined to be 'close'"),
-  make_option(c("-t", "--proximityThreshold"), type="double", default=Inf, 
-              help="Tree length threshold at which two MRCAs are determined to be 'close'"),
   make_option(c("-v", "--verbose"), type="logical", default=FALSE, 
               help="Talk about what I'm doing"),
   make_option(c("-z", "--zeroLengthTipsCount"), type="logical", default=FALSE, 
@@ -39,14 +37,14 @@ opt = parse_args(opt_parser);
 verbose <- opt$verbose
 zero.length.tips.count <- opt$zeroLengthTipsCount
 
-file.name <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160211/RAxML_bestTree.InWindow_800_to_1100.tree"
-output.name <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160211/proximityTest.csv"
-blacklist.file <- NULL
-root.name <- "B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
-label.separator <- "_"
-patient.id.position <- 1
-split.threshold <- 0.08
-proximity.threshold <- 0.08
+# file.name <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160211/RAxML_bestTree.InWindow_800_to_1100.tree"
+# output.name <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160211/proximityTest.csv"
+# blacklist.file <- NULL
+# root.name <- "B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
+# label.separator <- "_"
+# patient.id.position <- 1
+# split.threshold <- 0.08
+# proximity.threshold <- 0.08
 
 
 file.name <- opt$file
@@ -56,7 +54,6 @@ root.name <- opt$refSeqName
 label.separator <- opt$labelSeparator
 patient.id.position <- opt$patientIDPosition
 split.threshold <- opt$splitThreshold
-proximity.threshold <- opt$proximityThreshold
 
 cat("Opening file: ", file.name, "\n", sep = "")
 
@@ -151,17 +148,12 @@ for (patient.1 in seq(1, length(patients))) {
   }
 }
 
-direct.descendant.table <- as.table(direct.descendant.matrix)
+row.names(out) <- NULL
 
-colnames(direct.descendant.table) <- patients
-rownames(direct.descendant.table) <- patients
+dddf <- as.data.frame(out)
 
 
-dddf <- as.data.frame(direct.descendant.table)
-dddf <- dddf[complete.cases(dddf),]
+colnames(dddf) <- c("pat.1", "pat.2", "mrca.distance")
 
-colnames(dddf) <- c("Descendant", "Ancestor", "Present")
-
-dddf <- dddf[dddf$Present,]
 
 write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE)

@@ -17,15 +17,15 @@ echo "Making blacklist"
 
 Rscript /Users/twoseventwo/Documents/phylotypes/MakeBlacklist.R "$BlacklistInputFile" "$BlacklistOutputFile"
 
-# echo "Running LikelyTransmissions"
+echo "Running LikelyTransmissions"
 
-# if [ -e "$BlacklistOutputFile" ]
-# then
-# echo "Found blacklist"
-# Rscript /Users/twoseventwo/Documents/phylotypes/LikelyTransmissions.R -f "$TreeInputFile" -o "$TransOutputFile" -r "C.BW.00.00BW07621.AF443088" -p 1 -s "_" -b "$BlacklistOutputFile" -t 0.08 
-# fi
-# echo "No blacklist found"
-# Rscript /Users/twoseventwo/Documents/phylotypes/LikelyTransmissions.R -f "$TreeInputFile" -o "$TransOutputFile" -r "C.BW.00.00BW07621.AF443088" -p 1 -s "_" -t 0.08
+if [ -e "$BlacklistOutputFile" ]
+then
+echo "Found blacklist"
+Rscript /Users/twoseventwo/Documents/phylotypes/LikelyTransmissions.R -f "$TreeInputFile" -o "$TransOutputFile" -r "C.BW.00.00BW07621.AF443088" -p 1 -s "_" -b "$BlacklistOutputFile" -t 0.08 
+fi
+echo "No blacklist found"
+Rscript /Users/twoseventwo/Documents/phylotypes/LikelyTransmissions.R -f "$TreeInputFile" -o "$TransOutputFile" -r "C.BW.00.00BW07621.AF443088" -p 1 -s "_" -t 0.08
 
 
 done

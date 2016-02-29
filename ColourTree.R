@@ -446,7 +446,7 @@ for (tree.number in 1:num.trees) {
 			overall.root.to.tip <- NA
 			prop.reads.per.clade <- NA
 			root.to.tip.per.clade <- NA
-			print(paste(i, id, "no reads"))
+			print(paste(window, id, "no reads"))
 		}
 		pat.stats <- rbind(pat.stats, c(id,
 						window,
@@ -596,3 +596,6 @@ as.data.frame(by.patient %>% summarise_each(funs(mean.na.rm)))
 
 write.csv(pat.stats.summary, file.path(output.dir,
 "Patient.Statistics.Summary.csv"))
+
+
+
