@@ -21,35 +21,36 @@ warnings()
 # thin them as the loop goes
 
 # TODO: Rich Tips:
-# Don't use 1:N, use seq_len(), seq_along()
 # Print things consistently - message? cat? print? stdout/stderr
+
+# TODO: find a system-independent way to make R source a file in the same dir
+# or a sub dir. (Wrap up into a package?) Answers at
+# http://stackoverflow.com/questions/1815606/rscript-determine-path-of-the-executing-script
+# do not work.
+# The directory in which this code (and therefore SummariseTrees_funcs.R) lives:
+path.here <- '~/Dropbox (Infectious Disease)/PhylotypesCode/'
+source(file.path(path.here, 'SummariseTrees_funcs.R'))
 
 # We flip the value of the bool command.line to determine whether arguments are
 # read in from the command line (TRUE) or set internally in the code (FALSE).
 command.line <- TRUE
 if (command.line) {
 	args <- commandArgs(TRUE)
-	if (length(args) < 6) {
-		cat(paste("At least 6 arguments must be specified:\n* a file containing",
-						"the IDs to be coloured, one per line;\n* the font size for the",
-						"tip labels;\n* the line width for the tree;\n* a seed for",
-						"randomising the order of colour allocation to the IDs file (use",
-						"-1 to turn off shuffle;\n* the directory where output tree pdfs",
-						"will be produced;\n* finally, any number of tree",
-            "files.\nQuitting.\n"))
-		quit("no", 1)
-	}
+  checkArgs(args)
 	id.file <- args[1]
 	font.size <- as.numeric(args[2])
 	line.width <- as.numeric(args[3])
 	seed <- as.integer(args[4])
 	output.dir <- args[5]
   #whose.code <- args[6]
-	tree.files <- args[-(1:5)]
+	tree.files <- args[-(seq_len(5))]
   tree.files.basenames <- lapply(tree.files, basename)
-  how.to.read.ids <- "List"
+  how.to.read.ids <- "List" # other options are deprecated to be removed later
   
 } else {
+  # In this scope, we set by hand the values of the variables read in from the
+  # command line in the scope above. Other variables should be set below this
+  # scope.
   rm(list=ls())
   # Folder locations
   root.folder <- "/Users/Christophe/Dropbox (Infectious Disease)/PROJECTS"
@@ -62,24 +63,27 @@ if (command.line) {
   tree.files.basenames <- list.files(input.dir, pattern="*\\.tree")
   tree.files <- lapply(list.files(input.dir, pattern="*\\.tree"),
                        function(x) file.path(input.dir, x))
-  
-  # How do we read in all patient IDs?
-  # Options are: "List", "Alignment" and "Trees"
-  # "List" reads in all the patient IDs from a list in file 'id.file'
-  # "Alignment" reads in the patient IDs from the master alignment
-  # 'alignment.file'
-	# "Trees" reads IDs from the tip labels of the trees
-	how.to.read.ids <- "Trees"
-	#id.file <- "ListOfIDs_run20160111.txt"
-	alignment.file <- nameFolder("/BEEHIVE/phylotypes/run20160209/RefsAln.fasta")
-	alignment.file.tag <- "-1_ref.fasta"
-	
 	font.size <- 0.15 # for the tip labels in the tree
 	line.width <- 1 # in the tree
 	seed <- -1 # seed for randomising the colours associated with IDs
 	# no randomisation if seed <- -1
 
+  # Deprecated, to be removed later:
+  # How do we read in all patient IDs?
+  # Options are: "List", "Alignment" and "Trees"
+  # "List" reads in all the patient IDs from a list in file 'id.file'
+  # "Alignment" reads in the patient IDs from the master alignment
+  # 'alignment.file'
+  # "Trees" reads IDs from the tip labels of the trees
+  how.to.read.ids <- "Trees"
+  #id.file <- "ListOfIDs_run20160111.txt"
+  alignment.file <- nameFolder("/BEEHIVE/phylotypes/run20160209/RefsAln.fasta")
+  alignment.file.tag <- "-1_ref.fasta"
+
 }
+
+################################################################################
+# Some more user input variables:
 
 # The tip name associated with the root of the phylogeny:
 #root.name <- "Ref.B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
@@ -96,9 +100,10 @@ tree.file.regex <- "RAxML_bestTree\\.InWindow_([0-9]+)_to_([0-9]+).*"
 tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
 
 
-# Deprecated, for backwards compatibility, to be removed later:
+# Some deprecated variables, for backwards compatibility, to be removed later:
 whose.code <- "Christophe" # "Rich", "Christophe", "Chris" or "Chris_slow"
 id.delimiter <- '_' 
+################################################################################
 
 require(phytools)
 require(dplyr)
@@ -106,14 +111,6 @@ require(ggplot2)
 require(plotrix)
 require(RColorBrewer)
 require(phangorn)
-
-# TODO: find a system-independent way to make R source a file in the same dir
-# or a sub dir. (Wrap up into a package?) Answers at
-# http://stackoverflow.com/questions/1815606/rscript-determine-path-of-the-executing-script
-# do not work.
-# The directory in which this code (and therefore SummariseTrees_funcs.R) lives:
-path.here <- '~/Dropbox (Infectious Disease)/PhylotypesCode/'
-source(file.path(path.here, 'SummariseTrees_funcs.R'))
 
 # Utlities ##################
 unfactorDataFrame <- function(x) {
@@ -130,9 +127,11 @@ checkTreeFiles(tree.files)
 checkTreeFileNames(tree.files.basenames, tree.file.regex)
 
 # Read in the trees.
+# TODO: once the deprecated how.to.read.ids == "Trees" option is removed, move
+# this block inside the iteration over trees.
 num.trees <- length(tree.files)
 trees <- list(length=num.trees)
-for (tree.number in 1:num.trees) {
+for (tree.number in seq_len(num.trees)) {
   tree.file <- tree.files[[tree.number]]
   tree <- read.tree(file=tree.file)
   trees[[tree.file]] <- tree
@@ -177,10 +176,12 @@ if (seed != -1) {
   ids <- sample(ids)
 }
 
-# Define a colour for each unique ID.
-# Needs to be written twice to work properly for some reason!
-id.colours <- setNames(palette(rainbow(num.ids))[1:num.ids], ids)
-id.colours <- setNames(palette(rainbow(num.ids))[1:num.ids], ids)
+if (print.trees) {
+  # Define a colour for each unique ID.
+  # Needs to be written twice to work properly for some reason!
+  id.colours <- setNames(palette(rainbow(num.ids))[seq_len(num.ids)], ids)
+  id.colours <- setNames(palette(rainbow(num.ids))[seq_len(num.ids)], ids)
+}
 
 # Define the data frame to which summary statistics will be written.
 # (The first row is later deleted.)
@@ -205,7 +206,7 @@ pat.stats <- data.frame(patient.id = "test",
 		stringsAsFactors = F)
 
 # Iterate through the trees
-for (tree.number in 1:num.trees) {
+for (tree.number in seq_len(num.trees)) {
   
   tree.file <- tree.files[[tree.number]]
   tree.file.basename <- tree.files.basenames[[tree.number]]
@@ -223,8 +224,8 @@ for (tree.number in 1:num.trees) {
 
   # Print the tree if desired
   if (print.trees) {
-    colourTree(tree, num.tips, id.delimiter, id.colours, tree.file.basename,
-    output.dir, font.size, line.width, ids)
+    colourTree(tree, tip.regex, id.colours, tree.file.basename, output.dir,
+    font.size, line.width, ids)
   }
   if (exit.after.colouring.trees) next
 	
@@ -232,7 +233,7 @@ for (tree.number in 1:num.trees) {
 	patient.tips <- list()
 	for (id in ids) patient.tips[[id]] <- vector()
 	for (tip.label in tree$tip.label) {
-		id <- unlist(strsplit(tip.label, id.delimiter))[1]
+		id <- sub(tip.regex, "\\1", tip.label)
 		if (id %in% ids) {
 			patient.tips[[id]] <- c(patient.tips[[id]], tip.label)
 		}

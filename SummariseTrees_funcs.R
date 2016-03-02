@@ -1,3 +1,16 @@
+checkArgs <- function(args) {
+	if (length(args) < 6) {
+		cat(paste("At least 6 arguments must be specified:\n* a file containing",
+						"the IDs to be coloured, one per line;\n* the font size for the",
+						"tip labels;\n* the line width for the tree;\n* a seed for",
+						"randomising the order of colour allocation to the IDs file (use",
+						"-1 to turn off shuffle;\n* the directory where output tree pdfs",
+						"will be produced;\n* finally, any number of tree",
+            "files.\nQuitting.\n"))
+		quit("no", 1)
+	}
+}
+
 checkTreeFiles <- function(tree.files) {
   # Check files exist
 	for (tree.file in tree.files) {
@@ -21,15 +34,17 @@ checkTreeFileNames <- function(tree.files.basenames, tree.file.regex) {
   }
 }
 
-colourTree <- function(tree, num.tips, id.delimiter, id.colours,
+colourTree <- function(tree, tip.regex, id.colours,
 tree.file.basename, output.dir, font.size, line.width, ids) {
   # Prints a tree coloured by patient ID
 
+  num.tips <- length(tree$tip.label)
+
   # Assign each tip its colour
 	this.tree.colours <- vector(length=num.tips)
-	for (i in 1:num.tips) {
+	for (i in seq_len(num.tips)) {
 		tip.label <- tree$tip.label[i]
-		id <- unlist(strsplit(tip.label, id.delimiter))[1]
+		id <- sub(tip.regex, "\\1", tip.label)
 		if (id %in% ids) {
 			this.tree.colours[i] <- id.colours[which(ids==id)]
 		} else {
@@ -53,7 +68,7 @@ tree.file.basename, output.dir, font.size, line.width, ids) {
 	lastPP <- get("last_plot.phylo", env=.PlotPhyloEnv)
 	par(fg="black")
   #nodelabels(bg="white", cex=font.size)
-	text(lastPP$xx[1:num.tips], lastPP$yy[1:num.tips], tree$tip.label,
+	text(lastPP$xx[seq_len(num.tips)], lastPP$yy[seq_len(num.tips)], tree$tip.label,
 			cex=font.size, col=this.tree.colours, pos=4, offset=0.1, font=0.1)
 	dev.off()
 	par <- opar
@@ -214,7 +229,7 @@ whose.code) {
         ordered.clade.counts <- read.counts.per.clade[clade.ordering]
         ordered.clades <- clades[clade.ordering]
         prop.reads.per.clade <- root.to.tip.per.clade <- vector(length = 5)
-        for (i in 1:num.clades.for.output) {
+        for (i in seq_len(num.clades.for.output)) {
 			    if (i > num.clades) {
 				    prop.reads  <- 0
 				    root.to.tip <- NA
@@ -246,6 +261,12 @@ printSortedClades <- function(clades, tip.regex, num.clades.for.output) {
   # Order each clade by the read number of the tips, and the set of clades by
   # their smallest read number. This is unique (unlike read count sorting) so
   # helps test clade finding algorithms.
+  # TODO: we're only printing the first (num.clades.for.output) clades, since
+  # Christophe's algorithm will only calculate that many clades, but we print
+  # the first (num.clades.for.output) clades after sorting in the manner done
+  # here (essentially alphabetically), whereas Christophe's algorithm will find 
+  # the first (num.clades.for.output) clades after sorting by read count then
+  # stop, even if smaller clades would be amongst the first alphabetically.
   min.read.number.from.each.clade <- vector(length=length(clades))
   ordered.clades <- list("list")
   current.clade <- 0
@@ -256,8 +277,8 @@ printSortedClades <- function(clades, tip.regex, num.clades.for.output) {
     ordered.clades[[current.clade]] <- clade[order(read.numbers)]
   }
   ordered.clades <- ordered.clades[order(min.read.number.from.each.clade)]
-  ordered.clades <- ordered.clades[1:min(length(ordered.clades),
-  num.clades.for.output)]
+  ordered.clades <- ordered.clades[seq_len(min(length(ordered.clades),
+  num.clades.for.output))]
   print(ordered.clades)
   cat('\n\n')
 }
