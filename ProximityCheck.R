@@ -4,7 +4,6 @@ library(phytools)
 
 source("TransmissionUtilityFunctions.R")
 
-
 option_list = list(
   make_option(c("-f", "--file"), type="character", default=NULL, 
               help="Input tree file name", metavar="inputTreeFileName"),
@@ -19,7 +18,7 @@ option_list = list(
   make_option(c("-b", "--blacklist"), type="character", default=NULL, 
               help="Path to a .csv file listing tips to ignore"),
   make_option(c("-t", "--splitThreshold"), type="double", default=Inf, 
-              help="Length threshold at which the root branch will be cut to make multiple infections"),
+              help="Tree length threshold at which two MRCAs are determined to be 'close'"),
   make_option(c("-v", "--verbose"), type="logical", default=FALSE, 
               help="Talk about what I'm doing"),
   make_option(c("-z", "--zeroLengthTipsCount"), type="logical", default=FALSE, 
@@ -37,6 +36,16 @@ opt = parse_args(opt_parser);
 
 verbose <- opt$verbose
 zero.length.tips.count <- opt$zeroLengthTipsCount
+
+# file.name <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160211/RAxML_bestTree.InWindow_800_to_1100.tree"
+# output.name <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160211/proximityTest.csv"
+# blacklist.file <- NULL
+# root.name <- "B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
+# label.separator <- "_"
+# patient.id.position <- 1
+# split.threshold <- 0.08
+# proximity.threshold <- 0.08
+
 
 file.name <- opt$file
 output.name <- opt$out
@@ -109,38 +118,26 @@ if(split.threshold<Inf){
   }
 }
 
-total.pairs <- length(patients) ^ 2 - length(patients)
-
-if(verbose){
-  cat("Testing pairs\n")
-}
-
+first <- TRUE
+total.pairs <- (length(patients) ^ 2 - length(patients))/2
 count <- 0
-direct.descendant.matrix <- matrix(NA, length(patients), length(patients))
-for (desc in seq(1, length(patients))) {
-  for (anc in seq(1, length(patients))) {
-    if (desc != anc) {
-      if (verbose) {
-        cat(
-          "Testing if ",patients[desc]," is directly descended from ",patients[anc],".\n", sep =
-            ""
-        )
-      }
+for (patient.1 in seq(1, length(patients))) {
+  for (patient.2 in seq(1, length(patients))) {
+    if(patient.1 <= patient.2){
+      if(verbose) cat("Comparing ",patients[patient.1]," and ",patients[patient.2],"\n",sep="")
       
-      count <- count + 1
+      distance <- get.mrca.distance(tree, patients[patient.1], patients[patient.2], patient.mrcas)
       
-      
-      if (!compareNA(direct.descendant.matrix[anc, desc],TRUE)) {
-        direct.descendant.matrix[desc, anc] <-
-          is.direct.descendant.of(tree, desc, anc, patient.mrcas, patient.tips, zero.length.tips.count)
-        if (direct.descendant.matrix[desc, anc]) {
-          cat(patients[desc],"is a descendant of",patients[anc],"\n")
-        }
+      if(first){
+        first <- FALSE
+        out <- c(patients[patient.1], patients[patient.2], distance)
       } else {
-        direct.descendant.matrix[desc, anc] <- FALSE
+        out <- rbind(out, c(patients[patient.1], patients[patient.2], distance))
+        
       }
-      
-      if (count %% 100 == 0) {
+
+      count <- count + 1
+      if (count %% 1000 == 0) {
         cat(
           paste(
             "Done ",count," of ",total.pairs," pairwise calculations\n", sep = ""
@@ -151,17 +148,12 @@ for (desc in seq(1, length(patients))) {
   }
 }
 
-direct.descendant.table <- as.table(direct.descendant.matrix)
+row.names(out) <- NULL
 
-colnames(direct.descendant.table) <- patients
-rownames(direct.descendant.table) <- patients
+dddf <- as.data.frame(out)
 
 
-dddf <- as.data.frame(direct.descendant.table)
-dddf <- dddf[complete.cases(dddf),]
+colnames(dddf) <- c("pat.1", "pat.2", "mrca.distance")
 
-colnames(dddf) <- c("Descendant", "Ancestor", "Present")
-
-dddf <- dddf[dddf$Present,]
 
 write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE)

@@ -47,26 +47,26 @@ if (command.line) {
   #whose.code <- args[6]
 	tree.files <- args[-(1:5)]
   tree.files.basenames <- lapply(tree.files, basename)
-	how.to.read.ids <- "List"
-
+  how.to.read.ids <- "List"
+  
 } else {
-	rm(list=ls())
-	# Folder locations
+  rm(list=ls())
+  # Folder locations
   root.folder <- "/Users/Christophe/Dropbox (Infectious Disease)/PROJECTS"
   nameFolder <- function(name) paste(root.folder, name, sep = "")
-	setwd(nameFolder("/HIV/phylotypes"))
-	input.dir <- nameFolder("/BEEHIVE/phylotypes/run20160209/RAxML_bestTree")
-	output.dir <- nameFolder("/BEEHIVE/phylotypes/run20160209/R_Output")
-
+  setwd(nameFolder("/HIV/phylotypes"))
+  input.dir <- nameFolder("/BEEHIVE/phylotypes/run20160209/RAxML_bestTree")
+  output.dir <- nameFolder("/BEEHIVE/phylotypes/run20160209/R_Output")
+  
   # Find the tree files. NB \\. is needed in the pattern or it ignores the dot.
-	tree.files.basenames <- list.files(input.dir, pattern="*\\.tree")
+  tree.files.basenames <- list.files(input.dir, pattern="*\\.tree")
   tree.files <- lapply(list.files(input.dir, pattern="*\\.tree"),
                        function(x) file.path(input.dir, x))
-	
+  
   # How do we read in all patient IDs?
-	# Options are: "List", "Alignment" and "Trees"
-	# "List" reads in all the patient IDs from a list in file 'id.file'
-	# "Alignment" reads in the patient IDs from the master alignment
+  # Options are: "List", "Alignment" and "Trees"
+  # "List" reads in all the patient IDs from a list in file 'id.file'
+  # "Alignment" reads in the patient IDs from the master alignment
   # 'alignment.file'
 	# "Trees" reads IDs from the tip labels of the trees
 	how.to.read.ids <- "Trees"
@@ -117,9 +117,9 @@ source(file.path(path.here, 'SummariseTrees_funcs.R'))
 
 # Utlities ##################
 unfactorDataFrame <- function(x) {
-	x <- data.frame(lapply(x, as.character), stringsAsFactors = F)
-	x <- data.frame(lapply(x, function(y) type.convert(y, as.is=T)),
-  stringsAsFactors = F)
+  x <- data.frame(lapply(x, as.character), stringsAsFactors = F)
+  x <- data.frame(lapply(x, function(y) type.convert(y, as.is=T)),
+                  stringsAsFactors = F)
 }
 
 #############################
@@ -137,29 +137,29 @@ for (tree.number in 1:num.trees) {
   tree <- read.tree(file=tree.file)
   trees[[tree.file]] <- tree
 }
-  
+ 
 # Deprecated, for backwards compatibility, to be removed later:
 ids <- vector()
 if (how.to.read.ids == "Trees") {
   for (tree.file in tree.files) {
     id.list <- sapply(trees[[tree.file]]$tip.label, function(x) strsplit(x,
-    split = "_")[[1]][1])
+                                                                         split = "_")[[1]][1])
     id.list <- sapply(id.list, function(x) strsplit(x,
-    split = id.delimiter)[[1]][1])
+                                                    split = id.delimiter)[[1]][1])
     id.list <- unique(id.list)
     ids <- c(ids, id.list)
   }
   ids <- unique(ids)
   ids <- ids[order(ids)]
   ids <- ids[grep("BEE", ids)]
-
+  
 } else if (how.to.read.ids == "Alignment") {
   # !!!!!This option seems messed up, and likely won't work!!!!
-	# reads in the IDs from the list of files in the folder - unusually named
+  # reads in the IDs from the list of files in the folder - unusually named
   # files might get a bit garbled.
-	ids <- list.files(id.folder, pattern = "*\\.fasta")
-	ids <- sapply(ids, function (x) unlist(strsplit(x,
-  split = id.folder.tag)[[1]][1]))
+  ids <- list.files(id.folder, pattern = "*\\.fasta")
+  ids <- sapply(ids, function (x) unlist(strsplit(x,
+                                                  split = id.folder.tag)[[1]][1]))
 } else {
 	# alternatively reads in the IDs from a specific file
 	ids <- readLines(id.file)
@@ -168,13 +168,13 @@ if (how.to.read.ids == "Trees") {
 # Remove duplicate IDs. Shuffle the ID order if desired (for colouring).
 num.ids <- length(ids)
 if (num.ids == 0) {
-	cat(paste("No IDs found in ", id.file, ". Quitting.\n", sep=""))
-	quit("no", 1)
+  cat(paste("No IDs found in ", id.file, ". Quitting.\n", sep=""))
+  quit("no", 1)
 }
 ids <- unique(ids)
 if (seed != -1) {
-	set.seed(seed)
-	ids <- sample(ids)
+  set.seed(seed)
+  ids <- sample(ids)
 }
 
 # Define a colour for each unique ID.
@@ -206,7 +206,7 @@ pat.stats <- data.frame(patient.id = "test",
 
 # Iterate through the trees
 for (tree.number in 1:num.trees) {
-	
+  
   tree.file <- tree.files[[tree.number]]
   tree.file.basename <- tree.files.basenames[[tree.number]]
   tree <- trees[[tree.file]]
@@ -301,59 +301,59 @@ if (print.per.patient.pdfs) {
   pdf(file.path(output.dir, "Patient.Statistics.pdf"), paper = "a4")
   for (id in sort(ids)) {
     print(id)
-	  par(mfrow=c(3, 2))
-	  # putting this here also sets new page, in case there aren't six plots
-	  pat <- pat.stats[pat.stats$patient.id==id,]
-	  pat <- unfactorDataFrame(pat)
-	  pat <- pat[order(pat$window),]
+    par(mfrow=c(3, 2))
+    # putting this here also sets new page, in case there aren't six plots
+    pat <- pat.stats[pat.stats$patient.id==id,]
+    pat <- unfactorDataFrame(pat)
+    pat <- pat[order(pat$window),]
     print(pat$num.reads.total)
-	  plot(pat$window, pat$num.reads.total, main=pat$patient.id[1],
-			  xlab="Genome location", ylab="Number of reads",
-			  log = "y", ylim = c(1, 1e+5))
-	  if (sum(pat$num.reads.total) > 0) {
-		  plot(pat$window, pat$num.leaves, main=pat$patient.id[1],
-				  xlab="Genome location", ylab="Number of tips")
-		  plot(pat$window, pat$num.clades, main = pat$patient.id[1],
-				  ylim = c(0, 10),
-				  xlab="Genome location", ylab="Number of clades")
-		
-		  opar <- par(mar = c(2.1, 4.1, 2.1, 5.1) + 0.3)
-		  plot(pat$window, pat$prop.reads.clade.1, main = pat$patient.id[1],
-				  xlab="Genome location", ylab="Proportion of reads in largest clade",
-				  type = "b", pch = 16, cex = 0.6, ylim = c(0, 1))
-		  par(new = T)
-		  plot(pat$window, pat$overall.root.to.tip,
-				  type = "b", pch = 1, col = "red", ylim = c(0, 0.4), cex = 0.6,
-				  axes = F, xlab = NA, ylab = NA)
-		  axis(4, ylim = c(0, 0.4), col = "red")
-		  mtext(side = 4, line = 3, "Root to tip distance", cex=0.7)
-		  points(pat$window, pat$root.to.tip.clade.1,
-				  type = "l", col = "darkgreen", lty = 2)
-		  par(opar)
-		
-		  plot(pat$window, pat$root.to.tip.clade.1, main = pat$patient.id[1],
-				  type = "b", pch = 16, cex = 0.6,
-				  xlab="Genome location", ylab="Root to tip distance in largest clade")
-		
-		  ydat <- matrix(
-		    c(pat$prop.reads.clade.1,
-		      pat$prop.reads.clade.2,
-		      pat$prop.reads.clade.3,
-		      pat$prop.reads.clade.4,
-		      pat$prop.reads.clade.5
-		   ),
-				  nrow = length(pat$prop.reads.clade.1),
-				  ncol = 5
-		  )
-		  ydat <- t(ydat)
-
-		  barplot(ydat,
-		          xlab = "Genome location",
-		          ylab = "Proportion of reads in each of 5 largest clades",
-		          col = brewer.pal(5, "Blues")[5:1],
-		          names.arg = pat$window)
-		
-	  }
+    plot(pat$window, pat$num.reads.total, main=pat$patient.id[1],
+         xlab="Genome location", ylab="Number of reads",
+         log = "y", ylim = c(1, 1e+5))
+    if (sum(pat$num.reads.total) > 0) {
+      plot(pat$window, pat$num.leaves, main=pat$patient.id[1],
+           xlab="Genome location", ylab="Number of tips")
+      plot(pat$window, pat$num.clades, main = pat$patient.id[1],
+           ylim = c(0, 10),
+           xlab="Genome location", ylab="Number of clades")
+      
+      opar <- par(mar = c(2.1, 4.1, 2.1, 5.1) + 0.3)
+      plot(pat$window, pat$prop.reads.clade.1, main = pat$patient.id[1],
+           xlab="Genome location", ylab="Proportion of reads in largest clade",
+           type = "b", pch = 16, cex = 0.6, ylim = c(0, 1))
+      par(new = T)
+      plot(pat$window, pat$overall.root.to.tip,
+           type = "b", pch = 1, col = "red", ylim = c(0, 0.4), cex = 0.6,
+           axes = F, xlab = NA, ylab = NA)
+      axis(4, ylim = c(0, 0.4), col = "red")
+      mtext(side = 4, line = 3, "Root to tip distance", cex=0.7)
+      points(pat$window, pat$root.to.tip.clade.1,
+             type = "l", col = "darkgreen", lty = 2)
+      par(opar)
+      
+      plot(pat$window, pat$root.to.tip.clade.1, main = pat$patient.id[1],
+           type = "b", pch = 16, cex = 0.6,
+           xlab="Genome location", ylab="Root to tip distance in largest clade")
+      
+      ydat <- matrix(
+        c(pat$prop.reads.clade.1,
+          pat$prop.reads.clade.2,
+          pat$prop.reads.clade.3,
+          pat$prop.reads.clade.4,
+          pat$prop.reads.clade.5
+        ),
+        nrow = length(pat$prop.reads.clade.1),
+        ncol = 5
+      )
+      ydat <- t(ydat)
+      
+      barplot(ydat,
+              xlab = "Genome location",
+              ylab = "Proportion of reads in each of 5 largest clades",
+              col = brewer.pal(5, "Blues")[5:1],
+              names.arg = pat$window)
+      
+    }
   }
   dev.off()
 }
@@ -414,7 +414,7 @@ mean.na.rm <- function(x) mean(x, na.rm = T)
 pat.stats <- unfactorDataFrame(pat.stats)
 by.patient <- pat.stats %>% group_by(patient.id)
 pat.stats.summary <-
-as.data.frame(by.patient %>% summarise_each(funs(mean.na.rm)))
+  as.data.frame(by.patient %>% summarise_each(funs(mean.na.rm)))
 
 write.csv(pat.stats.summary, file.path(output.dir,
-"Patient.Statistics.Summary.csv"))
+                                       "Patient.Statistics.Summary.csv"))
