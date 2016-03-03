@@ -91,6 +91,7 @@ if (command.line) {
 root.name <- "C.BW.00.00BW07621.AF443088"
 print.trees <- T # whether or not to print separate PDF files for each tree
 exit.after.colouring.trees <- F
+colour.edges <- TRUE
 print.per.patient.pdfs <- F
 test.clade.ordering.only <- F
 num.clades.for.output <- 5
@@ -101,7 +102,7 @@ tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
 
 
 # Some deprecated variables, for backwards compatibility, to be removed later:
-whose.code <- "Christophe" # "Rich", "Christophe", "Chris" or "Chris_slow"
+whose.code <- "Rich" # "Rich", "Christophe", "Chris" or "Chris_slow"
 id.delimiter <- '_' 
 ################################################################################
 
@@ -222,13 +223,23 @@ for (tree.number in seq_len(num.trees)) {
   }
 	tree <- root(phy = tree, outgroup = root.name)
 
+  # Resolve the tree into clades each consisting of only one patient:
+  if (whose.code == "Rich") {
+    dummy <- resolveTreeIntoPatientClades(tree, ids, tip.regex)
+    clade.mrcas.by.patient <- dummy$clade.mrcas.by.patient
+    all.clades.by.patient <- dummy$clades.by.patient
+    #print(clade.mrcas.by.patient)
+  } else if (whose.code == "Chris_slow") {
+    all.clades.by.patient <- resolveTreeIntoPatientCladesChris(tree)
+  }
+
   # Print the tree if desired
   if (print.trees) {
     colourTree(tree, tip.regex, id.colours, tree.file.basename, output.dir,
-    font.size, line.width, ids)
+    font.size, line.width, ids, colour.edges, clade.mrcas.by.patient)
   }
   if (exit.after.colouring.trees) next
-	
+
 	# Associate each tip to its patient.
 	patient.tips <- list()
 	for (id in ids) patient.tips[[id]] <- vector()
@@ -245,13 +256,6 @@ for (tree.number in seq_len(num.trees)) {
 	right.window.edge <- as.integer(sub(tree.file.regex, "\\2",
   tree.file.basename))
   window <- (left.window.edge + right.window.edge) / 2
-
-  # Resolve the tree into clades each consisting of only one patient:
-  if (whose.code == "Rich") {
-    all.clades.by.patient <- resolveTreeIntoPatientClades(tree, ids, tip.regex)
-  } else if (whose.code == "Chris_slow") {
-    all.clades.by.patient <- resolveTreeIntoPatientCladesChris(tree)
-  }
 
   # Iterate through all patients
   for (id in ids) {

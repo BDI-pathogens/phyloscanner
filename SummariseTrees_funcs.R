@@ -1,4 +1,5 @@
 checkArgs <- function(args) {
+  # Quits with an error message if the wrong number of args is given.
 	if (length(args) < 6) {
 		cat(paste("At least 6 arguments must be specified:\n* a file containing",
 						"the IDs to be coloured, one per line;\n* the font size for the",
@@ -34,8 +35,8 @@ checkTreeFileNames <- function(tree.files.basenames, tree.file.regex) {
   }
 }
 
-colourTree <- function(tree, tip.regex, id.colours,
-tree.file.basename, output.dir, font.size, line.width, ids) {
+colourTree <- function(tree, tip.regex, id.colours, tree.file.basename,
+output.dir, font.size, line.width, ids, colour.edges, clade.mrcas.by.patient) {
   # Prints a tree coloured by patient ID
 
   num.tips <- length(tree$tip.label)
@@ -55,6 +56,24 @@ tree.file.basename, output.dir, font.size, line.width, ids) {
 	# Rotate internal nodes to have right daughter clades more species rich than
 	# left daughter clades.
 	tree <- ladderize(tree)
+
+  if (colour.edges) {
+    # Generate a string guaranteed not to clash with any id: the character "a"
+    # repeated more times than the length of any id. We use this to label the
+    # ancestral state for edge colouring.
+    longest.id.length <- max(nchar(ids))
+    anc.state <- paste(rep("a", longest.id.length+1), collapse = "")
+    edge.colours <- id.colours
+    edge.colours[[anc.state]] <- "black"
+
+    # Colour the edges associated with each patient clade
+    for (id in ids) {
+      for (clade.mrca in clade.mrcas.by.patient[[id]]) {
+        tree <- paintSubTree(tree, node=clade.mrca, stem=1, state=id,
+        anc.state=anc.state)
+      }
+    }
+  }
 		
 	# Plot the tree.
 	# First make the automatic tip labels transparent, then replot with colour.
@@ -63,8 +82,13 @@ tree.file.basename, output.dir, font.size, line.width, ids) {
 	pdf(out.tree, height = num.tips/10, width = 5)
 	opar <- par()
 	par(fg="transparent")
-	plotTree(tree, color="black", fsize=font.size, lwd=line.width,
-  ylim=c(-1, num.tips))
+  if (colour.edges) {
+	  plotSimmap(tree, edge.colours, fsize=font.size, lwd=line.width,
+    ylim=c(-1, num.tips))
+  } else {
+    plotTree(tree, color="black", fsize=font.size, lwd=line.width,
+    ylim=c(-1, num.tips))
+  }
 	lastPP <- get("last_plot.phylo", env=.PlotPhyloEnv)
 	par(fg="black")
   #nodelabels(bg="white", cex=font.size)
@@ -103,6 +127,7 @@ resolveTreeIntoPatientClades <- function(tree, ids, tip.regex) {
   # Our main object of interest: each patient will have a list, with one item in 
   # that list being a list of monophyletic tips for that patient.
   groups <- vector("list", num.patients)
+  clade.mrcas.by.patient <- vector("list", num.patients)
 
   # Find all nodes in the tree, and the children of each node
   nodes <- unique(tree$edge[,1])
@@ -147,12 +172,14 @@ resolveTreeIntoPatientClades <- function(tree, ids, tip.regex) {
       for (j in these.children[keep.going[these.children]]) {
         k <- which(m[j,])
         groups[[k]] <- c(groups[[k]], descendants[j])
+        clade.mrcas.by.patient[[k]] <- c(clade.mrcas.by.patient[[k]], j)
       }
     }
   }
 
-  # Go from integer tip labels to string tip labels
+  # Label tips and ids by strings instead of ints
   names(groups) <- ids
+  names(clade.mrcas.by.patient) <- ids
   clades.by.patient <- lapply(groups, lapply, function(el) tree$tip.label[el])
 
   #read.counts.per.tip <- rep(NA_integer_, length(num.tips))
@@ -161,7 +188,8 @@ resolveTreeIntoPatientClades <- function(tree, ids, tip.regex) {
   #group.counts <- lapply(groups, vapply,
   #function(el) sum(read.counts.per.tip[el]), integer(1))
 
-  return(clades.by.patient)
+  return(list(clades.by.patient=clades.by.patient,
+  clade.mrcas.by.patient=clade.mrcas.by.patient))
 }
 
 
