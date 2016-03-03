@@ -123,7 +123,7 @@ total.pairs <- (length(patients) ^ 2 - length(patients))/2
 count <- 0
 for (patient.1 in seq(1, length(patients))) {
   for (patient.2 in seq(1, length(patients))) {
-    if(patient.1 <= patient.2){
+    if(patient.1 < patient.2){
       if(verbose) cat("Comparing ",patients[patient.1]," and ",patients[patient.2],"\n",sep="")
       
       distance <- get.mrca.distance(tree, patients[patient.1], patients[patient.2], patient.mrcas)
