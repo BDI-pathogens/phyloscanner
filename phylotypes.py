@@ -61,11 +61,6 @@ from Bio import AlignIO
 from Bio import Align
 from MergeSimilarStrings import MergeSimilarStrings
 import phylotypes_funcs as pf
-#from Bio import AlignIO
-#from matplotlib import pyplot as plt
-#from Bio.Phylo.Consenss import bootstrap_trees, majority_consensus, get_support
-#from Bio.Phylo.TreeConstruction import DistanceTreeConstructor, \
-#DistanceCalculator
 
 # Define a function to check files exist, as a type for the argparse.
 def File(MyFile):
@@ -899,7 +894,7 @@ for window in range(NumCoords / 2):
       ExternalRefLeftWindowEdge-1:ExternalRefRightWindowEdge]
       RefsThatAreNotPureGap = []
       for seq in RefAlignmentInWindow:
-        if len(seq.seq.ungap('-')) != 0:
+        if len(seq.seq.ungap(GapChar)) != 0:
           RefsThatAreNotPureGap.append(seq)
       if len(RefsThatAreNotPureGap) == 0:
         print('Error: all external references are pure gap in this window;', \
@@ -966,14 +961,14 @@ for window in range(NumCoords / 2):
     PureGapColumns = []
     FirstSeq = str(AllSeqsToPrint[0].seq)
     for position,base in enumerate(FirstSeq):
-      if base == '-':
+      if base == GapChar:
         PureGapColumns.append(position)
     if PureGapColumns != []:
       for seq in AllSeqsToPrint[1:]:
         SeqAsString = str(seq.seq)
         GapColsToRemove = []
         for i,col in enumerate(PureGapColumns):
-          if SeqAsString[col] != '-':
+          if SeqAsString[col] != GapChar:
             GapColsToRemove.append(col)
         PureGapColumns = \
         [col for col in PureGapColumns if not col in GapColsToRemove]
@@ -997,7 +992,7 @@ for window in range(NumCoords / 2):
     UngappedReadNames = {}
     for SampleName,ReadDict in SampleReadNames.items():
       UngappedReadNames[SampleName] = \
-      {read.replace('-',''):SeqName for read,SeqName in ReadDict.items()}
+      {read.replace(GapChar,''):SeqName for read,SeqName in ReadDict.items()}
     SurvivingDuplicates  = []
     EliminatedDuplicates = []
     for BamFile1Alias, BamFile2Alias, read, Bam1Count, Bam2Count in \
@@ -1058,8 +1053,8 @@ for window in range(NumCoords / 2):
         for coord in CoordsToExciseInThisWindow:
           DistanceIntoWindow = coord - LeftWindowEdge
           PositionsInUngappedRef.append(\
-          len(RefInThisWindowGappy[:DistanceIntoWindow+1].replace('-','')))
-        UngappedRefHere = RefInThisWindowGappy.replace('-','')
+          len(RefInThisWindowGappy[:DistanceIntoWindow+1].replace(GapChar,'')))
+        UngappedRefHere = RefInThisWindowGappy.replace(GapChar,'')
 
       # Read in the aligned reads, and check the ref looks as expected.
       RefInAlignment = None
@@ -1072,11 +1067,11 @@ for window in range(NumCoords / 2):
         print('Malfunction of phylotypes: unable to find', args.excision_ref, \
         'in', FileForAlnReadsHere +'. Quitting.', file=sys.stderr)
         exit(1)
-      if RefInAlignment.replace('-','') != UngappedRefHere:
+      if RefInAlignment.replace(GapChar,'') != UngappedRefHere:
         print('Malfunction of phylotypes: mismatch between the ref for',\
         'excision we expected to find in this window:\n', UngappedRefHere,\
         '\nand the ref for excision we actually found in this window:\n',\
-        RefInAlignment.replace('-',''), '\nQuitting.', file=sys.stderr)
+        RefInAlignment.replace(GapChar,''), '\nQuitting.', file=sys.stderr)
         exit(1)
 
       # Excise the positions in the aligned set of reads.
