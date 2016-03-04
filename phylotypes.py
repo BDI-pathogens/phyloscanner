@@ -111,11 +111,9 @@ parser.add_argument('-A', '--alignment-of-other-refs', type=File,\
 help='An alignment of any reference sequences (which need not be those used '+\
 'to produce the bam files) to be cut into the same windows as the bam files '+\
 'and included in the alignment of reads (e.g. to help root trees).')
-parser.add_argument('-C', '--ref-for-coords', help='The coordinates are to be '\
-'interpreted with respect to (an ungapped version of) the reference named '\
-+'after this flag, which must be present in the file you specify with -A. (By '\
-+'default coordinates are interpreted with respect to the alignment of all '+\
-'bam and external references.)')
+parser.add_argument('-AO', '--align-refs-only', action='store_true', help='Align the'+\
+' references in the bam files (plus any extras specified with -A) then quit '+\
+'without parsing the reads.')
 parser.add_argument('-D', '--dont-check-duplicates', action='store_true', \
 help="Don't compare reads between samples to find duplicates - a possible "+\
 "indication of contamination. (By default this check is done.)")
@@ -140,14 +138,16 @@ parser.add_argument('-Q2', '--min-internal-quality', type=int, help=\
 'Discard reads containing more than one base of a quality below this parameter'\
 +'. If used in conjuction with the --quality-trim-ends option, the trimming '+\
 'of the ends is done first.')
-parser.add_argument('-R', '--ref-for-rooting', help='Used to name a reference'\
+parser.add_argument('-RR', '--ref-for-rooting', help='Used to name a reference'\
 '(which must be present in the file you specify with -A) to be an outgroup'+\
 ' in the tree.')
+parser.add_argument('-RC', '--ref-for-coords', help='The coordinates are to be'\
+' interpreted with respect to (an ungapped version of) the reference named '\
++'after this flag, which must be present in the file you specify with -A. (By '\
++'default coordinates are interpreted with respect to the alignment of all '+\
+'bam and external references.)')
 #parser.add_argument('-S', '--min-support', default=60, type=float, help=\
 #'The bootstrap support below which nodes will be collapsed, as a percentage.')
-parser.add_argument('--align-refs-only', action='store_true', help='Align the'+\
-' references in the bam files (plus any extras specified with -A) then quit '+\
-'without parsing the reads.')
 parser.add_argument('-T', '--no-trees', action='store_true', help='Generate '+\
 'aligned sets of reads for each window then quit without making trees.')
 parser.add_argument('-XC', '--excision-coords', type=CommaSeparatedInts, \
