@@ -46,6 +46,15 @@ label.separator <- opt$labelSeparator
 patient.id.position <- opt$patientIDPosition
 split.threshold <- opt$splitThreshold
 
+file.name <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160211/RAxML_bestTree.InWindow_800_to_1100.tree"
+output.name <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160211/NewLikelyTransmissions.InWindow_800_to_1100.csv"
+blacklist.file <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160211/Blacklist0.005_surviving_InWindow_800_to_1100.csv"
+root.name <- "B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
+label.separator <- "_"
+patient.id.position <- 1
+split.threshold <- 0.08
+
+
 cat("Opening file: ", file.name, "\n", sep = "")
 
 tree <-read.tree(file.name)
@@ -109,36 +118,92 @@ if(split.threshold<Inf){
   }
 }
 
-total.pairs <- length(patients) ^ 2 - length(patients)
+
+full.patients <- patients
+patients <- patients[1:50]
+
+total.pairs <- (length(patients) ^ 2 - length(patients))/2
 
 if(verbose){
   cat("Testing pairs\n")
 }
 
+
 count <- 0
 direct.descendant.matrix <- matrix(NA, length(patients), length(patients))
-for (desc in seq(1, length(patients))) {
-  for (anc in seq(1, length(patients))) {
-    if (desc != anc) {
+for (pat.1 in seq(1, length(patients))) {
+  for (pat.2 in seq(1, length(patients))) {
+    if (pat.1 < pat.2) {
       if (verbose) {
-        cat(
-          "Testing if ",patients[desc]," is directly descended from ",patients[anc],".\n", sep =
-            ""
-        )
+        cat("Testing relationship between ",patients[pat.1]," and ",patients[pat.2],".\n", sep = "")
       }
       
       count <- count + 1
-      
-      
-      if (!compareNA(direct.descendant.matrix[anc, desc],TRUE)) {
-        direct.descendant.matrix[desc, anc] <-
-          is.direct.descendant.of(tree, desc, anc, patient.mrcas, patient.tips, zero.length.tips.count)
-        if (direct.descendant.matrix[desc, anc]) {
-          cat(patients[desc],"is a descendant of",patients[anc],"\n")
-        }
-      } else {
-        direct.descendant.matrix[desc, anc] <- FALSE
+      if(verbose){
+        cat("Testing direct descent...")
       }
+      
+      if(is.direct.descendant.of(tree, patients[pat.1], patients[pat.2], patient.mrcas, patient.tips, zero.length.tips.count)){
+        if(verbose){
+          cat("found\n")
+        }
+        direct.descendant.matrix[pat.1, pat.2] <- "desc"
+      } else if(is.direct.descendant.of(tree, patients[pat.2], patients[pat.1], patient.mrcas, patient.tips, zero.length.tips.count)){
+        if(verbose){
+          cat("found\n")
+        }
+        direct.descendant.matrix[pat.1, pat.2] <- "anc"
+      } else {
+        if(verbose){
+          cat("not found\n")
+        }
+      }
+      if(verbose){
+        cat("Testing intermingling...")
+      }
+      
+      intermingled <- are.intermingled(tree, patients[pat.1], patients[pat.2], patient.mrcas, patient.tips)
+      
+      if(intermingled & !is.na(direct.descendant.matrix[pat.1, pat.2])){
+        cat("Intermingled but descendant?")
+        stop
+      }
+      
+      if(intermingled){
+        if(verbose){
+          cat("found\n")
+        }
+        direct.descendant.matrix[pat.1, pat.2] <- "int"
+      } else {
+        if(verbose){
+          cat("not found\n")
+        }
+      }
+      if(verbose){
+        cat("Testing sibling clades...")
+      }
+      siblings <- are.siblings(tree, patients[pat.1], patients[pat.2], patient.mrcas, patient.tips, zero.length.tips.count)
+      
+      if(siblings & !is.na(direct.descendant.matrix[pat.1, pat.2])){
+        cat("Siblings but descendant?")
+        stop
+      }
+      
+      if(siblings & intermingled){
+        cat("Siblings but intermingled?")
+        stop
+      }
+      if(siblings){
+        if(verbose){
+          cat("found\n")
+        }
+        direct.descendant.matrix[pat.1, pat.2] <- "sib"
+      } else{
+        if(verbose){
+          cat("not found\n")
+        }
+      }
+      
       
       if (count %% 100 == 0) {
         cat(
@@ -160,8 +225,6 @@ rownames(direct.descendant.table) <- patients
 dddf <- as.data.frame(direct.descendant.table)
 dddf <- dddf[complete.cases(dddf),]
 
-colnames(dddf) <- c("Descendant", "Ancestor", "Present")
-
-dddf <- dddf[dddf$Present,]
+colnames(dddf) <- c("Patient_1", "Patient.2", "Relationship")
 
 write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE)
