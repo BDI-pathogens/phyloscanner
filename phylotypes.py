@@ -70,13 +70,20 @@ def File(MyFile):
     raise argparse.ArgumentTypeError(MyFile+' does not exist or is not a file.')
   return MyFile
 
+# Define a function to check directories exist, as a type for the argparse.
+def Dir(MyDir):
+  if not os.path.isdir(MyDir):
+    raise argparse.ArgumentTypeError(MyDir + \
+    ' does not exist or is not a directory.')
+  return MyDir
+
 # Define a comma-separated integers object, as a type for the argparse.
 def CommaSeparatedInts(MyCommaSeparatedInts):
   try:
     ListOfInts = [int(value) for value in MyCommaSeparatedInts.split(',')]
   except:
-    raise argparse.ArgumentTypeError('Unable to understand the window '+\
-    'coordinates as comma-separated integers.')
+    raise argparse.ArgumentTypeError('Unable to understand ' +\
+    MyCommaSeparatedInts + ' as comma-separated integers.')
   else:
     return ListOfInts
 
@@ -113,15 +120,25 @@ parser.add_argument('-A', '--alignment-of-other-refs', type=File,\
 help='An alignment of any reference sequences (which need not be those used '+\
 'to produce the bam files) to be cut into the same windows as the bam files '+\
 'and included in the alignment of reads (e.g. to help root trees).')
-parser.add_argument('-AO', '--align-refs-only', action='store_true', help='Align the'+\
-' references in the bam files (plus any extras specified with -A) then quit '+\
-'without parsing the reads.')
+parser.add_argument('-AO', '--align-refs-only', action='store_true', \
+help='Align the references in the bam files (plus any extras specified with '+\
+'-A) then quit without parsing the reads.')
 parser.add_argument('-C', '--contaminant-count-ratio', type=float,\
 help='Used to specify a numerical value which is interpreted the following '+\
 'way: if a sequence is found exactly duplicated between any two bam files, '+\
 'and is more common in one than the other by a factor at least equal to this '+\
 'value, the rarer sequence is diagnosed as contamination. It does not go into'+\
 ' the tree, and instead goes into a contaminant read fasta file.')
+parser.add_argument('-CD', '--contaminant-read-dir', type=Dir, \
+help='A directory containing the contaminant read fasta files produced by a '+\
+'previous run of ' + os.path.basename(__file__) + ''' using the the -C flag:
+reads flagged as contaminants there will be considered contaminants in this run
+too. The windows must exactly match up between these two runs, most easily
+achieved with the -2 option. The point of this option is to first do a run with
+every bam file you have in which there could conceivably by cross-contamination,
+using the -C flag (and possibly -CO to save time), and then in subsequent runs
+focussing on subsets of bam files you will be able to identify contamination
+from outside that subset.'''.replace('\n', ' '))
 parser.add_argument('-CO', '--flag-contaminants-only', action='store_true', \
 help="For each window, just flag contaminant reads then move on (without "+\
 "aligning reads or making a tree). Only makes sense with the -C flag.")
@@ -130,7 +147,7 @@ help="Don't compare reads between samples to find duplicates - a possible "+\
 "indication of contamination. (By default this check is done.)")
 parser.add_argument('-F', '--renaming-file', type=File, help='Specify a file '\
 'with one line per bam file, showing how reads from that bam file should be '\
-'named in the output files.')
+"named in the output files. (By default, each bam file's basename is used.)")
 parser.add_argument('-I', '--discard-improper-pairs', action='store_true', \
 help='Any improperly paired reads will be discarded')
 parser.add_argument('-IO', '--inspect-disagreeing-overlaps', \
@@ -197,6 +214,7 @@ ImposeMinQual = args.min_internal_quality != None
 ExcisePositions = args.excision_coords != None
 PairwiseAlign = args.pairwise_align_to != None
 FlagContaminants = args.contaminant_count_ratio != None
+RecallContaminants = args.contaminant_read_dir != None
 
 # Check that window coords have been specified either manually or automatically.
 if (UserSpecifiedCoords and AutoWindows) or \
@@ -205,6 +223,53 @@ if (UserSpecifiedCoords and AutoWindows) or \
   'options should specified. (Not neither, not both.) Quitting.', \
   file=sys.stderr)
   exit(1)
+
+# If using automatic windows (i.e. not specifying any coordinates), the user
+# should not specify a reference for their coords to be interpreted with respect
+# to, nor use a directory of contaminant reads (since windows must match to make
+# use of contaminant reads).
+if AutoWindows:
+  if args.ref_for_coords != None:
+    print('The --ref-for-coords and --auto-window-params', \
+    'options should not be specified together: the first means your',\
+    'coordinates should be interpreted with respect to a named reference, and',\
+    "the second means you're not specfiying any coordinates. Quitting.", \
+    file=sys.stderr)
+    exit(1)
+  if RecallContaminants:
+    print('If using the --contaminant-read-dir option you cannot also use the',\
+    '--auto-window-params option, because the former requires that the',\
+    'windows in the current run exactly match up with those from the run that',\
+    'produces your directory of contaminant reads. Please choose window',\
+    'coordinates manually and try again. Quitting.', file=sys.stderr)
+    exit(1)
+
+# If coords were specified with respect to one particular reference, 
+# WindowCoords will be reassigned to be the translation of those coords to 
+# alignment coordinates. UserCoords are the original coords, which we use for
+# labelling things to keep labels intuitive for the user.
+UserCoords = WindowCoords
+
+# Find contaminant read files and link them to their windows.
+if RecallContaminants:
+  ContaminantFilesByWindow = {}
+  ContaminantFileRegex = FileForDuplicateSeqs_basename + \
+  'InWindow_(\d+)_to_(\d+)\.fasta'
+  ContaminantFileRegex2 = re.compile(ContaminantFileRegex)
+  LeftWindowEdges  = UserCoords[::2]
+  RightWindowEdges = UserCoords[1::2]
+  PairedWindowCoords = zip(LeftWindowEdges, RightWindowEdges)
+  for AnyFile in os.listdir(args.contaminant_read_dir):
+    if ContaminantFileRegex2.match(AnyFile):
+      (LeftEdge, RightEdge) = ContaminantFileRegex2.match(AnyFile).groups()
+      (LeftEdge, RightEdge) = (int(LeftEdge), int(RightEdge))
+      if (LeftEdge, RightEdge) in PairedWindowCoords:
+        ContaminantFilesByWindow[(LeftEdge, RightEdge)] = \
+        os.path.join(args.contaminant_read_dir, AnyFile)
+  if len(ContaminantFilesByWindow) == 0:
+    print('Failed to find any files matching the regex', ContaminantFileRegex, \
+    'in', args.contaminant_read_dir + '. Quitting.', file=sys.stderr)
+    exit(1)
 
 # Check the contamination ratio is >= 1
 if FlagContaminants and args.contaminant_count_ratio < 1:
@@ -219,15 +284,6 @@ if args.dont_check_duplicates and FlagContaminants:
   print('The --dont-check-duplicates and --contaminant-count-ratio options', \
   'cannot be used together: flagging contaminants requires that we check',\
   'duplicates. Quitting.', file=sys.stderr)
-  exit(1)
-
-# The user shouldn't specify a reference for their coords to be interpreted with
-# to, and choose automatic windows (i.e. not specify any coordinates).
-if AutoWindows and args.ref_for_coords != None:
-  print('The --ref-for-coords and --auto-window-params', \
-  'options should not be specified together: the first means your coordinates',\
-  'should be interpreted with respect to a named reference, and the second',\
-  "means you're not specfiying any coordinates. Quitting.", file=sys.stderr)
   exit(1)
 
 # The -XR and -XC flags should be used together or not all.
@@ -389,17 +445,6 @@ if args.renaming_file != None:
 else:
   BamAliases = BamFileBasenames
 
-# If the BamFileBasenames are all still unique after removing ".bam" from the
-# ends, do so, for aesthetics in output files.
-BamlessBasenames = []
-for BamFileBasename in BamFileBasenames:
-  if len(BamFileBasename) >= 4 and BamFileBasename[-4:] == '.bam':
-    BamlessBasenames.append(BamFileBasename[:-4])
-  else:
-    BamlessBasenames.append(BamFileBasename)
-if len(BamlessBasenames) == len(set(BamlessBasenames)):
-  BamFileBasenames = BamlessBasenames
-
 # Check that there are the same number of bam and reference files
 NumberOfBams = len(BamFiles)
 if NumberOfBams != len(RefFiles):
@@ -479,7 +524,6 @@ def TranslateCoords(CodeArgs):
 # If there is only one bam and no other refs, no coordinate translation
 # is necessary - we use the coords as they are, though setting any after the end
 # of the reference to be equal to the end of the reference.
-UserCoords = WindowCoords
 if NumberOfBams == 1 and not IncludeOtherRefs:
   if AutoWindows:
     print('As you are supplying a single bam file and no external references,',\
@@ -570,7 +614,7 @@ else:
       for seq in SeqIO.parse(open(FileForAlignedRefs),'fasta'):
         if seq.id == args.ref_for_coords:
           WindowCoords = \
-          pf.TranslateSeqCoordsToAlnCoords(str(seq.seq), WindowCoords)
+          pf.TranslateSeqCoordsToAlnCoords(str(seq.seq), UserCoords)
         if seq.id == args.excision_ref:
           RefForExcisionGappySeq = str(seq.seq)
           AlignmentExcisionCoords = pf.TranslateSeqCoordsToAlnCoords(\
@@ -756,6 +800,25 @@ for window in range(NumCoords / 2):
   if not args.dont_check_duplicates:
     AllReadDictsInThisWindow = []
 
+  # Try to find a contamination file for this window. If there is none, that 
+  # could be because the user did not put it in the intended directory, or
+  # because no contamination was found for this window: warn, but proceed. If
+  # there is one, read it in.
+  ContaminantReadsInput = {}
+  if RecallContaminants:
+    try:
+      ContaminantFile = \
+      ContaminantFilesByWindow[(UserLeftWindowEdge, UserRightWindowEdge)]
+    except KeyError:
+      print('Warning: no contaminant file found for window ' + \
+      str(UserLeftWindowEdge) + '-' + str(UserRightWindowEdge) +'.')
+    else:
+      for seq in SeqIO.parse(open(ContaminantFile), 'fasta'):
+        if seq.id in ContaminantReadsInput:
+          ContaminantReadsInput[seq.id].append(str(seq.seq))
+        else:
+          ContaminantReadsInput[seq.id] = [str(seq.seq)]
+
   # Iterate through the bam files
   for i,BamFileName in enumerate(BamFiles):
 
@@ -845,6 +908,24 @@ for window in range(NumCoords / 2):
         else:
           UniqueReads[seq] = 1
 
+    # If we've read in any contaminant reads for this window and this bam,
+    # remove them from the read dict. If they're not present in the read dict,
+    # warn but proceed. A 1bp slip in alignments between the previous
+    # (contaminant-finding) run and the current run could cause such an issue.
+    if BamAlias in ContaminantReadsInput:
+      HaveWarned = False
+      for read in ContaminantReadsInput[BamAlias]:
+        try:
+          del UniqueReads[read]
+        except KeyError:
+          if not HaveWarned:
+            print('Warning: at least one contaminant read in', ContaminantFile,\
+            'from', BamAlias, 'was not found in this window in', \
+            BamFileBasename + '. This could be due to a mismatch in window',\
+            'coordinates between the run that generated that contamination'\
+            'file and the present run. Proceeding.')
+            HaveWarned = True
+
     # If we are checking for read duplication between samples, record the file 
     # name and read dict for this sample and move on to the next sample.
     if not args.dont_check_duplicates:
@@ -864,7 +945,7 @@ for window in range(NumCoords / 2):
   # for any shared reads.
   if not args.dont_check_duplicates:
     DuplicateDetails = []
-    ContaminationDict = {}
+    ContaminantReadsFound = {}
     for i, (BamFile1Alias, ReadDict1, LeftWindowEdge1, RightWindowEdge1) \
     in enumerate(AllReadDictsInThisWindow):
       for j, (BamFile2Alias, ReadDict2, LeftWindowEdge2, RightWindowEdge2) \
@@ -886,30 +967,30 @@ for window in range(NumCoords / 2):
               elif CountRatio <= 1. / args.contaminant_count_ratio:
                 ContaminantAlias = BamFile1Alias
               if ContaminantAlias != None:
-                if ContaminantAlias in ContaminationDict:
+                if ContaminantAlias in ContaminantReadsFound:
                   # It's possible this read for this patient is considered
                   # contamination from more than one source, so check the read
                   # isn't there already before adding it to the list:
-                  if not read in ContaminationDict[ContaminantAlias]:
-                    ContaminationDict[ContaminantAlias].append(read)
+                  if not read in ContaminantReadsFound[ContaminantAlias]:
+                    ContaminantReadsFound[ContaminantAlias].append(read)
                 else:
-                  ContaminationDict[ContaminantAlias] = [read]
+                  ContaminantReadsFound[ContaminantAlias] = [read]
 
     # If contaminants are diagnosed, print them and remove them from their
     # ReadDict.
-    if ContaminationDict != {}:
+    if ContaminantReadsFound != {}:
       FileForDuplicateSeqs = FileForDuplicateSeqs_basename + \
       ThisWindowSuffix + '.fasta'
       AllContaminants = []
-      for alias, reads in ContaminationDict.items():
+      for alias, reads in ContaminantReadsFound.items():
         for read in reads:
           AllContaminants.append(SeqIO.SeqRecord(Seq.Seq(read), id=alias, \
           description=''))
       SeqIO.write(AllContaminants, FileForDuplicateSeqs, "fasta")
       for i, (BamAlias, ReadDict, LeftWindowEdge, RightWindowEdge) \
       in enumerate(AllReadDictsInThisWindow):
-        if BamAlias in ContaminationDict:
-          for read in ContaminationDict[BamAlias]:
+        if BamAlias in ContaminantReadsFound:
+          for read in ContaminantReadsFound[BamAlias]:
             del AllReadDictsInThisWindow[i][1][read]
     if args.flag_contaminants_only:
       continue
