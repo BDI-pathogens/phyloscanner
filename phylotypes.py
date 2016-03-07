@@ -33,6 +33,7 @@ FileForAlignedRefs = 'RefsAln.fasta'
 FileForDiscardedReadPairs_basename = 'DiscardedReads_'
 FileForSurvivingDuplicates_basename = 'DuplicateReads_surviving_'
 FileForEliminatedDuplicates_basename = 'DuplicateReads_eliminated_'
+FileForDuplicateSeqs_basename = 'DuplicateReads_contaminants_'
 
 # Some temporary working files we'll create
 FileForRefs = 'temp_refs.fasta'
@@ -46,6 +47,7 @@ GapChar = '-'
 
 import os
 import collections
+import itertools
 import subprocess
 import sys
 import re
@@ -114,6 +116,15 @@ help='An alignment of any reference sequences (which need not be those used '+\
 parser.add_argument('-AO', '--align-refs-only', action='store_true', help='Align the'+\
 ' references in the bam files (plus any extras specified with -A) then quit '+\
 'without parsing the reads.')
+parser.add_argument('-C', '--contaminant-count-ratio', type=float,\
+help='Used to specify a numerical value which is interpreted the following '+\
+'way: if a sequence is found exactly duplicated between any two bam files, '+\
+'and is more common in one than the other by a factor at least equal to this '+\
+'value, the rarer sequence is diagnosed as contamination. It does not go into'+\
+' the tree, and instead goes into a contaminant read fasta file.')
+parser.add_argument('-CO', '--flag-contaminants-only', action='store_true', \
+help="For each window, just flag contaminant reads then move on (without "+\
+"aligning reads or making a tree). Only makes sense with the -C flag.")
 parser.add_argument('-D', '--dont-check-duplicates', action='store_true', \
 help="Don't compare reads between samples to find duplicates - a possible "+\
 "indication of contamination. (By default this check is done.)")
@@ -122,6 +133,11 @@ parser.add_argument('-F', '--renaming-file', type=File, help='Specify a file '\
 'named in the output files.')
 parser.add_argument('-I', '--discard-improper-pairs', action='store_true', \
 help='Any improperly paired reads will be discarded')
+parser.add_argument('-IO', '--inspect-disagreeing-overlaps', \
+action='store_true', help='When read pairs are merged, those pairs that '+\
+'overlap but disagree are discarded. With this option, these discarded pairs '+\
+'are written to a bam file (one per patient, with their reference file copied'+\
+' to the working directory) for your inspection.')
 parser.add_argument('-M', '--raxml-model', default='GTRCAT',\
 help='The evoltionary model used by RAxML (GTRCAT by default).')
 parser.add_argument('-N', '--num-bootstraps', type=int,\
@@ -139,7 +155,7 @@ parser.add_argument('-Q2', '--min-internal-quality', type=int, help=\
 +'. If used in conjuction with the --quality-trim-ends option, the trimming '+\
 'of the ends is done first.')
 parser.add_argument('-RR', '--ref-for-rooting', help='Used to name a reference'\
-'(which must be present in the file you specify with -A) to be an outgroup'+\
+' (which must be present in the file you specify with -A) to be an outgroup'+\
 ' in the tree.')
 parser.add_argument('-RC', '--ref-for-coords', help='The coordinates are to be'\
 ' interpreted with respect to (an ungapped version of) the reference named '\
@@ -180,7 +196,7 @@ QualTrimEnds  = args.quality_trim_ends != None
 ImposeMinQual = args.min_internal_quality != None
 ExcisePositions = args.excision_coords != None
 PairwiseAlign = args.pairwise_align_to != None
-
+FlagContaminants = args.contaminant_count_ratio != None
 
 # Check that window coords have been specified either manually or automatically.
 if (UserSpecifiedCoords and AutoWindows) or \
@@ -188,6 +204,21 @@ if (UserSpecifiedCoords and AutoWindows) or \
   print('Exactly one of the --windows or --auto-window-params', \
   'options should specified. (Not neither, not both.) Quitting.', \
   file=sys.stderr)
+  exit(1)
+
+# Check the contamination ratio is >= 1
+if FlagContaminants and args.contaminant_count_ratio < 1:
+  print('The value specified with --contaminant-count-ratio must be greater', \
+  'than 1. (It is the ratio of the more common duplicate to the less common',\
+  'one at which we consider the less common one to be contamination; it',\
+  "should probably be quite a lot larger than 1.) Quitting.", file=sys.stderr)
+  exit(1)
+
+# Flagging contaminants requires that we check for duplicates
+if args.dont_check_duplicates and FlagContaminants:
+  print('The --dont-check-duplicates and --contaminant-count-ratio options', \
+  'cannot be used together: flagging contaminants requires that we check',\
+  'duplicates. Quitting.', file=sys.stderr)
   exit(1)
 
 # The user shouldn't specify a reference for their coords to be interpreted with
@@ -700,9 +731,10 @@ def ReadFastaOfReadsIntoDicts(FastaFile, ValuesAreCounts=True):
       NonSampleSeqs.append(seq)
   return SampleReadCounts, NonSampleSeqs
 
-# We'll keep a list of discarded read pairs for each bam file:
-DiscardedReadPairsDict = \
-{BamFileBasename:[] for BamFileBasename in BamFileBasenames}
+# If we're keeping track list of discarded read pairs for each bam file:
+if args.inspect_disagreeing_overlaps:
+  DiscardedReadPairsDict = \
+  {BamFileBasename:[] for BamFileBasename in BamFileBasenames}
 
 # Iterate through the windows
 for window in range(NumCoords / 2):
@@ -767,8 +799,9 @@ for window in range(NumCoords / 2):
             del AllReads[read.query_name]
             continue
           elif MergedRead == False:
-            DiscardedReadPairsDict[BamFileBasename] += [Read1,Read2]
             del AllReads[read.query_name]
+            if args.inspect_disagreeing_overlaps:
+              DiscardedReadPairsDict[BamFileBasename] += [Read1,Read2]
             continue
           AllReads[read.query_name] = MergedRead
 
@@ -815,7 +848,7 @@ for window in range(NumCoords / 2):
     # If we are checking for read duplication between samples, record the file 
     # name and read dict for this sample and move on to the next sample.
     if not args.dont_check_duplicates:
-      AllReadDictsInThisWindow.append((BamFileBasename, UniqueReads, \
+      AllReadDictsInThisWindow.append((BamAlias, UniqueReads, \
       LeftWindowEdge, RightWindowEdge))
 
     # If we're not checking for read duplication between samples, process the
@@ -828,23 +861,60 @@ for window in range(NumCoords / 2):
 
   # If we're checking for duplicate reads between samples, do so now.
   # Check every dict against every other dict, and record the ratio of counts
-  # for any shared reads...
+  # for any shared reads.
   if not args.dont_check_duplicates:
     DuplicateDetails = []
-    for i, (BamFile1Basename, ReadDict1, LeftWindowEdge1, RightWindowEdge1) \
+    ContaminationDict = {}
+    for i, (BamFile1Alias, ReadDict1, LeftWindowEdge1, RightWindowEdge1) \
     in enumerate(AllReadDictsInThisWindow):
-      for j, (BamFile2Basename, ReadDict2, LeftWindowEdge2, RightWindowEdge2) \
+      for j, (BamFile2Alias, ReadDict2, LeftWindowEdge2, RightWindowEdge2) \
       in enumerate(AllReadDictsInThisWindow[i+1:]):
         DuplicateReadRatios = []
         for read in ReadDict1:
           if read in ReadDict2:
-            BamFile1Alias = BamAliases[BamFileBasenames.index(BamFile1Basename)]
-            BamFile2Alias = BamAliases[BamFileBasenames.index(BamFile2Basename)]
             Bam1Count = ReadDict1[read]
             Bam2Count = ReadDict2[read]
             DuplicateDetails.append(\
             (BamFile1Alias, BamFile2Alias, read, Bam1Count, Bam2Count))
-    # ... and process the read dicts.
+
+            # Diagnose contaminants
+            if FlagContaminants:
+              CountRatio = float(Bam1Count) / Bam2Count
+              ContaminantAlias = None
+              if CountRatio >= args.contaminant_count_ratio:
+                ContaminantAlias = BamFile2Alias
+              elif CountRatio <= 1. / args.contaminant_count_ratio:
+                ContaminantAlias = BamFile1Alias
+              if ContaminantAlias != None:
+                if ContaminantAlias in ContaminationDict:
+                  # It's possible this read for this patient is considered
+                  # contamination from more than one source, so check the read
+                  # isn't there already before adding it to the list:
+                  if not read in ContaminationDict[ContaminantAlias]:
+                    ContaminationDict[ContaminantAlias].append(read)
+                else:
+                  ContaminationDict[ContaminantAlias] = [read]
+
+    # If contaminants are diagnosed, print them and remove them from their
+    # ReadDict.
+    if ContaminationDict != {}:
+      FileForDuplicateSeqs = FileForDuplicateSeqs_basename + \
+      ThisWindowSuffix + '.fasta'
+      AllContaminants = []
+      for alias, reads in ContaminationDict.items():
+        for read in reads:
+          AllContaminants.append(SeqIO.SeqRecord(Seq.Seq(read), id=alias, \
+          description=''))
+      SeqIO.write(AllContaminants, FileForDuplicateSeqs, "fasta")
+      for i, (BamAlias, ReadDict, LeftWindowEdge, RightWindowEdge) \
+      in enumerate(AllReadDictsInThisWindow):
+        if BamAlias in ContaminationDict:
+          for read in ContaminationDict[BamAlias]:
+            del AllReadDictsInThisWindow[i][1][read]
+    if args.flag_contaminants_only:
+      continue
+
+    # Process the read dicts (not yet done if we're checking for duplicates).
     for i, (BamFileBasename, ReadDict, LeftWindowEdge, RightWindowEdge) \
     in enumerate(AllReadDictsInThisWindow):
       AllReadsInThisWindow += \
@@ -1220,31 +1290,32 @@ for window in range(NumCoords / 2):
   #plt.savefig('foo.pdf')
 
 # Make a bam file of discarded read pairs for each input bam file.
-DiscardedReadPairsFiles = []
-for BamFileBasename, DiscardedReadPairs in DiscardedReadPairsDict.items():
-  if DiscardedReadPairs != []:
-    WhichBamFile = BamFileBasenames.index(BamFileBasename)
-    RefFile = RefFiles[WhichBamFile]
-    LocalRefFileName = BamFileBasename+'_ref.fasta'
-    # Copy the relevant reference file to the working directory, so that it's
-    # together with the discarded reads file. This might fail e.g. if the same
-    # file exists already - then do nothing.
-    try:
-      copy2(RefFile, LocalRefFileName)
-    except:
-      pass
-    if len(BamFileBasename) >= 4 and BamFileBasename[-4:] == '.bam':
-      OutFile = FileForDiscardedReadPairs_basename +BamFileBasename
-    else:
-      OutFile = FileForDiscardedReadPairs_basename +BamFileBasename +'.bam'
-    DiscardedReadPairsOut = pysam.AlignmentFile(OutFile, "wb", template=BamFile)
-    for read in DiscardedReadPairs:
-      DiscardedReadPairsOut.write(read)
-    DiscardedReadPairsOut.close()
-    DiscardedReadPairsFiles.append(OutFile)
-if DiscardedReadPairsFiles != []:
-  print('Info: read pairs that overlapped but disagreed on the overlap were',\
-  'found. These have been written to', ' '.join(DiscardedReadPairsFiles) +'.')
+if args.inspect_disagreeing_overlaps:
+  DiscardedReadPairsFiles = []
+  for BamFileBasename, DiscardedReadPairs in DiscardedReadPairsDict.items():
+    if DiscardedReadPairs != []:
+      WhichBamFile = BamFileBasenames.index(BamFileBasename)
+      RefFile = RefFiles[WhichBamFile]
+      LocalRefFileName = BamFileBasename+'_ref.fasta'
+      # Copy the relevant reference file to the working directory, so that it's
+      # together with the discarded reads file. This might fail e.g. if the same
+      # file exists already - then do nothing.
+      try:
+        copy2(RefFile, LocalRefFileName)
+      except:
+        pass
+      if len(BamFileBasename) >= 4 and BamFileBasename[-4:] == '.bam':
+        OutFile = FileForDiscardedReadPairs_basename +BamFileBasename
+      else:
+        OutFile = FileForDiscardedReadPairs_basename +BamFileBasename +'.bam'
+      DiscardedReadPairsOut = pysam.AlignmentFile(OutFile, "wb", template=BamFile)
+      for read in DiscardedReadPairs:
+        DiscardedReadPairsOut.write(read)
+      DiscardedReadPairsOut.close()
+      DiscardedReadPairsFiles.append(OutFile)
+  if DiscardedReadPairsFiles != []:
+    print('Info: read pairs that overlapped but disagreed on the overlap were',\
+    'found. These have been written to', ' '.join(DiscardedReadPairsFiles) +'.')
 
 
 # Some code not being used at the moment:
