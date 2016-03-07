@@ -3,6 +3,8 @@ import os
 import sys
 import subprocess
 
+GapChar = '-'
+
 # Test that we can run code we'll need
 DirectoryOfThisScript = os.path.dirname(os.path.realpath(__file__))
 def FindAndCheckCode(CodeBasename):
@@ -85,7 +87,7 @@ def TranslateSeqCoordsToAlnCoords(seq, coords):
   TranslatedCoords = [-1 for coord in coords]
   PositionInSeq = 0
   for GappyPostitionMin1,base in enumerate(seq):
-    if base != '-':
+    if base != GapChar:
       PositionInSeq += 1
       for i,coord in enumerate(coords):
         if coord == PositionInSeq:
