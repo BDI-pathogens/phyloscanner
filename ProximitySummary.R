@@ -1,97 +1,122 @@
 # summarises transmission information
 
-setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/JuicyCladeOrig_NoMerge/")
+setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/Matthew_notebook/")
 
-patient.seq <- seq(1,907)
-patient.ids <- paste("BEE", formatC(patient.seq, width = 4, format = "d", flag = "0"), "-1", sep="")
 
-parent.list <- vector("list", length(patient.ids))
+get.neighbours <- function(table, patient, threshold){
+  part.1 <- table[which(table$pat.1==patient & table$mrca.distance<=threshold ),2]
+  part.2 <- table[which(table$pat.2==patient & table$mrca.distance<=threshold ),1]
+  return(c(part.1, part.2))
+}
 
-names(parent.list) <- patient.ids
+get.nearest.neighbours <- function(table, patient, number){
+  part.1 <- table[which(table$pat.1==patient),c(2,3)]
+  part.2 <- table[which(table$pat.2==patient),c(1,3)]
+  colnames(part.1) <- c("Neighbour", "Distance")
+  colnames(part.2) <- c("Neighbour", "Distance")
+  full <- rbind(part.1, part.2)
+  full <- full[order(full$Distance),]
+  return(full[1:number,])
+}
 
-window.count <- 0
+contains.split <- function(string){
+  return(grepl("split", string))
+}
+
+splits.list <- list()
 
 for(start in seq(800, 9200, by=200)){
   print(start)
   end <- start+300 
   
-  if(file.exists(paste("LikelyTransmissions_",start,"_to_",end,".csv",sep=""))){
+  if(file.exists(paste("ProximityCheck_",start,"_to_",end,".csv",sep=""))){
     
-    window.count <- window.count + 1
     
-    transmissions.table <- read.table(paste("LikelyTransmissions_",start,"_to_",end,".csv",sep=""), 
-                                      sep=",", 
-                                      header=TRUE,
-                                      stringsAsFactors=FALSE)
+    proximity.table <- read.table(paste("ProximityCheck_",start,"_to_",end,".csv",sep=""), 
+                                  sep=",", 
+                                  header=TRUE,
+                                  stringsAsFactors=FALSE)
     
-    if(nrow(transmissions.table)>0){
-      for(row in seq(1,nrow(transmissions.table))){
-        parent <- transmissions.table[row,1]
-        child <- transmissions.table[row,2]
-        
-        parent <- substr(parent, 1, 9)
-        child <- substr(child, 1, 9)
-        
-        parent.list[[parent]] <- c(parent.list[[parent]], child)
+    proximity.table <- proximity.table[which(proximity.table$pat.1!=proximity.table$pat.2),]
+    
+    
+    split.patients <- unique(c(proximity.table[which(contains.split(proximity.table$pat.1)),1],
+                               proximity.table[which(contains.split(proximity.table$pat.2)),2]))
+    
+    split.originals <- substring(split.patients, 1, 9) 
+    
+    for(patient in unique(split.originals)){
+      if(!is.null(splits.list[[patient]])){
+        cat(patient," already exists in the list and has value ",splits.list[[patient]],".\n",sep="")
+        splits.list[patient] <- splits.list[[patient]] + 1
+      } else {
+        cat(patient," is new to the list.\n", sep="")
+        splits.list[patient] <- 1
       }
     }
-    
   }
 }
 
-parents <- vector()
-children <- vector()
-presence <- vector()
-presence.where.recorded <- vector()
+out <- vector()
 
-parents.2 <- vector()
-children.2 <- vector()
-presence.2 <- vector()
-presence.where.recorded.2 <- vector()
-
-parents.3 <- vector()
-children.3 <- vector()
-presence.3 <- vector()
-presence.where.recorded.3 <- vector()
-
-for(child in patient.ids){
-  for(parent in unique(parent.list[[child]])){
-    count <- sum(parent.list[[child]]==parent)
+for(start in seq(800, 9200, by=200)){
+  
+  end <- start+300 
+  
+  cat("Window: ",start," to ",end,".\n", sep="")
+  
+  if(file.exists(paste("ProximityCheck_",start,"_to_",end,".csv",sep=""))){
     
-    parents <- c(parents, parent)
-    children <- c(children, child)
-    presence <- c(presence, count)
-    presence.where.recorded <- c(presence.where.recorded, count/length(parent.list[[child]]))
     
-    if(count>=2){
+    proximity.table <- read.table(paste("ProximityCheck_",start,"_to_",end,".csv",sep=""), 
+                                  sep=",", 
+                                  header=TRUE,
+                                  stringsAsFactors=FALSE)
+    
+    proximity.table <- proximity.table[which(proximity.table$pat.1!=proximity.table$pat.2),]
+    
+    for(patient in names(splits.list)){
+      cat("Examining patient ", patient, ".\n",sep="")
       
-      parents.2 <- c(parents.2, parent)
-      children.2 <- c(children.2, child)
-      presence.2 <- c(presence.2, count)
-      presence.where.recorded.2 <- c(presence.where.recorded.2, count/length(parent.list[[child]]))
+      if(nrow(proximity.table[which(proximity.table$pat.1==patient),])>0 |
+         nrow(proximity.table[which(proximity.table$pat.2==patient),])>0){
+        cat("No split in this window.\n")
+        
+        neighbours <- get.nearest.neighbours(proximity.table, patient, 5)
+        
+        row <- c(start, end, patient, patient, neighbours[,1])
+        out <- rbind(out, row)
+      } else {
+        cat("Split in this window:")
+        splits.exist.here <- TRUE
+        counter <- 1
+        while(splits.exist.here){
+          split.name <- paste(patient, "_split", counter, sep="")
+          
+          if(nrow(proximity.table[which(proximity.table$pat.1==split.name),])>0 |
+             nrow(proximity.table[which(proximity.table$pat.2==split.name),])>0){ 
+            cat(split.name,"...")
+            
+            neighbours <- get.nearest.neighbours(proximity.table, split.name, 5)
+            
+            row <- c(start, end, patient, split.name, neighbours[,1])
+            out <- rbind(out, row)
+            counter <- counter + 1
+            
+          } else {
+            splits.exist.here <- FALSE
+            cat("done.\n")
+          }
+        }
+      }
       
     }
-    
-    if(count>=3){
-      
-      parents.3 <- c(parents.3, parent)
-      children.3 <- c(children.3, child)
-      presence.3 <- c(presence.3, count)
-      presence.where.recorded.3 <- c(presence.where.recorded.3, count/length(parent.list[[child]]))
-      
-    }
-    
   }
 }
 
+out.df <- data.frame(out)
 
-out <- data.frame(parents, children, presence, presence.where.recorded)
-out.2 <- data.frame(parents.2, children.2, presence.2, presence.where.recorded.2)
-out.3 <- data.frame(parents.3, children.3, presence.3, presence.where.recorded.3)
+colnames(out.df) <- c("start", "end", "patient", "split.patient", "neighbour.1", "neighbour.2", 
+                      "neighbour.3", "neighbour.4", "neighbour.5")
 
-colnames(out.2) <- colnames(out)
-colnames(out.3) <- colnames(out)
-
-write.table(out, file="transmissionSummary.csv", sep=",", col.names = TRUE, row.names = FALSE)
-write.table(out.2, file="transmissionSummary_noSingletons.csv", sep=",", col.names = TRUE, row.names = FALSE)
-write.table(out.3, file="transmissionSummary_min3.csv", sep=",", col.names = TRUE, row.names = FALSE)
+write.table(out.df, file="neighbours.csv", sep="", row.names=NA)
