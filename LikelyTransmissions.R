@@ -2,7 +2,7 @@ library(phangorn)
 library(optparse)
 library(phytools)
 
-source("TransmissionUtilityFunctions.R")
+source("phylotypes2/TransmissionUtilityFunctions.R")
 
 
 option_list = list(
@@ -46,13 +46,13 @@ label.separator <- opt$labelSeparator
 patient.id.position <- opt$patientIDPosition
 split.threshold <- opt$splitThreshold
 
-file.name <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160211/RAxML_bestTree.InWindow_800_to_1100.tree"
-output.name <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160211/NewLikelyTransmissions.InWindow_800_to_1100.csv"
-blacklist.file <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160211/Blacklist0.005_surviving_InWindow_800_to_1100.csv"
-root.name <- "B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
-label.separator <- "_"
-patient.id.position <- 1
-split.threshold <- 0.08
+# file.name <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160211/RAxML_bestTree.InWindow_800_to_1100.tree"
+# output.name <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160211/NewLikelyTransmissions.InWindow_800_to_1100.csv"
+# blacklist.file <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160211/Blacklist0.005_surviving_InWindow_800_to_1100.csv"
+# root.name <- "B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
+# label.separator <- "_"
+# patient.id.position <- 1
+# split.threshold <- 0.08
 
 
 cat("Opening file: ", file.name, "\n", sep = "")
@@ -117,10 +117,6 @@ if(split.threshold<Inf){
     split.patient(tree, id, split.threshold, patients, patient.tips, patient.mrcas, patient.ids, split.counts)
   }
 }
-
-
-full.patients <- patients
-patients <- patients[1:50]
 
 total.pairs <- (length(patients) ^ 2 - length(patients))/2
 
@@ -225,6 +221,6 @@ rownames(direct.descendant.table) <- patients
 dddf <- as.data.frame(direct.descendant.table)
 dddf <- dddf[complete.cases(dddf),]
 
-colnames(dddf) <- c("Patient_1", "Patient.2", "Relationship")
+colnames(dddf) <- c("Patient_1", "Patient_2", "Relationship")
 
 write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE)
