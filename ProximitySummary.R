@@ -1,6 +1,6 @@
 # summarises transmission information
 
-setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/Matthew_notebook/")
+setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160307/")
 
 
 get.neighbours <- function(table, patient, threshold){
@@ -25,9 +25,9 @@ contains.split <- function(string){
 
 splits.list <- list()
 
-for(start in seq(800, 9200, by=200)){
+for(start in seq(800, 9050, by=275)){
   print(start)
-  end <- start+300 
+  end <- start+375 
   
   if(file.exists(paste("ProximityCheck_",start,"_to_",end,".csv",sep=""))){
     
@@ -59,9 +59,9 @@ for(start in seq(800, 9200, by=200)){
 
 out <- vector()
 
-for(start in seq(800, 9200, by=200)){
+for(start in seq(800, 9050, by=275)){
   
-  end <- start+300 
+  end <- start+375 
   
   cat("Window: ",start," to ",end,".\n", sep="")
   
@@ -95,7 +95,7 @@ for(start in seq(800, 9200, by=200)){
           
           if(nrow(proximity.table[which(proximity.table$pat.1==split.name),])>0 |
              nrow(proximity.table[which(proximity.table$pat.2==split.name),])>0){ 
-            cat(split.name,"...")
+            cat(split.name,"...",sep="")
             
             neighbours <- get.nearest.neighbours(proximity.table, split.name, 5)
             
@@ -114,9 +114,10 @@ for(start in seq(800, 9200, by=200)){
   }
 }
 
-out.df <- data.frame(out)
+out.df <- data.frame(out, row.names=NULL)
+
 
 colnames(out.df) <- c("start", "end", "patient", "split.patient", "neighbour.1", "neighbour.2", 
                       "neighbour.3", "neighbour.4", "neighbour.5")
 
-write.table(out.df, file="neighbours.csv", sep="", row.names=NA)
+write.table(out.df, file="neighbours.csv", sep=",", col.names=NA, quote=FALSE)

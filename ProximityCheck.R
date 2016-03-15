@@ -2,7 +2,7 @@ library(phangorn)
 library(optparse)
 library(phytools)
 
-source("TransmissionUtilityFunctions.R")
+source("phylotypes2/TransmissionUtilityFunctions.R")
 
 option_list = list(
   make_option(c("-f", "--file"), type="character", default=NULL, 
@@ -97,15 +97,31 @@ patient.ids[outgroup.no] <- "Ref"
 #if all tips from a given patient are on the blacklist, safe to ignore him/her
 
 if(!is.null(blacklist)){
-  patients <- unique(patient.ids[-blacklist])
+  relevant.tips <- patient.ids[-blacklist]
+  patients <- unique(relevant.tips)
 } else {
+  relevant.tips <- patient.ids
   patients <- unique(patient.ids)
 }
 
 patients <- patients[which(substr(patients, 1,3) == "BEE")]
 
+
 patient.tips <-
   sapply(patients, get.tips.for.patient, tree = tree, patient.ids = patient.ids, blacklist=blacklist)
+
+num.reads <- list()
+for (tip in tree$tip.label) {
+  num.reads[[tip]] <- as.numeric(unlist(strsplit(tip, "count_"))[2])
+}
+if(!is.null(blacklist.file)){
+
+  for(blacklisted.tip in blacklist.table[,1]){
+    num.reads[[blacklisted.tip]] <- 0
+  }
+} 
+num.reads <- unlist(num.reads)
+num.reads.total <- sum(num.reads)
 
 patient.mrcas <- lapply(patient.tips, function(node) mrca.phylo.or.unique.tip(tree, node, zero.length.tips.count))
 
@@ -114,7 +130,12 @@ split.counts <- list()
 #splitting
 if(split.threshold<Inf){
   for(id in patients){
-    split.patient(tree, id, split.threshold, patients, patient.tips, patient.mrcas, patient.ids, split.counts)
+#     split.threshold <- 0.04
+#     split.patient.2(tree, id, split.threshold, override.threshold, patients, patient.tips, patient.mrcas, 
+#                     patient.ids, num.reads, split.counts)
+    split.threshold <- 0.08
+    split.patient(tree, id, split.threshold, patients, patient.tips, patient.mrcas, 
+                    patient.ids, split.counts)
   }
 }
 
