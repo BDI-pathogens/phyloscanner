@@ -1,6 +1,8 @@
 # summarises transmission information
 
-setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/JuicyCladeOrig_NoMerge/")
+library(prodlim)
+
+setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160307/")
 
 patient.seq <- seq(1,907)
 patient.ids <- paste("BEE", formatC(patient.seq, width = 4, format = "d", flag = "0"), "-1", sep="")
@@ -9,15 +11,23 @@ parent.list <- vector("list", length(patient.ids))
 
 names(parent.list) <- patient.ids
 
+for(patient.id in patient.ids){
+  parent.list[[patient.id]] <- rep(NA, 31)
+}
+
 window.count <- 0
 
-for(start in seq(800, 9200, by=200)){
-  print(start)
-  end <- start+300 
+transmissions.ever.suggested <- vector()
+
+for(start in seq(800, 9050, by=275)){
+  window.count <- window.count + 1
+  
+  cat("Window ",start, " to ",end,"\n",sep="")
+  end <- start+375 
   
   if(file.exists(paste("LikelyTransmissions_",start,"_to_",end,".csv",sep=""))){
     
-    window.count <- window.count + 1
+    
     
     transmissions.table <- read.table(paste("LikelyTransmissions_",start,"_to_",end,".csv",sep=""), 
                                       sep=",", 
@@ -26,72 +36,129 @@ for(start in seq(800, 9200, by=200)){
     
     if(nrow(transmissions.table)>0){
       for(row in seq(1,nrow(transmissions.table))){
-        parent <- transmissions.table[row,1]
-        child <- transmissions.table[row,2]
-        
-        parent <- substr(parent, 1, 9)
-        child <- substr(child, 1, 9)
-        
-        parent.list[[parent]] <- c(parent.list[[parent]], child)
+        if(transmissions.table$Relationship[row]=="anc" | transmissions.table$Relationship[row]=="desc"){
+          
+          pat.1 <- transmissions.table[row,1]
+          pat.2 <- transmissions.table[row,2]
+          
+          pat.1 <- substr(pat.1, 1, 9)
+          pat.2 <- substr(pat.2, 1, 9)
+          
+          transmissions.ever.suggested <- rbind(transmissions.ever.suggested, c(pat.1, pat.2))
+
+        } 
       }
     }
-    
   }
 }
 
-parents <- vector()
-children <- vector()
-presence <- vector()
-presence.where.recorded <- vector()
+transmissions.ever.suggested <- as.data.frame(unique(transmissions.ever.suggested), stringsAsFactors=FALSE)
 
-parents.2 <- vector()
-children.2 <- vector()
-presence.2 <- vector()
-presence.where.recorded.2 <- vector()
+reversed.t.e.s <- as.data.frame(cbind(transmissions.ever.suggested[,2],transmissions.ever.suggested[,1]), stringsAsFactors = FALSE)
 
-parents.3 <- vector()
-children.3 <- vector()
-presence.3 <- vector()
-presence.where.recorded.3 <- vector()
+matches <- row.match(transmissions.ever.suggested, reversed.t.e.s)
 
-for(child in patient.ids){
-  for(parent in unique(parent.list[[child]])){
-    count <- sum(parent.list[[child]]==parent)
-    
-    parents <- c(parents, parent)
-    children <- c(children, child)
-    presence <- c(presence, count)
-    presence.where.recorded <- c(presence.where.recorded, count/length(parent.list[[child]]))
-    
-    if(count>=2){
-      
-      parents.2 <- c(parents.2, parent)
-      children.2 <- c(children.2, child)
-      presence.2 <- c(presence.2, count)
-      presence.where.recorded.2 <- c(presence.where.recorded.2, count/length(parent.list[[child]]))
-      
-    }
-    
-    if(count>=3){
-      
-      parents.3 <- c(parents.3, parent)
-      children.3 <- c(children.3, child)
-      presence.3 <- c(presence.3, count)
-      presence.where.recorded.3 <- c(presence.where.recorded.3, count/length(parent.list[[child]]))
-      
-    }
-    
+to.go <- rep(FALSE, nrow(transmissions.ever.suggested))
+
+for(comp in seq(1, length(matches))){
+  if(!(is.na(matches[comp])) & (comp < matches[comp])){
+    to.go[comp] <- TRUE
   }
 }
 
+transmissions.ever.suggested <- transmissions.ever.suggested[which(!to.go), ]
+window.count <- 0
 
-out <- data.frame(parents, children, presence, presence.where.recorded)
-out.2 <- data.frame(parents.2, children.2, presence.2, presence.where.recorded.2)
-out.3 <- data.frame(parents.3, children.3, presence.3, presence.where.recorded.3)
+first <-TRUE
 
-colnames(out.2) <- colnames(out)
-colnames(out.3) <- colnames(out)
+for(start in seq(800, 9050, by=275)){
+  window.vector <- rep(NA, nrow(transmissions.ever.suggested))
+  
+  window.count <- window.count + 1
+  
+  print(start)
+  end <- start+375 
+  
+  if(file.exists(paste("LikelyTransmissions_",start,"_to_",end,".csv",sep=""))){
+    
+    
+    
+    transmissions.table <- read.table(paste("LikelyTransmissions_",start,"_to_",end,".csv",sep=""), 
+                                      sep=",", 
+                                      header=TRUE,
+                                      stringsAsFactors=FALSE)
+    
+    if(nrow(transmissions.table)>0){
+      for(row in seq(1,nrow(transmissions.table))){
+        # if the row exists
+        if(!is.na(row.match(transmissions.table[row,1:2], transmissions.ever.suggested))){
+          window.vector[row.match(transmissions.table[row,1:2], transmissions.ever.suggested)] <- transmissions.table[row,3] 
+        } else if(!is.na(row.match(rev(transmissions.table[row,1:2]), transmissions.ever.suggested))){
+          if(transmissions.table[row,3] == "anc"){
+            window.vector[row.match(rev(transmissions.table[row,1:2]), transmissions.ever.suggested)] <- "desc" 
+          } else if (transmissions.table[row,3] == "desc"){
+            window.vector[row.match(rev(transmissions.table[row,1:2]), transmissions.ever.suggested)] <- "anc" 
+          } else {
+            window.vector[row.match(rev(transmissions.table[row,1:2]), transmissions.ever.suggested)] <- transmissions.table[row,3]
+          }
+        }
+      }
+    }
+  }
+  if(first){
+    first <- FALSE
+    out <- window.vector
+  } else {
+    out <- cbind(out, window.vector) 
+  }
+}
 
-write.table(out, file="transmissionSummary.csv", sep=",", col.names = TRUE, row.names = FALSE)
-write.table(out.2, file="transmissionSummary_noSingletons.csv", sep=",", col.names = TRUE, row.names = FALSE)
-write.table(out.3, file="transmissionSummary_min3.csv", sep=",", col.names = TRUE, row.names = FALSE)
+out <- cbind(transmissions.ever.suggested, out)
+
+colnames(out) <- c("pat.1", "pat.2", paste("window.start.",seq(800,9050,by=275), sep="")  ) 
+  
+write.table(out, file="quickout.csv", sep=",", col.names=NA)
+
+first <- TRUE
+
+for(row in seq(1, nrow(out))){
+  row.list <- list()
+  row.list["anc"] <- 0
+  row.list["desc"] <- 0
+  row.list["int"] <- 0
+  row.list["sib"] <- 0
+  
+  for(col in seq(3, ncol(out))){
+    if(!is.na(out[row,col])){
+      row.list[[out[row,col]]] <- row.list[[out[row,col]]] + 1
+    }
+  }
+  
+  anc.row <- c(out[row,1], out[row,2], row.list[["anc"]], "trans", row.list[["anc"]]+row.list[["desc"]])
+  desc.row <- c(out[row,2], out[row,1], row.list[["desc"]], "trans", row.list[["anc"]]+row.list[["desc"]])
+  int.row <- c(out[row,1], out[row,2], row.list[["int"]], "int", row.list[["anc"]]+row.list[["desc"]])
+  sib.row <- c(out[row,1], out[row,2], row.list[["sib"]], "sib", row.list[["anc"]]+row.list[["desc"]])
+  
+  new.rows <- data.frame(rbind(anc.row, desc.row, int.row, sib.row), stringsAsFactors = F)
+  
+  colnames(new.rows) <- c("pat.1", "pat.2", "windows", "type", "total.trans")
+  
+  if(first){
+    first <- FALSE
+    new.out <- new.rows[which(new.rows$windows>0),]
+  } else {
+    new.out <- rbind(new.out, new.rows[which(new.rows$windows>0),])
+  }
+  
+}
+
+new.out$windows <- as.numeric(new.out$windows)
+new.out$total.trans <- as.numeric(new.out$total.trans)
+
+write.table(new.out, file="transSummary.csv", row.names = F, sep=",", quote=FALSE)
+write.table(new.out[which(new.out$total.trans>=2),], file="transSummary_2.csv", row.names = F, sep=",", quote=FALSE)
+write.table(new.out[which(new.out$total.trans>=3),], file="transSummary_3.csv", row.names = F, sep=",", quote=FALSE)
+write.table(new.out[which(new.out$total.trans>=4),], file="transSummary_4.csv", row.names = F, sep=",", quote=FALSE)
+write.table(new.out[which(new.out$total.trans>=5),], file="transSummary_5.csv", row.names = F, sep=",", quote=FALSE)
+write.table(new.out[which(new.out$total.trans>=6),], file="transSummary_6.csv", row.names = F, sep=",", quote=FALSE)
+write.table(new.out[which(new.out$total.trans>=10),], file="transSummary_10.csv", row.names = F, sep=",", quote=FALSE)
