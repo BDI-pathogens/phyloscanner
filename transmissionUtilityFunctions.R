@@ -1,7 +1,5 @@
 require(phangorn)
 
-source("SummariseTrees_funcs.R")
-
 get.tip.no <- function(tree, name) {
   return(match(name, tree$tip.label))
 }
