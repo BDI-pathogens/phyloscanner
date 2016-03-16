@@ -413,8 +413,9 @@ else:
     'be greater than zero. Quitting.', file=sys.stderr)
     exit(1)
 
-# Sort excision coords, largest to smallest
+# Remove duplicated excision coords. Sort from largest to smallest.
 if ExcisePositions:
+  args.excision_coords = list(set(args.excision_coords))
   args.excision_coords = sorted(args.excision_coords, reverse=True)
 
 # Check that the bootstrap threshold is between 0 and 100
