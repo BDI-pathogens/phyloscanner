@@ -1232,6 +1232,7 @@ for window in range(NumCoords / 2):
       for pos in PositionsInAlignment:
         SeqAlignmentHere = \
         SeqAlignmentHere[:, :pos-1] + SeqAlignmentHere[:, pos:]
+      # TODO: merge again, now positions have been excised.
       AlignIO.write(SeqAlignmentHere, FileForAlignedReads_PositionsExcised, \
       'fasta')
       FileForTrees = FileForAlignedReads_PositionsExcised
