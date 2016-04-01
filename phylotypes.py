@@ -293,6 +293,27 @@ if (ExcisePositions and args.excision_ref == None) or \
   'use both, or neither. Quitting.', file=sys.stderr)
   exit(1)
 
+# Sanity checks on using the pairwise alignment option.
+if PairwiseAlign:
+  if args.ref_for_coords != None:
+    print('Note that if the --pairwise-align-to option is used, using the',\
+    '--ref-for-coords as well is redundant.', file=sys.stderr)
+    if args.ref_for_coords != args.pairwise_align_to:
+      print('Furthermore you have chosen two different values for these flags,'\
+      , 'indicating some confusion as to their use. Try again.')
+      exit(1)
+  if AutoWindows:
+    print('As you have chosen that references are aligned in a pairwise',\
+    'manner, please specify coordinates manually - the automatic option is',\
+    "for stepping through a global alignment of all references. Quitting.",
+    file=sys.stderr)
+    exit(1)
+  if ExcisePositions and args.excision_ref != args.pairwise_align_to:
+    print('The --pairwise-align-to and --excision-ref options can only be',\
+    'used at once if the same reference is specified for both. Qutting.',\
+    file=sys.stderr)
+    exit(1)
+
 # TODO: remove this testing
 #read1 = pf.PseudoRead('read1', 'abcdefghij', [1,2,3,4,5,6,7,8,9,10], [30]*10)
 
@@ -348,28 +369,6 @@ for FlagName, FlagValue in (('--ref-for-coords',  args.ref_for_coords),\
     file=sys.stderr)
     exit(1)
 
-# Sanity checks on using the pairwise alignment option.
-if PairwiseAlign:
-  if args.ref_for_coords != None:
-    print('Note that if the --pairwise-align-to option is used, using the',\
-    '--ref-for-coords as well is redundant.', file=sys.stderr)
-    if args.ref_for_coords != args.pairwise_align_to:
-      print('Furthermore you have chosen two different values for these flags,'\
-      , 'indicating some confusion as to their use. Try again.')
-      exit(1)
-  if AutoWindows:
-    print('As you have chosen that references are aligned in a pairwise',\
-    'manner, please specify coordinates manually - the automatic option is',\
-    "for stepping through a global alignment of all references. Quitting.",
-    file=sys.stderr)
-    exit(1)
-  if ExcisePositions and args.excision_ref != args.pairwise_align_to:
-    print('The --pairwise-align-to and --excision-ref options can only be',\
-    'used at once if the same reference is specified for both. Qutting.',\
-    file=sys.stderr)
-    exit(1)
-
-  
 def SanityCheckWindowCoords(WindowCoords):
   'Check window coordinates come in pairs, all positive, the right > the left.'
   NumCoords = len(WindowCoords)
@@ -742,14 +741,14 @@ def ProcessReadDict(ReadDict, WhichBam, LeftWindowEdge, RightWindowEdge):
 # constrained to come at the end of the string. We'll need it later.
 SampleRegex = re.compile('_read_\d+_count_\d+$')
 
-def ReadFastaOfReadsIntoDicts(FastaFile, ValuesAreCounts=True):
+def ReadAlignedReadsIntoDicts(AlignIOobject, ValuesAreCounts=True):
   '''Collects sample seqs and into dicts, and other seqs into a list.
 
   The values of the dicts are either the seq count (inferred from the seq name)
   or simply the seq name.'''
   SampleReadCounts = collections.OrderedDict()
   NonSampleSeqs = []
-  for seq in SeqIO.parse(open(FastaFile),'fasta'):
+  for seq in AlignIOobject:
     RegexMatch = SampleRegex.search(seq.id)
     if RegexMatch and seq.id[:RegexMatch.start()] in BamAliases:
       SampleName = seq.id[:RegexMatch.start()]
@@ -769,10 +768,9 @@ def ReadFastaOfReadsIntoDicts(FastaFile, ValuesAreCounts=True):
         SampleReadCounts[SampleName] = {read : value}
     else:
       if not seq.id in ExternalRefNames:
-        print('Malfunction of phylotypes: sequence', seq.id, 'in', \
-        FileForReads, 'not recognised as a read nor as an external reference.',\
-        'Quitting.', file=sys.stderr)
-        exit(1)
+        print('Malfunction of phylotypes: sequence', seq.id, 'not recognised', \
+        'as a read nor as an external reference.', file=sys.stderr)
+        raise
       NonSampleSeqs.append(seq)
   return SampleReadCounts, NonSampleSeqs
 
@@ -1092,7 +1090,18 @@ for window in range(NumCoords / 2):
   # found by matching the RegexMatch '_read_\d+_count_\d+$'; other sequences
   # should be external references the user included, and are not processed.
   if args.MergingThreshold > 0:
-    SampleReadCounts, RefSeqs = ReadFastaOfReadsIntoDicts(FileForReads)
+    try:
+      SeqAlignmentHere = AlignIO.read(FileForReads, "fasta")
+    except:
+      print('Malfunction of phylotypes: problem encountered reading in', \
+      FileForReads, 'as an alignment. Quitting.', file=sys.stderr)
+      raise
+    try:
+      SampleReadCounts, RefSeqs = ReadAlignedReadsIntoDicts(SeqAlignmentHere)
+    except:
+      print('Problem encountered while analysing', \
+      FileForReads +'. Quitting.', file=sys.stderr)
+      exit(1)
     SampleSeqsToPrint = []
     for SampleName in SampleReadCounts:
       SampleReadCounts[SampleName] = \
@@ -1139,8 +1148,19 @@ for window in range(NumCoords / 2):
   # of the duplicates we found before merging (and imposing a minimum count) are
   # are still there.
   if not args.dont_check_duplicates and DuplicateDetails != []:
-    SampleReadNames, RefSeqs = \
-    ReadFastaOfReadsIntoDicts(FileForAlnReadsHere, False)
+    try:
+      SeqAlignmentHere = AlignIO.read(FileForAlnReadsHere, "fasta")
+    except:
+      print('Malfunction of phylotypes: problem encountered reading in', \
+      FileForAlnReadsHere, 'as an alignment. Quitting.', file=sys.stderr)
+      raise
+    try:
+      SampleReadNames, RefSeqs = \
+      ReadAlignedReadsIntoDicts(SeqAlignmentHere, False)
+    except:
+      print('Problem encountered while analysing', \
+      FileForAlnReadsHere +'. Quitting.', file=sys.stderr)
+      exit(1)
     UngappedReadNames = {}
     for SampleName,ReadDict in SampleReadNames.items():
       UngappedReadNames[SampleName] = \
@@ -1210,7 +1230,12 @@ for window in range(NumCoords / 2):
 
       # Read in the aligned reads, and check the ref looks as expected.
       RefInAlignment = None
-      SeqAlignmentHere = AlignIO.read(FileForAlnReadsHere, "fasta")
+      try:
+        SeqAlignmentHere = AlignIO.read(FileForAlnReadsHere, "fasta")
+      except:
+        print('Malfunction of phylotypes: problem encountered reading in', \
+        FileForAlnReadsHere, 'as an alignment. Quitting.', file=sys.stderr)
+        raise
       for seq in SeqAlignmentHere:
         if seq.id == args.excision_ref:
           RefInAlignment = str(seq.seq)
