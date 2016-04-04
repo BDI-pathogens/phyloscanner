@@ -758,12 +758,11 @@ def ReadAlignedReadsIntoDicts(AlignIOobject, ValuesAreCounts=True):
       else:
         value = seq.id
       if SampleName in SampleReadCounts:
+        # After excising positions, a sample can have the same read twice:
         if read in SampleReadCounts[SampleName]:
-          print('Malfunction of phylotypes:', FastaFile, \
-          'contains two identical sequences for sample', SampleName+\
-          '. This should not happen. Quitting.', file=sys.stderr)
-          exit(1)
-        SampleReadCounts[SampleName][read] = value
+          SampleReadCounts[SampleName][read] += value
+        else:
+          SampleReadCounts[SampleName][read] = value
       else:
         SampleReadCounts[SampleName] = {read : value}
     else:
@@ -773,6 +772,36 @@ def ReadAlignedReadsIntoDicts(AlignIOobject, ValuesAreCounts=True):
         raise
       NonSampleSeqs.append(seq)
   return SampleReadCounts, NonSampleSeqs
+
+def ReMergeAlignedReads(alignment, OutFile):
+  '''Splits an alignment object into reads and refs, re-merges the reads,
+  renames them, removes pure-gap columns, and writes to an output file.'''
+
+  SampleReadCounts, RefSeqsHere = ReadAlignedReadsIntoDicts(alignment)
+  NewAlignment = AlignIO.MultipleSeqAlignment([])
+  for SampleName in SampleReadCounts:
+    if args.MergingThreshold > 0:
+      SampleReadCounts[SampleName] = \
+      MergeSimilarStrings(SampleReadCounts[SampleName], args.MergingThreshold)
+    for k, (read, count) in enumerate(sorted(\
+    SampleReadCounts[SampleName].items(), key=lambda x: x[1], reverse=True)):
+      ID = SampleName+'_read_'+str(k+1)+'_count_'+str(count)
+      SeqObject = SeqIO.SeqRecord(Seq.Seq(read), id=ID, description='')
+      NewAlignment.append(SeqObject)
+  NewAlignment.extend(RefSeqsHere)
+
+  # Merging after alignment means some columns could be pure gap. Remove these.
+  if args.MergingThreshold > 0:
+    AlignmentLength = NewAlignment.get_alignment_length()
+    for column in reversed(xrange(AlignmentLength)):
+      PureGap = True
+      for base in NewAlignment[:, column]:
+        if base != '-':
+          PureGap = False
+          break
+      if PureGap:
+        NewAlignment = NewAlignment[:, :column] + NewAlignment[:, column+1:]
+  AlignIO.write(NewAlignment, OutFile, 'fasta')
 
 # If we're keeping track list of discarded read pairs for each bam file:
 if args.inspect_disagreeing_overlaps:
@@ -1084,11 +1113,8 @@ for window in range(NumCoords / 2):
       file=sys.stderr)
       continue
 
-  # Do a second round of within-sample read merging now the reads are aligned. 
-  # Make a dict (indexed by sample name) of dicts (indexed by the sequences
-  # themselves) of read counts. Those sequences that are from a sample are 
-  # found by matching the RegexMatch '_read_\d+_count_\d+$'; other sequences
-  # should be external references the user included, and are not processed.
+  # Do a second round of within-sample read merging now the reads are aligned.
+  # Write the output to FileForAlnReadsHere.
   if args.MergingThreshold > 0:
     try:
       SeqAlignmentHere = AlignIO.read(FileForReads, "fasta")
@@ -1097,51 +1123,11 @@ for window in range(NumCoords / 2):
       FileForReads, 'as an alignment. Quitting.', file=sys.stderr)
       raise
     try:
-      SampleReadCounts, RefSeqs = ReadAlignedReadsIntoDicts(SeqAlignmentHere)
+      ReMergeAlignedReads(SeqAlignmentHere, FileForAlnReadsHere)
     except:
-      print('Problem encountered while analysing', \
-      FileForReads +'. Quitting.', file=sys.stderr)
+      print('Problem encountered while analysing', FileForReads +'. Quitting.',\
+      file=sys.stderr)
       exit(1)
-    SampleSeqsToPrint = []
-    for SampleName in SampleReadCounts:
-      SampleReadCounts[SampleName] = \
-      MergeSimilarStrings(SampleReadCounts[SampleName], args.MergingThreshold)
-      for k, (read, count) in enumerate(sorted(\
-      SampleReadCounts[SampleName].items(), key=lambda x: x[1], reverse=True)):
-        ID = SampleName+'_read_'+str(k+1)+'_count_'+str(count)
-        SeqObject = SeqIO.SeqRecord(Seq.Seq(read), id=ID, description='')
-        SampleSeqsToPrint.append(SeqObject)
-    AllSeqsToPrint = SampleSeqsToPrint + RefSeqs
-    if AllSeqsToPrint == []:
-      print('Malfunction of phylotypes: no sequences were found in', \
-      FileForReads +'. Quitting.', file=sys.stderr)
-      exit(1)
-
-    # Merging after alignment means some columns could be pure gap.
-    # Remove these.
-    PureGapColumns = []
-    FirstSeq = str(AllSeqsToPrint[0].seq)
-    for position,base in enumerate(FirstSeq):
-      if base == GapChar:
-        PureGapColumns.append(position)
-    if PureGapColumns != []:
-      for seq in AllSeqsToPrint[1:]:
-        SeqAsString = str(seq.seq)
-        GapColsToRemove = []
-        for i,col in enumerate(PureGapColumns):
-          if SeqAsString[col] != GapChar:
-            GapColsToRemove.append(col)
-        PureGapColumns = \
-        [col for col in PureGapColumns if not col in GapColsToRemove]
-        if PureGapColumns == []:
-          break
-      if PureGapColumns != []:
-        for i,seq in enumerate(AllSeqsToPrint):
-          SeqAsString = str(seq.seq)
-          for position in PureGapColumns[::-1]:
-            SeqAsString = SeqAsString[:position]+SeqAsString[position+1:]
-          AllSeqsToPrint[i].seq = Seq.Seq(SeqAsString)
-    SeqIO.write(AllSeqsToPrint, FileForAlnReadsHere, "fasta")
 
   # If we're checking for duplicates, read in the file of aligned reads (which
   # may have gone through a second round of merging), remove gaps, and see which
@@ -1155,7 +1141,7 @@ for window in range(NumCoords / 2):
       FileForAlnReadsHere, 'as an alignment. Quitting.', file=sys.stderr)
       raise
     try:
-      SampleReadNames, RefSeqs = \
+      SampleReadNames, RefSeqsHere = \
       ReadAlignedReadsIntoDicts(SeqAlignmentHere, False)
     except:
       print('Problem encountered while analysing', \
@@ -1229,13 +1215,13 @@ for window in range(NumCoords / 2):
         UngappedRefHere = RefInThisWindowGappy.replace(GapChar,'')
 
       # Read in the aligned reads, and check the ref looks as expected.
-      RefInAlignment = None
       try:
         SeqAlignmentHere = AlignIO.read(FileForAlnReadsHere, "fasta")
       except:
         print('Malfunction of phylotypes: problem encountered reading in', \
         FileForAlnReadsHere, 'as an alignment. Quitting.', file=sys.stderr)
         raise
+      RefInAlignment = None
       for seq in SeqAlignmentHere:
         if seq.id == args.excision_ref:
           RefInAlignment = str(seq.seq)
@@ -1258,9 +1244,18 @@ for window in range(NumCoords / 2):
       for pos in PositionsInAlignment:
         SeqAlignmentHere = \
         SeqAlignmentHere[:, :pos-1] + SeqAlignmentHere[:, pos:]
-      # TODO: merge again, now positions have been excised.
-      AlignIO.write(SeqAlignmentHere, FileForAlignedReads_PositionsExcised, \
-      'fasta')
+
+      # Excising positions may have made some sequences identical within a
+      # sample, which need to be merged even if the merging parameter is 0. If
+      # it's greater than 0, we also need to re-merge, rename, and re-excise
+      # pure-gap columns.
+      try:
+        ReMergeAlignedReads(SeqAlignmentHere, \
+        FileForAlignedReads_PositionsExcised)
+      except:
+        print('Problem encountered while analysing', FileForAlnReadsHere + \
+        '. Quitting.', file=sys.stderr)
+        exit(1)
       FileForTrees = FileForAlignedReads_PositionsExcised
 
   if args.no_trees:
