@@ -22,12 +22,12 @@ transmissions.ever.suggested <- vector()
 for(start in seq(800, 9050, by=275)){
   window.count <- window.count + 1
   
-  cat("Window ",start, " to ",end,"\n",sep="")
   end <- start+375 
   
+  cat("Window ",start, " to ",end,"\n",sep="")
+
+  
   if(file.exists(paste("LikelyTransmissions_",start,"_to_",end,".csv",sep=""))){
-    
-    
     
     transmissions.table <- read.table(paste("LikelyTransmissions_",start,"_to_",end,".csv",sep=""), 
                                       sep=",", 
@@ -88,12 +88,19 @@ for(start in seq(800, 9050, by=275)){
                                       header=TRUE,
                                       stringsAsFactors=FALSE)
     
+    transmissions.table[,1] <- substr(transmissions.table[,1],1,9)
+    transmissions.table[,2] <- substr(transmissions.table[,2],1,9)
+    
     if(nrow(transmissions.table)>0){
       for(row in seq(1,nrow(transmissions.table))){
         # if the row exists
         if(!is.na(row.match(transmissions.table[row,1:2], transmissions.ever.suggested))){
+          #whatever the third column says, things are the right way round
+          
           window.vector[row.match(transmissions.table[row,1:2], transmissions.ever.suggested)] <- transmissions.table[row,3] 
         } else if(!is.na(row.match(rev(transmissions.table[row,1:2]), transmissions.ever.suggested))){
+          #transmissions will be the wrong way round
+          
           if(transmissions.table[row,3] == "anc"){
             window.vector[row.match(rev(transmissions.table[row,1:2]), transmissions.ever.suggested)] <- "desc" 
           } else if (transmissions.table[row,3] == "desc"){
@@ -162,3 +169,4 @@ write.table(new.out[which(new.out$total.trans>=4),], file="transSummary_4.csv", 
 write.table(new.out[which(new.out$total.trans>=5),], file="transSummary_5.csv", row.names = F, sep=",", quote=FALSE)
 write.table(new.out[which(new.out$total.trans>=6),], file="transSummary_6.csv", row.names = F, sep=",", quote=FALSE)
 write.table(new.out[which(new.out$total.trans>=10),], file="transSummary_10.csv", row.names = F, sep=",", quote=FALSE)
+write.table(new.out[which(new.out$total.trans>=16),], file="transSummary_16.csv", row.names = F, sep=",", quote=FALSE)
