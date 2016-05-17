@@ -1,4 +1,5 @@
 require(phangorn)
+require(gdata)
 
 get.tip.no <- function(tree, name) {
   return(match(name, tree$tip.label))
@@ -8,7 +9,7 @@ get.tip.no <- function(tree, name) {
 
 get.tips.for.patient <-
   function(tree, patient.string, patient.ids, blacklist) {
-    node.numbers <- which(patient.ids == patient.string)
+    node.numbers <- which(startsWith(patient.ids, patient.string))
     
     node.numbers <-
       node.numbers[which(!(node.numbers %in% blacklist))]
