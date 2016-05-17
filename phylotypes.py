@@ -31,8 +31,8 @@ FileForAlignedReads_basename = 'AlignedReads'
 FileForAlignedReads_PositionsExcised_basename = 'AlignedReads_PositionsExcised_'
 FileForAlignedRefs = 'RefsAln.fasta'
 FileForDiscardedReadPairs_basename = 'DiscardedReads_'
-FileForSurvivingDuplicates_basename = 'DuplicateReads_surviving_'
-FileForEliminatedDuplicates_basename = 'DuplicateReads_eliminated_'
+FileForDuplicateReadCountsRaw_basename = 'DuplicateReadCountsRaw_'
+FileForDuplicateReadCountsProcessed_basename = 'DuplicateReadCountsProcessed_'
 FileForDuplicateSeqs_basename = 'DuplicateReads_contaminants_'
 
 # Some temporary working files we'll create
@@ -215,6 +215,7 @@ ExcisePositions = args.excision_coords != None
 PairwiseAlign = args.pairwise_align_to != None
 FlagContaminants = args.contaminant_count_ratio != None
 RecallContaminants = args.contaminant_read_dir != None
+CheckDuplicates = not args.dont_check_duplicates
 
 # Check that window coords have been specified either manually or automatically.
 if (UserSpecifiedCoords and AutoWindows) or \
@@ -773,9 +774,9 @@ def ReadAlignedReadsIntoDicts(AlignIOobject, ValuesAreCounts=True):
       NonSampleSeqs.append(seq)
   return SampleReadCounts, NonSampleSeqs
 
-def ReMergeAlignedReads(alignment, OutFile):
+def ReMergeAlignedReads(alignment):
   '''Splits an alignment object into reads and refs, re-merges the reads,
-  renames them, removes pure-gap columns, and writes to an output file.'''
+  renames them, and removes pure-gap columns.'''
 
   SampleReadCounts, RefSeqsHere = ReadAlignedReadsIntoDicts(alignment)
   NewAlignment = AlignIO.MultipleSeqAlignment([])
@@ -801,7 +802,7 @@ def ReMergeAlignedReads(alignment, OutFile):
           break
       if PureGap:
         NewAlignment = NewAlignment[:, :column] + NewAlignment[:, column+1:]
-  AlignIO.write(NewAlignment, OutFile, 'fasta')
+  return NewAlignment
 
 # If we're keeping track list of discarded read pairs for each bam file:
 if args.inspect_disagreeing_overlaps:
@@ -825,7 +826,7 @@ for window in range(NumCoords / 2):
 
   # Get ready to record reads here from all samples
   AllReadsInThisWindow = []
-  if not args.dont_check_duplicates:
+  if CheckDuplicates:
     AllReadDictsInThisWindow = []
 
   # Try to find a contamination file for this window. If there is none, that 
@@ -956,7 +957,7 @@ for window in range(NumCoords / 2):
 
     # If we are checking for read duplication between samples, record the file 
     # name and read dict for this sample and move on to the next sample.
-    if not args.dont_check_duplicates:
+    if CheckDuplicates:
       AllReadDictsInThisWindow.append((BamAlias, UniqueReads, \
       LeftWindowEdge, RightWindowEdge))
 
@@ -971,7 +972,7 @@ for window in range(NumCoords / 2):
   # If we're checking for duplicate reads between samples, do so now.
   # Check every dict against every other dict, and record the ratio of counts
   # for any shared reads.
-  if not args.dont_check_duplicates:
+  if CheckDuplicates:
     DuplicateDetails = []
     ContaminantReadsFound = {}
     for i, (BamFile1Alias, ReadDict1, LeftWindowEdge1, RightWindowEdge1) \
@@ -984,7 +985,7 @@ for window in range(NumCoords / 2):
             Bam1Count = ReadDict1[read]
             Bam2Count = ReadDict2[read]
             DuplicateDetails.append(\
-            (BamFile1Alias, BamFile2Alias, read, Bam1Count, Bam2Count))
+            (BamFile1Alias, BamFile2Alias, Bam1Count, Bam2Count))
 
             # Diagnose contaminants
             if FlagContaminants:
@@ -1003,6 +1004,13 @@ for window in range(NumCoords / 2):
                     ContaminantReadsFound[ContaminantAlias].append(read)
                 else:
                   ContaminantReadsFound[ContaminantAlias] = [read]
+
+    if DuplicateDetails != []:
+      FileForDuplicateReadCountsRaw = FileForDuplicateReadCountsRaw_basename + \
+      ThisWindowSuffix + '.csv'
+      with open(FileForDuplicateReadCountsRaw, 'w') as f:
+        f.write('"Alias1","Alias2","Count1","Count2"\n')
+        f.write('\n'.join(','.join(map(str,data)) for data in DuplicateDetails))
 
     # If contaminants are diagnosed, print them and remove them from their
     # ReadDict.
@@ -1115,6 +1123,7 @@ for window in range(NumCoords / 2):
 
   # Do a second round of within-sample read merging now the reads are aligned.
   # Write the output to FileForAlnReadsHere.
+  SeqAlignmentHere = None
   if args.MergingThreshold > 0:
     try:
       SeqAlignmentHere = AlignIO.read(FileForReads, "fasta")
@@ -1123,67 +1132,12 @@ for window in range(NumCoords / 2):
       FileForReads, 'as an alignment. Quitting.', file=sys.stderr)
       raise
     try:
-      ReMergeAlignedReads(SeqAlignmentHere, FileForAlnReadsHere)
+      SeqAlignmentHere = ReMergeAlignedReads(SeqAlignmentHere)
     except:
       print('Problem encountered while analysing', FileForReads +'. Quitting.',\
       file=sys.stderr)
-      exit(1)
-
-  # If we're checking for duplicates, read in the file of aligned reads (which
-  # may have gone through a second round of merging), remove gaps, and see which
-  # of the duplicates we found before merging (and imposing a minimum count) are
-  # are still there.
-  if not args.dont_check_duplicates and DuplicateDetails != []:
-    try:
-      SeqAlignmentHere = AlignIO.read(FileForAlnReadsHere, "fasta")
-    except:
-      print('Malfunction of phylotypes: problem encountered reading in', \
-      FileForAlnReadsHere, 'as an alignment. Quitting.', file=sys.stderr)
       raise
-    try:
-      SampleReadNames, RefSeqsHere = \
-      ReadAlignedReadsIntoDicts(SeqAlignmentHere, False)
-    except:
-      print('Problem encountered while analysing', \
-      FileForAlnReadsHere +'. Quitting.', file=sys.stderr)
-      exit(1)
-    UngappedReadNames = {}
-    for SampleName,ReadDict in SampleReadNames.items():
-      UngappedReadNames[SampleName] = \
-      {read.replace(GapChar,''):SeqName for read,SeqName in ReadDict.items()}
-    SurvivingDuplicates  = []
-    EliminatedDuplicates = []
-    for BamFile1Alias, BamFile2Alias, read, Bam1Count, Bam2Count in \
-    DuplicateDetails:
-      for WhichBam,alias in enumerate([BamFile1Alias, BamFile2Alias]):
-        if WhichBam == 0:
-          ThisCount, TheOtherCount = Bam1Count, Bam2Count
-          ThisAlias, TheOtherAlias = BamFile1Alias, BamFile2Alias
-        else:
-          ThisCount, TheOtherCount = Bam2Count, Bam1Count
-          ThisAlias, TheOtherAlias = BamFile2Alias, BamFile1Alias
-        CountRatio = str(float(ThisCount)/TheOtherCount)
-        # The read may no longer exist for this alias; also this alias may have
-        # no reads present in the file at all (if all merged reads failed the
-        # minimum count). Either will cause a KeyError, meaning this is an
-        # eliminated duplicate.
-        try:
-          DuplicateSeqName = UngappedReadNames[alias][read]
-        except KeyError:
-          EliminatedDuplicates.append((ThisAlias, TheOtherAlias, CountRatio))
-        else:
-          SurvivingDuplicates.append((DuplicateSeqName, TheOtherAlias, \
-          CountRatio))
-    FileForSurvivingDuplicates = FileForSurvivingDuplicates_basename + \
-    ThisWindowSuffix + '.csv'
-    with open(FileForSurvivingDuplicates, 'w') as f:
-      f.write('"SeqName","SharedWith","SeqCount/SharedCount"\n')
-      f.write('\n'.join(','.join(data) for data in SurvivingDuplicates))
-    FileForEliminatedDuplicates = FileForEliminatedDuplicates_basename + \
-    ThisWindowSuffix + '.csv'
-    with open(FileForEliminatedDuplicates, 'w') as f:
-      f.write('"BamFile","SharedWith","SeqCount/SharedCount"\n')
-      f.write('\n'.join(','.join(data) for data in EliminatedDuplicates))
+    AlignIO.write(SeqAlignmentHere, FileForAlnReadsHere, 'fasta')
 
   # See if there are positions to excise in this window.
   if ExcisePositions:
@@ -1214,13 +1168,15 @@ for window in range(NumCoords / 2):
           len(RefInThisWindowGappy[:DistanceIntoWindow+1].replace(GapChar,'')))
         UngappedRefHere = RefInThisWindowGappy.replace(GapChar,'')
 
-      # Read in the aligned reads, and check the ref looks as expected.
-      try:
-        SeqAlignmentHere = AlignIO.read(FileForAlnReadsHere, "fasta")
-      except:
-        print('Malfunction of phylotypes: problem encountered reading in', \
-        FileForAlnReadsHere, 'as an alignment. Quitting.', file=sys.stderr)
-        raise
+      # Read in the aligned reads if they're not already in memory (i.e. if 
+      # merging is switched off), and check the ref looks as expected.
+      if SeqAlignmentHere == None:
+        try:
+          SeqAlignmentHere = AlignIO.read(FileForAlnReadsHere, "fasta")
+        except:
+          print('Malfunction of phylotypes: problem encountered reading in', \
+          FileForAlnReadsHere, 'as an alignment. Quitting.', file=sys.stderr)
+          raise
       RefInAlignment = None
       for seq in SeqAlignmentHere:
         if seq.id == args.excision_ref:
@@ -1250,13 +1206,64 @@ for window in range(NumCoords / 2):
       # it's greater than 0, we also need to re-merge, rename, and re-excise
       # pure-gap columns.
       try:
-        ReMergeAlignedReads(SeqAlignmentHere, \
-        FileForAlignedReads_PositionsExcised)
+        SeqAlignmentHere = ReMergeAlignedReads(SeqAlignmentHere)
       except:
         print('Problem encountered while analysing', FileForAlnReadsHere + \
         '. Quitting.', file=sys.stderr)
-        exit(1)
+        raise
+      AlignIO.write(SeqAlignmentHere, FileForAlignedReads_PositionsExcised, \
+      'fasta')
       FileForTrees = FileForAlignedReads_PositionsExcised
+
+  if CheckDuplicates:
+
+    # Read in the aligned reads if they're not already in memory (i.e. if
+    # merging is switched off and no positions were excised here)
+    if SeqAlignmentHere == None:
+      try:
+        SeqAlignmentHere = AlignIO.read(FileForAlnReadsHere, "fasta")
+      except:
+        print('Malfunction of phylotypes: problem encountered reading in', \
+        FileForAlnReadsHere, 'as an alignment. Quitting.', file=sys.stderr)
+        raise
+
+    # Find any duplicates
+    if len(SeqAlignmentHere) > 1:
+      SeqToIDsDict = {}
+      DuplicatesDict = {}
+      for seq in SeqAlignmentHere:
+        SeqAsStr = str(seq.seq) 
+        if SeqAsStr in SeqToIDsDict:
+          if SeqAsStr in DuplicatesDict:
+            DuplicatesDict[SeqAsStr].append(seq.id)
+          else:
+            DuplicatesDict[SeqAsStr] = [SeqToIDsDict[SeqAsStr], seq.id]
+        else:
+          SeqToIDsDict[SeqAsStr] = seq.id
+
+      # If we found some duplicated sequences, check that no duplication is 
+      # within the same bam file / same alias, then print the duplicate names.
+      if DuplicatesDict != {}:
+        for SeqNames in DuplicatesDict.values():
+          aliases = []
+          for SeqName in SeqNames:
+            RegexMatch = SampleRegex.search(SeqName)
+            if RegexMatch and SeqName[:RegexMatch.start()] in BamAliases:
+              alias = SeqName[:RegexMatch.start()]
+              aliases.append(alias)
+          DuplicatedAliases = [alias for alias, count in \
+          collections.Counter(aliases).items() if count > 1]
+          if DuplicatedAliases != []:
+            print('Malfunction of phylotypes - the each of the following bam', \
+            'files has more than one copy of the same sequence after ' \
+            'processing:', ' '.join(DuplicatedAliases) + '. Quitting.', \
+            file=sys.stderr)
+            exit(1)
+      FileForDuplicateReadCountsProcessed = \
+      FileForDuplicateReadCountsProcessed_basename + ThisWindowSuffix + '.csv'
+      with open(FileForDuplicateReadCountsProcessed, 'w') as f:
+        f.write('\n'.join(','.join(SeqNames) for SeqNames in \
+        DuplicatesDict.values()))
 
   if args.no_trees:
     continue
