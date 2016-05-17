@@ -17,8 +17,8 @@ def MergeSimilarStrings(DictOfStringCounts, SimilarityThreshold=1):
   sufficiently similar string is encountered, we add the count of the rarer
   string to that of the more common string, remove the rarer string, and skip to
   the next i.
-  Note that by construction, calling the function twice - feeding the output
-  back in as input - is exactly the same as calling it once (except slower).
+  In the resulting dict, every string differs from every other string by an
+  amount greater than the SimilarityThreshold.
   '''
 
   # Check that the keys of the dict are strings.
