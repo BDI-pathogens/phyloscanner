@@ -53,6 +53,7 @@ import sys
 import re
 import copy
 import glob
+import time
 from shutil import copy2
 import argparse
 import pysam
@@ -195,6 +196,8 @@ parser.add_argument('-2', '--pairwise-align-to', help='Sequentially, and '+\
 'present in the file you specify with -A) instead of aligning all references '+\
 'together. Window coordinates will be interpreted with respect to this '+\
 'reference.')
+parser.add_argument('--time', action='store_true', \
+help='Prints the times taken by different steps.')
 parser.add_argument('--x-raxml', default='raxmlHPC-AVX', help=\
 'The command required to invoke RAxML (by default: raxmlHPC-AVX).')
 parser.add_argument('--x-mafft', default='mafft', help=\
@@ -437,6 +440,10 @@ if not args.no_trees:
   except:
     print('Problem running', args.x_raxml, '\nQuitting.', file=sys.stderr)
     raise
+
+if args.time:
+  times = []
+  times.append(time.time())
 
 # Read in lists of bam and reference files
 BamFiles, BamFileBasenames = pf.ReadNamesFromFile(args.ListOfBamFiles)
@@ -809,6 +816,12 @@ if args.inspect_disagreeing_overlaps:
   DiscardedReadPairsDict = \
   {BamFileBasename:[] for BamFileBasename in BamFileBasenames}
 
+if args.time:
+  times.append(time.time())
+  LastStepTime = times[-1] - times[-2]
+  print('Bam and Reference pre-processing finished. Number of seconds taken:', \
+  LastStepTime)
+
 # Iterate through the windows
 for window in range(NumCoords / 2):
 
@@ -1101,10 +1114,17 @@ for window in range(NumCoords / 2):
           '. Skipping to the next window.', file=sys.stderr)
           continue
 
+  # Update on time taken if desired
+  if args.time:
+    times.append(time.time())
+    LastStepTime = times[-1] - times[-2]
+    print('Read pre-processing in window', UserLeftWindowEdge, '-', \
+    UserRightWindowEdge, 'finished. Number of seconds taken: ', LastStepTime)
+
   # Align the reads. Prepend 'temp_' to the file name if we'll merge again after
   # aligning.
   if args.MergingThreshold > 0:
-    FileForReads = 'temp_'+FileForAlnReadsHere
+    FileForReads = 'temp_' + FileForAlnReadsHere
   else:
     FileForReads = FileForAlnReadsHere
   if IncludeOtherRefs:
@@ -1120,6 +1140,13 @@ for window in range(NumCoords / 2):
       print('Problem calling mafft. Skipping to the next window.', \
       file=sys.stderr)
       continue
+
+  # Update on time taken if desired
+  if args.time:
+    times.append(time.time())
+    LastStepTime = times[-1] - times[-2]
+    print('Read alignment in window', UserLeftWindowEdge, '-', \
+    UserRightWindowEdge, 'finished. Number of seconds taken: ', LastStepTime)
 
   # Do a second round of within-sample read merging now the reads are aligned.
   # Write the output to FileForAlnReadsHere.
@@ -1265,6 +1292,13 @@ for window in range(NumCoords / 2):
         f.write('\n'.join(','.join(SeqNames) for SeqNames in \
         DuplicatesDict.values()))
 
+  # Update on time taken if desired
+  if args.time:
+    times.append(time.time())
+    LastStepTime = times[-1] - times[-2]
+    print('Final read processing in window', UserLeftWindowEdge, '-', \
+    UserRightWindowEdge, 'finished. Number of seconds taken: ', LastStepTime)
+
   if args.no_trees:
     continue
 
@@ -1285,6 +1319,13 @@ for window in range(NumCoords / 2):
     print(MLtreeFile +', expected to be produced by RAxML, does not exist.'+\
     '\nSkipping to the next window.', file=sys.stderr)
     continue
+
+  # Update on time taken if desired
+  if args.time:
+    times.append(time.time())
+    LastStepTime = times[-1] - times[-2]
+    print('ML tree in window', UserLeftWindowEdge, '-', \
+    UserRightWindowEdge, 'finished. Number of seconds taken: ', LastStepTime)
 
   # If desired, make bootstrapped alignments
   if args.num_bootstraps != None:
@@ -1351,6 +1392,13 @@ for window in range(NumCoords / 2):
       print(MainTreeFile +', expected to be produced by RAxML, does not '+\
       'exist.\nSkipping to the next window.', file=sys.stderr)
       continue
+
+    # Update on time taken if desired
+    if args.time:
+      times.append(time.time())
+      LastStepTime = times[-1] - times[-2]
+      print('Bootstrapped trees in window', UserLeftWindowEdge, '-', \
+      UserRightWindowEdge, 'finished. Number of seconds taken: ', LastStepTime)
 
   # With no bootstraps, just use the ML tree:
   else:
