@@ -338,6 +338,7 @@ def CheckMaxCoord(coords, ref):
 # of the ref chosen for pairwise alignment.
 # Check that any coordinates that are to be interpreted with respect to a named
 # reference do not go past the end of that reference.
+ExternalRefNames = []
 if IncludeOtherRefs:
   try:
     ExternalRefAlignment = AlignIO.read(args.alignment_of_other_refs, "fasta")
@@ -345,7 +346,6 @@ if IncludeOtherRefs:
     print('Problem reading', args.alignment_of_other_refs + ':', \
     file=sys.stderr)
     raise
-  ExternalRefNames = []
   for ref in ExternalRefAlignment:
     ExternalRefNames.append(ref.id)
     if ref.id == args.pairwise_align_to:
