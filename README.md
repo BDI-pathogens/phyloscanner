@@ -14,3 +14,4 @@ $ ./phyloscanner.py 0 1 MyBamFiles.txt MyRefFiles.txt --windows 1,300,200,500,..
 4. `MyRefFiles.txt` should be a plain text file listing the files containing the sequences to which the short reads were mapped in order to create the bam input files (the *references*), one per bam file, in the same order as within `MyBamFiles.txt`.
 5. The `--windows` option is used to specify an even number of comma-separated positive integers: these are the coordinates of the windows to analyse, interpreted pairwise (i.e. the first two are the left and right edges of the first window, the second two are the left and right edges of the second window, ...) and with respect to the alignment of sequences in `MyRefFiles.txt` (which will be generated and put into a file called `RefsAln.fasta`).
 
+Adding trivial change to test.
