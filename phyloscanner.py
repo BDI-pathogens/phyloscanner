@@ -29,6 +29,8 @@ RAxMLbootstrapSeed = 1
 # Some output files
 FileForAlignedReads_basename = 'AlignedReads'
 FileForAlignedReads_PositionsExcised_basename = 'AlignedReads_PositionsExcised_'
+FileForConsensuses_basename = 'Consensuses_'
+FileForConsensuses_PositionsExcised_basename = 'Consensuses_PositionsExcised_'
 FileForAlignedRefs = 'RefsAln.fasta'
 FileForDiscardedReadPairs_basename = 'DiscardedReads_'
 FileForDuplicateReadCountsRaw_basename = 'DuplicateReadCountsRaw_'
@@ -774,12 +776,25 @@ def ReadAlignedReadsIntoDicts(AlignIOobject, ValuesAreCounts=True):
       else:
         SampleReadCounts[SampleName] = {read : value}
     else:
-      if not seq.id in ExternalRefNames:
-        print('Malfunction of phylotypes: sequence', seq.id, 'not recognised', \
-        'as a read nor as an external reference.', file=sys.stderr)
-        raise
+      assert seq.id in ExternalRefNames, 'Malfunction of phylotypes: '+\
+      'sequence ' + seq.id + ' is not recognised as a read nor as an external'+\
+      ' reference.'
       NonSampleSeqs.append(seq)
+
   return SampleReadCounts, NonSampleSeqs
+
+def RemovePureGapCols(alignment):
+  "Removes pure-gap columns from an alignment."
+  AlignmentLength = alignment.get_alignment_length()
+  for column in reversed(xrange(AlignmentLength)):
+    PureGap = True
+    for base in alignment[:, column]:
+      if base != GapChar:
+        PureGap = False
+        break
+    if PureGap:
+      alignment = alignment[:, :column] + alignment[:, column+1:]
+  return alignment
 
 def ReMergeAlignedReads(alignment):
   '''Splits an alignment object into reads and refs, re-merges the reads,
@@ -800,16 +815,43 @@ def ReMergeAlignedReads(alignment):
 
   # Merging after alignment means some columns could be pure gap. Remove these.
   if args.MergingThreshold > 0:
-    AlignmentLength = NewAlignment.get_alignment_length()
-    for column in reversed(xrange(AlignmentLength)):
-      PureGap = True
-      for base in NewAlignment[:, column]:
-        if base != '-':
-          PureGap = False
-          break
-      if PureGap:
-        NewAlignment = NewAlignment[:, :column] + NewAlignment[:, column+1:]
+    NewAlignment = RemovePureGapCols(NewAlignment)
   return NewAlignment
+
+def FindPatientsConsensuses(alignment):
+  '''Finds the consensus sequence for each patient appearing in an alignment.'''
+  SampleReadCounts, RefSeqsHere = ReadAlignedReadsIntoDicts(alignment)
+  ConsensusAlignment = AlignIO.MultipleSeqAlignment([])
+  AlignmentLength = alignment.get_alignment_length()
+  for SampleName, ReadsAndCounts in SampleReadCounts.items():
+
+    # Count each base seen at each position
+    BaseCounterDicts = [{} for pos in range(0,AlignmentLength)]
+    for read, count in ReadsAndCounts.items():
+      for pos, base in enumerate(read):
+        if base in BaseCounterDicts[pos]:
+          BaseCounterDicts[pos][base] += count
+        else:
+          BaseCounterDicts[pos][base] = count
+
+    # Find the most common 'base' (could be a gap) at each position.
+    consensus = ''
+    for pos, BaseCounterDict in enumerate(BaseCounterDicts):
+      MostCommonBase = None
+      HighestCount = 0
+      for base, count in BaseCounterDict.items():
+        if count > HighestCount:
+          MostCommonBase = base
+          HighestCount = count
+      assert MostCommonBase != None, 'Problem for ' + SampleName + \
+      ' at position ' + str(pos)
+      consensus += MostCommonBase
+    SeqObject = SeqIO.SeqRecord(Seq.Seq(consensus), id=SampleName, \
+    description='')
+    ConsensusAlignment.append(SeqObject)
+  for ref in RefSeqsHere:
+    ConsensusAlignment.append(ref)
+  return RemovePureGapCols(ConsensusAlignment)
 
 # If we're keeping track list of discarded read pairs for each bam file:
 if args.inspect_disagreeing_overlaps:
@@ -1148,16 +1190,17 @@ for window in range(NumCoords / 2):
     print('Read alignment in window', UserLeftWindowEdge, '-', \
     UserRightWindowEdge, 'finished. Number of seconds taken: ', LastStepTime)
 
+  # Read in the aligned reads.
+  try:
+    SeqAlignmentHere = AlignIO.read(FileForReads, "fasta")
+  except:
+    print('Malfunction of phylotypes: problem encountered reading in', \
+    FileForReads, 'as an alignment. Quitting.', file=sys.stderr)
+    raise
+
   # Do a second round of within-sample read merging now the reads are aligned.
   # Write the output to FileForAlnReadsHere.
-  SeqAlignmentHere = None
   if args.MergingThreshold > 0:
-    try:
-      SeqAlignmentHere = AlignIO.read(FileForReads, "fasta")
-    except:
-      print('Malfunction of phylotypes: problem encountered reading in', \
-      FileForReads, 'as an alignment. Quitting.', file=sys.stderr)
-      raise
     try:
       SeqAlignmentHere = ReMergeAlignedReads(SeqAlignmentHere)
     except:
@@ -1165,6 +1208,11 @@ for window in range(NumCoords / 2):
       file=sys.stderr)
       raise
     AlignIO.write(SeqAlignmentHere, FileForAlnReadsHere, 'fasta')
+
+  # Find & write the consensuses.
+  ConsensusAlignment = FindPatientsConsensuses(SeqAlignmentHere)
+  FileForConsensuses = FileForConsensuses_basename + ThisWindowSuffix +'.fasta'
+  AlignIO.write(ConsensusAlignment, FileForConsensuses, 'fasta')
 
   # See if there are positions to excise in this window.
   if ExcisePositions:
@@ -1195,15 +1243,7 @@ for window in range(NumCoords / 2):
           len(RefInThisWindowGappy[:DistanceIntoWindow+1].replace(GapChar,'')))
         UngappedRefHere = RefInThisWindowGappy.replace(GapChar,'')
 
-      # Read in the aligned reads if they're not already in memory (i.e. if 
-      # merging is switched off), and check the ref looks as expected.
-      if SeqAlignmentHere == None:
-        try:
-          SeqAlignmentHere = AlignIO.read(FileForAlnReadsHere, "fasta")
-        except:
-          print('Malfunction of phylotypes: problem encountered reading in', \
-          FileForAlnReadsHere, 'as an alignment. Quitting.', file=sys.stderr)
-          raise
+      # Check the ref looks as expected.
       RefInAlignment = None
       for seq in SeqAlignmentHere:
         if seq.id == args.excision_ref:
@@ -1242,17 +1282,14 @@ for window in range(NumCoords / 2):
       'fasta')
       FileForTrees = FileForAlignedReads_PositionsExcised
 
-  if CheckDuplicates:
+      # Find consensuses again after excising positions:
+      ConsensusAlignment = FindPatientsConsensuses(SeqAlignmentHere)
+      FileForConsensuses_PositionsExcised = \
+      FileForConsensuses_PositionsExcised_basename + ThisWindowSuffix +'.fasta'
+      AlignIO.write(ConsensusAlignment, FileForConsensuses_PositionsExcised, \
+      'fasta')
 
-    # Read in the aligned reads if they're not already in memory (i.e. if
-    # merging is switched off and no positions were excised here)
-    if SeqAlignmentHere == None:
-      try:
-        SeqAlignmentHere = AlignIO.read(FileForAlnReadsHere, "fasta")
-      except:
-        print('Malfunction of phylotypes: problem encountered reading in', \
-        FileForAlnReadsHere, 'as an alignment. Quitting.', file=sys.stderr)
-        raise
+  if CheckDuplicates:
 
     # Find any duplicates
     if len(SeqAlignmentHere) > 1:
