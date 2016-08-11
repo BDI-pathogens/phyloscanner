@@ -671,3 +671,9 @@ split.patient <-
       }
     }
   }
+
+# BEEHIVE specific - todo make this more general
+
+patient.from.label <- function(label){
+  return(unlist(strsplit(label, "-"))[1])
+}
