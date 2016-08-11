@@ -99,7 +99,7 @@ output.dir, font.size, line.width, ids, colour.edges, clade.mrcas.by.patient) {
 }
 
 
-resolveTreeIntoPatientClades <- function(tree, ids, tip.regex) {
+resolveTreeIntoPatientClades <- function(tree, ids, tip.regex, blacklisted.tips = vector()) {
 
   num.tips <- length(tree$tip.label)
   num.patients <- length(ids)
@@ -108,8 +108,10 @@ resolveTreeIntoPatientClades <- function(tree, ids, tip.regex) {
   # node before its ancestor (not a unique process but that doesn't matter).
   tree <- reorder(tree, "postorder")
 
-  # Make a vector of bools describing which tips are patients.
+  # Make a vector of bools describing which tips are patients. Remove blacklisted tips from this vector.
   is.patient <- grep(tip.regex, tree$tip.label)
+  is.patient <- is.patient[which(!(is.patient %in% blacklist))]
+  
   tip.ids <- sub(tip.regex, "\\1", tree$tip.label[is.patient])
   is.patient <- is.patient[tip.ids %in% ids]
   tip.ids <- tip.ids[tip.ids %in% ids]
@@ -312,7 +314,10 @@ printSortedClades <- function(clades, tip.regex, num.clades.for.output) {
 }
 
 calcMeanRootToTip <- function(tree, read.counts.per.tip) {
-	# Mean root-to-tip distance, weighted by the number of reads associated with
+  if(is.null(read.counts.per.tip)){
+    read.counts.per.tip <- rep(1, length(tree$tip.label))
+  }
+	# Mean root-to-tip distance, optionally weighted by the number of reads associated with
 	# each tip. Returns 0 if the clade is a single tip.
 	# The second input is read.counts.per.tip, a vector with named entries, which
 	# returns the number of reads associated with each tip label in the tree.
@@ -663,4 +668,9 @@ test.clade.ordering.only) {
   num.clades=num.clades, overall.root.to.tip=overall.root.to.tip,
   prop.reads.per.clade=prop.reads.per.clade,
   root.to.tip.per.clade=root.to.tip.per.clade))
+}
+
+mean.patristic.distance <- function(tree, tips){
+  
+  
 }

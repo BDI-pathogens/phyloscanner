@@ -466,7 +466,7 @@ mrca.phylo.or.unique.tip <-
 # everywhere else.
 
 compareNA <- function(v1,v2) {
-
+  
   same <- (v1 == v2)  |  (is.na(v1) & is.na(v2))
   same[is.na(same)] <- FALSE
   return(same)
@@ -595,78 +595,79 @@ split.patient <-
       return(list(patient.names = patients, patient.tips = patient.tips, patient.mrcas = patient.mrcas,
                   patients.for.tips <- patient.ids))
     }
-
-# A function is required to traverse the tree. This is surprisingly difficult for unrooted 
-# trees; as a hack, pick an adjacent node randomly; the full tree will be explored in the end.
     
-# todo make this better
-
-next.node <- function(tree, node) {
-  connections.1 <- tree$edge[which(tree$edge[,2] == node),1]
-  connections.2 <- tree$edge[which(tree$edge[,1] == node),2]
-  
-  all.connections <-
-    c(connections.1, connections.2)[!(is.na(c(connections.1, connections.2)))]
-  
-  return(all.connections[sample.int(length(all.connections), 1)])
-}
-
-# Does the full R-S classification from this node downwards
-
-# todo may be better off doing this for LikelyTransmissions
-
-classify.down <- function(tree, node, blacklist){
-  print(node)
-  if(node %in% blacklist){
-    assignments[[node]] <<- "blacklisted"
-    print(paste(node,": node is blacklisted",sep=""))
-    return("blacklisted")
-  }
-  if(is.tip(tree, node)){
-    assignments[[node]] <<- get.patient.from.tip(tree, node)
-    print(paste(node,": node is a tip",sep=""))
-    return(get.patient.from.tip(tree, node))
-  }
-  print(paste(node,": node is internal", sep=""))
-  child.classifications <- sapply(Children(tree, node), function(node) classify.down(tree, node, blacklist))
-  child.classifications <- child.classifications[which(child.classifications!="blacklisted")]
-  if(length(child.classifications)==0){
-    assignments[[node]] <<- "blacklisted"
-    print(paste(node,": all children blacklisted", sep=""))
-    return("blacklisted")
-  }
-  not.equivocal <- child.classifications[which(lengths(child.classifications)==1)]
-  if(length(not.equivocal)==0){
-    first <- TRUE
-    for(pat.options in child.classifications){
-      if(first){
-        pat.intersection <- pat.options
-        pat.union <- pat.options
-        first <- FALSE
+    # A function is required to traverse the tree. This is surprisingly difficult for unrooted 
+    # trees; as a hack, pick an adjacent node randomly; the full tree will be explored in the end.
+    
+    # todo make this better
+    
+    next.node <- function(tree, node) {
+      connections.1 <- tree$edge[which(tree$edge[,2] == node),1]
+      connections.2 <- tree$edge[which(tree$edge[,1] == node),2]
+      
+      all.connections <-
+        c(connections.1, connections.2)[!(is.na(c(connections.1, connections.2)))]
+      
+      return(all.connections[sample.int(length(all.connections), 1)])
+    }
+    
+    # Does the full R-S classification from this node downwards
+    
+    # todo may be better off doing this for LikelyTransmissions
+    
+    classify.down <- function(tree, node, blacklist){
+      print(node)
+      if(node %in% blacklist){
+        assignments[[node]] <<- "blacklisted"
+        print(paste(node,": node is blacklisted",sep=""))
+        return("blacklisted")
+      }
+      if(is.tip(tree, node)){
+        assignments[[node]] <<- get.patient.from.tip(tree, node)
+        print(paste(node,": node is a tip",sep=""))
+        return(get.patient.from.tip(tree, node))
+      }
+      print(paste(node,": node is internal", sep=""))
+      child.classifications <- sapply(Children(tree, node), function(node) classify.down(tree, node, blacklist))
+      child.classifications <- child.classifications[which(child.classifications!="blacklisted")]
+      if(length(child.classifications)==0){
+        assignments[[node]] <<- "blacklisted"
+        print(paste(node,": all children blacklisted", sep=""))
+        return("blacklisted")
+      }
+      not.equivocal <- child.classifications[which(lengths(child.classifications)==1)]
+      if(length(not.equivocal)==0){
+        first <- TRUE
+        for(pat.options in child.classifications){
+          if(first){
+            pat.intersection <- pat.options
+            pat.union <- pat.options
+            first <- FALSE
+          } else {
+            pat.intersection <- intersect(pat.intersection, pat.options)
+            pat.union <- union(pat.union, pat.options)
+          }
+        }
+        if(length(pat.intersection)==1){
+          print(paste(node,": all children equivocal but one association with every child", sep=""))
+          assignments[[node]] <<- pat.intersection[1]
+          return(intersection[1])
+        }
+        print(paste(node,": all children equivocal and not unambiguous", sep=""))
+        assignments[[node]] <<- unique(pat.union)
+        return(unique(pat.union))
+      }
+      child.classifications <- not.equivocal
+      counts <- as.data.frame(table(unlist(child.classifications)))
+      max.counts <- max(counts$Freq)
+      if(length(counts$Freq[which(counts$Freq==max.counts)])>1){
+        assignments[node] <<- as.character(counts$Var1[which(counts$Freq==max.counts)])
+        print(paste(node,": ",length(counts$Freq[which(counts$Freq==max.counts)])," patients appear the same number of times in children",sep=""))
+        return(as.character(counts$Var1[which(counts$Freq==max.counts)]))
       } else {
-        pat.intersection <- intersect(pat.intersection, pat.options)
-        pat.union <- union(pat.union, pat.options)
+        print(paste(node,": winner is ",as.character(counts$Var1[which(counts$Freq==max.counts)[1]]),sep=""))
+        assignments[node] <<- as.character(counts$Var1[which(counts$Freq==max.counts)[1]])
+        return(as.character(counts$Var1[which(counts$Freq==max.counts)[1]]))
       }
     }
-    if(length(pat.intersection)==1){
-      print(paste(node,": all children equivocal but one association with every child", sep=""))
-      assignments[[node]] <<- pat.intersection[1]
-      return(intersection[1])
-    }
-    print(paste(node,": all children equivocal and not unambiguous", sep=""))
-    assignments[[node]] <<- unique(pat.union)
-    return(unique(pat.union))
   }
-  child.classifications <- not.equivocal
-  counts <- as.data.frame(table(unlist(child.classifications)))
-  max.counts <- max(counts$Freq)
-  if(length(counts$Freq[which(counts$Freq==max.counts)])>1){
-    assignments[node] <<- as.character(counts$Var1[which(counts$Freq==max.counts)])
-    print(paste(node,": ",length(counts$Freq[which(counts$Freq==max.counts)])," patients appear the same number of times in children",sep=""))
-    return(as.character(counts$Var1[which(counts$Freq==max.counts)]))
-  } else {
-    print(paste(node,": winner is ",as.character(counts$Var1[which(counts$Freq==max.counts)[1]]),sep=""))
-    assignments[node] <<- as.character(counts$Var1[which(counts$Freq==max.counts)[1]])
-    return(as.character(counts$Var1[which(counts$Freq==max.counts)[1]]))
-  }
-}
