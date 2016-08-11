@@ -20,6 +20,7 @@ boundaries <- c(800, 1505, 2385, 4805, 5037, 5985, 7831, 9400)
 
 amps <- read.table(in.file, sep=",", header=T, stringsAsFactors = F)
 tree <- read.tree(paste(in.root,"_",start,"_to_",end,".tree", sep=""))
+out.file <- paste(out.root,"_",start,"_to_",end,".csv", sep="")
 
 bad.patients <- vector()
 
