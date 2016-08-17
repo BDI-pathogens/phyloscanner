@@ -245,7 +245,8 @@ if(command.line){
     make_option(c("-v", "--verbose"), type="logical", default=FALSE, 
                 help="Talk about what I'm doing"),
     make_option(c("-x", "--tipRegex"), type="character", default=NULL, 
-                help="Regular expression identifying tips from the dataset"),
+                help="Regular expression identifying tips from the dataset. Three groups: patient ID,
+                read ID, and read count."),
     make_option(c("-z", "--zeroLengthTipsCount"), type="logical", default=FALSE, 
                 help="If TRUE, a zero length terminal branch associates the parent at the tip with its parent
                 node, interrupting any inferred transmission pathway between another pair of hosts that goes
