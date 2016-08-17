@@ -1,4 +1,5 @@
-args = commandArgs(trailingOnly=TRUE)
+library(optparse)
+
 
 get.count <- function(string){
   if(length(grep(regexp, string)>0)) {
@@ -7,6 +8,25 @@ get.count <- function(string){
     return(NA)
   }
 }
+
+option_list = list(
+  make_option(c("-r", "--rawThreshold"), type="numeric", default=NULL, 
+              help="Raw threshold; tips with read counts less than this that are identical to a tip from 
+              another patient will be blacklisted, regardless of the count of the other read"),
+  make_option(c("-s", "--ratioThreshold"), type="numeric", default=NULL, 
+              help="Ration threshold; tips will be blacklisted if the ratio of the tip count of another,
+              identical tip from another patient to their tip count count is less than this value"),
+  make_option(c("-i", "--inputFileName"), type="character", default=NULL, 
+              help="A CSV file outlining groups of tips that have identical sequences"),
+  make_option(c("-o", "--outputFileName"), type="character", default=NULL, 
+              help="Path write the output, a CSV file of tips to be blacklisted"),
+  make_option(c("-x", "--tipRegex"), type="character", default=NULL, 
+              help="Regular expression identifying tips from the dataset")
+  )
+
+opt_parser = OptionParser(option_list=option_list)
+opt = parse_args(opt_parser)
+
 
 # This script blacklists tree tips that are likely to be contaminants, based on being identical
 # to tips from another patient. Four arguments:
@@ -20,11 +40,11 @@ get.count <- function(string){
 
 # Parse arguments
 
-raw.threshold <- as.numeric(args[1])
-ratio.threshold <- as.numeric(args[2])
-regexp <- args[3]
-input.name <- args[4]
-output.name <- args[5]
+raw.threshold <- opt$rawThreshold
+ratio.threshold <- opt$ratioThreshold
+regexp <- opt$tipRegex
+input.name <- opt$inputFileName
+output.name <- opt$outputFileName
 
 
 
