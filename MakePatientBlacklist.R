@@ -7,7 +7,7 @@ patient.from.label <- function(label){
 }
 
 # This script blacklists all reads from all patients in a given window. It is currently very 
-# BEEHIVE specific (unlike MakeReadBlacklist.R) and it would be suggested that other uses
+# BEEHIVE specific (unlike MakeReadBlacklist.R) and it would be suggested that other users
 # simply provide custom read blacklists.
 
 start <- as.numeric(args[1])
@@ -19,7 +19,7 @@ out.root <- args[5]
 boundaries <- c(800, 1505, 2385, 4805, 5037, 5985, 7831, 9400)
 
 amps <- read.table(in.file, sep=",", header=T, stringsAsFactors = F)
-tree <- read.tree(paste(in.root,"_",start,"_to_",end,".tree", sep=""))
+tree <- read.tree(paste(tree.root,"_",start,"_to_",end,".tree", sep=""))
 out.file <- paste(out.root,"_",start,"_to_",end,".csv", sep="")
 
 bad.patients <- vector()
@@ -46,6 +46,5 @@ bad.tips <- tree$tip.label[which(tip.is.bad)]
 cat("Blacklist length: ",length(bad.tips),"\n",sep="")
 
 if(length(bad.tips)>0){
-  write.table(bad.tips,output.name, sep=",", row.names=FALSE, col.names=FALSE)
-}
+  write.table(bad.tips,out.file, sep=",", row.names=FALSE, col.names=FALSE)
 }
