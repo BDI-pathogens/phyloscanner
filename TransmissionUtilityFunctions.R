@@ -431,9 +431,6 @@ total.length.between <- function(tree, node.1, node.2) {
 mrca.phylo.or.unique.tip <-
   function(tree, node, zero.length.tips.count = TRUE) {
     if (length(node) == 1) {
-      if (verbose) {
-        cat("Node ",node," is unique for this patient.\n", sep = "")
-      }
       if (!zero.length.tips.count | !is.tip(tree,node)) {
         return(node)
       } else {
@@ -443,9 +440,6 @@ mrca.phylo.or.unique.tip <-
           if (is.root(tree, node)) {
             break
           }
-          if (verbose) {
-            cat("Length short, moving up to node ",node,"\n",sep = "")
-          }
           length <- get.edge.length(tree, node)
           
         }
@@ -453,9 +447,6 @@ mrca.phylo.or.unique.tip <-
       }
     } else {
       mrca <- mrca.phylo(tree, node)
-      if (verbose) {
-        cat("Node ",mrca," is the MRCA of this set.\n", sep = "")
-      }
       
       return(mrca)
       
