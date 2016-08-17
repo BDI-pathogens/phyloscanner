@@ -1,4 +1,4 @@
-command.line <- F
+command.line <- T
 
 list.of.packages <- c("phangorn", "optparse", "phytools", "ggplot2", "gdata", "mvtnorm", "expm")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -15,7 +15,7 @@ library(phytools)
 library(ggplot2)
 library(ggtree)
 
-source("TransmissionUtilityFunctions.R")
+source("/Users/twoseventwo/Documents/phylotypes/TransmissionUtilityFunctions.R")
 
 # CONSERVATIVE METHODS
 
@@ -62,7 +62,7 @@ annotate.internal <- function(tree, patients, patient.tips, patient.mrcas){
 # Find all the splits for a given patient and update the patients vector and patient tips list
 
 split.patient <- function(tree, patient, patients, patient.tips, associations, regexp){
-  cat("Splitting ",patient,"\n",sep="")
+  cat("Splitting ",patient,"...\n",sep="")
   list.of.splits <- find.splits(tree, patient, patients, patient.tips, associations, regexp)
   
   new.patients <- vector()
@@ -79,7 +79,7 @@ split.patient <- function(tree, patient, patients, patient.tips, associations, r
 }
 
 find.splits <- function(tree, patient, patients, patient.tips, associations, regexp){
-  cat("Finding splits for ",patient,"\n",sep="")
+  cat("Finding splits for ",patient,"...\n",sep="")
   
   tip.pool <- tree$tip.label[patient.tips[[patient]]]
   
@@ -99,7 +99,7 @@ find.splits <- function(tree, patient, patients, patient.tips, associations, reg
 # that patient but is not conflicted
 
 last.nonconflicted.ancestor <- function(tree, tip.label, associations, regexp){
-  cat("Finding last nonconflicted ancestor for ", tip.label, "\n", sep="")
+  cat("Finding last nonconflicted ancestor for ", tip.label, "...\n", sep="")
   tip <- which(tree$tip.label == tip.label)
   patient <- patient.from.label(tip.label, regexp)
   
@@ -108,6 +108,12 @@ last.nonconflicted.ancestor <- function(tree, tip.label, associations, regexp){
   repeat{
     next.node <- Ancestors(tree, current.node, type="parent")
     if(next.node == 0){
+      return(current.node)
+    }
+    
+    # associations will only contain keys up to the highest number node that has any associations
+    
+    if(next.node > length(associations)){
       return(current.node)
     }
     if((length(associations[[next.node]]) > 1) | !(patient %in% associations[[next.node]])){
@@ -272,9 +278,9 @@ if(command.line){
 
 } else {
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
-  file.name <- "RAxML_bestTree.InWindow_6800_to_7150.tree"
-  blacklist.files <-c("PatientBlacklist_InWindow_6800_to_7150.csv", "ReadBlacklist_InWindow_6800_to_7150.csv")
-  out.root <- "BEEHIVE180716.InWindow_6800_to_7150"
+  file.name <- "RAxML_bestTree.InWindow_800_to_1150.tree"
+  blacklist.files <-c("PatientBlacklist_InWindow_800_to_1150.csv", "ReadBlacklist_InWindow_800_to_1150.csv")
+  out.root <- "BEEHIVE180716.InWindow_800_to_1150"
   root.name <- "C.BW.00.00BW07621.AF443088"
   tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
 }
@@ -289,9 +295,13 @@ tip.labels <- tree$tip.label
 blacklist <- vector()
 
 for(blacklist.file.name in blacklist.files){
-  blacklisted.tips <- read.table(blacklist.file.name, sep=",", header=F, stringsAsFactors = F)
-  if(length(blacklisted.tips)>0){
-    blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
+  if(file.exists(blacklist.file.name)){
+    blacklisted.tips <- read.table(blacklist.file.name, sep=",", header=F, stringsAsFactors = F)
+    if(length(blacklisted.tips)>0){
+      blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
+    }
+  } else {
+    warning(paste("File ",blacklist.file.name," does not exist; skipping.",paste=""))
   }
 }
 
@@ -308,9 +318,9 @@ patient.tips <-
 
 patient.mrcas <- lapply(patient.tips, function(node) mrca.phylo.or.unique.tip(tree, node, zero.length.tips.count))
 
-if(splitsRule=="c"){
+if(mode=="c"){
 
-  cat("Finding nodes that would have to be associated with more than one patient with no splits\n")
+  cat("Finding nodes that would have to be associated with more than one patient with no splits...\n")
   
   node.assocs <- annotate.internal(tree, patients, patient.tips, patient.mrcas)
   
@@ -324,7 +334,7 @@ if(splitsRule=="c"){
     }
   }
   
-  cat("Drawing tree with conflicts displayed.../n")
+  cat("Drawing tree with conflicts displayed...\n")
   
   # list of tip statuses
   
@@ -353,7 +363,7 @@ if(splitsRule=="c"){
     scale_color_manual(values=c("blue", "red", "black"))
   tree.display
   
-  ggsave(file=paste(out.root,"_conflicts.pdf",sep=""), 
+  ggsave(file=paste("tree_conflicts_",out.root,".pdf",sep=""), 
          height = 400, width = 100, limitsize = F)
   
   cat("Resolving patients with conflicts into separate groups...\n")
@@ -410,17 +420,19 @@ if(splitsRule=="c"){
   
   tree.display
   
-  ggsave(file=paste(out.root,"_c_tree.pdf",sep=""), 
+  ggsave(file=paste("tree_c_",out.root,".pdf",sep=""), 
          height = 400, width = 100, limitsize = F)
   
   
-} else if(splitsRule=="r"){
+} else if(mode=="r"){
   
   cat("Applying the Romero-Severson classification to internal nodes...\n")
   
+  tip.assocs <- annotate.tips(tree, patients, patient.tips)
+  
   new.assocs <- list()
   
-  classify.down(getRoot(tree), tree, node.assocs, patient.mrcas, blacklist)
+  classify.down(getRoot(tree), tree, tip.assocs, patient.mrcas, blacklist)
   
   cat("Filling in stars...\n")
   
@@ -526,7 +538,7 @@ if(splitsRule=="c"){
   
   tree.display
   
-  ggsave(file=paste(out.root,"_r_tree.pdf",sep=""), 
+  ggsave(file=paste("tree_r_",out.root,".pdf",sep=""), 
          height = 400, width = 100, limitsize = F)
   
 
@@ -547,7 +559,7 @@ for(patient.plus in patients.copy){
 
 rs.subtrees <- data.frame(orig.patients, patient.splits, tip.names)
 
-rs.file.name <- paste(out.root,"_",splitsRules,"_Subtrees.csv", sep="")
+rs.file.name <- paste("Subtrees_",out.root,"_",mode,".csv", sep="")
 write.csv(rs.subtrees, rs.file.name)
 
 
