@@ -672,8 +672,10 @@ split.patient <-
     }
   }
 
-# BEEHIVE specific - todo make this more general
-
-patient.from.label <- function(label){
-  return(unlist(strsplit(label, "-"))[1])
+patient.from.label <- function(label, regexp){
+  if(length(grep(regexp, label)>0)) {
+    return(sub(regexp, "\\1", label))
+  } else {
+    return(NA)
+  }
 }
