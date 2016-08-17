@@ -1,8 +1,11 @@
 args = commandArgs(trailingOnly=TRUE)
 
 get.count <- function(string){
-  split.string <- strsplit(string, "_")
-  return(as.numeric(split.string[[1]][length(split.string[[1]])]))
+  if(length(grep(regexp, string)>0)) {
+    return(as.numeric(sub(regexp, "\\3", string)))
+  } else {
+    return(NA)
+  }
 }
 
 # This script blacklists tree tips that are likely to be contaminants, based on being identical
@@ -19,12 +22,18 @@ get.count <- function(string){
 
 raw.threshold <- as.numeric(args[1])
 ratio.threshold <- as.numeric(args[2])
-input.name <- args[3]
-output.name <- args[4]
+regexp <- args[3]
+input.name <- args[4]
+output.name <- args[5]
+
+
+
 
 # Read the lines of the input file as a list
 
-entries <- strsplit(readLines(input.name),",")
+cat("Opening file: ", input.name, "\n", sep="")
+
+entries <- strsplit(readLines(input.name, warn=F),",")
 
 first <- T
 
@@ -33,6 +42,9 @@ first <- T
 # row
 
 for(entry in entries){
+  # get rid of anything that doesn't match the regexp (outgroup etc)
+  entry <- entry[!is.na(get.count(entry))]
+
   if(first){
     first <- F
     raw.tab <- t(combn(entry,2))
@@ -47,22 +59,22 @@ pairs.table <- data.frame(raw.tab, stringsAsFactors = F)
 pairs.table$reads.1 <- sapply(pairs.table[,1], get.count)
 pairs.table$reads.2 <- sapply(pairs.table[,2], get.count)
 
+
 # reverse the order so the read with the greater count is in the first column
 
-pairs.table[pairs.table$reads.2 > pairs.table$reads.1, c("X1", "X2", "reads.1", "reads.2")] <- pairs.table[table$reads.2 > pairs.table$reads.1, c("X2", "X1", "reads.2", "reads.1")] 
+pairs.table[pairs.table$reads.2 > pairs.table$reads.1, c("X1", "X2", "reads.1", "reads.2")] <- pairs.table[pairs.table$reads.2 > pairs.table$reads.1, c("X2", "X1", "reads.2", "reads.1")] 
 
 # calculate the counts
 
 pairs.table$sharedCount <- pairs.table$reads.2 + pairs.table$reads.1
 pairs.table$seqOverShared <- pairs.table$reads.2/pairs.table$sharedCount
 
-cat("Making blacklist with a ratio threshold of ",args[4]," and a raw threshold of ",args[3],".\n",sep="")
+cat("Making blacklist with a ratio threshold of ",ratio.threshold," and a raw threshold of ",raw.threshold,"\n",sep="")
 
-blacklisted <- table[which(table$seqOverShared<ratio.threshold | (table$reads.2<raw.threshold)),2]
+blacklisted <- pairs.table[which(pairs.table$seqOverShared<ratio.threshold | (pairs.table$reads.2<raw.threshold)),2]
 
-cat("Blacklist length: ",length(out),"\n",sep="")
+cat("Blacklist length: ",length(blacklisted),"\n",sep="")
 
-if(length(out)>0){
-  write.table(out,output.name, sep=",", row.names=FALSE, col.names=FALSE)
-}
+if(length(blacklisted)>0){
+  write.table(blacklisted,output.name, sep=",", row.names=FALSE, col.names=FALSE)
 }
