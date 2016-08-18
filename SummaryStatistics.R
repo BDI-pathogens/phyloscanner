@@ -381,9 +381,21 @@ colnames(splits.props) <- c("window.middle", "patient", paste("prop.gp.",seq(1,m
 ews <- min(pat.stats$window.start)
 lwe <- max(pat.stats$window.end)
 
-pdf("plots.pdf", width=8.26772, height=11.6929, units="mm")
+# todo - the subtree read proportions aren't here, but how relevant are the means of those anyway?
 
-for (i in seq(1, 10)) {
+mean.na.rm <- function(x) mean(x, na.rm = T)
+
+pat.stats <- unfactorDataFrame(pat.stats)
+by.patient <- pat.stats %>% group_by(patient)
+pat.stats.summary <-
+  as.data.frame(by.patient %>% summarise_each(funs(mean.na.rm)))
+
+write.csv(pat.stats.summary, file.path("Patient.Statistics.Summary.csv"))
+
+
+pdf("plots.pdf", width=8.26772, height=11.6929)
+
+for (i in seq(1, length(ids))) {
   patient <- sort(ids)[i]
   
   this.pat.stats <- pat.stats[which(pat.stats$patient==patient),]
@@ -531,7 +543,6 @@ for (i in seq(1, 10)) {
     plots1 <- c(plots1, AlignPlots(graph.1, graph.2, graph.3, graph.4, graph.5, graph.6))
     plots1$ncol <- 1
     plots1$heights <- unit(c(0.25, rep(1,6)), "null")
-    plots1$newpage <- T
     
     do.call(grid.arrange, plots1)
     
