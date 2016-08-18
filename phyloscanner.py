@@ -851,7 +851,8 @@ def FindPatientsConsensuses(alignment):
     ConsensusAlignment.append(SeqObject)
   for ref in RefSeqsHere:
     ConsensusAlignment.append(ref)
-  return RemovePureGapCols(ConsensusAlignment)
+  #return RemovePureGapCols(ConsensusAlignment)
+  return ConsensusAlignment
 
 # If we're keeping track list of discarded read pairs for each bam file:
 if args.inspect_disagreeing_overlaps:
