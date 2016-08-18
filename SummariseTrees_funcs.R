@@ -12,6 +12,16 @@ checkArgs <- function(args) {
 	}
 }
 
+checkArgs2 <- function(args) {
+  # Quits with an error message if the wrong number of args is given.
+	if (length(args) < 2) {
+		cat(paste("At least 2 arguments must be specified:\n* a file containing",
+						"the IDs to be coloured, one per line; and any number of tree",
+            "files.\nQuitting.\n"))
+		quit("no", 1)
+	}
+}
+
 checkTreeFiles <- function(tree.files) {
   # Check files exist
 	for (tree.file in tree.files) {
@@ -36,7 +46,8 @@ checkTreeFileNames <- function(tree.files.basenames, tree.file.regex) {
 }
 
 colourTree <- function(tree, tip.regex, id.colours, tree.file.basename,
-output.dir, font.size, line.width, ids, colour.edges, clade.mrcas.by.patient) {
+output.dir, font.size, line.width, ids, colour.edges, clade.mrcas.by.patient,
+ladderise.trees) {
   # Prints a tree coloured by patient ID
 
   num.tips <- length(tree$tip.label)
@@ -55,7 +66,9 @@ output.dir, font.size, line.width, ids, colour.edges, clade.mrcas.by.patient) {
 		
 	# Rotate internal nodes to have right daughter clades more species rich than
 	# left daughter clades.
-	tree <- ladderize(tree)
+  if (ladderise.trees) {
+	  tree <- ladderize(tree)
+  }
 
   if (colour.edges) {
     # Generate a string guaranteed not to clash with any id: the character "a"
@@ -88,12 +101,26 @@ output.dir, font.size, line.width, ids, colour.edges, clade.mrcas.by.patient) {
   } else {
     plotTree(tree, color="black", fsize=font.size, lwd=line.width,
     ylim=c(-1, num.tips))
+    #,node.numbers=T)
   }
-	lastPP <- get("last_plot.phylo", env=.PlotPhyloEnv)
+  lastPP <- get("last_plot.phylo", env=.PlotPhyloEnv)
 	par(fg="black")
   #nodelabels(bg="white", cex=font.size)
 	text(lastPP$xx[seq_len(num.tips)], lastPP$yy[seq_len(num.tips)], tree$tip.label,
 			cex=font.size, col=this.tree.colours, pos=4, offset=0.1, font=0.1)
+
+  #node.labels <- sapply(as.numeric(as.character(tree$node.label)), 
+  #               function(bs){
+  #                 if(!is.na(bs) & bs>30){
+  #                   return(bs)
+  #                 } else {
+  #                   return("")
+  #                 }
+  #               })
+  #nodelabels(node.labels, (length(tree$tip.label) + 1):(length(tree$tip.label) +
+  #tree$Nnode), adj = c(0.5,0.05), frame = "none", pch = NULL, thermo = NULL,
+  #pie = NULL, piecol = NULL, col = "black", cex = 0.6)
+  #add.scale.bar(0,-1,length=0.05)
 	dev.off()
 	par <- opar
 }
@@ -664,3 +691,6 @@ test.clade.ordering.only) {
   prop.reads.per.clade=prop.reads.per.clade,
   root.to.tip.per.clade=root.to.tip.per.clade))
 }
+
+
+
