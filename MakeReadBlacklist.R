@@ -1,0 +1,100 @@
+library(optparse)
+
+
+get.count <- function(string){
+  if(length(grep(regexp, string)>0)) {
+    return(as.numeric(sub(regexp, "\\3", string)))
+  } else {
+    return(NA)
+  }
+}
+
+option_list = list(
+  make_option(c("-r", "--rawThreshold"), type="numeric", default=NULL, 
+              help="Raw threshold; tips with read counts less than this that are identical to a tip from 
+              another patient will be blacklisted, regardless of the count of the other read"),
+  make_option(c("-s", "--ratioThreshold"), type="numeric", default=NULL, 
+              help="Ration threshold; tips will be blacklisted if the ratio of the tip count of another,
+              identical tip from another patient to their tip count count is less than this value"),
+  make_option(c("-i", "--inputFileName"), type="character", default=NULL, 
+              help="A CSV file outlining groups of tips that have identical sequences"),
+  make_option(c("-o", "--outputFileName"), type="character", default=NULL, 
+              help="Path write the output, a CSV file of tips to be blacklisted"),
+  make_option(c("-x", "--tipRegex"), type="character", default=NULL, 
+              help="Regular expression identifying tips from the dataset")
+  )
+
+opt_parser = OptionParser(option_list=option_list)
+opt = parse_args(opt_parser)
+
+
+# This script blacklists tree tips that are likely to be contaminants, based on being identical
+# to tips from another patient. Four arguments:
+
+# 1. A raw read threshold. The script will blacklist any tips that match those from another
+# patient if the read count for that tip is below this value.
+# 2. A ratio read threshold. The script will blacklist any tips that match those from another
+# patient if the ratio of tips from that patient to the tip's patient is below this value
+# 3. An input file name (A CSV file, output from XXXXXXXX)
+# 4. An output file name (CSV format)
+
+# Parse arguments
+
+raw.threshold <- opt$rawThreshold
+ratio.threshold <- opt$ratioThreshold
+regexp <- opt$tipRegex
+input.name <- opt$inputFileName
+output.name <- opt$outputFileName
+
+
+
+
+# Read the lines of the input file as a list
+
+cat("Opening file: ", input.name, "\n", sep="")
+
+entries <- strsplit(readLines(input.name, warn=F),",")
+
+first <- T
+
+# The input file has variable row lengths - sometimes three or more patients have
+# identical reads. We build a data frame for each pairwise combination of reads in each
+# row
+
+for(entry in entries){
+  # get rid of anything that doesn't match the regexp (outgroup etc)
+  entry <- entry[!is.na(get.count(entry))]
+
+  if(first){
+    first <- F
+    raw.tab <- t(combn(entry,2))
+  } else {
+    raw.tab <- rbind(raw.tab, t(combn(entry,2)))
+  }
+}
+
+
+pairs.table <- data.frame(raw.tab, stringsAsFactors = F)
+
+pairs.table$reads.1 <- sapply(pairs.table[,1], get.count)
+pairs.table$reads.2 <- sapply(pairs.table[,2], get.count)
+
+
+# reverse the order so the read with the greater count is in the first column
+
+pairs.table[pairs.table$reads.2 > pairs.table$reads.1, c("X1", "X2", "reads.1", "reads.2")] <- pairs.table[pairs.table$reads.2 > pairs.table$reads.1, c("X2", "X1", "reads.2", "reads.1")] 
+
+# calculate the counts
+
+pairs.table$sharedCount <- pairs.table$reads.2 + pairs.table$reads.1
+pairs.table$seqOverShared <- pairs.table$reads.2/pairs.table$sharedCount
+
+cat("Making blacklist with a ratio threshold of ",ratio.threshold," and a raw threshold of ",raw.threshold,"\n",sep="")
+
+blacklisted <- pairs.table[which(pairs.table$seqOverShared<ratio.threshold | (pairs.table$reads.2<raw.threshold)),2]
+
+cat("Blacklist length: ",length(blacklisted),"\n",sep="")
+
+if(length(blacklisted)>0){
+  write.table(blacklisted,output.name, sep=",", row.names=FALSE, col.names=FALSE)
+}

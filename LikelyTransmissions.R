@@ -2,8 +2,8 @@ library(phangorn)
 library(optparse)
 library(phytools)
 
-source("phylotypes2/TransmissionUtilityFunctions.R")
-
+source("phylotypes4/TransmissionUtilityFunctions.R")
+#source("/Users/twoseventwo/Documents/phylotypes/TransmissionUtilityFunctions.R")
 
 option_list = list(
   make_option(c("-f", "--file"), type="character", default=NULL, 
@@ -31,8 +31,8 @@ option_list = list(
 
 
 
-opt_parser = OptionParser(option_list=option_list);
-opt = parse_args(opt_parser);
+opt_parser = OptionParser(option_list=option_list)
+opt = parse_args(opt_parser)
 
 
 verbose <- opt$verbose
@@ -46,10 +46,10 @@ label.separator <- opt$labelSeparator
 patient.id.position <- opt$patientIDPosition
 split.threshold <- opt$splitThreshold
 
-# file.name <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160211/RAxML_bestTree.InWindow_800_to_1100.tree"
-# output.name <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160211/NewLikelyTransmissions.InWindow_800_to_1100.csv"
-# blacklist.file <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160211/Blacklist0.005_surviving_InWindow_800_to_1100.csv"
-# root.name <- "B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
+# file.name <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517/RAxML_bestTree.InWindow_2800_to_3150.tree"
+# output.name <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517/LikelyTransmissions.InWindow_2800_to_3150.csv"
+# blacklist.file <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517/blacklist_InWindow_2800_to_3150.csv"
+# root.name <- "C.BW.00.00BW07621.AF443088"
 # label.separator <- "_"
 # patient.id.position <- 1
 # split.threshold <- 0.08
@@ -60,16 +60,6 @@ cat("Opening file: ", file.name, "\n", sep = "")
 tree <-read.tree(file.name)
 
 #blacklist is a list of the tip numbers to avoid
-
-if(!is.null(blacklist.file)){
-  if(verbose){
-    cat("Processing blacklist")
-  }
-  blacklist.table <- read.table(blacklist.file, sep=",", stringsAsFactors = FALSE)
-  blacklist <- sapply(blacklist.table[,1], get.tip.no, tree=tree)
-} else {
-  blacklist <- NULL
-}
 
 tree <- root(tree, root.name)
 
@@ -94,6 +84,30 @@ patient.ids <- sapply(split.tip.labels, "[[", patient.id.position)
 
 patient.ids[outgroup.no] <- "Ref"
 
+if(!is.null(blacklist.file)){
+  if(verbose){
+    cat("Processing blacklist")
+  }
+  blacklist <- vector()
+  
+  blacklist.table <- read.table(blacklist.file, sep=",", stringsAsFactors = FALSE)
+  
+  blacklisted.tips <- blacklist.table[which(blacklist.table[,2]=="read"),1]
+
+  if(length(blacklisted.tips)>0){
+    blacklist <- sapply(blacklisted.tips, get.tip.no, tree=tree)
+  }
+  
+  blacklisted.patients <- blacklist.table[which(blacklist.table[,2]=="patient"),1]
+  
+  pat.blacklist <- unlist(sapply(blacklisted.patients, get.tips.for.sample, tree = tree))
+  
+  blacklist <- unique(c(blacklist, pat.blacklist))
+  
+} else {
+  blacklist <- NULL
+}
+
 #if all tips from a given patient are on the blacklist, safe to ignore him/her
 
 if(!is.null(blacklist)){
@@ -114,8 +128,12 @@ split.counts <- list()
 #splitting
 if(split.threshold<Inf){
   for(id in patients){
-    split.patient(tree, id, split.threshold, patients, patient.tips, patient.mrcas, patient.ids, split.counts)
+    split.results <- split.patient(tree, id, split.threshold, patients, patient.tips, patient.mrcas, patient.ids, split.counts)
   }
+  patients <- split.results$patient.names
+  patient.tips <- split.results$patient.tips
+  patient.mrcas <- split.results$patient.mrcas
+  patient.ids <- split.results$patients.for.tips
 }
 
 total.pairs <- (length(patients) ^ 2 - length(patients))/2
@@ -125,8 +143,11 @@ if(verbose){
 }
 
 
+
+
 count <- 0
 direct.descendant.matrix <- matrix(NA, length(patients), length(patients))
+sibling.distance.matrix <- matrix(NA, length(patients), length(patients))
 for (pat.1 in seq(1, length(patients))) {
   for (pat.2 in seq(1, length(patients))) {
     if (pat.1 < pat.2) {
@@ -160,16 +181,29 @@ for (pat.1 in seq(1, length(patients))) {
       
       intermingled <- are.intermingled(tree, patients[pat.1], patients[pat.2], patient.mrcas, patient.tips)
       
+
+      
       if(intermingled & !is.na(direct.descendant.matrix[pat.1, pat.2])){
         cat("Intermingled but descendant?")
         stop
       }
       
       if(intermingled){
+        class <- intermingled.class(tree, patients[pat.1], patients[pat.2], patient.mrcas, patient.tips)
+        
         if(verbose){
           cat("found\n")
         }
-        direct.descendant.matrix[pat.1, pat.2] <- "int"
+        if(class=="*"){
+          direct.descendant.matrix[pat.1, pat.2] <- "trueInt"
+        } else if(class==patients[pat.1]){
+          direct.descendant.matrix[pat.1, pat.2] <- "intAnc"
+        } else if(class==patients[pat.2]){
+          direct.descendant.matrix[pat.1, pat.2] <- "intDesc"
+        } else {
+          stop(paste("Patients ",patients[pat.1]," and ",patients[pat.2],"haven't classified properly",sep=""))
+        }
+        
       } else {
         if(verbose){
           cat("not found\n")
@@ -224,3 +258,4 @@ dddf <- dddf[complete.cases(dddf),]
 colnames(dddf) <- c("Patient_1", "Patient_2", "Relationship")
 
 write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE)
+
