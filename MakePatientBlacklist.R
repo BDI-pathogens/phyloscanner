@@ -22,6 +22,8 @@ amps <- read.table(in.file, sep=",", header=T, stringsAsFactors = F)
 tree <- read.tree(paste(tree.root,"_",start,"_to_",end,".tree", sep=""))
 out.file <- paste(out.root,"_",start,"_to_",end,".csv", sep="")
 
+cat("MakePatientBlacklist.R run on: ", paste(tree.root,"_",start,"_to_",end,".tree", sep=""), "\n", sep="")
+
 bad.patients <- vector()
 
 for(row in seq(1,nrow(amps))){

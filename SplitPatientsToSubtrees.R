@@ -9,228 +9,14 @@ if(!("ggtree" %in% installed.packages()[,"Package"])){
   biocLite("ggtree")
 }
 
-library(phangorn)
-library(optparse)
-library(phytools)
-library(ggplot2)
-library(ggtree)
+require(phangorn, quietly=T)
+require(optparse, quietly=T)
+require(phytools, quietly=T)
+require(ggplot2, quietly=T)
+require(ggtree, quietly=T)
 
 source("/Users/twoseventwo/Documents/phylotypes/TransmissionUtilityFunctions.R")
-
-# CONSERVATIVE METHODS
-
-# Work out which nodes must be assigned to each patient for full connectivity (ignoring conflicts)
-
-annotate.internal <- function(tree, patients, patient.tips, patient.mrcas){
-  # The patients associated with each node
-  node.assocs <- list()
-  # The number of patients associated with each node
-  node.assoc.counts <- rep(0, length(tree$tip.label) + tree$Nnode)
-  for(patient in patients){
-    for(tip in patient.tips[[patient]]){
-      keep.going <- T
-      current.node <- tip
-      while(keep.going){
-        # if you're at this node, it should be given this association
-
-        if(is.null(node.assocs[current.node][[1]])){
-          # no existing associations
-          node.assocs[current.node][1] <- patient
-          node.assoc.counts[current.node] <- 1
-        } else {
-          if(patient %in% node.assocs[current.node][[1]]){
-            # already associated, no need to go further up the tree
-            break
-          } else {
-            # add it to the vector and increase the count
-            node.assocs[current.node][[1]] <- c(node.assocs[current.node][[1]], patient)
-            node.assoc.counts[current.node] <- node.assoc.counts[current.node] + 1
-          }
-        }
-        # If the patient MRCA has been reached, can stop
-        if(current.node == patient.mrcas[[patient]]){
-          keep.going <- F
-        }
-        # Otherwise, go up
-        current.node <- Ancestors(tree, current.node, type="parent")
-      }
-    }
-  }
-  return(list(details = node.assocs, counts = node.assoc.counts))
-}
-
-# Find all the splits for a given patient and update the patients vector and patient tips list
-
-split.patient <- function(tree, patient, patients, patient.tips, associations, regexp){
-  cat("Splitting ",patient,"...\n",sep="")
-  list.of.splits <- find.splits(tree, patient, patients, patient.tips, associations, regexp)
-  
-  new.patients <- vector()
-  new.patient.tips <- list()
-  
-  if(length(list.of.splits) > 1){
-    for(item.no in seq(1, length(list.of.splits))){
-      new.name <- paste(patient,"-S",item.no, sep="")
-      new.patients <- c(new.patients, new.name)
-      new.patient.tips[[new.name]] <- which(tree$tip.label %in% list.of.splits[[item.no]])
-    }
-  }
-  return(list(patients = new.patients, patient.tips = new.patient.tips))
-}
-
-find.splits <- function(tree, patient, patients, patient.tips, associations, regexp){
-  cat("Finding splits for ",patient,"...\n",sep="")
-  
-  tip.pool <- tree$tip.label[patient.tips[[patient]]]
-  
-  out <- list()
-  
-  last.ancestors <- sapply(tip.pool, function(x) last.nonconflicted.ancestor(tree, x, associations, regexp))
-  
-  for(unique.last.anc in unique(last.ancestors)){
-    out[[paste("node_", unique.last.anc,sep="")]] <- tip.pool[which(last.ancestors==unique.last.anc)]
-  }
-  
-  return(out)
-  
-}
-
-# Tips in the same connected subtree will have the same earliest ancestor that is associated with
-# that patient but is not conflicted
-
-last.nonconflicted.ancestor <- function(tree, tip.label, associations, regexp){
-  cat("Finding last nonconflicted ancestor for ", tip.label, "...\n", sep="")
-  tip <- which(tree$tip.label == tip.label)
-  patient <- patient.from.label(tip.label, regexp)
-  
-  current.node <- tip
-
-  repeat{
-    next.node <- Ancestors(tree, current.node, type="parent")
-    if(next.node == 0){
-      return(current.node)
-    }
-    
-    # associations will only contain keys up to the highest number node that has any associations
-    
-    if(next.node > length(associations)){
-      return(current.node)
-    }
-    if((length(associations[[next.node]]) > 1) | !(patient %in% associations[[next.node]])){
-      return(current.node)
-    }
-    current.node <- next.node
-  }
-}
-
-# ROMERO-SEVERSON METHODS
-
-# Annotate just the tips with their patients
-
-annotate.tips <- function(tree, patients, patient.tips){
-  node.assocs <- list()
-  for(patient in patients){
-    for(tip in patient.tips[[patient]]){
-      node.assocs[[tip]] <- patient
-    }
-  }
-  return(node.assocs)
-}
-
-# Used to find every connected subtree in the whole tree by finding the earliest node in them
-
-count.splits <- function(tree, node, assocs, patients, counts.vec, first.nodes.list){
-  
-  for(child in Children(tree, node)){
-    child.results <- count.splits(tree, child, assocs, patients, counts.vec, first.nodes.list) 
-    
-    counts.vec <- child.results$counts
-    first.nodes.list <- child.results$first.nodes
-  }
-  
-  parent <- Ancestors(tree, node, type="parent")
-  if(assocs[[node]]!="*"){
-    if(parent==0 | assocs[[parent]]!=assocs[[node]]){
-      patient <- assocs[[node]]
-      pat.index <- which(patients == patient)
-      counts.vec[pat.index] <- counts.vec[pat.index] + 1
-      first.nodes.list[[patient]] <- c(first.nodes.list[[patient]], node)
-    }
-  }
-  return(list(counts = counts.vec, first.nodes = first.nodes.list))
-}
-
-# Does the RS classification (todo move to TUF?)
-
-classify.down <- function(node, tree, tip.assocs, patient.mrcas, blacklist){
-  
-  if(is.tip(tree, node)){
-    if(node %in% blacklist | !(startsWith(tree$tip.label[node], "BEE"))){
-      result <- "*"
-    } else {
-      result <- tip.assocs[[node]]
-    }
-  } else {
-    
-    child.assocs.vector <- sapply(Children(tree, node), classify.down, tree=tree, tip.assocs=tip.assocs, patient.mrcas = patient.mrcas, blacklist=blacklist)
-    
-    c.a.df <- as.data.frame(table(child.assocs.vector), stringsAsFactors=F )
-    
-    if(nrow(c.a.df)==1){
-      result <- c.a.df[1,1]
-    } else {
-      c.a.df <- c.a.df[which(c.a.df[,1]!="*"),]
-      
-      winners <- c.a.df[which(c.a.df[,2]==max(c.a.df[,2])),]
-      if(nrow(winners)==1){
-        result <- winners[1,1]
-      } else {
-        result <- "*"
-      }
-    }
-  }
-  
-  #check that this isn't above the MRCA for the patient, which leads to weird results
-  
-  if(result != "*"){
-    if(node %in% Ancestors(tree, patient.mrcas[[result]], type="all")){
-      result <- "*"
-    }
-  }
-  
-  new.assocs[[node]] <<- result
-  return(result)
-}
-
-# "Star runs" are sequences of ancestors that are assigned "*" by the RS classification. Once the
-# classification is done, they can be converted to having assigned nodes if the ancestor of the
-# earliest node is a possible host for all nodes in the run
-
-get.star.runs <- function(tree, assocs){
-  out <- list()
-  for(int.node in seq(length(tree$tip.label) + 1,  length(tree$tip.label) + tree$Nnode)){
-    if(assocs[[int.node]]=="*"){
-      #need to check that it got the star because of an ambiguity, not because there are only stars around there
-      child.assocs <- unlist(assocs[Children(tree, int.node)])
-      c.a.df <- as.data.frame(table(child.assocs), stringsAsFactors=F)
-      c.a.df <- c.a.df[which(c.a.df[,1]!="*"),]
-      if(nrow(c.a.df)>1){
-        run <- int.node
-        current.node <- Ancestors(tree, int.node, type="parent")
-        while(assocs[[current.node]]=="*"){
-          run <- c(run, current.node)
-          current.node <- Ancestors(tree, current.node, type="parent")
-          if(current.node == 0){
-            break
-          }
-        }
-        out[[int.node]] <- run
-      }
-    }
-  }
-  return(out)
-}
-
+source("/Users/twoseventwo/Documents/phylotypes/SubtreeMethods.R")
 
 if(command.line){
   option_list = list(
@@ -242,8 +28,6 @@ if(command.line){
                 help="Reference sequence label (if unspecified, tree will be assumed to be already rooted)"),
     make_option(c("-b", "--blacklists"), type="character", default=NULL, 
                 help="Path to one or more .csv files listing tips to ignore; separated with colons"),
-    make_option(c("-v", "--verbose"), type="logical", default=FALSE, 
-                help="Talk about what I'm doing"),
     make_option(c("-x", "--tipRegex"), type="character", default=NULL, 
                 help="Regular expression identifying tips from the dataset. Three groups: patient ID,
                 read ID, and read count."),
@@ -261,7 +45,6 @@ if(command.line){
   opt_parser = OptionParser(option_list=option_list)
   opt = parse_args(opt_parser)
   
-  verbose <- opt$verbose
   zero.length.tips.count <- opt$zeroLengthTipsCount
   
   file.name <- opt$file
@@ -279,12 +62,15 @@ if(command.line){
 
 } else {
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
-  file.name <- "RAxML_bestTree.InWindow_800_to_1150.tree"
-  blacklist.files <-c("PatientBlacklist_InWindow_800_to_1150.csv", "ReadBlacklist_InWindow_800_to_1150.csv")
-  out.root <- "BEEHIVE180716.InWindow_800_to_1150"
+  file.name <- "RAxML_bestTree.InWindow_2050_to_2400.tree"
+  blacklist.files <-c("PatientBlacklist_InWindow_2050_to_2400.csv", "ReadBlacklist_InWindow_2050_to_2400.csv")
+  out.root <- "BEEHIVE180716.InWindow_2050_to_2400"
   root.name <- "C.BW.00.00BW07621.AF443088"
   tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
+  mode <- "c"
 }
+
+cat("SplitPatientsToSubtrees.R run on: ", file.name,", rules = ",mode,"\n", sep="")
 
 tree <- read.tree(file.name)
 tree <- unroot(tree)
@@ -297,8 +83,8 @@ blacklist <- vector()
 
 for(blacklist.file.name in blacklist.files){
   if(file.exists(blacklist.file.name)){
-    blacklisted.tips <- read.table(blacklist.file.name, sep=",", header=F, stringsAsFactors = F)
-    if(length(blacklisted.tips)>0){
+    blacklisted.tips <- read.table(blacklist.file.name, sep=",", header=F, stringsAsFactors = F, col.names="read")
+    if(nrow(blacklisted.tips)>0){
       blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
     }
   } else {

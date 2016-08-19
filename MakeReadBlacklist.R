@@ -51,7 +51,7 @@ output.name <- opt$outputFileName
 
 # Read the lines of the input file as a list
 
-cat("Opening file: ", input.name, "\n", sep="")
+cat("MakeReadBlacklist.R run on: ", input.name, "\n", sep="")
 
 entries <- strsplit(readLines(input.name, warn=F),",")
 

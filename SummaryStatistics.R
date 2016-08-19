@@ -3,20 +3,33 @@
 source("/Users/twoseventwo/Documents/phylotypes/TransmissionUtilityFunctions.R")
 source("/Users/twoseventwo/Documents/phylotypes/SummariseTrees_funcs.R")
 
-command.line <- FALSE
+command.line <- T
 if (command.line) {
   require(optparse)
   
   option_list = list(
     make_option(c("-i", "--idFile"), type="character", default=NULL, 
                 help="The path of a file containing a list of all the patient IDs to be summarised"),
-    make_option(c("-t", "--treeFileRoot"), type="character", default=NULL, 
+    make_option(c("-o", "--outputRoot"), type="character", default=NULL, 
+                help="Root string for output file names."),
+    make_option(c("-tr", "--treeFileRoot"), type="character", default=NULL, 
                 help="A string which every tree file begins with."),
-    make_option(c("-b", "--blacklistFileRoots"), type="character", default=NULL, 
+    make_option(c("-tl", "--treeFileList"), type="character", default=NULL, 
+                help="A list of tree files (single string, with file names separated by with colons). Ignored if
+                -tr is present"),
+    make_option(c("-br", "--blacklistFileRoots"), type="character", default=NULL, 
                 help="One or more strings which files listing blacklisted tips begin with, separated by 
                 colons."),
-    make_option(c("-s", "--splitsFileRoot"), type="character", default=NULL, 
+    make_option(c("-bl", "--blacklistFileLists"), type="character", default=NULL, 
+                help="A list of lists of blacklist CSV files; each top level list corresponds to a tree file. Top 
+                level lists are separated by colons, bottom level by semicolons. For example, in the string 
+                'A.csv;B.csv:C.csv;D.csv', A.csv and B.csv are blacklist files for the first tree file, and 
+                C.csv and D.csv are for the second. Ignored if -br is present."),
+    make_option(c("-sr", "--splitsFileRoot"), type="character", default=NULL, 
                 help="A string which every splits file begins with."),
+    make_option(c("-sl", "--splitsFileList"), type="character", default=NULL, 
+                help="A list of splits files (single string, with file names separated by with colons). Ignored if 
+                -sr is present"),
     make_option(c("-w", "--windows"), type="character", default=NULL, 
                 help="The window in the genome which each tree file, in alphabetical order by file name, 
                 is constructed from.In each window this is given as n-m where n is the start and m the end; 
@@ -37,31 +50,63 @@ if (command.line) {
   id.file <- opt$idFile
   root.name <- opt$refSeqName
   tip.regex <- opt$tipRegex
-  tree.file.root <- opt$treeFileToor
+  tree.file.root <- opt$treeFileRoot
   splits.file.root <- opt$splitsFileRoot
   blacklist.file.roots.raw <- opt$blacklistFileRoots
+  output.root <- opt$outputRoot
   
-  tree.files <- sort(list.files(input.dir, pattern=paste(tree.file.root,".*\\.tree",sep="")))
-  splits.files <- sort(list.files(input.dir, pattern=paste(splits.file.root,".*\\.csv",sep="")))
+  if(!is.null(tree.file.root)){
+    tree.files <- sort(list.files(input.dir, pattern=paste(tree.file.root,".*\\.tree",sep="")))
+  } else {
+    tree.files <- unlist(strsplit(opt$treeFileList, ":"))
+  }
+  if(!is.null(splits.file.root)){
+    splits.files <- sort(list.files(input.dir, pattern=paste(splits.file.root,".*\\.csv",sep="")))
+  } else {
+    splits.files <- unlist(strsplit(opt$splitsFileList, ":"))
+  }
+  
+  if(length(tree.files)!=length(splits.files)){
+    stop("Number of tree files and number of splits files differ")
+  }
   
   blacklist.roots <- unlist(strsplit(blacklist.file.roots.raw, ":"))
   
   blacklist.files <- list()
   
-  for(root in blacklist.roots){
-    blacklist.files[[root]] <- sort(list.files(input.dir, pattern=paste(root,".*\\.csv",sep="")))
+  if(!is.null(blacklist.file.roots.raw)){
+    for(root in blacklist.roots){
+      blacklist.files[[root]] <- sort(list.files(input.dir, pattern=paste(root,".*\\.csv",sep="")))
+      if(length(tree.files)!=length(blacklist.files[[root]])){
+        stop("Number of tree files and number of blacklist files differ")
+      }
+    }
+  } else {
+    blacklist.file.lists.raw <- opt$blacklistFileLists
+    groups <- unlist(strsplit(blacklist.file.lists.raw, ":"))
+    if(length(groups)!=length(tree.files)){
+      stop("Number of tree files and number of blacklist file groups differ")
+    }
+    groups.split <- strsplit(groups, ";")
+    if(length(unique(lengths(groups.split)))!=1){
+      stop("Variable numbers of blacklist files for different windows (please use blank files if necessary)")
+    }
+    for(i in seq(1, unique(lengths(groups.split)))){
+      blacklist.files[[i]] <- unlist(lapply(groups.split, `[[`, i))
+    }
   }
+  
   
   if(!is.null(opt$windows)){
     windows <- unlist(strsplit(opt$windows, ":"))
+    if(length(tree.files)!=length(windows)){
+      stop("Number of tree files and number of windows differ")
+    }
   } else {
-    window <- NULL
+    windows <- NULL
   }
-    
-  
-  if(length(tree.files)!=length(windows)){
-    stop("Number of tree files and number of windows differ")
-  }
+
+
   
   
 } else {
@@ -390,10 +435,9 @@ by.patient <- pat.stats %>% group_by(patient)
 pat.stats.summary <-
   as.data.frame(by.patient %>% summarise_each(funs(mean.na.rm)))
 
-write.csv(pat.stats.summary, file.path("Patient.Statistics.Summary.csv"))
+write.csv(pat.stats.summary, file.path(paste(output.root,"_patStatsSummary.csv",sep="")))
 
-
-pdf("plots.pdf", width=8.26772, height=11.6929)
+pdf(paste(output.root,"_plots.pdf",sep=""), width=8.26772, height=11.6929)
 
 for (i in seq(1, length(ids))) {
   patient <- sort(ids)[i]
