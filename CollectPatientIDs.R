@@ -6,11 +6,11 @@ require(optparse)
 source("/Users/twoseventwo/Documents/phylotypes/TransmissionUtilityFunctions.R")
 
 option_list = list(
-  make_option(c("-tr", "--treeFileRoot"), type="character", default=NULL, 
+  make_option("--treeFileRoot", type="character", default=NULL, 
               help="A string which every tree file begins with."),
-  make_option(c("-tl", "--treeFileList"), type="character", default=NULL, 
+  make_option("--treeFileList", type="character", default=NULL, 
               help="A list of tree files (single string, with file names separated by with colons). Ignored if
-              -tr is present"),
+              --treeFileRoot is present"),
   make_option(c("-x", "--tipRegex"), type="character", default=NULL, 
               help="Regular expression identifying tips from the dataset. Three groups: patient ID,
               read ID, and read count."),
@@ -23,7 +23,7 @@ opt = parse_args(opt_parser)
 tree.file.root <- opt$treeFileRoot
 
 if(!is.null(tree.file.root)){
-  tree.files <- sort(list.files(input.dir, pattern=paste(tree.file.root,".*\\.tree",sep="")))
+  tree.files <- sort(list.files(getwd(), pattern=paste(tree.file.root,".*\\.tree",sep="")))
 } else {
   tree.files <- unlist(strsplit(opt$treeFileList, ":"))
 }
@@ -43,4 +43,4 @@ names <- names[which(!is.na(names))]
 names <- unique(names)
 names <- sort(names)
 
-write.table(names, out.file.name, quote=F, row.names = F)
+write.table(names, out.file.name, quote=F, row.names = F, col.names = F)

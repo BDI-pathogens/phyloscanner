@@ -1,7 +1,9 @@
 #!/usr/bin/env Rscript
 
-source("/Users/twoseventwo/Documents/phylotypes/TransmissionUtilityFunctions.R")
-source("/Users/twoseventwo/Documents/phylotypes/SummariseTrees_funcs.R")
+script.dir <- "/Users/twoseventwo/Documents/phylotypes/"
+source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
+source(file.path(script.dir, "SummariseTrees_funcs.R"))
+
 
 command.line <- T
 if (command.line) {
@@ -12,22 +14,22 @@ if (command.line) {
                 help="The path of a file containing a list of all the patient IDs to be summarised"),
     make_option(c("-o", "--outputRoot"), type="character", default=NULL, 
                 help="Root string for output file names."),
-    make_option(c("-tr", "--treeFileRoot"), type="character", default=NULL, 
+    make_option("--treeFileRoot", type="character", default=NULL, 
                 help="A string which every tree file begins with."),
-    make_option(c("-tl", "--treeFileList"), type="character", default=NULL, 
+    make_option("--treeFileList", type="character", default=NULL, 
                 help="A list of tree files (single string, with file names separated by with colons). Ignored if
-                -tr is present"),
-    make_option(c("-br", "--blacklistFileRoots"), type="character", default=NULL, 
+                --treeFileRoot is present"),
+    make_option("--blacklistFileRoots", type="character", default=NULL, 
                 help="One or more strings which files listing blacklisted tips begin with, separated by 
                 colons."),
-    make_option(c("-bl", "--blacklistFileLists"), type="character", default=NULL, 
+    make_option("--blacklistFileLists", type="character", default=NULL, 
                 help="A list of lists of blacklist CSV files; each top level list corresponds to a tree file. Top 
                 level lists are separated by colons, bottom level by semicolons. For example, in the string 
                 'A.csv;B.csv:C.csv;D.csv', A.csv and B.csv are blacklist files for the first tree file, and 
                 C.csv and D.csv are for the second. Ignored if -br is present."),
-    make_option(c("-sr", "--splitsFileRoot"), type="character", default=NULL, 
+    make_option("--splitsFileRoot", type="character", default=NULL, 
                 help="A string which every splits file begins with."),
-    make_option(c("-sl", "--splitsFileList"), type="character", default=NULL, 
+    make_option("--splitsFileList", type="character", default=NULL, 
                 help="A list of splits files (single string, with file names separated by with colons). Ignored if 
                 -sr is present"),
     make_option(c("-w", "--windows"), type="character", default=NULL, 
@@ -39,7 +41,7 @@ if (command.line) {
                 help="Regular expression identifying tips from the dataset. Three groups: patient ID,
                 read ID, and read count."),
     make_option(c("-r", "--refSeqName"), type="character", default=NULL, 
-                help="Reference sequence label (if unspecified, tree will be assumed to be already rooted)"),
+                help="Reference sequence label (if unspecified, tree will be assumed to be already rooted)")
   )
   
   # Read in the arguments
@@ -56,12 +58,12 @@ if (command.line) {
   output.root <- opt$outputRoot
   
   if(!is.null(tree.file.root)){
-    tree.files <- sort(list.files(input.dir, pattern=paste(tree.file.root,".*\\.tree",sep="")))
+    tree.files <- sort(list.files(getwd(), pattern=paste(tree.file.root,".*\\.tree",sep="")))
   } else {
     tree.files <- unlist(strsplit(opt$treeFileList, ":"))
   }
   if(!is.null(splits.file.root)){
-    splits.files <- sort(list.files(input.dir, pattern=paste(splits.file.root,".*\\.csv",sep="")))
+    splits.files <- sort(list.files(getwd(), pattern=paste(splits.file.root,".*\\.csv",sep="")))
   } else {
     splits.files <- unlist(strsplit(opt$splitsFileList, ":"))
   }
@@ -76,7 +78,7 @@ if (command.line) {
   
   if(!is.null(blacklist.file.roots.raw)){
     for(root in blacklist.roots){
-      blacklist.files[[root]] <- sort(list.files(input.dir, pattern=paste(root,".*\\.csv",sep="")))
+      blacklist.files[[root]] <- sort(list.files(getwd(), pattern=paste(root,".*\\.csv",sep="")))
       if(length(tree.files)!=length(blacklist.files[[root]])){
         stop("Number of tree files and number of blacklist files differ")
       }
@@ -105,13 +107,9 @@ if (command.line) {
   } else {
     windows <- NULL
   }
-
-
-  
-  
 } else {
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
-  id.file <- "ListOfIDs_run20160517.txt"
+  id.file <- "patientIDList.txt"
   root.name<- "C.BW.00.00BW07621.AF443088"
   tip.regex <- "^(BEE[0-9][0-9][0-9][0-9])-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
   tree.files <- sort(list.files(getwd(), pattern="RAxML_bestTree.InWindow_.*\\.tree"))
@@ -119,6 +117,7 @@ if (command.line) {
   blacklist.files <- list()
   blacklist.files$ReadBlacklist_ <- sort(list.files(getwd(), pattern="ReadBlacklist_.*\\.csv"))
   blacklist.files$PatientBlacklist_ <- sort(list.files(getwd(), pattern="PatientBlacklist_.*\\.csv"))
+  windows <- NULL
 }
 
 AlignPlots <- function(...) {
@@ -164,6 +163,12 @@ add.no.data.rectangles <- function(graph, rectangle.coords, log = F){
   
   return(graph)
   
+}
+
+unfactorDataFrame <- function(x) {
+  x <- data.frame(lapply(x, as.character), stringsAsFactors = F)
+  x <- data.frame(lapply(x, function(y) type.convert(y, as.is=T)),
+                  stringsAsFactors = F)
 }
 
 require(phytools)
@@ -280,7 +285,7 @@ for(window.no in seq(1, length(tree.files))){
   # Get each statistic for each patient
   
   for (i in 1:num.ids) {
-    cat(start, " - ", ids[i], "\n", sep="")
+#    cat("Calculating statistics in window",start, " for patient ", ids[i], "\n", sep="")
     id <- ids[i]
 
     num.leaves <- length(patient.tips[[id]])
@@ -426,6 +431,8 @@ colnames(splits.props) <- c("window.middle", "patient", paste("prop.gp.",seq(1,m
 ews <- min(pat.stats$window.start)
 lwe <- max(pat.stats$window.end)
 
+pat.stats$prop.reads.largest.subtree <- splits.props$prop.gp.1
+
 # todo - the subtree read proportions aren't here, but how relevant are the means of those anyway?
 
 mean.na.rm <- function(x) mean(x, na.rm = T)
@@ -440,7 +447,9 @@ write.csv(pat.stats.summary, file.path(paste(output.root,"_patStatsSummary.csv",
 pdf(paste(output.root,"_plots.pdf",sep=""), width=8.26772, height=11.6929)
 
 for (i in seq(1, length(ids))) {
+  
   patient <- sort(ids)[i]
+#  cat("Drawing graphs for patient ",patient,"\n", sep="")
   
   this.pat.stats <- pat.stats[which(pat.stats$patient==patient),]
   

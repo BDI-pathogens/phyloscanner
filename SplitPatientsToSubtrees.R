@@ -15,8 +15,10 @@ require(phytools, quietly=T)
 require(ggplot2, quietly=T)
 require(ggtree, quietly=T)
 
-source("/Users/twoseventwo/Documents/phylotypes/TransmissionUtilityFunctions.R")
-source("/Users/twoseventwo/Documents/phylotypes/SubtreeMethods.R")
+script.dir <- "/Users/twoseventwo/Documents/phylotypes/"
+
+source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
+source(file.path(script.dir, "SubtreeMethods.R"))
 
 if(command.line){
   option_list = list(
@@ -62,12 +64,12 @@ if(command.line){
 
 } else {
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
-  file.name <- "RAxML_bestTree.InWindow_2050_to_2400.tree"
-  blacklist.files <-c("PatientBlacklist_InWindow_2050_to_2400.csv", "ReadBlacklist_InWindow_2050_to_2400.csv")
-  out.root <- "BEEHIVE180716.InWindow_2050_to_2400"
+  file.name <- "RAxML_bestTree.InWindow_6800_to_7150.tree"
+  blacklist.files <-c("PatientBlacklist_InWindow_6800_to_7150.csv", "ReadBlacklist_InWindow_6800_to_7150.csv")
+  out.root <- "BEEHIVE180716.InWindow_6800_to_7150"
   root.name <- "C.BW.00.00BW07621.AF443088"
   tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
-  mode <- "c"
+  mode <- "r"
 }
 
 cat("SplitPatientsToSubtrees.R run on: ", file.name,", rules = ",mode,"\n", sep="")
@@ -273,7 +275,7 @@ if(mode=="c"){
       pat.tips <- patient.tips[[patient]]
       patient.tips.copy[[patient]] <- NULL
       patients.copy <- patients.copy[which(patients.copy!=patient)]
-      patients.copy <- c(patients.copy, paste(patient,"_S",seq(1, no.splits),sep=""))
+      patients.copy <- c(patients.copy, paste(patient,"-S",seq(1, no.splits),sep=""))
       
       for(tip in pat.tips){
         # go up until you find one of the first nodes
@@ -286,7 +288,7 @@ if(mode=="c"){
           current.node <- Ancestors(tree, current.node, type="parent")
         }
         split.index <- which(subtree.roots == current.node)
-        new.name <- paste(patient,"_S", split.index, sep="")
+        new.name <- paste(patient,"-S", split.index, sep="")
         
         current.node <- tip
         split.assocs[[subtree.roots[split.index]]] <- new.name
