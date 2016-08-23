@@ -663,10 +663,81 @@ split.patient <-
     }
   }
 
+# Get patient id from tip label
+
 patient.from.label <- function(label, regexp){
   if(length(grep(regexp, label)>0)) {
     return(sub(regexp, "\\1", label))
   } else {
     return(NA)
   }
+}
+
+# Transmission tree navigation
+
+get.tt.parent <- function(tt, label){
+  if(length(which(tt$unique.splits==label))>0){
+    return(tt$parent.splits[which(tt$unique.splits==label)])
+  } else {
+    return(NULL)
+  }
+}
+
+get.tt.ancestors <- function(tt, label){
+  out <- vector()
+  current.node <- get.tt.parent(tt, label)
+  while(current.node != "root"){
+    out <- c(out, current.node)
+    current.node <- get.tt.parent(tt, current.node)
+  }
+}
+
+get.tt.children <- function(tt, label){
+  return(tt$unique.splits[which(tt$parent.splits==label)])
+}
+
+get.tt.parent.patient <- function(tt, label){
+  if(length(which(tt$unique.splits==label))>0){
+    return(tt$patients[which(tt$unique.splits==label)])
+  } else {
+    return(NULL)
+  }
+}
+
+get.tt.mrca <- function(tt, label1, label2){
+  # sanity check
+  ca.vec <- intersect(c(label1,get.tt.ancestors(tt, label1)), c(label2, get.tt.ancestors(tt, label2)))
+  for(i in seq(1, length(ca.vec)-1)){
+    if(get.tt.parent(tt, ca.vec[i]) != ca.vec[i+1]){
+      stop("get.tt.mrca not working as intended")
+    }
+  }
+  
+  
+  return(out[1])
+}
+
+get.tt.mrca.patient <- function(tt, label1, label2){
+   node <- intersect(c(label1,get.tt.ancestors(tt, label1)), c(label2, get.tt.ancestors(tt, label2)))[1]
+   
+   return(tt$patients[which(tt$unique.splits==node)])
+}
+
+get.path <- function(tt, label1, label2){
+  mrca <- get.tt.mrca(tt, label1, label2)
+  first.half <- vector()
+  current.node <- label1
+  while(current.node != mrca){
+    first.half <- c(first.half, current.node)
+    current.node <- get.tt.parent(current.node)
+  }
+  
+  second.half <- vector()
+  current.node <- label2
+  while(current.node != mrca){
+    second.half <- c(second.half, current.node)
+    current.node <- get.tt.parent(current.node)
+  }
+  
+  return(c(first.half, mrca, rev(second.half)))
 }

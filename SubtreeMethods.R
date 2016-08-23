@@ -279,7 +279,7 @@ output.trans.tree <- function(tree, assocs, file.name = NULL){
   
   patients <-  unlist(lapply(strsplit(unique.splits, "-"), `[[`, 1)) 
   
-  cytoscape.input <- data.frame(unique.splits, parent.splits, patients)
+  cytoscape.input <- data.frame(unique.splits, parent.splits, patients, stringsAsFactors = F)
   
   if(!is.null(file.name)){
     write.csv(cytoscape.input, file.name, row.names = F)
