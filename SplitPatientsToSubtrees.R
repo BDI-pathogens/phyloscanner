@@ -1,4 +1,4 @@
-command.line <- T
+command.line <- F
 
 list.of.packages <- c("phangorn", "optparse", "phytools", "ggplot2", "gdata", "mvtnorm", "expm")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -69,7 +69,7 @@ if(command.line){
   out.root <- "BEEHIVE180716.InWindow_6800_to_7150"
   root.name <- "C.BW.00.00BW07621.AF443088"
   tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
-  mode <- "r"
+  mode <- "c"
 }
 
 cat("SplitPatientsToSubtrees.R run on: ", file.name,", rules = ",mode,"\n", sep="")

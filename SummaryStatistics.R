@@ -1,8 +1,23 @@
 #!/usr/bin/env Rscript
 
+list.of.packages <- c("phytools", "dplyr", "ggplot2", "reshape", "gtable", "grid", "gridExtra", "RColorBrewer")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
+
+require(phytools)
+require(dplyr)
+require(ggplot2)
+require(reshape)
+require(gtable)
+require(grid)
+require(gridExtra)
+require(RColorBrewer)
+
+
 script.dir <- "/Users/twoseventwo/Documents/phylotypes/"
 source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
 source(file.path(script.dir, "SummariseTrees_funcs.R"))
+
 
 
 command.line <- T
@@ -170,15 +185,6 @@ unfactorDataFrame <- function(x) {
   x <- data.frame(lapply(x, function(y) type.convert(y, as.is=T)),
                   stringsAsFactors = F)
 }
-
-require(phytools)
-require(dplyr)
-require(ggplot2)
-require(reshape)
-require(gtable)
-require(grid)
-require(gridExtra)
-require(RColorBrewer)
 
 # Read in the IDs. Remove duplicates. Shuffle their order if desired.
 ids <- scan(id.file, what="", sep="\n", quiet=TRUE, skip = 1)
