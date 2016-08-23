@@ -218,7 +218,7 @@ if(mode=="c"){
   
   new.assocs <- list()
   
-  classify.down(getRoot(tree), tree, tip.assocs, patient.mrcas, blacklist)
+  classify.down(getRoot(tree), tree, tip.assocs, patient.mrcas, blacklist, tip.regex)
   
   cat("Filling in stars...\n")
   

@@ -143,10 +143,10 @@ count.splits <- function(tree, node, assocs, patients, counts.vec, first.nodes.l
 
 # Does the RS classification (todo move to TUF?)
 
-classify.down <- function(node, tree, tip.assocs, patient.mrcas, blacklist){
+classify.down <- function(node, tree, tip.assocs, patient.mrcas, blacklist, regex){
   
   if(is.tip(tree, node)){
-    if(node %in% blacklist | !(startsWith(tree$tip.label[node], "BEE"))){
+    if(node %in% blacklist | is.na(patient.from.label(tree$tip.label[node], regex))){
       result <- "*"
     } else {
       result <- tip.assocs[[node]]
