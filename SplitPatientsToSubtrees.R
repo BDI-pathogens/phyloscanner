@@ -28,8 +28,8 @@ if(command.line){
                 help="Output file name [default= %default]", metavar="outputFileName"),
     make_option(c("-r", "--refSeqName"), type="character", default=NULL, 
                 help="Reference sequence label (if unspecified, tree will be assumed to be already rooted)"),
-    make_option(c("-b", "--blacklists"), type="character", default=NULL, 
-                help="Path to one or more .csv files listing tips to ignore; separated with colons"),
+    make_option(c("-b", "--blacklist"), type="character", default=NULL, 
+                help="Path to a .csv file listing tips to ignore"),
     make_option(c("-x", "--tipRegex"), type="character", default=NULL, 
                 help="Regular expression identifying tips from the dataset. Three groups: patient ID,
                 read ID, and read count."),
@@ -51,8 +51,7 @@ if(command.line){
   
   file.name <- opt$file
   out.root <- opt$outRoot
-  blacklists.string <- opt$blacklist
-  blacklist.files <- unlist(strsplit(blacklists.string, ":")) 
+  blacklist.file <- opt$blacklist
   root.name <- opt$refSeqName
   
   tip.regex <- opt$tipRegex
@@ -83,15 +82,13 @@ tip.labels <- tree$tip.label
 
 blacklist <- vector()
 
-for(blacklist.file.name in blacklist.files){
-  if(file.exists(blacklist.file.name)){
-    blacklisted.tips <- read.table(blacklist.file.name, sep=",", header=F, stringsAsFactors = F, col.names="read")
-    if(nrow(blacklisted.tips)>0){
-      blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
-    }
-  } else {
-    warning(paste("File ",blacklist.file.name," does not exist; skipping.",paste=""))
+if(file.exists(blacklist.file)){
+  blacklisted.tips <- read.table(blacklist.file, sep=",", header=F, stringsAsFactors = F, col.names="read")
+  if(nrow(blacklisted.tips)>0){
+    blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
   }
+} else {
+  warning(paste("File ",blacklist.file.name," does not exist; skipping.",paste=""))
 }
 
 outgroup.no <- which(tip.labels == root.name)
