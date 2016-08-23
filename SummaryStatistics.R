@@ -13,12 +13,9 @@ require(grid)
 require(gridExtra)
 require(RColorBrewer)
 
-
 script.dir <- "/Users/twoseventwo/Documents/phylotypes/"
 source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
 source(file.path(script.dir, "SummariseTrees_funcs.R"))
-
-
 
 command.line <- T
 if (command.line) {
