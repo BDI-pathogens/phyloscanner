@@ -48,8 +48,8 @@ if (command.line) {
                 to obtain these from the file names."),
     make_option(c("-x", "--tipRegex"), type="character", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", 
                 help="Regular expression identifying tips from the dataset. Three groups: patient ID,
-                read ID, and read count. If absent, output will be assumed to be from the phyloscanner pipeline,
-                and the patient ID will be the BAM file name."),
+                read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline,
+                and the patient ID will be the BAM file name.")
     make_option(c("-r", "--refSeqName"), type="character", default=NULL, 
                 help="Reference sequence label (if unspecified, tree will be assumed to be already rooted)")
   )
