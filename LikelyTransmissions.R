@@ -2,144 +2,271 @@ library(phangorn)
 library(optparse)
 library(phytools)
 
-source("phylotypes4/TransmissionUtilityFunctions.R")
-#source("/Users/twoseventwo/Documents/phylotypes/TransmissionUtilityFunctions.R")
+script.dir <- "/Users/twoseventwo/Documents/phylotypes/"
 
-option_list = list(
-  make_option(c("-f", "--file"), type="character", default=NULL, 
-              help="Input tree file name", metavar="inputTreeFileName"),
-  make_option(c("-o", "--out"), type="character", default="out.txt", 
-              help="Output file name [default= %default]", metavar="outputFileName"),
-  make_option(c("-r", "--refSeqName"), type="character", default=NULL, 
-              help="Reference sequence label (if unspecified, tree will be assumed to be already rooted)"),
-  make_option(c("-p", "--patientIDPosition"), type="integer", default=1, 
-              help="Position in the tip label of the patient ID (default=1)"),
-  make_option(c("-s", "--labelSeparator"), type="character", default="_", 
-              help="Field separator for tip labels (default underscore)"),
-  make_option(c("-b", "--blacklist"), type="character", default=NULL, 
-              help="Path to a .csv file listing tips to ignore"),
-  make_option(c("-t", "--splitThreshold"), type="double", default=Inf, 
-              help="Length threshold at which the root branch will be cut to make multiple infections"),
-  make_option(c("-v", "--verbose"), type="logical", default=FALSE, 
-              help="Talk about what I'm doing"),
-  make_option(c("-z", "--zeroLengthTipsCount"), type="logical", default=FALSE, 
-              help="If TRUE, a zero length terminal branch associates the parent at the tip with its parent
-              node, interrupting any inferred transmission pathway between another pair of hosts that goes
-              through the node.")
+source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
+source(file.path(script.dir, "SubtreeMethods.R"))
+
+command.line <- F
+
+
+if(command.line){
+  option_list = list(
+    make_option(c("-f", "--treeFile"), type="character", default=NULL, 
+                help="Input tree file name", metavar="inputTreeFileName"),
+    make_option(c("-f", "--splitsFile"), type="character", default=NULL, 
+                help="Splits file name", metavar="inputTreeFileName"),
+    make_option(c("-o", "--outFile"), type="character", default="out", 
+                help="Output file name [default= %default]", metavar="outputFileName"),
+    make_option(c("-r", "--refSeqName"), type="character", default=NULL, 
+                help="Reference sequence label (if unspecified, tree will be assumed to be already rooted)"),
+    make_option(c("-z", "--zeroLengthTipsCount"), type="logical", default=FALSE, 
+                help="If TRUE, a zero length terminal branch associates the parent at the tip with its parent
+                node, interrupting any inferred transmission pathway between another pair of hosts that goes
+                through the node."),
+    make_option(c("-t", "--splitThreshold"), type="double", default=Inf, 
+                help="Length threshold at which a branch of the subtree consisting of all patients will be cut to 
+                make multiple infections"),
+    make_option(c("--romeroSeverson"), type="boolean", default=F, help="Repeat the Romero-Severson classification on
+                the tree to annotate internal nodes beyond the MRCAs of each split. Warning: the splits file should 
+                have been generated using the RS classification.")
+  )
   
-)
+  opt_parser = OptionParser(option_list=option_list)
+  opt = parse_args(opt_parser)
+  
+  tree.file.name <- opt$treeFile
+  splits.file.name <- opt$splitsFile
+  output.name <- opt$outFile
+  root.name <- opt$refSeqName
+  split.threshold <- opt$splitThreshold
+  zero.length.tips.count <- opt$zeroLengthTipsCount
+  romero.severson <- opt$romeroSeverson
+  
+} else {
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
+  
+  tree.file.name <- "RAxML_bestTree.InWindow_800_to_1150.tree"
+  splits.file.name <- "Subtrees_c_run20160517_inWindow_800_to_1150.csv"
+  output.name <- "LikelyTransmissions.InWindow_800_to_1150.csv"
+  root.name <- "C.BW.00.00BW07621.AF443088"
+  split.threshold <- 0.08
+  zero.length.tips.count <- F
+  romero.severson <- F
+}
 
+cat("Opening file: ", tree.file.name, "...\n", sep = "")
 
-
-opt_parser = OptionParser(option_list=option_list)
-opt = parse_args(opt_parser)
-
-
-verbose <- opt$verbose
-zero.length.tips.count <- opt$zeroLengthTipsCount
-
-file.name <- opt$file
-output.name <- opt$out
-blacklist.file <- opt$blacklist
-root.name <- opt$refSeqName
-label.separator <- opt$labelSeparator
-patient.id.position <- opt$patientIDPosition
-split.threshold <- opt$splitThreshold
-
-# file.name <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517/RAxML_bestTree.InWindow_2800_to_3150.tree"
-# output.name <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517/LikelyTransmissions.InWindow_2800_to_3150.csv"
-# blacklist.file <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517/blacklist_InWindow_2800_to_3150.csv"
-# root.name <- "C.BW.00.00BW07621.AF443088"
-# label.separator <- "_"
-# patient.id.position <- 1
-# split.threshold <- 0.08
-
-
-cat("Opening file: ", file.name, "\n", sep = "")
-
-tree <-read.tree(file.name)
-
-#blacklist is a list of the tip numbers to avoid
-
+tree <-read.tree(tree.file.name)
 tree <- root(tree, root.name)
 
-if(verbose){
-  cat("Making tree multiphyletic\n")
-}
+cat("Making tree multiphyletic...\n")
 
 tree <- di2multi(tree, tol = 1E-5)
 
-if(verbose){
-  cat("Getting patient IDs\n")
-}
+cat("Reading splits file...\n")
 
+splits <- read.csv(splits.file.name, stringsAsFactors = F)
 
-tip.labels <- tree$tip.label
+cat("Collecting tips for each patient...\n")
 
-outgroup.no <- which(tip.labels == root.name)
+patients <- unique(splits$orig.patients)
+patient.tips <- lapply(patients, function(x) which(tree$tip.label %in% splits[which(splits$orig.patients==x), "tip.names"]))
+names(patient.tips) <- patients
 
-split.tip.labels <- strsplit(tip.labels, label.separator)
+if(romero.severson){
+  
+  # really the only reason to load the splits in for is to avoid needing the blacklist yet again
 
-patient.ids <- sapply(split.tip.labels, "[[", patient.id.position)
-
-patient.ids[outgroup.no] <- "Ref"
-
-if(!is.null(blacklist.file)){
-  if(verbose){
-    cat("Processing blacklist")
+  
+  patient.mrcas <- lapply(patient.tips, function(node) mrca.phylo.or.unique.tip(tree, node, zero.length.tips.count))
+  
+  tip.assocs.pats <- lapply(tree$tip.label, function(x) if(x %in% splits$tip.names) return(splits$orig.patients[which(splits$tip.names==x)]) else return("*"))
+  
+  new.assocs <- list()
+  
+  classify.down(getRoot(tree), tree, tip.assocs.pats, patient.mrcas, vector(), tip.regex)
+  
+  cat("Filling in stars...\n")
+  
+  star.runs <- get.star.runs(tree, new.assocs)
+  
+  star.bottoms <- which(lengths(star.runs)>0)
+  
+  resolved.assocs <- new.assocs
+  
+  for(bottom in star.bottoms){
+    child.assocs <- unlist(new.assocs[Children(tree, bottom)])
+    c.a.df <- as.data.frame(table(child.assocs), stringsAsFactors=F)
+    c.a.df <- c.a.df[which(c.a.df[,1]!="*"),]
+    winners <- c.a.df[which(c.a.df[,2]==max(c.a.df[,2])),]
+    possibilities <- winners[,1]
+    
+    last.in.chain <- star.runs[[bottom]][length(star.runs[[bottom]])]
+    parent.lic <- Ancestors(tree, last.in.chain, type="parent")
+    if(parent.lic!=0){
+      parental.assoc <- new.assocs[[parent.lic]]
+      if(parental.assoc %in% possibilities){
+        
+        resolved.assocs[star.runs[[bottom]]] <- parental.assoc
+      } 
+    }
   }
-  blacklist <- vector()
   
-  blacklist.table <- read.table(blacklist.file, sep=",", stringsAsFactors = FALSE)
+  #Now the splits. A new split is where you encounter a node with a different association to its parent
   
-  blacklisted.tips <- blacklist.table[which(blacklist.table[,2]=="read"),1]
-
-  if(length(blacklisted.tips)>0){
-    blacklist <- sapply(blacklisted.tips, get.tip.no, tree=tree)
+  cat("Identifying split patients...\n")
+  
+  splits.count <- rep(0, length(patients))
+  first.nodes <- list()
+  
+  splits <- count.splits(tree, getRoot(tree), resolved.assocs, patients, splits.count, first.nodes)
+  
+  counts.by.patient <- splits$counts
+  first.nodes.by.patients <- splits$first.nodes
+  
+  patients.copy <- patients
+  patient.tips.copy <- patient.tips
+  
+  split.assocs <- resolved.assocs
+  
+  splits.for.patients <- list()
+  patients.for.splits <- list()
+  
+  #find the splits and reannotate the tree
+  
+  for(pat.no in seq(1, length(patients))){
+    patient <- patients[pat.no]
+    no.splits <- counts.by.patient[pat.no]
+    splits.for.patients[[patient]] <- paste(patient,"-S",seq(1, no.splits),sep="")
+    for(split.id in splits.for.patients[[patient]]){
+      patients.for.splits[[split.id]] <- patient
+    }
+    
+    if(no.splits>1){
+      pat.tips <- patient.tips[[patient]]
+      patient.tips.copy[[patient]] <- NULL
+      patients.copy <- patients.copy[which(patients.copy!=patient)]
+      patients.copy <- c(patients.copy, paste(patient,"-S",seq(1, no.splits),sep=""))
+      
+      for(tip in pat.tips){
+        # go up until you find one of the first nodes
+        current.node <- tip
+        subtree.roots <- first.nodes.by.patients[[patient]]
+        while(!(current.node %in% subtree.roots)){
+          if(current.node == 0){
+            stop("Reached the root?!")
+          }
+          current.node <- Ancestors(tree, current.node, type="parent")
+        }
+        split.index <- which(subtree.roots == current.node)
+        new.name <- paste(patient,"-S", split.index, sep="")
+        
+        current.node <- tip
+        split.assocs[[subtree.roots[split.index]]] <- new.name
+        
+        while(current.node != subtree.roots[split.index]){
+          if(current.node == 0){
+            stop("Reached the root?!")
+          }
+          split.assocs[[current.node]] <- new.name
+          current.node <- Ancestors(tree, current.node, type="parent")
+        }
+        
+        
+        patient.tips.copy[[new.name]] <- c(patient.tips.copy[[new.name]], tip)
+      }
+    }
   }
   
-  blacklisted.patients <- blacklist.table[which(blacklist.table[,2]=="patient"),1]
+  split.ids <- patients.copy
   
-  pat.blacklist <- unlist(sapply(blacklisted.patients, get.tips.for.sample, tree = tree))
+  was.split <- unique(patients[patients %in% patients.copy])
   
-  blacklist <- unique(c(blacklist, pat.blacklist))
+  split.tips <- patient.tips.copy
+  assocs <- split.assocs
   
 } else {
-  blacklist <- NULL
+  cat("Collecting tips for each split...\n")
+  
+  all.splits <- unique(splits$patient.splits)
+  split.tips <- lapply(all.splits, function(x) which(tree$tip.label %in% splits[which(splits$patient.splits==x), "tip.names"]))
+  names(split.tips) <- all.splits
+  
+  tip.assocs.splits <- lapply(tree$tip.label, function(x) if(x %in% splits$tip.names) return(splits$patient.splits[which(splits$tip.names==x)]) else return("*"))
+  
+  split.mrcas <- lapply(split.tips, function(node) mrca.phylo.or.unique.tip(tree, node, zero.length.tips.count))
+  
+  node.assocs <- annotate.internal(tree, all.splits, split.tips, split.mrcas)
+  
+  splits.for.patients <- lapply(patients, function(x) unique(splits$patient.splits[which(splits$orig.patients==x)] ))
+  names(splits.for.patients) <- patients
+  
+  patients.for.splits <- lapply(all.splits, function(x) splits$orig.patients[which(splits$patient.splits==x)] )
+  names(patients.for.splits) <- all.splits
+  
+  was.split <- unique(splits$orig.patients[which(splits$orig.patients!=splits$patient.splits)])
+  
+  assocs <- node.assocs$details
+  
 }
 
-#if all tips from a given patient are on the blacklist, safe to ignore him/her
+# get rid of what look like dual infections
 
-if(!is.null(blacklist)){
-  patients <- unique(patient.ids[-blacklist])
-} else {
-  patients <- unique(patient.ids)
-}
+ignore.because.split <- vector()
 
-patients <- patients[which(substr(patients, 1,3) == "BEE")]
-
-patient.tips <-
-  sapply(patients, get.tips.for.patient, tree = tree, patient.ids = patient.ids, blacklist=blacklist)
-
-patient.mrcas <- lapply(patient.tips, function(node) mrca.phylo.or.unique.tip(tree, node, zero.length.tips.count))
-
-split.counts <- list()
-
-#splitting
-if(split.threshold<Inf){
-  for(id in patients){
-    split.results <- split.patient(tree, id, split.threshold, patients, patient.tips, patient.mrcas, patient.ids, split.counts)
+for(split.patient in was.split){
+  tips <- patient.tips[[split.patient]]
+  subtree <- drop.tip(phy = tree, tip = tree$tip.label[-patient.tips[[split.patient]]])
+  max.length <- max(subtree$edge.length)
+  if(max.length > split.threshold){
+    ignore.because.split <- c(ignore.because.split, split.patient)
   }
-  patients <- split.results$patient.names
-  patient.tips <- split.results$patient.tips
-  patient.mrcas <- split.results$patient.mrcas
-  patient.ids <- split.results$patients.for.tips
 }
+
+patients.included <- setdiff(patients, ignore.because.split)
 
 total.pairs <- (length(patients) ^ 2 - length(patients))/2
 
-if(verbose){
-  cat("Testing pairs\n")
+cat("Collapsing subtrees...\n")
+
+tt <- output.trans.tree(tree, assocs, file.name = NULL)
+
+cat("Testing pairs\n")
+
+for(pat.1 in seq(1, length(patients.included))){
+  for(pat.2 in  seq(1, length(patients.included))){
+    if (pat.1 < pat.2) {
+      pat.1.id <- patients.included[pat.1]
+      pat.2.id <- patients.included[pat.2]
+      all.nodes <- c(splits.for.patients[pat.1.id], splits.for.patients[pat.2.id])
+      #we want that they form a perfect blob with no intervening nodes for any other patients
+      OK <- TRUE
+      
+      for(node.1 in seq(1, length(all.nodes))){
+        for(node.2 in seq(1, length(all.nodes))){
+          if(node.1 < node.2){
+            node.1.id <- all.nodes[node.1]
+            node.2.id <- all.nodes[node.2]
+            path <- get.tt.path(tt, node.1, node.2.id)
+            for(node in path){
+              if(!startsWith(node, "none") & !(patients.for.splits[[node]] %in% c(pat.1.id, pat.2.id))){
+                OK <- FALSE
+                break
+              }
+            }
+          }
+        }
+        if(!OK){
+          break
+        }
+      }
+      
+      if(OK){
+         
+      }
+    }
+  }
 }
 
 
@@ -151,37 +278,21 @@ sibling.distance.matrix <- matrix(NA, length(patients), length(patients))
 for (pat.1 in seq(1, length(patients))) {
   for (pat.2 in seq(1, length(patients))) {
     if (pat.1 < pat.2) {
-      if (verbose) {
-        cat("Testing relationship between ",patients[pat.1]," and ",patients[pat.2],".\n", sep = "")
-      }
+      
       
       count <- count + 1
-      if(verbose){
-        cat("Testing direct descent...")
-      }
       
       if(is.direct.descendant.of(tree, patients[pat.1], patients[pat.2], patient.mrcas, patient.tips, zero.length.tips.count)){
-        if(verbose){
-          cat("found\n")
-        }
         direct.descendant.matrix[pat.1, pat.2] <- "desc"
       } else if(is.direct.descendant.of(tree, patients[pat.2], patients[pat.1], patient.mrcas, patient.tips, zero.length.tips.count)){
-        if(verbose){
-          cat("found\n")
-        }
+        
         direct.descendant.matrix[pat.1, pat.2] <- "anc"
-      } else {
-        if(verbose){
-          cat("not found\n")
-        }
-      }
-      if(verbose){
-        cat("Testing intermingling...")
-      }
+      } 
+      
       
       intermingled <- are.intermingled(tree, patients[pat.1], patients[pat.2], patient.mrcas, patient.tips)
       
-
+      
       
       if(intermingled & !is.na(direct.descendant.matrix[pat.1, pat.2])){
         cat("Intermingled but descendant?")
@@ -191,9 +302,6 @@ for (pat.1 in seq(1, length(patients))) {
       if(intermingled){
         class <- intermingled.class(tree, patients[pat.1], patients[pat.2], patient.mrcas, patient.tips)
         
-        if(verbose){
-          cat("found\n")
-        }
         if(class=="*"){
           direct.descendant.matrix[pat.1, pat.2] <- "trueInt"
         } else if(class==patients[pat.1]){
@@ -204,14 +312,8 @@ for (pat.1 in seq(1, length(patients))) {
           stop(paste("Patients ",patients[pat.1]," and ",patients[pat.2],"haven't classified properly",sep=""))
         }
         
-      } else {
-        if(verbose){
-          cat("not found\n")
-        }
-      }
-      if(verbose){
-        cat("Testing sibling clades...")
-      }
+      } 
+      
       siblings <- are.siblings(tree, patients[pat.1], patients[pat.2], patient.mrcas, patient.tips, zero.length.tips.count)
       
       if(siblings & !is.na(direct.descendant.matrix[pat.1, pat.2])){
@@ -224,15 +326,8 @@ for (pat.1 in seq(1, length(patients))) {
         stop
       }
       if(siblings){
-        if(verbose){
-          cat("found\n")
-        }
         direct.descendant.matrix[pat.1, pat.2] <- "sib"
-      } else{
-        if(verbose){
-          cat("not found\n")
-        }
-      }
+      } 
       
       
       if (count %% 100 == 0) {
