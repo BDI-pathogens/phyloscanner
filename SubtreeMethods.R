@@ -153,7 +153,7 @@ classify.down <- function(node, tree, tip.assocs, patient.mrcas, blacklist, rege
     }
   } else {
     
-    child.assocs.vector <- sapply(Children(tree, node), classify.down, tree=tree, tip.assocs=tip.assocs, patient.mrcas = patient.mrcas, blacklist=blacklist)
+    child.assocs.vector <- sapply(Children(tree, node), classify.down, tree=tree, tip.assocs=tip.assocs, patient.mrcas = patient.mrcas, blacklist=blacklist, regex=regex)
     
     c.a.df <- as.data.frame(table(child.assocs.vector), stringsAsFactors=F )
     
@@ -280,6 +280,12 @@ output.trans.tree <- function(tree, assocs, file.name = NULL){
   patients <-  unlist(lapply(strsplit(unique.splits, "-"), `[[`, 1)) 
   
   cytoscape.input <- data.frame(unique.splits, parent.splits, patients)
+  
+  if(!is.null(file.name)){
+    write.csv(cytoscape.input, file.name, row.names = F)
+  }
+  
+  return(cytoscape.input)
   
 }
 

@@ -468,7 +468,7 @@ compareNA <- function(v1,v2) {
 get.last <- function(vec)
   return(vec[length(vec)])
 
-# Splits the patient given by id up until the subtree derived from its tips only
+# Splits the patient given by id up until the subtree derived from its tips only. Currently redundant.
 # has no branches longer than threshold. 
 # The following are modified by this procedure:
 # patients - vector of patient names
