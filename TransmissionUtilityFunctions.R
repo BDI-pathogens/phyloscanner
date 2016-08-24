@@ -690,6 +690,7 @@ get.tt.ancestors <- function(tt, label){
     out <- c(out, current.node)
     current.node <- get.tt.parent(tt, current.node)
   }
+  return(out)
 }
 
 get.tt.children <- function(tt, label){
@@ -706,15 +707,16 @@ get.tt.parent.patient <- function(tt, label){
 
 get.tt.mrca <- function(tt, label1, label2){
   # sanity check
-  ca.vec <- intersect(c(label1,get.tt.ancestors(tt, label1)), c(label2, get.tt.ancestors(tt, label2)))
-  for(i in seq(1, length(ca.vec)-1)){
-    if(get.tt.parent(tt, ca.vec[i]) != ca.vec[i+1]){
-      stop("get.tt.mrca not working as intended")
+  ca.vec <- intersect(c(label1, get.tt.ancestors(tt, label1)), c(label2, get.tt.ancestors(tt, label2)))
+  if(length(ca.vec)>1){
+    for(i in seq(1, length(ca.vec)-1)){
+      if(get.tt.parent(tt, ca.vec[i]) != ca.vec[i+1]){
+        stop("get.tt.mrca not working as intended")
+      }
     }
   }
   
-  
-  return(out[1])
+  return(ca.vec[1])
 }
 
 get.tt.mrca.patient <- function(tt, label1, label2){
@@ -723,20 +725,20 @@ get.tt.mrca.patient <- function(tt, label1, label2){
    return(tt$patients[which(tt$unique.splits==node)])
 }
 
-get.path <- function(tt, label1, label2){
+get.tt.path <- function(tt, label1, label2){
   mrca <- get.tt.mrca(tt, label1, label2)
   first.half <- vector()
   current.node <- label1
   while(current.node != mrca){
     first.half <- c(first.half, current.node)
-    current.node <- get.tt.parent(current.node)
+    current.node <- get.tt.parent(tt, current.node)
   }
   
   second.half <- vector()
   current.node <- label2
   while(current.node != mrca){
     second.half <- c(second.half, current.node)
-    current.node <- get.tt.parent(current.node)
+    current.node <- get.tt.parent(tt, current.node)
   }
   
   return(c(first.half, mrca, rev(second.half)))
