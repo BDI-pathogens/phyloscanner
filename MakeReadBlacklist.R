@@ -1,9 +1,8 @@
-list.of.packages <- "optparse"
+list.of.packages <- "argparse"
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
 
-library(optparse)
-
+library(argparse)
 
 get.count <- function(string){
   if(length(grep(regexp, string)>0)) {
@@ -13,25 +12,14 @@ get.count <- function(string){
   }
 }
 
-option_list = list(
-  make_option(c("-r", "--rawThreshold"), type="numeric", default=NULL, 
-              help="Raw threshold; tips with read counts less than this that are identical to a tip from 
-              another patient will be blacklisted, regardless of the count of the other read"),
-  make_option(c("-s", "--ratioThreshold"), type="numeric", default=NULL, 
-              help="Ration threshold; tips will be blacklisted if the ratio of the tip count of another,
-              identical tip from another patient to their tip count count is less than this value"),
-  make_option(c("-i", "--inputFileName"), type="character", default=NULL, 
-              help="A CSV file outlining groups of tips that have identical sequences"),
-  make_option(c("-o", "--outputFileName"), type="character", default=NULL, 
-              help="Path write the output, a CSV file of tips to be blacklisted"),
-  make_option(c("-x", "--tipRegex"), type="character", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", 
-              help="Regular expression identifying tips from the dataset. Three groups: patient ID,
-              read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline,
-              and the patient ID will be the BAM file name.")
-  )
+arg_parser = ArgumentParser(description="Identify phylogeny tips for blacklisting as representing suspected contaminants, based on being exact duplicates of more numerous reads from other patients")
 
-opt_parser = OptionParser(option_list=option_list)
-opt = parse_args(opt_parser)
+arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", 
+                        help="Regular expression identifying tips from the dataset. Three groups: patient ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name.")
+arg_parser$add_argument("rawThreshold", action="store", type="double", help="Raw threshold; tips with read counts less than this that are identical to a tip from another patient will be blacklisted, regardless of the count of the other read")
+arg_parser$add_argument("ratioThreshold", action="store", type="double", help="Ratio threshold; tips will be blacklisted if the ratio of their tip count to that of of another, identical tip from another patient is less than this value")
+arg_parser$add_argument("inputFileName", action="store", help="A CSV file outlining groups of tips that have identical sequences, each forming a single line")
+arg_parser$add_argument("outputFileName", action="store", help="The file to write the output to, a list of tips to be blacklisted.")
 
 
 # This script blacklists tree tips that are likely to be contaminants, based on being identical
@@ -46,11 +34,13 @@ opt = parse_args(opt_parser)
 
 # Parse arguments
 
-raw.threshold <- opt$rawThreshold
-ratio.threshold <- opt$ratioThreshold
-regexp <- opt$tipRegex
-input.name <- opt$inputFileName
-output.name <- opt$outputFileName
+args <- arg_parser$parse_args()
+
+raw.threshold <- args$rawThreshold
+ratio.threshold <- args$ratioThreshold
+regexp <- args$tipRegex
+input.name <- args$inputFileName
+output.name <- args$outputFileName
 
 
 
