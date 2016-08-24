@@ -1,6 +1,5 @@
-command.line <- F
-
-list.of.packages <- c("phangorn", "optparse", "phytools", "ggplot2", "gdata", "mvtnorm", "expm")
+command.line <- T
+list.of.packages <- c("phangorn", "argparse", "phytools", "ggplot2", "gdata", "mvtnorm", "expm")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
 
@@ -9,59 +8,33 @@ if(!("ggtree" %in% installed.packages()[,"Package"])){
   biocLite("ggtree")
 }
 
-require(phangorn, quietly=T)
-require(optparse, quietly=T)
-require(phytools, quietly=T)
-require(ggplot2, quietly=T)
-require(ggtree, quietly=T)
-
-script.dir <- "/Users/twoseventwo/Documents/phylotypes/"
-
-source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
-source(file.path(script.dir, "SubtreeMethods.R"))
-
 if(command.line){
-  option_list = list(
-    make_option(c("-f", "--file"), type="character", default=NULL, 
-                help="Input tree file name", metavar="inputTreeFileName"),
-    make_option(c("-o", "--outRoot"), type="character", default="out", 
-                help="Output file name [default= %default]", metavar="outputFileName"),
-    make_option(c("-r", "--refSeqName"), type="character", default=NULL, 
-                help="Reference sequence label (if unspecified, tree will be assumed to be already rooted)"),
-    make_option(c("-b", "--blacklist"), type="character", default=NULL, 
-                help="Path to a .csv file listing tips to ignore"),
-    make_option(c("-x", "--tipRegex"), type="character", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", 
-                help="Regular expression identifying tips from the dataset. Three groups: patient ID,
-                read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline,
-                and the patient ID will be the BAM file name.")
-    make_option(c("-z", "--zeroLengthTipsCount"), type="logical", default=FALSE, 
-                help="If TRUE, a zero length terminal branch associates the parent at the tip with its parent
-                node, interrupting any inferred transmission pathway between another pair of hosts that goes
-                through the node."),
-    make_option(c("-s", "--splitsRule"), type="character", default="c", help="The rules by which the sets
-                of patients are split into groups in order to ensure that all groups can be members of 
-                connected subtrees without causing conflicts. Currently available: c=conservative, 
-                r=Romero-Severson")
-    
-  )
+  require(argparse)
   
-  opt_parser = OptionParser(option_list=option_list)
-  opt = parse_args(opt_parser)
+  arg_parser = ArgumentParser(description="Split the tips from each patient up, according to one of several schemes, such that the tree can subsequently be partitioned into connected subtrees, one per split.")
   
-  zero.length.tips.count <- opt$zeroLengthTipsCount
+  arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", 
+                          help="Regular expression identifying tips from the dataset. Three groups: patient ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name.")
+  arg_parser$add_argument("-r", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
+  arg_parser$add_argument("-z", "--zeroLengthTipsCount", action="store_true", default=FALSE, help="If present, a zero length terminal branch associates the patient at the tip with its parent node, interrupting any inferred transmission pathway between another pair of hosts that goes through the node.")
+  arg_parser$add_argument("-s", "--splitsRule", action="store", default="r", help="The rules by which the sets of patients are split into groups in order to ensure that all groups can be members of connected subtrees without causing conflicts. Currently available: c=conservative, r=Romero-Severson (default).")
+  arg_parser$add_argument("-b", "--blacklist", action="store", help="A .csv file listing tips to ignore.")
+  arg_parser$add_argument("inputFile", help="Input tree file name", metavar="inputTreeFileName")
+  arg_parser$add_argument("outputBaseName", help="A string to begin the names of all output files.")
   
-  file.name <- opt$file
-  out.root <- opt$outRoot
-  blacklist.file <- opt$blacklist
-  root.name <- opt$refSeqName
+  args <- arg_parser$parse_args()
   
-  tip.regex <- opt$tipRegex
-  
-  mode <- opt$splitsRule
+  zero.length.tips.count <- args$zeroLengthTipsCount
+  file.name <- args$inputFile
+  out.root <- args$outputBaseName
+  blacklist.file <- args$blacklist
+  root.name <- args$outgroupName
+  tip.regex <- args$tipRegex
+  mode <- args$splitsRule
   if(!(mode %in% c("c", "r"))){
-    stop("Unknown split classifier")
+    stop(paste("Unknown split classifier: ", mode, "\n", sep=""))
   }
-
+  
 } else {
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
   file.name <- "RAxML_bestTree.InWindow_6800_to_7150.tree"
@@ -72,12 +45,28 @@ if(command.line){
   mode <- "c"
 }
 
+
+
+
+require(phangorn, quietly=T)
+require(argparse, quietly=T)
+require(phytools, quietly=T)
+require(ggplot2, quietly=T)
+require(ggtree, quietly=T)
+
+script.dir <- "/Users/twoseventwo/Documents/phylotypes/"
+
+source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
+source(file.path(script.dir, "SubtreeMethods.R"))
+
 cat("SplitPatientsToSubtrees.R run on: ", file.name,", rules = ",mode,"\n", sep="")
 
 tree <- read.tree(file.name)
 tree <- unroot(tree)
 tree <- di2multi(tree, tol = 1E-5)
-tree <- root(tree, outgroup = which(tree$tip.label==root.name), resolve.root = T)
+if(!is.null(root.name)){
+  tree <- root(tree, outgroup = which(tree$tip.label==root.name), resolve.root = T)
+}
 
 tip.labels <- tree$tip.label
 
@@ -92,7 +81,7 @@ if(file.exists(blacklist.file)){
   warning(paste("File ",blacklist.file.name," does not exist; skipping.",paste=""))
 }
 
-outgroup.no <- which(tip.labels == root.name)
+
 
 patient.ids <- sapply(tip.labels, function(x) patient.from.label(x, tip.regex))
 

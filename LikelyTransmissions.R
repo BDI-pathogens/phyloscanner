@@ -1,45 +1,34 @@
-library(phangorn)
-library(optparse)
-library(phytools)
 
-script.dir <- "/Users/twoseventwo/Documents/phylotypes/"
 
-source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
-source(file.path(script.dir, "SubtreeMethods.R"))
-
-command.line <- F
+command.line <- T
 
 if(command.line){
-  option_list = list(
-    make_option(c("-f", "--treeFile"), type="character", default=NULL, 
-                help="Input tree file name", metavar="inputTreeFileName"),
-    make_option(c("-f", "--splitsFile"), type="character", default=NULL, 
-                help="Splits file name", metavar="inputTreeFileName"),
-    make_option(c("-o", "--outFile"), type="character", default="out", 
-                help="Output file name [default= %default]", metavar="outputFileName"),
-    make_option(c("-r", "--refSeqName"), type="character", default=NULL, 
-                help="Reference sequence label (if unspecified, tree will be assumed to be already rooted)"),
-    make_option(c("-z", "--zeroLengthTipsCount"), type="logical", default=FALSE, 
-                help="If TRUE, a zero length terminal branch associates the parent at the tip with its parent
-                node, interrupting any inferred transmission pathway between another pair of hosts that goes
-                through the node."),
-    make_option(c("-t", "--splitThreshold"), type="double", default=Inf, 
-                help="Length threshold at which a branch of the subtree consisting of all patients will be cut to 
-                make multiple infections"),
-    make_option(c("--romeroSeverson"), type="boolean", default=F, help="Repeat the Romero-Severson classification on
-                the tree to annotate internal nodes beyond the MRCAs of each split.")
-  )
+  library(argparse)
   
-  opt_parser = OptionParser(option_list=option_list)
-  opt = parse_args(opt_parser)
+  arg_parser = ArgumentParser(description="Identify the likely direction of transmission between all patients present in a phylogeny.")
   
-  tree.file.name <- opt$treeFile
-  splits.file.name <- opt$splitsFile
-  output.name <- opt$outFile
-  root.name <- opt$refSeqName
-  split.threshold <- opt$splitThreshold
-  zero.length.tips.count <- opt$zeroLengthTipsCount
-  romero.severson <- opt$romeroSeverson
+  arg_parser$add_argument("-r", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
+  arg_parser$add_argument("-z", "--zeroLengthTipsCount", action="store_true", default=FALSE, help="If present, a zero length terminal branch associates the patient at the tip with its parent node, interrupting any inferred transmission pathway between another pair of hosts that goes through the node.")
+  arg_parser$add_argument("-t", "--dualInfectionThreshold", type="double", help="Length threshold at which a branch of the subtree constructed just from reads from a single patient is considered long enough to indicate a dual infection (such a patient will be ignored, at present).")
+  arg_parser$add_argument("-s", "--romeroSeverson", default=FALSE, action="store_true", help="If present, the Romero-Severson classification will be repeated on tree to annotate internal nodes beyond the MRCAs of each split. Recommended if R-S was used to determine splits.")
+  arg_parser$add_argument("treeFileName", action="store", help="Tree file name")
+  arg_parser$add_argument("splitsFileName", action="store", help="Splits file name")
+  arg_parser$add_argument("outputFileName", action="store", help="Output file name (.csv format)")
+
+  
+  args <- arg_parser$parse_args()
+  
+  
+  tree.file.name <- args$treeFileName
+  splits.file.name <- args$splitsFileName
+  output.name <- args$outFileName
+  root.name <- args$outgroupName
+  split.threshold <- args$splitThreshold
+  if(is.null(split.threshold)){
+    split.threshold <- Inf
+  }
+  zero.length.tips.count <- args$zeroLengthTipsCount
+  romero.severson <- args$romeroSeverson
   
 } else {
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
@@ -52,6 +41,14 @@ if(command.line){
   zero.length.tips.count <- F
   romero.severson <- T
 }
+
+library(phytools)
+library(phangorn)
+
+script.dir <- "/Users/twoseventwo/Documents/phylotypes/"
+
+source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
+source(file.path(script.dir, "SubtreeMethods.R"))
 
 cat("Opening file: ", tree.file.name, "...\n", sep = "")
 
