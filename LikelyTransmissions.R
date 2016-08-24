@@ -227,7 +227,7 @@ for(split.patient in was.split){
 
 patients.included <- setdiff(patients, ignore.because.split)
 
-total.pairs <- (length(patients) ^ 2 - length(patients))/2
+total.pairs <- (length(patients.included) ^ 2 - length(patients.included))/2
 
 cat("Collapsing subtrees...\n")
 
@@ -311,8 +311,8 @@ for(pat.1 in seq(1, length(patients.included))){
 
 direct.descendant.table <- as.table(direct.descendant.matrix)
 
-colnames(direct.descendant.table) <- patients
-rownames(direct.descendant.table) <- patients
+colnames(direct.descendant.table) <- patients.included
+rownames(direct.descendant.table) <- patients.included
 
 
 dddf <- as.data.frame(direct.descendant.table)
