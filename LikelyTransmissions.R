@@ -9,7 +9,6 @@ source(file.path(script.dir, "SubtreeMethods.R"))
 
 command.line <- F
 
-
 if(command.line){
   option_list = list(
     make_option(c("-f", "--treeFile"), type="character", default=NULL, 
@@ -28,8 +27,7 @@ if(command.line){
                 help="Length threshold at which a branch of the subtree consisting of all patients will be cut to 
                 make multiple infections"),
     make_option(c("--romeroSeverson"), type="boolean", default=F, help="Repeat the Romero-Severson classification on
-                the tree to annotate internal nodes beyond the MRCAs of each split. Warning: the splits file should 
-                have been generated using the RS classification.")
+                the tree to annotate internal nodes beyond the MRCAs of each split.")
   )
   
   opt_parser = OptionParser(option_list=option_list)
@@ -47,12 +45,12 @@ if(command.line){
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
   
   tree.file.name <- "RAxML_bestTree.InWindow_800_to_1150.tree"
-  splits.file.name <- "Subtrees_c_run20160517_inWindow_800_to_1150.csv"
+  splits.file.name <- "Subtrees_r_run20160517_inWindow_800_to_1150.csv"
   output.name <- "LikelyTransmissions.InWindow_800_to_1150.csv"
   root.name <- "C.BW.00.00BW07621.AF443088"
   split.threshold <- 0.08
   zero.length.tips.count <- F
-  romero.severson <- F
+  romero.severson <- T
 }
 
 cat("Opening file: ", tree.file.name, "...\n", sep = "")
@@ -76,9 +74,8 @@ names(patient.tips) <- patients
 
 if(romero.severson){
   
-  # really the only reason to load the splits in for is to avoid needing the blacklist yet again
+  # Really the only reason to load the splits in is to avoid needing the blacklist yet again. Maybe rethink this.
 
-  
   patient.mrcas <- lapply(patient.tips, function(node) mrca.phylo.or.unique.tip(tree, node, zero.length.tips.count))
   
   tip.assocs.pats <- lapply(tree$tip.label, function(x) if(x %in% splits$tip.names) return(splits$orig.patients[which(splits$tip.names==x)]) else return("*"))
@@ -138,7 +135,11 @@ if(romero.severson){
   for(pat.no in seq(1, length(patients))){
     patient <- patients[pat.no]
     no.splits <- counts.by.patient[pat.no]
-    splits.for.patients[[patient]] <- paste(patient,"-S",seq(1, no.splits),sep="")
+    if(no.splits > 1){
+      splits.for.patients[[patient]] <- paste(patient,"-S",seq(1, no.splits),sep="")
+    } else {
+      splits.for.patients[[patient]] <- patient
+    }
     for(split.id in splits.for.patients[[patient]]){
       patients.for.splits[[split.id]] <- patient
     }
@@ -181,7 +182,7 @@ if(romero.severson){
   
   split.ids <- patients.copy
   
-  was.split <- unique(patients[patients %in% patients.copy])
+  was.split <- unique(patients[!(patients %in% patients.copy)])
   
   split.tips <- patient.tips.copy
   assocs <- split.assocs
@@ -202,7 +203,7 @@ if(romero.severson){
   splits.for.patients <- lapply(patients, function(x) unique(splits$patient.splits[which(splits$orig.patients==x)] ))
   names(splits.for.patients) <- patients
   
-  patients.for.splits <- lapply(all.splits, function(x) splits$orig.patients[which(splits$patient.splits==x)] )
+  patients.for.splits <- lapply(all.splits, function(x) unique(splits$orig.patients[which(splits$patient.splits==x)] ))
   names(patients.for.splits) <- all.splits
   
   was.split <- unique(splits$orig.patients[which(splits$orig.patients!=splits$patient.splits)])
@@ -230,16 +231,22 @@ total.pairs <- (length(patients) ^ 2 - length(patients))/2
 
 cat("Collapsing subtrees...\n")
 
-tt <- output.trans.tree(tree, assocs, file.name = NULL)
+tt <- output.trans.tree(tree, assocs)
 
 cat("Testing pairs\n")
 
+count <- 0
+direct.descendant.matrix <- matrix(NA, length(patients.included), length(patients.included))
+sibling.distance.matrix <- matrix(NA, length(patients.included), length(patients.included))
 for(pat.1 in seq(1, length(patients.included))){
   for(pat.2 in  seq(1, length(patients.included))){
     if (pat.1 < pat.2) {
+      count <- count + 1
+      
       pat.1.id <- patients.included[pat.1]
       pat.2.id <- patients.included[pat.2]
-      all.nodes <- c(splits.for.patients[pat.1.id], splits.for.patients[pat.2.id])
+      
+      all.nodes <-  c(splits.for.patients[[pat.1.id]], splits.for.patients[[pat.2.id]])
       #we want that they form a perfect blob with no intervening nodes for any other patients
       OK <- TRUE
       
@@ -248,11 +255,13 @@ for(pat.1 in seq(1, length(patients.included))){
           if(node.1 < node.2){
             node.1.id <- all.nodes[node.1]
             node.2.id <- all.nodes[node.2]
-            path <- get.tt.path(tt, node.1, node.2.id)
+            path <- get.tt.path(tt, node.1.id, node.2.id)
             for(node in path){
-              if(!startsWith(node, "none") & !(patients.for.splits[[node]] %in% c(pat.1.id, pat.2.id))){
-                OK <- FALSE
-                break
+              if(!startsWith(node, "none")){
+                if(!(patients.for.splits[[node]] %in% c(pat.1.id, pat.2.id))){
+                  OK <- FALSE
+                  break
+                }
               }
             }
           }
@@ -261,74 +270,33 @@ for(pat.1 in seq(1, length(patients.included))){
           break
         }
       }
-      
+    
       if(OK){
-         
-      }
-    }
-  }
-}
-
-
-
-
-count <- 0
-direct.descendant.matrix <- matrix(NA, length(patients), length(patients))
-sibling.distance.matrix <- matrix(NA, length(patients), length(patients))
-for (pat.1 in seq(1, length(patients))) {
-  for (pat.2 in seq(1, length(patients))) {
-    if (pat.1 < pat.2) {
-      
-      
-      count <- count + 1
-      
-      if(is.direct.descendant.of(tree, patients[pat.1], patients[pat.2], patient.mrcas, patient.tips, zero.length.tips.count)){
-        direct.descendant.matrix[pat.1, pat.2] <- "desc"
-      } else if(is.direct.descendant.of(tree, patients[pat.2], patients[pat.1], patient.mrcas, patient.tips, zero.length.tips.count)){
-        
-        direct.descendant.matrix[pat.1, pat.2] <- "anc"
-      } 
-      
-      
-      intermingled <- are.intermingled(tree, patients[pat.1], patients[pat.2], patient.mrcas, patient.tips)
-      
-      
-      
-      if(intermingled & !is.na(direct.descendant.matrix[pat.1, pat.2])){
-        cat("Intermingled but descendant?")
-        stop
-      }
-      
-      if(intermingled){
-        class <- intermingled.class(tree, patients[pat.1], patients[pat.2], patient.mrcas, patient.tips)
-        
-        if(class=="*"){
-          direct.descendant.matrix[pat.1, pat.2] <- "trueInt"
-        } else if(class==patients[pat.1]){
-          direct.descendant.matrix[pat.1, pat.2] <- "intAnc"
-        } else if(class==patients[pat.2]){
-          direct.descendant.matrix[pat.1, pat.2] <- "intDesc"
+        if(length(splits.for.patients[[pat.1.id]])==1 & length(splits.for.patients[[pat.2.id]])==1){
+          # definitely no intermingling
+          if(pat.1.id %in% get.tt.ancestors(tt, pat.2.id)){
+            direct.descendant.matrix[pat.1, pat.2] <- "anc"
+          } else if(pat.2.id %in% get.tt.ancestors(tt, pat.1.id)){
+            direct.descendant.matrix[pat.1, pat.2] <- "desc"
+          } else {
+            direct.descendant.matrix[pat.1, pat.2] <- "sib"
+          }
         } else {
-          stop(paste("Patients ",patients[pat.1]," and ",patients[pat.2],"haven't classified properly",sep=""))
+          current.node <- all.nodes[1]
+          for(node in all.nodes[2:length(all.nodes)]){
+            current.node <- get.tt.mrca(tt, current.node, all.nodes[2])
+          }
+          if(startsWith(current.node, "none")){
+            direct.descendant.matrix[pat.1, pat.2] <- "trueInt"
+          } else if(patients.for.splits[[current.node]]==pat.1.id){
+            direct.descendant.matrix[pat.1, pat.2] <- "intAnc"
+          } else if(patients.for.splits[[current.node]]==pat.2.id){
+            direct.descendant.matrix[pat.1, pat.2] <- "intDesc"
+          } else {
+            stop("Huh?")
+          }
         }
-        
-      } 
-      
-      siblings <- are.siblings(tree, patients[pat.1], patients[pat.2], patient.mrcas, patient.tips, zero.length.tips.count)
-      
-      if(siblings & !is.na(direct.descendant.matrix[pat.1, pat.2])){
-        cat("Siblings but descendant?")
-        stop
       }
-      
-      if(siblings & intermingled){
-        cat("Siblings but intermingled?")
-        stop
-      }
-      if(siblings){
-        direct.descendant.matrix[pat.1, pat.2] <- "sib"
-      } 
-      
       
       if (count %% 100 == 0) {
         cat(
