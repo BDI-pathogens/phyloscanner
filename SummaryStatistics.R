@@ -4,9 +4,8 @@ list.of.packages <- c("argparse","phytools", "dplyr", "ggplot2", "reshape", "gta
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
 
-
-
 command.line <- T
+
 if (command.line) {
   require(argparse)
   
@@ -29,12 +28,12 @@ if (command.line) {
 
   id.file <- args$idFile
   files.are.lists <- args$filesAreLists
-  root.name <- opt$outgroupName
-  tip.regex <- opt$tipRegex
-  tree.file.name <- opt$treeFiles
-  splits.file.name <- opt$splitsFiles
-  blacklist.file.name <- opt$blacklistFiles
-  output.root <- opt$outputBaseName
+  root.name <- args$outgroupName
+  tip.regex <- args$tipRegex
+  tree.file.name <- args$treeFiles
+  splits.file.name <- args$splitsFiles
+  blacklist.file.name <- args$blacklists
+  output.root <- args$outputBaseName
   
   if(!files.are.lists){
     tree.files <- sort(list.files(getwd(), pattern=paste(tree.file.name,".*\\.tree",sep="")))
@@ -60,9 +59,7 @@ if (command.line) {
     }
   }
   
-  blacklist.roots <- unlist(strsplit(blacklist.file.roots.raw, ":"))
-  
-  if(!is.null(opt$windows)){
+  if(!is.null(args$windows)){
     windows <- unlist(strsplit(args$windows, ":"))
     if(length(tree.files)!=length(windows)){
       stop("Number of tree files and number of windows differ")
@@ -77,9 +74,7 @@ if (command.line) {
   tip.regex <- "^(BEE[0-9][0-9][0-9][0-9])-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
   tree.files <- sort(list.files(getwd(), pattern="RAxML_bestTree.InWindow_.*\\.tree"))
   splits.files <- sort(list.files(getwd(), pattern="Subtrees_c_run20160517_.*\\.csv"))
-  blacklist.files <- list()
-  blacklist.files$ReadBlacklist_ <- sort(list.files(getwd(), pattern="ReadBlacklist_.*\\.csv"))
-  blacklist.files$PatientBlacklist_ <- sort(list.files(getwd(), pattern="PatientBlacklist_.*\\.csv"))
+  blacklist.files <- sort(list.files(getwd(), pattern="FullBlacklist_c_run20160517_.*\\.csv"))
   windows <- NULL
 }
 
