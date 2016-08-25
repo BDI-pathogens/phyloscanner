@@ -1,4 +1,4 @@
-command.line <- F
+command.line <- T
 list.of.packages <- c("phangorn", "argparse", "phytools", "ggplot2", "gdata", "mvtnorm", "expm")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
