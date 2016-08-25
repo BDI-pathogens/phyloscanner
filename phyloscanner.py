@@ -93,13 +93,6 @@ def CommaSeparatedInts(MyCommaSeparatedInts):
 # Set up the arguments for this script
 ExplanatoryMessage = ExplanatoryMessage.replace('\n', ' ').replace('  ', ' ')
 parser = argparse.ArgumentParser(description=ExplanatoryMessage)
-parser.add_argument('MergingThreshold', type=int, help=\
-'Reads that differ by a number of bases equal to or less than this are merged'+\
-', following the algorithm in MergeSimilarStrings.py. A value equal to or '+\
-'less than 0 turns off merging.')
-parser.add_argument('MinReadCount', type=int, help=\
-'Reads with a count less than this value (after merging) are discarded. A '+\
-'value equal to or less than 1 means all reads are kept.')
 parser.add_argument('ListOfBamFiles', type=File, help='A file containing the '+\
 'names (and paths) of the bam files to be included, one per line. The file '+\
 'basenames (i.e. the filename minus the directory) should be unique and free '+\
@@ -164,7 +157,7 @@ help="Use this option to explore how the number of unique reads found in each"+\
 "written to the file specified with the --explore-window-width-file option.")
 parser.add_argument('-EF', '--explore-window-width-file', help='Used to '+\
 'specify an output file for window width data, when the '+\
-'--explore-window-widths option is used.')
+'--explore-window-widths option is used. Output is in in csv format.')
 parser.add_argument('-F', '--renaming-file', type=File, help='Specify a file '\
 'with one line per bam file, showing how reads from that bam file should be '\
 "named in the output files. (By default, each bam file's basename is used.)")
@@ -175,8 +168,13 @@ action='store_true', help='When read pairs are merged, those pairs that '+\
 'overlap but disagree are discarded. With this option, these discarded pairs '+\
 'are written to a bam file (one per patient, with their reference file copied'+\
 ' to the working directory) for your inspection.')
-parser.add_argument('-M', '--raxml-model', default='GTRCAT',\
-help='The evoltionary model used by RAxML (GTRCAT by default).')
+parser.add_argument('-MT', '--merging-threshold', type=int, default=0, help=\
+'Reads that differ by a number of bases equal to or less than this are merged'+\
+', following the algorithm in MergeSimilarStrings.py. The default value of '+\
+'0 means there is no merging.')
+parser.add_argument('-MC', '--min-read-count', type=int, default=1, help=\
+'Reads with a count less than this value (after merging, if merging is being '+\
+'done) are discarded. The default value of 1 means all reads are kept.')
 parser.add_argument('-N', '--num-bootstraps', type=int,\
 help='The number of bootstraps to be calculated for RAxML trees (by default, '+\
 'none i.e. only the ML tree is calculated).')
@@ -200,6 +198,8 @@ parser.add_argument('-RC', '--ref-for-coords', help='The coordinates are to be'\
 +'default coordinates are interpreted with respect to the alignment of all '+\
 'bam and external references.) Deprecated; the --pairwise-align-to option is'+\
 ' expected to perform better.')
+parser.add_argument('-RM', '--raxml-model', default='GTRCAT',\
+help='The evoltionary model used by RAxML (GTRCAT by default).')
 #parser.add_argument('-S', '--min-support', default=60, type=float, help=\
 #'The bootstrap support below which nodes will be collapsed, as a percentage.')
 parser.add_argument('-T', '--no-trees', action='store_true', help='Generate '+\
@@ -857,13 +857,13 @@ def ProcessReadDict(ReadDict, WhichBam, LeftWindowEdge, RightWindowEdge):
   BasenameForReads = BamAliases[WhichBam]
 
   # Merge similar reads if desired
-  if args.MergingThreshold > 0:
-    ReadDict = MergeSimilarStrings(ReadDict, args.MergingThreshold)
+  if args.merging_threshold > 0:
+    ReadDict = MergeSimilarStrings(ReadDict, args.merging_threshold)
 
   # Implement the minimum read count
-  if args.MinReadCount > 1:
+  if args.min_read_count > 1:
     ReadDict = {read:count for read, count in ReadDict.items() if \
-    count >= args.MinReadCount}
+    count >= args.min_read_count}
 
   # Warn if there are no reads
   if len(ReadDict) == 0 and (not ExploreWindowWidths):
@@ -936,9 +936,9 @@ def ReMergeAlignedReads(alignment):
   SampleReadCounts, RefSeqsHere = ReadAlignedReadsIntoDicts(alignment)
   NewAlignment = AlignIO.MultipleSeqAlignment([])
   for SampleName in SampleReadCounts:
-    if args.MergingThreshold > 0:
+    if args.merging_threshold > 0:
       SampleReadCounts[SampleName] = \
-      MergeSimilarStrings(SampleReadCounts[SampleName], args.MergingThreshold)
+      MergeSimilarStrings(SampleReadCounts[SampleName], args.merging_threshold)
     for k, (read, count) in enumerate(sorted(\
     SampleReadCounts[SampleName].items(), key=lambda x: x[1], reverse=True)):
       ID = SampleName+'_read_'+str(k+1)+'_count_'+str(count)
@@ -947,7 +947,7 @@ def ReMergeAlignedReads(alignment):
   NewAlignment.extend(RefSeqsHere)
 
   # Merging after alignment means some columns could be pure gap. Remove these.
-  if args.MergingThreshold > 0:
+  if args.merging_threshold > 0:
     NewAlignment = RemovePureGapCols(NewAlignment)
   return NewAlignment
 
@@ -1236,7 +1236,7 @@ for window in range(NumCoords / 2):
         UserRightWindowEdge, alias, 0])
     else:
       print('WARNING: no bam file had any reads (after a minimum post-merging '+\
-      'read count of', args.MinReadCount, 'was imposed) in the window', \
+      'read count of', args.min_read_count, 'was imposed) in the window', \
       str(UserLeftWindowEdge)+'-'+str(UserRightWindowEdge)+'. Skipping to the', \
       'next window.', file=sys.stderr)
     continue
@@ -1324,7 +1324,7 @@ for window in range(NumCoords / 2):
 
   # Align the reads. Prepend 'temp_' to the file name if we'll merge again after
   # aligning.
-  if args.MergingThreshold > 0:
+  if args.merging_threshold > 0:
     FileForReads = 'temp_' + FileForAlnReadsHere
   else:
     FileForReads = FileForAlnReadsHere
@@ -1359,7 +1359,7 @@ for window in range(NumCoords / 2):
 
   # Do a second round of within-sample read merging now the reads are aligned.
   # Write the output to FileForAlnReadsHere.
-  if args.MergingThreshold > 0:
+  if args.merging_threshold > 0:
     try:
       SeqAlignmentHere = ReMergeAlignedReads(SeqAlignmentHere)
     except:
