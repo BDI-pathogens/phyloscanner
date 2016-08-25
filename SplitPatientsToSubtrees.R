@@ -20,7 +20,7 @@ if(command.line){
   arg_parser$add_argument("-s", "--splitsRule", action="store", default="r", help="The rules by which the sets of patients are split into groups in order to ensure that all groups can be members of connected subtrees without causing conflicts. Currently available: c=conservative, r=Romero-Severson (default).")
   arg_parser$add_argument("-b", "--blacklist", action="store", help="A .csv file listing tips to ignore.")
   arg_parser$add_argument("inputFile", help="Input tree file name", metavar="inputTreeFileName")
-  arg_parser$add_argument("outputBaseName", help="A string to begin the names of all output files.")
+  arg_parser$add_argument("outputBaseName", help="A string identifying output files.")
   
   args <- arg_parser$parse_args()
   
