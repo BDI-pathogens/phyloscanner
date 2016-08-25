@@ -368,60 +368,6 @@ def CheckMaxCoord(coords, ref):
     sep='', file=sys.stderr)
     exit(1)
 
-# Record the names of any external refs being included.
-# If we're doing pairwise alignments, we'll also need gappy and gapless copies
-# of the ref chosen for pairwise alignment.
-# Check that any coordinates that are to be interpreted with respect to a named
-# reference do not go past the end of that reference.
-ExternalRefNames = []
-if IncludeOtherRefs:
-  try:
-    ExternalRefAlignment = AlignIO.read(args.alignment_of_other_refs, "fasta")
-  except:
-    print('Problem reading', args.alignment_of_other_refs + ':', \
-    file=sys.stderr)
-    raise
-  for ref in ExternalRefAlignment:
-    ExternalRefNames.append(ref.id)
-    if ref.id == args.pairwise_align_to:
-      RefForPairwiseAlnsGappySeq = str(ref.seq)
-      RefForPairwiseAlns = copy.deepcopy(ref)
-      RefForPairwiseAlns.seq = RefForPairwiseAlns.seq.ungap("-")
-      if UserSpecifiedCoords:
-        CheckMaxCoord(WindowCoords, ref)
-      elif ExploreWindowWidths:
-        MaxCoordForWindowWidthTesting = len(RefForPairwiseAlns.seq)
-        WindowCoords = FindExploratoryWindows(MaxCoordForWindowWidthTesting)
-        NumCoords = len(WindowCoords)
-        UserCoords = WindowCoords
-    if ref.id == args.ref_for_coords:
-      if UserSpecifiedCoords:
-        CheckMaxCoord(WindowCoords, ref)
-      elif ExploreWindowWidths:
-        MaxCoordForWindowWidthTesting = len(RefForPairwiseAlns.seq)
-        WindowCoords = FindExploratoryWindows(MaxCoordForWindowWidthTesting)
-        NumCoords = len(WindowCoords)
-        UserCoords = WindowCoords
-    if ref.id == args.excision_ref:
-      CheckMaxCoord(args.excision_coords, ref)
-
-# Consistency checks on flags that require a ref.
-for FlagName, FlagValue in (('--ref-for-coords',  args.ref_for_coords),\
-('--ref-for-rooting', args.ref_for_rooting), \
-('--pairwise-align-to', args.pairwise_align_to), \
-('--excision-ref', args.excision_ref)):
-  if FlagValue == None:
-    continue
-  if not IncludeOtherRefs:
-    print('The', FlagName, 'flag requires the --alignment-of-other-refs',\
-    'flag. Quitting.', file=sys.stderr)
-    exit(1)
-  if not FlagValue in ExternalRefNames:
-    print('Reference', FlagValue +', specified with the', FlagName, \
-    'flag, was not found in', args.alignment_of_other_refs +'. Quitting.', \
-    file=sys.stderr)
-    exit(1)
-
 def SanityCheckWindowCoords(WindowCoords):
   'Check window coordinates come in pairs, all positive, the right > the left.'
   NumCoords = len(WindowCoords)
@@ -531,6 +477,62 @@ def FindExploratoryWindows(EndPoint):
       NextStart = NextEnd - ExploreOverlap + 1
       NextEnd = NextStart + width - 1
   return ExploratoryCoords
+
+# Record the names of any external refs being included.
+# If we're doing pairwise alignments, we'll also need gappy and gapless copies
+# of the ref chosen for pairwise alignment.
+# Check that any coordinates that are to be interpreted with respect to a named
+# reference do not go past the end of that reference.
+ExternalRefNames = []
+if IncludeOtherRefs:
+  try:
+    ExternalRefAlignment = AlignIO.read(args.alignment_of_other_refs, "fasta")
+  except:
+    print('Problem reading', args.alignment_of_other_refs + ':', \
+    file=sys.stderr)
+    raise
+  for ref in ExternalRefAlignment:
+    ExternalRefNames.append(ref.id)
+    if ref.id == args.pairwise_align_to:
+      RefForPairwiseAlnsGappySeq = str(ref.seq)
+      RefForPairwiseAlns = copy.deepcopy(ref)
+      RefForPairwiseAlns.seq = RefForPairwiseAlns.seq.ungap("-")
+      if UserSpecifiedCoords:
+        CheckMaxCoord(WindowCoords, ref)
+      elif ExploreWindowWidths:
+        MaxCoordForWindowWidthTesting = len(RefForPairwiseAlns.seq)
+        WindowCoords = FindExploratoryWindows(MaxCoordForWindowWidthTesting)
+        NumCoords = len(WindowCoords)
+        UserCoords = WindowCoords
+    if ref.id == args.ref_for_coords:
+      if UserSpecifiedCoords:
+        CheckMaxCoord(WindowCoords, ref)
+      elif ExploreWindowWidths:
+        MaxCoordForWindowWidthTesting = len(RefForPairwiseAlns.seq)
+        WindowCoords = FindExploratoryWindows(MaxCoordForWindowWidthTesting)
+        NumCoords = len(WindowCoords)
+        UserCoords = WindowCoords
+    if ref.id == args.excision_ref:
+      CheckMaxCoord(args.excision_coords, ref)
+
+# Consistency checks on flags that require a ref.
+for FlagName, FlagValue in (('--ref-for-coords',  args.ref_for_coords),\
+('--ref-for-rooting', args.ref_for_rooting), \
+('--pairwise-align-to', args.pairwise_align_to), \
+('--excision-ref', args.excision_ref)):
+  if FlagValue == None:
+    continue
+  if not IncludeOtherRefs:
+    print('The', FlagName, 'flag requires the --alignment-of-other-refs',\
+    'flag. Quitting.', file=sys.stderr)
+    exit(1)
+  if not FlagValue in ExternalRefNames:
+    print('Reference', FlagValue +', specified with the', FlagName, \
+    'flag, was not found in', args.alignment_of_other_refs +'. Quitting.', \
+    file=sys.stderr)
+    exit(1)
+
+
 
 # Remove duplicated excision coords. Sort from largest to smallest.
 if ExcisePositions:
