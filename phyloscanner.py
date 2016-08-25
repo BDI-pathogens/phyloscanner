@@ -508,7 +508,7 @@ if IncludeOtherRefs:
       if UserSpecifiedCoords:
         CheckMaxCoord(WindowCoords, ref)
       elif ExploreWindowWidths:
-        MaxCoordForWindowWidthTesting = len(RefForPairwiseAlns.seq)
+        MaxCoordForWindowWidthTesting = len(ref.seq.ungap("-"))
         WindowCoords = FindExploratoryWindows(MaxCoordForWindowWidthTesting)
         NumCoords = len(WindowCoords)
         UserCoords = WindowCoords
@@ -665,10 +665,10 @@ if NumberOfBams == 1 and not IncludeOtherRefs:
     CoordsToUse = [min(coord, RefSeqLength) for coord in WindowCoords]
   elif ExploreWindowWidths:
     MaxCoordForWindowWidthTesting = RefSeqLength
-    CoordsToUse = FindExploratoryWindows(MaxCoordForWindowWidthTesting)
+    WindowCoords = FindExploratoryWindows(MaxCoordForWindowWidthTesting)
     NumCoords = len(WindowCoords)
-    UserCoords = CoordsToUse
-  CoordsInRefs = {BamAliases[0] : CoordsToUse}
+    UserCoords = WindowCoords
+  CoordsInRefs = {BamAliases[0] : WindowCoords}
 
 # If there are at least two bam files, or if there is one but we're including
 # other refs, we'll be aligning references and translating the user-specified
