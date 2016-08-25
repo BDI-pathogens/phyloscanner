@@ -186,8 +186,6 @@ for(window.no in seq(1, length(tree.files))){
     middle <- (start+end)/2
   } else {
     split.name <- strsplit(tree.file.name, "[_\\.]")[[1]]
-    
-    
     start <- as.numeric(split.name[length(split.name)-3])
     end <- as.numeric(split.name[length(split.name)-1])
     middle <- (start+end)/2

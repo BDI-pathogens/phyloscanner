@@ -1,12 +1,11 @@
-
-
 command.line <- T
 
 if(command.line){
   library(argparse)
   
   arg_parser = ArgumentParser(description="Identify the likely direction of transmission between all patients present in a phylogeny.")
-  
+  arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", 
+                          help="Regular expression identifying tips from the dataset. Three groups: patient ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name. Necessary only if -s is specified.")
   arg_parser$add_argument("-r", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
   arg_parser$add_argument("-z", "--zeroLengthTipsCount", action="store_true", default=FALSE, help="If present, a zero length terminal branch associates the patient at the tip with its parent node, interrupting any inferred transmission pathway between another pair of hosts that goes through the node.")
   arg_parser$add_argument("-t", "--dualInfectionThreshold", type="double", help="Length threshold at which a branch of the subtree constructed just from reads from a single patient is considered long enough to indicate a dual infection (such a patient will be ignored, at present). If absent, keep all patients.")
@@ -19,8 +18,9 @@ if(command.line){
   
   tree.file.name <- args$treeFileName
   splits.file.name <- args$splitsFileName
-  output.name <- args$outFileName
+  output.name <- args$outputFileName
   root.name <- args$outgroupName
+  tip.regex <- args$tipRegex
   split.threshold <- args$splitThreshold
   if(is.null(split.threshold)){
     split.threshold <- Inf
@@ -32,12 +32,12 @@ if(command.line){
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
   
   tree.file.name <- "RAxML_bestTree.InWindow_800_to_1150.tree"
-  splits.file.name <- "Subtrees_r_run20160517_inWindow_800_to_1150.csv"
+  splits.file.name <- "Subtrees_c_run20160517_inWindow_800_to_1150.csv"
   output.name <- "LikelyTransmissions.InWindow_800_to_1150.csv"
   root.name <- "C.BW.00.00BW07621.AF443088"
   split.threshold <- 0.08
   zero.length.tips.count <- F
-  romero.severson <- T
+  romero.severson <- F
 }
 
 library(phytools)
@@ -315,5 +315,5 @@ dddf <- dddf[complete.cases(dddf),]
 
 colnames(dddf) <- c("Patient_1", "Patient_2", "Relationship")
 
-write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE)
+write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE, quote=F)
 
