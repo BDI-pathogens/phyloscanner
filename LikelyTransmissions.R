@@ -21,7 +21,7 @@ if(command.line){
   output.name <- args$outputFileName
   root.name <- args$outgroupName
   tip.regex <- args$tipRegex
-  split.threshold <- args$splitThreshold
+  split.threshold <- args$dualInfectionThreshold
   if(is.null(split.threshold)){
     split.threshold <- Inf
   }
@@ -32,12 +32,13 @@ if(command.line){
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
   
   tree.file.name <- "RAxML_bestTree.InWindow_800_to_1150.tree"
-  splits.file.name <- "Subtrees_c_run20160517_inWindow_800_to_1150.csv"
+  splits.file.name <- "Subtrees_r_run20160517_inWindow_800_to_1150.csv"
   output.name <- "LikelyTransmissions.InWindow_800_to_1150.csv"
   root.name <- "C.BW.00.00BW07621.AF443088"
   split.threshold <- 0.08
   zero.length.tips.count <- F
-  romero.severson <- F
+  romero.severson <- T
+  tip.regex <- "^(BEE[0-9][0-9][0-9][0-9])-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
 }
 
 library(phytools)
@@ -296,7 +297,7 @@ for(pat.1 in seq(1, length(patients.included))){
       if (count %% 100 == 0) {
         cat(
           paste(
-            "Done ",count," of ",total.pairs," pairwise calculations\n", sep = ""
+            "Done ",format(count, scientific = F)," of ",format(total.pairs, scientific = F)," pairwise calculations\n", sep = ""
           )
         )
       }
@@ -316,4 +317,3 @@ dddf <- dddf[complete.cases(dddf),]
 colnames(dddf) <- c("Patient_1", "Patient_2", "Relationship")
 
 write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE, quote=F)
-

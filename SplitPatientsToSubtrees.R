@@ -1,4 +1,4 @@
-command.line <- T
+command.line <- F
 list.of.packages <- c("phangorn", "argparse", "phytools", "ggplot2", "gdata", "mvtnorm", "expm")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
@@ -38,11 +38,11 @@ if(command.line){
 } else {
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
   file.name <- "RAxML_bestTree.InWindow_6800_to_7150.tree"
-  blacklist.files <-c("PatientBlacklist_InWindow_6800_to_7150.csv", "ReadBlacklist_InWindow_6800_to_7150.csv")
+  blacklist.file <-c("FullBlacklist_InWindow_6800_to_7150.csv")
   out.root <- "BEEHIVE180716.InWindow_6800_to_7150"
   root.name <- "C.BW.00.00BW07621.AF443088"
   tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
-  mode <- "c"
+  mode <- "r"
 }
 
 
@@ -110,37 +110,37 @@ if(mode=="c"){
     }
   }
   
-  cat("Drawing tree with conflicts displayed...\n")
+  # The following not being done right now.
   
-  # list of tip statuses
-  
-  conflict.tips <- rep("normal", length(tree$tip.label))
-  conflict.tips[which(patient.ids %in% patients.with.conflicts)] <- "conflict"
-  conflict.tips[blacklist] <- "blacklist"
-  
-  # Need to make this the same length as the set of nodes for ggtree
-  
-  conflict.tips <- c(conflict.tips, rep(NA, tree$Nnode))
-  
-  # Only put geom_points on nodes with a conflict
-  
-  node.assoc.counts <- node.assocs$counts
-  node.assoc.counts[which(node.assoc.counts<=1)] <- NA
-  
-  tree.display <- ggtree(tree) +
-    geom_point2(shape = 21,aes(fill = node.assoc.counts, size=!is.na(node.assoc.counts))) +
-    theme(legend.position="right") +
-    scale_fill_gradient(low = "darkgreen", high="red") +
-    theme(legend.title = element_text(size=40)) +
-    theme(legend.text = element_text(size=40)) +
-    theme(legend.key.size = unit(10, "lines")) +
-    labs(size="Conflict exists", fill="Number of\nconflicting patients", col="Problem\npatient") +
-    geom_tiplab(aes(col = conflict.tips)) + 
-    scale_color_manual(values=c("blue", "red", "black"))
-  tree.display
-  
-  ggsave(file=paste("tree_conflicts_",out.root,".pdf",sep=""), 
-         height = 400, width = 100, limitsize = F)
+  # cat("Drawing tree with conflicts displayed...\n")
+  # 
+  # # list of tip statuses
+  # 
+  # conflict.tips <- rep("normal", length(tree$tip.label))
+  # conflict.tips[which(patient.ids %in% patients.with.conflicts)] <- "conflict"
+  # conflict.tips[blacklist] <- "blacklist"
+  # 
+  # # Need to make this the same length as the set of nodes for ggtree
+  # 
+  # conflict.tips <- c(conflict.tips, rep(NA, tree$Nnode))
+  # 
+  # # Only put geom_points on nodes with a conflict
+  # 
+  # node.assoc.counts <- node.assocs$counts
+  # node.assoc.counts[which(node.assoc.counts<=1)] <- NA
+  # 
+  # tree.display <- ggtree(tree) +
+  #   geom_point2(shape = 21,aes(fill = node.assoc.counts, size=!is.na(node.assoc.counts))) +
+  #   theme(legend.position="right") +
+  #   scale_fill_gradient(low = "darkgreen", high="red") +
+  #   theme(legend.position="none") +
+  #   labs(size="Conflict exists", fill="Number of\nconflicting patients", col="Problem\npatient") +
+  #   geom_tiplab(aes(col = conflict.tips)) + 
+  #   scale_color_manual(values=c("blue", "red", "black"))
+  # tree.display
+  # 
+  # ggsave(file=paste("tree_conflicts_",out.root,".pdf",sep=""), 
+  #        height = 400, width = 100, limitsize = F)
   
   cat("Resolving patients with conflicts into separate groups...\n")
   
@@ -177,6 +177,13 @@ if(mode=="c"){
   
   cat("Drawing tree...\n")
   
+  # rather hacky, I admit...
+  
+  node.shapes <- rep(NA, length(tree$tip.label) + tree$Nnode)
+  for(mrca in patient.mrcas.copy){
+    node.shapes[mrca] <- 0.2
+  }
+  
   temp.ca <- rep(NA, length(tree$tip.label) + tree$Nnode)
   
   for(item in seq(1, length(node.assocs$details))){
@@ -185,19 +192,22 @@ if(mode=="c"){
     }
   }
   
-  temp.ca <- factor(temp.ca, levels = sample(levels(as.factor(temp.ca))))
+  temp.ca.pat <- sapply(temp.ca, function(x) unlist(strsplit(x, "-S"))[1] )
+  names(temp.ca.pat) <- NULL
+  temp.ca.pat <- factor(temp.ca.pat, levels = sample(levels(as.factor(temp.ca.pat))))
   
-  tree.display <- ggtree(tree) +
-    geom_point(shape = 21, aes(fill = temp.ca)) +
+  
+  tree.display <- ggtree(tree, aes(color=temp.ca.pat)) +
+    geom_point(shape = 16, aes(size=node.shapes)) +
     scale_fill_hue(na.value = "black") +
+    scale_color_hue(na.value = "black") +
     theme(legend.position="none") +
-    geom_tiplab(aes(col = conflict.tips)) + 
-    scale_color_manual(values=c("blue", "red", "black"))
+    geom_tiplab(aes(col = temp.ca.pat))
   
   tree.display
   
   ggsave(file=paste("tree_c_",out.root,".pdf",sep=""), 
-         height = 400, width = 100, limitsize = F)
+         height = 600, width = 100, limitsize = F)
   
   
 } else if(mode=="r"){
@@ -255,6 +265,11 @@ if(mode=="c"){
   
   #find the splits and reannotate the tree
   
+  node.shapes <- rep(NA, length(tree$tip.label) + tree$Nnode)
+  for(mrca in first.nodes.by.patients){
+    node.shapes[mrca] <- 0.2
+  }
+  
   for(pat.no in seq(1, length(patients))){
     patient <- patients[pat.no]
     no.splits <- counts.by.patient[pat.no]
@@ -304,18 +319,21 @@ if(mode=="c"){
     }
   }
   
-  temp.ca <- factor(temp.ca, levels = sample(levels(as.factor(temp.ca))))
+  temp.ca.pat <- sapply(temp.ca, function(x) unlist(strsplit(x, "-S"))[1] )
+  names(temp.ca.pat) <- NULL
+  temp.ca.pat <- factor(temp.ca.pat, levels = sample(levels(as.factor(temp.ca.pat))))
   
-  tree.display <- ggtree(tree) +
-    geom_point(shape = 21, aes(fill = temp.ca)) +
+  tree.display <- ggtree(tree, aes(color=temp.ca.pat)) +
+    geom_point(shape = 16, aes(size=node.shapes)) +
     scale_fill_hue(na.value = "black") +
-    geom_tiplab() + 
-    theme(legend.position="none")
+    scale_color_hue(na.value = "black") +
+    theme(legend.position="none") +
+    geom_tiplab(aes(col = temp.ca.pat))
   
   tree.display
   
   ggsave(file=paste("tree_r_",out.root,".pdf",sep=""), 
-         height = 400, width = 100, limitsize = F)
+         height = 600, width = 100, limitsize = F)
   
 
 }

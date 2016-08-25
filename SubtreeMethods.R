@@ -198,11 +198,13 @@ get.star.runs <- function(tree, assocs){
       if(nrow(c.a.df)>1){
         run <- int.node
         current.node <- Ancestors(tree, int.node, type="parent")
-        while(assocs[[current.node]]=="*"){
-          run <- c(run, current.node)
-          current.node <- Ancestors(tree, current.node, type="parent")
-          if(current.node == 0){
-            break
+        if(current.node != 0){
+          while(assocs[[current.node]]=="*"){
+            run <- c(run, current.node)
+            current.node <- Ancestors(tree, current.node, type="parent")
+            if(current.node == 0){
+              break
+            }
           }
         }
         out[[int.node]] <- run
