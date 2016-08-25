@@ -1,8 +1,84 @@
 #!/usr/bin/env Rscript
 
-list.of.packages <- c("phytools", "dplyr", "ggplot2", "reshape", "gtable", "grid", "gridExtra", "RColorBrewer")
+list.of.packages <- c("argparse","phytools", "dplyr", "ggplot2", "reshape", "gtable", "grid", "gridExtra", "RColorBrewer")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
+
+command.line <- T
+
+if (command.line) {
+  require(argparse)
+  
+  arg_parser = ArgumentParser(description="Summarise patient statistics from each phylogeny across all windows.")
+  
+  arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", 
+                          help="Regular expression identifying tips from the dataset. Three groups: patient ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name.")
+  arg_parser$add_argument("-r", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
+  arg_parser$add_argument("-l", "--filesAreLists", action="store_true", default=FALSE, help="If present, arguments specifying input files (trees, splits and blacklists) will be parsed as lists of files separated by colons. If absent, they will be parsed as a string which each file of that type begins with.")
+  arg_parser$add_argument("-b", "--blacklists", help="Either (if -l is present) a list of blacklist files, in the same order as the tree files and separated by colons, or (if not) a single string that begins every blacklist file name.")
+  arg_parser$add_argument("-w", "--windows", action="store", help="The window in the genome which each tree file, in the same order as the tree files (user-specified if -l is present, in the order provided by the file system if now), is constructed from. In each window this is given as n-m where n is the start and m the end; coordinates for each window are separated by a colon. If not given, the script will attempt to obtain these from the file names.")
+  arg_parser$add_argument("idFile", action="store", help="A file containing a list of the IDs of all the patients to calcualte and display statistics for.")
+  arg_parser$add_argument("treeFiles", action="store", help="Either (if -l is present) a list of tree files, separated by colons, or (if not) a single string that begins every tree file name.")
+  arg_parser$add_argument("splitsFiles", action="store",help="Either (if -l is present) a list of splits files, in the same order as the tree files and separated by colons, or (if not) a single string that begins every splits file name.")
+  arg_parser$add_argument("outputBaseName", action="store", help="A string to begin the names of all output files.")
+
+  # Read in the arguments
+
+  args <- arg_parser$parse_args()
+
+  id.file <- args$idFile
+  files.are.lists <- args$filesAreLists
+  root.name <- args$outgroupName
+  tip.regex <- args$tipRegex
+  tree.file.name <- args$treeFiles
+  splits.file.name <- args$splitsFiles
+  blacklist.file.name <- args$blacklists
+  
+  output.root <- args$outputBaseName
+  
+  if(!files.are.lists){
+    tree.files <- sort(list.files(getwd(), pattern=paste(tree.file.name,".*\\.tree",sep="")))
+    splits.files <- sort(list.files(getwd(), pattern=paste(splits.file.name,".*\\.csv",sep="")))
+    if(!is.null(blacklist.file.name)){
+      blacklist.files <- sort(list.files(getwd(), pattern=paste(blacklist.file.name,".*\\.csv",sep="")))
+    }
+  } else {
+    tree.files <- unlist(strsplit(tree.file.name, ":"))
+    splits.files <- unlist(strsplit(splits.file.name, ":"))
+    if(!is.null(blacklist.file.name)){
+      blacklist.files <- unlist(strsplit(blacklist.file.name, ":"))
+    }
+  }
+  
+  if(length(tree.files)!=length(splits.files)){
+    stop("Number of tree files and number of splits files differ")
+  }
+  
+  if(!is.null(blacklist.file.name)){
+    if(length(tree.files)!=length(blacklist.files)){
+      stop("Number of tree files and number of blacklist files differ")
+    }
+  }
+  
+  if(!is.null(args$windows)){
+    windows <- unlist(strsplit(args$windows, ":"))
+    if(length(tree.files)!=length(windows)){
+      stop("Number of tree files and number of windows differ")
+    }
+  } else {
+    windows <- NULL
+  }
+} else {
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
+  id.file <- "patientIDList.txt"
+  root.name<- "C.BW.00.00BW07621.AF443088"
+  tip.regex <- "^(BEE[0-9][0-9][0-9][0-9])-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
+  tree.files <- sort(list.files(getwd(), pattern="RAxML_bestTree.InWindow_.*\\.tree"))
+  splits.files <- sort(list.files(getwd(), pattern="Subtrees_c_run20160517_.*\\.csv"))
+  blacklist.files <- sort(list.files(getwd(), pattern="FullBlacklist_InWindow_.*\\.csv"))
+  output.root <- "ss_c"
+  windows <- NULL
+}
 
 require(phytools)
 require(dplyr)
@@ -17,101 +93,6 @@ script.dir <- "/Users/twoseventwo/Documents/phylotypes/"
 source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
 source(file.path(script.dir, "SummariseTrees_funcs.R"))
 
-command.line <- T
-if (command.line) {
-  require(optparse)
-  
-  option_list = list(
-    make_option(c("-i", "--idFile"), type="character", default=NULL, 
-                help="The path of a file containing a list of all the patient IDs to be summarised"),
-    make_option(c("-o", "--outputRoot"), type="character", default=NULL, 
-                help="Root string for output file names."),
-    make_option("--treeFileRoot", type="character", default=NULL, 
-                help="A string which every tree file begins with."),
-    make_option("--treeFileList", type="character", default=NULL, 
-                help="A list of tree files (single string, with file names separated by with colons). Ignored if
-                --treeFileRoot is present"),
-    make_option("--blacklistFileRoot", type="character", default=NULL, 
-                help="A string which each blacklist file begins with"),
-    make_option("--blacklistFileList", type="character", default=NULL, 
-                help="A list of blacklist files (single string, with file names separated by with colons). 
-                Ignored if --blacklistFileRoot is present."),
-    make_option("--splitsFileRoot", type="character", default=NULL, 
-                help="A string which every splits file begins with."),
-    make_option("--splitsFileList", type="character", default=NULL, 
-                help="A list of splits files (single string, with file names separated by with colons). Ignored if 
-                --splitsFileRoot is present"),
-    make_option(c("-w", "--windows"), type="character", default=NULL, 
-                help="The window in the genome which each tree file, in alphabetical order by file name, 
-                is constructed from.In each window this is given as n-m where n is the start and m the end; 
-                coordinates for each window are separated by a colon. If not given, the script will attempt 
-                to obtain these from the file names."),
-    make_option(c("-x", "--tipRegex"), type="character", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", 
-                help="Regular expression identifying tips from the dataset. Three groups: patient ID,
-                read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline,
-                and the patient ID will be the BAM file name."),
-    make_option(c("-r", "--refSeqName"), type="character", default=NULL, 
-                help="Reference sequence label (if unspecified, tree will be assumed to be already rooted)")
-  )
-  
-  # Read in the arguments
-
-  opt_parser = OptionParser(option_list=option_list)
-  opt = parse_args(opt_parser)
-
-  id.file <- opt$idFile
-  root.name <- opt$refSeqName
-  tip.regex <- opt$tipRegex
-  tree.file.root <- opt$treeFileRoot
-  splits.file.root <- opt$splitsFileRoot
-  blacklist.file.root <- opt$blacklistFileRoot
-  output.root <- opt$outputRoot
-  
-  if(!is.null(tree.file.root)){
-    tree.files <- sort(list.files(getwd(), pattern=paste(tree.file.root,".*\\.tree",sep="")))
-  } else {
-    tree.files <- unlist(strsplit(opt$treeFileList, ":"))
-  }
-  if(!is.null(splits.file.root)){
-    splits.files <- sort(list.files(getwd(), pattern=paste(splits.file.root,".*\\.csv",sep="")))
-  } else {
-    splits.files <- unlist(strsplit(opt$splitsFileList, ":"))
-  }
-  
-  if(length(tree.files)!=length(splits.files)){
-    stop("Number of tree files and number of splits files differ")
-  }
-  
-  blacklist.roots <- unlist(strsplit(blacklist.file.roots.raw, ":"))
-  
-  blacklist.files <- list()
-  
-  if(!is.null(blacklist.file.root)){
-    blacklist.files <- sort(list.files(getwd(), pattern=paste(blacklist.file.root,".*\\.csv",sep="")))
-  } else {
-    blacklist.files <- unlist(strsplit(opt$blacklistFileList, ":"))
-  }
-  
-  if(!is.null(opt$windows)){
-    windows <- unlist(strsplit(opt$windows, ":"))
-    if(length(tree.files)!=length(windows)){
-      stop("Number of tree files and number of windows differ")
-    }
-  } else {
-    windows <- NULL
-  }
-} else {
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
-  id.file <- "patientIDList.txt"
-  root.name<- "C.BW.00.00BW07621.AF443088"
-  tip.regex <- "^(BEE[0-9][0-9][0-9][0-9])-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
-  tree.files <- sort(list.files(getwd(), pattern="RAxML_bestTree.InWindow_.*\\.tree"))
-  splits.files <- sort(list.files(getwd(), pattern="Subtrees_c_run20160517_.*\\.csv"))
-  blacklist.files <- list()
-  blacklist.files$ReadBlacklist_ <- sort(list.files(getwd(), pattern="ReadBlacklist_.*\\.csv"))
-  blacklist.files$PatientBlacklist_ <- sort(list.files(getwd(), pattern="PatientBlacklist_.*\\.csv"))
-  windows <- NULL
-}
 
 AlignPlots <- function(...) {
   LegendWidth <- function(x) x$grobs[[8]]$grobs[[1]]$widths[[4]]
@@ -205,8 +186,6 @@ for(window.no in seq(1, length(tree.files))){
     middle <- (start+end)/2
   } else {
     split.name <- strsplit(tree.file.name, "[_\\.]")[[1]]
-    
-    
     start <- as.numeric(split.name[length(split.name)-3])
     end <- as.numeric(split.name[length(split.name)-1])
     middle <- (start+end)/2
@@ -418,23 +397,25 @@ lwe <- max(pat.stats$window.end)
 
 pat.stats$prop.reads.largest.subtree <- splits.props$prop.gp.1
 
-# todo - the subtree read proportions aren't here, but how relevant are the means of those anyway?
+write.csv(pat.stats, file.path(paste(output.root,"_patStatsFull.csv",sep="")), quote = F, row.names = F)
+
+pat.stats.temp <- pat.stats[which(pat.stats$reads>0) ,c("patient","leaves","reads","subtrees","clades","overall.rtt","largest.rtt",
+                              "largest.pat.dist","patristic.variance","prop.reads.largest.subtree")]
 
 mean.na.rm <- function(x) mean(x, na.rm = T)
 
-pat.stats <- unfactorDataFrame(pat.stats)
-by.patient <- pat.stats %>% group_by(patient)
+by.patient <- pat.stats.temp %>% group_by(patient)
 pat.stats.summary <-
   as.data.frame(by.patient %>% summarise_each(funs(mean.na.rm)))
 
-write.csv(pat.stats.summary, file.path(paste(output.root,"_patStatsSummary.csv",sep="")))
+write.csv(pat.stats.summary, file.path(paste(output.root,"_patStatsSummary.csv",sep="")), quote = F, row.names = F)
 
 pdf(paste(output.root,"_plots.pdf",sep=""), width=8.26772, height=11.6929)
 
 for (i in seq(1, length(ids))) {
   
   patient <- sort(ids)[i]
-#  cat("Drawing graphs for patient ",patient,"\n", sep="")
+  cat("Drawing graphs for patient ",patient,"\n", sep="")
   
   this.pat.stats <- pat.stats[which(pat.stats$patient==patient),]
   

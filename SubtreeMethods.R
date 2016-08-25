@@ -226,7 +226,7 @@ output.trans.tree <- function(tree, assocs, file.name = NULL){
     } else if (assocs[[node.no]]=="*") {
       assocs.vec[node.no] <- "none"
     } else {
-      if(length(assocs[[node]])>1){
+      if(length(assocs[[node.no]])>1){
         stop("This method is intended for use on trees with conflicts resolved")
       }
       assocs.vec[node.no] <- assocs[[node.no]]

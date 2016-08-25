@@ -16,21 +16,10 @@ arg_parser = ArgumentParser(description="Identify phylogeny tips for blacklistin
 
 arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", 
                         help="Regular expression identifying tips from the dataset. Three groups: patient ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name.")
-arg_parser$add_argument("rawThreshold", action="store", type="double", help="Raw threshold; tips with read counts less than this that are identical to a tip from another patient will be blacklisted, regardless of the count of the other read")
-arg_parser$add_argument("ratioThreshold", action="store", type="double", help="Ratio threshold; tips will be blacklisted if the ratio of their tip count to that of of another, identical tip from another patient is less than this value")
-arg_parser$add_argument("inputFileName", action="store", help="A CSV file outlining groups of tips that have identical sequences, each forming a single line")
+arg_parser$add_argument("rawThreshold", action="store", type="double", help="Raw threshold; tips with read counts less than this that are identical to a tip from another patient will be blacklisted, regardless of the count of the other read.")
+arg_parser$add_argument("ratioThreshold", action="store", type="double", help="Ratio threshold; tips will be blacklisted if the ratio of their tip count to that of of another, identical tip from another patient is less than this value.")
+arg_parser$add_argument("inputFileName", action="store", help="A CSV file outlining groups of tips that have identical sequences, each forming a single line.")
 arg_parser$add_argument("outputFileName", action="store", help="The file to write the output to, a list of tips to be blacklisted.")
-
-
-# This script blacklists tree tips that are likely to be contaminants, based on being identical
-# to tips from another patient. Four arguments:
-
-# 1. A raw read threshold. The script will blacklist any tips that match those from another
-# patient if the read count for that tip is below this value.
-# 2. A ratio read threshold. The script will blacklist any tips that match those from another
-# patient if the ratio of tips from that patient to the tip's patient is below this value
-# 3. An input file name (A CSV file, output from XXXXXXXX)
-# 4. An output file name (CSV format)
 
 # Parse arguments
 
@@ -92,5 +81,5 @@ blacklisted <- pairs.table[which(pairs.table$seqOverShared<ratio.threshold | (pa
 cat("Blacklist length: ",length(blacklisted),"\n",sep="")
 
 
-write.table(blacklisted,output.name, sep=",", row.names=FALSE, col.names=FALSE)
+write.table(blacklisted,output.name, sep=",", row.names=FALSE, col.names=FALSE, quote=F)
 
