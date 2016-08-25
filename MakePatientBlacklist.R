@@ -48,5 +48,5 @@ bad.tips <- tree$tip.label[which(tip.is.bad)]
 cat("Blacklist length: ",length(bad.tips),"\n",sep="")
 
 if(length(bad.tips)>0){
-  write.table(bad.tips,out.file, sep=",", row.names=FALSE, col.names=FALSE)
+  write.table(bad.tips,out.file, sep=",", row.names=FALSE, col.names=FALSE, quote=F)
 }

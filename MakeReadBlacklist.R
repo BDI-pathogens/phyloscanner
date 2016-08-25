@@ -81,5 +81,5 @@ blacklisted <- pairs.table[which(pairs.table$seqOverShared<ratio.threshold | (pa
 cat("Blacklist length: ",length(blacklisted),"\n",sep="")
 
 
-write.table(blacklisted,output.name, sep=",", row.names=FALSE, col.names=FALSE)
+write.table(blacklisted,output.name, sep=",", row.names=FALSE, col.names=FALSE, quote=F)
 
