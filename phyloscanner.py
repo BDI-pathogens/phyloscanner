@@ -148,6 +148,23 @@ help="For each window, just flag contaminant reads then move on (without "+\
 parser.add_argument('-D', '--dont-check-duplicates', action='store_true', \
 help="Don't compare reads between samples to find duplicates - a possible "+\
 "indication of contamination. (By default this check is done.)")
+parser.add_argument('-E', '--explore-window-widths', type=CommaSeparatedInts, \
+help="Use this option to explore how the number of unique reads found in each"+\
+" bam file in each window, all along the genome, depends on the window width."+\
+" After this option specify a comma-separated list of integers: the first of "+\
+"which is the starting point for stepping along the genome (in case you're "+\
+"not interested in the very beginning), the second is how much neighbouring"+\
+" windows overlap (if zero or negative they don't overlap), and subsequent "+\
+"values are window widths to try. For example, if you specified "+\
+"1000,11,51,61,71 we would count the number of unique reads in windows "+\
+"1000-1050, 1040-1090, 1080-1120, ... and in 1000-1060, 1050-1110, 1100-1160,"+\
+" ... and in 1000-1070, 1060-1130, 1120-1190, ... where the dots denote "+\
+"continuation to the end of the genome. (Note that both end coordinates of "+\
+"the window are included, hence why 1000-1050 has width 51.) Output is "+\
+"written to the file specified with the --explore-window-width-file option.")
+parser.add_argument('-EF', '--explore-window-width-file', help='Used to '+\
+'specify an output file for window width data, when the '+\
+'--explore-window-widths option is used.')
 parser.add_argument('-F', '--renaming-file', type=File, help='Specify a file '\
 'with one line per bam file, showing how reads from that bam file should be '\
 "named in the output files. (By default, each bam file's basename is used.)")
@@ -181,7 +198,8 @@ parser.add_argument('-RC', '--ref-for-coords', help='The coordinates are to be'\
 ' interpreted with respect to (an ungapped version of) the reference named '\
 +'after this flag, which must be present in the file you specify with -A. (By '\
 +'default coordinates are interpreted with respect to the alignment of all '+\
-'bam and external references.)')
+'bam and external references.) Deprecated; the --pairwise-align-to option is'+\
+' expected to perform better.')
 #parser.add_argument('-S', '--min-support', default=60, type=float, help=\
 #'The bootstrap support below which nodes will be collapsed, as a percentage.')
 parser.add_argument('-T', '--no-trees', action='store_true', help='Generate '+\
@@ -198,6 +216,9 @@ parser.add_argument('-2', '--pairwise-align-to', help='Sequentially, and '+\
 'present in the file you specify with -A) instead of aligning all references '+\
 'together. Window coordinates will be interpreted with respect to this '+\
 'reference.')
+parser.add_argument('--output-dir', help='Used to specify the name of a '+\
+'directory (which should not exist already) in which all intermediate and '+\
+'output files will be created.')
 parser.add_argument('--time', action='store_true', \
 help='Prints the times taken by different steps.')
 parser.add_argument('--x-raxml', default='raxmlHPC-AVX', help=\
@@ -221,12 +242,28 @@ PairwiseAlign = args.pairwise_align_to != None
 FlagContaminants = args.contaminant_count_ratio != None
 RecallContaminants = args.contaminant_read_dir != None
 CheckDuplicates = not args.dont_check_duplicates
+ExploreWindowWidths = args.explore_window_widths != None
 
-# Check that window coords have been specified either manually or automatically.
-if (UserSpecifiedCoords and AutoWindows) or \
-(not UserSpecifiedCoords and not AutoWindows):
-  print('Exactly one of the --windows or --auto-window-params', \
-  'options should specified. (Not neither, not both.) Quitting.', \
+# Make and change into the output directory if desired.
+if args.output_dir != None:
+  try:
+    os.mkdir(args.output_dir)
+    os.chdir(args.output_dir)
+  except:
+    print('Problem creating, or changing into, the directory', args.output_dir+\
+    '. The python commands for doing this report that they only work in Unix '+\
+    'and Windows; are you on a Mac? If so, you may not be able to use the '+\
+    '--output-dir option, sorry. Quitting.', file=sys.stderr)
+    raise
+  
+
+# Check that window coords have been specified either manually or automatically,
+# or we're exploring window widths
+NumWindowOptions = len([Bool for Bool in [UserSpecifiedCoords, AutoWindows, \
+ExploreWindowWidths] if Bool == True])
+if NumWindowOptions != 1:
+  print('Exactly one of the --windows, --auto-window-params,', \
+  '--explore-window-widths options should specified. Quitting.', \
   file=sys.stderr)
   exit(1)
 
@@ -234,21 +271,19 @@ if (UserSpecifiedCoords and AutoWindows) or \
 # should not specify a reference for their coords to be interpreted with respect
 # to, nor use a directory of contaminant reads (since windows must match to make
 # use of contaminant reads).
-if AutoWindows:
-  if args.ref_for_coords != None:
-    print('The --ref-for-coords and --auto-window-params', \
-    'options should not be specified together: the first means your',\
-    'coordinates should be interpreted with respect to a named reference, and',\
-    "the second means you're not specfiying any coordinates. Quitting.", \
-    file=sys.stderr)
-    exit(1)
-  if RecallContaminants:
-    print('If using the --contaminant-read-dir option you cannot also use the',\
-    '--auto-window-params option, because the former requires that the',\
-    'windows in the current run exactly match up with those from the run that',\
-    'produces your directory of contaminant reads. Please choose window',\
-    'coordinates manually and try again. Quitting.', file=sys.stderr)
-    exit(1)
+if AutoWindows and args.ref_for_coords != None:
+  print('The --ref-for-coords and --auto-window-params', \
+  'options should not be specified together: the first means your',\
+  'coordinates should be interpreted with respect to a named reference, and',\
+  "the second means you're not specfiying any coordinates. Quitting.", \
+  file=sys.stderr)
+  exit(1)
+if RecallContaminants and (not UserSpecifiedCoords):
+  print('If using the --contaminant-read-dir option you must also specify',\
+  'windows with the --windows option, because the former requires that the',\
+  'windows in the current run exactly match up with those from the run that',\
+  'produces your directory of contaminant reads. Quitting.', file=sys.stderr)
+  exit(1)
 
 # If coords were specified with respect to one particular reference, 
 # WindowCoords will be reassigned to be the translation of those coords to 
@@ -352,9 +387,21 @@ if IncludeOtherRefs:
       RefForPairwiseAlnsGappySeq = str(ref.seq)
       RefForPairwiseAlns = copy.deepcopy(ref)
       RefForPairwiseAlns.seq = RefForPairwiseAlns.seq.ungap("-")
-      CheckMaxCoord(WindowCoords, ref)
+      if UserSpecifiedCoords:
+        CheckMaxCoord(WindowCoords, ref)
+      elif ExploreWindowWidths:
+        MaxCoordForWindowWidthTesting = len(RefForPairwiseAlns.seq)
+        WindowCoords = FindExploratoryWindows(MaxCoordForWindowWidthTesting)
+        NumCoords = len(WindowCoords)
+        UserCoords = WindowCoords
     if ref.id == args.ref_for_coords:
-      CheckMaxCoord(WindowCoords, ref)
+      if UserSpecifiedCoords:
+        CheckMaxCoord(WindowCoords, ref)
+      elif ExploreWindowWidths:
+        MaxCoordForWindowWidthTesting = len(RefForPairwiseAlns.seq)
+        WindowCoords = FindExploratoryWindows(MaxCoordForWindowWidthTesting)
+        NumCoords = len(WindowCoords)
+        UserCoords = WindowCoords
     if ref.id == args.excision_ref:
       CheckMaxCoord(args.excision_coords, ref)
 
@@ -397,8 +444,9 @@ def SanityCheckWindowCoords(WindowCoords):
 # Sanity checks on user specified WindowCoords
 if UserSpecifiedCoords:
   NumCoords = SanityCheckWindowCoords(WindowCoords)
-else:
-  # Sanity checks on auto window parameters
+
+# Sanity checks on auto window parameters
+if AutoWindows:
   if not len(args.auto_window_params) in [2,3]:
     print('The --auto-window-params option requires either 2 or 3 integers.',\
     'Quitting.', file=sys.stderr)
@@ -417,6 +465,72 @@ else:
     print('The weighted window width for the --auto-window-params option must',\
     'be greater than zero. Quitting.', file=sys.stderr)
     exit(1)
+
+# Sanity checks on window-width exploration parameters
+if ExploreWindowWidths:
+  if args.explore_window_width_file == None:
+    print('The --explore-window-widths option requires the', \
+    '--explore-window-width-file option. Quitting.', file=sys.stderr)
+    exit(1)
+  try:
+    with open(args.explore_window_width_file, 'w') as f:
+      pass
+  except:
+    print('Unable to open', args.explore_window_width_file, 'for writing. (Is',\
+    "it a file inside a directory that doesn't exist?). Quitting.", \
+    file=sys.stderr)
+    raise
+  if len(args.explore_window_widths) < 3:
+    print('The --explore-window-widths option should be used to specify at', \
+    'least three parameters; use the --help option for more information.', \
+    'Quitting.', file=sys.stderr)
+    exit(1)
+  ExploreStart, ExploreOverlap = args.explore_window_widths[:2]
+  ExploreWidths = args.explore_window_widths[2:]
+  if ExploreStart < 1:
+    print('The start point for windows when exploring window widths (the '+\
+    'first integer specified with --explore-window-widths) cannot be less '+\
+    'than 1. Quitting.', file=sys.stderr)
+    exit(1)
+  ExploreWidths = sorted(ExploreWidths)
+  MinExploreWidth = ExploreWidths[0]
+  if MinExploreWidth < 2:
+    print('The minimum window width specified with --explore-window-widths', \
+    'should be greater than 1. Quitting.', file=sys.stderr)
+    exit(1)
+  if ExploreOverlap >= MinExploreWidth:
+    print('The window overlap specified with --explore-window-widths should '+\
+    'be smaller than any of the window widths. Quitting.', file=sys.stderr)
+    exit(1)
+  WindowWidthExplorationData = []
+  CheckDuplicates = False
+
+def FindExploratoryWindows(EndPoint):
+  '''Returns the set of coordinates needed to step across the genome with the
+  desired start, end, window width and window overlap.'''
+  # The EndPoint argument should be:
+  # * the ref length if --ref-for-coords or --pairwise-align-to is used
+  # * the length of the mapping ref if there's only one bam and no extra refs
+  # * otherwise, the length of the alignment of all refs
+  MaxExploreWidth = ExploreWidths[-1]
+  if EndPoint < ExploreStart + MaxExploreWidth:
+    print('With the --explore-window-widths option you specified a start', \
+    'point of', ExploreStart, 'and your largest window width was', \
+    str(max(ExploreWidths)) + '; one or both of these values should be', \
+    'decreased since the length of the reference or alignment of references', \
+    'with respect to which we are interpreting coordinates is only', \
+    str(EndPoint) + '. We need to be able to fit at least one window in', \
+    'between the start and end. Quitting.', file=sys.stderr)
+    exit(1)
+  ExploratoryCoords = []
+  for width in ExploreWidths:
+    NextStart = ExploreStart
+    NextEnd = ExploreStart + width - 1
+    while NextEnd <= EndPoint:
+      ExploratoryCoords += [NextStart, NextEnd]
+      NextStart = NextEnd - ExploreOverlap + 1
+      NextEnd = NextStart + width - 1
+  return ExploratoryCoords
 
 # Remove duplicated excision coords. Sort from largest to smallest.
 if ExcisePositions:
@@ -477,7 +591,6 @@ for i,RefFile in enumerate(RefFiles):
     exit(1)
   SeqList[0].id = BamAliases[i]
   RefSeqs += SeqList
-
 
 def TranslateCoords(CodeArgs):
   '''Runs TranslateCoordsCode with the supplied args, and returns the results as
@@ -546,7 +659,13 @@ if NumberOfBams == 1 and not IncludeOtherRefs:
     "Quitting.", file=sys.stderr)
     exit(1)
   RefSeqLength = len(RefSeqs[0])
-  CoordsToUse = [min(coord, RefSeqLength) for coord in WindowCoords]
+  if UserSpecifiedCoords:
+    CoordsToUse = [min(coord, RefSeqLength) for coord in WindowCoords]
+  elif ExploreWindowWidths:
+    MaxCoordForWindowWidthTesting = RefSeqLength
+    CoordsToUse = FindExploratoryWindows(MaxCoordForWindowWidthTesting)
+    NumCoords = len(WindowCoords)
+    UserCoords = CoordsToUse
   CoordsInRefs = {BamAliases[0] : CoordsToUse}
 
 # If there are at least two bam files, or if there is one but we're including
@@ -617,6 +736,18 @@ else:
       print('References aligned in', FileForAlignedRefs+ \
       '. Quitting successfully.')
       exit(0)
+
+    # If we're here and we're exploring window widths, we haven't defined the 
+    # coordinates yet (because we haven't known the alignment length), unless
+    # --ref-for-coords was specified.
+    if ExploreWindowWidths and args.ref_for_coords == None:
+      for seq in SeqIO.parse(open(FileForAlignedRefs),'fasta'):
+        RefAlignmentLength = len(seq.seq)
+        break
+      MaxCoordForWindowWidthTesting = RefAlignmentLength
+      WindowCoords = FindExploratoryWindows(MaxCoordForWindowWidthTesting)
+      NumCoords = len(WindowCoords)
+      UserCoords = WindowCoords
 
     # If window coords were specified with respect to one particular reference, 
     # or if we are excising certain coords, translate to alignment coords.
@@ -733,7 +864,7 @@ def ProcessReadDict(ReadDict, WhichBam, LeftWindowEdge, RightWindowEdge):
     count >= args.MinReadCount}
 
   # Warn if there are no reads
-  if len(ReadDict) == 0:
+  if len(ReadDict) == 0 and (not ExploreWindowWidths):
     print('Warning: bam file', BamFileBasename, 'has no reads in window', \
     str(LeftWindowEdge+1)+'-'+   str(RightWindowEdge+1), file=sys.stderr)
     return []
@@ -1022,7 +1153,7 @@ for window in range(NumCoords / 2):
     else:
       AllReadsInThisWindow += \
       ProcessReadDict(UniqueReads, i, LeftWindowEdge, RightWindowEdge)
-
+      
   # We've now gathered together reads from all bam files for this window.
 
   # If we're checking for duplicate reads between samples, do so now.
@@ -1097,10 +1228,15 @@ for window in range(NumCoords / 2):
 
   # Skip empty windows.
   if AllReadsInThisWindow == []:
-    print('WARNING: no bam file had any reads (after a minimum post-merging '+\
-    'read count of', args.MinReadCount, 'was imposed) in the window', \
-    str(UserLeftWindowEdge)+'-'+str(UserRightWindowEdge)+'. Skipping to the', \
-    'next window.', file=sys.stderr)
+    if ExploreWindowWidths:
+      for alias in BamAliases:
+        WindowWidthExplorationData.append([UserLeftWindowEdge, \
+        UserRightWindowEdge, alias, 0])
+    else:
+      print('WARNING: no bam file had any reads (after a minimum post-merging '+\
+      'read count of', args.MinReadCount, 'was imposed) in the window', \
+      str(UserLeftWindowEdge)+'-'+str(UserRightWindowEdge)+'. Skipping to the', \
+      'next window.', file=sys.stderr)
     continue
 
   # Re-define the window edge coords to be with respect to the alignment of refs
@@ -1116,8 +1252,28 @@ for window in range(NumCoords / 2):
   ThisWindowSuffix +'.fasta'
   if len(AllReadsInThisWindow) == 1 and not IncludeOtherRefs:
     SeqIO.write(AllReadsInThisWindow, FileForAlnReadsHere, "fasta")
-    print('There is only one read in this window, written to ' +\
-    FileForAlnReadsHere +'. Skipping to the next window.')
+    # If we're exploring window widths, record that all bams but one have no
+    # reads.
+    if ExploreWindowWidths:
+      TheReadID = AllReadsInThisWindow[0].id
+      RegexMatch = SampleRegex.search(TheReadID)
+      if RegexMatch and TheReadID[:RegexMatch.start()] in BamAliases:
+        TheBamWithOneRead = TheReadID[:RegexMatch.start()]
+      else:
+        print('Malfunction of phylotypes: there is only one read in this', \
+        'window -', TheReadID, "- but we can't figure out which bam we got it",\
+        'from. Quitting.', file=sys.stderr)
+        exit(1)
+      for alias in BamAliases:
+        if alias == TheBamWithOneRead:
+          count = 1
+        else:
+          count = 0
+        WindowWidthExplorationData.append([UserLeftWindowEdge, \
+        UserRightWindowEdge, alias, count])
+    else:
+      print('There is only one read in this window, written to ' +\
+      FileForAlnReadsHere +'. Skipping to the next window.')
     continue
   SeqIO.write(AllReadsInThisWindow, FileForReadsHere, "fasta")
   FileForTrees = FileForAlnReadsHere
@@ -1289,6 +1445,20 @@ for window in range(NumCoords / 2):
       FileForConsensuses_PositionsExcised_basename + ThisWindowSuffix +'.fasta'
       AlignIO.write(ConsensusAlignment, FileForConsensuses_PositionsExcised, \
       'fasta')
+
+  # If we're exploring window widths, we just care how many unique reads
+  # were found here. Record & move on.
+  if ExploreWindowWidths:
+    NumUniqueReadsPerPatient = {alias : 0 for alias in BamAliases}
+    for seq in SeqAlignmentHere:
+      RegexMatch = SampleRegex.search(seq.id)
+      if RegexMatch and seq.id[:RegexMatch.start()] in BamAliases:
+        SampleName = seq.id[:RegexMatch.start()]
+        NumUniqueReadsPerPatient[SampleName] += 1
+    for alias, count in NumUniqueReadsPerPatient.items():
+      WindowWidthExplorationData.append([UserLeftWindowEdge, \
+      UserRightWindowEdge, alias, count])
+    continue
 
   if CheckDuplicates:
 
@@ -1484,6 +1654,42 @@ for window in range(NumCoords / 2):
   #plt.ion()
   #Phylo.draw(MainTree)
   #plt.savefig('foo.pdf')
+
+if ExploreWindowWidths:
+  TableHeaders = 'Window start,' + ','.join(sorted(BamAliases))
+  # Yes, this is clumsy nesting, but it works:
+  # Make a dict indexed by width, of dicts indexed by window, of dicts indexed
+  # by bam, with the value being read count.
+  ReorganisedData = {}
+  for WindowStart, WindowEnd, BamAlias, NumReads in WindowWidthExplorationData:
+    width = WindowEnd - WindowStart + 1
+    if width in ReorganisedData:
+      if WindowStart in ReorganisedData[width]:
+        ReorganisedData[width][WindowStart][BamAlias] = NumReads
+      else: 
+        ReorganisedData[width][WindowStart] = {BamAlias : NumReads}
+    else:
+      ReorganisedData[width] = {WindowStart : {BamAlias : NumReads}}
+  OutputTables = ''
+  FirstWidth = True
+  for width, DataDictOuter in sorted(ReorganisedData.items(), \
+  key=lambda x: x[0]):
+    if not FirstWidth:
+      OutputTables += '\n\n'
+    else:
+      FirstWidth = False
+    OutputTables += 'Number of unique reads per-bam and per-window with ' +\
+    'window width = ' + str(width) + ':\n' + TableHeaders
+    for WindowStart, DataDictInner in sorted(DataDictOuter.items(), \
+    key=lambda x: x[0]):
+      ReadCountsSortedByBam = [count for bam, count in \
+      sorted(DataDictInner.items(), key=lambda x: x[0])]
+      OutputTables += '\n' + str(WindowStart) + ',' + \
+      ','.join(map(str,ReadCountsSortedByBam))
+  with open(args.explore_window_width_file, 'w') as f:  
+    f.write(OutputTables)
+  exit(0)
+    
 
 # Make a bam file of discarded read pairs for each input bam file.
 if args.inspect_disagreeing_overlaps:
