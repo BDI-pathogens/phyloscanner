@@ -33,6 +33,7 @@ if (command.line) {
   tree.file.name <- args$treeFiles
   splits.file.name <- args$splitsFiles
   blacklist.file.name <- args$blacklists
+  
   output.root <- args$outputBaseName
   
   if(!files.are.lists){
@@ -74,7 +75,8 @@ if (command.line) {
   tip.regex <- "^(BEE[0-9][0-9][0-9][0-9])-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
   tree.files <- sort(list.files(getwd(), pattern="RAxML_bestTree.InWindow_.*\\.tree"))
   splits.files <- sort(list.files(getwd(), pattern="Subtrees_c_run20160517_.*\\.csv"))
-  blacklist.files <- sort(list.files(getwd(), pattern="FullBlacklist_c_run20160517_.*\\.csv"))
+  blacklist.files <- sort(list.files(getwd(), pattern="FullBlacklist_InWindow_.*\\.csv"))
+  output.root <- "ss_c"
   windows <- NULL
 }
 
@@ -397,23 +399,25 @@ lwe <- max(pat.stats$window.end)
 
 pat.stats$prop.reads.largest.subtree <- splits.props$prop.gp.1
 
-# todo - the subtree read proportions aren't here, but how relevant are the means of those anyway?
+write.csv(pat.stats, file.path(paste(output.root,"_patStatsFull.csv",sep="")), quote = F, row.names = F)
+
+pat.stats.temp <- pat.stats[which(pat.stats$reads>0) ,c("patient","leaves","reads","subtrees","clades","overall.rtt","largest.rtt",
+                              "largest.pat.dist","patristic.variance","prop.reads.largest.subtree")]
 
 mean.na.rm <- function(x) mean(x, na.rm = T)
 
-pat.stats <- unfactorDataFrame(pat.stats)
-by.patient <- pat.stats %>% group_by(patient)
+by.patient <- pat.stats.temp %>% group_by(patient)
 pat.stats.summary <-
   as.data.frame(by.patient %>% summarise_each(funs(mean.na.rm)))
 
-write.csv(pat.stats.summary, file.path(paste(output.root,"_patStatsSummary.csv",sep="")))
+write.csv(pat.stats.summary, file.path(paste(output.root,"_patStatsSummary.csv",sep="")), quote = F, row.names = F)
 
 pdf(paste(output.root,"_plots.pdf",sep=""), width=8.26772, height=11.6929)
 
 for (i in seq(1, length(ids))) {
   
   patient <- sort(ids)[i]
-#  cat("Drawing graphs for patient ",patient,"\n", sep="")
+  cat("Drawing graphs for patient ",patient,"\n", sep="")
   
   this.pat.stats <- pat.stats[which(pat.stats$patient==patient),]
   
