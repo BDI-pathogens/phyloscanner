@@ -37,8 +37,8 @@ if(command.line){
   
 } else {
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
-  file.name <- "/Users/twoseventwo/Documents/Work/hcv_tree.newick"
-  blacklist.file <- NULL
+  file.name <- "RAxML_bestTree.InWindow_6800_to_7150.tree"
+  blacklist.file <- "FullBlacklist_InWindow_6800_to_7150.csv"
   out.root <- "BEEHIVE180716.InWindow_6800_to_7150"
   root.name <- "C.BW.00.00BW07621.AF443088"
   tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
@@ -341,7 +341,7 @@ if(mode=="c"){
   tree.display
   
   ggsave(file=paste("tree_r_",out.root,".pdf",sep=""), 
-         height = 600, width = 100, limitsize = F)
+         height = 0.15*length(tree$tip.label), width = 100, limitsize = F)
   
 
 }
