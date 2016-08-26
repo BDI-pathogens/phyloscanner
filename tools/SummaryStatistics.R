@@ -69,13 +69,13 @@ if (command.line) {
     windows <- NULL
   }
 } else {
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
-  id.file <- "patientIDList.txt"
-  root.name<- "C.BW.00.00BW07621.AF443088"
-  tip.regex <- "^(BEE[0-9][0-9][0-9][0-9])-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
-  tree.files <- sort(list.files(getwd(), pattern="RAxML_bestTree.InWindow_.*\\.tree"))
-  splits.files <- sort(list.files(getwd(), pattern="Subtrees_c_run20160517_.*\\.csv"))
-  blacklist.files <- sort(list.files(getwd(), pattern="FullBlacklist_InWindow_.*\\.csv"))
+  setwd("/Users/twoseventwo/Documents/Work/Olli/")
+  id.file <- "ptyr5_patients.txt"
+  root.name<- "REF_CPX_AF460972_read_1_count_0"
+  tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
+  tree.files <- sort(list.files(getwd(), pattern="ptyr5_InWindow_.*\\.tree"))
+  splits.files <- sort(list.files(getwd(), pattern="subtrees_r_ptyr5_.*\\.csv"))
+  blacklist.files <- vector()
   output.root <- "ss_c"
   windows <- NULL
 }
@@ -205,13 +205,15 @@ for(window.no in seq(1, length(tree.files))){
   
   blacklist <- vector()
   
-  if(file.exists(blacklist.file.name)){
-    blacklisted.tips <- read.table(blacklist.file.name, sep=",", stringsAsFactors = F, col.names="read")
-    if(length(blacklisted.tips)>0){
-      blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
+  if(!is.na(blacklist.file.name)){
+    if(file.exists(blacklist.file.name)){
+      blacklisted.tips <- read.table(blacklist.file.name, sep=",", stringsAsFactors = F, col.names="read")
+      if(length(blacklisted.tips)>0){
+        blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
+      }
+    } else {
+      warning(paste("File ",blacklist.file.name," does not exist; skipping.",paste=""))
     }
-  } else {
-    warning(paste("File ",blacklist.file.name," does not exist; skipping.",paste=""))
   }
 
   # Load the splits
