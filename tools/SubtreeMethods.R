@@ -130,8 +130,15 @@ count.splits <- function(tree, node, assocs, patients, counts.vec, first.nodes.l
   }
   
   parent <- Ancestors(tree, node, type="parent")
+  change <- F
+  if(parent == 0){
+    change <- T
+  } else if (assocs[[parent]]!=assocs[[node]]){
+    change <- T
+  }
+  
   if(assocs[[node]]!="*"){
-    if(parent==0 | assocs[[parent]]!=assocs[[node]]){
+    if(change){
       patient <- assocs[[node]]
       pat.index <- which(patients == patient)
       counts.vec[pat.index] <- counts.vec[pat.index] + 1

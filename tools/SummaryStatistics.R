@@ -89,7 +89,7 @@ require(grid)
 require(gridExtra)
 require(RColorBrewer)
 
-script.dir <- "/Users/twoseventwo/Documents/phylotypes/"
+script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
 source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
 source(file.path(script.dir, "SummariseTrees_funcs.R"))
 
