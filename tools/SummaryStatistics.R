@@ -21,43 +21,47 @@ if (command.line) {
   arg_parser$add_argument("treeFiles", action="store", help="Either (if -l is present) a list of tree files, separated by colons, or (if not) a single string that begins every tree file name.")
   arg_parser$add_argument("splitsFiles", action="store",help="Either (if -l is present) a list of splits files, in the same order as the tree files and separated by colons, or (if not) a single string that begins every splits file name.")
   arg_parser$add_argument("outputBaseName", action="store", help="A string to begin the names of all output files.")
-
+  arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
   # Read in the arguments
-
+  
   args <- arg_parser$parse_args()
-
+  
   id.file <- args$idFile
+  script.dir <- args$scriptdir
   files.are.lists <- args$filesAreLists
   root.name <- args$outgroupName
   tip.regex <- args$tipRegex
-  tree.file.name <- args$treeFiles
-  splits.file.name <- args$splitsFiles
-  blacklist.file.name <- args$blacklists
-  
+  tree.file.names <- args$treeFiles
+  splits.file.names <- args$splitsFiles
+  blacklist.file.names <- args$blacklists  
   output.root <- args$outputBaseName
   
+  cat(paste(id.file, script.dir, files.are.lists, root.name, tip.regex, tree.file.names, splits.file.names, blacklist.file.names, output.root, sep='\n'))
+  
   if(!files.are.lists){
-    tree.files <- sort(list.files(getwd(), pattern=paste(tree.file.name,".*\\.tree",sep="")))
-    splits.files <- sort(list.files(getwd(), pattern=paste(splits.file.name,".*\\.csv",sep="")))
-    if(!is.null(blacklist.file.name)){
-      blacklist.files <- sort(list.files(getwd(), pattern=paste(blacklist.file.name,".*\\.csv",sep="")))
-    }
+	  tree.files <- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))
+	  splits.files <- sort(list.files(dirname(splits.file.names), pattern=paste(basename(splits.file.names),".*\\.csv",sep=""), full.names=TRUE))
+	  blacklist.files <- NULL
+	  if(!is.null(blacklist.file.names)){
+		  blacklist.files <- sort(list.files(dirname(blacklist.file.names), pattern=paste(basename(blacklist.file.names),".*\\.csv",sep=""), full.names=TRUE))
+	  }
   } else {
-    tree.files <- unlist(strsplit(tree.file.name, ":"))
-    splits.files <- unlist(strsplit(splits.file.name, ":"))
-    if(!is.null(blacklist.file.name)){
-      blacklist.files <- unlist(strsplit(blacklist.file.name, ":"))
-    }
+	  tree.files <- unlist(strsplit(tree.file.names, ":"))
+	  splits.files <- unlist(strsplit(splits.file.names, ":"))
+	  blacklist.files <- NULL
+	  if(!is.null(blacklist.file.names)){
+		  blacklist.files <- unlist(strsplit(blacklist.file.names, ":"))
+	  }
   }
   
   if(length(tree.files)!=length(splits.files)){
-    stop("Number of tree files and number of splits files differ")
+	  stop("Number of tree files and number of splits files differ")
   }
   
-  if(!is.null(blacklist.file.name)){
-    if(length(tree.files)!=length(blacklist.files)){
-      stop("Number of tree files and number of blacklist files differ")
-    }
+  if(!is.null(blacklist.file.names)){
+	  if(length(tree.files)!=length(blacklist.files)){
+		  stop("Number of tree files and number of blacklist files differ")
+	  }
   }
   
   if(!is.null(args$windows)){
@@ -70,6 +74,7 @@ if (command.line) {
   }
 } else {
   setwd("/Users/twoseventwo/Documents/Work/Olli/")
+  script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
   id.file <- "ptyr5_patients.txt"
   root.name<- "REF_CPX_AF460972_read_1_count_0"
   tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
@@ -78,6 +83,21 @@ if (command.line) {
   blacklist.files <- vector()
   output.root <- "ss_c"
   windows <- NULL
+  if(0)
+  {
+	  script.dir	<- "/Users/Oliver/git/phylotypes/tools"
+	  id.file 		<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_patients.txt"
+	  root.name		<- "REF_CPX_AF460972_read_1_count_0"
+	  tip.regex 	<- "^(.*)_read_([0-9]+)_count_([0-9]+)$"	  
+	  tree.file.names		<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_'
+	  splits.file.names		<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_'
+	  blacklist.file.names	<- NULL
+	  tree.files 		<- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))
+	  splits.files 		<- sort(list.files(dirname(splits.file.names), pattern=paste(basename(splits.file.names),".*\\.csv",sep=""), full.names=TRUE))
+	  blacklist.files 	<- NULL
+	  output.root 		<- "ss_c"
+	  windows <- NULL	  
+  }
 }
 
 require(phytools)
@@ -89,7 +109,6 @@ require(grid)
 require(gridExtra)
 require(RColorBrewer)
 
-script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
 source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
 source(file.path(script.dir, "SummariseTrees_funcs.R"))
 
