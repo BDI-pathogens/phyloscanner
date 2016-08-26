@@ -362,6 +362,6 @@ for(patient.plus in patients.copy){
 rs.subtrees <- data.frame(orig.patients, patient.splits, tip.names)
 
 rs.file.name <- paste("Subtrees_",mode,"_",out.root,".csv", sep="")
-write.csv(rs.subtrees, rs.file.name, row.names = F)
+write.csv(rs.subtrees, rs.file.name, row.names = F, quote=F)
 
 

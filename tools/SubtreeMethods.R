@@ -121,7 +121,6 @@ annotate.tips <- function(tree, patients, patient.tips){
 # Used to find every connected subtree in the whole tree by finding the earliest node in them
 
 count.splits <- function(tree, node, assocs, patients, counts.vec, first.nodes.list){
-  print(node)
   
   for(child in Children(tree, node)){
     child.results <- count.splits(tree, child, assocs, patients, counts.vec, first.nodes.list) 
