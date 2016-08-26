@@ -205,7 +205,7 @@ for(window.no in seq(1, length(tree.files))){
   
   blacklist <- vector()
   
-  if(!is.na(blacklist.file.name)){
+  if(!is.null(blacklist.files)){
     if(file.exists(blacklist.file.name)){
       blacklisted.tips <- read.table(blacklist.file.name, sep=",", stringsAsFactors = F, col.names="read")
       if(length(blacklisted.tips)>0){
