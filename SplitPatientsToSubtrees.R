@@ -81,13 +81,17 @@ if(!is.null(blacklist.file)){
   } else {
     warning(paste("File ",blacklist.file.name," does not exist; skipping.",paste=""))
   }
-}
+} 
 
 
 
 patient.ids <- sapply(tip.labels, function(x) patient.from.label(x, tip.regex))
 
-patients <- unique(patient.ids[-blacklist])
+if(length(blacklist)>0){
+  patients <- unique(patient.ids[-blacklist])
+} else {
+  patients <- unique(patient.ids)
+}
 
 patients <- patients[!is.na(patients)]
 
