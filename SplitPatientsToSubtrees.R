@@ -38,7 +38,7 @@ if(command.line){
 } else {
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
   file.name <- "RAxML_bestTree.InWindow_6800_to_7150.tree"
-  blacklist.file <-c("FullBlacklist_InWindow_6800_to_7150.csv")
+  blacklist.file <- NULL
   out.root <- "BEEHIVE180716.InWindow_6800_to_7150"
   root.name <- "C.BW.00.00BW07621.AF443088"
   tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
@@ -72,13 +72,15 @@ tip.labels <- tree$tip.label
 
 blacklist <- vector()
 
-if(file.exists(blacklist.file)){
-  blacklisted.tips <- read.table(blacklist.file, sep=",", header=F, stringsAsFactors = F, col.names="read")
-  if(nrow(blacklisted.tips)>0){
-    blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
+if(!is.null(blacklist.file)){
+  if(file.exists(blacklist.file)){
+    blacklisted.tips <- read.table(blacklist.file, sep=",", header=F, stringsAsFactors = F, col.names="read")
+    if(nrow(blacklisted.tips)>0){
+      blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
+    }
+  } else {
+    warning(paste("File ",blacklist.file.name," does not exist; skipping.",paste=""))
   }
-} else {
-  warning(paste("File ",blacklist.file.name," does not exist; skipping.",paste=""))
 }
 
 
