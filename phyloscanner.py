@@ -226,11 +226,12 @@ parser.add_argument('--x-raxml', default='raxmlHPC-AVX -m GTRCAT', help=\
 " raxml binary and its options are kept together as one option for "+\
 "phyloscanner). If you include a path to your raxml binary (necessary if it "+\
 "is not in the $PATH variable of your terminal), it may not include "+\
-"whitespace, since whitespace is interpreted as separating raxml options."+\
-"Do not include in this command options relating to bootstraps - use "+\
-"phyloscanner's --num-bootstraps option instead. The default is 'raxmlHPC-AVX"+\
-" -m GTRCAT'; if changing from the default, note that an evolutionary model "+\
-"must be specified with -m.")
+"whitespace, since whitespace is interpreted as separating raxml options. "+\
+"The default is 'raxmlHPC-AVX -m GTRCAT'; if changing from the default, note "+\
+"that an evolutionary model must be specified with -m. Do not include in "+\
+"this command options relating to bootstraps: use phyloscanner's "+\
+"--num-bootstraps option instead. Do not include options relating to the "+\
+"naming of files.")
 parser.add_argument('--x-mafft', default='mafft', help=\
 'The command required to invoke mafft (by default: mafft).')
 parser.add_argument('--x-samtools', default='samtools', help=\
