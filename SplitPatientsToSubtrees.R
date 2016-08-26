@@ -1,4 +1,4 @@
-command.line <- T
+command.line <- F
 list.of.packages <- c("phangorn", "argparse", "phytools", "ggplot2", "gdata", "mvtnorm", "expm")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
@@ -37,11 +37,11 @@ if(command.line){
   
 } else {
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
-  file.name <- "RAxML_bestTree.InWindow_6800_to_7150.tree"
+  file.name <- "/Users/twoseventwo/Documents/Work/hcv_tree.newick"
   blacklist.file <- NULL
   out.root <- "BEEHIVE180716.InWindow_6800_to_7150"
   root.name <- "C.BW.00.00BW07621.AF443088"
-  tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
+  tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
   mode <- "r"
 }
 
@@ -86,6 +86,8 @@ if(!is.null(blacklist.file)){
 
 
 patient.ids <- sapply(tip.labels, function(x) patient.from.label(x, tip.regex))
+
+
 
 if(length(blacklist)>0){
   patients <- unique(patient.ids[-blacklist])
@@ -252,7 +254,7 @@ if(mode=="c"){
     }
   }
   
-  #Now the splits. A new split is where you encounter a node with a different association to its parent
+  # Now the splits. A new split is where you encounter a node with a different association to its parent
   
   cat("Identifying split patients...\n")
   
