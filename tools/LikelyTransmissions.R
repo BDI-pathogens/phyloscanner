@@ -1,5 +1,9 @@
 command.line <- T
 
+list.of.packages <- c("phangorn", "argparse", "phytools")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
+
 if(command.line){
   library(argparse)
   
@@ -31,20 +35,20 @@ if(command.line){
 } else {
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
   
-  tree.file.name <- "RAxML_bestTree.InWindow_800_to_1150.tree"
-  splits.file.name <- "Subtrees_r_run20160517_inWindow_800_to_1150.csv"
-  output.name <- "LikelyTransmissions.InWindow_800_to_1150.csv"
+  tree.file.name <- "RAxML_bestTree.InWindow_2550_to_2900.tree"
+  splits.file.name <- "Subtrees_r_run20160517_inWindow_2550_to_2900.csv"
+  output.name <- "LikelyTransmissions.InWindow_2550_to_2900.csv"
   root.name <- "C.BW.00.00BW07621.AF443088"
   split.threshold <- 0.08
   zero.length.tips.count <- F
   romero.severson <- T
-  tip.regex <- "^(BEE[0-9][0-9][0-9][0-9])-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
+  tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
 }
 
 library(phytools)
 library(phangorn)
 
-script.dir <- "/Users/twoseventwo/Documents/phylotypes/"
+script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
 
 source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
 source(file.path(script.dir, "SubtreeMethods.R"))
@@ -233,7 +237,6 @@ cat("Testing pairs\n")
 
 count <- 0
 direct.descendant.matrix <- matrix(NA, length(patients.included), length(patients.included))
-sibling.distance.matrix <- matrix(NA, length(patients.included), length(patients.included))
 for(pat.1 in seq(1, length(patients.included))){
   for(pat.2 in  seq(1, length(patients.included))){
     if (pat.1 < pat.2) {
@@ -266,15 +269,67 @@ for(pat.1 in seq(1, length(patients.included))){
           break
         }
       }
-    
+      
+      # then we want to see if any node from one patient interrupts a path between two nodes from the other
       if(OK){
-        if(length(splits.for.patients[[pat.1.id]])==1 & length(splits.for.patients[[pat.2.id]])==1){
-          # definitely no intermingling
-          if(pat.1.id %in% get.tt.ancestors(tt, pat.2.id)){
-            direct.descendant.matrix[pat.1, pat.2] <- "anc"
-          } else if(pat.2.id %in% get.tt.ancestors(tt, pat.1.id)){
-            direct.descendant.matrix[pat.1, pat.2] <- "desc"
-          } else {
+        entangled <- F
+        
+        if(length(splits.for.patients[pat.1.id])>1)){
+          combns.1 <- t(combn(splits.for.patients[pat.1.id], 2))
+          for(comb in seq(1, nrow(combns.1))){
+            path <- get.tt.path(tt, combns.1[comb, 1], combns.1[comb, 2])
+            for(node in path){
+              if(!startsWith(node, "none")){
+                if(patients.for.splits[[node]]==pat.2.id){
+                  entangled <- T
+                  break
+                }
+              }
+            }
+          }
+          if(entangled){
+            break
+          }
+        }
+        if(!entangled & length(splits.for.patients[pat.2.id])>1)){
+          combns.2 <- t(combn(splits.for.patients[pat.2.id], 2))
+          for(comb in seq(1, nrow(combns.2))){
+            path <- get.tt.path(tt, combns.2[comb, 1], combns.2[comb, 2])
+            for(node in path){
+              if(!startsWith(node, "none")){
+                if(patients.for.splits[[node]]==pat.1.id){
+                  entangled <- T
+                  break
+                }
+              }
+            }
+          }
+          if(entangled){
+            break
+          }
+        }
+        rel.determined <- F
+
+        if(!entangled){
+          for(pat.1.splt in splits.for.patients[[pat.1.id]]){
+            ancestors <- get.tt.ancestors(tt, pat.1.splt)
+            if(length(intersect(ancestors, splits.for.patients[[pat.2.id]]))>0){
+              direct.descendant.matrix[pat.1, pat.2] <- "desc"
+              rel.determined <- T
+              break
+            }
+          }
+          if(!rel.determined){
+            for(pat.2.splt in splits.for.patients[[pat.2.id]]){
+              ancestors <- get.tt.ancestors(tt, pat.2.splt)
+              if(length(intersect(ancestors, splits.for.patients[[pat.1.id]]))>0){
+                direct.descendant.matrix[pat.1, pat.2] <- "anc"
+                rel.determined <- T
+                break
+              }
+            }
+          }
+          if(!rel.determined){
             direct.descendant.matrix[pat.1, pat.2] <- "sib"
           }
         } else {
@@ -293,7 +348,7 @@ for(pat.1 in seq(1, length(patients.included))){
           }
         }
       }
-      
+ 
       if (count %% 100 == 0) {
         cat(
           paste(
