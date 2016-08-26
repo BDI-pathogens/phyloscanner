@@ -39,7 +39,7 @@ if(command.line){
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
   file.name <- "RAxML_bestTree.InWindow_6800_to_7150.tree"
   blacklist.file <- "FullBlacklist_InWindow_6800_to_7150.csv"
-  out.root <- "BEEHIVE180716.InWindow_6800_to_7150"
+  out.root <- "test"
   root.name <- "C.BW.00.00BW07621.AF443088"
   tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
   mode <- "r"
@@ -54,7 +54,7 @@ require(phytools, quietly=T)
 require(ggplot2, quietly=T)
 require(ggtree, quietly=T)
 
-script.dir <- "/Users/twoseventwo/Documents/phylotypes/"
+script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
 
 source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
 source(file.path(script.dir, "SubtreeMethods.R"))
@@ -101,6 +101,7 @@ patient.tips <-
   sapply(patients, function(x)  setdiff(which(patient.ids==x), blacklist))
 
 patient.mrcas <- lapply(patient.tips, function(node) mrca.phylo.or.unique.tip(tree, node, zero.length.tips.count))
+
 
 if(mode=="c"){
 
@@ -185,11 +186,9 @@ if(mode=="c"){
   
   cat("Drawing tree...\n")
   
-  # rather hacky, I admit...
-  
-  node.shapes <- rep(NA, length(tree$tip.label) + tree$Nnode)
+  node.shapes <- rep(FALSE, length(tree$tip.label) + tree$Nnode)
   for(mrca in patient.mrcas.copy){
-    node.shapes[mrca] <- 0.2
+    node.shapes[mrca] <- TRUE
   }
   
   temp.ca <- rep(NA, length(tree$tip.label) + tree$Nnode)
@@ -206,7 +205,7 @@ if(mode=="c"){
   
   
   tree.display <- ggtree(tree, aes(color=temp.ca.pat)) +
-    geom_point(shape = 16, aes(size=node.shapes)) +
+    geom_point2(shape = 16, size=3, aes(subset=node.shapes)) +
     scale_fill_hue(na.value = "black") +
     scale_color_hue(na.value = "black") +
     theme(legend.position="none") +
@@ -215,7 +214,7 @@ if(mode=="c"){
   tree.display
   
   ggsave(file=paste("tree_c_",out.root,".pdf",sep=""), 
-         height = 600, width = 100, limitsize = F)
+         height = 0.15*length(tree$tip.label), width = 100, limitsize = F)
   
   
 } else if(mode=="r"){
@@ -273,9 +272,9 @@ if(mode=="c"){
   
   #find the splits and reannotate the tree
   
-  node.shapes <- rep(NA, length(tree$tip.label) + tree$Nnode)
+  node.shapes <- rep(FALSE, length(tree$tip.label) + tree$Nnode)
   for(mrca in first.nodes.by.patients){
-    node.shapes[mrca] <- 0.2
+    node.shapes[mrca] <- TRUE
   }
   
   for(pat.no in seq(1, length(patients))){
@@ -332,7 +331,7 @@ if(mode=="c"){
   temp.ca.pat <- factor(temp.ca.pat, levels = sample(levels(as.factor(temp.ca.pat))))
   
   tree.display <- ggtree(tree, aes(color=temp.ca.pat)) +
-    geom_point(shape = 16, aes(size=node.shapes)) +
+    geom_point2(shape = 16, size=3, aes(subset=node.shapes)) +
     scale_fill_hue(na.value = "black") +
     scale_color_hue(na.value = "black") +
     theme(legend.position="none") +
