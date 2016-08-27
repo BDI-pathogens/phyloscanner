@@ -21,9 +21,13 @@ if(command.line){
   arg_parser$add_argument("-b", "--blacklist", action="store", help="A .csv file listing tips to ignore.")
   arg_parser$add_argument("inputFile", help="Input tree file name", metavar="inputTreeFileName")
   arg_parser$add_argument("outputBaseName", help="A string identifying output files.")
+  arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
+  arg_parser$add_argument("-pw", "--pdfwidth", action="store", default=100, help="Width of tree pdf in inches.")
+  arg_parser$add_argument("-ph", "--pdfrelheight", action="store", default=0.15, help="Relative height of tree pdf.")
+  arg_parser$add_argument("-db", "--debug", action="store_true", default=FALSE, help="Debugging mode.")
   
   args <- arg_parser$parse_args()
-  
+  script.dir <- args$scriptdir
   zero.length.tips.count <- args$zeroLengthTipsCount
   file.name <- args$inputFile
   out.root <- args$outputBaseName
@@ -31,18 +35,40 @@ if(command.line){
   root.name <- args$outgroupName
   tip.regex <- args$tipRegex
   mode <- args$splitsRule
+  pdf.hm <- as.numeric(args$pdfrelheight)
+  pdf.w <- as.numeric(args$pdfwidth)
+  debug <- args$debug
+  
   if(!(mode %in% c("c", "r"))){
     stop(paste("Unknown split classifier: ", mode, "\n", sep=""))
   }
+  if(debug)
+	  cat(paste(script.dir, zero.length.tips.count, file.name, out.root, blacklist.file, root.name, tip.regex, mode, pdf.hm, pdf.w, sep='\n'))
+  
   
 } else {
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
+  script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
   file.name <- "RAxML_bestTree.InWindow_6800_to_7150.tree"
   blacklist.file <- "FullBlacklist_InWindow_6800_to_7150.csv"
   out.root <- "test"
   root.name <- "C.BW.00.00BW07621.AF443088"
   tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
   mode <- "r"
+  if(0)
+  {
+	  script.dir		<- '/Users/Oliver/git/phylotypes'
+	  file.name 		<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_InWindow_800_to_1049.tree'
+	  blacklist.file	<- NULL
+	  #blacklist.file <- "FullBlacklist_InWindow_6800_to_7150.csv"
+	  out.root 			<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_InWindow_800_to_1049"
+	  root.name 		<- "REF_CPX_AF460972_read_1_count_0"
+	  tip.regex 		<- "^(.*)_read_([0-9]+)_count_([0-9]+)$"	  
+	  mode 				<- "r"
+	  pdf.hm 			<- 0.15
+	  pdf.w 			<- 30	  
+	  zero.length.tips.count	<- FALSE
+  }
 }
 
 
@@ -53,8 +79,6 @@ require(argparse, quietly=T)
 require(phytools, quietly=T)
 require(ggplot2, quietly=T)
 require(ggtree, quietly=T)
-
-script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
 
 source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
 source(file.path(script.dir, "SubtreeMethods.R"))
@@ -213,9 +237,28 @@ if(mode=="c"){
   
   tree.display
   
-  ggsave(file=paste("tree_c_",out.root,".pdf",sep=""), 
-         height = 0.15*length(tree$tip.label), width = 100, limitsize = F)
+  ggsave(file=file.path(dirname(out.root), paste(basename(out.root),"tree_c.pdf",sep="")), 
+		  height = pdf.hm*length(tree$tip.label), width = pdf.w, limitsize = F)
   
+  cat("Writing output...\n")
+  
+  orig.patients <- vector()
+  patient.splits <- vector()
+  tip.names <- vector()
+  
+  for(patient.plus in patients.copy){
+	  tips <- patient.tips.copy[[patient.plus]]
+	  orig.patients <- c(orig.patients, rep(unlist(strsplit(patient.plus, "-S"))[1], length(tips)))
+	  patient.splits <- c(patient.splits, rep(patient.plus, length(tips)))
+	  tip.names <- c(tip.names, tree$tip.label[tips])
+  }
+  
+  rs.subtrees <- data.frame(orig.patients, patient.splits, tip.names)
+  
+  rs.file.name <- file.path(dirname(out.root),paste(basename(out.root),'subtrees_',mode,'.csv',sep=''))
+  write.csv(rs.subtrees, rs.file.name, row.names = F, quote=F)
+  rs.file.name <- file.path(dirname(out.root),paste(basename(out.root),'subtrees_',mode,'.rda',sep=''))
+  save(rs.subtrees, tree, tree.display, file=rs.file.name)
   
 } else if(mode=="r"){
   
@@ -339,28 +382,27 @@ if(mode=="c"){
   
   tree.display
   
-  ggsave(file=paste("tree_r_",out.root,".pdf",sep=""), 
-         height = 0.15*length(tree$tip.label), width = 100, limitsize = F)
-  
+  ggsave(file=file.path(dirname(out.root), paste(basename(out.root),"tree_r.pdf",sep="")), 
+		  height = pdf.hm*length(tree$tip.label), width = pdf.w, limitsize = F)  
 
+  cat("Writing output...\n")
+  
+  orig.patients <- vector()
+  patient.splits <- vector()
+  tip.names <- vector()
+  
+  for(patient.plus in patients.copy){
+	  tips <- patient.tips.copy[[patient.plus]]
+	  orig.patients <- c(orig.patients, rep(unlist(strsplit(patient.plus, "-S"))[1], length(tips)))
+	  patient.splits <- c(patient.splits, rep(patient.plus, length(tips)))
+	  tip.names <- c(tip.names, tree$tip.label[tips])
+  }
+  
+  rs.subtrees <- data.frame(orig.patients, patient.splits, tip.names)
+  
+  rs.file.name <- file.path(dirname(out.root),paste(basename(out.root),'subtrees_',mode,'.csv',sep=''))
+  write.csv(rs.subtrees, rs.file.name, row.names = F, quote=F)
+  rs.file.name <- file.path(dirname(out.root),paste(basename(out.root),'subtrees_',mode,'.rda',sep=''))
+  save(rs.subtrees, tree, tree.display, file=rs.file.name)
 }
   
-cat("Writing output...\n")
-
-orig.patients <- vector()
-patient.splits <- vector()
-tip.names <- vector()
-
-for(patient.plus in patients.copy){
-  tips <- patient.tips.copy[[patient.plus]]
-  orig.patients <- c(orig.patients, rep(unlist(strsplit(patient.plus, "-S"))[1], length(tips)))
-  patient.splits <- c(patient.splits, rep(patient.plus, length(tips)))
-  tip.names <- c(tip.names, tree$tip.label[tips])
-}
-
-rs.subtrees <- data.frame(orig.patients, patient.splits, tip.names)
-
-rs.file.name <- paste("Subtrees_",mode,"_",out.root,".csv", sep="")
-write.csv(rs.subtrees, rs.file.name, row.names = F, quote=F)
-
-
