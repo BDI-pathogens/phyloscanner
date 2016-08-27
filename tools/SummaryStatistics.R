@@ -40,7 +40,7 @@ if (command.line) {
   
   if(!files.are.lists){
 	  tree.files <- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))
-	  splits.files <- sort(list.files(dirname(splits.file.names), pattern=paste(basename(splits.file.names),".*\\.csv",sep=""), full.names=TRUE))
+	  splits.files <- sort(list.files(dirname(splits.file.names), pattern=paste(basename(splits.file.names),".*_subtrees_[a-z]\\.csv",sep=""), full.names=TRUE))
 	  blacklist.files <- NULL
 	  if(!is.null(blacklist.file.names)){
 		  blacklist.files <- sort(list.files(dirname(blacklist.file.names), pattern=paste(basename(blacklist.file.names),".*\\.csv",sep=""), full.names=TRUE))
@@ -93,9 +93,9 @@ if (command.line) {
 	  splits.file.names		<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_'
 	  blacklist.file.names	<- NULL
 	  tree.files 		<- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))
-	  splits.files 		<- sort(list.files(dirname(splits.file.names), pattern=paste(basename(splits.file.names),".*\\.csv",sep=""), full.names=TRUE))
+	  splits.files 		<- sort(list.files(dirname(splits.file.names), pattern=paste(basename(splits.file.names),".*_subtrees_[a-z]\\.csv",sep=""), full.names=TRUE))
 	  blacklist.files 	<- NULL
-	  output.root 		<- "ss_c"
+	  output.root 		<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115"
 	  windows <- NULL	  
   }
 }
@@ -164,8 +164,19 @@ unfactorDataFrame <- function(x) {
                   stringsAsFactors = F)
 }
 
+# OR CHANGELOG: removed skip=1 this was not reading the first entry?
 # Read in the IDs. Remove duplicates. Shuffle their order if desired.
-ids <- scan(id.file, what="", sep="\n", quiet=TRUE, skip = 1)
+ids <- scan(id.file, what="", sep="\n", quiet=TRUE)
+# Check if all IDs in at least one tree
+require(data.table)
+tmp	<- data.table(FILE_TREE=tree.files)
+tmp	<- tmp[, {			
+				ph	<- read.tree(FILE_TREE)
+				list(IDS= unique(gsub('_read_[0-9]+_count_[0-9]+','',ph$tip.label)) )
+			}, by='FILE_TREE']
+tmp	<- setdiff(ids, tmp[, unique(IDS)])
+if(length(tmp))
+	cat('\nwarning: IDs in id.file not found in any tree', paste(tmp, collapse=' '))
 
 
 num.ids <- length(ids)
