@@ -122,7 +122,7 @@ for(window in seq(1, num.windows)){
   
   if(nrow(transmissions.table)>0){
     for(row in seq(1,nrow(transmissions.table))){
-      if(transmissions.table$Relationship[row] %in% c("anc", "desc", "intAnc", "intDesc", "trueInt")){
+      if(transmissions.table$Relationship[row] %in% c("anc", "desc", "intAnc", "intDesc")){
         
         pat.1 <- transmissions.table[row,1]
         pat.2 <- transmissions.table[row,2]
