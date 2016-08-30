@@ -17,7 +17,7 @@ if(command.line){
   arg_parser$add_argument("treeFileName", action="store", help="Tree file name")
   arg_parser$add_argument("splitsFileName", action="store", help="Splits file name")
   arg_parser$add_argument("outputFileName", action="store", help="Output file name (.csv format)")
-
+  
   args <- arg_parser$parse_args()
   
   tree.file.name <- args$treeFileName
@@ -75,7 +75,7 @@ names(patient.tips) <- patients
 if(romero.severson){
   
   # Really the only reason to load the splits in is to avoid needing the blacklist yet again. Maybe rethink this.
-
+  
   patient.mrcas <- lapply(patient.tips, function(node) mrca.phylo.or.unique.tip(tree, node, zero.length.tips.count))
   
   tip.assocs.pats <- lapply(tree$tip.label, function(x) if(x %in% splits$tip.names) return(splits$orig.patients[which(splits$tip.names==x)]) else return("*"))
@@ -246,6 +246,7 @@ for(pat.1 in seq(1, length(patients.included))){
       pat.2.id <- patients.included[pat.2]
       
       all.nodes <-  c(splits.for.patients[[pat.1.id]], splits.for.patients[[pat.2.id]])
+      
       #we want that they form a perfect blob with no intervening nodes for any other patients
       OK <- TRUE
       
@@ -264,6 +265,9 @@ for(pat.1 in seq(1, length(patients.included))){
               }
             }
           }
+          if(!OK){
+            break
+          }
         }
         if(!OK){
           break
@@ -274,8 +278,8 @@ for(pat.1 in seq(1, length(patients.included))){
       if(OK){
         entangled <- F
         
-        if(length(splits.for.patients[pat.1.id])>1)){
-          combns.1 <- t(combn(splits.for.patients[pat.1.id], 2))
+        if(length(splits.for.patients[[pat.1.id]])>1){
+          combns.1 <- t(combn(splits.for.patients[[pat.1.id]], 2))
           for(comb in seq(1, nrow(combns.1))){
             path <- get.tt.path(tt, combns.1[comb, 1], combns.1[comb, 2])
             for(node in path){
@@ -286,13 +290,13 @@ for(pat.1 in seq(1, length(patients.included))){
                 }
               }
             }
-          }
-          if(entangled){
-            break
+            if(entangled){
+              break
+            }
           }
         }
-        if(!entangled & length(splits.for.patients[pat.2.id])>1)){
-          combns.2 <- t(combn(splits.for.patients[pat.2.id], 2))
+        if(!entangled & length(splits.for.patients[[pat.2.id]])>1){
+          combns.2 <- t(combn(splits.for.patients[[pat.2.id]], 2))
           for(comb in seq(1, nrow(combns.2))){
             path <- get.tt.path(tt, combns.2[comb, 1], combns.2[comb, 2])
             for(node in path){
@@ -303,13 +307,13 @@ for(pat.1 in seq(1, length(patients.included))){
                 }
               }
             }
-          }
-          if(entangled){
-            break
+            if(entangled){
+              break
+            }
           }
         }
         rel.determined <- F
-
+        
         if(!entangled){
           for(pat.1.splt in splits.for.patients[[pat.1.id]]){
             ancestors <- get.tt.ancestors(tt, pat.1.splt)
@@ -348,7 +352,7 @@ for(pat.1 in seq(1, length(patients.included))){
           }
         }
       }
- 
+      
       if (count %% 100 == 0) {
         cat(
           paste(

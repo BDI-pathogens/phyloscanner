@@ -4,7 +4,7 @@ list.of.packages <- c("argparse","phytools", "dplyr", "ggplot2", "reshape", "gta
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
 
-command.line <- T
+command.line <- F
 
 if (command.line) {
   require(argparse)
@@ -75,29 +75,29 @@ if (command.line) {
 } else {
   setwd("/Users/twoseventwo/Documents/Work/Olli/")
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
-  id.file <- "ptyr5_patients.txt"
+  id.file <- "ptyr115_patients.txt"
   root.name<- "REF_CPX_AF460972_read_1_count_0"
   tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
-  tree.files <- sort(list.files(getwd(), pattern="ptyr5_InWindow_.*\\.tree"))
-  splits.files <- sort(list.files(getwd(), pattern="subtrees_r_ptyr5_.*\\.csv"))
-  blacklist.files <- vector()
+  tree.files <- sort(list.files(getwd(), pattern="ptyr115_InWindow_.*\\.tree"))
+  splits.files <- sort(list.files(getwd(), pattern="subtrees_r_ptyr115_.*\\.csv"))
+  blacklist.files <- NULL
   output.root <- "ss_c"
   windows <- NULL
-  if(0)
-  {
-	  script.dir	<- "/Users/Oliver/git/phylotypes/tools"
-	  id.file 		<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_patients.txt"
-	  root.name		<- "REF_CPX_AF460972_read_1_count_0"
-	  tip.regex 	<- "^(.*)_read_([0-9]+)_count_([0-9]+)$"	  
-	  tree.file.names		<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_'
-	  splits.file.names		<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_'
-	  blacklist.file.names	<- NULL
-	  tree.files 		<- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))
-	  splits.files 		<- sort(list.files(dirname(splits.file.names), pattern=paste(basename(splits.file.names),".*\\.csv",sep=""), full.names=TRUE))
-	  blacklist.files 	<- NULL
-	  output.root 		<- "ss_c"
-	  windows <- NULL	  
-  }
+#  if(0)
+#   {
+# 	  script.dir	<- "/Users/Oliver/git/phylotypes/tools"
+# 	  id.file 		<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_patients.txt"
+# 	  root.name		<- "REF_CPX_AF460972_read_1_count_0"
+# 	  tip.regex 	<- "^(.*)_read_([0-9]+)_count_([0-9]+)$"	  
+# 	  tree.file.names		<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_'
+# 	  splits.file.names		<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_'
+# 	  blacklist.file.names	<- NULL
+# 	  tree.files 		<- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))
+# 	  splits.files 		<- sort(list.files(dirname(splits.file.names), pattern=paste(basename(splits.file.names),".*\\.csv",sep=""), full.names=TRUE))
+# 	  blacklist.files 	<- NULL
+# 	  output.root 		<- "ss_c"
+# 	  windows <- NULL	  
+#   }
 }
 
 require(phytools)
