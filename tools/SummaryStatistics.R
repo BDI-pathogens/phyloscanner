@@ -4,7 +4,7 @@ list.of.packages <- c("argparse","phytools", "dplyr", "ggplot2", "reshape", "gta
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
 
-command.line <- F
+command.line <- T
 
 if (command.line) {
   require(argparse)
@@ -528,9 +528,8 @@ for (i in seq(1, length(ids))) {
       theme_bw() + 
       ylab("Count") +
       xlab("Window centre") +
-      scale_x_continuous(limits=c(ews, lwe)) +
+      scale_x_continuous(limits=c(ews, min(lwe, 2)), breaks=seq(1, min(lwe, 2))) +
       scale_shape_manual(values=c(1,19), name="Variable", labels=c("Subtrees", "Clades")) +  
-      scale_size_manual(values=c(2,1), name="Variable", labels=c("Subtrees", "Clades")) +
       expand_limits(y=0) + 
       scale_color_discrete(name="Variable", labels=c("Subtrees", "Clades")) + 
       theme(text = element_text(size=8))

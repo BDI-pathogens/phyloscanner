@@ -1,6 +1,6 @@
 # summarises transmission information
 
-command.line <- F
+command.line <- T
 if(command.line){
   library(argparse)
   
@@ -10,7 +10,7 @@ if(command.line){
   arg_parser$add_argument("-s", "--summaryFile", action="store", help="The full output file from SummaryStatistics.R; necessary only to identify windows in which no reads are present from each patient. If absent, window counts will be given without denominators.")
   arg_parser$add_argument("-w", "--windows", action="store", help="The window in the genome which each tree file, in the same order as the tree files (user-specified if -l is present, in the order provided by the file system if now), is constructed from. In each window this is given as n-m where n is the start and m the end; coordinates for each window are separated by a colon. If not given, the script will attempt to obtain these from the file names.")
   arg_parser$add_argument("-m", "--minThreshold", action="store", default=1, type="integer", help="Integer; relationships will only appear if directionality between these patients appears on at least these many windows (default=1). Useful for drawing figures in e.g. Cytoscape with few enough arrows to be comprehensible.")
-  arg_parser$add_argument("-p", "--allowSplits", action="store_true", default=FALSE,help="If absent, directionality is only inferred between pairs of patients whose reads are not split; this is more conservative.")
+  arg_parser$add_argument("-p", "--allowSplits", action="store_true", default=FALSE, help="If absent, directionality is only inferred between pairs of patients whose reads are not split; this is more conservative.")
   arg_parser$add_argument("idFile", action="store", help="A file containing a list of the IDs of all the patients to calculate and display statistics for.")
   arg_parser$add_argument("inputFiles", action="store", help="Either (if -l is present) a list of all input files, separated by colons, or (if not) a single string that begins every input file name.")
   arg_parser$add_argument("outputFile", action="store", help="A .csv file to write the output to.")
