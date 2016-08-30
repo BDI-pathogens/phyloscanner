@@ -9,17 +9,18 @@ if(command.line){
   arg_parser$add_argument("-l", "--filesAreLists", action="store_true", default=FALSE, help="If present, arguments specifying input files will be parsed as lists of files separated by colons. If absent, they will be parsed as a string which each file of that type begins with.")
   arg_parser$add_argument("-s", "--summaryFile", action="store", help="The full output file from SummaryStatistics.R; necessary only to identify windows in which no reads are present from each patient. If absent, window counts will be given without denominators.")
   arg_parser$add_argument("-w", "--windows", action="store", help="The window in the genome which each tree file, in the same order as the tree files (user-specified if -l is present, in the order provided by the file system if now), is constructed from. In each window this is given as n-m where n is the start and m the end; coordinates for each window are separated by a colon. If not given, the script will attempt to obtain these from the file names.")
-  arg_parser$add_argument("-m", "--minThreshold", action="store", default=1, type="integer", help="Integer; relationships will only appear if directionality between these patients appears on at least these many windows (default=1)")
+  arg_parser$add_argument("-m", "--minThreshold", action="store", default=1, type="integer", help="Integer; relationships will only appear if directionality between these patients appears on at least these many windows (default=1). Useful for drawing figures in e.g. Cytoscape with few enough arrows to be comprehensible.")
   arg_parser$add_argument("-p", "--allowSplits", action="store_true", default=FALSE,help="If absent, directionality is only inferred between pairs of patients whose reads are not split; this is more conservative.")
   arg_parser$add_argument("idFile", action="store", help="A file containing a list of the IDs of all the patients to calculate and display statistics for.")
   arg_parser$add_argument("inputFiles", action="store", help="Either (if -l is present) a list of all input files, separated by colons, or (if not) a single string that begins every input file name.")
-  
+  arg_parser$add_argument("outputFile", action="store", help="A .csv file to write the output to.")
   
   args <- arg_parser$parse_args()
   
   files.are.lists <- args$filesAreLists
   summary.file <- args$summaryFile
   id.file <- args$idFile
+  output.file <- args$outputFile
   
   min.threshold <- args$minThreshold
   allow.splits <- args$allowSplits
@@ -46,11 +47,10 @@ if(command.line){
   
   min.threshold <- 6
   allow.splits <- TRUE
+  output.file <- "test.csv"
   
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517/")
-  input.files <- sort(list.files(getwd(), pattern="LikelyTransmissions.*\\.csv"))
+  input.files <- sort(list.files(getwd(), pattern="LikelyTransmissions_r.*\\.csv"))
   
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
 }
 
 num.windows <- length(input.files)
@@ -65,8 +65,6 @@ library(ggplot2)
 window.starts <- vector()
 window.middles <- vector()
 window.ends <- vector()
-
-setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517/")
 
 for(window.no in seq(1, length(tree.files))){
   input.file.name <- input.files[window.no]
@@ -87,7 +85,6 @@ for(window.no in seq(1, length(tree.files))){
   window.ends <- c(window.ends, end)
 }
 
-setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
 
 # Get the denominators
 
@@ -117,9 +114,8 @@ window.count <- 0
 
 transmissions.ever.suggested <- vector()
 
-setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517/")
-
 for(window in seq(1, num.windows)){
+  
   window.count <- window.count + 1
   
   transmissions.table <- read.table(input.files[window], sep=",", header=TRUE, stringsAsFactors=FALSE)
@@ -164,11 +160,12 @@ first <-TRUE
 #first.sib <- TRUE
 
 for(window in seq(1, num.windows)){
+  
   window.vector <- rep(NA, nrow(transmissions.ever.suggested))
-#  sib.window.vector <- rep(NA, nrow(transmissions.ever.suggested))
+  #  sib.window.vector <- rep(NA, nrow(transmissions.ever.suggested))
   
   window.count <- window.count + 1
-
+  
   transmissions.table <- read.table(input.files[window], 
                                     sep=",", 
                                     header=TRUE,
@@ -251,105 +248,76 @@ for(row in seq(1, nrow(window.table))){
   row.list["int"] <- 0
   row.list["sib"] <- 0
   
+  first.patient <- window.table$pat.1[row]
+  first.present <- reads.table[which(reads.table$patient==first.patient & reads.table$present),]
+  second.patient <- window.table$pat.2[row]
+  second.present <- reads.table[which(reads.table$patient==second.patient & reads.table$present),]
+  
+  denominator <- length(intersect(first.present$window.start, second.present$window.start))
+  
   for(col in seq(3, ncol(window.table))){
-    if(allow.splits){
-      if(as.character(window.table[row,col])=="trueInt"){
-        row.list[["int"]] <- row.list[["int"]] + 1
-      } else if(as.character(window.table[row,col]) %in% c("anc", "intAnc")) {
-        row.list[["anc"]] <- row.list[["anc"]] + 1
-      } else if(as.character(window.table[row,col]) %in% c("desc", "intDesc")) {
-        row.list[["desc"]] <- row.list["desc"]] + 1
-      } else if(as.character(window.table[row,col])=="sib"){
-        row.list[["sib"]] <- row.list.["sib"]] + 1
-      }
-    } else {
-      if(as.character(window.table[row,col]) %in% c("trueInt", "intAnc", "intDesc")){
-        row.list[["int"]] <- row.list[["int"]] + 1
-      } else if(as.character(window.table[row,col])=="anc") {
-        row.list[["anc"]] <- row.list[["anc"]] + 1
-      } else if(as.character(window.table[row,col])=="desc") {
-        row.list[["desc"]] <- row.list[["desc"]] + 1
-      } else if(as.character(window.table[row,col])=="sib"){
-        row.list[["sib"]] <- row.list[["sib"]] + 1
+    if(!is.na(window.table[row, col])){
+      if(allow.splits){
+        if(as.character(window.table[row,col])=="trueInt"){
+          row.list[["int"]] <- row.list[["int"]] + 1
+        } else if(as.character(window.table[row,col]) %in% c("anc", "intAnc")) {
+          row.list[["anc"]] <- row.list[["anc"]] + 1
+        } else if(as.character(window.table[row,col]) %in% c("desc", "intDesc")) {
+          row.list[["desc"]] <- row.list[["desc"]] + 1
+        } else if(as.character(window.table[row,col])=="sib"){
+          row.list[["sib"]] <- row.list[["sib"]] + 1
+        }
+      } else {
+        if(as.character(window.table[row,col]) %in% c("trueInt", "intAnc", "intDesc")){
+          row.list[["int"]] <- row.list[["int"]] + 1
+        } else if(as.character(window.table[row,col])=="anc") {
+          row.list[["anc"]] <- row.list[["anc"]] + 1
+        } else if(as.character(window.table[row,col])=="desc") {
+          row.list[["desc"]] <- row.list[["desc"]] + 1
+        } else if(as.character(window.table[row,col])=="sib"){
+          row.list[["sib"]] <- row.list[["sib"]] + 1
+        }
       }
     }
   }
-
-
-  denominator <- sum(window.rows[1,2:35] & window.rows[2,2:35])
+  
+  sib.row <- c(window.table[row,1], window.table[row,2], row.list[["sib"]], "sib", row.list[["anc"]]+row.list[["desc"]], paste(row.list[["sib"]], "/", denominator, sep=""))
+  anc.row <- c(window.table[row,1], window.table[row,2], row.list[["anc"]], "anc", row.list[["anc"]]+row.list[["desc"]], paste(row.list[["anc"]], "/", denominator, sep=""))
+  desc.row <- c(window.table[row,2], window.table[row,1], row.list[["desc"]], "anc", row.list[["anc"]]+row.list[["desc"]], paste(row.list[["desc"]], "/", denominator, sep=""))
+  int.row <- c(window.table[row,1], window.table[row,2], row.list[["int"]], "int", row.list[["anc"]]+row.list[["desc"]], paste(row.list[["int"]], "/", denominator, sep=""))
   
   
-  sib.row <- c(out[row,1], out[row,2], row.list[["sib"]], "MM", row.list[["anc"]]+row.list[["desc"]]+row.list[["intAnc"]]+row.list[["intDesc"]]+row.list[["trueInt"]], denominator, paste(row.list[["sib"]], "/", denominator, sep=""), mean.sib)
-  anc.row <- c(out[row,1], out[row,2], row.list[["anc"]], "MP", row.list[["anc"]]+row.list[["desc"]]+row.list[["intAnc"]]+row.list[["intDesc"]]+row.list[["trueInt"]], denominator, paste(row.list[["anc"]], "/", denominator, sep=""), NA)
-  desc.row <- c(out[row,2], out[row,1], row.list[["desc"]], "MP", row.list[["anc"]]+row.list[["desc"]]+row.list[["intAnc"]]+row.list[["intDesc"]]+row.list[["trueInt"]], denominator, paste(row.list[["desc"]], "/", denominator, sep=""), NA)
-  intAnc.row <- c(out[row,1], out[row,2], row.list[["intAnc"]], "PPU", row.list[["anc"]]+row.list[["desc"]]+row.list[["intAnc"]]+row.list[["intDesc"]]+row.list[["trueInt"]], denominator, paste(row.list[["intAnc"]], "/", denominator, sep=""), NA)
-  intDesc.row <- c(out[row,2], out[row,1], row.list[["intDesc"]], "PPU", row.list[["anc"]]+row.list[["desc"]]+row.list[["intAnc"]]+row.list[["intDesc"]]+row.list[["trueInt"]], denominator, paste(row.list[["intDesc"]], "/", denominator, sep=""), NA)
-  trueInt.row <- c(out[row,1], out[row,2], row.list[["trueInt"]], "PPE", row.list[["anc"]]+row.list[["desc"]]+row.list[["intAnc"]]+row.list[["intDesc"]]+row.list[["trueInt"]], denominator, paste(row.list[["trueInt"]], "/", denominator, sep=""), NA)
+  # intAnc.row <- c(out[row,1], out[row,2], row.list[["intAnc"]], "PPU", row.list[["anc"]]+row.list[["desc"]]+row.list[["intAnc"]]+row.list[["intDesc"]]+row.list[["trueInt"]], denominator, paste(row.list[["intAnc"]], "/", denominator, sep=""), NA)
+  # intDesc.row <- c(out[row,2], out[row,1], row.list[["intDesc"]], "PPU", row.list[["anc"]]+row.list[["desc"]]+row.list[["intAnc"]]+row.list[["intDesc"]]+row.list[["trueInt"]], denominator, paste(row.list[["intDesc"]], "/", denominator, sep=""), NA)
+  # trueInt.row <- c(out[row,1], out[row,2], row.list[["trueInt"]], "PPE", row.list[["anc"]]+row.list[["desc"]]+row.list[["intAnc"]]+row.list[["intDesc"]]+row.list[["trueInt"]], denominator, paste(row.list[["trueInt"]], "/", denominator, sep=""), NA)
   
-  new.rows <- data.frame(rbind(sib.row, anc.row, desc.row, intAnc.row, intDesc.row, trueInt.row), stringsAsFactors = F)
+  new.rows <- data.frame(rbind(sib.row, anc.row, desc.row, int.row), stringsAsFactors = F)
   
-  colnames(new.rows) <- c("pat.1", "pat.2", "windows", "type", "total.trans", "present", "fraction", "mean.sib")
+  colnames(new.rows) <- c("pat.1", "pat.2", "windows", "type", "total.trans", "fraction")
   
-  sib.row.2 <- c(out[row,1], out[row,2], row.list.2[["sib"]], "sib", row.list.2[["anc"]]+row.list.2[["desc"]]+row.list.2[["int"]], denominator, paste(row.list.2[["sib"]], "/", denominator, sep=""), mean.sib)
-  anc.row.2 <- c(out[row,1], out[row,2], row.list.2[["anc"]], "trans", row.list.2[["anc"]]+row.list.2[["desc"]]+row.list.2[["int"]], denominator, paste(row.list.2[["anc"]], "/", denominator, sep=""), NA)
-  desc.row.2 <- c(out[row,2], out[row,1], row.list.2[["desc"]], "trans", row.list.2[["anc"]]+row.list.2[["desc"]]+row.list.2[["int"]], denominator, paste(row.list.2[["desc"]], "/", denominator, sep=""), NA)
-  int.row.2 <- c(out[row,1], out[row,2], row.list.2[["int"]], "int", row.list.2[["anc"]]+row.list.2[["desc"]]+row.list.2[["int"]], denominator, paste(row.list.2[["int"]], "/", denominator, sep=""), NA)
+  # sib.row.2 <- c(out[row,1], out[row,2], row.list.2[["sib"]], "sib", row.list.2[["anc"]]+row.list.2[["desc"]]+row.list.2[["int"]], denominator, paste(row.list.2[["sib"]], "/", denominator, sep=""), mean.sib)
+  # anc.row.2 <- c(out[row,1], out[row,2], row.list.2[["anc"]], "trans", row.list.2[["anc"]]+row.list.2[["desc"]]+row.list.2[["int"]], denominator, paste(row.list.2[["anc"]], "/", denominator, sep=""), NA)
+  # desc.row.2 <- c(out[row,2], out[row,1], row.list.2[["desc"]], "trans", row.list.2[["anc"]]+row.list.2[["desc"]]+row.list.2[["int"]], denominator, paste(row.list.2[["desc"]], "/", denominator, sep=""), NA)
+  # int.row.2 <- c(out[row,1], out[row,2], row.list.2[["int"]], "int", row.list.2[["anc"]]+row.list.2[["desc"]]+row.list.2[["int"]], denominator, paste(row.list.2[["int"]], "/", denominator, sep=""), NA)
+  # 
+  # new.rows.2 <- data.frame(rbind(sib.row.2, anc.row.2, desc.row.2, int.row.2), stringsAsFactors = F)
   
-  new.rows.2 <- data.frame(rbind(sib.row.2, anc.row.2, desc.row.2, int.row.2), stringsAsFactors = F)
-  
-  colnames(new.rows.2) <- c("pat.1", "pat.2", "windows", "type", "total.trans", "present", "fraction", "mean.sib")
+  #  colnames(new.rows.2) <- c("pat.1", "pat.2", "windows", "type", "total.trans", "present", "fraction", "mean.sib")
   
   if(first){
     first <- FALSE
     new.out <- new.rows[which(new.rows$windows>0),]
-    new.out.2 <- new.rows.2[which(new.rows.2$windows>0),]
+    #    new.out.2 <- new.rows.2[which(new.rows.2$windows>0),]
   } else {
     new.out <- rbind(new.out, new.rows[which(new.rows$windows>0),])
-    new.out.2 <- rbind(new.out.2, new.rows.2[which(new.rows.2$windows>0),])
+    #    new.out.2 <- rbind(new.out.2, new.rows.2[which(new.rows.2$windows>0),])
   }
-  
 }
 
 new.out$windows <- as.numeric(new.out$windows)
 new.out$total.trans <- as.numeric(new.out$total.trans)
-new.out$mean.sib <- as.numeric(new.out$mean.sib)
 
-new.out$rel.width = new.out$windows/34
-new.out$rel.width[which(new.out$type=="MM")] <- 1-((new.out$mean.sib[which(new.out$type=="MM")]/max(new.out$mean.sib[!is.na(new.out$mean.sib)])))
-
-new.out$arrow.label <- new.out$fraction
-new.out$arrow.label[which(new.out$type=="MM")] <- format(new.out$mean.sib[which(new.out$type=="MM")], scientific = T, digits = 3)
-
-new.out.2$windows <- as.numeric(new.out.2$windows)
-new.out.2$total.trans <- as.numeric(new.out.2$total.trans)
-new.out.2$mean.sib <- as.numeric(new.out.2$mean.sib)
-
-new.out.2$rel.width = new.out.2$windows/34
-new.out.2$rel.width[which(new.out$type=="sib")] <- 1-((new.out.2$mean.sib[which(new.out$type=="sib")]/max(new.out.2$mean.sib[!is.na(new.out.2$mean.sib)])))
-new.out.2$arrow.label <- new.out.2$fraction
-new.out.2$arrow.label[which(new.out.2$type=="sib")] <- format(new.out.2$mean.sib[which(new.out.2$type=="sib")], scientific = T, digits = 3))
-
-
-write.table(new.out, file="transSummaryRS.csv", row.names = F, sep=",", quote=FALSE)
-write.table(new.out[which(new.out$total.trans>=2),], file="transSummaryRS_2.csv", row.names = F, sep=",", quote=FALSE)
-write.table(new.out[which(new.out$total.trans>=3),], file="transSummaryRS_3.csv", row.names = F, sep=",", quote=FALSE)
-write.table(new.out[which(new.out$total.trans>=4),], file="transSummaryRS_4.csv", row.names = F, sep=",", quote=FALSE)
-write.table(new.out[which(new.out$total.trans>=5),], file="transSummaryRS_5.csv", row.names = F, sep=",", quote=FALSE)
-write.table(new.out[which(new.out$total.trans>=6),], file="transSummaryRS_6.csv", row.names = F, sep=",", quote=FALSE)
-write.table(new.out[which(new.out$total.trans>=7),], file="transSummaryRS_7.csv", row.names = F, sep=",", quote=FALSE)
-write.table(new.out[which(new.out$total.trans>=10),], file="transSummaryRS_10.csv", row.names = F, sep=",", quote=FALSE)
-write.table(new.out[which(new.out$total.trans>=16),], file="transSummaryRS_16.csv", row.names = F, sep=",", quote=FALSE)
-
-write.table(new.out.2, file="transSummaryRS_merged.csv", row.names = F, sep=",", quote=FALSE)
-write.table(new.out.2[which(new.out.2$total.trans>=2),], file="transSummaryRS_merged_2.csv", row.names = F, sep=",", quote=FALSE)
-write.table(new.out.2[which(new.out.2$total.trans>=3),], file="transSummaryRS_merged_3.csv", row.names = F, sep=",", quote=FALSE)
-write.table(new.out.2[which(new.out.2$total.trans>=4),], file="transSummaryRS_merged_4.csv", row.names = F, sep=",", quote=FALSE)
-write.table(new.out.2[which(new.out.2$total.trans>=5),], file="transSummaryRS_merged_5.csv", row.names = F, sep=",", quote=FALSE)
-write.table(new.out.2[which(new.out.2$total.trans>=6),], file="transSummaryRS_merged_6.csv", row.names = F, sep=",", quote=FALSE)
-write.table(new.out.2[which(new.out.2$total.trans>=9),], file="transSummaryRS_merged_9.csv", row.names = F, sep=",", quote=FALSE)
-write.table(new.out.2[which(new.out.2$total.trans>=7),], file="transSummaryRS_merged_7.csv", row.names = F, sep=",", quote=FALSE)
-write.table(new.out.2[which(new.out.2$total.trans>=10),], file="transSummaryRS_merged_10.csv", row.names = F, sep=",", quote=FALSE)
-write.table(new.out.2[which(new.out.2$total.trans>=16),], file="transSummaryRS_merged_16.csv", row.names = F, sep=",", quote=FALSE)
+write.table(new.out[which(new.out$total.trans>=min.threshold),], file=output.file, row.names = F, sep=",", quote=FALSE)
 
 # Not currently in use - for dating
 
