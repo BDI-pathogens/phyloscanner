@@ -253,12 +253,14 @@ for(row in seq(1, nrow(window.table))){
   row.list["int"] <- 0
   row.list["sib"] <- 0
   
-  first.patient <- window.table$pat.1[row]
-  first.present <- reads.table[which(reads.table$patient==first.patient & reads.table$present),]
-  second.patient <- window.table$pat.2[row]
-  second.present <- reads.table[which(reads.table$patient==second.patient & reads.table$present),]
+  if(give.denoms){
+    first.patient <- window.table$pat.1[row]
+    first.present <- reads.table[which(reads.table$patient==first.patient & reads.table$present),]
+    second.patient <- window.table$pat.2[row]
+    second.present <- reads.table[which(reads.table$patient==second.patient & reads.table$present),]
   
-  denominator <- length(intersect(first.present$window.start, second.present$window.start))
+    denominator <- length(intersect(first.present$window.start, second.present$window.start))
+  }
   
   for(col in seq(3, ncol(window.table))){
     if(!is.na(window.table[row, col])){
