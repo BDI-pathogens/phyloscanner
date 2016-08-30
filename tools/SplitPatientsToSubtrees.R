@@ -71,9 +71,6 @@ if(command.line){
   }
 }
 
-
-
-
 require(phangorn, quietly=T)
 require(argparse, quietly=T)
 require(phytools, quietly=T)

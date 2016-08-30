@@ -88,9 +88,14 @@ for(window.no in seq(1, length(tree.files))){
 
 # Get the denominators
 
-full.summary <- read.csv(summary.file, stringsAsFactors = F)
-reads.table <- full.summary[,c("window.start", "patient", "reads")]
-reads.table$present <- reads.table$reads>0
+if(!is.null(summary.file)){
+  full.summary <- read.csv(summary.file, stringsAsFactors = F)
+  reads.table <- full.summary[,c("window.start", "patient", "reads")]
+  reads.table$present <- reads.table$reads>0
+  give.denoms <- T
+} else {
+  give.denoms <- F
+}
 
 # Read in the IDs. Remove duplicates. Shuffle their order if desired.
 ids <- scan(id.file, what="", sep="\n", quiet=TRUE, skip = 1)
@@ -281,11 +286,18 @@ for(row in seq(1, nrow(window.table))){
     }
   }
   
-  sib.row <- c(window.table[row,1], window.table[row,2], row.list[["sib"]], "sib", row.list[["anc"]]+row.list[["desc"]], paste(row.list[["sib"]], "/", denominator, sep=""))
-  anc.row <- c(window.table[row,1], window.table[row,2], row.list[["anc"]], "anc", row.list[["anc"]]+row.list[["desc"]], paste(row.list[["anc"]], "/", denominator, sep=""))
-  desc.row <- c(window.table[row,2], window.table[row,1], row.list[["desc"]], "anc", row.list[["anc"]]+row.list[["desc"]], paste(row.list[["desc"]], "/", denominator, sep=""))
-  int.row <- c(window.table[row,1], window.table[row,2], row.list[["int"]], "int", row.list[["anc"]]+row.list[["desc"]], paste(row.list[["int"]], "/", denominator, sep=""))
+  sib.row <- c(window.table[row,1], window.table[row,2], row.list[["sib"]], "sib", row.list[["anc"]]+row.list[["desc"]])
+  anc.row <- c(window.table[row,1], window.table[row,2], row.list[["anc"]], "anc", row.list[["anc"]]+row.list[["desc"]])
+  desc.row <- c(window.table[row,2], window.table[row,1], row.list[["desc"]], "anc", row.list[["anc"]]+row.list[["desc"]])
+  int.row <- c(window.table[row,1], window.table[row,2], row.list[["int"]], "int", row.list[["anc"]]+row.list[["desc"]])
   
+  if(give.denoms){
+    sib.row <- c(sib.row, paste(row.list[["sib"]], "/", denominator, sep=""))
+    anc.row <- c(anc.row, paste(row.list[["anc"]], "/", denominator, sep=""))
+    desc.row <- c(desc.row, paste(row.list[["desc"]], "/", denominator, sep=""))
+    int.row <- c(int.row, paste(row.list[["int"]], "/", denominator, sep=""))
+
+  }
   
   # intAnc.row <- c(out[row,1], out[row,2], row.list[["intAnc"]], "PPU", row.list[["anc"]]+row.list[["desc"]]+row.list[["intAnc"]]+row.list[["intDesc"]]+row.list[["trueInt"]], denominator, paste(row.list[["intAnc"]], "/", denominator, sep=""), NA)
   # intDesc.row <- c(out[row,2], out[row,1], row.list[["intDesc"]], "PPU", row.list[["anc"]]+row.list[["desc"]]+row.list[["intAnc"]]+row.list[["intDesc"]]+row.list[["trueInt"]], denominator, paste(row.list[["intDesc"]], "/", denominator, sep=""), NA)
@@ -293,7 +305,10 @@ for(row in seq(1, nrow(window.table))){
   
   new.rows <- data.frame(rbind(sib.row, anc.row, desc.row, int.row), stringsAsFactors = F)
   
-  colnames(new.rows) <- c("pat.1", "pat.2", "windows", "type", "total.trans", "fraction")
+  colnames(new.rows) <- c("pat.1", "pat.2", "windows", "type", "total.trans")
+  if(give.denoms){
+    colnames(new.rows) <- c(colnames(new.rows), "fraction")
+  }
   
   # sib.row.2 <- c(out[row,1], out[row,2], row.list.2[["sib"]], "sib", row.list.2[["anc"]]+row.list.2[["desc"]]+row.list.2[["int"]], denominator, paste(row.list.2[["sib"]], "/", denominator, sep=""), mean.sib)
   # anc.row.2 <- c(out[row,1], out[row,2], row.list.2[["anc"]], "trans", row.list.2[["anc"]]+row.list.2[["desc"]]+row.list.2[["int"]], denominator, paste(row.list.2[["anc"]], "/", denominator, sep=""), NA)

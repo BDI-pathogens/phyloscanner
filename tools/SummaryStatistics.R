@@ -83,7 +83,7 @@ if (command.line) {
   blacklist.files <- NULL
   output.root <- "ss_c"
   windows <- NULL
-<<<<<<< HEAD
+
 #  if(0)
 #   {
 # 	  script.dir	<- "/Users/Oliver/git/phylotypes/tools"
@@ -99,7 +99,6 @@ if (command.line) {
 # 	  output.root 		<- "ss_c"
 # 	  windows <- NULL	  
 #   }
-=======
   if(0)
   {
 	  script.dir	<- "/Users/Oliver/git/phylotypes/tools"
@@ -115,7 +114,6 @@ if (command.line) {
 	  output.root 		<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115"
 	  windows <- NULL	  
   }
->>>>>>> 7891c04ace9a61fd3e1f8ee8e975beb2347d7d76
 }
 
 require(phytools)

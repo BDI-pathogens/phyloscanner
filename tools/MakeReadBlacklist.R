@@ -31,9 +31,6 @@ regexp <- args$tipRegex
 input.name <- args$inputFileName
 output.name <- args$outputFileName
 
-
-
-
 # Read the lines of the input file as a list
 
 cat("MakeReadBlacklist.R run on: ", input.name, "\n", sep="")

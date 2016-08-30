@@ -17,11 +17,13 @@ if(command.line){
   arg_parser$add_argument("treeFileName", action="store", help="Tree file name")
   arg_parser$add_argument("splitsFileName", action="store", help="Splits file name")
   arg_parser$add_argument("outputFileName", action="store", help="Output file name (.csv format)")
+  arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
   
   args <- arg_parser$parse_args()
   
   tree.file.name <- args$treeFileName
   splits.file.name <- args$splitsFileName
+  script.dir <- args$scriptdir
   output.name <- args$outputFileName
   root.name <- args$outgroupName
   tip.regex <- args$tipRegex
@@ -47,8 +49,6 @@ if(command.line){
 
 library(phytools)
 library(phangorn)
-
-script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
 
 source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
 source(file.path(script.dir, "SubtreeMethods.R"))
