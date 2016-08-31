@@ -4,7 +4,7 @@ list.of.packages <- c("prodlim")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
 
-command.line <- F
+command.line <- T
 if(command.line){
   library(argparse)
   
@@ -55,11 +55,11 @@ if(command.line){
     script.dir					<- "/Users/Oliver/git/phylotypes/tools"
     summary.file				<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_patStatsFull.csv"
     id.file 					<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_patients.txt"
-    likelytransmissions.files	<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_"
+	input.files.name			<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_"
     min.threshold				<- 1
     allow.splits 				<- TRUE
     output.file 				<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_trmStats.csv"  
-    input.files 				<- sort(list.files(dirname(likelytransmissions.files), pattern=paste(basename(likelytransmissions.files),".*LikelyTransmissions.csv$",sep=''), full.names=TRUE))
+    input.files 				<- sort(list.files(dirname(input.files.name), pattern=paste(basename(input.files.name),".*LikelyTransmissions.csv$",sep=''), full.names=TRUE))
   }
 }
 
@@ -309,7 +309,7 @@ for(row in seq(1, nrow(window.table))){
   }
   
   if(row %% 100 == 0){
-    cat("Written ",row," out of ",nrow[window.table]," rows\n",sep="")
+    cat("Written ",row," out of ",nrow(window.table)," rows\n",sep="")
   }
 }
 
