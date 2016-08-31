@@ -33,10 +33,9 @@ if(command.line){
   allow.splits <- args$allowSplits
   input.files.name <- args$inputFiles
   
-  #	TODO: tree.file.name undefined? 
-  #	TODO: should this look for .tree?	
+  	
   if(!files.are.lists){
-    input.files <- sort(list.files(getwd(), pattern=paste(input.files.name,".*\\.tree",sep="")))
+    input.files <- sort(list.files(dirname(input.files.name), pattern=paste(basename(input.files.name),".*LikelyTransmissions.csv$",sep=""), full.names=TRUE))
   } else {
     input.files <- unlist(strsplit(input.files.name, ":"))
   }
@@ -100,7 +99,7 @@ cat("Determining pairs for which relationships are ever suggested...\n")
 for(window in seq(1, num.windows)){
   
   window.count <- window.count + 1
-  
+  cat("Reading file", input.files[window],"...\n")
   transmissions.table <- read.table(input.files[window], sep=",", header=TRUE, stringsAsFactors=FALSE)
   
   if(min.threshold == 0){
