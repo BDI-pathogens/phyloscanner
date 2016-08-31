@@ -528,12 +528,20 @@ for (i in seq(1, length(ids))) {
       theme_bw() + 
       ylab("Count") +
       xlab("Window centre") +
-      scale_x_continuous(limits=c(ews, min(lwe, 2)), breaks=seq(1, min(lwe, 2))) +
+      scale_x_continuous(limits=c(ews, lwe)) +
       scale_shape_manual(values=c(1,19), name="Variable", labels=c("Subtrees", "Clades")) +  
-      expand_limits(y=0) + 
+      scale_size_manual(values=c(2,1), name="Variable", labels=c("Subtrees", "Clades")) +		
       scale_color_discrete(name="Variable", labels=c("Subtrees", "Clades")) + 
       theme(text = element_text(size=8))
     
+    if(max(this.pat.stats.1col$value)==1){
+      graph.2 <- graph.2 + scale_y_continuous(breaks = c(0,1))
+    } else if(max(this.pat.stats.1col$value)==2){
+      graph.2 <- graph.2 + expand_limits(y=0)+ scale_y_continuous(breaks = c(0,1,2)) 
+    } else {
+      graph.2 <- graph.2 + expand_limits(y=0) + scale_y_continuous(breaks = pretty_breaks()) 
+    }
+
     graph.2 <- add.no.data.rectangles(graph.2, rectangles)
     
     this.pat.stats.1col <- melt(this.pat.stats.temp[c("window.middle","patient","overall.rtt","largest.rtt")], id=c("patient", "window.middle"))
