@@ -1,4 +1,8 @@
-# summarises transmission information
+#!/usr/bin/env Rscript
+
+list.of.packages <- c("prodlim")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
 
 command.line <- T
 if(command.line){
@@ -8,27 +12,45 @@ if(command.line){
   
   arg_parser$add_argument("-l", "--filesAreLists", action="store_true", default=FALSE, help="If present, arguments specifying input files will be parsed as lists of files separated by colons. If absent, they will be parsed as a string which each file of that type begins with.")
   arg_parser$add_argument("-s", "--summaryFile", action="store", help="The full output file from SummaryStatistics.R; necessary only to identify windows in which no reads are present from each patient. If absent, window counts will be given without denominators.")
+  arg_parser$add_argument("-tr", "--likelytransmissionsFiles", action="store", help="The base name that identifies output from the LikelyTransmission.R script. If absent, uses the working directory.")
   arg_parser$add_argument("-w", "--windows", action="store", help="The window in the genome which each tree file, in the same order as the tree files (user-specified if -l is present, in the order provided by the file system if now), is constructed from. In each window this is given as n-m where n is the start and m the end; coordinates for each window are separated by a colon. If not given, the script will attempt to obtain these from the file names.")
-  arg_parser$add_argument("-m", "--minThreshold", action="store", default=1, type="integer", help="Integer; relationships will only appear if directionality between these patients appears on at least these many windows (default=1). Useful for drawing figures in e.g. Cytoscape with few enough arrows to be comprehensible.")
+  #	OR: there is something odd which I cannot work out: why does the help for minThreshold not display?
+  arg_parser$add_argument("-m", "--minThreshold", action="store", type="integer", help="Relationships will only appear if directionality between these patients appears on at least these many windows (default=1). Useful for drawing figures in e.g. Cytoscape with few enough arrows to be comprehensible.")
   arg_parser$add_argument("-p", "--allowSplits", action="store_true", default=FALSE, help="If absent, directionality is only inferred between pairs of patients whose reads are not split; this is more conservative.")
   arg_parser$add_argument("idFile", action="store", help="A file containing a list of the IDs of all the patients to calculate and display statistics for.")
   arg_parser$add_argument("inputFiles", action="store", help="Either (if -l is present) a list of all input files, separated by colons, or (if not) a single string that begins every input file name.")
   arg_parser$add_argument("outputFile", action="store", help="A .csv file to write the output to.")
+  arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
   
   args <- arg_parser$parse_args()
   
   files.are.lists <- args$filesAreLists
   summary.file <- args$summaryFile
   id.file <- args$idFile
+  likelytransmissions.files	<- args$likelytransmissionsFiles
   output.file <- args$outputFile
-  
+  script.dir <- args$scriptdir  
   min.threshold <- args$minThreshold
+  if(is.null(min.threshold)){
+	  split.threshold <- 1L
+  }
   allow.splits <- args$allowSplits
   
-  if(!files.are.lists){
-    input.files <- sort(list.files(getwd(), pattern=paste(tree.file.name,".*\\.tree",sep="")))
-  } else {
-    input.files <- unlist(strsplit(tree.file.name, ":"))
+  #	TODO: tree.file.name undefined? 
+  #	TODO: should this look for .tree?	
+  if(is.null(likelytransmissions.files)){
+	  if(!files.are.lists){
+		  input.files <- sort(list.files(getwd(), pattern=paste(tree.file.name,".*\\.tree",sep="")))
+	  } else {
+		  input.files <- unlist(strsplit(tree.file.name, ":"))
+	  }	  
+  }
+  if(!is.null(likelytransmissions.files)){
+	  if(!files.are.lists){		  
+		  input.files <- sort(list.files(dirname(likelytransmissions.files), pattern=paste(basename(likelytransmissions.files),".*LikelyTransmissions.csv$",sep=''), full.names=TRUE))
+	  } else {
+		  input.files <- unlist(strsplit(likelytransmissions.files, ":"))
+	  }	  
   }
   
   if(!is.null(args$windows)){
@@ -41,16 +63,25 @@ if(command.line){
   }
 } else {
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
-  
+  script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
   summary.file <- "ss_c_patStatsFull.csv"
-  id.file <- "patientIDList.txt"
-  
+  id.file <- "patientIDList.txt"  
   min.threshold <- 6
   allow.splits <- TRUE
-  output.file <- "test.csv"
-  
+  output.file <- "test.csv"  
   input.files <- sort(list.files(getwd(), pattern="LikelyTransmissions_r.*\\.csv"))
-  
+  if(0)
+  {
+	  	script.dir					<- "/Users/Oliver/git/phylotypes/tools"
+	 	summary.file				<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_patStatsFull.csv"
+	  	id.file 					<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_patients.txt"
+		likelytransmissions.files	<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_"
+		min.threshold				<- 1
+		allow.splits 				<- TRUE
+		output.file 				<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_trmStats.csv"  
+		input.files 				<- sort(list.files(dirname(likelytransmissions.files), pattern=paste(basename(likelytransmissions.files),".*LikelyTransmissions.csv$",sep=''), full.names=TRUE))
+		windows						<- NULL
+  }
 }
 
 num.windows <- length(input.files)
@@ -62,28 +93,33 @@ library(ggplot2)
 
 # Find the window numbers
 
-window.starts <- vector()
-window.middles <- vector()
-window.ends <- vector()
 
-for(window.no in seq(1, length(tree.files))){
-  input.file.name <- input.files[window.no]
-  
-  if(!is.null(windows)){
-    window <- windows[window.no]
-    start <- as.numeric(unlist(strsplit(window, "-"))[1])
-    end <- as.numeric(unlist(strsplit(window, "-"))[2])
-    middle <- (start+end)/2
-  } else {
-    split.name <- strsplit(input.file.name, "[_\\.]")[[1]]
-    start <- as.numeric(split.name[length(split.name)-3])
-    end <- as.numeric(split.name[length(split.name)-1])
-    middle <- (start+end)/2
-  }
-  window.starts <- c(window.starts, start)
-  window.middles <- c(window.middles, middle)
-  window.ends <- c(window.ends, end)
-}
+#OR CHANGELOG: tree.files -> input.files and vectorized
+window.starts 	<- as.numeric(gsub('InWindow_','',regmatches(input.files, regexpr('InWindow_[0-9]+', input.files))))
+window.ends 	<- as.numeric(gsub('InWindow_[0-9]+_to_','',regmatches(input.files, regexpr('InWindow_[0-9]+_to_[0-9]+', input.files))))
+window.middles 	<- (window.starts+window.ends)/2
+
+#window.starts <- vector()
+#window.middles <- vector()
+#window.ends <- vector()
+#for(window.no in seq(1, length(input.files))){
+#  input.file.name <- input.files[window.no]
+#  
+#  if(!is.null(windows)){
+#    window <- windows[window.no]
+#    start <- as.numeric(unlist(strsplit(window, "-"))[1])
+#    end <- as.numeric(unlist(strsplit(window, "-"))[2])
+#    middle <- (start+end)/2
+#  } else {
+#    split.name <-  strsplit(input.file.name, "[_\\.]")[[1]]
+#    start <- as.numeric(split.name[length(split.name)-3])
+#    end <- as.numeric(split.name[length(split.name)-1])
+#    middle <- (start+end)/2
+#  }
+#  window.starts <- c(window.starts, start)
+#  window.middles <- c(window.middles, middle)
+#  window.ends <- c(window.ends, end)
+#}
 
 
 # Get the denominators
@@ -245,6 +281,7 @@ colnames(window.table) <- c("pat.1", "pat.2", input.files)
 
 first <- TRUE
 
+#	OR: error here?
 for(row in seq(1, nrow(window.table))){
   row.list <- list()
   
