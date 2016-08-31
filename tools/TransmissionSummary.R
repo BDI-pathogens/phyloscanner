@@ -4,7 +4,7 @@ list.of.packages <- c("prodlim")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
 
-command.line <- T
+command.line <- F
 if(command.line){
   library(argparse)
   
@@ -12,13 +12,10 @@ if(command.line){
   
   arg_parser$add_argument("-l", "--filesAreLists", action="store_true", default=FALSE, help="If present, arguments specifying input files will be parsed as lists of files separated by colons. If absent, they will be parsed as a string which each file of that type begins with.")
   arg_parser$add_argument("-s", "--summaryFile", action="store", help="The full output file from SummaryStatistics.R; necessary only to identify windows in which no reads are present from each patient. If absent, window counts will be given without denominators.")
-  arg_parser$add_argument("-tr", "--likelytransmissionsFiles", action="store", help="The base name that identifies output from the LikelyTransmission.R script. If absent, uses the working directory.")
-  arg_parser$add_argument("-w", "--windows", action="store", help="The window in the genome which each tree file, in the same order as the tree files (user-specified if -l is present, in the order provided by the file system if now), is constructed from. In each window this is given as n-m where n is the start and m the end; coordinates for each window are separated by a colon. If not given, the script will attempt to obtain these from the file names.")
-  #	OR: there is something odd which I cannot work out: why does the help for minThreshold not display?
-  arg_parser$add_argument("-m", "--minThreshold", action="store", type="integer", help="Relationships will only appear if directionality between these patients appears on at least these many windows (default=1). Useful for drawing figures in e.g. Cytoscape with few enough arrows to be comprehensible.")
+  arg_parser$add_argument("-m", "--minThreshold", action="store", type="integer", help="Relationships between two patients will only appear in output if a transmission chain between them appears on at least these many windows (default 1). High numbers are useful for drawing figures in e.g. Cytoscape with few enough arrows to be comprehensible. The script is extremely slow if this is set to 0.")
   arg_parser$add_argument("-p", "--allowSplits", action="store_true", default=FALSE, help="If absent, directionality is only inferred between pairs of patients whose reads are not split; this is more conservative.")
   arg_parser$add_argument("idFile", action="store", help="A file containing a list of the IDs of all the patients to calculate and display statistics for.")
-  arg_parser$add_argument("inputFiles", action="store", help="Either (if -l is present) a list of all input files, separated by colons, or (if not) a single string that begins every input file name.")
+  arg_parser$add_argument("inputFiles", action="store", help="Either (if -l is present) a list of all input files (output from LikelyTransmissions.R), separated by colons, or (if not) a single string that begins every input file name.")
   arg_parser$add_argument("outputFile", action="store", help="A .csv file to write the output to.")
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
   
@@ -27,104 +24,55 @@ if(command.line){
   files.are.lists <- args$filesAreLists
   summary.file <- args$summaryFile
   id.file <- args$idFile
-  likelytransmissions.files	<- args$likelytransmissionsFiles
   output.file <- args$outputFile
   script.dir <- args$scriptdir  
   min.threshold <- args$minThreshold
   if(is.null(min.threshold)){
-	  split.threshold <- 1L
+    split.threshold <- 1L
   }
   allow.splits <- args$allowSplits
+  input.files.name <- args$inputFiles
   
   #	TODO: tree.file.name undefined? 
   #	TODO: should this look for .tree?	
-  if(is.null(likelytransmissions.files)){
-	  if(!files.are.lists){
-		  input.files <- sort(list.files(getwd(), pattern=paste(tree.file.name,".*\\.tree",sep="")))
-	  } else {
-		  input.files <- unlist(strsplit(tree.file.name, ":"))
-	  }	  
-  }
-  if(!is.null(likelytransmissions.files)){
-	  if(!files.are.lists){		  
-		  input.files <- sort(list.files(dirname(likelytransmissions.files), pattern=paste(basename(likelytransmissions.files),".*LikelyTransmissions.csv$",sep=''), full.names=TRUE))
-	  } else {
-		  input.files <- unlist(strsplit(likelytransmissions.files, ":"))
-	  }	  
+  if(!files.are.lists){
+    input.files <- sort(list.files(getwd(), pattern=paste(input.files.name,".*\\.tree",sep="")))
+  } else {
+    input.files <- unlist(strsplit(input.files.name, ":"))
   }
   
-  if(!is.null(args$windows)){
-    windows <- unlist(strsplit(args$windows, ":"))
-    if(length(input.files)!=length(windows)){
-      stop("Number of input files and number of windows differ")
-    }
-  } else {
-    windows <- NULL
-  }
 } else {
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
-  summary.file <- "ss_c_patStatsFull.csv"
+  summary.file <- "ss_r_patStatsFull.csv"
   id.file <- "patientIDList.txt"  
-  min.threshold <- 6
+  min.threshold <- 0
   allow.splits <- TRUE
   output.file <- "test.csv"  
   input.files <- sort(list.files(getwd(), pattern="LikelyTransmissions_r.*\\.csv"))
   if(0)
   {
-	  	script.dir					<- "/Users/Oliver/git/phylotypes/tools"
-	 	summary.file				<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_patStatsFull.csv"
-	  	id.file 					<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_patients.txt"
-		likelytransmissions.files	<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_"
-		min.threshold				<- 1
-		allow.splits 				<- TRUE
-		output.file 				<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_trmStats.csv"  
-		input.files 				<- sort(list.files(dirname(likelytransmissions.files), pattern=paste(basename(likelytransmissions.files),".*LikelyTransmissions.csv$",sep=''), full.names=TRUE))
-		windows						<- NULL
+    script.dir					<- "/Users/Oliver/git/phylotypes/tools"
+    summary.file				<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_patStatsFull.csv"
+    id.file 					<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_patients.txt"
+    likelytransmissions.files	<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_"
+    min.threshold				<- 1
+    allow.splits 				<- TRUE
+    output.file 				<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_trmStats.csv"  
+    input.files 				<- sort(list.files(dirname(likelytransmissions.files), pattern=paste(basename(likelytransmissions.files),".*LikelyTransmissions.csv$",sep=''), full.names=TRUE))
   }
 }
 
 num.windows <- length(input.files)
 
 library(prodlim)
-#library(lubridate)
 library(gdata)
 library(ggplot2)
-
-# Find the window numbers
-
-
-#OR CHANGELOG: tree.files -> input.files and vectorized
-window.starts 	<- as.numeric(gsub('InWindow_','',regmatches(input.files, regexpr('InWindow_[0-9]+', input.files))))
-window.ends 	<- as.numeric(gsub('InWindow_[0-9]+_to_','',regmatches(input.files, regexpr('InWindow_[0-9]+_to_[0-9]+', input.files))))
-window.middles 	<- (window.starts+window.ends)/2
-
-#window.starts <- vector()
-#window.middles <- vector()
-#window.ends <- vector()
-#for(window.no in seq(1, length(input.files))){
-#  input.file.name <- input.files[window.no]
-#  
-#  if(!is.null(windows)){
-#    window <- windows[window.no]
-#    start <- as.numeric(unlist(strsplit(window, "-"))[1])
-#    end <- as.numeric(unlist(strsplit(window, "-"))[2])
-#    middle <- (start+end)/2
-#  } else {
-#    split.name <-  strsplit(input.file.name, "[_\\.]")[[1]]
-#    start <- as.numeric(split.name[length(split.name)-3])
-#    end <- as.numeric(split.name[length(split.name)-1])
-#    middle <- (start+end)/2
-#  }
-#  window.starts <- c(window.starts, start)
-#  window.middles <- c(window.middles, middle)
-#  window.ends <- c(window.ends, end)
-#}
-
 
 # Get the denominators
 
 if(!is.null(summary.file)){
+  cat("Getting window counts per patient...\n")
   full.summary <- read.csv(summary.file, stringsAsFactors = F)
   reads.table <- full.summary[,c("window.start", "patient", "reads")]
   reads.table$present <- reads.table$reads>0
@@ -134,7 +82,7 @@ if(!is.null(summary.file)){
 }
 
 # Read in the IDs. Remove duplicates. Shuffle their order if desired.
-ids <- scan(id.file, what="", sep="\n", quiet=TRUE, skip = 1)
+ids <- scan(id.file, what="", sep="\n", quiet=TRUE)
 
 num.ids <- length(ids)
 if (num.ids == 0) {
@@ -143,17 +91,11 @@ if (num.ids == 0) {
 }
 patient.ids <- unique(ids)
 
-parent.list <- vector("list", length(patient.ids))
-
-names(parent.list) <- patient.ids
-
-for(patient.id in patient.ids){
-  parent.list[[patient.id]] <- rep(NA, num.windows)
-}
-
 window.count <- 0
 
-transmissions.ever.suggested <- vector()
+relationships.ever.suggested <- vector()
+
+cat("Determining pairs for which relationships are ever suggested...\n") 
 
 for(window in seq(1, num.windows)){
   
@@ -161,31 +103,21 @@ for(window in seq(1, num.windows)){
   
   transmissions.table <- read.table(input.files[window], sep=",", header=TRUE, stringsAsFactors=FALSE)
   
-  if(nrow(transmissions.table)>0){
-    for(row in seq(1,nrow(transmissions.table))){
-      if(transmissions.table$Relationship[row] %in% c("anc", "desc", "intAnc", "intDesc")){
-        
-        pat.1 <- transmissions.table[row,1]
-        pat.2 <- transmissions.table[row,2]
-        
-        #if not ignoring split patients
-        
-        #           pat.1 <- substr(pat.1, 1, 9)
-        #           pat.2 <- substr(pat.2, 1, 9)
-        
-        transmissions.ever.suggested <- rbind(transmissions.ever.suggested, c(pat.1, pat.2))
-      } 
-    }
+  if(min.threshold == 0){
+    relationships.ever.suggested <- rbind(relationships.ever.suggested, transmissions.table[,1:2])
+  } else {
+    relationships.ever.suggested <- rbind(relationships.ever.suggested, transmissions.table[which(transmissions.table$Relationship %in% c("anc", "desc", "intAnc", "intDesc")),1:2])
   }
+  
 }
+relationships.ever.suggested <- as.data.frame(unique(relationships.ever.suggested), stringsAsFactors=FALSE)
 
-transmissions.ever.suggested <- as.data.frame(unique(transmissions.ever.suggested), stringsAsFactors=FALSE)
+# need to worry about transmissions listed in the wrong direction in the input file
 
-reversed.t.e.s <- as.data.frame(cbind(transmissions.ever.suggested[,2],transmissions.ever.suggested[,1]), stringsAsFactors = FALSE)
+reversed.t.e.s <- as.data.frame(cbind(relationships.ever.suggested[,2],relationships.ever.suggested[,1]), stringsAsFactors = FALSE)
+matches <- row.match(relationships.ever.suggested, reversed.t.e.s)
 
-matches <- row.match(transmissions.ever.suggested, reversed.t.e.s)
-
-to.go <- rep(FALSE, nrow(transmissions.ever.suggested))
+to.go <- rep(FALSE, nrow(relationships.ever.suggested))
 
 for(comp in seq(1, length(matches))){
   if(!(is.na(matches[comp])) & (comp < matches[comp])){
@@ -193,19 +125,23 @@ for(comp in seq(1, length(matches))){
   }
 }
 
-transmissions.ever.suggested <- transmissions.ever.suggested[which(!to.go), ]
+relationships.ever.suggested <- relationships.ever.suggested[which(!to.go), ]
 
 window.count <- 0
 
-first <-TRUE
+first <- TRUE
 #first.sib <- TRUE
+
+cat("Identifying relationships in each window...\n")
 
 for(window in seq(1, num.windows)){
   
-  window.vector <- rep(NA, nrow(transmissions.ever.suggested))
+  window.vector <- rep(NA, nrow(relationships.ever.suggested))
   #  sib.window.vector <- rep(NA, nrow(transmissions.ever.suggested))
   
   window.count <- window.count + 1
+  
+  cat("Opening file: ",input.files[window],"\n", sep="")
   
   transmissions.table <- read.table(input.files[window], 
                                     sep=",", 
@@ -232,24 +168,27 @@ for(window in seq(1, num.windows)){
   if(nrow(transmissions.table)>0){
     for(row in seq(1,nrow(transmissions.table))){
       # if the row exists
-      if(!is.na(row.match(transmissions.table[row,1:2], transmissions.ever.suggested))){
+      if(!is.na(row.match(transmissions.table[row,1:2], relationships.ever.suggested))){
         #whatever the third column says, things are the right way round
         
-        window.vector[row.match(transmissions.table[row,1:2], transmissions.ever.suggested)] <- transmissions.table[row,3] 
-      } else if(!is.na(row.match(rev(transmissions.table[row,1:2]), transmissions.ever.suggested))){
+        window.vector[row.match(transmissions.table[row,1:2], relationships.ever.suggested)] <- transmissions.table[row,3] 
+      } else if(!is.na(row.match(rev(transmissions.table[row,1:2]), relationships.ever.suggested))){
         #transmissions will be the wrong way round
         
         if(transmissions.table[row,3] == "anc"){
-          window.vector[row.match(rev(transmissions.table[row,1:2]), transmissions.ever.suggested)] <- "desc" 
+          window.vector[row.match(rev(transmissions.table[row,1:2]), relationships.ever.suggested)] <- "desc" 
         } else if (transmissions.table[row,3] == "desc"){
-          window.vector[row.match(rev(transmissions.table[row,1:2]), transmissions.ever.suggested)] <- "anc" 
+          window.vector[row.match(rev(transmissions.table[row,1:2]), relationships.ever.suggested)] <- "anc" 
         } else if (transmissions.table[row,3] == "intAnc"){
-          window.vector[row.match(rev(transmissions.table[row,1:2]), transmissions.ever.suggested)] <- "intDesc" 
+          window.vector[row.match(rev(transmissions.table[row,1:2]), relationships.ever.suggested)] <- "intDesc" 
         } else if (transmissions.table[row,3] == "intDesc"){
-          window.vector[row.match(rev(transmissions.table[row,1:2]), transmissions.ever.suggested)] <- "intAnc" 
+          window.vector[row.match(rev(transmissions.table[row,1:2]), relationships.ever.suggested)] <- "intAnc" 
         } else {
-          window.vector[row.match(rev(transmissions.table[row,1:2]), transmissions.ever.suggested)] <- transmissions.table[row,3]
+          window.vector[row.match(rev(transmissions.table[row,1:2]), relationships.ever.suggested)] <- transmissions.table[row,3]
         }
+      }
+      if(row %% 100 == 0){
+        cat("Processed ",row," out of ", nrow(transmissions.table), " rows\n", sep="")
       }
     }
   }
@@ -267,7 +206,7 @@ for(window in seq(1, num.windows)){
   # }
 }
 
-window.table <- cbind(transmissions.ever.suggested, window.table)
+window.table <- cbind(relationships.ever.suggested, window.table)
 #out.sib <- cbind(transmissions.ever.suggested, out.sib)
 
 colnames(window.table) <- c("pat.1", "pat.2", input.files)
@@ -279,10 +218,12 @@ colnames(window.table) <- c("pat.1", "pat.2", input.files)
 # out <- read.table("quickout.csv", sep=",", stringsAsFactors = F, header = T)
 # out.sib <- read.table("quickout_sib.csv", sep=",", stringsAsFactors = F, header = T)
 
+cat("Making output table...\n")
+
 first <- TRUE
 
-#	OR: error here?
 for(row in seq(1, nrow(window.table))){
+  
   row.list <- list()
   
   row.list["anc"] <- 0
@@ -295,7 +236,7 @@ for(row in seq(1, nrow(window.table))){
     first.present <- reads.table[which(reads.table$patient==first.patient & reads.table$present),]
     second.patient <- window.table$pat.2[row]
     second.present <- reads.table[which(reads.table$patient==second.patient & reads.table$present),]
-  
+    
     denominator <- length(intersect(first.present$window.start, second.present$window.start))
   }
   
@@ -335,7 +276,7 @@ for(row in seq(1, nrow(window.table))){
     anc.row <- c(anc.row, paste(row.list[["anc"]], "/", denominator, sep=""))
     desc.row <- c(desc.row, paste(row.list[["desc"]], "/", denominator, sep=""))
     int.row <- c(int.row, paste(row.list[["int"]], "/", denominator, sep=""))
-
+    
   }
   
   # intAnc.row <- c(out[row,1], out[row,2], row.list[["intAnc"]], "PPU", row.list[["anc"]]+row.list[["desc"]]+row.list[["intAnc"]]+row.list[["intDesc"]]+row.list[["trueInt"]], denominator, paste(row.list[["intAnc"]], "/", denominator, sep=""), NA)
@@ -346,7 +287,7 @@ for(row in seq(1, nrow(window.table))){
   
   colnames(new.rows) <- c("pat.1", "pat.2", "windows", "type", "total.trans")
   if(give.denoms){
-    colnames(new.rows) <- c(colnames(new.rows), "fraction")
+    colnames(new.rows)[6] <- "fraction"
   }
   
   # sib.row.2 <- c(out[row,1], out[row,2], row.list.2[["sib"]], "sib", row.list.2[["anc"]]+row.list.2[["desc"]]+row.list.2[["int"]], denominator, paste(row.list.2[["sib"]], "/", denominator, sep=""), mean.sib)
@@ -365,6 +306,10 @@ for(row in seq(1, nrow(window.table))){
   } else {
     new.out <- rbind(new.out, new.rows[which(new.rows$windows>0),])
     #    new.out.2 <- rbind(new.out.2, new.rows.2[which(new.rows.2$windows>0),])
+  }
+  
+  if(row %% 100 == 0){
+    cat("Written ",row," out of ",nrow[window.table]," rows\n",sep="")
   }
 }
 
