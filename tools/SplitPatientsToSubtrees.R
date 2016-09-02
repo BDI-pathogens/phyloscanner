@@ -376,7 +376,8 @@ if(mode=="c"){
 		  geom_point2(shape = 16, size=3, aes(subset=NODE_SHAPES)) +
 		  scale_fill_hue(na.value = "black") +
 		  scale_color_hue(na.value = "black") +
-		  theme(legend.position="none")
+		  theme(legend.position="none") +
+		  geom_tiplab(aes(col=INDIVIDUAL))
   
   tree.display
   
