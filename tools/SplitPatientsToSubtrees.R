@@ -20,8 +20,9 @@ if(command.line){
   arg_parser$add_argument("-s", "--splitsRule", action="store", default="r", help="The rules by which the sets of patients are split into groups in order to ensure that all groups can be members of connected subtrees without causing conflicts. Currently available: c=conservative, r=Romero-Severson (default).")
   arg_parser$add_argument("-b", "--blacklist", action="store", help="A .csv file listing tips to ignore.")
   arg_parser$add_argument("inputFile", help="Input tree file name", metavar="inputTreeFileName")
-  arg_parser$add_argument("outputBaseName", help="A string identifying output files.")
+  arg_parser$add_argument("outputFileIdentifier", help="A string identifying output files.")
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
+  arg_parser$add_argument("-O", "--outputdir", action="store", help="Full path of the directory for output; if absent, current working directory")
   arg_parser$add_argument("-pw", "--pdfwidth", action="store", default=100, help="Width of tree pdf in inches.")
   arg_parser$add_argument("-ph", "--pdfrelheight", action="store", default=0.15, help="Relative height of tree pdf.")
   arg_parser$add_argument("-db", "--debug", action="store_true", default=FALSE, help="Debugging mode.")
@@ -30,7 +31,11 @@ if(command.line){
   script.dir <- args$scriptdir
   zero.length.tips.count <- args$zeroLengthTipsCount
   file.name <- args$inputFile
-  out.root <- args$outputBaseName
+  output.dir <- args$outputDir
+  if(is.null(output.dir)){
+    output.dir <- getwd()
+  }
+  out.identifier <- args$outputFileIdentifier
   blacklist.file <- args$blacklist
   root.name <- args$outgroupName
   tip.regex <- args$tipRegex
@@ -42,26 +47,28 @@ if(command.line){
   if(!(mode %in% c("c", "r"))){
     stop(paste("Unknown split classifier: ", mode, "\n", sep=""))
   }
-  if(debug)
-	  cat(paste(script.dir, zero.length.tips.count, file.name, out.root, blacklist.file, root.name, tip.regex, mode, pdf.hm, pdf.w, sep='\n'))
+#  if(debug)
+#	  cat(paste(script.dir, zero.length.tips.count, file.name, out.identifier, blacklist.file, root.name, tip.regex, mode, pdf.hm, pdf.w, sep='\n'))
   
   
 } else {
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
+  output.dir <- getwd()
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
-  file.name <- "RAxML_bestTree.InWindow_6800_to_7150.tree"
-  blacklist.file <- "FullBlacklist_InWindow_6800_to_7150.csv"
-  out.root <- "test"
+  file.name <- "RAxML_bestTree.InWindow_800_to_1150.tree"
+  blacklist.file <- "FullBlacklist_InWindow_800_to_1150.csv"
+  out.identifier <- "test"
   root.name <- "C.BW.00.00BW07621.AF443088"
   tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
-  mode <- "r"
+  mode <- "c"
+  zero.length.tips.count <- F
   if(0)
   {
 	  script.dir		<- '/Users/Oliver/git/phylotypes/tools'
 	  file.name 		<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_InWindow_800_to_1049.tree'
 	  blacklist.file	<- NULL
 	  #blacklist.file <- "FullBlacklist_InWindow_6800_to_7150.csv"
-	  out.root 			<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_InWindow_800_to_1049"
+	  out.identifier 			<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_InWindow_800_to_1049"
 	  root.name 		<- "REF_CPX_AF460972_read_1_count_0"
 	  tip.regex 		<- "^(.*)_read_([0-9]+)_count_([0-9]+)$"	  
 	  mode 				<- "r"
@@ -108,8 +115,6 @@ if(!is.null(blacklist.file)){
 
 patient.ids <- sapply(tip.labels, function(x) patient.from.label(x, tip.regex))
 
-
-
 if(length(blacklist)>0){
   patients <- unique(patient.ids[-blacklist])
 } else {
@@ -123,285 +128,61 @@ patient.tips <-
 
 patient.mrcas <- lapply(patient.tips, function(node) mrca.phylo.or.unique.tip(tree, node, zero.length.tips.count))
 
+results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode)
 
-if(mode=="c"){
-
-  cat("Finding nodes that would have to be associated with more than one patient with no splits...\n")
-  
-  node.assocs <- annotate.internal(tree, patients, patient.tips, patient.mrcas)
-  
-  patients.with.conflicts <- vector()
-  
-  for(node.item in node.assocs$details){
-    if(length(node.item) > 1){
-      for(problem.patient in node.item){
-        patients.with.conflicts <- unique(c(patients.with.conflicts, problem.patient))
-      }
-    }
-  }
-  
-  # The following not being done right now.
-  
-  # cat("Drawing tree with conflicts displayed...\n")
-  # 
-  # # list of tip statuses
-  # 
-  # conflict.tips <- rep("normal", length(tree$tip.label))
-  # conflict.tips[which(patient.ids %in% patients.with.conflicts)] <- "conflict"
-  # conflict.tips[blacklist] <- "blacklist"
-  # 
-  # # Need to make this the same length as the set of nodes for ggtree
-  # 
-  # conflict.tips <- c(conflict.tips, rep(NA, tree$Nnode))
-  # 
-  # # Only put geom_points on nodes with a conflict
-  # 
-  # node.assoc.counts <- node.assocs$counts
-  # node.assoc.counts[which(node.assoc.counts<=1)] <- NA
-  # 
-  # tree.display <- ggtree(tree) +
-  #   geom_point2(shape = 21,aes(fill = node.assoc.counts, size=!is.na(node.assoc.counts))) +
-  #   theme(legend.position="right") +
-  #   scale_fill_gradient(low = "darkgreen", high="red") +
-  #   theme(legend.position="none") +
-  #   labs(size="Conflict exists", fill="Number of\nconflicting patients", col="Problem\npatient") +
-  #   geom_tiplab(aes(col = conflict.tips)) + 
-  #   scale_color_manual(values=c("blue", "red", "black"))
-  # tree.display
-  # 
-  # ggsave(file=paste("tree_conflicts_",out.root,".pdf",sep=""), 
-  #        height = 400, width = 100, limitsize = F)
-  
-  cat("Resolving patients with conflicts into separate groups...\n")
-  
-  # Copy the patients vector and patient tip list for splitting
-  
-  patients.copy <- patients
-  patient.tips.copy <- patient.tips
-  
-  pat.length <- length(patients.copy)
-  
-  # Split each patient
-  
-  for(patient in patients){
-    sp.res <- split.patient(tree, patient, patients,patient.tips, node.assocs$details, tip.regex)
-    split.pats <- sp.res$patients
-    if(length(split.pats)>0){
-      patients.copy <- patients.copy[which(patients.copy!=patient)]
-      patients.copy <- c(patients.copy, split.pats)
-      split.tips <- sp.res$patient.tips
-      patient.tips.copy[[patient]] <- NULL
-      patient.tips.copy <- c(patient.tips.copy, split.tips)
-    }
-  }
-  
-  # Need to update the MRCA list and node association list to reflect the splitting
-  
-  cat("Recalculating MRCAs for groups...\n")
-  
-  patient.mrcas.copy <- lapply(patient.tips.copy, function(node) mrca.phylo.or.unique.tip(tree, node, zero.length.tips.count))
-  
-  cat("Recalculating node associations for groups...\n")
-  
-  node.assocs <- annotate.internal(tree, patients.copy, patient.tips.copy, patient.mrcas.copy)
-  
-  cat("Drawing tree...\n")
-  
-  node.shapes <- rep(FALSE, length(tree$tip.label) + tree$Nnode)
-  for(mrca in patient.mrcas.copy){
-    node.shapes[mrca] <- TRUE
-  }
-  
-  temp.ca <- rep(NA, length(tree$tip.label) + tree$Nnode)
-  
-  for(item in seq(1, length(node.assocs$details))){
-    if(!is.null(node.assocs$details[[item]])){
-      temp.ca[item] <- node.assocs$details[[item]]
-    }
-  }
-  
-  temp.ca.pat <- sapply(temp.ca, function(x) unlist(strsplit(x, "-S"))[1] )
-  names(temp.ca.pat) <- NULL
-  temp.ca.pat <- factor(temp.ca.pat, levels = sample(levels(as.factor(temp.ca.pat))))
-  
-  
-  tree.display <- ggtree(tree, aes(color=temp.ca.pat)) +
-    geom_point2(shape = 16, size=3, aes(subset=node.shapes)) +
-    scale_fill_hue(na.value = "black") +
-    scale_color_hue(na.value = "black") +
-    theme(legend.position="none") +
-    geom_tiplab(aes(col = temp.ca.pat))
-  
-  tree.display
-  
-  ggsave(file=file.path(dirname(out.root), paste(basename(out.root),"tree_c.pdf",sep="")), 
-		  height = pdf.hm*length(tree$tip.label), width = pdf.w, limitsize = F)
-  
-  cat("Writing output...\n")
-  
-  orig.patients <- vector()
-  patient.splits <- vector()
-  tip.names <- vector()
-  
-  for(patient.plus in patients.copy){
-	  tips <- patient.tips.copy[[patient.plus]]
-	  orig.patients <- c(orig.patients, rep(unlist(strsplit(patient.plus, "-S"))[1], length(tips)))
-	  patient.splits <- c(patient.splits, rep(patient.plus, length(tips)))
-	  tip.names <- c(tip.names, tree$tip.label[tips])
-  }
-  
-  rs.subtrees <- data.frame(orig.patients, patient.splits, tip.names)
-  
-  rs.file.name <- file.path(dirname(out.root),paste(basename(out.root),'subtrees_',mode,'.csv',sep=''))
-  write.csv(rs.subtrees, rs.file.name, row.names = F, quote=F)
-  rs.file.name <- file.path(dirname(out.root),paste(basename(out.root),'subtrees_',mode,'.rda',sep=''))
-  save(rs.subtrees, tree, tree.display, file=rs.file.name)
-  
-} else if(mode=="r"){
-  
-  cat("Applying the Romero-Severson classification to internal nodes...\n")
-  
-  tip.assocs <- annotate.tips(tree, patients, patient.tips)
-  
-  new.assocs <- list()
-  
-  classify.down(getRoot(tree), tree, tip.assocs, patient.mrcas, blacklist, tip.regex)
-  
-  cat("Filling in stars...\n")
-  
-  star.runs <- get.star.runs(tree, new.assocs)
-  
-  star.bottoms <- which(lengths(star.runs)>0)
-  
-  resolved.assocs <- new.assocs
-  
-  for(bottom in star.bottoms){
-    child.assocs <- unlist(new.assocs[Children(tree, bottom)])
-    c.a.df <- as.data.frame(table(child.assocs), stringsAsFactors=F)
-    c.a.df <- c.a.df[which(c.a.df[,1]!="*"),]
-    winners <- c.a.df[which(c.a.df[,2]==max(c.a.df[,2])),]
-    possibilities <- winners[,1]
-    
-    last.in.chain <- star.runs[[bottom]][length(star.runs[[bottom]])]
-    parent.lic <- Ancestors(tree, last.in.chain, type="parent")
-    if(parent.lic!=0){
-      parental.assoc <- new.assocs[[parent.lic]]
-      if(parental.assoc %in% possibilities){
-        
-        resolved.assocs[star.runs[[bottom]]] <- parental.assoc
-      } 
-    }
-  }
-  
-  # Now the splits. A new split is where you encounter a node with a different association to its parent
-  
-  cat("Identifying split patients...\n")
-  
-  splits.count <- rep(0, length(patients))
-  first.nodes <- list()
-  
-  splits <- count.splits(tree, getRoot(tree), resolved.assocs, patients, splits.count, first.nodes)
-  
-  counts.by.patient <- splits$counts
-  first.nodes.by.patients <- splits$first.nodes
-  
-  patients.copy <- patients
-  patient.tips.copy <- patient.tips
-  
-  split.assocs <- resolved.assocs
-  
-  #find the splits and reannotate the tree
-  
-  node.shapes <- rep(FALSE, length(tree$tip.label) + tree$Nnode)
-  for(mrca in first.nodes.by.patients){
-    node.shapes[mrca] <- TRUE
-  }
-  
-  for(pat.no in seq(1, length(patients))){
-    patient <- patients[pat.no]
-    no.splits <- counts.by.patient[pat.no]
-    if(no.splits>1){
-      pat.tips <- patient.tips[[patient]]
-      patient.tips.copy[[patient]] <- NULL
-      patients.copy <- patients.copy[which(patients.copy!=patient)]
-      patients.copy <- c(patients.copy, paste(patient,"-S",seq(1, no.splits),sep=""))
-      
-      for(tip in pat.tips){
-        # go up until you find one of the first nodes
-        current.node <- tip
-        subtree.roots <- first.nodes.by.patients[[patient]]
-        while(!(current.node %in% subtree.roots)){
-          if(current.node == 0){
-            stop("Reached the root?!")
-          }
-          current.node <- Ancestors(tree, current.node, type="parent")
-        }
-        split.index <- which(subtree.roots == current.node)
-        new.name <- paste(patient,"-S", split.index, sep="")
-        
-        current.node <- tip
-        split.assocs[[subtree.roots[split.index]]] <- new.name
-        
-        while(current.node != subtree.roots[split.index]){
-          if(current.node == 0){
-            stop("Reached the root?!")
-          }
-          split.assocs[[current.node]] <- new.name
-          current.node <- Ancestors(tree, current.node, type="parent")
-        }
-        
-        
-        patient.tips.copy[[new.name]] <- c(patient.tips.copy[[new.name]], tip)
-      }
-    }
-  }
-  
-  cat("Drawing tree...\n")
-  
-  temp.ca <- rep(NA, length(tree$tip.label) + tree$Nnode)
-  
-  for(item in seq(1, length(resolved.assocs))){
-    if(split.assocs[[item]] != "*"){
-      temp.ca[item] <- split.assocs[[item]]
-    }
-  }
-  
-  temp.ca.pat <- sapply(temp.ca, function(x) unlist(strsplit(x, "-S"))[1] )
-  names(temp.ca.pat) <- NULL
-  temp.ca.pat <- factor(temp.ca.pat, levels = sample(levels(as.factor(temp.ca.pat))))
-  attr(tree, 'INDIVIDUAL') <- temp.ca.pat
-  attr(tree, 'NODE_SHAPES') <- node.shapes
-  
-  tree.display <- ggtree(tree, aes(color=INDIVIDUAL)) +
-		  geom_point2(shape = 16, size=3, aes(subset=NODE_SHAPES)) +
-		  scale_fill_hue(na.value = "black") +
-		  scale_color_hue(na.value = "black") +
-		  theme(legend.position="none") +
-		  geom_tiplab(aes(col=INDIVIDUAL))
-  
-  tree.display
-  
-  ggsave(file=file.path(dirname(out.root), paste(basename(out.root),"tree_r.pdf",sep="")), 
-		  height = pdf.hm*length(tree$tip.label), width = pdf.w, limitsize = F)  
-
-  cat("Writing output...\n")
-  
-  orig.patients <- vector()
-  patient.splits <- vector()
-  tip.names <- vector()
-  
-  for(patient.plus in patients.copy){
-	  tips <- patient.tips.copy[[patient.plus]]
-	  orig.patients <- c(orig.patients, rep(unlist(strsplit(patient.plus, "-S"))[1], length(tips)))
-	  patient.splits <- c(patient.splits, rep(patient.plus, length(tips)))
-	  tip.names <- c(tip.names, tree$tip.label[tips])
-  }
-  
-  rs.subtrees <- data.frame(orig.patients, patient.splits, tip.names)
-  
-  rs.file.name <- file.path(dirname(out.root),paste(basename(out.root),'subtrees_',mode,'.csv',sep=''))
-  write.csv(rs.subtrees, rs.file.name, row.names = F, quote=F)
-  rs.file.name <- file.path(dirname(out.root),paste(basename(out.root),'subtrees_',mode,'.rda',sep=''))
-  save(rs.subtrees, tree, file=rs.file.name)
+node.shapes <- rep(FALSE, length(tree$tip.label) + tree$Nnode)
+for(mrca in results$first.nodes){
+  node.shapes[mrca] <- TRUE
 }
+
+cat("Drawing tree...\n")
+
+temp.ca <- rep(NA, length(tree$tip.label) + tree$Nnode)
+
+for(item in seq(1, length(results$assocs))){
+  if(!is.null(results$assocs[[item]])){
+    if(results$assocs[[item]] != "*"){
+      temp.ca[item] <- results$assocs[[item]]
+    }
+  }
+}
+
+temp.ca.pat <- sapply(temp.ca, function(x) unlist(strsplit(x, "-S"))[1] )
+names(temp.ca.pat) <- NULL
+temp.ca.pat <- factor(temp.ca.pat, levels = sample(levels(as.factor(temp.ca.pat))))
+attr(tree, 'INDIVIDUAL') <- temp.ca.pat
+attr(tree, 'NODE_SHAPES') <- node.shapes
+
+tree.display <- ggtree(tree, aes(color=INDIVIDUAL)) +
+  geom_point2(shape = 16, size=3, aes(subset=NODE_SHAPES)) +
+  scale_fill_hue(na.value = "black") +
+  scale_color_hue(na.value = "black") +
+  theme(legend.position="none") +
+  geom_tiplab(aes(col=INDIVIDUAL))
+
+tree.display
+
+ggsave(file.path(output.dir,paste('Tree_',mode,'_',out.identifier,'.pdf',sep='')), device="pdf", 
+       height = pdf.hm*length(tree$tip.label), width = pdf.w, limitsize = F)
+
+cat("Writing output...\n")
+
+orig.patients <- vector()
+patient.splits <- vector()
+tip.names <- vector()
+
+for(patient.plus in results$split.patients){
+  tips <- results$split.tips[[patient.plus]]
+  orig.patients <- c(orig.patients, rep(unlist(strsplit(patient.plus, "-S"))[1], length(tips)))
+  patient.splits <- c(patient.splits, rep(patient.plus, length(tips)))
+  tip.names <- c(tip.names, tree$tip.label[tips])
+}
+
+rs.subtrees <- data.frame(orig.patients, patient.splits, tip.names)
+
+
+rs.file.name <- file.path(output.dir, paste('Subtrees_',mode,'_',out.identifier,'.csv',sep=''))
+write.csv(rs.subtrees, rs.file.name, row.names = F, quote=F)
+rs.file.name <- file.path(output.dir,paste('Subtrees_',mode,'_',out.identifier,'.rda',sep=''))
+save(rs.subtrees, tree, file=rs.file.name)
   

@@ -1,3 +1,166 @@
+split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, method="r"){
+  if(mode == "c"){
+    cat("Finding nodes that would have to be associated with more than one patient with no splits...\n")
+    
+    node.assocs <- annotate.internal(tree, patients, patient.tips, patient.mrcas)
+    
+    patients.with.conflicts <- vector()
+    
+    for(node.item in node.assocs$details){
+      if(length(node.item) > 1){
+        for(problem.patient in node.item){
+          patients.with.conflicts <- unique(c(patients.with.conflicts, problem.patient))
+        }
+      }
+    }
+    
+    cat("Resolving patients with conflicts into separate groups...\n")
+    
+    # Copy the patients vector and patient tip list for splitting
+    
+    patients.copy <- patients
+    patient.tips.copy <- patient.tips
+    
+    pat.length <- length(patients.copy)
+    
+    # Split each patient
+    
+    for(patient in patients){
+      sp.res <- split.patient(tree, patient, patients,patient.tips, node.assocs$details, tip.regex)
+      split.pats <- sp.res$patients
+      if(length(split.pats)>0){
+        patients.copy <- patients.copy[which(patients.copy!=patient)]
+        patients.copy <- c(patients.copy, split.pats)
+        split.tips <- sp.res$patient.tips
+        patient.tips.copy[[patient]] <- NULL
+        patient.tips.copy <- c(patient.tips.copy, split.tips)
+      }
+    }
+    
+    # Need to update the MRCA list and node association list to reflect the splitting
+    
+    cat("Recalculating MRCAs for groups...\n")
+    
+    patient.mrcas.copy <- lapply(patient.tips.copy, function(node) mrca.phylo.or.unique.tip(tree, node, zero.length.tips.count))
+    
+    cat("Recalculating node associations for groups...\n")
+    
+    node.assocs <- annotate.internal(tree, patients.copy, patient.tips.copy, patient.mrcas.copy)
+    
+
+    return(list(assocs = node.assocs$details, split.patients = patients.copy, split.tips = patient.tips.copy, 
+                first.nodes = patient.mrcas.copy))
+    
+  } else if(mode == "r") {
+    
+    cat("Applying the Romero-Severson classification to internal nodes...\n")
+    
+    tip.assocs <- annotate.tips(tree, patients, patient.tips)
+    
+    for(tip in seq(1, length(tree$tip.label))){
+      if(tip %in% blacklist | is.na(patient.from.label(tree$tip.label[tip], tip.regex))){
+        tip.assocs[[tip]] <- "*"
+      }
+    }
+    
+    new.assocs <- classify.down(getRoot(tree), tree, tip.assocs, list(), patient.mrcas)
+    
+    cat("Filling in stars...\n")
+    
+    star.runs <- get.star.runs(tree, new.assocs)
+    
+    star.bottoms <- which(lengths(star.runs)>0)
+    
+    resolved.assocs <- new.assocs
+    
+    for(bottom in star.bottoms){
+      child.assocs <- unlist(new.assocs[Children(tree, bottom)])
+      c.a.df <- as.data.frame(table(child.assocs), stringsAsFactors=F)
+      c.a.df <- c.a.df[which(c.a.df[,1]!="*"),]
+      winners <- c.a.df[which(c.a.df[,2]==max(c.a.df[,2])),]
+      possibilities <- winners[,1]
+      
+      last.in.chain <- star.runs[[bottom]][length(star.runs[[bottom]])]
+      parent.lic <- Ancestors(tree, last.in.chain, type="parent")
+      if(parent.lic!=0){
+        parental.assoc <- new.assocs[[parent.lic]]
+        if(parental.assoc %in% possibilities){
+          
+          resolved.assocs[star.runs[[bottom]]] <- parental.assoc
+        } 
+      }
+    }
+    
+    # Now the splits. A new split is where you encounter a node with a different association to its parent
+    
+    cat("Identifying split patients...\n")
+    
+    splits.count <- rep(0, length(patients))
+    first.nodes <- list()
+    
+    splits <- count.splits(tree, getRoot(tree), resolved.assocs, patients, splits.count, first.nodes)
+    
+    counts.by.patient <- splits$counts
+    first.nodes.by.patients <- splits$first.nodes
+    
+    patients.copy <- patients
+    patient.tips.copy <- patient.tips
+    
+    split.assocs <- resolved.assocs
+    
+    #find the splits and reannotate the tree
+    
+    for(pat.no in seq(1, length(patients))){
+      patient <- patients[pat.no]
+      no.splits <- counts.by.patient[pat.no]
+      
+      if(no.splits>1){
+        pat.tips <- patient.tips[[patient]]
+        patient.tips.copy[[patient]] <- NULL
+        patients.copy <- patients.copy[which(patients.copy!=patient)]
+        patients.copy <- c(patients.copy, paste(patient,"-S",seq(1, no.splits),sep=""))
+        
+        for(tip in pat.tips){
+          # go up until you find one of the first nodes
+          current.node <- tip
+          subtree.roots <- first.nodes.by.patients[[patient]]
+          while(!(current.node %in% subtree.roots)){
+            if(current.node == 0){
+              stop("Reached the root?!")
+            }
+            current.node <- Ancestors(tree, current.node, type="parent")
+          }
+          split.index <- which(subtree.roots == current.node)
+          new.name <- paste(patient,"-S", split.index, sep="")
+          
+          current.node <- tip
+          split.assocs[[subtree.roots[split.index]]] <- new.name
+          
+          while(current.node != subtree.roots[split.index]){
+            if(current.node == 0){
+              stop("Reached the root?!")
+            }
+            split.assocs[[current.node]] <- new.name
+            current.node <- Ancestors(tree, current.node, type="parent")
+          }
+          
+          
+          patient.tips.copy[[new.name]] <- c(patient.tips.copy[[new.name]], tip)
+        }
+      }
+    }
+    
+    # No need for the stars anymore
+
+    return(list(assocs = split.assocs, split.patients = patients.copy, split.tips = patient.tips.copy, 
+                first.nodes = first.nodes.by.patients))
+
+    
+  } else {
+    stop("Unsupported splitting method")
+  }
+}
+
 # CONSERVATIVE METHODS
 
 # Work out which nodes must be assigned to each patient for full connectivity (ignoring conflicts)
@@ -73,7 +236,6 @@ find.splits <- function(tree, patient, patients, patient.tips, associations, reg
   }
   
   return(out)
-  
 }
 
 # Tips in the same connected subtree will have the same earliest ancestor that is associated with
@@ -150,17 +312,21 @@ count.splits <- function(tree, node, assocs, patients, counts.vec, first.nodes.l
 
 # Does the RS classification (todo move to TUF?)
 
-classify.down <- function(node, tree, tip.assocs, patient.mrcas, blacklist, regex){
+classify.down <- function(node, tree, tip.assocs, temp.assocs, patient.mrcas){
+
+  current.assocs <- temp.assocs
   
   if(is.tip(tree, node)){
-    if(node %in% blacklist | is.na(patient.from.label(tree$tip.label[node], regex))){
-      result <- "*"
-    } else {
-      result <- tip.assocs[[node]]
-    }
+    result <- tip.assocs[[node]]
   } else {
+    child.assocs.vector <- rep(NA, length(Children(tree, node)))
     
-    child.assocs.vector <- sapply(Children(tree, node), classify.down, tree=tree, tip.assocs=tip.assocs, patient.mrcas = patient.mrcas, blacklist=blacklist, regex=regex)
+    for(i in seq(1,length(Children(tree, node)))){
+      child <- Children(tree, node)[i]
+      new.assocs <- classify.down(child, tree, tip.assocs, current.assocs, patient.mrcas)
+      child.assocs.vector[i] <- new.assocs[[child]]
+      current.assocs <- new.assocs
+    }
     
     c.a.df <- as.data.frame(table(child.assocs.vector), stringsAsFactors=F )
     
@@ -186,8 +352,8 @@ classify.down <- function(node, tree, tip.assocs, patient.mrcas, blacklist, rege
     }
   }
   
-  new.assocs[[node]] <<- result
-  return(result)
+  current.assocs[[node]] <- result
+  return(current.assocs)
 }
 
 # "Star runs" are sequences of ancestors that are assigned "*" by the RS classification. Once the

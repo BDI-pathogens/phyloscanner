@@ -36,7 +36,7 @@ if (command.line) {
   blacklist.file.names <- args$blacklists  
   output.root <- args$outputBaseName
   
-  cat(paste(id.file, script.dir, files.are.lists, root.name, tip.regex, tree.file.names, splits.file.names, blacklist.file.names, output.root, sep='\n'))
+#  cat(paste(id.file, script.dir, files.are.lists, root.name, tip.regex, tree.file.names, splits.file.names, blacklist.file.names, output.root, sep='\n'))
   
   if(!files.are.lists){
 	  tree.files <- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))
@@ -73,7 +73,7 @@ if (command.line) {
     windows <- NULL
   }
 } else {
-  setwd("/Users/twoseventwo/Documents/Work/Olli/")
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
   id.file <- "ptyr115_patients.txt"
   root.name<- "REF_CPX_AF460972_read_1_count_0"
@@ -102,14 +102,14 @@ if (command.line) {
   if(0)
   {
 	  script.dir	<- "/Users/Oliver/git/phylotypes/tools"
-	  id.file 		<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_patients.txt"
+	  id.file 		<- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/ss_c_plots.pdf"
 	  root.name		<- "REF_CPX_AF460972_read_1_count_0"
 	  tip.regex 	<- "^(.*)_read_([0-9]+)_count_([0-9]+)$"	  
 	  tree.file.names		<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_'
 	  splits.file.names		<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_'
 	  blacklist.file.names	<- NULL
 	  tree.files 		<- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))
-	  splits.files 		<- sort(list.files(dirname(splits.file.names), pattern=paste(basename(splits.file.names),".*_subtrees_[a-z]\\.csv",sep=""), full.names=TRUE))
+	  splits.files 		<- sort(list.files(dirname(splits.file.names), pattern=paste(basename(splits.file.names),".*\\.csv",sep=""), full.names=TRUE))
 	  blacklist.files 	<- NULL
 	  output.root 		<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115"
 	  windows <- NULL	  
