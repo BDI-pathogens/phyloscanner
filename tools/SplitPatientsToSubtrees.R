@@ -57,7 +57,7 @@ if(command.line){
   mode <- "r"
   if(0)
   {
-	  script.dir		<- '/Users/Oliver/git/phylotypes'
+	  script.dir		<- '/Users/Oliver/git/phylotypes/tools'
 	  file.name 		<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_InWindow_800_to_1049.tree'
 	  blacklist.file	<- NULL
 	  #blacklist.file <- "FullBlacklist_InWindow_6800_to_7150.csv"
@@ -369,13 +369,14 @@ if(mode=="c"){
   temp.ca.pat <- sapply(temp.ca, function(x) unlist(strsplit(x, "-S"))[1] )
   names(temp.ca.pat) <- NULL
   temp.ca.pat <- factor(temp.ca.pat, levels = sample(levels(as.factor(temp.ca.pat))))
+  attr(tree, 'INDIVIDUAL') <- temp.ca.pat
+  attr(tree, 'NODE_SHAPES') <- node.shapes
   
-  tree.display <- ggtree(tree, aes(color=temp.ca.pat)) +
-    geom_point2(shape = 16, size=3, aes(subset=node.shapes)) +
-    scale_fill_hue(na.value = "black") +
-    scale_color_hue(na.value = "black") +
-    theme(legend.position="none") +
-    geom_tiplab(aes(col = temp.ca.pat))
+  tree.display <- ggtree(tree, aes(color=INDIVIDUAL)) +
+		  geom_point2(shape = 16, size=3, aes(subset=NODE_SHAPES)) +
+		  scale_fill_hue(na.value = "black") +
+		  scale_color_hue(na.value = "black") +
+		  theme(legend.position="none")
   
   tree.display
   
@@ -400,6 +401,6 @@ if(mode=="c"){
   rs.file.name <- file.path(dirname(out.root),paste(basename(out.root),'subtrees_',mode,'.csv',sep=''))
   write.csv(rs.subtrees, rs.file.name, row.names = F, quote=F)
   rs.file.name <- file.path(dirname(out.root),paste(basename(out.root),'subtrees_',mode,'.rda',sep=''))
-  save(rs.subtrees, tree, tree.display, file=rs.file.name)
+  save(rs.subtrees, tree, file=rs.file.name)
 }
   
