@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-command.line <- T
+command.line <- F
 
 list.of.packages <- c("phangorn", "argparse", "phytools")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -40,12 +40,12 @@ if(command.line){
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
   tree.file.names <- "RAxML_bestTree.InWindow_2550_to_2900.tree"
-  splits.file.names <- "Subtrees_r_run20160517_inWindow_2550_to_2900.csv"
+  splits.file.names <- "Subtrees_c_run20160517_inWindow_2550_to_2900.csv"
   output.name <- "LikelyTransmissions.InWindow_2550_to_2900.csv"
   root.name <- "C.BW.00.00BW07621.AF443088"
   split.threshold <- 0.08
   zero.length.tips.count <- F
-  romero.severson <- T
+  romero.severson <- F
   tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
   if(0)
   {
@@ -104,118 +104,23 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	  
 	  patient.mrcas <- lapply(patient.tips, function(node) mrca.phylo.or.unique.tip(tree, node, zero.length.tips.count))
 	  
-	  tip.assocs.pats <- lapply(tree$tip.label, function(x) if(x %in% splits$tip.names) return(splits$orig.patients[which(splits$tip.names==x)]) else return("*"))
+	  # custom blacklist
+	  
+	  blacklist <- which(!(tree$tip.label %in% splits$tip.names))
 	  
 	  #
 	  #	TODO: a bit of a hack to make new.assocs global, 
 	  #	would be nice to return updates to new.assocs in functions below so this hack is not needed 
 	  #
-	  new.assocs <<- list()
-	  
-	  classify.down(getRoot(tree), tree, tip.assocs.pats, patient.mrcas, vector(), tip.regex)
-	  
-	  cat("Filling in stars...\n")
-	  
-	  star.runs <- get.star.runs(tree, new.assocs)
-	  
-	  star.bottoms <- which(lengths(star.runs)>0)
-	  
-	  resolved.assocs <- new.assocs
-	  
-	  for(bottom in star.bottoms){
-	    child.assocs <- unlist(new.assocs[Children(tree, bottom)])
-	    c.a.df <- as.data.frame(table(child.assocs), stringsAsFactors=F)
-	    c.a.df <- c.a.df[which(c.a.df[,1]!="*"),]
-	    winners <- c.a.df[which(c.a.df[,2]==max(c.a.df[,2])),]
-	    possibilities <- winners[,1]
-	    
-	    last.in.chain <- star.runs[[bottom]][length(star.runs[[bottom]])]
-	    parent.lic <- Ancestors(tree, last.in.chain, type="parent")
-	    if(parent.lic!=0){
-	      parental.assoc <- new.assocs[[parent.lic]]
-	      if(parental.assoc %in% possibilities){
-	        
-	        resolved.assocs[star.runs[[bottom]]] <- parental.assoc
-	      } 
-	    }
-	  }
-	  
-	  #Now the splits. A new split is where you encounter a node with a different association to its parent
-	  
-	  cat("Identifying split patients...\n")
-	  
-	  splits.count <- rep(0, length(patients))
-	  first.nodes <- list()
-	  
-	  splits <- count.splits(tree, getRoot(tree), resolved.assocs, patients, splits.count, first.nodes)
-	  
-	  counts.by.patient <- splits$counts
-	  first.nodes.by.patients <- splits$first.nodes
-	  
-	  patients.copy <- patients
-	  patient.tips.copy <- patient.tips
-	  
-	  split.assocs <- resolved.assocs
-	  
-	  splits.for.patients <- list()
-	  patients.for.splits <- list()
-	  
-	  #find the splits and reannotate the tree
-	  
-	  for(pat.no in seq(1, length(patients))){
-	    patient <- patients[pat.no]
-	    no.splits <- counts.by.patient[pat.no]
-	    if(no.splits > 1){
-	      splits.for.patients[[patient]] <- paste(patient,"-S",seq(1, no.splits),sep="")
-	    } else {
-	      splits.for.patients[[patient]] <- patient
-	    }
-	    for(split.id in splits.for.patients[[patient]]){
-	      patients.for.splits[[split.id]] <- patient
-	    }
-	    
-	    if(no.splits>1){
-	      pat.tips <- patient.tips[[patient]]
-	      patient.tips.copy[[patient]] <- NULL
-	      patients.copy <- patients.copy[which(patients.copy!=patient)]
-	      patients.copy <- c(patients.copy, paste(patient,"-S",seq(1, no.splits),sep=""))
-	      
-	      for(tip in pat.tips){
-	        # go up until you find one of the first nodes
-	        current.node <- tip
-	        subtree.roots <- first.nodes.by.patients[[patient]]
-	        while(!(current.node %in% subtree.roots)){
-	          if(current.node == 0){
-	            stop("Reached the root?!")
-	          }
-	          current.node <- Ancestors(tree, current.node, type="parent")
-	        }
-	        split.index <- which(subtree.roots == current.node)
-	        new.name <- paste(patient,"-S", split.index, sep="")
-	        
-	        current.node <- tip
-	        split.assocs[[subtree.roots[split.index]]] <- new.name
-	        
-	        while(current.node != subtree.roots[split.index]){
-	          if(current.node == 0){
-	            stop("Reached the root?!")
-	          }
-	          split.assocs[[current.node]] <- new.name
-	          current.node <- Ancestors(tree, current.node, type="parent")
-	        }
-	        
-	        
-	        patient.tips.copy[[new.name]] <- c(patient.tips.copy[[new.name]], tip)
-	      }
-	    }
-	  }
-	  
-	  split.ids <- patients.copy
+
+	  classification <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, "r")
+
+	  split.ids <- classification$split.patients
 	  
 	  was.split <- unique(patients[!(patients %in% patients.copy)])
 	  
-	  split.tips <- patient.tips.copy
-	  assocs <- split.assocs
+	  split.tips <- classification$split.tips
+	  assocs <- classification$assocs
 	  
 	} else {
 	  cat("Collecting tips for each split...\n")
@@ -378,7 +283,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	          } else if(patients.for.splits[[current.node]]==pat.2.id){
 	            direct.descendant.matrix[pat.1, pat.2] <- "intDesc"
 	          } else {
-	            stop("Huh?")
+	            stop("Classification failure (email the authors)")
 	          }
 	        }
 	      }
