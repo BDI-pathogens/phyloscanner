@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-command.line <- F
+command.line <- TRUE
 
 list.of.packages <- c("phangorn", "argparse", "phytools")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -77,8 +77,7 @@ source(file.path(script.dir, "SubtreeMethods.R"))
 #	define internal functions
 #
 likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, split.threshold, romero.severson, zero.length.tips.count)
-{
-	
+{	
 	cat("Opening file: ", tree.file.name, "...\n", sep = "")
 	
 	tree <-read.tree(tree.file.name)
@@ -88,7 +87,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	
 	tree <- di2multi(tree, tol = 1E-5)
 	
-	cat("Reading splits file...\n")
+	cat("Reading splits file",splits.file.name,"...\n")
 	
 	splits <- read.csv(splits.file.name, stringsAsFactors = F)
 	
@@ -335,7 +334,7 @@ if(inherits(can.read.tree, "try-error"))
 {
 	#	if 'tree.file.names' is not tree, process multiple trees
 	tree.file.names		<- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),'.*\\.tree$',sep=''), full.names=TRUE))
-	splits.file.names	<- sort(list.files(dirname(splits.file.names), pattern=paste(basename(splits.file.names),'.*subtrees_[a-z].csv$',sep=''), full.names=TRUE))
+	splits.file.names	<- sort(list.files(dirname(splits.file.names), pattern=paste(basename(splits.file.names),'.*\\.csv$',sep=''), full.names=TRUE))	
 	stopifnot(length(tree.file.names)==length(splits.file.names))
 	for(tree.i in seq_along(tree.file.names))
 	{
