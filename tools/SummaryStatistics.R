@@ -241,8 +241,9 @@ branch.to.pat.ratio.col <- vector()
 nuc.div.v.pat.col <- vector()
 
 read.proportions <- list()
-
 max.splits <- 0
+prefix.wfrom <- 'Window_'
+prefix.wto <- 'Window_[0-9]+_to_'
 
 for(window.no in seq(1, length(tree.files))){
 
@@ -256,10 +257,9 @@ for(window.no in seq(1, length(tree.files))){
     start <- as.numeric(unlist(strsplit(window, "-"))[1])
     end <- as.numeric(unlist(strsplit(window, "-"))[2])
     middle <- (start+end)/2
-  } else {
-    split.name <- strsplit(tree.file.name, "[_\\.]")[[1]]
-    start <- as.numeric(split.name[length(split.name)-3])
-    end <- as.numeric(split.name[length(split.name)-1])
+  } else {    
+	start <- as.integer(gsub(prefix.wfrom,'',regmatches(tree.file.name, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),tree.file.name))))
+	end <- as.integer(gsub(prefix.wto,'',regmatches(tree.file.name, regexpr(paste(prefix.wto,'[0-9]+',sep=''),tree.file.name))))
     middle <- (start+end)/2
   }
   
