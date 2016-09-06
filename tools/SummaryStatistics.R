@@ -1,10 +1,12 @@
 #!/usr/bin/env Rscript
 
+#	install missing packages
 list.of.packages <- c("argparse",
                       "phytools", 
                       "dplyr", 
                       "ggplot2", 
                       "reshape", 
+					  "data.table",
                       "gtable", 
                       "grid", 
                       "gridExtra", 
@@ -13,9 +15,28 @@ list.of.packages <- c("argparse",
                       "pegas")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
-
+#	load packages
+require(phytools)
+require(dplyr)
+require(ggplot2)
+require(reshape)
+require(gtable)
+require(grid)
+require(gridExtra)
+require(RColorBrewer)
+require(scales)
+require(pegas)
+require(data.table)
+#
+#	constants
+#
+prefix.wfrom 		<- 'Window_'
+prefix.wto 			<- 'Window_[0-9]+_to_'
+prefix.bootstrap	<- 'bootstrap_'
+#
+#	command line
+#
 command.line <- T
-
 if (command.line) {
   require(argparse)
   
@@ -73,7 +94,27 @@ if (command.line) {
 	  print(splits.files)
 	  stop("Number of tree files and number of splits files differ")
   }
-  if(length(tree.files)!=length(sequence.files)){
+  #	OR: try expand fasta files if bootstrap trees
+  # this is a temporary hack, but I need to get these runs processed ..
+  if(length(tree.files)!=length(sequence.files) & any(grepl('bootstrap', tree.files)))
+  {
+	df	<- data.table(TF= tree.files)
+	df[, PTY_RUN:= df[,as.integer(gsub('ptyr','',regmatches(TF, regexpr(paste('ptyr','[0-9]+',sep=''),TF))))]]
+	df[, W_FROM:= df[,as.integer(gsub(prefix.wfrom,'',regmatches(TF, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),TF))))]]
+	df[, W_TO:= df[, as.integer(gsub(prefix.wto,'',regmatches(TF, regexpr(paste(prefix.wto,'[0-9]+',sep=''),TF))))]]	
+	df[, BS:= NA_integer_]
+	tmp	<- df[, which(grepl(prefix.bootstrap, TF))]				
+	set(df, tmp, 'BS', df[tmp, as.integer(gsub(prefix.bootstrap,'',regmatches(TF, regexpr(paste(prefix.bootstrap,'[0-9]+',sep=''),TF))))])	
+	df2	<- data.table(SF= sequence.files)
+	df2[, PTY_RUN:= df2[,as.integer(gsub('ptyr','',regmatches(SF, regexpr(paste('ptyr','[0-9]+',sep=''),SF))))]]
+	df2[, W_FROM:= df2[,as.integer(gsub(prefix.wfrom,'',regmatches(SF, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),SF))))]]
+	df2[, W_TO:= df2[, as.integer(gsub(prefix.wto,'',regmatches(SF, regexpr(paste(prefix.wto,'[0-9]+',sep=''),SF))))]]	
+	df	<- merge(df, df2, by=c('PTY_RUN','W_FROM','W_TO'))
+	setkey(df, PTY_RUN, W_FROM, W_TO, BS)
+	tree.files	<- df[, TF]
+	sequence.files <- df[, SF]	
+  }  
+  if(length(tree.files)!=length(sequence.files)){	  
     stop("Number of tree files and number of sequence files differ")
   }
   
@@ -125,27 +166,18 @@ if (command.line) {
 	  id.file 		<- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/ss_c_plots.pdf"
 	  root.name		<- "REF_CPX_AF460972_read_1_count_0"
 	  tip.regex 	<- "^(.*)_read_([0-9]+)_count_([0-9]+)$"	  
-	  tree.file.names		<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_'
+	  tree.file.names		<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput_160902_w250/ptyr22_InWindow_'
+	  sequence.file.names	<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput_160902_w250/ptyr22_InWindow_'
 	  splits.file.names		<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_'
 	  blacklist.file.names	<- NULL
 	  tree.files 		<- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))
+	  sequence.files 	<- sort(list.files(dirname(sequence.file.names), pattern=paste(basename(sequence.file.names),".*\\.fasta",sep=""), full.names=TRUE))
 	  splits.files 		<- sort(list.files(dirname(splits.file.names), pattern=paste(basename(splits.file.names),".*\\.csv",sep=""), full.names=TRUE))
 	  blacklist.files 	<- NULL
 	  output.root 		<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115"
 	  windows <- NULL	  
   }
 }
-
-require(phytools)
-require(dplyr)
-require(ggplot2)
-require(reshape)
-require(gtable)
-require(grid)
-require(gridExtra)
-require(RColorBrewer)
-require(scales)
-require(pegas)
 
 source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
 source(file.path(script.dir, "SummariseTrees_funcs.R"))
@@ -242,8 +274,6 @@ nuc.div.v.pat.col <- vector()
 
 read.proportions <- list()
 max.splits <- 0
-prefix.wfrom <- 'Window_'
-prefix.wto <- 'Window_[0-9]+_to_'
 
 for(window.no in seq(1, length(tree.files))){
 
