@@ -19,6 +19,7 @@ if (command.line) {
   arg_parser$add_argument("-w", "--windows", action="store", help="The window in the genome which each tree file, in the same order as the tree files (user-specified if -l is present, in the order provided by the file system if now), is constructed from. In each window this is given as n-m where n is the start and m the end; coordinates for each window are separated by a colon. If not given, the script will attempt to obtain these from the file names.")
   arg_parser$add_argument("idFile", action="store", help="A file containing a list of the IDs of all the patients to calcualte and display statistics for.")
   arg_parser$add_argument("treeFiles", action="store", help="Either (if -l is present) a list of tree files, separated by colons, or (if not) a single string that begins every tree file name.")
+  arg_parser$add_argument("sequenceFiles", action="store", help="Either (if -l is present) a list of sequence files, separated by colons, or (if not) a single string that begins every tree file name.")
   arg_parser$add_argument("splitsFiles", action="store",help="Either (if -l is present) a list of splits files, in the same order as the tree files and separated by colons, or (if not) a single string that begins every splits file name.")
   arg_parser$add_argument("outputBaseName", action="store", help="A string to begin the names of all output files.")
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
@@ -32,6 +33,7 @@ if (command.line) {
   root.name <- args$outgroupName
   tip.regex <- args$tipRegex
   tree.file.names <- args$treeFiles
+  sequence.file.names <- args$sequenceFiles
   splits.file.names <- args$splitsFiles
   blacklist.file.names <- args$blacklists  
   output.root <- args$outputBaseName
@@ -41,6 +43,7 @@ if (command.line) {
   if(!files.are.lists){
 	  tree.files <- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))
 	  splits.files <- sort(list.files(dirname(splits.file.names), pattern=paste(basename(splits.file.names),".*\\.csv",sep=""), full.names=TRUE))
+	  sequence.files <- sort(list.files(dirname(splits.file.names), pattern=paste(basename(sequence.file.names),".*\\.fasta",sep=""), full.names=TRUE))
 	  blacklist.files <- NULL
 	  if(!is.null(blacklist.file.names)){
 		  blacklist.files <- sort(list.files(dirname(blacklist.file.names), pattern=paste(basename(blacklist.file.names),".*\\.csv",sep=""), full.names=TRUE))
@@ -48,6 +51,7 @@ if (command.line) {
   } else {
 	  tree.files <- unlist(strsplit(tree.file.names, ":"))
 	  splits.files <- unlist(strsplit(splits.file.names, ":"))
+	  sequence.files <- unlist(strsplit(splits.file.names, ":"))
 	  blacklist.files <- NULL
 	  if(!is.null(blacklist.file.names)){
 		  blacklist.files <- unlist(strsplit(blacklist.file.names, ":"))
@@ -56,6 +60,9 @@ if (command.line) {
   
   if(length(tree.files)!=length(splits.files)){
 	  stop("Number of tree files and number of splits files differ")
+  }
+  if(length(tree.files)!=length(sequence.files)){
+    stop("Number of tree files and number of sequence files differ")
   }
   
   if(!is.null(blacklist.file.names)){
@@ -80,8 +87,9 @@ if (command.line) {
   tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
   tree.files <- sort(list.files(getwd(), pattern="RAxML_bestTree.InWindow_.*\\.tree"))
   splits.files <- sort(list.files(getwd(), pattern="Subtrees_r_run20160517_inWindow_.*\\.csv"))
+  sequence.files <- sort(list.files(getwd(), pattern="AlignedReads_PositionsExcised_.*\\.fasta"))
   blacklist.files <- sort(list.files(getwd(), pattern="FullBlacklist_InWindow_.*\\.csv"))
-  output.root <- "ss_c"
+  output.root <- "ss_c_new"
   windows <- NULL
 
 #  if(0)
@@ -125,6 +133,7 @@ require(grid)
 require(gridExtra)
 require(RColorBrewer)
 require(scales)
+require(pegas)
 
 source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
 source(file.path(script.dir, "SummariseTrees_funcs.R"))
@@ -216,6 +225,8 @@ largest.rtt.col <- vector()
 mean.pat.dist.col <- vector()
 largest.pat.dist.col <- vector()
 longest.branch.col <- vector()
+branch.to.pat.ratio.col <- vector()
+nuc.div.v.pat.col <- vector()
 
 read.proportions <- list()
 
@@ -226,6 +237,7 @@ for(window.no in seq(1, length(tree.files))){
   tree.file.name <- tree.files[window.no]
   blacklist.file.name <- blacklist.files[window.no]
   splits.file.name <- splits.files[window.no]
+  sequence.file.name <- sequence.files[window.no]
   
   if(!is.null(windows)){
     window <- windows[window.no]
@@ -242,6 +254,7 @@ for(window.no in seq(1, length(tree.files))){
   # Read the tree
   
   tree <- read.tree(file=tree.file.name)
+  sequences <- read.dna(file=sequence.file.name, format="fasta")
   
   # Root the tree
   if(!is.null(root.name)){
@@ -350,15 +363,29 @@ for(window.no in seq(1, length(tree.files))){
       
       pat.distances <- cophenetic(subtree.all)
       max.pat.distance <- max(pat.distances)
+      mean.pat.dist.all <- mean(pat.distances)
+      
+      pat.sequences <- sequences[which(labels(sequences) %in% all.tips),]
+      
+      nuc.div <- nuc.div(pat.sequences)
+      
+      nuc.div.v.pat <- nuc.div/mean.pat.dist.all
+      
+      branch.to.pat.ratio <- max.branch.length/max.pat.distance
       
     } else {
       overall.rtt <- 0
-      patristic.variance <- NA
+      max.branch.length <- 0
+      max.pat.distance <- 0
+      branch.to.pat.ratio <- NA
+      nuc.div.v.pat <- NA
     }
     
     overall.rtt.col <- c(overall.rtt.col, overall.rtt)
     largest.pat.dist.col <- c(largest.pat.dist.col, max.pat.distance)
     longest.branch.col <- c(longest.branch.col, max.branch.length)
+    branch.to.pat.ratio.col <- c(branch.to.pat.ratio.col, branch.to.pat.ratio)
+    nuc.div.v.pat.col <- c(nuc.div.v.pat.col, nuc.div.v.pat)
     
     if(num.subtrees <= 1){
       largest.rtt <- overall.rtt
@@ -429,7 +456,8 @@ pat.stats <- data.frame(window.start = window.start.col, window.middle = window.
                         window.end = window.end.col, patient = ids.col, leaves = leaves.col, 
                         reads = reads.col, subtrees = subtrees.counts.col, clades = clades.counts.col,
                         overall.rtt = overall.rtt.col, largest.rtt = largest.rtt.col, mean.pat.dist = mean.pat.dist.col,
-                        largest.pat.dist = largest.pat.dist.col, longest.branch = longest.branch.col)
+                        largest.pat.dist = largest.pat.dist.col, longest.branch = longest.branch.col, 
+                        branch.to.pat.ratio = branch.to.pat.ratio.col, nuc.div.v.pat = nuc.div.v.pat.col)
 
 first <- T
 for(split in seq(1, max.splits)){
@@ -464,7 +492,8 @@ write.csv(pat.stats, file.path(paste(output.root,"_patStatsFull.csv",sep="")), q
 mean.na.rm <- function(x) mean(x, na.rm = T)
 
 pat.stats.temp <- pat.stats[which(pat.stats$reads>0) ,c("patient","leaves","reads","subtrees","clades","overall.rtt","largest.rtt",
-                                                        "largest.pat.dist","prop.reads.largest.subtree","longest.branch","mean.pat.dist")]
+                                                        "largest.pat.dist","prop.reads.largest.subtree","longest.branch","mean.pat.dist",
+                                                        "branch.to.pat.ratio", "nuc.div.v.pat")]
 
 by.patient <- pat.stats.temp %>% group_by(patient)
 pat.stats.summary <-
@@ -612,26 +641,41 @@ for (i in seq(1, length(ids))) {
     
     graph.5 <- add.no.data.rectangles(graph.5, rectangles)
     
-    this.pat.stats.1col <- melt(this.pat.stats.temp[c("window.middle","patient","longest.branch","largest.pat.dist")], id=c("window.middle","patient"))
+#    this.pat.stats.1col <- melt(this.pat.stats.temp[c("window.middle","patient","longest.branch","largest.pat.dist")], id=c("window.middle","patient"))
     
-    graph.6 <- ggplot(this.pat.stats.1col, aes(x=window.middle, y=value, col=variable))
+    graph.6 <- ggplot(this.pat.stats.temp, aes(x=window.middle, y=branch.to.pat.ratio))
     
     graph.6 <- graph.6 +
+      geom_point(alpha = 0.5) +
       theme_bw() + 
-      ylab("Patristic distance") +
+      ylab("Ratio of longest branch to greatest\n patristic distance between tips") +
       xlab("Window centre") +
       scale_x_continuous(limits=c(ews, lwe)) +
       expand_limits(y=0) +
-      scale_color_discrete(name="Tip set", labels=c("Longest branch", "Greatest patristic distance")) + 
+#      scale_color_discrete(name="Tip set", labels=c("Longest branch", "Greatest patristic distance")) + 
       theme(text = element_text(size=8))
     
     graph.6 <- add.no.data.rectangles(graph.6, rectangles)
     
+    graph.7 <- ggplot(this.pat.stats.temp, aes(x=window.middle, y=nuc.div.v.pat))
+    
+    graph.7 <- graph.7 +
+      geom_point(alpha = 0.5) +
+      theme_bw() + 
+      ylab("Ratio of mean nucleotide diversity to\n mean patristic distance") +
+      xlab("Window centre") +
+      scale_x_continuous(limits=c(ews, lwe)) +
+      expand_limits(y=0) +
+      #      scale_color_discrete(name="Tip set", labels=c("Longest branch", "Greatest patristic distance")) + 
+      theme(text = element_text(size=8))
+    
+    graph.7 <- add.no.data.rectangles(graph.7, rectangles)
+    
     plots1 <- list()
     plots1$main <- textGrob(patient,gp=gpar(fontsize=20))
-    plots1 <- c(plots1, AlignPlots(graph.1, graph.2, graph.3, graph.4, graph.5, graph.6))
+    plots1 <- c(plots1, AlignPlots(graph.1, graph.2, graph.3, graph.4, graph.5, graph.6, graph.7))
     plots1$ncol <- 1
-    plots1$heights <- unit(c(0.25, rep(1,6)), "null")
+    plots1$heights <- unit(c(0.25, rep(1,7)), "null")
     
     do.call(grid.arrange, plots1)
     
