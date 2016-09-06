@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-command.line <- TRUE
+command.line <- T
 
 list.of.packages <- c("phangorn", "argparse", "phytools")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -96,8 +96,12 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	patients <- unique(splits$orig.patients)
 	patient.tips <- lapply(patients, function(x) which(tree$tip.label %in% splits[which(splits$orig.patients==x), "tip.names"]))
 	names(patient.tips) <- patients
-	
+	all.splits <- unique(splits$patient.splits)
 	if(romero.severson){
+	  
+	  # The reason the procedure is repeated is that the RS classification for internal nodes cannot simply be determined 
+	  # from the set of tips in each subtree (unlike the conservative classification). While it would be possible to export 
+	  # annotations in SplitPatientsToSubtrees.R, the concern is over anything that might renumber the tree nodes.
 	  
 	  # Really the only reason to load the splits in is to avoid needing the blacklist yet again. Maybe rethink this.
 	  
@@ -107,16 +111,11 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	  
 	  blacklist <- which(!(tree$tip.label %in% splits$tip.names))
 	  
-	  #
-	  #	TODO: a bit of a hack to make new.assocs global, 
-	  #	would be nice to return updates to new.assocs in functions below so this hack is not needed 
-	  #
-
 	  classification <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, "r")
 
 	  split.ids <- classification$split.patients
 	  
-	  was.split <- unique(patients[!(patients %in% patients.copy)])
+	  was.split <- unique(patients[!(patients %in% split.ids)])
 	  
 	  split.tips <- classification$split.tips
 	  assocs <- classification$assocs
@@ -124,7 +123,6 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	} else {
 	  cat("Collecting tips for each split...\n")
 	  
-	  all.splits <- unique(splits$patient.splits)
 	  split.tips <- lapply(all.splits, function(x) which(tree$tip.label %in% splits[which(splits$patient.splits==x), "tip.names"]))
 	  names(split.tips) <- all.splits
 	  
@@ -134,17 +132,17 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	  
 	  node.assocs <- annotate.internal(tree, all.splits, split.tips, split.mrcas)
 	  
-	  splits.for.patients <- lapply(patients, function(x) unique(splits$patient.splits[which(splits$orig.patients==x)] ))
-	  names(splits.for.patients) <- patients
-	  
-	  patients.for.splits <- lapply(all.splits, function(x) unique(splits$orig.patients[which(splits$patient.splits==x)] ))
-	  names(patients.for.splits) <- all.splits
-	  
 	  was.split <- unique(splits$orig.patients[which(splits$orig.patients!=splits$patient.splits)])
 	  
 	  assocs <- node.assocs$details
 	  
 	}
+	
+	splits.for.patients <- lapply(patients, function(x) unique(splits$patient.splits[which(splits$orig.patients==x)] ))
+	names(splits.for.patients) <- patients
+	
+	patients.for.splits <- lapply(all.splits, function(x) unique(splits$orig.patients[which(splits$patient.splits==x)] ))
+	names(patients.for.splits) <- all.splits
 	
 	# get rid of what look like dual infections
 	
