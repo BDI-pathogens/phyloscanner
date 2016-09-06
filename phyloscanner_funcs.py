@@ -226,12 +226,13 @@ class PseudoRead:
           RightEdgePositionInRead -= 1
         assert LeftEdgePositionInRead <= RightEdgePositionInRead
       except (IndexError, AssertionError):
-        print('Unexpected behaviour for read', read.name+', which',\
+        print('Unexpected behaviour for read', self.name+', which',\
         'maps to the following positions in the reference:\n'+ \
         ' '.join(map(str,self.positions)) +'\nUnable to determine ',\
         'where the window edges ('+str(LeftWindowEdge+1), 'and', \
-        str(RightWindowEdge+1)+') are in this read. Quitting.', file=sys.stderr)
-        exit(1)
+        str(RightWindowEdge+1)+') are in this read. Skipping it.', \
+        file=sys.stderr)
+        return None
       SeqToReturn = \
       SeqToReturn[LeftEdgePositionInRead:RightEdgePositionInRead+1]
 
