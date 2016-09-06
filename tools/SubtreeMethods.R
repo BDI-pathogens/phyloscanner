@@ -1,5 +1,5 @@
 split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, method="r"){
-  if(mode == "c"){
+  if(method == "c"){
     cat("Finding nodes that would have to be associated with more than one patient with no splits...\n")
     
     node.assocs <- annotate.internal(tree, patients, patient.tips, patient.mrcas)
@@ -51,7 +51,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     return(list(assocs = node.assocs$details, split.patients = patients.copy, split.tips = patient.tips.copy, 
                 first.nodes = patient.mrcas.copy))
     
-  } else if(mode == "r") {
+  } else if(method == "r") {
     
     cat("Applying the Romero-Severson classification to internal nodes...\n")
     
