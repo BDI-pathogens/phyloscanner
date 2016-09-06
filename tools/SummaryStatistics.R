@@ -670,7 +670,7 @@ for (i in seq(1, length(ids))) {
     graph.7 <- graph.7 +
       geom_point(alpha = 0.5) +
       theme_bw() + 
-      ylab("Ratio of mean nucleotide diversity to\n mean patristic distance") +
+      ylab("Ratio of mean nucleotide diversity\n to mean patristic distance") +
       xlab("Window centre") +
       scale_x_continuous(limits=c(ews, lwe)) +
       expand_limits(y=0) +
