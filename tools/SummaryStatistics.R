@@ -55,6 +55,8 @@ if (command.line) {
   }
   
   if(length(tree.files)!=length(splits.files)){
+	  print(tree.files)
+	  print(splits.files)
 	  stop("Number of tree files and number of splits files differ")
   }
   
@@ -459,7 +461,9 @@ lwe <- max(pat.stats$window.end)
 
 pat.stats$prop.reads.largest.subtree <- splits.props$prop.gp.1
 
-write.csv(pat.stats, file.path(paste(output.root,"_patStatsFull.csv",sep="")), quote = F, row.names = F)
+tmp	<- file.path(paste(output.root,"_patStatsFull.csv",sep=""))
+cat("Writing output to file",tmp,"...\n")
+write.csv(pat.stats, tmp, quote = F, row.names = F)
 
 mean.na.rm <- function(x) mean(x, na.rm = T)
 
@@ -470,9 +474,13 @@ by.patient <- pat.stats.temp %>% group_by(patient)
 pat.stats.summary <-
   as.data.frame(by.patient %>% summarise_each(funs(mean.na.rm)))
 
-write.csv(pat.stats.summary, file.path(paste(output.root,"_patStatsSummary.csv",sep="")), quote = F, row.names = F)
+tmp <- file.path(paste(output.root,"_patStatsSummary.csv",sep=""))
+cat("Writing output to file",tmp,"...\n")
+write.csv(pat.stats.summary, tmp, quote = F, row.names = F)
 
-pdf(paste(output.root,"_plots.pdf",sep=""), width=8.26772, height=11.6929)
+tmp <- paste(output.root,"_patStats.pdf",sep="")
+cat("Plotting to file",tmp,"...\n")
+pdf(file=tmp, width=8.26772, height=11.6929)
 
 for (i in seq(1, length(ids))) {
   
