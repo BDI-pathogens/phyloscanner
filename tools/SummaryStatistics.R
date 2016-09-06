@@ -1,6 +1,16 @@
 #!/usr/bin/env Rscript
 
-list.of.packages <- c("argparse","phytools", "dplyr", "ggplot2", "reshape", "gtable", "grid", "gridExtra", "RColorBrewer", "scales")
+list.of.packages <- c("argparse",
+                      "phytools", 
+                      "dplyr", 
+                      "ggplot2", 
+                      "reshape", 
+                      "gtable", 
+                      "grid", 
+                      "gridExtra", 
+                      "RColorBrewer", 
+                      "scales",
+                      "pegas")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
 
@@ -454,12 +464,21 @@ for(window.no in seq(1, length(tree.files))){
   read.proportions[[window.no]] <- read.proportions.this.window
 }
 
-pat.stats <- data.frame(window.start = window.start.col, window.middle = window.middle.col,
-                        window.end = window.end.col, patient = ids.col, leaves = leaves.col, 
-                        reads = reads.col, subtrees = subtrees.counts.col, clades = clades.counts.col,
-                        overall.rtt = overall.rtt.col, largest.rtt = largest.rtt.col, mean.pat.dist = mean.pat.dist.col,
-                        largest.pat.dist = largest.pat.dist.col, longest.branch = longest.branch.col, 
-                        branch.to.pat.ratio = branch.to.pat.ratio.col, nuc.div.v.pat = nuc.div.v.pat.col)
+pat.stats <- data.frame(window.start = window.start.col, 
+                        window.middle = window.middle.col,
+                        window.end = window.end.col, 
+                        patient = ids.col, 
+                        leaves = leaves.col, 
+                        reads = reads.col, 
+                        subtrees = subtrees.counts.col, 
+                        clades = clades.counts.col,
+                        overall.rtt = overall.rtt.col, 
+                        largest.rtt = largest.rtt.col, 
+                        mean.pat.dist = mean.pat.dist.col,
+                        largest.pat.dist = largest.pat.dist.col, 
+                        longest.branch = longest.branch.col, 
+                        branch.to.pat.ratio = branch.to.pat.ratio.col, 
+                        nuc.div.v.pat = nuc.div.v.pat.col)
 
 first <- T
 for(split in seq(1, max.splits)){
@@ -495,9 +514,19 @@ write.csv(pat.stats, tmp, quote = F, row.names = F)
 
 mean.na.rm <- function(x) mean(x, na.rm = T)
 
-pat.stats.temp <- pat.stats[which(pat.stats$reads>0) ,c("patient","leaves","reads","subtrees","clades","overall.rtt","largest.rtt",
-                                                        "largest.pat.dist","prop.reads.largest.subtree","longest.branch","mean.pat.dist",
-                                                        "branch.to.pat.ratio", "nuc.div.v.pat")]
+pat.stats.temp <- pat.stats[which(pat.stats$reads>0) ,c("patient",
+                                                        "leaves",
+                                                        "reads",
+                                                        "subtrees",
+                                                        "clades",
+                                                        "overall.rtt",
+                                                        "largest.rtt",
+                                                        "largest.pat.dist",
+                                                        "prop.reads.largest.subtree",
+                                                        "longest.branch",
+                                                        "mean.pat.dist",
+                                                        "branch.to.pat.ratio", 
+                                                        "nuc.div.v.pat")]
 
 by.patient <- pat.stats.temp %>% group_by(patient)
 pat.stats.summary <-
@@ -563,7 +592,7 @@ for (i in seq(1, length(ids))) {
       xlab("Window centre") +
       scale_x_continuous(limits=c(ews, lwe)) +
       scale_color_discrete(name="Variable", labels=c("Leaves", "Reads")) + 
-      theme(text = element_text(size=8))
+      theme(text = element_text(size=7))
     
     graph.1 <- add.no.data.rectangles(graph.1, rectangles, TRUE)
     
@@ -583,7 +612,7 @@ for (i in seq(1, length(ids))) {
       scale_shape_manual(values=c(1,19), name="Variable", labels=c("Subtrees", "Clades")) +  
       scale_size_manual(values=c(2,1), name="Variable", labels=c("Subtrees", "Clades")) +		
       scale_color_discrete(name="Variable", labels=c("Subtrees", "Clades")) + 
-      theme(text = element_text(size=8))
+      theme(text = element_text(size=7))
     
     if(max(this.pat.stats.1col$value)==1){
       graph.2 <- graph.2 + scale_y_continuous(breaks = c(0,1))
@@ -610,7 +639,7 @@ for (i in seq(1, length(ids))) {
       scale_color_discrete(name="Tip set", labels=c("All", "Largest subtree")) + 
       scale_shape_manual(values=c(1,19), name="Tip set", labels=c("All", "Largest subtree")) +
       scale_size_manual(values=c(2,1), name="Tip set", labels=c("All", "Largest subtree")) +
-      theme(text = element_text(size=8))
+      theme(text = element_text(size=7))
     
     graph.3 <- add.no.data.rectangles(graph.3, rectangles)
     
@@ -623,7 +652,7 @@ for (i in seq(1, length(ids))) {
       xlab("Window centre") +
       scale_x_continuous(limits=c(ews, lwe)) +
       expand_limits(y=0) +
-      theme(text = element_text(size=8))
+      theme(text = element_text(size=7))
     
     graph.4 <- add.no.data.rectangles(graph.4, rectangles)
     
@@ -644,7 +673,7 @@ for (i in seq(1, length(ids))) {
       xlab("Window centre") +
       scale_x_continuous(limits=c(ews, lwe)) +
       scale_fill_manual(values = rev(getPalette(colourCount))) +
-      theme(text = element_text(size=8)) + 
+      theme(text = element_text(size=7)) + 
       guides(fill = guide_legend(title = "Subtree rank\n(by tip count)", keywidth = 1, keyheight = 0.4))
     
     graph.5 <- add.no.data.rectangles(graph.5, rectangles)
@@ -661,7 +690,7 @@ for (i in seq(1, length(ids))) {
       scale_x_continuous(limits=c(ews, lwe)) +
       expand_limits(y=0) +
 #      scale_color_discrete(name="Tip set", labels=c("Longest branch", "Greatest patristic distance")) + 
-      theme(text = element_text(size=8))
+      theme(text = element_text(size=7))
     
     graph.6 <- add.no.data.rectangles(graph.6, rectangles)
     
@@ -675,7 +704,7 @@ for (i in seq(1, length(ids))) {
       scale_x_continuous(limits=c(ews, lwe)) +
       expand_limits(y=0) +
       #      scale_color_discrete(name="Tip set", labels=c("Longest branch", "Greatest patristic distance")) + 
-      theme(text = element_text(size=8))
+      theme(text = element_text(size=7))
     
     graph.7 <- add.no.data.rectangles(graph.7, rectangles)
     
