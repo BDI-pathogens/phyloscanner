@@ -40,12 +40,12 @@ if(command.line){
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
   tree.file.names <- "RAxML_bestTree.InWindow_2550_to_2900.tree"
-  splits.file.names <- "Subtrees_c_run20160517_inWindow_2550_to_2900.csv"
-  output.name <- "LikelyTransmissions.InWindow_2550_to_2900.csv"
+  splits.file.names <- "Subtrees_r_run20160517_inWindow_2550_to_2900.csv"
+  output.name <- "LikelyTransmissions_r.InWindow_2550_to_2900.csv"
   root.name <- "C.BW.00.00BW07621.AF443088"
   split.threshold <- 0.08
   zero.length.tips.count <- F
-  romero.severson <- F
+  romero.severson <- T
   tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
   if(0)
   {
