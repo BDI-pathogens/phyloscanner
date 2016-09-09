@@ -724,25 +724,11 @@ for (i in seq(1, length(ids))) {
     
     graph.6 <- add.no.data.rectangles(graph.6, rectangles)
     
-    graph.7 <- ggplot(this.pat.stats.temp, aes(x=window.middle, y=nuc.div.v.pat))
-    
-    graph.7 <- graph.7 +
-      geom_point(alpha = 0.5) +
-      theme_bw() + 
-      ylab("Ratio of mean nucleotide diversity\n to mean patristic distance") +
-      xlab("Window centre") +
-      scale_x_continuous(limits=c(ews, lwe)) +
-      expand_limits(y=0) +
-      #      scale_color_discrete(name="Tip set", labels=c("Longest branch", "Greatest patristic distance")) + 
-      theme(text = element_text(size=7))
-    
-    graph.7 <- add.no.data.rectangles(graph.7, rectangles)
-    
     plots1 <- list()
     plots1$main <- textGrob(patient,gp=gpar(fontsize=20))
-    plots1 <- c(plots1, AlignPlots(graph.1, graph.2, graph.3, graph.4, graph.5, graph.6, graph.7))
+    plots1 <- c(plots1, AlignPlots(graph.1, graph.2, graph.3, graph.4, graph.5, graph.6))
     plots1$ncol <- 1
-    plots1$heights <- unit(c(0.25, rep(1,7)), "null")
+    plots1$heights <- unit(c(0.25, rep(1,6)), "null")
     
     do.call(grid.arrange, plots1)
     
