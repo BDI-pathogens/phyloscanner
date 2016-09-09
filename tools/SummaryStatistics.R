@@ -25,7 +25,7 @@ require(grid)
 require(gridExtra)
 require(RColorBrewer)
 require(scales)
-require(pegas)
+#require(pegas)
 require(data.table)
 #
 #	constants
@@ -36,7 +36,7 @@ prefix.bootstrap	<- 'bootstrap_'
 #
 #	command line
 #
-command.line <- T
+command.line <- F
 if (command.line) {
   require(argparse)
   
@@ -270,7 +270,6 @@ mean.pat.dist.col <- vector()
 largest.pat.dist.col <- vector()
 longest.branch.col <- vector()
 branch.to.pat.ratio.col <- vector()
-nuc.div.v.pat.col <- vector()
 
 read.proportions <- list()
 max.splits <- 0
@@ -405,13 +404,13 @@ for(window.no in seq(1, length(tree.files))){
       
       pat.distances <- cophenetic(subtree.all)
       max.pat.distance <- max(pat.distances)
-      mean.pat.dist.all <- mean(pat.distances)
+#      mean.pat.dist.all <- mean(pat.distances)
       
       pat.sequences <- sequences[which(labels(sequences) %in% all.tips),]
       
-      nuc.div <- nuc.div(pat.sequences)
+#      nuc.div <- nuc.div(pat.sequences)
       
-      nuc.div.v.pat <- nuc.div/mean.pat.dist.all
+#      nuc.div.v.pat <- nuc.div/mean.pat.dist.all
       
       branch.to.pat.ratio <- max.branch.length/max.pat.distance
       
@@ -427,7 +426,7 @@ for(window.no in seq(1, length(tree.files))){
     largest.pat.dist.col <- c(largest.pat.dist.col, max.pat.distance)
     longest.branch.col <- c(longest.branch.col, max.branch.length)
     branch.to.pat.ratio.col <- c(branch.to.pat.ratio.col, branch.to.pat.ratio)
-    nuc.div.v.pat.col <- c(nuc.div.v.pat.col, nuc.div.v.pat)
+#    nuc.div.v.pat.col <- c(nuc.div.v.pat.col, nuc.div.v.pat)
     
     if(num.subtrees <= 1){
       largest.rtt <- overall.rtt
