@@ -506,8 +506,8 @@ pat.stats <- data.frame(window.start = window.start.col,
                         mean.pat.dist = mean.pat.dist.col,
                         largest.pat.dist = largest.pat.dist.col, 
                         longest.branch = longest.branch.col, 
-                        branch.to.pat.ratio = branch.to.pat.ratio.col, 
-                        nuc.div.v.pat = nuc.div.v.pat.col)
+                        branch.to.pat.ratio = branch.to.pat.ratio.col) 
+#                        nuc.div.v.pat = nuc.div.v.pat.col)
 
 first <- T
 for(split in seq(1, max.splits)){
@@ -554,8 +554,8 @@ pat.stats.temp <- pat.stats[which(pat.stats$reads>0) ,c("patient",
                                                         "prop.reads.largest.subtree",
                                                         "longest.branch",
                                                         "mean.pat.dist",
-                                                        "branch.to.pat.ratio", 
-                                                        "nuc.div.v.pat")]
+                                                        "branch.to.pat.ratio")] 
+#                                                        "nuc.div.v.pat")]
 
 by.patient <- pat.stats.temp %>% group_by(patient)
 pat.stats.summary <-
