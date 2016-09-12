@@ -16,6 +16,7 @@ if(command.line){
   arg_parser$add_argument("-z", "--zeroLengthTipsCount", action="store_true", default=FALSE, help="If present, a zero length terminal branch associates the patient at the tip with its parent node, interrupting any inferred transmission pathway between another pair of hosts that goes through the node.")
   arg_parser$add_argument("-t", "--dualInfectionThreshold", type="double", help="Length threshold at which a branch of the subtree constructed just from reads from a single patient is considered long enough to indicate a dual infection (such a patient will be ignored, at present). If absent, keep all patients.")
   arg_parser$add_argument("-s", "--romeroSeverson", default=FALSE, action="store_true", help="If present, the Romero-Severson classification will be repeated on tree to annotate internal nodes beyond the MRCAs of each split. Recommended if R-S was used to determine splits.")
+  arg_parser$add_argument("-c", "--collapsedTree", action="store", help="If present, the collapsed tree (in which all adjacent nodes with the same assignment are collapsed to one) is output as a .csv file to the path specified.")
   arg_parser$add_argument("treeFileName", action="store", help="Tree file name. Alternatively, a base name that identifies a group of tree file names can be specified. Tree files are assumed to end in '.tree'.")
   arg_parser$add_argument("splitsFileName", action="store", help="Splits file name. Alternatively, a base name that identifies a group of split file names can be specified. Split files are assumed to end in '_subtree_[a-z].csv'.")
   arg_parser$add_argument("outputFileName", action="store", help="Output file name (.csv format)")
@@ -25,6 +26,7 @@ if(command.line){
   
   tree.file.names <- args$treeFileName
   splits.file.names <- args$splitsFileName
+  collapsed.file.names <- args$collapsedTree
   script.dir <- args$scriptdir
   output.name <- args$outputFileName
   root.name <- args$outgroupName
@@ -76,7 +78,7 @@ source(file.path(script.dir, "SubtreeMethods.R"))
 #
 #	define internal functions
 #
-likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, split.threshold, romero.severson, zero.length.tips.count)
+likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, split.threshold, romero.severson, zero.length.tips.count, tt.file.name = NULL)
 {	
 	cat("Opening file: ", tree.file.name, "...\n", sep = "")
 	
@@ -163,7 +165,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	
 	cat("Collapsing subtrees...\n")
 	
-	tt <- output.trans.tree(tree, assocs)
+	tt <- output.trans.tree(tree, assocs, tt.file.name)
 	
 	cat("Testing pairs\n")
 	
@@ -323,7 +325,7 @@ if(!inherits(can.read.tree, "try-error"))
 	#	if 'tree.file.names' is tree, process just one tree
 	tree.file.name		<- tree.file.names[1]
 	splits.file.name	<- splits.file.names[1]
-	dddf				<- likely.transmissions(tree.file.name, splits.file.name, tip.regex, split.threshold, romero.severson, zero.length.tips.count)
+	dddf				<- likely.transmissions(tree.file.name, splits.file.name, tip.regex, split.threshold, romero.severson, zero.length.tips.count, collapsed.file.names)
 	cat("Write to file",output.name,"...\n")
 	write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE, quote=F)	
 }
@@ -339,7 +341,10 @@ if(inherits(can.read.tree, "try-error"))
 		tree.file.name		<- tree.file.names[tree.i]
 		splits.file.name	<- splits.file.names[tree.i]
 		output.name			<- gsub('\\.tree','_LikelyTransmissions.csv', tree.file.name)
-		dddf				<- likely.transmissions(tree.file.name, splits.file.name, tip.regex, split.threshold, romero.severson, zero.length.tips.count)
+		if(!is.na(collapsed.file.names)){
+		  collapsed.file.name	<- gsub('\\.tree','_collapsed.csv', tree.file.name)
+		}
+		dddf				<- likely.transmissions(tree.file.name, splits.file.name, tip.regex, split.threshold, romero.severson, zero.length.tips.count, collapsed.file.name)
 		cat("Write to file",output.name,"...\n")
 		write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE, quote=F)
 	}
