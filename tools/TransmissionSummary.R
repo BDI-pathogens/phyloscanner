@@ -12,8 +12,9 @@ if(command.line){
   
   arg_parser$add_argument("-l", "--filesAreLists", action="store_true", default=FALSE, help="If present, arguments specifying input files will be parsed as lists of files separated by colons. If absent, they will be parsed as a string which each file of that type begins with.")
   arg_parser$add_argument("-s", "--summaryFile", action="store", help="The full output file from SummaryStatistics.R; necessary only to identify windows in which no reads are present from each patient. If absent, window counts will be given without denominators.")
-  arg_parser$add_argument("-m", "--minThreshold", action="store", type="integer", help="Relationships between two patients will only appear in output if a transmission chain between them appears in at least these many windows (default 1). High numbers are useful for drawing figures in e.g. Cytoscape with few enough arrows to be comprehensible. The script is extremely slow if this is set to 0.")
+  arg_parser$add_argument("-m", "--minThreshold", action="store", default=1, type="integer", help="Relationships between two patients will only appear in output if a transmission chain between them appears in at least these many windows (default 1). High numbers are useful for drawing figures in e.g. Cytoscape with few enough arrows to be comprehensible. The script is extremely slow if this is set to 0.")
   arg_parser$add_argument("-p", "--allowSplits", action="store_true", default=FALSE, help="If absent, directionality is only inferred between pairs of patients whose reads are not split; this is more conservative.")
+  arg_parser$add_argument("-d", "--detailedOutput", action="store", help="If present, a file describing the relationships between each pair of patients on each window will be written to the specified path in .csv format")
   arg_parser$add_argument("idFile", action="store", help="A file containing a list of the IDs of all the patients to calculate and display statistics for.")
   arg_parser$add_argument("inputFiles", action="store", help="Either (if -l is present) a list of all input files (output from LikelyTransmissions.R), separated by colons, or (if not) a single string that begins every input file name.")
   arg_parser$add_argument("outputFile", action="store", help="A .csv file to write the output to.")
@@ -27,6 +28,7 @@ if(command.line){
   output.file <- args$outputFile
   script.dir <- args$scriptdir  
   min.threshold <- args$minThreshold
+  detailed.output <- args$detailed
   if(is.null(min.threshold)){
     split.threshold <- 1L
   }
@@ -35,7 +37,8 @@ if(command.line){
   
   	
   if(!files.are.lists){
-    input.files <- sort(list.files(dirname(input.files.name), pattern=paste(basename(input.files.name),".*LikelyTransmissions.csv$",sep=""), full.names=TRUE))
+    
+    input.files <- sort(list.files(dirname(input.files.name), pattern=paste(basename(input.files.name),".*.csv$",sep=""), full.names=TRUE))
   } else {
     input.files <- unlist(strsplit(input.files.name, ":"))
   }
@@ -45,6 +48,7 @@ if(command.line){
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
   summary.file <- "ss_r_patStatsFull.csv"
   id.file <- "patientIDList.txt"  
+  detailed.output <- "quickout.csv"
   min.threshold <- 0
   allow.splits <- TRUE
   output.file <- "test.csv"  
@@ -211,7 +215,9 @@ window.table <- cbind(relationships.ever.suggested, window.table)
 colnames(window.table) <- c("pat.1", "pat.2", input.files)
 #colnames(out.sib) <- c("pat.1", "pat.2", paste("window.start.",seq(800,9050,by=250), sep=""))
 
-#write.table(out, file="quickout.csv", sep=",", col.names=NA)
+if(!is.null(detailed.output)){
+  write.table(window.table, file=detailed.output, sep=",", col.names=NA)
+}
 #write.table(out.sib, file="quickout_sib.csv", sep=",", col.names=NA)
 
 # out <- read.table("quickout.csv", sep=",", stringsAsFactors = F, header = T)
