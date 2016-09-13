@@ -340,10 +340,8 @@ if(inherits(can.read.tree, "try-error"))
 	{
 		tree.file.name		<- tree.file.names[tree.i]
 		splits.file.name	<- splits.file.names[tree.i]
-		output.name			<- gsub('\\.tree','_LikelyTransmissions.csv', tree.file.name)
-		if(!is.na(collapsed.file.names)){
-		  collapsed.file.name	<- gsub('\\.tree','_collapsed.csv', tree.file.name)
-		}
+		output.name			<- gsub('\\.tree','_LikelyTransmissions.csv', tree.file.name)		
+		collapsed.file.name	<- gsub('\\.tree','_collapsed.csv', tree.file.name)
 		dddf				<- likely.transmissions(tree.file.name, splits.file.name, tip.regex, split.threshold, romero.severson, zero.length.tips.count, collapsed.file.name)
 		cat("Write to file",output.name,"...\n")
 		write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE, quote=F)

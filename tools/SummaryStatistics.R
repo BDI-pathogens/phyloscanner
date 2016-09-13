@@ -36,7 +36,7 @@ prefix.bootstrap	<- 'bootstrap_'
 #
 #	command line
 #
-command.line <- F
+command.line <- TRUE
 if (command.line) {
   require(argparse)
   
