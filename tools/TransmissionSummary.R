@@ -3,7 +3,14 @@
 list.of.packages <- c("prodlim")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
-
+#
+#	constants
+#
+prefix.wfrom 		<- 'Window_'
+prefix.wto 			<- 'Window_[0-9]+_to_'
+#
+#
+#
 command.line <- T
 if(command.line){
   library(argparse)
@@ -38,7 +45,7 @@ if(command.line){
   	
   if(!files.are.lists){
     
-    input.files <- sort(list.files(dirname(input.files.name), pattern=paste(basename(input.files.name),".*.csv$",sep=""), full.names=TRUE))
+    input.files <- sort(list.files(dirname(input.files.name), pattern=paste(basename(input.files.name),".*LikelyTransmissions.csv$",sep=""), full.names=TRUE))
   } else {
     input.files <- unlist(strsplit(input.files.name, ":"))
   }
@@ -61,7 +68,8 @@ if(command.line){
 	input.files.name			<- "/Users/Oliver/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/pty_16-09-13-10-06-21/ptyr22_"
     min.threshold				<- 1
     allow.splits 				<- TRUE
-    output.file 				<- "/Users/Oliver/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/pty_16-09-13-10-06-21/ptyr22_trmStats.csv"  
+    output.file 				<- "/Users/Oliver/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/pty_16-09-13-10-06-21/ptyr22_trmStats.csv"
+	detailed.output				<- "/Users/Oliver/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/pty_16-09-13-10-06-21/ptyr22_trmStatsPerWindow.csv"
     input.files 				<- sort(list.files(dirname(input.files.name), pattern=paste(basename(input.files.name),".*LikelyTransmissions.csv$",sep=''), full.names=TRUE))
   }
 }
@@ -71,6 +79,7 @@ num.windows <- length(input.files)
 library(prodlim)
 library(gdata)
 library(ggplot2)
+require(data.table)
 
 # Get the denominators
 
@@ -212,21 +221,19 @@ for(window in seq(1, num.windows)){
 window.table <- cbind(relationships.ever.suggested, window.table)
 #out.sib <- cbind(transmissions.ever.suggested, out.sib)
 
-colnames(window.table) <- c("pat.1", "pat.2", input.files)
+colnames(window.table) <- c("pat.1", "pat.2", basename(input.files))
 #colnames(out.sib) <- c("pat.1", "pat.2", paste("window.start.",seq(800,9050,by=250), sep=""))
-
-if(!is.null(detailed.output)){
-  write.table(window.table, file=detailed.output, sep=",", col.names=NA)
-}
 #write.table(out.sib, file="quickout_sib.csv", sep=",", col.names=NA)
-
 # out <- read.table("quickout.csv", sep=",", stringsAsFactors = F, header = T)
 # out.sib <- read.table("quickout_sib.csv", sep=",", stringsAsFactors = F, header = T)
 
+
+#
+#	OR: 	I vectorized the code starting here -- hopefulling speeding things up a bit
+#			suggest to remove from here
+#
 cat("Making output table...\n")
-
 first <- TRUE
-
 for(row in seq(1, nrow(window.table))){
   
   row.list <- list()
@@ -317,11 +324,69 @@ for(row in seq(1, nrow(window.table))){
     cat("Written ",row," out of ",nrow(window.table)," rows\n",sep="")
   }
 }
-
 new.out$windows <- as.numeric(new.out$windows)
 new.out$total.trans <- as.numeric(new.out$total.trans)
-
 write.table(new.out[which(new.out$total.trans>=min.threshold),], file=output.file, row.names = F, sep=",", quote=FALSE)
+#
+#	OR: 	I vectorized the code above this line-- hopefulling speeding things up a bit
+#			suggest to remove and replace with the lines below
+#
+
+cat("Making Per-Window output table...\n")
+#	get table into long format
+window.table[] 	<- lapply(window.table, as.character)
+window.table	<- as.data.table(melt(window.table, id.vars=c('pat.1','pat.2')))
+setnames(window.table, c('variable','value'), c('SOURCE_FILE','type'))
+#	add window coordinates
+window.table[, W_FROM:= window.table[,as.integer(gsub(prefix.wfrom,'',regmatches(SOURCE_FILE, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),SOURCE_FILE))))]]
+window.table[, W_TO:= window.table[, as.integer(gsub(prefix.wto,'',regmatches(SOURCE_FILE, regexpr(paste(prefix.wto,'[0-9]+',sep=''),SOURCE_FILE))))]]	
+#	change type name
+if(allow.splits)
+{
+	set(window.table, window.table[, which(type=='trueInt')], 'type', 'int')
+	set(window.table, window.table[, which(type%in% c("anc", "intAnc"))], 'type', 'anc')
+	set(window.table, window.table[, which(type%in% c("desc", "intDesc"))], 'type', 'desc')
+}
+if(!allow.splits)
+{
+	set(window.table, window.table[, which(type%in% c("trueInt", "intAnc", "intDesc"))], 'type', 'int')	
+}
+#	complete table with disconnected assignments
+tmp				<- as.data.table(expand.grid(pat.1=window.table[, unique(pat.1)], pat.2=window.table[, unique(pat.2)], W_FROM=window.table[, unique(W_FROM)], W_TO=window.table[, unique(W_TO)], stringsAsFactors=FALSE))
+tmp				<- merge(tmp, unique(subset(window.table, select=c(W_FROM, SOURCE_FILE))), by='W_FROM')
+window.table	<- merge(window.table, tmp, by=c('pat.1','pat.2','W_FROM','W_TO','SOURCE_FILE'),all=1)
+set(window.table, window.table[, which(is.na(type))], 'type', 'disconnected')
+#	reorder cols
+window.table	<- subset(window.table, select=c('pat.1','pat.2','W_FROM','W_TO','type','SOURCE_FILE'))
+setkey(window.table, pat.1, pat.2, W_FROM)
+#	write to file
+if(!is.null(detailed.output))
+{
+	write.csv(window.table, file=detailed.output, row.names=FALSE)
+}
+#
+#	OR: prepare summary table
+#		this code vectorizes the for loop above
+#		comment out write csv belove for use
+#cat("Making summary output table...\n")
+ans	<- window.table[, list(windows=length(W_FROM)), by=c('pat.1','pat.2','type')]
+#	evaluate fraction
+tmp	<- subset(ans, type!='disconnected')[, list(type=type, fraction=paste(windows,'/',sum(windows),sep='')), by=c('pat.1','pat.2')]
+ans	<- merge(ans, tmp, by=c('pat.1','pat.2','type'))
+#	evaluate total.trans
+tmp	<- subset(ans, type=='anc')
+setnames(tmp, c('pat.1','pat.2'), c('pat.2','pat.1'))
+tmp	<- rbind(tmp, subset(ans, type=='anc'), use.names=TRUE)
+tmp	<- tmp[, list(total.trans=sum(windows)), by=c('pat.1','pat.2')]
+ans	<- merge(ans, tmp, by=c('pat.1','pat.2'))
+setkey(ans, pat.1, pat.2, type)
+#	write to file
+#write.csv(subset(new.out, total.trans>=min.threshold), file=output.file, row.names=FALSE, quote=FALSE)
+#
+#	end OR
+#
+
+
 
 # Not currently in use - for dating
 
