@@ -108,6 +108,7 @@ split.patients.to.subtrees<- function(file.name, mode, blacklist.file, root.name
 	
 	if(!is.null(blacklist.file)){
 		if(file.exists(blacklist.file)){
+			cat("Reading BlackList file",blacklist.file,'\n')
 			blacklisted.tips <- read.table(blacklist.file, sep=",", header=F, stringsAsFactors = F, col.names="read")
 			if(nrow(blacklisted.tips)>0){
 				blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
