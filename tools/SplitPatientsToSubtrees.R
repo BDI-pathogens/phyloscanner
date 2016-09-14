@@ -18,7 +18,7 @@ if(command.line){
   arg_parser$add_argument("-r", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
   arg_parser$add_argument("-z", "--zeroLengthTipsCount", action="store_true", default=FALSE, help="If present, a zero length terminal branch associates the patient at the tip with its parent node, interrupting any inferred transmission pathway between another pair of hosts that goes through the node.")
   arg_parser$add_argument("-s", "--splitsRule", action="store", default="r", help="The rules by which the sets of patients are split into groups in order to ensure that all groups can be members of connected subtrees without causing conflicts. Currently available: c=conservative, r=Romero-Severson (default).")
-  arg_parser$add_argument("-b", "--blacklist", action="store", help="A .csv file listing tips to ignore.")
+  arg_parser$add_argument("-b", "--blacklist", action="store", help="A .csv file listing tips to ignore. Alternatively, a base name that identifies blacklist files. Blacklist files are assumed to end in .csv.")
   arg_parser$add_argument("inputFile", metavar="inputTreeFileName", help="Tree file name. Alternatively, a base name that identifies a group of tree file names can be specified. Tree files are assumed to end in .tree.")  
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
   arg_parser$add_argument("-OD", "--outputdir", action="store", help="Full path of the directory for output; if absent, current working directory")
@@ -36,7 +36,7 @@ if(command.line){
     output.dir <- getwd()
   }
   out.identifier <- args$outputfileid
-  blacklist.file <- args$blacklist
+  blacklist.files <- args$blacklist
   root.name <- args$outgroupName
   tip.regex <- args$tipRegex
   mode <- args$splitsRule
@@ -48,7 +48,7 @@ if(command.line){
     stop(paste("Unknown split classifier: ", mode, "\n", sep=""))
   }
 #  if(debug)
-#	  cat(paste(script.dir, zero.length.tips.count, tree.file.names, out.identifier, blacklist.file, root.name, tip.regex, mode, pdf.hm, pdf.w, sep='\n'))
+#	  cat(paste(script.dir, zero.length.tips.count, tree.file.names, out.identifier, blacklist.files, root.name, tip.regex, mode, pdf.hm, pdf.w, sep='\n'))
   
   
 } else {
@@ -56,7 +56,7 @@ if(command.line){
   output.dir <- getwd()
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
   tree.file.names <- "RAxML_bestTree.InWindow_800_to_1150.tree"
-  blacklist.file <- "FullBlacklist_InWindow_800_to_1150.csv"
+  blacklist.files <- "FullBlacklist_InWindow_800_to_1150.csv"
   out.identifier <- "test"
   root.name <- "C.BW.00.00BW07621.AF443088"
   tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
@@ -66,8 +66,8 @@ if(command.line){
   {
 	  script.dir		<- '/Users/Oliver/git/phylotypes/tools'
 	  tree.file.names 	<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_InWindow_800_to_1049.tree'
-	  blacklist.file	<- NULL
-	  #blacklist.file <- "FullBlacklist_InWindow_6800_to_7150.csv"
+	  blacklist.files	<- NULL
+	  #blacklist.files 	<- "FullBlacklist_InWindow_6800_to_7150.csv"
 	  out.identifier 	<- "ptyr115_InWindow_800_to_1049"
 	  output.dir		<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput"
 	  root.name 		<- "REF_CPX_AF460972_read_1_count_0"
@@ -185,6 +185,7 @@ if(!inherits(can.read.tree, "try-error"))
 {
 	#	if 'tree.file.names' is tree, process just one tree
 	tree.file.name		<- tree.file.names[1]	
+	blacklist.file		<- blacklist.files[1]
 	tmp					<- split.patients.to.subtrees(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count)
 	tree				<- tmp[['tree']]	
 	rs.subtrees			<- tmp[['rs.subtrees']]
@@ -221,9 +222,11 @@ if(!inherits(can.read.tree, "try-error"))
 if(inherits(can.read.tree, "try-error"))
 {	
 	tree.file.names		<- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),'.*\\.tree$',sep=''), full.names=TRUE))
+	blacklist.files		<- sort(list.files(dirname(blacklist.files), pattern=paste(basename(blacklist.files),'.*\\.csv$',sep=''), full.names=TRUE))
 	for(tree.i in seq_along(tree.file.names))
 	{
 		tree.file.name		<- tree.file.names[tree.i]
+		blacklist.file		<- blacklist.files[tree.i]
 		out.identifier		<- gsub('\\.tree$','',basename(tree.file.name))
 		tmp					<- split.patients.to.subtrees(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count)
 		tree				<- tmp[['tree']]	
