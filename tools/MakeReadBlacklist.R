@@ -34,40 +34,34 @@ output.name <- args$outputFileName
 # Read the lines of the input file as a list
 
 cat("MakeReadBlacklist.R run on: ", input.name, "\n", sep="")
-
 entries <- strsplit(readLines(input.name, warn=F),",")
-
-first <- T
-
 # The input file has variable row lengths - sometimes three or more patients have
 # identical reads. We build a data frame for each pairwise combination of reads in each
 # row
-
-for(entry in entries){
+pairs.table	<- data.frame(V1=character(0), V2=character(0))
+for(entry in entries)
+{
   # get rid of anything that doesn't match the regexp (outgroup etc)
-  entry <- entry[!is.na(get.count(entry))]
-
-  if(first){
-    first <- F
-    raw.tab <- t(combn(entry,2))
-  } else {
-    raw.tab <- rbind(raw.tab, t(combn(entry,2)))
-  }
+  tmp <- t(combn(entry[!is.na(get.count(entry))],2))
+  colnames(tmp) <- c('V1','V2')
+  pairs.table <- rbind(pairs.table, tmp)
 }
-
-
-pairs.table <- data.frame(raw.tab, stringsAsFactors = F)
-
-pairs.table$reads.1 <- sapply(pairs.table[,1], get.count)
-pairs.table$reads.2 <- sapply(pairs.table[,2], get.count)
-
-
+pairs.table$V1 <- as.character(pairs.table$V1)
+pairs.table$V2 <- as.character(pairs.table$V2)
+#	OR suggest: make get.count return integer(0) to avoid issues when V1 is character(0)
+tmp <- unlist(sapply(pairs.table$V1, get.count))
+if(!is.null(tmp))
+	pairs.table$reads.1 <- tmp
+if(is.null(tmp))
+	pairs.table$reads.1 <- integer(0)
+tmp <- unlist(sapply(pairs.table$V2, get.count))
+if(!is.null(tmp))
+	pairs.table$reads.2 <- tmp
+if(is.null(tmp))
+	pairs.table$reads.2 <- integer(0)
 # reverse the order so the read with the greater count is in the first column
-
-pairs.table[pairs.table$reads.2 > pairs.table$reads.1, c("X1", "X2", "reads.1", "reads.2")] <- pairs.table[pairs.table$reads.2 > pairs.table$reads.1, c("X2", "X1", "reads.2", "reads.1")] 
-
+pairs.table[pairs.table$reads.2 > pairs.table$reads.1, c("V1", "V2", "reads.1", "reads.2")] <- pairs.table[pairs.table$reads.2 > pairs.table$reads.1, c("V2", "V1", "reads.2", "reads.1")] 
 # calculate the counts
-
 pairs.table$sharedCount <- pairs.table$reads.2 + pairs.table$reads.1
 pairs.table$seqOverShared <- pairs.table$reads.2/pairs.table$sharedCount
 
