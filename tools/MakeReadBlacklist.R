@@ -42,9 +42,13 @@ pairs.table	<- data.frame(V1=character(0), V2=character(0))
 for(entry in entries)
 {
   # get rid of anything that doesn't match the regexp (outgroup etc)
-  tmp <- t(combn(entry[!is.na(get.count(entry))],2))
-  colnames(tmp) <- c('V1','V2')
-  pairs.table <- rbind(pairs.table, tmp)
+  tmp <-  entry[!is.na(get.count(entry))]
+  if(length(tmp)>0)
+  {
+	  tmp <- t(combn(tmp,2))
+	  colnames(tmp) <- c('V1','V2')
+	  pairs.table <- rbind(pairs.table, tmp)  
+  }  
 }
 pairs.table$V1 <- as.character(pairs.table$V1)
 pairs.table$V2 <- as.character(pairs.table$V2)

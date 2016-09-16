@@ -1,5 +1,5 @@
-require(phangorn, quietly=T)
-require(gdata, quietly=T)
+require(phangorn, quietly=TRUE, warn.conflicts=FALSE)
+require(gdata, quietly=TRUE, warn.conflicts=FALSE)
 
 # Get the tip number of this label
 

@@ -65,12 +65,11 @@ if(command.line){
   if(0)
   {
 	  script.dir		<- '/Users/Oliver/git/phylotypes/tools'
-	  tree.file.names 	<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_InWindow_800_to_1049.tree'
-	  blacklist.files	<- NULL
-	  #blacklist.files 	<- "FullBlacklist_InWindow_6800_to_7150.csv"
-	  out.identifier 	<- "ptyr115_InWindow_800_to_1049"
-	  output.dir		<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput"
-	  root.name 		<- "REF_CPX_AF460972_read_1_count_0"
+	  tree.file.names 	<- '/Users/Oliver/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/pty_16-09-15-09-43-21/ptyr10_'
+	  blacklist.files	<- '/Users/Oliver/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/pty_16-09-15-09-43-21/ptyr10_blacklist_'	  
+	  out.identifier 	<- "ptyr10_"
+	  output.dir		<- "/Users/Oliver/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/pty_16-09-15-09-43-21"
+	  root.name 		<- "REF_CPX_AF460972"
 	  tip.regex 		<- "^(.*)_read_([0-9]+)_count_([0-9]+)$"	  
 	  mode 				<- "r"
 	  pdf.hm 			<- 0.15
@@ -221,12 +220,38 @@ if(!inherits(can.read.tree, "try-error"))
 #
 if(inherits(can.read.tree, "try-error"))
 {	
-	tree.file.names		<- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),'.*\\.tree$',sep=''), full.names=TRUE))
-	blacklist.files		<- sort(list.files(dirname(blacklist.files), pattern=paste(basename(blacklist.files),'.*\\.csv$',sep=''), full.names=TRUE))
-	for(tree.i in seq_along(tree.file.names))
+	prefix.wfrom 		<- 'Window_'
+	prefix.wto 			<- 'Window_[0-9]+_to_'
+	tree.file.names		<- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),'.*\\.tree$',sep=''), full.names=TRUE))	
+	#	code below makes the script more robust to previous errors in gen blacklist files / no trees
+	#	read tree file names and define windows
+	df	<- data.table(	TF=tree.file.names, 
+						W_FROM= as.integer(gsub(prefix.wfrom,'',regmatches(tree.file.names, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),tree.file.names)))),
+						W_TO= as.integer(gsub(prefix.wto,'',regmatches(tree.file.names, regexpr(paste(prefix.wto,'[0-9]+',sep=''),tree.file.names))))
+						)
+	if(is.null(blacklist.files))
+		df[, BF:=NA_character_]
+	if(!is.null(blacklist.files))
 	{
-		tree.file.name		<- tree.file.names[tree.i]
-		blacklist.file		<- blacklist.files[tree.i]
+		#	read blacklist file names and define windows
+		tmp<- sort(list.files(dirname(blacklist.files), pattern=paste(basename(blacklist.files),'.*\\.csv$',sep=''), full.names=TRUE))	
+		tmp	<- data.table(	BF=blacklist.files, 
+				W_FROM= as.integer(gsub(prefix.wfrom,'',regmatches(blacklist.files, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),blacklist.files)))),
+				W_TO= as.integer(gsub(prefix.wto,'',regmatches(blacklist.files, regexpr(paste(prefix.wto,'[0-9]+',sep=''),blacklist.files))))
+				)
+		#	merge so that each black list file corresponds to a tree file (by window coordinates)
+		df	<- merge(df,tmp,by=c('W_FROM','W_TO'),all=1)	
+		#	handle missing tree and blacklist files
+		tmp	<- subset(df, is.na(TF))[, paste(W_FROM, collapse=',')]
+		if(nchar(tmp))	cat('\nNo tree files for windows',tmp,'Ignoring blacklist files.')
+		df	<- subset(df, !is.na(TF))
+		tmp	<- subset(df, is.na(BF))[, paste(W_FROM, collapse=',')]
+		if(nchar(tmp))	cat('\nNo blacklist files for windows',tmp)			
+	}
+	for(tree.i in seq_along(nrow(df)))
+	{
+		tree.file.name		<- df[tree.i, TF]
+		blacklist.file		<- ifelse(is.na(df[tree.i, BF]),NULL,df[tree.i, BF])
 		out.identifier		<- gsub('\\.tree$','',basename(tree.file.name))
 		tmp					<- split.patients.to.subtrees(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count)
 		tree				<- tmp[['tree']]	
