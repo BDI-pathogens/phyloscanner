@@ -62,6 +62,9 @@ if(command.line){
   tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
   mode <- "c"
   zero.length.tips.count <- F
+
+  pdf.w = 10
+  pdf.hm = 1
   if(0)
   {
 	  script.dir		<- '/Users/Oliver/git/phylotypes/tools'
@@ -124,13 +127,16 @@ split.patients.to.subtrees<- function(file.name, mode, blacklist.file, root.name
 	if(length(blacklist)>0){
 		patients <- unique(patient.ids[-blacklist])
 	} else {
-		patients <- unique(patient.ids)
+		patients <- unique(na.omit(patient.ids))
 	}
 	
-	patients <- patients[!is.na(patients)]
-	
+	if(length(patients)==0){
+	  stop("No patient IDs detected")
+	} 
+
 	patient.tips <-
-			sapply(patients, function(x)  setdiff(which(patient.ids==x), blacklist))
+		 lapply(patients, function(x)  setdiff(which(patient.ids==x), blacklist))
+	names(patient.tips) <- patients
 	
 	patient.mrcas <- lapply(patient.tips, function(node) mrca.phylo.or.unique.tip(tree, node, zero.length.tips.count))
 	
