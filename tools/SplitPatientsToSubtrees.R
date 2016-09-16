@@ -82,6 +82,7 @@ require(phangorn, quietly=TRUE, warn.conflicts=FALSE)
 require(phytools, quietly=TRUE, warn.conflicts=FALSE)
 require(ggplot2, quietly=TRUE, warn.conflicts=FALSE)
 require(ggtree, quietly=TRUE, warn.conflicts=FALSE)
+require(data.table, quietly=TRUE, warn.conflicts=FALSE)
 
 source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
 source(file.path(script.dir, "SubtreeMethods.R"))
@@ -222,22 +223,22 @@ if(inherits(can.read.tree, "try-error"))
 {	
 	prefix.wfrom 		<- 'Window_'
 	prefix.wto 			<- 'Window_[0-9]+_to_'
-	tree.file.names		<- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),'.*\\.tree$',sep=''), full.names=TRUE))	
+	tree.file.names		<- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),'.*\\.tree$',sep=''), full.names=TRUE))
 	#	code below makes the script more robust to previous errors in gen blacklist files / no trees
 	#	read tree file names and define windows
 	df	<- data.table(	TF=tree.file.names, 
 						W_FROM= as.integer(gsub(prefix.wfrom,'',regmatches(tree.file.names, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),tree.file.names)))),
 						W_TO= as.integer(gsub(prefix.wto,'',regmatches(tree.file.names, regexpr(paste(prefix.wto,'[0-9]+',sep=''),tree.file.names))))
-						)
+						)					
 	if(is.null(blacklist.files))
 		df[, BF:=NA_character_]
 	if(!is.null(blacklist.files))
 	{
 		#	read blacklist file names and define windows
-		tmp<- sort(list.files(dirname(blacklist.files), pattern=paste(basename(blacklist.files),'.*\\.csv$',sep=''), full.names=TRUE))	
-		tmp	<- data.table(	BF=blacklist.files, 
-				W_FROM= as.integer(gsub(prefix.wfrom,'',regmatches(blacklist.files, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),blacklist.files)))),
-				W_TO= as.integer(gsub(prefix.wto,'',regmatches(blacklist.files, regexpr(paste(prefix.wto,'[0-9]+',sep=''),blacklist.files))))
+		tmp <- sort(list.files(dirname(blacklist.files), pattern=paste(basename(blacklist.files),'.*\\.csv$',sep=''), full.names=TRUE))	
+		tmp	<- data.table(	BF=tmp, 
+				W_FROM= as.integer(gsub(prefix.wfrom,'',regmatches(tmp, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),tmp)))),
+				W_TO= as.integer(gsub(prefix.wto,'',regmatches(tmp, regexpr(paste(prefix.wto,'[0-9]+',sep=''),tmp))))
 				)
 		#	merge so that each black list file corresponds to a tree file (by window coordinates)
 		df	<- merge(df,tmp,by=c('W_FROM','W_TO'),all=1)	
@@ -248,10 +249,12 @@ if(inherits(can.read.tree, "try-error"))
 		tmp	<- subset(df, is.na(BF))[, paste(W_FROM, collapse=',')]
 		if(nchar(tmp))	cat('\nNo blacklist files for windows',tmp)			
 	}
-	for(tree.i in seq_along(nrow(df)))
+	for(tree.i in seq_len(nrow(df)))
 	{
 		tree.file.name		<- df[tree.i, TF]
-		blacklist.file		<- ifelse(is.na(df[tree.i, BF]),NULL,df[tree.i, BF])
+		blacklist.file		<- df[tree.i, BF]
+		if(is.na(blacklist.file))	
+			blacklist.file	<- NULL
 		out.identifier		<- gsub('\\.tree$','',basename(tree.file.name))
 		tmp					<- split.patients.to.subtrees(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count)
 		tree				<- tmp[['tree']]	
