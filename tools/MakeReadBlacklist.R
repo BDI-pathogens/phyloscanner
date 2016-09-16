@@ -2,7 +2,7 @@ list.of.packages <- "argparse"
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
 
-library(argparse)
+library(argparse, quietly=TRUE, warn.conflicts=FALSE)
 
 get.count <- function(string){
   if(length(grep(regexp, string)>0)) {

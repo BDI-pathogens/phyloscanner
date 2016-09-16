@@ -9,7 +9,7 @@ if(!("ggtree" %in% installed.packages()[,"Package"])){
 }
 
 if(command.line){
-  require(argparse)
+  require(argparse, quietly=TRUE, warn.conflicts=FALSE)
   
   arg_parser = ArgumentParser(description="Split the tips from each patient up, according to one of several schemes, such that the tree can subsequently be partitioned into connected subtrees, one per split.")
   
@@ -79,11 +79,10 @@ if(command.line){
   }
 }
 
-require(phangorn, quietly=T)
-require(argparse, quietly=T)
-require(phytools, quietly=T)
-require(ggplot2, quietly=T)
-require(ggtree, quietly=T)
+require(phangorn, quietly=TRUE, warn.conflicts=FALSE)
+require(phytools, quietly=TRUE, warn.conflicts=FALSE)
+require(ggplot2, quietly=TRUE, warn.conflicts=FALSE)
+require(ggtree, quietly=TRUE, warn.conflicts=FALSE)
 
 source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
 source(file.path(script.dir, "SubtreeMethods.R"))

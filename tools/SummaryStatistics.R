@@ -16,17 +16,17 @@ list.of.packages <- c("argparse",
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
 #	load packages
-require(phytools)
-require(dplyr)
-require(ggplot2)
-require(reshape)
-require(gtable)
-require(grid)
-require(gridExtra)
-require(RColorBrewer)
-require(scales)
-#require(pegas)
-require(data.table)
+require(phytools, quietly=TRUE, warn.conflicts=FALSE)
+require(dplyr, quietly=TRUE, warn.conflicts=FALSE)
+require(ggplot2, quietly=TRUE, warn.conflicts=FALSE)
+require(reshape, quietly=TRUE, warn.conflicts=FALSE)
+require(gtable, quietly=TRUE, warn.conflicts=FALSE)
+require(grid, quietly=TRUE, warn.conflicts=FALSE)
+require(gridExtra, quietly=TRUE, warn.conflicts=FALSE)
+require(RColorBrewer, quietly=TRUE, warn.conflicts=FALSE)
+require(scales, quietly=TRUE, warn.conflicts=FALSE)
+#require(pegas, quietly=TRUE, warn.conflicts=FALSE)
+require(data.table, quietly=TRUE, warn.conflicts=FALSE)
 #
 #	constants
 #
@@ -38,7 +38,7 @@ prefix.bootstrap	<- 'bootstrap_'
 #
 command.line <- TRUE
 if (command.line) {
-  require(argparse)
+  require(argparse, quietly=TRUE, warn.conflicts=FALSE)
   
   arg_parser = ArgumentParser(description="Summarise patient statistics from each phylogeny across all windows.")
   

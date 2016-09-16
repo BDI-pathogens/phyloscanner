@@ -13,7 +13,7 @@ prefix.wto 			<- 'Window_[0-9]+_to_'
 #
 command.line <- T
 if(command.line){
-  library(argparse)
+  library(argparse, quietly=TRUE, warn.conflicts=FALSE)
   
   arg_parser = ArgumentParser(description="Summarise topological relationships suggesting direction of transmission across windows. Outputs a .csv file of relationships between patient IDs. Relationship types: 'anc' indicates a topology that suggests the patient in column 1 infected the patient in column 2, 'sib' one where reads from the patients form sibling clades from an unsampled common ancestor patient (and that neither has any sampled ancestors occuring later in the transmission chain than that common ancestor), 'int' one where reads from both patients are intermingled and the direction of transmission cannot be established. (More documentation to follow.)")
   
@@ -76,10 +76,10 @@ if(command.line){
 
 num.windows <- length(input.files)
 
-library(prodlim)
-library(gdata)
-library(ggplot2)
-require(data.table)
+library(prodlim, quietly=TRUE, warn.conflicts=FALSE)
+library(gdata, quietly=TRUE, warn.conflicts=FALSE)
+library(ggplot2, quietly=TRUE, warn.conflicts=FALSE)
+require(data.table, quietly=TRUE, warn.conflicts=FALSE)
 
 # Get the denominators
 

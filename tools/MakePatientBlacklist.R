@@ -1,4 +1,4 @@
-library(ape)
+library(ape, quietly=TRUE, warn.conflicts=FALSE)
 
 args = commandArgs(trailingOnly=TRUE)
 
