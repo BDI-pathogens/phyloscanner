@@ -335,7 +335,7 @@ write.table(new.out[which(new.out$total.trans>=min.threshold),], file=output.fil
 cat("Making Per-Window output table...\n")
 #	get table into long format
 window.table[] 	<- lapply(window.table, as.character)
-window.table	<- as.data.table(melt(window.table, id.vars=c('pat.1','pat.2')))
+window.table	<- as.data.table(melt.data.table(window.table, id.vars=c('pat.1','pat.2')))
 setnames(window.table, c('variable','value'), c('SOURCE_FILE','type'))
 #	add window coordinates
 window.table[, W_FROM:= window.table[,as.integer(gsub(prefix.wfrom,'',regmatches(SOURCE_FILE, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),SOURCE_FILE))))]]
