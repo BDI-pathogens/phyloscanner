@@ -23,9 +23,6 @@ empty directory.
 ################################################################################
 # USER INPUT
 
-RAxMLseed = 1
-RAxMLbootstrapSeed = 1
-
 # Some output files
 FileForAlignedReads_basename = 'AlignedReads'
 FileForAlignedReads_PositionsExcised_basename = 'AlignedReads_PositionsExcised_'
@@ -162,7 +159,9 @@ parser.add_argument('-F', '--renaming-file', type=File, help='Specify a file '\
 'with one line per bam file, showing how reads from that bam file should be '\
 "named in the output files. (By default, each bam file's basename is used.)")
 parser.add_argument('-I', '--discard-improper-pairs', action='store_true', \
-help='Any improperly paired reads will be discarded')
+help='For paired-read data, discard all reads that are improperly paired: in'+\
+' the wrong orientation, or one mate unmapped, or too far apart (as flagged '+\
+'at the time of mapping).')
 parser.add_argument('-IO', '--inspect-disagreeing-overlaps', \
 action='store_true', help='When read pairs are merged, those pairs that '+\
 'overlap but disagree are discarded. With this option, these discarded pairs '+\
@@ -178,6 +177,8 @@ parser.add_argument('-MC', '--min-read-count', type=int, default=1, help=\
 parser.add_argument('-N', '--num-bootstraps', type=int,\
 help='The number of bootstraps to be calculated for RAxML trees (by default, '+\
 'none i.e. only the ML tree is calculated).')
+parser.add_argument('-Ns', '--bootstrap-seed', type=int, default=1, help='The'+\
+' random-number seed for running RAxML with bootstraps. The default is 1.')
 parser.add_argument('-O', '--keep-overhangs', action='store_true', \
 help='Keep the whole read. (By default, only the part of the read inside the'+\
 'window is kept, i.e. overhangs are trimmed.)')
@@ -219,19 +220,19 @@ parser.add_argument('--output-dir', help='Used to specify the name of a '+\
 'output files will be created.')
 parser.add_argument('--time', action='store_true', \
 help='Prints the times taken by different steps.')
-parser.add_argument('--x-raxml', default='raxmlHPC-AVX -m GTRCAT', help=\
-"The command required to invoke RAxML. You may include RAxML options in this"+\
-" command, which need to separated by white space as usual and then the whole"+\
-" thing needs to be surrounded with one pair of quotation marks (so that the"+\
-" raxml binary and its options are kept together as one option for "+\
-"phyloscanner). If you include a path to your raxml binary (necessary if it "+\
-"is not in the $PATH variable of your terminal), it may not include "+\
-"whitespace, since whitespace is interpreted as separating raxml options. "+\
-"The default is 'raxmlHPC-AVX -m GTRCAT'; if changing from the default, note "+\
-"that an evolutionary model must be specified with -m. Do not include in "+\
-"this command options relating to bootstraps: use phyloscanner's "+\
-"--num-bootstraps option instead. Do not include options relating to the "+\
-"naming of files.")
+parser.add_argument('--x-raxml', default='raxmlHPC-AVX -m GTRCAT -p 1', help=\
+'''The command required to invoke RAxML. You may include RAxML options in this
+command, which need to separated by white space as usual and then the whole
+thing needs to be surrounded with one pair of quotation marks (so that the raxml
+binary and its options are kept together as one option for phyloscanner). If you
+include a path to your raxml binary (necessary if it is not in the $PATH
+variable of your terminal), it may not include whitespace, since whitespace is
+interpreted as separating raxml options. The default is 'raxmlHPC-AVX -m GTRCAT
+-p 1', where -m specifies an evolutionary model and -p specifies a random number
+seed for the parsimony inferences. If changing from the default, note that the
+-m and -p options are compulsory. Do not include in this command options
+relating to bootstraps: use phyloscanner's --num-bootstraps and --bootstrap-seed
+options instead. Do not include options relating to the naming of files.''')
 parser.add_argument('--x-mafft', default='mafft', help=\
 'The command required to invoke mafft (by default: mafft).')
 parser.add_argument('--x-samtools', default='samtools', help=\
@@ -1524,8 +1525,8 @@ for window in range(NumCoords / 2):
 
   # Create the ML tree
   MLtreeFile = 'RAxML_bestTree.' +ThisWindowSuffix +'.tree'
-  RAxMLcall = RAxMLargList + ['-p', str(RAxMLseed),\
-  '-s', FileForTrees, '-n', ThisWindowSuffix+'.tree']
+  RAxMLcall = RAxMLargList + ['-s', FileForTrees, '-n', \
+  ThisWindowSuffix+'.tree']
   if args.ref_for_rooting != None:
     RAxMLcall += ['-o', args.ref_for_rooting]
   try:
@@ -1550,10 +1551,9 @@ for window in range(NumCoords / 2):
   # If desired, make bootstrapped alignments
   if args.num_bootstraps != None:
     try:
-      ExitStatus = subprocess.call(RAxMLargList + ['-p',\
-      str(RAxMLseed), '-b', str(RAxMLbootstrapSeed), '-f', 'j', '-#', \
-      str(args.num_bootstraps), '-s', FileForTrees, '-n', ThisWindowSuffix+\
-      '_bootstraps'])
+      ExitStatus = subprocess.call(RAxMLargList + ['-b', \
+      str(args.bootstrap_seed), '-f', 'j', '-#', str(args.num_bootstraps), '-s',\
+      FileForTrees, '-n', ThisWindowSuffix + '_bootstraps'])
       assert ExitStatus == 0
     except:
       print('Problem generating bootstrapped alignments with RAxML', \
@@ -1571,9 +1571,9 @@ for window in range(NumCoords / 2):
     # Make a tree for each bootstrap
     for bootstrap,BootstrappedAlignment in enumerate(BootstrappedAlignments):
       try:
-        ExitStatus = subprocess.call(RAxMLargList + [\
-        '-p', str(RAxMLseed), '-s', BootstrappedAlignment, '-n', \
-        ThisWindowSuffix+'_bootstrap_'+str(bootstrap)+'.tree'])
+        ExitStatus = subprocess.call(RAxMLargList + ['-s',\
+        BootstrappedAlignment, '-n', ThisWindowSuffix + '_bootstrap_' + \
+        str(bootstrap)+'.tree'])
         assert ExitStatus == 0
       except:
         print('Problem generating a tree with RAxML for bootstrap', \
@@ -1599,9 +1599,8 @@ for window in range(NumCoords / 2):
     # Collect the trees from all bootstraps onto the ML tree
     MainTreeFile = 'MLtreeWbootstraps' +ThisWindowSuffix +'.tree'
     try:
-      ExitStatus = subprocess.call(RAxMLargList + ['-p',\
-      str(RAxMLseed), '-f', 'b', '-t', MLtreeFile, '-z', \
-      AllBootstrappedTreesFile, '-n', MainTreeFile])
+      ExitStatus = subprocess.call(RAxMLargList + ['-f', 'b', '-t', MLtreeFile,\
+       '-z', AllBootstrappedTreesFile, '-n', MainTreeFile])
       assert ExitStatus == 0
     except:
       print('Problem collecting all the bootstrapped trees onto the ML tree', \
