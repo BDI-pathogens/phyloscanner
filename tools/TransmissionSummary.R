@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-list.of.packages <- c("prodlim")
+list.of.packages <- c("prodlim","reshape2")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
 #
@@ -77,6 +77,7 @@ if(command.line){
 num.windows <- length(input.files)
 
 library(prodlim, quietly=TRUE, warn.conflicts=FALSE)
+library(reshape2, quietly=TRUE, warn.conflicts=FALSE)
 library(gdata, quietly=TRUE, warn.conflicts=FALSE)
 library(ggplot2, quietly=TRUE, warn.conflicts=FALSE)
 require(data.table, quietly=TRUE, warn.conflicts=FALSE)
@@ -335,7 +336,7 @@ write.table(new.out[which(new.out$total.trans>=min.threshold),], file=output.fil
 cat("Making Per-Window output table...\n")
 #	get table into long format
 window.table[] 	<- lapply(window.table, as.character)
-window.table	<- as.data.table(melt.data.table(window.table, id.vars=c('pat.1','pat.2')))
+window.table	<- as.data.table(melt(window.table, id.vars=c('pat.1','pat.2')))
 setnames(window.table, c('variable','value'), c('SOURCE_FILE','type'))
 #	add window coordinates
 window.table[, W_FROM:= window.table[,as.integer(gsub(prefix.wfrom,'',regmatches(SOURCE_FILE, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),SOURCE_FILE))))]]
