@@ -21,7 +21,7 @@ if(command.line){
   arg_parser$add_argument("-s", "--summaryFile", action="store", help="The full output file from SummaryStatistics.R; necessary only to identify windows in which no reads are present from each patient. If absent, window counts will be given without denominators.")
   arg_parser$add_argument("-m", "--minThreshold", action="store", default=1, type="integer", help="Relationships between two patients will only appear in output if a transmission chain between them appears in at least these many windows (default 1). High numbers are useful for drawing figures in e.g. Cytoscape with few enough arrows to be comprehensible. The script is extremely slow if this is set to 0.")
   arg_parser$add_argument("-p", "--allowSplits", action="store_true", default=FALSE, help="If absent, directionality is only inferred between pairs of patients whose reads are not split; this is more conservative.")
-  arg_parser$add_argument("-d", "--detailedOutput", action="store", help="If present, a file describing the relationships between each pair of patients on each window will be written to the specified path in .csv format")
+  arg_parser$add_argument("-d", "--detailedOutput", action="store", help="If present, a file describing the relationships between each pair of patients on each window will be written to the specified path in .rda format")
   arg_parser$add_argument("idFile", action="store", help="A file containing a list of the IDs of all the patients to calculate and display statistics for.")
   arg_parser$add_argument("inputFiles", action="store", help="Either (if -l is present) a list of all input files (output from LikelyTransmissions.R), separated by colons, or (if not) a single string that begins every input file name.")
   arg_parser$add_argument("outputFile", action="store", help="A .csv file to write the output to.")
@@ -63,13 +63,13 @@ if(command.line){
   if(0)
   {
     script.dir					<- "/Users/Oliver/git/phylotypes/tools"
-    summary.file				<- "/Users/Oliver/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/pty_16-09-13-10-06-21/ptyr22_patStatsFull.csv"
-    id.file 					<- "/Users/Oliver/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/pty_16-09-13-10-06-21/ptyr22_patients.txt"
-	input.files.name			<- "/Users/Oliver/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/pty_16-09-13-10-06-21/ptyr22_"
+    summary.file				<- "~/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/tmp/ptyr108_patStatsFull.csv"
+    id.file 					<- "~/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/tmp/ptyr108_patients.txt"
+	input.files.name			<- "~/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/tmp/ptyr108_"
     min.threshold				<- 1
     allow.splits 				<- TRUE
-    output.file 				<- "/Users/Oliver/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/pty_16-09-13-10-06-21/ptyr22_trmStats.csv"
-	detailed.output				<- "/Users/Oliver/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/pty_16-09-13-10-06-21/ptyr22_trmStatsPerWindow.csv"
+    output.file 				<- "~/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/tmp/ptyr108_trmStatsNEW.csv"
+	detailed.output				<- "~/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/tmp/ptyr108_patStatsPerWindowNEW.csv"
     input.files 				<- sort(list.files(dirname(input.files.name), pattern=paste(basename(input.files.name),".*LikelyTransmissions.csv$",sep=''), full.names=TRUE))
   }
 }
@@ -352,18 +352,15 @@ if(!allow.splits)
 {
 	set(window.table, window.table[, which(type%in% c("trueInt", "intAnc", "intDesc"))], 'type', 'int')	
 }
-#	complete table with disconnected assignments
-tmp				<- as.data.table(expand.grid(pat.1=window.table[, unique(pat.1)], pat.2=window.table[, unique(pat.2)], W_FROM=window.table[, unique(W_FROM)], W_TO=window.table[, unique(W_TO)], stringsAsFactors=FALSE))
-tmp				<- merge(tmp, unique(subset(window.table, select=c(W_FROM, SOURCE_FILE))), by='W_FROM')
-window.table	<- merge(window.table, tmp, by=c('pat.1','pat.2','W_FROM','W_TO','SOURCE_FILE'),all=1)
-set(window.table, window.table[, which(is.na(type))], 'type', 'disconnected')
+#	OR: don t complete table as this may require large mem
 #	reorder cols
 window.table	<- subset(window.table, select=c('pat.1','pat.2','W_FROM','W_TO','type','SOURCE_FILE'))
 setkey(window.table, pat.1, pat.2, W_FROM)
 #	write to file
 if(!is.null(detailed.output))
 {
-	write.csv(window.table, file=detailed.output, row.names=FALSE)
+	#write.csv(window.table, file=detailed.output, row.names=FALSE)
+	save(window.table, file=gsub('\\.csv','\\.rda',detailed.output))
 }
 #
 #	OR: prepare summary table
