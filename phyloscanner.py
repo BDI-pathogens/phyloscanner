@@ -139,19 +139,21 @@ parser.add_argument('-D', '--dont-check-duplicates', action='store_true', \
 help="Don't compare reads between samples to find duplicates - a possible "+\
 "indication of contamination. (By default this check is done.)")
 parser.add_argument('-E', '--explore-window-widths', type=CommaSeparatedInts, \
-help="Use this option to explore how the number of unique reads found in each"+\
-" bam file in each window, all along the genome, depends on the window width."+\
-" After this option specify a comma-separated list of integers: the first of "+\
-"which is the starting point for stepping along the genome (in case you're "+\
-"not interested in the very beginning), the second is how much neighbouring"+\
-" windows overlap (if zero or negative they don't overlap), and subsequent "+\
-"values are window widths to try. For example, if you specified "+\
-"1000,11,51,61,71 we would count the number of unique reads in windows "+\
-"1000-1050, 1040-1090, 1080-1120, ... and in 1000-1060, 1050-1110, 1100-1160,"+\
-" ... and in 1000-1070, 1060-1130, 1120-1190, ... where the dots denote "+\
-"continuation to the end of the genome. (Note that both end coordinates of "+\
-"the window are included, hence why 1000-1050 has width 51.) Output is "+\
-"written to the file specified with the --explore-window-width-file option.")
+help='''Use this option to explore how the number of unique reads found in each
+bam file in each window, all along the genome, depends on the window width.
+After this option specify a comma-separated list of integers. The first integer
+is the starting point for stepping along the genome, in case you're not
+interested in the very beginning. The second integer is the width spanned by two
+neighbouring windows; this sets the overlap for each window width though the
+equation (two-window width) = 2x(window width) - (overlap between windows), with
+negative overlap understood to mean space between the end of one window and the
+start of the next. Subsequent integers are window widths to try. For example, if
+you specified 1000,301,101,151,201 we would count the number of unique reads in
+windows 1000-1100, 1200-1300, 1400-1500, ... and in 1000-1150, 1150-1300,
+1300-1450 ... and in 1000-1200, 1100-1300, 1200-1400, ... where the dots denote
+continuation to the end of the genome. (Note that both end coordinates of the
+window are included, hence why 1000-1100 has width 101.) Output is written to
+the file specified with the --explore-window-width-file option.''')
 parser.add_argument('-EF', '--explore-window-width-file', help='Used to '+\
 'specify an output file for window width data, when the '+\
 '--explore-window-widths option is used. Output is in in csv format.')
@@ -441,7 +443,7 @@ if ExploreWindowWidths:
     'least three parameters; use the --help option for more information.', \
     'Quitting.', file=sys.stderr)
     exit(1)
-  ExploreStart, ExploreOverlap = args.explore_window_widths[:2]
+  ExploreStart, ExploreTwoWindowWidth = args.explore_window_widths[:2]
   ExploreWidths = args.explore_window_widths[2:]
   if ExploreStart < 1:
     print('The start point for windows when exploring window widths (the '+\
@@ -454,9 +456,10 @@ if ExploreWindowWidths:
     print('The minimum window width specified with --explore-window-widths', \
     'should be greater than 1. Quitting.', file=sys.stderr)
     exit(1)
-  if ExploreOverlap >= MinExploreWidth:
-    print('The window overlap specified with --explore-window-widths should '+\
-    'be smaller than any of the window widths. Quitting.', file=sys.stderr)
+  MaxExploreWidth = ExploreWidths[-1]
+  if ExploreTwoWindowWidth <= MaxExploreWidth:
+    print('The two-window width specified with --explore-window-widths should'+\
+    ' be greater than any of the window widths. Quitting.', file=sys.stderr)
     exit(1)
   WindowWidthExplorationData = []
   CheckDuplicates = False
@@ -468,11 +471,10 @@ def FindExploratoryWindows(EndPoint):
   # * the ref length if --ref-for-coords or --pairwise-align-to is used
   # * the length of the mapping ref if there's only one bam and no extra refs
   # * otherwise, the length of the alignment of all refs
-  MaxExploreWidth = ExploreWidths[-1]
   if EndPoint < ExploreStart + MaxExploreWidth:
     print('With the --explore-window-widths option you specified a start', \
     'point of', ExploreStart, 'and your largest window width was', \
-    str(max(ExploreWidths)) + '; one or both of these values should be', \
+    str(MaxExploreWidth) + '; one or both of these values should be', \
     'decreased since the length of the reference or alignment of references', \
     'with respect to which we are interpreting coordinates is only', \
     str(EndPoint) + '. We need to be able to fit at least one window in', \
@@ -484,7 +486,7 @@ def FindExploratoryWindows(EndPoint):
     NextEnd = ExploreStart + width - 1
     while NextEnd <= EndPoint:
       ExploratoryCoords += [NextStart, NextEnd]
-      NextStart = NextEnd - ExploreOverlap + 1
+      NextStart += ExploreTwoWindowWidth - width
       NextEnd = NextStart + width - 1
   return ExploratoryCoords
 
@@ -1529,12 +1531,14 @@ for window in range(NumCoords / 2):
   ThisWindowSuffix+'.tree']
   if args.ref_for_rooting != None:
     RAxMLcall += ['-o', args.ref_for_rooting]
-  try:
-    ExitStatus = subprocess.call(RAxMLcall)
-    assert ExitStatus == 0
-  except:
-    print('Problem making the ML tree with RAxML.\nSkipping to the next', \
-    'window.', file=sys.stderr)
+  proc = subprocess.Popen(RAxMLcall, stdout=subprocess.PIPE, \
+  stderr=subprocess.PIPE)
+  out, err = proc.communicate()
+  ExitStatus = proc.returncode
+  if ExitStatus != 0:
+    print('Problem making the ML tree with RAxML. It returned an exit code of',\
+    ExitStatus, ' and printed this to stdout:\n', out, '\nand printed this to',\
+    'stderr:\n', err, '\nSkipping to the next window.', file=sys.stderr)
     continue
   if not os.path.isfile(MLtreeFile):
     print(MLtreeFile +', expected to be produced by RAxML, does not exist.'+\
