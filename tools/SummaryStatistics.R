@@ -6,7 +6,7 @@ list.of.packages <- c("argparse",
                       "dplyr", 
                       "ggplot2", 
                       "reshape", 
-					  "data.table",
+					            "dtplyr",
                       "gtable", 
                       "grid", 
                       "gridExtra", 
@@ -17,7 +17,6 @@ new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
 #	load packages
 require(phytools, quietly=TRUE, warn.conflicts=FALSE)
-require(dplyr, quietly=TRUE, warn.conflicts=FALSE)
 require(ggplot2, quietly=TRUE, warn.conflicts=FALSE)
 require(reshape, quietly=TRUE, warn.conflicts=FALSE)
 require(gtable, quietly=TRUE, warn.conflicts=FALSE)
@@ -25,8 +24,8 @@ require(grid, quietly=TRUE, warn.conflicts=FALSE)
 require(gridExtra, quietly=TRUE, warn.conflicts=FALSE)
 require(RColorBrewer, quietly=TRUE, warn.conflicts=FALSE)
 require(scales, quietly=TRUE, warn.conflicts=FALSE)
-#require(pegas, quietly=TRUE, warn.conflicts=FALSE)
-require(data.table, quietly=TRUE, warn.conflicts=FALSE)
+require(dplyr, quietly=TRUE, warn.conflicts=FALSE)
+require(dtplyr, quietly=TRUE, warn.conflicts=FALSE)
 #
 #	constants
 #
