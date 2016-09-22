@@ -210,7 +210,8 @@ if(!inherits(can.read.tree, "try-error"))
 									scale_fill_hue(na.value = "black") +
 									scale_color_hue(na.value = "black") +
 									theme(legend.position="none") +
-									geom_tiplab(aes(col=INDIVIDUAL)) 
+									geom_tiplab(aes(col=INDIVIDUAL)) + 
+	                geom_treescale(width=0.01, y=-5, offset=1.5)
 	
 	x.max <- ggplot_build(tree.display)$panel$ranges[[1]]$x.range[2]
 	
@@ -284,7 +285,8 @@ if(inherits(can.read.tree, "try-error"))
 				scale_fill_hue(na.value = "black") +
 				scale_color_hue(na.value = "black") +
 				theme(legend.position="none") +
-				geom_tiplab(aes(col=INDIVIDUAL))
+				geom_tiplab(aes(col=INDIVIDUAL)) + 
+		    geom_treescale(width = 0.01, y=-5, offset=1.5)
 		
 		x.max <- ggplot_build(tree.display)$panel$ranges[[1]]$x.range[2]
 		
