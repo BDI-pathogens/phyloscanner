@@ -210,9 +210,13 @@ if(!inherits(can.read.tree, "try-error"))
 									scale_fill_hue(na.value = "black") +
 									scale_color_hue(na.value = "black") +
 									theme(legend.position="none") +
-									geom_tiplab(aes(col=INDIVIDUAL))	
+									geom_tiplab(aes(col=INDIVIDUAL)) 
+	
+	x.max <- ggplot_build(tree.display)$panel$ranges[[1]]$x.range[2]
+	
+	tree.display <- tree.display + ggplot2::xlim(0, 1.1*x.max)
 	tree.display	
-	tmp					<- file.path(output.dir,paste('Tree_',mode,'_',out.identifier,'.pdf',sep=''))
+	tmp	<- file.path(output.dir,paste('Tree_',mode,'_',out.identifier,'.pdf',sep=''))
 	cat("Plot to file",tmp,"...\n")
 	ggsave(tmp, device="pdf", height = pdf.hm*length(tree$tip.label), width = pdf.w, limitsize = F)
 	#
@@ -280,7 +284,11 @@ if(inherits(can.read.tree, "try-error"))
 				scale_fill_hue(na.value = "black") +
 				scale_color_hue(na.value = "black") +
 				theme(legend.position="none") +
-				geom_tiplab(aes(col=INDIVIDUAL))	
+				geom_tiplab(aes(col=INDIVIDUAL))
+		
+		x.max <- ggplot_build(tree.display)$panel$ranges[[1]]$x.range[2]
+		
+		tree.display <- tree.display + ggplot2::xlim(0, 1.1*x.max)
 		tree.display	
 		tmp					<- file.path(output.dir,paste('Tree_',mode,'_',out.identifier,'.pdf',sep=''))
 		cat("Plot to file",tmp,"...\n")
