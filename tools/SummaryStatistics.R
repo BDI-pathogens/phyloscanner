@@ -614,7 +614,7 @@ for (i in seq(1, length(ids))) {
     
     graph.1 <- ggplot(this.pat.stats.1col, aes(x=window.middle, y=value, col=variable))
     
-    graph.1 <- graph.1 + geom_point() +
+    graph.1 <- graph.1 + geom_point(na.rm=TRUE) +
       theme_bw() + 
       scale_y_log10(breaks=c(1,10,100,1000,10000)) +
       ylab("Count") +
@@ -632,7 +632,7 @@ for (i in seq(1, length(ids))) {
     graph.2 <- ggplot(this.pat.stats.1col, aes(x=window.middle, y=value))
     
     graph.2 <- graph.2 +
-      geom_point(aes(shape=variable, size=variable)) +
+      geom_point(aes(shape=variable, size=variable), na.rm=TRUE) +
       aes(col = variable) +
       theme_bw() + 
       ylab("Count") +
@@ -658,7 +658,7 @@ for (i in seq(1, length(ids))) {
     graph.3 <- ggplot(this.pat.stats.1col, aes(x=window.middle, y=value))
     
     graph.3 <- graph.3 +
-      geom_point(aes(shape=variable, size=variable)) +
+      geom_point(aes(shape=variable, size=variable), na.rm=TRUE) +
       aes(col = variable) +
       theme_bw() + 
       ylab("Root-to-tip-distance") +
@@ -675,7 +675,7 @@ for (i in seq(1, length(ids))) {
     graph.4 <- ggplot(this.pat.stats.temp, aes(x=window.middle, y=largest.pat.dist))
     
     graph.4 <- graph.4 +
-      geom_point(alpha=0.5) +
+      geom_point(alpha=0.5, na.rm=TRUE) +
       theme_bw() + 
       ylab("Mean patristic distance in\nlargest connected subtree") +
       xlab("Window centre") +
@@ -712,7 +712,7 @@ for (i in seq(1, length(ids))) {
     graph.6 <- ggplot(this.pat.stats.temp, aes(x=window.middle, y=branch.to.pat.ratio))
     
     graph.6 <- graph.6 +
-      geom_point(alpha = 0.5) +
+      geom_point(alpha = 0.5, na.rm=TRUE) +
       theme_bw() + 
       ylab("Ratio of longest branch to greatest\n patristic distance between tips") +
       xlab("Window centre") +
