@@ -248,7 +248,7 @@ ids <- scan(id.file, what="", sep="\n", quiet=TRUE)
 # 	cat('\nwarning: IDs in id.file not found in any tree', paste(tmp, collapse=' '))
 
 
-num.ids <- length(ids)
+num.ids <- length(unique(ids))
 if (num.ids == 0) {
   cat(paste("No IDs found in ", id.file, ". Quitting.\n", sep=""))
   quit("no", 1)
