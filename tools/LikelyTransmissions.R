@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-command.line <- T
+command.line <- F
 
 list.of.packages <- c("phangorn", "argparse", "phytools")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -39,16 +39,16 @@ if(command.line){
   romero.severson <- args$romeroSeverson
   
 } else {
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_160915_couples_w270/")
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
-  tree.file.names <- "RAxML_bestTree.InWindow_2550_to_2900.tree"
-  splits.file.names <- "Subtrees_r_run20160517_inWindow_2550_to_2900.csv"
-  output.name <- "LikelyTransmissions_r.InWindow_2550_to_2900.csv"
-  root.name <- "C.BW.00.00BW07621.AF443088"
+  tree.file.names <- "ptyr78_trees_newick/ptyr78_InWindow_850_to_1099.tree"
+  splits.file.names <- "ptyr78_subtrees_r_csv/Subtrees_r_ptyr78_InWindow_850_to_1099.csv"
+  output.name <- "hi.csv"
+  root.name <- "REF_CPX_AF460972"
   split.threshold <- 0.08
   zero.length.tips.count <- F
   romero.severson <- T
-  tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
+  tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
   if(0)
   {
 	  script.dir				<- "/Users/Oliver/git/phylotypes/tools"
@@ -273,7 +273,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	        } else {
 	          current.node <- all.nodes[1]
 	          for(node in all.nodes[2:length(all.nodes)]){
-	            current.node <- get.tt.mrca(tt, current.node, all.nodes[2])
+	            current.node <- get.tt.mrca(tt, current.node, all.nodes[node])
 	          }
 	          if(startsWith(current.node, "none")){
 	            direct.descendant.matrix[pat.1, pat.2] <- "trueInt"
