@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-command.line <- F
+command.line <- T
 
 list.of.packages <- c("phangorn", "argparse", "phytools")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -273,7 +273,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	        } else {
 	          current.node <- all.nodes[1]
 	          for(node in all.nodes[2:length(all.nodes)]){
-	            current.node <- get.tt.mrca(tt, current.node, all.nodes[node])
+	            current.node <- get.tt.mrca(tt, current.node, node)
 	          }
 	          if(startsWith(current.node, "none")){
 	            direct.descendant.matrix[pat.1, pat.2] <- "trueInt"
