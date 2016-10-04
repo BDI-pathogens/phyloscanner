@@ -26,7 +26,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     # Split each patient
     
     for(patient in patients){
-      sp.res <- split.patient(tree, patient, patients,patient.tips, node.assocs$details, tip.regex)
+      sp.res <- split.patient(tree, patient, patients, patient.tips, node.assocs$details, tip.regex)
       split.pats <- sp.res$patients
       if(length(split.pats)>0){
         patients.copy <- patients.copy[which(patients.copy!=patient)]

@@ -6,7 +6,7 @@ list.of.packages <- c("argparse",
                       "dplyr", 
                       "ggplot2", 
                       "reshape", 
-					  "data.table",
+					            "dtplyr",
                       "gtable", 
                       "grid", 
                       "gridExtra", 
@@ -17,7 +17,6 @@ new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
 #	load packages
 require(phytools, quietly=TRUE, warn.conflicts=FALSE)
-require(dplyr, quietly=TRUE, warn.conflicts=FALSE)
 require(ggplot2, quietly=TRUE, warn.conflicts=FALSE)
 require(reshape, quietly=TRUE, warn.conflicts=FALSE)
 require(gtable, quietly=TRUE, warn.conflicts=FALSE)
@@ -25,8 +24,8 @@ require(grid, quietly=TRUE, warn.conflicts=FALSE)
 require(gridExtra, quietly=TRUE, warn.conflicts=FALSE)
 require(RColorBrewer, quietly=TRUE, warn.conflicts=FALSE)
 require(scales, quietly=TRUE, warn.conflicts=FALSE)
-#require(pegas, quietly=TRUE, warn.conflicts=FALSE)
-require(data.table, quietly=TRUE, warn.conflicts=FALSE)
+require(dplyr, quietly=TRUE, warn.conflicts=FALSE)
+require(dtplyr, quietly=TRUE, warn.conflicts=FALSE)
 #
 #	constants
 #
@@ -249,7 +248,7 @@ ids <- scan(id.file, what="", sep="\n", quiet=TRUE)
 # 	cat('\nwarning: IDs in id.file not found in any tree', paste(tmp, collapse=' '))
 
 
-num.ids <- length(ids)
+num.ids <- length(unique(ids))
 if (num.ids == 0) {
   cat(paste("No IDs found in ", id.file, ". Quitting.\n", sep=""))
   quit("no", 1)
@@ -614,7 +613,7 @@ for (i in seq(1, length(ids))) {
     
     graph.1 <- ggplot(this.pat.stats.1col, aes(x=window.middle, y=value, col=variable))
     
-    graph.1 <- graph.1 + geom_point() +
+    graph.1 <- graph.1 + geom_point(na.rm=TRUE) +
       theme_bw() + 
       scale_y_log10(breaks=c(1,10,100,1000,10000)) +
       ylab("Count") +
@@ -632,7 +631,7 @@ for (i in seq(1, length(ids))) {
     graph.2 <- ggplot(this.pat.stats.1col, aes(x=window.middle, y=value))
     
     graph.2 <- graph.2 +
-      geom_point(aes(shape=variable, size=variable)) +
+      geom_point(aes(shape=variable, size=variable), na.rm=TRUE) +
       aes(col = variable) +
       theme_bw() + 
       ylab("Count") +
@@ -658,7 +657,7 @@ for (i in seq(1, length(ids))) {
     graph.3 <- ggplot(this.pat.stats.1col, aes(x=window.middle, y=value))
     
     graph.3 <- graph.3 +
-      geom_point(aes(shape=variable, size=variable)) +
+      geom_point(aes(shape=variable, size=variable), na.rm=TRUE) +
       aes(col = variable) +
       theme_bw() + 
       ylab("Root-to-tip-distance") +
@@ -675,7 +674,7 @@ for (i in seq(1, length(ids))) {
     graph.4 <- ggplot(this.pat.stats.temp, aes(x=window.middle, y=largest.pat.dist))
     
     graph.4 <- graph.4 +
-      geom_point(alpha=0.5) +
+      geom_point(alpha=0.5, na.rm=TRUE) +
       theme_bw() + 
       ylab("Mean patristic distance in\nlargest connected subtree") +
       xlab("Window centre") +
@@ -712,7 +711,7 @@ for (i in seq(1, length(ids))) {
     graph.6 <- ggplot(this.pat.stats.temp, aes(x=window.middle, y=branch.to.pat.ratio))
     
     graph.6 <- graph.6 +
-      geom_point(alpha = 0.5) +
+      geom_point(alpha = 0.5, na.rm=TRUE) +
       theme_bw() + 
       ylab("Ratio of longest branch to greatest\n patristic distance between tips") +
       xlab("Window centre") +
