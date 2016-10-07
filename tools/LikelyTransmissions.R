@@ -294,7 +294,15 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	            if(length(all.nodes==2)){
 	              root.1 <- tt$root.nos[which(tt$unique.splits==pat.1.id)]
 	              root.2 <- tt$root.nos[which(tt$unique.splits==pat.2.id)]
-	              if(Ancestors(tree, root.1, type="parent") == Ancestors(tree, root.2, type="parent")){
+	              ancestor.node.1 <- Ancestors(tree, root.1, type="parent")
+	              if(length(ancestor.node.1) == 0){
+	                ancestor.node.1 <- "root"
+	              }
+	              ancestor.node.2 <- Ancestors(tree, root.2, type="parent")
+	              if(length(ancestor.node.2) == 0){
+	                ancestor.node.2 <- "root"
+	              }
+	              if(ancestor.node.1 == ancestor.node.2){
 	                direct.descendant.matrix[pat.1, pat.2] <- "cher"
 	              } else {
 	                direct.descendant.matrix[pat.1, pat.2] <- "unint"
