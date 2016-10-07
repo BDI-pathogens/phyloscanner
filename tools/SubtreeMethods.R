@@ -437,30 +437,34 @@ output.trans.tree <- function(tree, assocs, file.name = NULL){
     }
   }
   
-  
-  
   unique.splits <- unique(splits.vec)
   parent.splits <- vector()
+  lengths <- vector()
+  root.nos <- vector()
   
   for(unique.split in unique.splits){
     root <- which(splits.vec == unique.split & first.of.split)
     parent.node <- Ancestors(tree, root, type="parent")
     if(parent.node != 0){
       parent.splits <- c(parent.splits, splits.vec[parent.node])
+      
+      root.edge.no <- which(tree$edge[,2]==root)
+      lengths <- c(lengths, tree$edge.length[root.edge.no])
     } else {
       parent.splits <- c(parent.splits, "root")
+      lengths <- c(lengths, 0)
     }
+    root.nos <- c(root.nos, root)
   }
   
   patients <-  unlist(lapply(strsplit(unique.splits, "-"), `[[`, 1)) 
   
-  cytoscape.input <- data.frame(unique.splits, parent.splits, patients, stringsAsFactors = F)
+  cytoscape.input <- data.frame(unique.splits, parent.splits, patients, lengths, root.nos, stringsAsFactors = F)
   
   if(!is.null(file.name)){
-    write.csv(cytoscape.input, file.name, row.names = F, quote=F)
+    write.csv(cytoscape.input[,1:4], file.name, row.names = F, quote=F)
   }
   
   return(cytoscape.input)
-  
 }
 
