@@ -15,7 +15,15 @@ command.line <- T
 if(command.line){
   library(argparse, quietly=TRUE, warn.conflicts=FALSE)
   
-  arg_parser = ArgumentParser(description="Summarise topological relationships suggesting direction of transmission across windows. Outputs a .csv file of relationships between patient IDs. Relationship types: 'anc' indicates a topology that suggests the patient in column 1 infected the patient in column 2, 'sib' one where reads from the patients form sibling clades from an unsampled common ancestor patient (and that neither has any sampled ancestors occuring later in the transmission chain than that common ancestor), 'int' one where reads from both patients are intermingled and the direction of transmission cannot be established. (More documentation to follow.)")
+  arg_parser = ArgumentParser(description="Summarise topological relationships suggesting direction of transmission 
+                              across windows. Outputs a .csv file of relationships between patient IDs. Relationship 
+                              types: 'anc' indicates a topology that suggests the patient in column 1 infected the 
+                              patient in column 2, 'cher' where there is only one subtree per patient and the MRCAs 
+                              of both have the same parent in the phylogeny, 'unint' where cher is not present reads 
+                              from the patients form sibling clades from an unsampled common ancestor patient (and 
+                              that neither has any sampled ancestors occuring later in the transmission chain than 
+                              that common ancestor), 'int' one where reads from both patients are intermingled and 
+                              the direction of transmission cannot be established. (More documentation to follow.)")
   
   arg_parser$add_argument("-l", "--filesAreLists", action="store_true", default=FALSE, help="If present, arguments specifying input files will be parsed as lists of files separated by colons. If absent, they will be parsed as a string which each file of that type begins with.")
   arg_parser$add_argument("-s", "--summaryFile", action="store", help="The full output file from SummaryStatistics.R; necessary only to identify windows in which no reads are present from each patient. If absent, window counts will be given without denominators.")
@@ -242,7 +250,8 @@ for(row in seq(1, nrow(window.table))){
   row.list["anc"] <- 0
   row.list["desc"] <- 0
   row.list["int"] <- 0
-  row.list["sib"] <- 0
+  row.list["cher"] <- 0
+  row.list["unint"] <- 0
   
   if(give.denoms){
     first.patient <- window.table$pat.1[row]
@@ -262,8 +271,10 @@ for(row in seq(1, nrow(window.table))){
           row.list[["anc"]] <- row.list[["anc"]] + 1
         } else if(as.character(window.table[row,col]) %in% c("desc", "intDesc")) {
           row.list[["desc"]] <- row.list[["desc"]] + 1
-        } else if(as.character(window.table[row,col])=="sib"){
-          row.list[["sib"]] <- row.list[["sib"]] + 1
+        } else if(as.character(window.table[row,col])=="cher") {
+          row.list[["cher"]] <- row.list[["cher"]] + 1
+        } else if(as.character(window.table[row,col])=="unint") {
+          row.list[["unint"]] <- row.list[["unint"]] + 1
         }
       } else {
         if(as.character(window.table[row,col]) %in% c("trueInt", "intAnc", "intDesc")){
@@ -272,31 +283,34 @@ for(row in seq(1, nrow(window.table))){
           row.list[["anc"]] <- row.list[["anc"]] + 1
         } else if(as.character(window.table[row,col])=="desc") {
           row.list[["desc"]] <- row.list[["desc"]] + 1
-        } else if(as.character(window.table[row,col])=="sib"){
-          row.list[["sib"]] <- row.list[["sib"]] + 1
+        } else if(as.character(window.table[row,col])=="cher") {
+          row.list[["cher"]] <- row.list[["cher"]] + 1
+        } else if(as.character(window.table[row,col])=="unint") {
+          row.list[["unint"]] <- row.list[["unint"]] + 1
         }
       }
     }
   }
   
-  sib.row <- c(window.table[row,1], window.table[row,2], row.list[["sib"]], "sib", row.list[["anc"]]+row.list[["desc"]])
+  cher.row <- c(window.table[row,1], window.table[row,2], row.list[["cher"]], "cher", row.list[["anc"]]+row.list[["desc"]])
+  unint.row <- c(window.table[row,1], window.table[row,2], row.list[["unint"]], "unint", row.list[["anc"]]+row.list[["desc"]])
   anc.row <- c(window.table[row,1], window.table[row,2], row.list[["anc"]], "anc", row.list[["anc"]]+row.list[["desc"]])
   desc.row <- c(window.table[row,2], window.table[row,1], row.list[["desc"]], "anc", row.list[["anc"]]+row.list[["desc"]])
   int.row <- c(window.table[row,1], window.table[row,2], row.list[["int"]], "int", row.list[["anc"]]+row.list[["desc"]])
   
   if(give.denoms){
-    sib.row <- c(sib.row, paste(row.list[["sib"]], "/", denominator, sep=""))
+    cher.row <- c(cher.row, paste(row.list[["cher"]], "/", denominator, sep=""))
+    unint.row <- c(unint.row, paste(row.list[["unint"]], "/", denominator, sep=""))
     anc.row <- c(anc.row, paste(row.list[["anc"]], "/", denominator, sep=""))
     desc.row <- c(desc.row, paste(row.list[["desc"]], "/", denominator, sep=""))
     int.row <- c(int.row, paste(row.list[["int"]], "/", denominator, sep=""))
-    
   }
   
   # intAnc.row <- c(out[row,1], out[row,2], row.list[["intAnc"]], "PPU", row.list[["anc"]]+row.list[["desc"]]+row.list[["intAnc"]]+row.list[["intDesc"]]+row.list[["trueInt"]], denominator, paste(row.list[["intAnc"]], "/", denominator, sep=""), NA)
   # intDesc.row <- c(out[row,2], out[row,1], row.list[["intDesc"]], "PPU", row.list[["anc"]]+row.list[["desc"]]+row.list[["intAnc"]]+row.list[["intDesc"]]+row.list[["trueInt"]], denominator, paste(row.list[["intDesc"]], "/", denominator, sep=""), NA)
   # trueInt.row <- c(out[row,1], out[row,2], row.list[["trueInt"]], "PPE", row.list[["anc"]]+row.list[["desc"]]+row.list[["intAnc"]]+row.list[["intDesc"]]+row.list[["trueInt"]], denominator, paste(row.list[["trueInt"]], "/", denominator, sep=""), NA)
   
-  new.rows <- data.frame(rbind(sib.row, anc.row, desc.row, int.row), stringsAsFactors = F)
+  new.rows <- data.frame(rbind(cher.row, unint.row, anc.row, desc.row, int.row), stringsAsFactors = F)
   
   colnames(new.rows) <- c("pat.1", "pat.2", "windows", "type", "total.trans")
   if(give.denoms){
