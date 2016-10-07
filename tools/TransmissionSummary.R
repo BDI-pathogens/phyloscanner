@@ -14,17 +14,9 @@ prefix.wto 			<- 'Window_[0-9]+_to_'
 command.line <- T
 if(command.line){
   library(argparse, quietly=TRUE, warn.conflicts=FALSE)
-  
-  arg_parser = ArgumentParser(description="Summarise topological relationships suggesting direction of transmission 
-                              across windows. Outputs a .csv file of relationships between patient IDs. Relationship 
-                              types: 'anc' indicates a topology that suggests the patient in column 1 infected the 
-                              patient in column 2, 'cher' where there is only one subtree per patient and the MRCAs 
-                              of both have the same parent in the phylogeny, 'unint' where cher is not present reads 
-                              from the patients form sibling clades from an unsampled common ancestor patient (and 
-                              that neither has any sampled ancestors occuring later in the transmission chain than 
-                              that common ancestor), 'int' one where reads from both patients are intermingled and 
-                              the direction of transmission cannot be established. (More documentation to follow.)")
-  
+  #	OR line breaks result in error "rjson::fromJSON(output) : unexpected character 'F'"
+  tmp	<- "Summarise topological relationships suggesting direction of transmission across windows. Outputs a .csv file of relationships between patient IDs. Relationship types: 'anc' indicates a topology that suggests the patient in column 1 infected the patient in column 2, 'cher' where there is only one subtree per patient and the MRCAs of both have the same parent in the phylogeny, 'unint' where cher is not present reads from the patients form sibling clades from an unsampled common ancestor patient (and that neither has any sampled ancestors occuring later in the transmission chain than that common ancestor), 'int' one where reads from both patients are intermingled and the direction of transmission cannot be established. (More documentation to follow.)"
+  arg_parser = ArgumentParser(description=tmp)
   arg_parser$add_argument("-l", "--filesAreLists", action="store_true", default=FALSE, help="If present, arguments specifying input files will be parsed as lists of files separated by colons. If absent, they will be parsed as a string which each file of that type begins with.")
   arg_parser$add_argument("-s", "--summaryFile", action="store", help="The full output file from SummaryStatistics.R; necessary only to identify windows in which no reads are present from each patient. If absent, window counts will be given without denominators.")
   arg_parser$add_argument("-m", "--minThreshold", action="store", default=1, type="integer", help="Relationships between two patients will only appear in output if a transmission chain between them appears in at least these many windows (default 1). High numbers are useful for drawing figures in e.g. Cytoscape with few enough arrows to be comprehensible. The script is extremely slow if this is set to 0.")
@@ -34,9 +26,7 @@ if(command.line){
   arg_parser$add_argument("inputFiles", action="store", help="Either (if -l is present) a list of all input files (output from LikelyTransmissions.R), separated by colons, or (if not) a single string that begins every input file name.")
   arg_parser$add_argument("outputFile", action="store", help="A .csv file to write the output to.")
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
-  
   args <- arg_parser$parse_args()
-  
   files.are.lists <- args$filesAreLists
   summary.file <- args$summaryFile
   id.file <- args$idFile
@@ -51,9 +41,8 @@ if(command.line){
   input.files.name <- args$inputFiles
   
   	
-  if(!files.are.lists){
-    
-    input.files <- sort(list.files(dirname(input.files.name), pattern=paste(basename(input.files.name),".*csv$",sep=""), full.names=TRUE))
+  if(!files.are.lists){    
+    input.files <- sort(list.files(dirname(input.files.name), pattern=paste(basename(input.files.name),".*LikelyTransmissions.*csv$",sep=""), full.names=TRUE))
   } else {
     input.files <- unlist(strsplit(input.files.name, ":"))
   }
@@ -71,13 +60,13 @@ if(command.line){
   if(0)
   {
     script.dir					<- "/Users/Oliver/git/phylotypes/tools"
-    summary.file				<- "~/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/tmp/ptyr108_patStatsFull.csv"
-    id.file 					<- "~/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/tmp/ptyr108_patients.txt"
-	input.files.name			<- "~/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/tmp/ptyr108_"
+    summary.file				<- "~/duke/tmp/pty_16-10-07-21-46-04/ptyr22_patStatsFull.csv"
+    id.file 					<- "~/duke/tmp/pty_16-10-07-21-46-04/ptyr22_patients.txt"
+	input.files.name			<- "~/duke/tmp/pty_16-10-07-21-46-04/ptyr22_"
     min.threshold				<- 1
     allow.splits 				<- TRUE
-    output.file 				<- "~/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/tmp/ptyr108_trmStatsNEW.csv"
-	detailed.output				<- "~/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/tmp/ptyr108_patStatsPerWindowNEW.csv"
+    output.file 				<- "~/duke/tmp/pty_16-10-07-21-46-04/ptyr22_trmStats.csv"
+	detailed.output				<- "~/duke/tmp/pty_16-10-07-21-46-04/ptyr22_patStatsPerWindow.csv"
     input.files 				<- sort(list.files(dirname(input.files.name), pattern=paste(basename(input.files.name),".*LikelyTransmissions.csv$",sep=''), full.names=TRUE))
   }
 }
@@ -236,86 +225,80 @@ colnames(window.table) <- c("pat.1", "pat.2", basename(input.files))
 # out <- read.table("quickout.csv", sep=",", stringsAsFactors = F, header = T)
 # out.sib <- read.table("quickout_sib.csv", sep=",", stringsAsFactors = F, header = T)
 
-
-#
-#	OR: 	I vectorized the code starting here -- hopefulling speeding things up a bit
-#			suggest to remove from here
-#
-cat("Making output table...\n")
-first <- TRUE
-for(row in seq(1, nrow(window.table))){
+#first <- TRUE
+#for(row in seq(1, nrow(window.table))){
   
-  row.list <- list()
+#  row.list <- list()
   
-  row.list["anc"] <- 0
-  row.list["desc"] <- 0
-  row.list["int"] <- 0
-  row.list["cher"] <- 0
-  row.list["unint"] <- 0
+#  row.list["anc"] <- 0
+#  row.list["desc"] <- 0
+#  row.list["int"] <- 0
+#  row.list["cher"] <- 0
+#  row.list["unint"] <- 0
   
-  if(give.denoms){
-    first.patient <- window.table$pat.1[row]
-    first.present <- reads.table[which(reads.table$patient==first.patient & reads.table$present),]
-    second.patient <- window.table$pat.2[row]
-    second.present <- reads.table[which(reads.table$patient==second.patient & reads.table$present),]
-    
-    denominator <- length(intersect(first.present$window.start, second.present$window.start))
-  }
+#  if(give.denoms){
+#    first.patient <- window.table$pat.1[row]
+#    first.present <- reads.table[which(reads.table$patient==first.patient & reads.table$present),]
+#    second.patient <- window.table$pat.2[row]
+#    second.present <- reads.table[which(reads.table$patient==second.patient & reads.table$present),]
+#    
+#    denominator <- length(intersect(first.present$window.start, second.present$window.start))
+#  }
   
-  for(col in seq(3, ncol(window.table))){
-    if(!is.na(window.table[row, col])){
-      if(allow.splits){
-        if(as.character(window.table[row,col])=="trueInt"){
-          row.list[["int"]] <- row.list[["int"]] + 1
-        } else if(as.character(window.table[row,col]) %in% c("anc", "intAnc")) {
-          row.list[["anc"]] <- row.list[["anc"]] + 1
-        } else if(as.character(window.table[row,col]) %in% c("desc", "intDesc")) {
-          row.list[["desc"]] <- row.list[["desc"]] + 1
-        } else if(as.character(window.table[row,col])=="cher") {
-          row.list[["cher"]] <- row.list[["cher"]] + 1
-        } else if(as.character(window.table[row,col])=="unint") {
-          row.list[["unint"]] <- row.list[["unint"]] + 1
-        }
-      } else {
-        if(as.character(window.table[row,col]) %in% c("trueInt", "intAnc", "intDesc")){
-          row.list[["int"]] <- row.list[["int"]] + 1
-        } else if(as.character(window.table[row,col])=="anc") {
-          row.list[["anc"]] <- row.list[["anc"]] + 1
-        } else if(as.character(window.table[row,col])=="desc") {
-          row.list[["desc"]] <- row.list[["desc"]] + 1
-        } else if(as.character(window.table[row,col])=="cher") {
-          row.list[["cher"]] <- row.list[["cher"]] + 1
-        } else if(as.character(window.table[row,col])=="unint") {
-          row.list[["unint"]] <- row.list[["unint"]] + 1
-        }
-      }
-    }
-  }
+#  for(col in seq(3, ncol(window.table))){
+#    if(!is.na(window.table[row, col])){
+#      if(allow.splits){
+#        if(as.character(window.table[row,col])=="trueInt"){
+#          row.list[["int"]] <- row.list[["int"]] + 1
+#        } else if(as.character(window.table[row,col]) %in% c("anc", "intAnc")) {
+#          row.list[["anc"]] <- row.list[["anc"]] + 1
+#        } else if(as.character(window.table[row,col]) %in% c("desc", "intDesc")) {
+#          row.list[["desc"]] <- row.list[["desc"]] + 1
+#        } else if(as.character(window.table[row,col])=="cher") {
+#          row.list[["cher"]] <- row.list[["cher"]] + 1
+#        } else if(as.character(window.table[row,col])=="unint") {
+#          row.list[["unint"]] <- row.list[["unint"]] + 1
+#        }
+#      } else {
+#        if(as.character(window.table[row,col]) %in% c("trueInt", "intAnc", "intDesc")){
+#          row.list[["int"]] <- row.list[["int"]] + 1
+#        } else if(as.character(window.table[row,col])=="anc") {
+#          row.list[["anc"]] <- row.list[["anc"]] + 1
+#        } else if(as.character(window.table[row,col])=="desc") {
+#          row.list[["desc"]] <- row.list[["desc"]] + 1
+#        } else if(as.character(window.table[row,col])=="cher") {
+#          row.list[["cher"]] <- row.list[["cher"]] + 1
+#        } else if(as.character(window.table[row,col])=="unint") {
+#          row.list[["unint"]] <- row.list[["unint"]] + 1
+#        }
+#      }
+#    }
+#  }
   
-  cher.row <- c(window.table[row,1], window.table[row,2], row.list[["cher"]], "cher", row.list[["anc"]]+row.list[["desc"]])
-  unint.row <- c(window.table[row,1], window.table[row,2], row.list[["unint"]], "unint", row.list[["anc"]]+row.list[["desc"]])
-  anc.row <- c(window.table[row,1], window.table[row,2], row.list[["anc"]], "anc", row.list[["anc"]]+row.list[["desc"]])
-  desc.row <- c(window.table[row,2], window.table[row,1], row.list[["desc"]], "anc", row.list[["anc"]]+row.list[["desc"]])
-  int.row <- c(window.table[row,1], window.table[row,2], row.list[["int"]], "int", row.list[["anc"]]+row.list[["desc"]])
+#  cher.row <- c(window.table[row,1], window.table[row,2], row.list[["cher"]], "cher", row.list[["anc"]]+row.list[["desc"]])
+#  unint.row <- c(window.table[row,1], window.table[row,2], row.list[["unint"]], "unint", row.list[["anc"]]+row.list[["desc"]])
+#  anc.row <- c(window.table[row,1], window.table[row,2], row.list[["anc"]], "anc", row.list[["anc"]]+row.list[["desc"]])
+#  desc.row <- c(window.table[row,2], window.table[row,1], row.list[["desc"]], "anc", row.list[["anc"]]+row.list[["desc"]])
+#  int.row <- c(window.table[row,1], window.table[row,2], row.list[["int"]], "int", row.list[["anc"]]+row.list[["desc"]])
   
-  if(give.denoms){
-    cher.row <- c(cher.row, paste(row.list[["cher"]], "/", denominator, sep=""))
-    unint.row <- c(unint.row, paste(row.list[["unint"]], "/", denominator, sep=""))
-    anc.row <- c(anc.row, paste(row.list[["anc"]], "/", denominator, sep=""))
-    desc.row <- c(desc.row, paste(row.list[["desc"]], "/", denominator, sep=""))
-    int.row <- c(int.row, paste(row.list[["int"]], "/", denominator, sep=""))
-  }
+#  if(give.denoms){
+#    cher.row <- c(cher.row, paste(row.list[["cher"]], "/", denominator, sep=""))
+#    unint.row <- c(unint.row, paste(row.list[["unint"]], "/", denominator, sep=""))
+#    anc.row <- c(anc.row, paste(row.list[["anc"]], "/", denominator, sep=""))
+#    desc.row <- c(desc.row, paste(row.list[["desc"]], "/", denominator, sep=""))
+#    int.row <- c(int.row, paste(row.list[["int"]], "/", denominator, sep=""))
+# }
   
   # intAnc.row <- c(out[row,1], out[row,2], row.list[["intAnc"]], "PPU", row.list[["anc"]]+row.list[["desc"]]+row.list[["intAnc"]]+row.list[["intDesc"]]+row.list[["trueInt"]], denominator, paste(row.list[["intAnc"]], "/", denominator, sep=""), NA)
   # intDesc.row <- c(out[row,2], out[row,1], row.list[["intDesc"]], "PPU", row.list[["anc"]]+row.list[["desc"]]+row.list[["intAnc"]]+row.list[["intDesc"]]+row.list[["trueInt"]], denominator, paste(row.list[["intDesc"]], "/", denominator, sep=""), NA)
   # trueInt.row <- c(out[row,1], out[row,2], row.list[["trueInt"]], "PPE", row.list[["anc"]]+row.list[["desc"]]+row.list[["intAnc"]]+row.list[["intDesc"]]+row.list[["trueInt"]], denominator, paste(row.list[["trueInt"]], "/", denominator, sep=""), NA)
   
-  new.rows <- data.frame(rbind(cher.row, unint.row, anc.row, desc.row, int.row), stringsAsFactors = F)
+#  new.rows <- data.frame(rbind(cher.row, unint.row, anc.row, desc.row, int.row), stringsAsFactors = F)
   
-  colnames(new.rows) <- c("pat.1", "pat.2", "windows", "type", "total.trans")
-  if(give.denoms){
-    colnames(new.rows)[6] <- "fraction"
-  }
+#  colnames(new.rows) <- c("pat.1", "pat.2", "windows", "type", "total.trans")
+#  if(give.denoms){
+#    colnames(new.rows)[6] <- "fraction"
+#  }
   
   # sib.row.2 <- c(out[row,1], out[row,2], row.list.2[["sib"]], "sib", row.list.2[["anc"]]+row.list.2[["desc"]]+row.list.2[["int"]], denominator, paste(row.list.2[["sib"]], "/", denominator, sep=""), mean.sib)
   # anc.row.2 <- c(out[row,1], out[row,2], row.list.2[["anc"]], "trans", row.list.2[["anc"]]+row.list.2[["desc"]]+row.list.2[["int"]], denominator, paste(row.list.2[["anc"]], "/", denominator, sep=""), NA)
@@ -326,22 +309,22 @@ for(row in seq(1, nrow(window.table))){
   
   #  colnames(new.rows.2) <- c("pat.1", "pat.2", "windows", "type", "total.trans", "present", "fraction", "mean.sib")
   
-  if(first){
-    first <- FALSE
-    new.out <- new.rows[which(new.rows$windows>0),]
+#  if(first){
+#    first <- FALSE
+#    new.out <- new.rows[which(new.rows$windows>0),]
     #    new.out.2 <- new.rows.2[which(new.rows.2$windows>0),]
-  } else {
-    new.out <- rbind(new.out, new.rows[which(new.rows$windows>0),])
+#  } else {
+#    new.out <- rbind(new.out, new.rows[which(new.rows$windows>0),])
     #    new.out.2 <- rbind(new.out.2, new.rows.2[which(new.rows.2$windows>0),])
-  }
-  
-  if(row %% 100 == 0){
-    cat("Written ",row," out of ",nrow(window.table)," rows\n",sep="")
-  }
-}
-new.out$windows <- as.numeric(new.out$windows)
-new.out$total.trans <- as.numeric(new.out$total.trans)
-write.table(new.out[which(new.out$total.trans>=min.threshold),], file=output.file, row.names = F, sep=",", quote=FALSE)
+#  }
+#  
+#  if(row %% 100 == 0){
+#    cat("Written ",row," out of ",nrow(window.table)," rows\n",sep="")
+#  }
+#}
+#new.out$windows <- as.numeric(new.out$windows)
+#new.out$total.trans <- as.numeric(new.out$total.trans)
+#write.table(new.out[which(new.out$total.trans>=min.threshold),], file=output.file, row.names = F, sep=",", quote=FALSE)
 #
 #	OR: 	I vectorized the code above this line-- hopefulling speeding things up a bit
 #			suggest to remove and replace with the lines below
@@ -361,10 +344,16 @@ if(allow.splits)
 	set(window.table, window.table[, which(type=='trueInt')], 'type', 'int')
 	set(window.table, window.table[, which(type%in% c("anc", "intAnc"))], 'type', 'anc')
 	set(window.table, window.table[, which(type%in% c("desc", "intDesc"))], 'type', 'desc')
+	#set(window.table, window.table[, which(type=='cher')], 'type', 'cher')
+	#set(window.table, window.table[, which(type=='unint')], 'type', 'unint')
 }
 if(!allow.splits)
 {
-	set(window.table, window.table[, which(type%in% c("trueInt", "intAnc", "intDesc"))], 'type', 'int')	
+	set(window.table, window.table[, which(type%in% c("trueInt", "intAnc", "intDesc"))], 'type', 'int')
+	#set(window.table, window.table[, which(type=="anc")], 'type', 'anc')
+	#set(window.table, window.table[, which(type=="desc")], 'type', 'desc')
+	#set(window.table, window.table[, which(type=='cher')], 'type', 'cher')
+	#set(window.table, window.table[, which(type=='unint')], 'type', 'unint')
 }
 #	OR: don t complete table as this may require large mem
 #	reorder cols
@@ -377,10 +366,7 @@ if(!is.null(detailed.output))
 	save(window.table, file=gsub('\\.csv','\\.rda',detailed.output))
 }
 #
-#	OR: prepare summary table
-#		this code vectorizes the for loop above
-#		comment out write csv belove for use
-#cat("Making summary output table...\n")
+cat("Making summary output table...\n")
 ans	<- window.table[, list(windows=length(W_FROM)), by=c('pat.1','pat.2','type')]
 #	evaluate fraction
 tmp	<- subset(ans, type!='disconnected')[, list(type=type, fraction=paste(windows,'/',sum(windows),sep='')), by=c('pat.1','pat.2')]
@@ -393,11 +379,7 @@ tmp	<- tmp[, list(total.trans=sum(windows)), by=c('pat.1','pat.2')]
 ans	<- merge(ans, tmp, by=c('pat.1','pat.2'))
 setkey(ans, pat.1, pat.2, type)
 #	write to file
-#write.csv(subset(new.out, total.trans>=min.threshold), file=output.file, row.names=FALSE, quote=FALSE)
-#
-#	end OR
-#
-
+write.csv(subset(ans, total.trans>=min.threshold), file=output.file, row.names=FALSE, quote=FALSE)
 
 
 # Not currently in use - for dating
