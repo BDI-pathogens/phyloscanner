@@ -159,7 +159,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	  }
 	}
 	
-	patients.included <- setdiff(patients, ignore.becausepatie.split)
+	patients.included <- setdiff(patients, ignore.because.split)
 	
 	total.pairs <- (length(patients.included) ^ 2 - length(patients.included))/2
 	
