@@ -45,7 +45,7 @@ if(command.line){
   	
   if(!files.are.lists){
     
-    input.files <- sort(list.files(dirname(input.files.name), pattern=paste(basename(input.files.name),".*LikelyTransmissions.csv$",sep=""), full.names=TRUE))
+    input.files <- sort(list.files(dirname(input.files.name), pattern=paste(basename(input.files.name),".*csv$",sep=""), full.names=TRUE))
   } else {
     input.files <- unlist(strsplit(input.files.name, ":"))
   }
