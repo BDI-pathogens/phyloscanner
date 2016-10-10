@@ -41,8 +41,8 @@ if(command.line){
 } else {
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_160930_couples_w270_rerun/")
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
-  tree.file.names <- "ptyr7_trees_newick/ptyr7_InWindow_800_to_1049.tree"
-  splits.file.names <- "ptyr7_subtrees_r_csv/Subtrees_r_ptyr7_InWindow_800_to_1049.csv"
+  tree.file.names <- "ptyr1_trees_newick/ptyr1_InWindow_1000_to_1249.tree"
+  splits.file.names <- "ptyr1_subtrees_r_csv/Subtrees_r_ptyr1_InWindow_1000_to_1249.csv"
   output.name <- "hi.csv"
   root.name <- "REF_CPX_AF460972"
   split.threshold <- NA
@@ -175,10 +175,13 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	for(pat.1 in seq(1, length(patients.included))){
 	  for(pat.2 in  seq(1, length(patients.included))){
 	    if (pat.1 < pat.2) {
+	      
 	      count <- count + 1
 	      
 	      pat.1.id <- patients.included[pat.1]
 	      pat.2.id <- patients.included[pat.2]
+	      
+	      cat(pat.1.id, "-", pat.2.id, "\n")
 	      
 	      all.nodes <-  c(splits.for.patients[[pat.1.id]], splits.for.patients[[pat.2.id]])
 	      
@@ -291,7 +294,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	            }
 	          }
 	          if(!rel.determined){
-	            if(length(all.nodes==2)){
+	            if(length(all.nodes)==2){
 	              root.1 <- tt$root.nos[which(tt$unique.splits==pat.1.id)]
 	              root.2 <- tt$root.nos[which(tt$unique.splits==pat.2.id)]
 	              ancestor.node.1 <- Ancestors(tree, root.1, type="parent")
