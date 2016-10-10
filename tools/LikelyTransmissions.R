@@ -181,8 +181,6 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	      pat.1.id <- patients.included[pat.1]
 	      pat.2.id <- patients.included[pat.2]
 	      
-	      cat(pat.1.id, "-", pat.2.id, "\n")
-	      
 	      all.nodes <-  c(splits.for.patients[[pat.1.id]], splits.for.patients[[pat.2.id]])
 	      
 	      #we want that they form a perfect blob with no intervening nodes for any other patients
