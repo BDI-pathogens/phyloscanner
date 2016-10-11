@@ -2,7 +2,7 @@
 Generating phylogenies between and within hosts at once, in windows along the genome, using mapped reads as input.  
 Dependencies: [samtools](http://www.htslib.org/), [pysam](https://github.com/pysam-developers/pysam), [biopython](http://biopython.org/wiki/Download), [mafft](http://mafft.cbrc.jp/alignment/software/) and [RAxML](http://sco.h-its.org/exelixis/web/software/raxml/index.html).  
 
-<p align="center"><img src="InfoAndInputs/PhylotypesDiagram.jpg" alt="Phyloscanner" width=500" height="290"/></p>
+<p align="center"><img src="InfoAndInputs/PhylotypesDiagram.jpg" alt="Phyloscanner" width="500", height="290"/></p>
 
 ### Basic usage:
 ```bash
@@ -37,9 +37,11 @@ Then you can have single reads contribute in addition to merged overlapping read
 
 ### Interpreting window coordinates
 By default the references used for mapping (to produce the bam files), together with an extra set of references if specified with `--alignment-of-other-refs`, are all aligned together and window coordinates are interpreted with respect to the alignment (i.e. position *n* refers to the *n*th column of that alignment, which could be a gap for some of the sequences). This alignment can be found in the file `RefsAln.fasta` after running phyloscanner, should you want to inspect it and possibly run again. You can manually specify window coordinates with respect to this alignment, using the `--windows` option, or have windows automatically chosen using `--auto-window-params`, which attempts to minimise the affect of insertions and deletions in the references on your window width and overlap preferences.  
-Alternatively, if you do include at least one extra reference with `--alignment-of-other-refs`, you can choose one of these to be your *reference reference* and have phyloscanner sequentially pairwise-align each bam file reference to it, and window coordinates are then interpreted with respect to that reference reference. This is expected to more stable if your bam file references are many and diverse (since pairwise alignment is easier than multiple sequence alignment); it also has the advantage that when running phyloscanner more than once with different bam files, the coordinates mean the same thing each time.
+Alternatively, if you are using the `--alignment-of-other-refs` option to include extra references, you can use `--pairwise-align-to` to name one of these references to be a kind of *reference reference*: instead of aligning of all the bam file references to each other, they will be sequentially and separately pairwise-aligned to your named reference, and window coordinates are interpreted with respect to that named reference.
+Using the `--pairwise-align-to` option is expected to more stable than `--windows` or `--auto-window-params` if your bam file references are many and diverse, since pairwise alignment is easier than multiple sequence alignment.
+It also has the advantage that when running phyloscanner more than once with different bam files, the coordinates mean the same thing each time.
 
 ### Some more pictures
 Here are some cartoons of the `--merge-paired-reads`, `--merging-threshold` and `--excision-coords` options in action:
 
-<p align="center"><img src="InfoAndInputs/OptionsDiagram.jpg" alt="Phyloscanner" width=750" height="377"/></p>
+<p align="center"><img src="InfoAndInputs/OptionsDiagram.jpg" alt="Phyloscanner" width="750" height="377"/></p>
