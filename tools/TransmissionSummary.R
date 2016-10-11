@@ -48,15 +48,15 @@ if(command.line){
   }
   
 } else {
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_161007_couples_w270_rerun/")
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
-  summary.file <- "ss_r_patStatsFull.csv"
+  summary.file <- "ptyr4_patStatsFull.csv"
   id.file <- "patientIDList.txt"  
   detailed.output <- "quickout.csv"
   min.threshold <- 0
   allow.splits <- TRUE
   output.file <- "test.csv"  
-  input.files <- sort(list.files(getwd(), pattern="LikelyTransmissions_r.*\\.csv"))
+  input.files <- sort(list.files("ptyr4_trmStats_LikelyTransmissions", pattern="LikelyTransmissions.csv"))
   if(0)
   {
     script.dir					<- "/Users/Oliver/git/phylotypes/tools"
@@ -330,10 +330,22 @@ colnames(window.table) <- c("pat.1", "pat.2", basename(input.files))
 #			suggest to remove and replace with the lines below
 #
 
-cat("Making Per-Window output table...\n")
+cat("Making per-window output table...\n")
 #	get table into long format
 window.table[] 	<- lapply(window.table, as.character)
-window.table	<- as.data.table(melt(window.table, id.vars=c('pat.1','pat.2')))
+window.table <- melt(window.table, id.vars=c('pat.1','pat.2'))
+
+# convert "anc" and "desc" to "trans" depending on direction
+
+window.table[which(window.table$value=="desc"), c("pat.1", "pat.2")] <- window.table[which(window.table$value=="desc"), c("pat.2", "pat.1")]
+window.table[which(window.table$value=="anc"), "value"] <- "trans"
+window.table[which(window.table$value=="desc"), "value"] <- "trans"
+
+window.table[which(window.table$value=="intDesc"), c("pat.1", "pat.2")] <- window.table[which(window.table$value=="intDesc"), c("pat.2", "pat.1")]
+window.table[which(window.table$value=="intAnc"), "value"] <- "intTrans"
+window.table[which(window.table$value=="intDesc"), "value"] <- "intTrans"
+
+window.table	<- as.data.table(window.table)
 setnames(window.table, c('variable','value'), c('SOURCE_FILE','type'))
 #	add window coordinates
 window.table[, W_FROM:= window.table[,as.integer(gsub(prefix.wfrom,'',regmatches(SOURCE_FILE, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),SOURCE_FILE))))]]
@@ -342,19 +354,19 @@ window.table[, W_TO:= window.table[, as.integer(gsub(prefix.wto,'',regmatches(SO
 if(allow.splits)
 {
 	set(window.table, window.table[, which(type=='trueInt')], 'type', 'int')
-	set(window.table, window.table[, which(type%in% c("anc", "intAnc"))], 'type', 'anc')
-	set(window.table, window.table[, which(type%in% c("desc", "intDesc"))], 'type', 'desc')
+	set(window.table, window.table[, which(type %in% c("intTrans"))], 'type', 'trans')
 	#set(window.table, window.table[, which(type=='cher')], 'type', 'cher')
 	#set(window.table, window.table[, which(type=='unint')], 'type', 'unint')
 }
 if(!allow.splits)
 {
-	set(window.table, window.table[, which(type%in% c("trueInt", "intAnc", "intDesc"))], 'type', 'int')
+	set(window.table, window.table[, which(type %in% c("trueInt", "intTrans"))], 'type', 'int')
 	#set(window.table, window.table[, which(type=="anc")], 'type', 'anc')
 	#set(window.table, window.table[, which(type=="desc")], 'type', 'desc')
 	#set(window.table, window.table[, which(type=='cher')], 'type', 'cher')
 	#set(window.table, window.table[, which(type=='unint')], 'type', 'unint')
 }
+
 #	OR: don t complete table as this may require large mem
 #	reorder cols
 window.table	<- subset(window.table, select=c('pat.1','pat.2','W_FROM','W_TO','type','SOURCE_FILE'))
@@ -369,17 +381,42 @@ if(!is.null(detailed.output))
 cat("Making summary output table...\n")
 ans	<- window.table[, list(windows=length(W_FROM)), by=c('pat.1','pat.2','type')]
 #	evaluate fraction
-tmp	<- subset(ans, type!='disconnected')[, list(type=type, fraction=paste(windows,'/',sum(windows),sep='')), by=c('pat.1','pat.2')]
+
+if(give.denoms){
+  determine.denominator <- function(a, b){
+    first.present <- reads.table[which(reads.table$patient==a & reads.table$present),]
+    second.present <- reads.table[which(reads.table$patient==b & reads.table$present),]
+    
+    return (length(intersect(first.present$window.start, second.present$window.start)))
+  }
+  
+  ans$denominator <- mapply(determine.denominator, ans$pat.1, ans$pat.2)
+}
+
+tmp	<- ans[, list(type=type, fraction=paste(windows,'/',denominator,sep='')), by=c('pat.1','pat.2')]
 ans	<- merge(ans, tmp, by=c('pat.1','pat.2','type'))
 #	evaluate total.trans
-tmp	<- subset(ans, type=='anc')
-setnames(tmp, c('pat.1','pat.2'), c('pat.2','pat.1'))
-tmp	<- rbind(tmp, subset(ans, type=='anc'), use.names=TRUE)
-tmp	<- tmp[, list(total.trans=sum(windows)), by=c('pat.1','pat.2')]
-ans	<- merge(ans, tmp, by=c('pat.1','pat.2'))
+
+get.total.trans <- function(a,b){
+  if(nrow(ans[which(ans$pat.1==a & ans$pat.2==b & ans$type=="trans"),])==0 &
+     nrow(ans[which(ans$pat.1==b & ans$pat.2==a & ans$type=="trans"),])==0){
+    return(0)
+  } else if (nrow(ans[which(ans$pat.1==a & ans$pat.2==b & ans$type=="trans"),])!=1 &
+             nrow(ans[which(ans$pat.1==b & ans$pat.2==a & ans$type=="trans"),])!=1){
+    # sanity check
+    stop("Transmissions reported in both directions")
+  } else if (nrow(ans[which(ans$pat.1==a & ans$pat.2==b & ans$type=="trans"),])==1)  {
+    return (ans[which(ans$pat.1==a & ans$pat.2==b & ans$type=="trans"), windows])
+  } else {
+    return (ans[which(ans$pat.1==b & ans$pat.2==a & ans$type=="trans"), windows])
+  }
+}
+
+ans$total.trans <- mapply(get.total.trans, ans$pat.1, ans$pat.2)
+
 setkey(ans, pat.1, pat.2, type)
 #	write to file
-write.csv(subset(ans, total.trans>=min.threshold), file=output.file, row.names=FALSE, quote=FALSE)
+write.csv(subset(ans, !is.na(type) & total.trans>=min.threshold), file=output.file, row.names=FALSE, quote=FALSE)
 
 
 # Not currently in use - for dating
