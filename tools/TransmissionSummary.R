@@ -51,7 +51,7 @@ if(command.line){
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_161007_couples_w270_rerun/")
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
   summary.file <- "ptyr4_patStatsFull.csv"
-  id.file <- "patientIDList.txt"  
+  id.file <- "ptyr4_patients.txt" 
   detailed.output <- "quickout.csv"
   min.threshold <- 0
   allow.splits <- TRUE
@@ -401,14 +401,15 @@ get.total.trans <- function(a,b){
   if(nrow(ans[which(ans$pat.1==a & ans$pat.2==b & ans$type=="trans"),])==0 &
      nrow(ans[which(ans$pat.1==b & ans$pat.2==a & ans$type=="trans"),])==0){
     return(0)
-  } else if (nrow(ans[which(ans$pat.1==a & ans$pat.2==b & ans$type=="trans"),])!=1 &
-             nrow(ans[which(ans$pat.1==b & ans$pat.2==a & ans$type=="trans"),])!=1){
-    # sanity check
-    stop("Transmissions reported in both directions")
+  } else if (nrow(ans[which(ans$pat.1==a & ans$pat.2==b & ans$type=="trans"),])==1 &
+             nrow(ans[which(ans$pat.1==b & ans$pat.2==a & ans$type=="trans"),])==1){
+    return(ans[which(ans$pat.1==a & ans$pat.2==b & ans$type=="trans"), windows] + ans[which(ans$pat.1==b & ans$pat.2==a & ans$type=="trans"), windows])
   } else if (nrow(ans[which(ans$pat.1==a & ans$pat.2==b & ans$type=="trans"),])==1)  {
     return (ans[which(ans$pat.1==a & ans$pat.2==b & ans$type=="trans"), windows])
-  } else {
+  } else if (nrow(ans[which(ans$pat.1==b & ans$pat.2==a & ans$type=="trans"),])==1){
     return (ans[which(ans$pat.1==b & ans$pat.2==a & ans$type=="trans"), windows])
+  } else {
+    stop("Too many transmission rows")
   }
 }
 
