@@ -267,7 +267,13 @@ class PseudoRead:
     max(SelfRightEdge, OtherRightEdge) < RightWindowEdge:
       return None
 
-    if SelfLeftEdge < OtherLeftEdge:
+    # Find where, relative to the reference, the left edge of each read is,
+    # *including unmapped reads*. This is the position of the left-most mapped
+    # base, minus the length of any unmapped reads to its left. Find which of
+    # the two reads has this position more to the left. 
+    SelfStartIncClipping  = SelfLeftEdge  - self.positions.index(SelfLeftEdge)
+    OtherStartIncClipping = OtherLeftEdge - other.positions.index(OtherLeftEdge)
+    if SelfStartIncClipping < OtherStartIncClipping:
       LeftRead = self
       RightRead = other
     else:
@@ -278,7 +284,8 @@ class PseudoRead:
 
     # Slide the reads along each other until we find a position such that 
     # they agree perfectly on the overlap - both on the bases it contains,
-    # and on the positions mapped to in the reference. 
+    # and on the positions mapped to in the reference. At least one position in
+    # the overlap must be mapped, i.e. they can't all be mapped to 'None'.
     # If no such position is found, they disagree: return False.
     OverlapStartInLeftRead = None
     for j in range(Length_LeftRead):
@@ -289,8 +296,14 @@ class PseudoRead:
           this_j_works = False
           break
       if this_j_works:
-        OverlapStartInLeftRead = j
-        break
+        AtLeastOnePosMapped = False
+        for k in range(min(Length_RightRead, Length_LeftRead -j)):
+          if LeftRead.positions[j+k] != None:
+            AtLeastOnePosMapped = True
+            break
+        if AtLeastOnePosMapped:
+          OverlapStartInLeftRead = j
+          break
     if OverlapStartInLeftRead == None:
       return False
 
@@ -320,6 +333,7 @@ class PseudoRead:
     assert len(merged_qualities) == len(merged_sequence)
     MergedRead = PseudoRead(self.name, merged_sequence, \
     merged_positions, merged_qualities)
+
     return MergedRead
 
 
