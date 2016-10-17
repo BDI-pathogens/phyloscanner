@@ -658,6 +658,8 @@ def TranslateCoords(CodeArgs):
     CoordsDict[SeqName] = coords
   return CoordsDict
 
+# Print how this script was called, for logging purposes.
+print('phyloscanner was called thus:\n' + ' '.join(sys.argv))
 
 # If there is only one bam and no other refs, no coordinate translation
 # is necessary - we use the coords as they are, though setting any after the end
