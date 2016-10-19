@@ -24,7 +24,31 @@ input.file.name <- args$inputFile
 output.file.name <- args$outputFile
 blacklist.file.name <- args$blacklist
 drop.prop <- args$dropProportion
-longest.branch <- args$longestBranchLength
+if(drop.prop>=0.5){
+  stop("Drop proportion threshold must be less than 0.5")
+}
+branch.limit <- args$longestBranchLength
+
+
+setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_161007_couples_w270_rerun/ptyr1_trees_newick/")
+output.dir <- getwd()
+script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
+tree.file.name <- "ptyr1_InWindow_850_to_1099.tree"
+blacklist.file.name <- NULL
+root.name <- "REF_CPX_AF460972"
+tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
+
+source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
+source(file.path(script.dir, "SubtreeMethods.R"))
+
+
+
+tree <- read.tree(tree.file.name)
+tree <- unroot(tree)
+tree <- di2multi(tree, tol = 1E-5)
+if(!is.null(root.name)){
+  tree <- root(tree, outgroup = which(tree$tip.label==root.name), resolve.root = T)
+}
 
 blacklist <- vector()
 
@@ -40,9 +64,62 @@ if(!is.null(blacklist.file.name)){
   }	
 }
 
+tree.1 <- drop.tip(tree, blacklist)
 
+patients.present <- sapply(tree.1$tip.label, function(tip) patient.from.label(tip, tip.regex))
+patients.present <- patients.present[!is.na(patients.present)]
+patients.present <- unique(patients.present)
 
+patient.ids <- sapply(tree.1$tip.label, function(x) patient.from.label(x, tip.regex))
 
+rogue.hunt <- function(tree, patient, patient.ids, length.threshold, read.prop.threshold){
+  print(patient)
+  tips.to.keep <- which(patient.ids==patient)
+  new.blacklist <- vector()
+  if(length(tips.to.keep) > 1){
+    tree.2 <- drop.tip(tree, tip=tree$tip.label[setdiff(seq(1, length(tree$tip.label)), tips.to.keep)])
+    
+    total.reads <- sum(as.numeric(sapply(tree.2$tip.label, function(tip) read.count.from.label(tip, tip.regex))))
+    
+    longest.branch <- max(tree.2$edge.length)
+    if(longest.branch >= length.threshold){
+      long.edge.ends <- tree.2$edge[which(tree.2$edge.length>=length.threshold),]
+      # Collect the ends of long endges
+      long.edge.ends <- unique(as.vector(long.edge.ends))
+      
+      which.end <- vector()
+      
+      for(tip.no in seq(1, length(tree.2$tip.label))){
+        current.node <- tip.no
+        while(!(current.node %in% long.edge.ends)){
+          current.node <- Ancestors(tree.2, current.node, type=c("parent"))
+        }
+        which.end[tip.no] <- current.node
+      }
+      
+      tips.going <- vector()
+      
+      for(group in long.edge.ends){
+        group.tips <- tree.2$tip.label[which(which.end==group)]
+        if(length(group.tips)>0){
+          reads.in.group <- sum(as.numeric(sapply(group.tips, function(tip) read.count.from.label(tip, tip.regex))))
+          if(reads.in.group/total.reads < read.prop.threshold){
+            tips.going <- c(tips.going, group.tips)
+          }
+        }
+      }
+      
+      new.blacklist <- c(new.blacklist, tips.going)
+    }
+    
+  }
+  return(new.blacklist)
+}
 
+new.blacklists <- lapply(patients.present, function(pat) rogue.hunt(tree.1, pat, patient.ids, branch.limit, drop.prop))
 
-drop.prop <- args$
+new.blacklist <- unlist(new.blacklists)
+
+new.blacklist <- c(tree$tip.label[blacklist], new.blacklist)
+
+write.table(new.blacklist, output.file.name, sep=",", row.names=FALSE, col.names=FALSE, quote=F)
