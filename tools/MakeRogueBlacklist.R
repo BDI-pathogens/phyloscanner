@@ -29,15 +29,6 @@ if(drop.prop>=0.5){
 }
 branch.limit <- args$longestBranchLength
 
-
-setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_161007_couples_w270_rerun/ptyr1_trees_newick/")
-output.dir <- getwd()
-script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
-tree.file.name <- "ptyr1_InWindow_850_to_1099.tree"
-blacklist.file.name <- NULL
-root.name <- "REF_CPX_AF460972"
-tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
-
 source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
 source(file.path(script.dir, "SubtreeMethods.R"))
 
