@@ -673,6 +673,16 @@ patient.from.label <- function(label, regexp){
   }
 }
 
+# Get read count from label
+
+read.count.from.label <- function(label, regexp){
+  if(length(grep(regexp, label)>0)) {
+    return(sub(regexp, "\\3", label))
+  } else {
+    return(NA)
+  }
+}
+
 # Transmission tree navigation
 
 get.tt.parent <- function(tt, label){
