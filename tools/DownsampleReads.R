@@ -1,4 +1,4 @@
-list.of.packages <- c("argparse", phangorn)
+list.of.packages <- c("argparse", "phangorn")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
 
@@ -23,21 +23,13 @@ tip.regex <- args$tipRegex
 input.file.name <- args$inputFile
 output.file.name <- args$outputFile
 blacklist.file.name <- args$blacklist
+root.name <- args$outgroupName
 max.reads <- args$maxReadsPerPatient
-
-setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_161007_couples_w270_rerun/ptyr1_trees_newick/")
-output.dir <- getwd()
-script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
-tree.file.name <- "ptyr1_InWindow_850_to_1099.tree"
-blacklist.file.name <- NULL
-root.name <- "REF_CPX_AF460972"
-tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
-max.reads <- 100
 
 source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
 source(file.path(script.dir, "SubtreeMethods.R"))
 
-tree <- read.tree(tree.file.name)
+tree <- read.tree(input.file.name)
 tree <- unroot(tree)
 tree <- di2multi(tree, tol = 1E-5)
 if(!is.null(root.name)){
@@ -48,7 +40,7 @@ blacklist <- vector()
 
 if(!is.null(blacklist.file.name)){
   if(file.exists(blacklist.file.name)){
-    cat("Reading BlackList file",blacklist.file.name,'\n')
+    cat("Reading blacklist file",blacklist.file.name,'\n')
     blacklisted.tips <- read.table(blacklist.file.name, sep=",", header=F, stringsAsFactors = F, col.names="read")
     if(nrow(blacklisted.tips)>0){
       blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
@@ -91,6 +83,6 @@ downsample.me <- function(patient, tree, number){
 
 excluded <- unlist(lapply(patients.present, downsample.me, tree=tree.1, number = max.reads))
 
-new.blacklist <- c(tree$tip.label[blacklist], new.blacklist)
+new.blacklist <- c(tree$tip.label[blacklist], excluded)
 
 write.table(new.blacklist, output.file.name, sep=",", row.names=FALSE, col.names=FALSE, quote=F)

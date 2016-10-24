@@ -1,4 +1,4 @@
-list.of.packages <- c("argparse", phangorn)
+list.of.packages <- c("argparse", "phangorn")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
 
@@ -23,6 +23,7 @@ tip.regex <- args$tipRegex
 input.file.name <- args$inputFile
 output.file.name <- args$outputFile
 blacklist.file.name <- args$blacklist
+root.name <- args$outgroupName
 drop.prop <- args$dropProportion
 if(drop.prop>=0.5){
   stop("Drop proportion threshold must be less than 0.5")
@@ -32,7 +33,7 @@ branch.limit <- args$longestBranchLength
 source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
 source(file.path(script.dir, "SubtreeMethods.R"))
 
-tree <- read.tree(tree.file.name)
+tree <- read.tree(input.file.name)
 tree <- unroot(tree)
 tree <- di2multi(tree, tol = 1E-5)
 if(!is.null(root.name)){
