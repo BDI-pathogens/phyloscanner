@@ -51,9 +51,9 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     return(list(assocs = node.assocs$details, split.patients = patients.copy, split.tips = patient.tips.copy, 
                 first.nodes = patient.mrcas.copy))
     
-  } else if(method == "r") {
+  } else if (method == "r") {
     
-    cat("Applying the Romero-Severson classification to internal nodes...\n")
+    cat("Applying the Romero-Severson parsimony classification to internal nodes...\n")
     
     tip.assocs <- annotate.tips(tree, patients, patient.tips)
     
@@ -155,6 +155,34 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     return(list(assocs = split.assocs, split.patients = patients.copy, split.tips = patient.tips.copy, 
                 first.nodes = first.nodes.by.patients))
 
+    
+  } else if(method=="s"){
+    cat("Reconstructing internal node hosts with the Sankhoff algorithm...")
+    
+    tip.assocs <- annotate.tips(tree, patients, patient.tips)
+    
+    for(tip in seq(1, length(tree$tip.label))){
+      if(tip %in% blacklist | is.na(patient.from.label(tree$tip.label[tip], tip.regex))){
+        tip.assocs[[tip]] <- "*"
+      }
+    }
+    
+    # It would be nice if you could just drop the tips with stars, but then we won't know how
+    # to annotate the full tree. So we need to keep track of which nodes have only one non-starred
+    # child
+    
+    nodes.to.ignore <- find.ignored.descendants(getRoot(tree), tree, vector(), tip.assocs)
+    
+    # The rows of the cost matrix are nodes. The columns are patients; the last column is the unsampled
+    # state
+    
+    cost.matrix <- matrix(NA, ncol=length(patients) + 1, nrow=length(tree$tip.label) + tree$Nnode)
+    
+    
+    
+    
+    
+    
     
   } else {
     stop("Unsupported splitting method")
@@ -386,6 +414,113 @@ get.star.runs <- function(tree, assocs){
   }
   return(out)
 }
+
+# SANKHOFF METHODS
+
+# 0 is completely ignore (no important descendants); 1 is ignore when passing; 2 is don't ignore
+
+find.ignored.descendants <- function(node, tree, temp.ignore.list, tip.assocs){
+  current.ignore.list <- temp.ignore.list
+  
+  if(is.tip(tree, node)){
+    if(tip.assocs[[node]] == "*"){
+      result <- 0
+    } else {
+      result <- 2
+    }
+  } else {
+    counted.children <- 0
+    for(child in Children(tree, node)){
+      new.ignore.list <- find.ignored.descendents(node, tree, current.ignore.list, tip.assocs)
+      if(new.ignore.list[[child]]!=0){
+        counted.children <- counted.children + 1
+      }
+      current.ignore.list <- new.ignore.list
+    }
+    if(counted.children == 0){
+      result <- 0
+    } else if(counted.children == 1){
+      result <- 1
+    } else {
+      result <- 2 
+    }
+  }
+  
+  current.ignore.list[[node]] <- result
+  return(current.ignore.list)
+  
+}
+
+make.cost.matrix <- function(node, tree, patients, tip.assocs, ignore.list, current.matrix){
+  if(ignore.list[node])}{
+    current.matrix[node,] <- rep(NA, length(patients)+1)
+  } else if(is.tip(tree, node)){
+    infinity.vector <- rep(Inf, length(patients)+1)
+    infinity.vector[which(patients == tip.assocs[[node]])] <- 0
+    current.matrix[node,] <- infinity.vector
+  } else {
+    this.row <- vector()
+    
+    child.rows <- vector()
+    for(child in Children(tree, node)){
+      current.matrix <- make.cost.matrix(child, tree, patient, tip.assocs, ignore.list, current.matrix)
+      current.row <- current.matrix[child,] 
+      while(ignore.list[child]==1){
+        current.row <- current.matrix[child,]
+        for(grandchild in Children(tree, node)){
+          if(ignore.list[grandchild]!=0){
+            # should only be one of these
+            child <- grandchild
+            break
+          }
+        }
+      }
+      
+      # may not work - sleepy right now...
+
+      child.rows <- rbind(child.rows, current.row)
+    }
+    
+    for(top.patient.no in seq(1,length(patients)+1)) {
+      for(child.row in seq(1, nrow(child.rows))){
+        scores <- vector()
+        for(botton.patient.no in seq(1,length(patients)+1)){
+          if(top.patient.no == botton.patient.no){
+            scores[botton.patient.no] <- child.rows[child.row, botton.patient.no]
+          } else if(bottom.patient.no < length(patients)+1){
+            scores[botton.patient.no] <- child.rows[child.row, botton.patient.no] + get.cost(tree, node, patient, tip.assocs)
+          } else {
+            # note: is it OK for the cost of transmission to unsampled to be zero?
+            scores[botton.patient.no] <- child.rows[child.row, botton.patient.no]
+          }
+        }
+        # then do the unsampled state
+        
+      }
+    }
+    
+
+    
+  }
+  
+}
+
+get.cost <- function(tree, node, patient, tip.assocs){
+  if(is.tip(tree, node)){
+    stop("Internal nodes only!")
+  } 
+  current.minimum <- Inf
+  for(tip in Descendants(tree, node, type="tips")){
+    if(tip.assocs[[tip]]==patient){
+      distance <- dist.nodes(tree)[node,tip]
+      if(distance < current.minimum){
+        current.minimum <- distance
+      }
+    }
+  }
+  return(current.minimum)
+}
+
 
 output.trans.tree <- function(tree, assocs, file.name = NULL){
   # find the association of each node
