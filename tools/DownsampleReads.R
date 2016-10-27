@@ -29,60 +29,92 @@ max.reads <- args$maxReadsPerPatient
 source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
 source(file.path(script.dir, "SubtreeMethods.R"))
 
-tree <- read.tree(input.file.name)
-tree <- unroot(tree)
-tree <- di2multi(tree, tol = 1E-5)
-if(!is.null(root.name)){
-  tree <- root(tree, outgroup = which(tree$tip.label==root.name), resolve.root = T)
+#
+#	additional function definitions
+#
+
+# This returns the ones to get rid of (i.e. blacklist) per patient for a given tree
+downsample.patient <- function(patient, tree, number, tip.regex, patient.ids){
+	tips.to.keep <- which(patient.ids==patient)
+	labels.to.keep <- tree$tip.label[tips.to.keep]
+	
+	tip.counts <- as.numeric(sapply(labels.to.keep, function(tip) read.count.from.label(tip, tip.regex))) 
+	
+	total.reads <- sum(tip.counts)
+	
+	if(total.reads <= number){
+		return(vector())
+	}
+	
+	tip.props <- tip.counts/total.reads
+	
+	sample <- rmultinom(1, size = number, prob = tip.props)
+	
+	sampled.names <- labels.to.keep[which(sample > 0)]
+	
+	return(setdiff(labels.to.keep, sampled.names))
 }
-
-blacklist <- vector()
-
-if(!is.null(blacklist.file.name)){
-  if(file.exists(blacklist.file.name)){
-    cat("Reading blacklist file",blacklist.file.name,'\n')
-    blacklisted.tips <- read.table(blacklist.file.name, sep=",", header=F, stringsAsFactors = F, col.names="read")
-    if(nrow(blacklisted.tips)>0){
-      blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
-    }
-  } else {
-    warning(paste("File ",blacklist.file.name," does not exist; skipping.",paste=""))
-  }	
+# This returns the ones to get rid of (i.e. blacklist) for a given tree
+downsample.tree<- function(input.file.name, blacklist.file.name, output.file.name, root.name, tip.regex, max.reads)
+{
+	tree <- read.tree(input.file.name)
+	tree <- unroot(tree)
+	tree <- di2multi(tree, tol = 1E-5)
+	if(!is.null(root.name)){
+		tree <- root(tree, outgroup = which(tree$tip.label==root.name), resolve.root = T)
+	}
+	
+	blacklist <- vector()
+	
+	if(!is.null(blacklist.file.name)){
+		if(file.exists(blacklist.file.name)){
+			cat("Reading blacklist file",blacklist.file.name,'\n')
+			blacklisted.tips <- read.table(blacklist.file.name, sep=",", header=F, stringsAsFactors = F, col.names="read")
+			if(nrow(blacklisted.tips)>0){
+				blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
+			}
+		} else {
+			warning(paste("File ",blacklist.file.name," does not exist; skipping.",paste=""))
+		}	
+	}
+	
+	tree.1 <- drop.tip(tree, blacklist)
+	
+	patients.present <- sapply(tree.1$tip.label, function(tip) patient.from.label(tip, tip.regex))
+	patients.present <- patients.present[!is.na(patients.present)]
+	patients.present <- unique(patients.present)
+	
+	patient.ids <- sapply(tree.1$tip.label, function(x) patient.from.label(x, tip.regex))
+	
+	
+	
+	excluded <- unlist(lapply(patients.present, downsample.patient, tree=tree.1, number = max.reads, tip.regex=tip.regex, patient.ids=patient.ids))
+	
+	new.blacklist <- c(tree$tip.label[blacklist], excluded)
+	write.table(new.blacklist, output.file.name, sep=",", row.names=FALSE, col.names=FALSE, quote=F)
 }
+#
+#	run script 
+#
 
-tree.1 <- drop.tip(tree, blacklist)
-
-patients.present <- sapply(tree.1$tip.label, function(tip) patient.from.label(tip, tip.regex))
-patients.present <- patients.present[!is.na(patients.present)]
-patients.present <- unique(patients.present)
-
-patient.ids <- sapply(tree.1$tip.label, function(x) patient.from.label(x, tip.regex))
-
-# This returns the ones to get rid of (i.e. blacklist)
-
-downsample.me <- function(patient, tree, number){
-  tips.to.keep <- which(patient.ids==patient)
-  labels.to.keep <- tree$tip.label[tips.to.keep]
-  
-  tip.counts <- as.numeric(sapply(labels.to.keep, function(tip) read.count.from.label(tip, tip.regex))) 
-  
-  total.reads <- sum(tip.counts)
-  
-  if(total.reads <= number){
-    return(vector())
-  }
-  
-  tip.props <- tip.counts/total.reads
-  
-  sample <- rmultinom(1, size = number, prob = tip.props)
-  
-  sampled.names <- labels.to.keep[which(sample > 0)]
-  
-  return(setdiff(labels.to.keep, sampled.names))
+#	option 1: input.file.name specifies a single input file
+if(file.exists(input.file.name))
+{
+	downsample.tree(input.file.name, blacklist.file.name, output.file.name, root.name, tip.regex, max.reads)
 }
-
-excluded <- unlist(lapply(patients.present, downsample.me, tree=tree.1, number = max.reads))
-
-new.blacklist <- c(tree$tip.label[blacklist], excluded)
-
-write.table(new.blacklist, output.file.name, sep=",", row.names=FALSE, col.names=FALSE, quote=F)
+#	option 2: input.file.name specifies a regular expression of several input files
+if(!file.exists(input.file.name))
+{
+	input.file.names		<- sort(list.files(dirname(input.file.name), pattern=paste(basename(input.file.name),'.*\\.tree$',sep=''), full.names=TRUE))
+	blacklist.file.names	<- NULL
+	if(!is.null(blacklist.file.name))
+		blacklist.file.names<- sort(list.files(dirname(blacklist.file.name), pattern=paste(basename(blacklist.file.name),'.*\\.csv$',sep=''), full.names=TRUE))	
+	stopifnot(length(input.file.names)==length(blacklist.file.names))
+	for(tree.i in seq_along(input.file.names))
+	{
+		input.file.name		<- input.file.names[tree.i]
+		blacklist.file.name	<- blacklist.file.names[tree.i]		
+		tmp					<- paste(output.file.name, gsub('tree$','csv',regmatches(input.file.name,regexpr('InWindow.*',input.file.name))),sep='')		
+		downsample.tree(input.file.name, blacklist.file.name, tmp, root.name, tip.regex, max.reads)		
+	}
+}
