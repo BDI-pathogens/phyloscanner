@@ -63,10 +63,13 @@ patients.present <- unique(patients.present)
 patient.ids <- sapply(tree.1$tip.label, function(x) patient.from.label(x, tip.regex))
 
 rogue.hunt <- function(tree, patient, patient.ids, length.threshold, read.prop.threshold){
+  print(patient)
   tips.to.keep <- which(patient.ids==patient)
   new.blacklist <- vector()
   if(length(tips.to.keep) > 1){
     tree.2 <- drop.tip(tree, tip=tree$tip.label[setdiff(seq(1, length(tree$tip.label)), tips.to.keep)])
+    
+    tree.2 <- unroot(tree.2)
     
     total.reads <- sum(as.numeric(sapply(tree.2$tip.label, function(tip) read.count.from.label(tip, tip.regex))))
     
@@ -79,11 +82,12 @@ rogue.hunt <- function(tree, patient, patient.ids, length.threshold, read.prop.t
       which.end <- vector()
       
       for(tip.no in seq(1, length(tree.2$tip.label))){
-        current.node <- tip.no
-        while(!(current.node %in% long.edge.ends)){
-          current.node <- Ancestors(tree.2, current.node, type=c("parent"))
+        print(tip.no)
+        if(path.exists(tree.2, tip.no, long.edge.ends[1], long.edge.ends[2])){
+          which.end[tip.no] <- long.edge.ends[1]
+        } else {
+          which.end[tip.no] <- long.edge.ends[2]
         }
-        which.end[tip.no] <- current.node
       }
       
       tips.going <- vector()

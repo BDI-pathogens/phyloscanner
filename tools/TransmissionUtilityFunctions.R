@@ -753,3 +753,36 @@ get.tt.path <- function(tt, label1, label2){
   
   return(c(first.half, mrca, rev(second.half)))
 }
+
+# starting at node 1, determine whether the path to node 2 is blocked by node 3
+# Should work on both rooted and unrooted trees I _hope_.
+
+path.exists <- function(tree, node.1, node.2, node.3, last.node = -1){
+#  cat(node.1," ")
+  if(node.1 == node.2){
+    return(TRUE)
+  }
+  if(node.1 == node.3){
+    return(FALSE)
+  }
+  neighbours = vector()
+  if(!is.tip(tree, node.1)){
+    neighbours <- Children(tree, node.1)
+  }
+
+  if(length(Ancestors(tree, node.1, type="parent"))!=0){
+    if(Ancestors(tree, node.1, type="parent")!=0){
+      neighbours <- c(neighbours, Ancestors(tree, node.1, type="parent"))
+    }
+  }
+  for(neighbour in neighbours){
+    if(neighbour != last.node){
+      if(path.exists(tree, neighbour, node.2, node.3, node.1)){
+        return(TRUE)
+        break
+      }
+    }
+  }
+  #you've been everywhere and you can't find a way through
+  return(FALSE)
+}
