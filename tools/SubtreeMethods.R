@@ -452,7 +452,7 @@ find.ignored.descendants <- function(node, tree, temp.ignore.list, tip.assocs){
 }
 
 make.cost.matrix <- function(node, tree, patients, tip.assocs, ignore.list, current.matrix){
-  if(ignore.list[node])}{
+  if(ignore.list[node]){
     current.matrix[node,] <- rep(NA, length(patients)+1)
   } else if(is.tip(tree, node)){
     infinity.vector <- rep(Inf, length(patients)+1)
