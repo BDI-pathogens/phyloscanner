@@ -63,51 +63,56 @@ patients.present <- unique(patients.present)
 patient.ids <- sapply(tree.1$tip.label, function(x) patient.from.label(x, tip.regex))
 
 rogue.hunt <- function(tree, patient, patient.ids, length.threshold, read.prop.threshold){
-  print(patient)
   tips.to.keep <- which(patient.ids==patient)
   new.blacklist <- vector()
   if(length(tips.to.keep) > 1){
     tree.2 <- drop.tip(tree, tip=tree$tip.label[setdiff(seq(1, length(tree$tip.label)), tips.to.keep)])
-    
-    tree.2 <- unroot(tree.2)
-    
-    total.reads <- sum(as.numeric(sapply(tree.2$tip.label, function(tip) read.count.from.label(tip, tip.regex))))
-    
-    longest.branch <- max(tree.2$edge.length)
-    if(longest.branch >= length.threshold){
-      long.edge.ends <- tree.2$edge[which(tree.2$edge.length>=length.threshold),]
-      # Collect the ends of long endges
-      long.edge.ends <- unique(as.vector(long.edge.ends))
-      
-      which.end <- vector()
-      
-      for(tip.no in seq(1, length(tree.2$tip.label))){
-        print(tip.no)
-        if(path.exists(tree.2, tip.no, long.edge.ends[1], long.edge.ends[2])){
-          which.end[tip.no] <- long.edge.ends[1]
-        } else {
-          which.end[tip.no] <- long.edge.ends[2]
-        }
-      }
-      
-      tips.going <- vector()
-      
-      for(group in long.edge.ends){
-        group.tips <- tree.2$tip.label[which(which.end==group)]
-        if(length(group.tips)>0){
-          reads.in.group <- sum(as.numeric(sapply(group.tips, function(tip) read.count.from.label(tip, tip.regex))))
-          if(reads.in.group/total.reads < read.prop.threshold){
-            tips.going <- c(tips.going, group.tips)
+    if(length(tree.2$tip.label)>2){
+      tree.2 <- unroot(tree.2)
+      total.reads <- sum(as.numeric(sapply(tree.2$tip.label, function(tip) read.count.from.label(tip, tip.regex))))
+      longest.branch <- max(tree.2$edge.length)
+      if(longest.branch >= length.threshold){
+        long.edge.ends <- tree.2$edge[which(tree.2$edge.length>=length.threshold),]
+        which.end <- vector()
+        groups.identified <- rep(FALSE, length(tree.2$tip.label))
+        counter <- 1
+        for(tip.no in seq(1, length(tree.2$tip.label))){
+          if(!groups.identified[tip.no]){
+            tips.in.group <- tips.reachable(tree.2, tip.no, long.edge.ends)
+            groups.identified[tips.in.group] <- TRUE
+            which.end[tips.in.group] <- counter
+            counter <- counter + 1
           }
         }
+        tips.going <- vector()
+        for(group in unique(which.end)){
+          group.tips <- tree.2$tip.label[which(which.end==group)]
+          if(length(group.tips)>0){
+            reads.in.group <- sum(as.numeric(sapply(group.tips, function(tip) read.count.from.label(tip, tip.regex))))
+            if(reads.in.group/total.reads < read.prop.threshold){
+              tips.going <- c(tips.going, group.tips)
+            }
+          }
+        }
+        new.blacklist <- c(new.blacklist, tips.going)
       }
-      
-      new.blacklist <- c(new.blacklist, tips.going)
+    } else {
+      total.length = sum(tree.2$edge.length)
+      if(total.length > length.threshold){
+        reads.1 <- read.count.from.label(1, tip.regex)
+        reads.2 <- read.count.from.label(2, tip.regex)
+        if(reads.1/reads.2 < read.prop.threshold){
+          new.blacklist <- c(new.blacklist,1)
+        }
+        if(reads.2/reads.1 < read.prop.threshold){
+          new.blacklist <- c(new.blacklist,2)
+        }
+      }
     }
-    
   }
   return(new.blacklist)
 }
+
 
 new.blacklists <- lapply(patients.present, function(pat) rogue.hunt(tree.1, pat, patient.ids, branch.limit, drop.prop))
 

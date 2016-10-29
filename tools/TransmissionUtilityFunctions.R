@@ -1,5 +1,6 @@
 require(phangorn, quietly=TRUE, warn.conflicts=FALSE)
 require(gdata, quietly=TRUE, warn.conflicts=FALSE)
+require(prodlim, quietly=TRUE, warn.conflicts=FALSE)
 
 # Get the tip number of this label
 
@@ -769,7 +770,6 @@ path.exists <- function(tree, node.1, node.2, node.3, last.node = -1){
   if(!is.tip(tree, node.1)){
     neighbours <- Children(tree, node.1)
   }
-
   if(length(Ancestors(tree, node.1, type="parent"))!=0){
     if(Ancestors(tree, node.1, type="parent")!=0){
       neighbours <- c(neighbours, Ancestors(tree, node.1, type="parent"))
@@ -785,4 +785,29 @@ path.exists <- function(tree, node.1, node.2, node.3, last.node = -1){
   }
   #you've been everywhere and you can't find a way through
   return(FALSE)
+}
+
+tips.reachable <- function(tree, node, blocking.edges, last.node = -1){
+  out <- vector()
+  if(is.tip(tree, node)){
+    out <- c(out, node)
+  }
+  neighbours = vector()
+  if(!is.tip(tree, node)){
+    neighbours <- Children(tree, node)
+  }
+  if(length(Ancestors(tree, node, type="parent"))!=0){
+    if(Ancestors(tree, node, type="parent")!=0){
+      neighbours <- c(neighbours, Ancestors(tree, node, type="parent"))
+    }
+  }
+  for(neighbour in neighbours){
+    if(neighbour != last.node){
+      edge.vec <- c(node, neighbour)
+      if(is.na(row.match(edge.vec, t(as.matrix(blocking.edges)))) &  is.na(row.match(rev(edge.vec), t(as.matrix(blocking.edges))))){
+        out <- c(out, tips.reachable(tree, neighbour, blocking.edges, node))
+      }
+    }
+  }
+  return(out)
 }
