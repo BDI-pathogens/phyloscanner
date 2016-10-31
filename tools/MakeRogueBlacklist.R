@@ -75,7 +75,6 @@ patients.present <- unique(patients.present)
 patient.ids <- sapply(tree.1$tip.label, function(x) patient.from.label(x, tip.regex))
 
 rogue.hunt <- function(tree, patient, patient.ids, length.threshold, read.prop.threshold){
-  print(patient)
   tips.to.keep <- which(patient.ids==patient)
   new.blacklist <- vector()
   if(length(tips.to.keep) > 1){
