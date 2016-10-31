@@ -113,11 +113,7 @@ rogue.hunt <- function(tree, patient, patient.ids, length.threshold, read.prop.t
   return(new.blacklist)
 }
 
-
 new.blacklists <- lapply(patients.present, function(pat) rogue.hunt(tree.1, pat, patient.ids, branch.limit, drop.prop))
-
 new.blacklist <- unlist(new.blacklists)
-
 new.blacklist <- c(tree$tip.label[blacklist], new.blacklist)
-
 write.table(new.blacklist, output.file.name, sep=",", row.names=FALSE, col.names=FALSE, quote=F)

@@ -11,11 +11,11 @@ arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_
                         help="Regular expression identifying tips from the dataset. Three groups: patient ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name.")
 arg_parser$add_argument("-r", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
 arg_parser$add_argument("-b", "--blacklist", action="store", help="A blacklist to be applied before this script is run.")
+arg_parser$add_argument("-p", "--patients", action="store", help="A file listing which patients to downsample (on separate lines, with no header). If absent, then downsample every one present.")
 arg_parser$add_argument("maxReadsPerPatient", type="double", action="store", help="The upper limit for the number of reads to be included from each patient")
 arg_parser$add_argument("inputFile", metavar="inputTreeFileName", help="Tree file name. Alternatively, a base name that identifies a group of tree file names can be specified. Tree files are assumed to end in .tree.")  
 arg_parser$add_argument("outputFile", metavar="outputFileName", help="The file to write the output to, a list of tips to be blacklisted.")  
 arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
-
 
 args <- arg_parser$parse_args()
 script.dir <- args$scriptdir
@@ -25,6 +25,7 @@ output.file.name <- args$outputFile
 blacklist.file.name <- args$blacklist
 root.name <- args$outgroupName
 max.reads <- args$maxReadsPerPatient
+patients.file.name <- args$patients
 
 source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
 source(file.path(script.dir, "SubtreeMethods.R"))
@@ -54,8 +55,9 @@ downsample.patient <- function(patient, tree, number, tip.regex, patient.ids){
 	
 	return(setdiff(labels.to.keep, sampled.names))
 }
+
 # This returns the ones to get rid of (i.e. blacklist) for a given tree
-downsample.tree<- function(input.file.name, blacklist.file.name, output.file.name, root.name, tip.regex, max.reads)
+downsample.tree<- function(input.file.name, blacklist.file.name, output.file.name, patients.file.name, root.name, tip.regex, max.reads)
 {
 	tree <- read.tree(input.file.name)
 	tree <- unroot(tree)
@@ -84,11 +86,23 @@ downsample.tree<- function(input.file.name, blacklist.file.name, output.file.nam
 	patients.present <- patients.present[!is.na(patients.present)]
 	patients.present <- unique(patients.present)
 	
+	if(!is.null(patients.file.name)){
+	  patients.to.include <- read.table(patients.file.name, header = F, stringsAsFactors = F)
+	  if(interaction(setdiff(patients.to.include, patients.present)) == 0){
+	    stop(paste("No entries in ", patients.file.name, " are actually present in the tree", sep=""))
+	  }
+	  if(length(setdiff(patients.to.include, patients.present)) > 0){
+	    warning(paste("Not all patients in file ", patients.file.name, " are present in the tree", sep=""))
+	  }
+	  patients.to.include <- intersection(patients.to.include, patients.present)
+	  
+	} else {
+	  patients.to.include <- patients.present
+	}
+	
 	patient.ids <- sapply(tree.1$tip.label, function(x) patient.from.label(x, tip.regex))
 	
-	
-	
-	excluded <- unlist(lapply(patients.present, downsample.patient, tree=tree.1, number = max.reads, tip.regex=tip.regex, patient.ids=patient.ids))
+	excluded <- unlist(lapply(patients.to.include, downsample.patient, tree=tree.1, number = max.reads, tip.regex=tip.regex, patient.ids=patient.ids))
 	
 	new.blacklist <- c(tree$tip.label[blacklist], excluded)
 	write.table(new.blacklist, output.file.name, sep=",", row.names=FALSE, col.names=FALSE, quote=F)
@@ -100,7 +114,7 @@ downsample.tree<- function(input.file.name, blacklist.file.name, output.file.nam
 #	option 1: input.file.name specifies a single input file
 if(file.exists(input.file.name))
 {
-	downsample.tree(input.file.name, blacklist.file.name, output.file.name, root.name, tip.regex, max.reads)
+	downsample.tree(input.file.name, blacklist.file.name, output.file.name, patients.file.name, root.name, tip.regex, max.reads)
 }
 #	option 2: input.file.name specifies a regular expression of several input files
 if(!file.exists(input.file.name))
@@ -115,6 +129,6 @@ if(!file.exists(input.file.name))
 		input.file.name		<- input.file.names[tree.i]
 		blacklist.file.name	<- blacklist.file.names[tree.i]		
 		tmp					<- paste(output.file.name, gsub('tree$','csv',regmatches(input.file.name,regexpr('InWindow.*',input.file.name))),sep='')		
-		downsample.tree(input.file.name, blacklist.file.name, tmp, root.name, tip.regex, max.reads)		
+		downsample.tree(input.file.name, blacklist.file.name, tmp, patients.file.name, root.name, tip.regex, max.reads)		
 	}
 }
