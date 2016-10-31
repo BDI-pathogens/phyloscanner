@@ -30,6 +30,18 @@ if(drop.prop>=0.5){
 }
 branch.limit <- args$longestBranchLength
 
+if(F){
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_160915_couples_w270/")
+  drop.prop <- 0.01
+  branch.limit <- 0.1
+  tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
+  outgroup <- "REF_CPX_AF460972"
+  script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
+  input.file.name <- "ptyr42_trees_newick/ptyr42_InWindow_1225_to_1474.tree"
+  blacklist.file.name <- "ptyr42_otherstuff/blacklist_test.txt"
+  output.file.name <- "ptyr42_otherstuff/blacklist_test_2.txt"
+}
+
 source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
 source(file.path(script.dir, "SubtreeMethods.R"))
 
@@ -44,7 +56,7 @@ blacklist <- vector()
 
 if(!is.null(blacklist.file.name)){
   if(file.exists(blacklist.file.name)){
-    cat("Reading BlackList file",blacklist.file.name,'\n')
+    cat("Reading blacklist file",blacklist.file.name,'\n')
     blacklisted.tips <- read.table(blacklist.file.name, sep=",", header=F, stringsAsFactors = F, col.names="read")
     if(nrow(blacklisted.tips)>0){
       blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
@@ -63,6 +75,7 @@ patients.present <- unique(patients.present)
 patient.ids <- sapply(tree.1$tip.label, function(x) patient.from.label(x, tip.regex))
 
 rogue.hunt <- function(tree, patient, patient.ids, length.threshold, read.prop.threshold){
+  print(patient)
   tips.to.keep <- which(patient.ids==patient)
   new.blacklist <- vector()
   if(length(tips.to.keep) > 1){
@@ -99,8 +112,8 @@ rogue.hunt <- function(tree, patient, patient.ids, length.threshold, read.prop.t
     } else {
       total.length = sum(tree.2$edge.length)
       if(total.length > length.threshold){
-        reads.1 <- read.count.from.label(1, tip.regex)
-        reads.2 <- read.count.from.label(2, tip.regex)
+        reads.1 <- as.numeric(read.count.from.label(tree.2$tip.label[1], tip.regex))
+        reads.2 <- as.numeric(read.count.from.label(tree.2$tip.label[2], tip.regex))
         if(reads.1/reads.2 < read.prop.threshold){
           new.blacklist <- c(new.blacklist,1)
         }
