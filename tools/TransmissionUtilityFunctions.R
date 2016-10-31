@@ -792,15 +792,7 @@ tips.reachable <- function(tree, node, blocking.edges, last.node = -1){
   if(is.tip(tree, node)){
     out <- c(out, node)
   }
-  neighbours = vector()
-  if(!is.tip(tree, node)){
-    neighbours <- Children(tree, node)
-  }
-  if(length(Ancestors(tree, node, type="parent"))!=0){
-    if(Ancestors(tree, node, type="parent")!=0){
-      neighbours <- c(neighbours, Ancestors(tree, node, type="parent"))
-    }
-  }
+  neighbours = neighbouring.nodes(tree, node)
   for(neighbour in neighbours){
     if(neighbour != last.node){
       edge.vec <- c(node, neighbour)
@@ -811,3 +803,11 @@ tips.reachable <- function(tree, node, blocking.edges, last.node = -1){
   }
   return(out)
 }
+
+neighbouring.nodes <- function(tree, node){
+  part.1 <- tree$edge[which(tree$edge[,2]==node), 1]
+  part.2 <- tree$edge[which(tree$edge[,1]==node), 2]
+  return(c(part.1, part.2))
+}
+
+
