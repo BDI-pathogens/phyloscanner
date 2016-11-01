@@ -697,20 +697,31 @@ print('phyloscanner was called thus:\n' + ' '.join(sys.argv))
 # is necessary - we use the coords as they are, though setting any after the end
 # of the reference to be equal to the end of the reference.
 if NumberOfBams == 1 and not IncludeOtherRefs:
-  if AutoWindows:
-    print('As you are supplying a single bam file and no external references,',\
-    'please specify coordinates manually - the automatic option is designed',\
-    "for an alignment of multiple sequences. Quitting.", file=sys.stderr)
-    exit(1)
   if args.align_refs_only:
     print('As you are supplying a single bam file and no external references,',\
     "the --align-refs-only option makes no sense - there's nothing to align.",\
     "Quitting.", file=sys.stderr)
     exit(1)
   RefSeqLength = len(RefSeqs[0])
-  if UserSpecifiedCoords:
-    CoordsToUse = [min(coord, RefSeqLength) for coord in WindowCoords]
-  elif ExploreWindowWidths:
+  if AutoWindows:
+    if RefSeqLength < WindowStartPos + WeightedWindowWidth:
+      print('With the --auto-window-params option you specified a start', \
+      'point of', WindowStartPos, 'and your weighted window width was', \
+      str(WeightedWindowWidth) + '; one or both of these values should be', \
+      'decreased since the length of the reference in the bam file is only', \
+      str(RefSeqLength) + '. We need to be able to fit at least one window in',\
+      'between the start and end. Quitting.', file=sys.stderr)
+      exit(1)
+    WindowCoords = []
+    NextStart = WindowStartPos
+    NextEnd = WindowStartPos + WeightedWindowWidth - 1
+    while NextEnd <= RefSeqLength:
+      WindowCoords += [NextStart, NextEnd]
+      NextStart = NextEnd - WindowOverlap + 1
+      NextEnd = NextStart + WeightedWindowWidth - 1
+    NumCoords = len(WindowCoords)
+    UserCoords = WindowCoords
+  if ExploreWindowWidths:
     MaxCoordForWindowWidthTesting = RefSeqLength
     WindowCoords = FindExploratoryWindows(MaxCoordForWindowWidthTesting)
     NumCoords = len(WindowCoords)
