@@ -131,7 +131,39 @@ achieved with the -2 option. The point of this option is to first do a run with
 every bam file you have in which there could conceivably by cross-contamination,
 using the -C flag (and possibly -CO to save time), and then in subsequent runs
 focussing on subsets of bam files you will be able to identify contamination
-from outside that subset.'''.replace('\n', ' '))
+from outside that subset.''')
+parser.add_argument('-CE', '--recover-clipped-ends', action='store_true', \
+help ='''The default behaviour of phyloscanner is to keep only reads that are
+mapped across both edges of the window in question. A read which is long enough
+to reach the edge of the window but is not mapped at its end, i.e. the end is
+clipped, will therefore not be included. With this option, clipped ends are
+recovered by considering any bases at the ends of the read that are unmapped to
+be mapped instead to 1 more than the base to their left (at the right end) or 1
+less than the base to their right (at the left end), iterating out from the
+centre. e.g. a 9bp read mapped to positions
+None,None,10,11,13,14,None,None,None
+(i.e. clipped on the left by 2bp, and on the right by 3bp, with a 1bp deletion
+in the middle), is taken to be mapped instead to positions
+8,9,10,11,13,14,15,16,17.
+In this example, if the window left edge is 8 or 9 and the right edge is 15, 16
+or 17, the read with its clipped ends recovered spans the window but the read
+without clipped ends does not.
+WARNING: mapping software clips the ends of reads for a reason, namely that that
+stretch of sequence does not look anything like the reference at that point. The
+clipped sequence could be just junk, or genuine sample from a distant part of
+the genome (i.e. the read is chimeric); in this case the clipped sequence
+should be discarded. As such, this option should not be used as part of normal
+phyloscanner usage. Its intended usage is specifically the following: you have
+identified a window in a bam file in which reads are clipped, but you believe
+the reads to be correct, i.e. the clipping is an artefact of the mapper being
+unable to find the correct local alignment. You should combine this option with
+--no-trees because the inclusion of clipped sequence, which by definition is
+very different, increases the chance of misalignment. You should inspect the
+aligned reads manually before doing anything else (and hopefully get some
+insight into how the reference in this window should be changed in order to have
+subsequent remapping get the local alignment right, in particular by contrasting
+the reference with the consensus of the aligned reads).
+''')
 parser.add_argument('-CO', '--flag-contaminants-only', action='store_true', \
 help="For each window, just flag contaminant reads then move on (without "+\
 "aligning reads or making a tree). Only makes sense with the -C flag.")
@@ -1082,7 +1114,7 @@ for window in range(NumCoords / 2):
 
       if args.merge_paired_reads:
 
-        # We've seen this read's mate already. Merge the pair.
+        # If we've seen this read's mate already, merge the pair.
         if read.query_name in AllReads:
           Read1 = AllReads[read.query_name]
           Read1asPseudoRead = pf.PseudoRead.InitFromRead(Read1)
@@ -1090,7 +1122,8 @@ for window in range(NumCoords / 2):
           Read2asPseudoRead = ReadAsPseudoRead
           MergedRead = Read1asPseudoRead.MergeReadPairOverWindow( \
           Read2asPseudoRead, LeftWindowEdge, RightWindowEdge, \
-          args.quality_trim_ends, args.min_internal_quality)
+          args.quality_trim_ends, args.min_internal_quality, \
+          args.recover_clipped_ends)
           if MergedRead == None:
             del AllReads[read.query_name]
             continue
@@ -1110,7 +1143,7 @@ for window in range(NumCoords / 2):
       else:
         seq = ReadAsPseudoRead.ProcessRead(LeftWindowEdge, RightWindowEdge, \
           args.quality_trim_ends, args.min_internal_quality, \
-          args.keep_overhangs)
+          args.keep_overhangs, args.recover_clipped_ends)
         if seq == None:
           continue
         if seq in UniqueReads:
@@ -1127,13 +1160,13 @@ for window in range(NumCoords / 2):
         try:
           seq = read.ProcessRead(LeftWindowEdge, RightWindowEdge, \
           args.quality_trim_ends, args.min_internal_quality, \
-          args.keep_overhangs)
+          args.keep_overhangs, args.recover_clipped_ends)
         except AttributeError:
           #print(type(read))
           ReadAsPseudoRead = pf.PseudoRead.InitFromRead(read)          
           seq = ReadAsPseudoRead.ProcessRead(LeftWindowEdge, RightWindowEdge, \
           args.quality_trim_ends, args.min_internal_quality, \
-          args.keep_overhangs)
+          args.keep_overhangs, args.recover_clipped_ends)
         if seq == None:
           continue
         if seq in UniqueReads:

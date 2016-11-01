@@ -189,12 +189,56 @@ class PseudoRead:
           return True
     return False
 
+  def RecoverClippedEnds(self):
+    '''Replaces any 'None' mapped positions at read ends to continuous ints.
+
+    Recovers clipped ends by considering any bases at the ends of the read
+    that are mapped to 'None' to be mapped instead to 1 more than the base to
+    the left (at the right end) or 1 less than the base to the right (at the
+    end left). e.g. a 9bp read mapped to positions
+    None,None,10,11,13,14,None,None,None
+    (i.e. clipped on the left by 2bp, and on the right by 3bp, with a 1bp
+    deletion in the middle), on processing with this function, is taken to be
+    mapped instead to positions
+    8,9,10,11,13,14,15,16,17.
+    Note that bases overhanging the left end of the references will be
+    considered mapped to negative positions, and bases overhanging the right end
+    of the reference will be considered mapped to positions greater than the
+    length of the reference.'''
+
+    LeftMostMappedBase = 0
+    try:
+      while self.positions[LeftMostMappedBase] == None:
+        LeftMostMappedBase += 1
+    except IndexError:
+      # Every base mapped to None.
+      pass
+    else:
+      ReadLength = len(self.positions)
+      RightMostMappedBase = ReadLength - 1
+      while self.positions[RightMostMappedBase] == None:
+        RightMostMappedBase -= 1
+      if LeftMostMappedBase > 0:
+        #print(self.positions)
+        RefPosOfLeftEdge = self.positions[LeftMostMappedBase]
+        for i in range(LeftMostMappedBase):
+          self.positions[i] = RefPosOfLeftEdge - LeftMostMappedBase + i
+      if RightMostMappedBase < ReadLength - 1:
+        #print(self.positions)
+        RefPosOfRightEdge = self.positions[RightMostMappedBase]
+        for i in range(RightMostMappedBase + 1, ReadLength):
+          self.positions[i] = RefPosOfRightEdge + i - RightMostMappedBase
+
+
   def ProcessRead(self, LeftWindowEdge, RightWindowEdge, MinQualForEnds, \
-  MinInternalQual, KeepOverhangs):
+  MinInternalQual, KeepOverhangs, RecoverClippedEnds):
     '''Returns reads that span a given window.
     Overhangs & low-Q bases are trimmed if desired. None is returned for reads
     that do not span the window. The coordinates of the window edges should be
     zero-based.'''
+
+    if RecoverClippedEnds:
+      self.RecoverClippedEnds()
 
     # Skip reads that only partially overlap the window
     if not self.SpansWindow(LeftWindowEdge, RightWindowEdge):
@@ -240,13 +284,17 @@ class PseudoRead:
 
 
   def MergeReadPairOverWindow(self, other, LeftWindowEdge, RightWindowEdge, \
-  MinQualForEnds, MinInternalQual):
+  MinQualForEnds, MinInternalQual, RecoverClippedEnds):
     '''TODO:
     Returns the value None if the pair do not overlap each other and span the
     window. Returns the value False if the pair overlap but disagree on the
     overlap.'''
 
     assert self.name == other.name
+
+    if RecoverClippedEnds:
+      self.RecoverClippedEnds()
+      other.RecoverClippedEnds()
 
     # Trim low-Q ends if desired. If either read has no sequence left after 
     # trimming, return None.
