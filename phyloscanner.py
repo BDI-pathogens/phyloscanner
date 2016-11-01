@@ -1018,7 +1018,9 @@ def FindPatientsConsensuses(alignment):
 
     # Count each base seen at each position
     BaseCounterDicts = [{} for pos in range(0,AlignmentLength)]
+    TotalCount = 0
     for read, count in ReadsAndCounts.items():
+      TotalCount += count
       for pos, base in enumerate(read):
         if base in BaseCounterDicts[pos]:
           BaseCounterDicts[pos][base] += count
@@ -1037,8 +1039,8 @@ def FindPatientsConsensuses(alignment):
       assert MostCommonBase != None, 'Problem for ' + SampleName + \
       ' at position ' + str(pos)
       consensus += MostCommonBase
-    SeqObject = SeqIO.SeqRecord(Seq.Seq(consensus), id=SampleName, \
-    description='')
+    SeqObject = SeqIO.SeqRecord(Seq.Seq(consensus), id=SampleName + \
+    '_count_' + str(TotalCount), description='')
     ConsensusAlignment.append(SeqObject)
   for ref in RefSeqsHere:
     ConsensusAlignment.append(ref)
