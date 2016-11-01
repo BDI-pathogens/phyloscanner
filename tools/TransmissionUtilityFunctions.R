@@ -1,5 +1,6 @@
 require(phangorn, quietly=TRUE, warn.conflicts=FALSE)
 require(gdata, quietly=TRUE, warn.conflicts=FALSE)
+require(prodlim, quietly=TRUE, warn.conflicts=FALSE)
 
 # Get the tip number of this label
 
@@ -673,6 +674,16 @@ patient.from.label <- function(label, regexp){
   }
 }
 
+# Get read count from label
+
+read.count.from.label <- function(label, regexp){
+  if(length(grep(regexp, label)>0)) {
+    return(sub(regexp, "\\3", label))
+  } else {
+    return(NA)
+  }
+}
+
 # Transmission tree navigation
 
 get.tt.parent <- function(tt, label){
@@ -743,3 +754,60 @@ get.tt.path <- function(tt, label1, label2){
   
   return(c(first.half, mrca, rev(second.half)))
 }
+
+# starting at node 1, determine whether the path to node 2 is blocked by node 3
+# Should work on both rooted and unrooted trees I _hope_.
+
+path.exists <- function(tree, node.1, node.2, node.3, last.node = -1){
+#  cat(node.1," ")
+  if(node.1 == node.2){
+    return(TRUE)
+  }
+  if(node.1 == node.3){
+    return(FALSE)
+  }
+  neighbours = vector()
+  if(!is.tip(tree, node.1)){
+    neighbours <- Children(tree, node.1)
+  }
+  if(length(Ancestors(tree, node.1, type="parent"))!=0){
+    if(Ancestors(tree, node.1, type="parent")!=0){
+      neighbours <- c(neighbours, Ancestors(tree, node.1, type="parent"))
+    }
+  }
+  for(neighbour in neighbours){
+    if(neighbour != last.node){
+      if(path.exists(tree, neighbour, node.2, node.3, node.1)){
+        return(TRUE)
+        break
+      }
+    }
+  }
+  #you've been everywhere and you can't find a way through
+  return(FALSE)
+}
+
+tips.reachable <- function(tree, node, blocking.edges, last.node = -1){
+  out <- vector()
+  if(is.tip(tree, node)){
+    out <- c(out, node)
+  }
+  neighbours = neighbouring.nodes(tree, node)
+  for(neighbour in neighbours){
+    if(neighbour != last.node){
+      edge.vec <- c(node, neighbour)
+      if(is.na(row.match(edge.vec, t(as.matrix(blocking.edges)))) &  is.na(row.match(rev(edge.vec), t(as.matrix(blocking.edges))))){
+        out <- c(out, tips.reachable(tree, neighbour, blocking.edges, node))
+      }
+    }
+  }
+  return(out)
+}
+
+neighbouring.nodes <- function(tree, node){
+  part.1 <- tree$edge[which(tree$edge[,2]==node), 1]
+  part.2 <- tree$edge[which(tree$edge[,1]==node), 2]
+  return(c(part.1, part.2))
+}
+
+

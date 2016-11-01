@@ -59,7 +59,7 @@ if(command.line){
   blacklist.files <- "FullBlacklist_InWindow_800_to_1150.csv"
   out.identifier <- "test"
   root.name <- "C.BW.00.00BW07621.AF443088"
-  tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
+  tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
   mode <- "c"
   zero.length.tips.count <- F
 
@@ -110,7 +110,7 @@ split.patients.to.subtrees<- function(file.name, mode, blacklist.file, root.name
 	
 	if(!is.null(blacklist.file)){
 		if(file.exists(blacklist.file)){
-			cat("Reading BlackList file",blacklist.file,'\n')
+			cat("Reading blacklist file",blacklist.file,'\n')
 			blacklisted.tips <- read.table(blacklist.file, sep=",", header=F, stringsAsFactors = F, col.names="read")
 			if(nrow(blacklisted.tips)>0){
 				blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
@@ -121,11 +121,10 @@ split.patients.to.subtrees<- function(file.name, mode, blacklist.file, root.name
 	} 
 	
 	
-	
 	patient.ids <- sapply(tip.labels, function(x) patient.from.label(x, tip.regex))
 	
 	if(length(blacklist)>0){
-		patients <- unique(patient.ids[-blacklist])
+		patients <- unique(na.omit(patient.ids[-blacklist]))
 	} else {
 		patients <- unique(na.omit(patient.ids))
 	}

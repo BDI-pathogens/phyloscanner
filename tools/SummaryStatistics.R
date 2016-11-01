@@ -73,7 +73,7 @@ if (command.line) {
   if(!files.are.lists){
 	  tree.files <- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))
 	  splits.files <- sort(list.files(dirname(splits.file.names), pattern=paste(basename(splits.file.names),".*\\.csv",sep=""), full.names=TRUE))
-	  sequence.files <- sort(list.files(dirname(splits.file.names), pattern=paste(basename(sequence.file.names),".*\\.fasta",sep=""), full.names=TRUE))
+	  sequence.files <- sort(list.files(dirname(sequence.file.names), pattern=paste(basename(sequence.file.names),".*\\.fasta",sep=""), full.names=TRUE))
 	  blacklist.files <- NULL
 	  if(!is.null(blacklist.file.names)){
 		  blacklist.files <- sort(list.files(dirname(blacklist.file.names), pattern=paste(basename(blacklist.file.names),".*\\.csv",sep=""), full.names=TRUE))
@@ -89,8 +89,6 @@ if (command.line) {
   }
   
   if(length(tree.files)!=length(splits.files)){
-	  print(tree.files)
-	  print(splits.files)
 	  stop("Number of tree files and number of splits files differ")
   }
   #	OR: try expand fasta files if bootstrap trees
@@ -542,7 +540,7 @@ write.csv(pat.stats, tmp, quote = F, row.names = F)
 
 mean.na.rm <- function(x) mean(x, na.rm = T)
 
-pat.stats.temp <- pat.stats[which(pat.stats$reads>0) ,c("patient",
+pat.stats.temp <- pat.stats[which(pat.stats$reads>0), c("patient",
                                                         "leaves",
                                                         "reads",
                                                         "subtrees",
@@ -554,7 +552,7 @@ pat.stats.temp <- pat.stats[which(pat.stats$reads>0) ,c("patient",
                                                         "longest.branch",
                                                         "mean.pat.dist",
                                                         "branch.to.pat.ratio")] 
-#                                                        "nuc.div.v.pat")]
+
 
 by.patient <- pat.stats.temp %>% group_by(patient)
 pat.stats.summary <-
