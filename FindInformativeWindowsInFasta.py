@@ -39,6 +39,9 @@ parser.add_argument('Overlap', type=int, help='The overlap between the end of'+\
 parser.add_argument('-S', '--start-position', type=int, default=1, \
 help='The position in the alignment from which to start creating windows (by '+\
 'default, 1, i.e. the beginning of the alignment).')
+parser.add_argument('-E', '--end-position', type=int, help='''The position in
+the alignment to the right of which you don't want any windows. (By default, we
+find windows reaching up to the end of the alignment).''')
 args = parser.parse_args()
 
 # Read in the alignment. Check there is data.
@@ -69,12 +72,21 @@ elif StartPos >= NumCols:
   str(NumCols)+'). Quitting.', file=sys.stderr)
   exit(1)
 
+if args.end_position != None:
+  if args.end_position <= StartPos:
+    print('The end position argument must be greater than the start position.', 
+    'Quitting.', file=sys.stderr)
+    exit(1)
+  EndPos = min(args.end_position, NumCols)
+else:
+  EndPos = NumCols
+
 def FindWindowEnd(StartPos):
   '''Finds the end of the window, weighting columns by their non-gap fraction.
   Uses zero-based positions.'''
   CurrentWindowWeight = 0
-  for position in range(StartPos,NumCols):
-    if position == NumCols-1:
+  for position in range(StartPos,EndPos):
+    if position == EndPos-1:
       return position
     column = alignment[:, position]
     NonGapFrac = 1 - float(column.count('-'))/NumSeqs
@@ -92,10 +104,10 @@ while True:
   LeftEdge = WindowLeftEdges[-1]
   RightEdge = FindWindowEnd(LeftEdge-1) +1  # zero-based indexing
   WindowRightEdges.append(RightEdge)
-  if RightEdge == NumCols:
+  if RightEdge == EndPos:
     break
   NextLeftEdge = RightEdge - args.Overlap
-  if NextLeftEdge >= NumCols:
+  if NextLeftEdge >= EndPos:
     break
   if NextLeftEdge <= LeftEdge:
     print('Error: one of the windows is ', LeftEdge, '-', RightEdge, \
