@@ -103,12 +103,14 @@ help='A comma-separated series of paired coordinates defining the boundaries '+\
 'of the windows. e.g. 1,300,11,310,21,320 would define windows 1-300, 11-310,'+\
 ' 21-320.')
 parser.add_argument('-AW', '--auto-window-params', \
-type=CommaSeparatedInts, help='Two or three comma-separated integers '+\
-'controlling automatic window finding: the first integer is the length you '+\
-'want windows to be, when weighting each column by its non-gap fraction; the '+\
-'second is the overlap between the end of one window and the start of the next'\
-+'(which can be negative); the optional third integer is the start position '+\
-'for the first window (by default, 1).')
+type=CommaSeparatedInts, help='''Used to specify 2, 3 or 4 comma-separated
+integers controlling automatic window finding. The integer is the width you want
+windows to be, weighting each column in the alignment of bam file references
+(plus any extra references included) by its non-gap fraction. The second is the
+overlap between the end of one window and the start of the next (which can be
+negative). The optional third integer is the start position for the first window
+(by default, 1). The optional fourth integer is the end position for the last
+window (by default, windows will continue up to the end of the alignment of references).''')
 parser.add_argument('-A', '--alignment-of-other-refs', type=File,\
 help='An alignment of any reference sequences (which need not be those used '+\
 'to produce the bam files) to be cut into the same windows as the bam files '+\
@@ -437,18 +439,23 @@ if UserSpecifiedCoords:
 
 # Sanity checks on auto window parameters
 if AutoWindows:
-  if not len(args.auto_window_params) in [2,3]:
-    print('The --auto-window-params option requires either 2 or 3 integers.',\
+  NumAutoWindowParams = len(args.auto_window_params)
+  if not NumAutoWindowParams in [2,3,4]:
+    print('The --auto-window-params option requires 2, 3 or 4 integers.',
     'Quitting.', file=sys.stderr)
     exit(1)
   WeightedWindowWidth = args.auto_window_params[0]
   WindowOverlap       = args.auto_window_params[1]
-  if len(args.auto_window_params) == 3:
+  if NumAutoWindowParams > 2:
     WindowStartPos    = args.auto_window_params[2]
     if WindowStartPos < 1:
       print('The start position for the --auto-window-params option must be',\
       'greater than zero. Quitting.', file=sys.stderr)
       exit(1)
+    if NumAutoWindowParams == 4:
+      WindowEndPos = args.auto_window_params[3]
+    else:
+      WindowEndPos = float('inf')
   else:
     WindowStartPos = 1
   if WeightedWindowWidth <= 0:
@@ -704,18 +711,20 @@ if NumberOfBams == 1 and not IncludeOtherRefs:
     exit(1)
   RefSeqLength = len(RefSeqs[0])
   if AutoWindows:
-    if RefSeqLength < WindowStartPos + WeightedWindowWidth:
-      print('With the --auto-window-params option you specified a start', \
-      'point of', WindowStartPos, 'and your weighted window width was', \
-      str(WeightedWindowWidth) + '; one or both of these values should be', \
-      'decreased since the length of the reference in the bam file is only', \
-      str(RefSeqLength) + '. We need to be able to fit at least one window in',\
-      'between the start and end. Quitting.', file=sys.stderr)
+    WindowEndPos = min(WindowEndPos, RefSeqLength)
+    if WindowEndPos < WindowStartPos + WeightedWindowWidth:
+      print('With the --auto-window-params option you specified a start', 
+      'point of', WindowStartPos, 'and your weighted window width was', 
+      str(WeightedWindowWidth) + '; one or both of these values should be', 
+      'decreased because the length of the reference in the bam file or your', 
+      'specified end point is only', str(WindowEndPos) + '. We need to be',
+      'able to fit at least one window in between the start and end. Quitting.',
+      file=sys.stderr)
       exit(1)
     WindowCoords = []
     NextStart = WindowStartPos
     NextEnd = WindowStartPos + WeightedWindowWidth - 1
-    while NextEnd <= RefSeqLength:
+    while NextEnd <= WindowEndPos:
       WindowCoords += [NextStart, NextEnd]
       NextStart = NextEnd - WindowOverlap + 1
       NextEnd = NextStart + WeightedWindowWidth - 1
@@ -824,16 +833,19 @@ else:
 
     # Determine windows automatically if desired
     if AutoWindows:
+      command = [FindWindowsCode, FileForAlignedRefs,
+      str(WeightedWindowWidth), str(WindowOverlap), '-S', str(WindowStartPos)]
+      if NumAutoWindowParams == 4:
+        command += ['-E', str(WindowEndPos)]
       try:
-        WindowsString = subprocess.check_output([FindWindowsCode, \
-        FileForAlignedRefs, str(WeightedWindowWidth), str(WindowOverlap), \
-        '-S', str(WindowStartPos)])
+        WindowsString = subprocess.check_output(command)
       except:
         print('Problem executing', FindWindowsCode +'. Quitting.', \
         file=sys.stderr)
         raise
       try:
         WindowCoords = [int(value) for value in WindowsString.split(',')]
+        assert len(WindowCoords) >= 2
       except:
         print('Unable to understand the', FindWindowsCode, 'output -', \
         WindowsString, '- as comma-separated integers. Quitting.', \
