@@ -103,6 +103,10 @@ WindowRightEdges = []
 while True:
   LeftEdge = WindowLeftEdges[-1]
   RightEdge = FindWindowEnd(LeftEdge-1) +1  # zero-based indexing
+  if RightEdge - LeftEdge + 1 < args.WeightedWindowWidth:
+    # We encountered the EndPos before this window could get wide enough.
+    WindowLeftEdges = WindowLeftEdges[:-1]
+    break
   WindowRightEdges.append(RightEdge)
   if RightEdge == EndPos:
     break
@@ -122,6 +126,13 @@ while True:
 if len(WindowLeftEdges) != len(WindowRightEdges):
   print('Malfunction of the code: differing numbers of left and right window',\
   'edges. Quitting.', file=sys.stderr)
+  exit(1)
+
+# Check we have at least one window.
+if len(WindowLeftEdges) == 0:
+  print('No windows of weighted width', args.WeightedWindowWidth,
+  'fit in between the start position of', StartPos, 'and the end position of',
+  str(EndPos) + '. Quitting.', file=sys.stderr)
   exit(1)
 
 print(','.join(str(WindowLeftEdges[i])+','+str(WindowRightEdges[i]) \
