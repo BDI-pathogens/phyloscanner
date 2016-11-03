@@ -60,13 +60,13 @@ if(command.line){
   if(0)
   {
     script.dir					<- "/Users/Oliver/git/phylotypes/tools"
-    summary.file				<- "~/duke/tmp/pty_16-10-07-21-46-04/ptyr22_patStatsFull.csv"
-    id.file 					<- "~/duke/tmp/pty_16-10-07-21-46-04/ptyr22_patients.txt"
-	input.files.name			<- "~/duke/tmp/pty_16-10-07-21-46-04/ptyr22_"
+    summary.file				<- "~/duke/tmp/pty_16-11-03-07-38-18/ptyr22_patStatsFull.csv"
+    id.file 					<- "~/duke/tmp/pty_16-11-03-07-38-18/ptyr22_patients.txt"
+	input.files.name			<- "~/duke/tmp/pty_16-11-03-07-38-18/ptyr22_"
     min.threshold				<- 1
     allow.splits 				<- TRUE
-    output.file 				<- "~/duke/tmp/pty_16-10-07-21-46-04/ptyr22_trmStats.csv"
-	detailed.output				<- "~/duke/tmp/pty_16-10-07-21-46-04/ptyr22_patStatsPerWindow.csv"
+    output.file 				<- "~/duke/tmp/pty_16-11-03-07-38-18/ptyr22_trmStats.csv"
+	detailed.output				<- "~/duke/tmp/pty_16-11-03-07-38-18/ptyr22_patStatsPerWindow.csv"
     input.files 				<- sort(list.files(dirname(input.files.name), pattern=paste(basename(input.files.name),".*LikelyTransmissions.csv$",sep=''), full.names=TRUE))
   }
 }
@@ -84,7 +84,7 @@ require(data.table, quietly=TRUE, warn.conflicts=FALSE)
 if(!is.null(summary.file)){
   cat("Getting window counts per patient...\n")
   full.summary <- read.csv(summary.file, stringsAsFactors = F)
-  reads.table <- full.summary[,c("window.start", "patient", "reads")]
+  reads.table <- full.summary[,c("window.start", "window.end", "patient", "reads", "leaves")]
   reads.table$present <- reads.table$reads>0
   give.denoms <- T
 } else {
@@ -367,57 +367,94 @@ if(!allow.splits)
 	#set(window.table, window.table[, which(type=='unint')], 'type', 'unint')
 }
 
-#	OR: don t complete table as this may require large mem
-#	reorder cols
-window.table	<- subset(window.table, select=c('pat.1','pat.2','W_FROM','W_TO','type','SOURCE_FILE'))
-setkey(window.table, pat.1, pat.2, W_FROM)
+#	OR: calculate #unique reads and #reads for each window 
+reads.table	<- as.data.table(reads.table)
+setnames(reads.table, c("window.start","window.end"), c("W_FROM","W_TO"))
+dp			<-  reads.table[,{
+			#	combine by window only for present patients to avoid large mem 
+			dp			<- t( combn( patient[present], 2 ) )
+			colnames(dp)<- c('pat.1','pat.2')
+			as.data.table(dp)			
+		}, by=c('W_FROM','W_TO')]
+tmp			<- subset(reads.table, present, c(W_FROM, patient, reads, leaves))
+setnames(tmp, c("patient","reads","leaves"), c("pat.1","pat.1_leaves","pat.1_reads"))
+dp			<- merge(dp, tmp, by=c('W_FROM','pat.1'))
+setnames(tmp, c("pat.1","pat.1_leaves","pat.1_reads"), c("pat.2","pat.2_leaves","pat.2_reads"))
+dp			<- merge(dp, tmp, by=c('W_FROM','pat.2'))
+#	OR: add window.table to this table of pairs. keep track of direction
+tmp			<- subset(window.table, !is.na(type), select=c('pat.1','pat.2','W_FROM','type'))
+set(tmp, tmp[, which(type=='trans')], 'type', 'trans_12')
+#	merge (1,2) with dp
+dp			<- merge(dp, tmp, by=c('W_FROM','pat.1','pat.2'),all.x=1)
+set(tmp, tmp[, which(type=='trans_12')], 'type', 'trans_21')
+setnames(tmp, c('pat.1','pat.2','type'), c('pat.2','pat.1','type2'))
+#	merge (2,1) with dp -- we now have all trm assignments to the unordered pair in dp either in col type or type2
+dp			<- merge(dp, tmp, by=c('W_FROM','pat.1','pat.2'),all.x=1)
+#	consolidate assignments
+stopifnot(dp[, length(which(!is.na(type) & !is.na(type2)))==0L])
+tmp			<- dp[, which(!is.na(type2))]
+set(dp, tmp, 'type', dp[tmp,type2])
+dp[, type2:=NULL]
+#	set disconnected only when both patients present
+set(dp, dp[,which(is.na(type))], 'type','disconnected')
+setkey(dp, W_FROM, W_TO, pat.1, pat.2)
+dp			<- subset(dp, select=c('W_FROM','W_TO','pat.1','pat.2','type','pat.1_leaves','pat.1_reads','pat.2_leaves','pat.2_reads'))
 #	write to file
 if(!is.null(detailed.output))
-{
-	#write.csv(window.table, file=detailed.output, row.names=FALSE)
-	save(window.table, file=gsub('\\.csv','\\.rda',detailed.output))
+{	
+	save(dp, file=gsub('\\.csv','\\.rda',detailed.output))
 }
 #
+#	make summary of transmission assignments across all columns
+#
+window.table	<- subset(window.table, select=c('pat.1','pat.2','W_FROM','W_TO','type','SOURCE_FILE'))
+setkey(window.table, pat.1, pat.2, W_FROM)
+#
 cat("Making summary output table...\n")
-ans	<- window.table[, list(windows=length(W_FROM)), by=c('pat.1','pat.2','type')]
-#	evaluate fraction
+ans		<- window.table[, list(windows=length(W_FROM)), by=c('pat.1','pat.2','type')]
+#	evaluate total.trans, denominator, and fraction
+tmp		<- dp[, list(denominator=length(W_FROM), total.trans=length(W_FROM[type=='trans_12'|type=='trans_21'])), by=c('pat.1','pat.2')]
+tmp2	<- copy(tmp)
+setnames(tmp2, c('pat.1','pat.2'), c('pat.2','pat.1'))
+tmp		<- rbind(tmp, tmp2)
+ans		<- merge(subset(ans, !is.na(type)), tmp, by=c('pat.1','pat.2'))
+ans[, fraction:=paste(windows,'/',denominator,sep='')]
 
-if(give.denoms){
-  determine.denominator <- function(a, b){
-    first.present <- reads.table[which(reads.table$patient==a & reads.table$present),]
-    second.present <- reads.table[which(reads.table$patient==b & reads.table$present),]
-    
-    return (length(intersect(first.present$window.start, second.present$window.start)))
-  }
-  
-  ans$denominator <- mapply(determine.denominator, ans$pat.1, ans$pat.2)
-}
-
-tmp	<- ans[, list(type=type, fraction=paste(windows,'/',denominator,sep='')), by=c('pat.1','pat.2')]
-ans	<- merge(ans, tmp, by=c('pat.1','pat.2','type'))
+#if(give.denoms){
+#  determine.denominator <- function(a, b){
+#    first.present <- reads.table[which(reads.table$patient==a & reads.table$present),]
+#    second.present <- reads.table[which(reads.table$patient==b & reads.table$present),]
+#    
+#    return (length(intersect(first.present$window.start, second.present$window.start)))
+#  }
+#  
+#  ans$denominator <- mapply(determine.denominator, ans$pat.1, ans$pat.2)
+#}
+#tmp	<- ans[, list(type=type, fraction=paste(windows,'/',denominator,sep='')), by=c('pat.1','pat.2')]
+#ans	<- merge(ans, tmp, by=c('pat.1','pat.2','type'))
 #	evaluate total.trans
 
-get.total.trans <- function(a,b){
-  if(nrow(ans[which(ans$pat.1==a & ans$pat.2==b & ans$type=="trans"),])==0 &
-     nrow(ans[which(ans$pat.1==b & ans$pat.2==a & ans$type=="trans"),])==0){
-    return(0)
-  } else if (nrow(ans[which(ans$pat.1==a & ans$pat.2==b & ans$type=="trans"),])==1 &
-             nrow(ans[which(ans$pat.1==b & ans$pat.2==a & ans$type=="trans"),])==1){
-    return(ans[which(ans$pat.1==a & ans$pat.2==b & ans$type=="trans"), windows] + ans[which(ans$pat.1==b & ans$pat.2==a & ans$type=="trans"), windows])
-  } else if (nrow(ans[which(ans$pat.1==a & ans$pat.2==b & ans$type=="trans"),])==1)  {
-    return (ans[which(ans$pat.1==a & ans$pat.2==b & ans$type=="trans"), windows])
-  } else if (nrow(ans[which(ans$pat.1==b & ans$pat.2==a & ans$type=="trans"),])==1){
-    return (ans[which(ans$pat.1==b & ans$pat.2==a & ans$type=="trans"), windows])
-  } else {
-    stop("Too many transmission rows")
-  }
-}
+#get.total.trans <- function(a,b){
+#  if(nrow(ans[which(ans$pat.1==a & ans$pat.2==b & ans$type=="trans"),])==0 &
+#     nrow(ans[which(ans$pat.1==b & ans$pat.2==a & ans$type=="trans"),])==0){
+#    return(0)
+#  } else if (nrow(ans[which(ans$pat.1==a & ans$pat.2==b & ans$type=="trans"),])==1 &
+#             nrow(ans[which(ans$pat.1==b & ans$pat.2==a & ans$type=="trans"),])==1){
+#    return(ans[which(ans$pat.1==a & ans$pat.2==b & ans$type=="trans"), windows] + ans[which(ans$pat.1==b & ans$pat.2==a & ans$type=="trans"), windows])
+#  } else if (nrow(ans[which(ans$pat.1==a & ans$pat.2==b & ans$type=="trans"),])==1)  {
+#    return (ans[which(ans$pat.1==a & ans$pat.2==b & ans$type=="trans"), windows])
+#  } else if (nrow(ans[which(ans$pat.1==b & ans$pat.2==a & ans$type=="trans"),])==1){
+#    return (ans[which(ans$pat.1==b & ans$pat.2==a & ans$type=="trans"), windows])
+#  } else {
+#    stop("Too many transmission rows")
+#  }
+#}
 
-ans$total.trans <- mapply(get.total.trans, ans$pat.1, ans$pat.2)
+#ans$total.trans <- mapply(get.total.trans, ans$pat.1, ans$pat.2)
 
 setkey(ans, pat.1, pat.2, type)
 #	write to file
-write.csv(subset(ans, !is.na(type) & total.trans>=min.threshold), file=output.file, row.names=FALSE, quote=FALSE)
+write.csv(subset(ans, total.trans>=min.threshold), file=output.file, row.names=FALSE, quote=FALSE)
 
 
 # Not currently in use - for dating
