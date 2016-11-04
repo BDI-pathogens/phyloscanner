@@ -60,13 +60,13 @@ if(command.line){
   if(0)
   {
     script.dir					<- "/Users/Oliver/git/phylotypes/tools"
-    summary.file				<- "~/duke/tmp/pty_16-11-03-07-38-18/ptyr22_patStatsFull.csv"
-    id.file 					<- "~/duke/tmp/pty_16-11-03-07-38-18/ptyr22_patients.txt"
-	input.files.name			<- "~/duke/tmp/pty_16-11-03-07-38-18/ptyr22_"
+    summary.file				<- "~/duke/tmp/pty_16-11-04-12-25-52/ptyr3_patStatsFull.csv"
+    id.file 					<- "~/duke/tmp/pty_16-11-04-12-25-52/ptyr3_patients.txt"
+	input.files.name			<- "~/duke/tmp/pty_16-11-04-12-25-52/ptyr3_"
     min.threshold				<- 1
     allow.splits 				<- TRUE
-    output.file 				<- "~/duke/tmp/pty_16-11-03-07-38-18/ptyr22_trmStats.csv"
-	detailed.output				<- "~/duke/tmp/pty_16-11-03-07-38-18/ptyr22_patStatsPerWindow.csv"
+    output.file 				<- "~/duke/tmp/pty_16-11-04-12-25-52/ptyr3_trmStats.csv"
+	detailed.output				<- "~/duke/tmp/pty_16-11-04-12-25-52/ptyr3_patStatsPerWindow.csv"
     input.files 				<- sort(list.files(dirname(input.files.name), pattern=paste(basename(input.files.name),".*LikelyTransmissions.csv$",sep=''), full.names=TRUE))
   }
 }
@@ -371,11 +371,17 @@ if(!allow.splits)
 reads.table	<- as.data.table(reads.table)
 setnames(reads.table, c("window.start","window.end"), c("W_FROM","W_TO"))
 dp			<-  reads.table[,{
-			#	combine by window only for present patients to avoid large mem 
-			dp			<- t( combn( patient[present], 2 ) )
-			colnames(dp)<- c('pat.1','pat.2')
-			as.data.table(dp)			
+			#	combine by window only for present patients to avoid large mem
+			dp			<- data.table(pat.1=NA_character_, pat.2=NA_character_)
+			if(length(which(present))>1)
+			{
+				dp			<- t( combn( patient[present], 2 ) )
+				colnames(dp)<- c('pat.1','pat.2')
+				dp			<- as.data.table(dp)	
+			}
+			dp						
 		}, by=c('W_FROM','W_TO')]
+dp			<- subset(dp, !is.na(pat.1) & !is.na(pat.2))
 tmp			<- subset(reads.table, present, c(W_FROM, patient, reads, leaves))
 setnames(tmp, c("patient","reads","leaves"), c("pat.1","pat.1_leaves","pat.1_reads"))
 dp			<- merge(dp, tmp, by=c('W_FROM','pat.1'))
