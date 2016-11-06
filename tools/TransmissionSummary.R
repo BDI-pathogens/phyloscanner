@@ -383,7 +383,7 @@ dp			<-  reads.table[,{
 		}, by=c('W_FROM','W_TO')]
 dp			<- subset(dp, !is.na(pat.1) & !is.na(pat.2))
 tmp			<- subset(reads.table, present, c(W_FROM, patient, reads, leaves))
-setnames(tmp, c("patient","reads","leaves"), c("pat.1","pat.1_leaves","pat.1_reads"))
+setnames(tmp, c("patient","reads","leaves"), c("pat.1","pat.1_reads","pat.1_leaves"))
 dp			<- merge(dp, tmp, by=c('W_FROM','pat.1'))
 setnames(tmp, c("pat.1","pat.1_leaves","pat.1_reads"), c("pat.2","pat.2_leaves","pat.2_reads"))
 dp			<- merge(dp, tmp, by=c('W_FROM','pat.2'))
