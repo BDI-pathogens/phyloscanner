@@ -2,7 +2,7 @@
 
 list.of.packages <- c("prodlim","reshape2")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
+if(length(new.packages)) install.packages(new.packages, dependencies = TRUE, repos="http://cran.ma.imperial.ac.uk/")
 #
 #	constants
 #
@@ -11,7 +11,7 @@ prefix.wto 			<- 'Window_[0-9]+_to_'
 #
 #
 #
-command.line <- T
+command.line <- TRUE
 if(command.line){
   library(argparse, quietly=TRUE, warn.conflicts=FALSE)
   #	OR line breaks result in error "rjson::fromJSON(output) : unexpected character 'F'"
@@ -60,13 +60,13 @@ if(command.line){
   if(0)
   {
     script.dir					<- "/Users/Oliver/git/phylotypes/tools"
-    summary.file				<- "~/duke/tmp/pty_16-11-04-12-25-52/ptyr3_patStatsFull.csv"
-    id.file 					<- "~/duke/tmp/pty_16-11-04-12-25-52/ptyr3_patients.txt"
-	input.files.name			<- "~/duke/tmp/pty_16-11-04-12-25-52/ptyr3_"
+    summary.file				<- "~/duke/tmp/pty_16-11-10-07-48-21/ptyr12_patStatsFull.csv"
+    id.file 					<- "~/duke/tmp/pty_16-11-10-07-48-21/ptyr12_patients.txt"
+	input.files.name			<- "~/duke/tmp/pty_16-11-10-07-48-21/ptyr12_"
     min.threshold				<- 1
     allow.splits 				<- TRUE
-    output.file 				<- "~/duke/tmp/pty_16-11-04-12-25-52/ptyr3_trmStats.csv"
-	detailed.output				<- "~/duke/tmp/pty_16-11-04-12-25-52/ptyr3_patStatsPerWindow.csv"
+    output.file 				<- "~/duke/tmp/pty_16-11-10-07-48-21/ptyr12_trmStats.csv"
+	detailed.output				<- "~/duke/tmp/pty_16-11-10-07-48-21/ptyr12_patStatsPerWindow.csv"
     input.files 				<- sort(list.files(dirname(input.files.name), pattern=paste(basename(input.files.name),".*LikelyTransmissions.csv$",sep=''), full.names=TRUE))
   }
 }
@@ -147,6 +147,7 @@ cat("Identifying relationships in each window...\n")
 for(window in seq(1, num.windows)){
   
   window.vector <- rep(NA, nrow(relationships.ever.suggested))
+  dist.vector <- rep(NA, nrow(relationships.ever.suggested))
   #  sib.window.vector <- rep(NA, nrow(transmissions.ever.suggested))
   
   window.count <- window.count + 1
@@ -157,7 +158,6 @@ for(window in seq(1, num.windows)){
                                     sep=",", 
                                     header=TRUE,
                                     stringsAsFactors=FALSE)
-  
   # Not used right now
   
   # sib.dist.table <- read.table(paste("SibDists_",start,"_to_",end,".csv",sep=""), 
@@ -175,16 +175,23 @@ for(window in seq(1, num.windows)){
   #   }
   # }
   # 
+	
+  #	OR: replacing FOR loop with a faster merge							
+  #transmissions.table <- as.data.table(transmissions.table)
+  	
+  
   if(nrow(transmissions.table)>0){
     for(row in seq(1,nrow(transmissions.table))){
       # if the row exists
       if(!is.na(row.match(transmissions.table[row,1:2], relationships.ever.suggested))){
-        #whatever the third column says, things are the right way round
-        
-        window.vector[row.match(transmissions.table[row,1:2], relationships.ever.suggested)] <- transmissions.table[row,3] 
+        #whatever the third column says, things are the right way round        
+        window.vector[row.match(transmissions.table[row,1:2], relationships.ever.suggested)] <- transmissions.table[row,3] 		
+		dist.vector[row.match(transmissions.table[row,1:2], relationships.ever.suggested)] <- transmissions.table[row,4]
+		
       } else if(!is.na(row.match(rev(transmissions.table[row,1:2]), relationships.ever.suggested))){
-        #transmissions will be the wrong way round
-        
+		
+		dist.vector[row.match(rev(transmissions.table[row,1:2]), relationships.ever.suggested)] <- transmissions.table[row,4]
+		#transmissions will be the wrong way round        
         if(transmissions.table[row,3] == "anc"){
           window.vector[row.match(rev(transmissions.table[row,1:2]), relationships.ever.suggested)] <- "desc" 
         } else if (transmissions.table[row,3] == "desc"){
@@ -205,8 +212,10 @@ for(window in seq(1, num.windows)){
   if(first){
     first <- FALSE
     window.table <- window.vector
+	dist.table <- dist.vector
   } else {
-    window.table <- cbind(window.table, window.vector) 
+    window.table <- cbind(window.table, window.vector)
+	dist.table <- cbind(dist.table, dist.vector)
   }
   # if(first.sib){
   #   first.sib <- FALSE
@@ -217,9 +226,11 @@ for(window in seq(1, num.windows)){
 }
 
 window.table <- cbind(relationships.ever.suggested, window.table)
+dist.table <- cbind(relationships.ever.suggested, dist.table)
 #out.sib <- cbind(transmissions.ever.suggested, out.sib)
 
 colnames(window.table) <- c("pat.1", "pat.2", basename(input.files))
+colnames(dist.table) <- c("pat.1", "pat.2", basename(input.files))
 #colnames(out.sib) <- c("pat.1", "pat.2", paste("window.start.",seq(800,9050,by=250), sep=""))
 #write.table(out.sib, file="quickout_sib.csv", sep=",", col.names=NA)
 # out <- read.table("quickout.csv", sep=",", stringsAsFactors = F, header = T)
@@ -331,40 +342,37 @@ colnames(window.table) <- c("pat.1", "pat.2", basename(input.files))
 #
 
 cat("Making per-window output table...\n")
-#	get table into long format
+#	get tables into long format
 window.table[] 	<- lapply(window.table, as.character)
-window.table <- melt(window.table, id.vars=c('pat.1','pat.2'))
-
+window.table <- melt(window.table, id.vars=c('pat.1','pat.2'), value.name="TYPE")
+dist.table[] 	<- lapply(dist.table, as.character)
+dist.table <- melt(dist.table, id.vars=c('pat.1','pat.2'), value.name="PATRISTIC_DIST")
+window.table <- merge(window.table, dist.table, by=c('pat.1','pat.2','variable'))
+dist.table <- NULL
 # convert "anc" and "desc" to "trans" depending on direction
 
-window.table[which(window.table$value=="desc"), c("pat.1", "pat.2")] <- window.table[which(window.table$value=="desc"), c("pat.2", "pat.1")]
-window.table[which(window.table$value=="anc"), "value"] <- "trans"
-window.table[which(window.table$value=="desc"), "value"] <- "trans"
+window.table[which(window.table$TYPE=="desc"), c("pat.1", "pat.2")] <- window.table[which(window.table$TYPE=="desc"), c("pat.2", "pat.1")]
+window.table[which(window.table$TYPE=="anc"), "TYPE"] <- "trans"
+window.table[which(window.table$TYPE=="desc"), "TYPE"] <- "trans"
 
-window.table[which(window.table$value=="intDesc"), c("pat.1", "pat.2")] <- window.table[which(window.table$value=="intDesc"), c("pat.2", "pat.1")]
-window.table[which(window.table$value=="intAnc"), "value"] <- "intTrans"
-window.table[which(window.table$value=="intDesc"), "value"] <- "intTrans"
+window.table[which(window.table$TYPE=="intDesc"), c("pat.1", "pat.2")] <- window.table[which(window.table$TYPE=="intDesc"), c("pat.2", "pat.1")]
+window.table[which(window.table$TYPE=="intAnc"), "TYPE"] <- "intTrans"
+window.table[which(window.table$TYPE=="intDesc"), "TYPE"] <- "intTrans"
 
 window.table	<- as.data.table(window.table)
-setnames(window.table, c('variable','value'), c('SOURCE_FILE','type'))
+setnames(window.table, c('variable'), c('SOURCE_FILE'))
 #	add window coordinates
 window.table[, W_FROM:= window.table[,as.integer(gsub(prefix.wfrom,'',regmatches(SOURCE_FILE, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),SOURCE_FILE))))]]
 window.table[, W_TO:= window.table[, as.integer(gsub(prefix.wto,'',regmatches(SOURCE_FILE, regexpr(paste(prefix.wto,'[0-9]+',sep=''),SOURCE_FILE))))]]	
 #	change type name
 if(allow.splits)
 {
-	set(window.table, window.table[, which(type=='trueInt')], 'type', 'int')
-	set(window.table, window.table[, which(type %in% c("intTrans"))], 'type', 'trans')
-	#set(window.table, window.table[, which(type=='cher')], 'type', 'cher')
-	#set(window.table, window.table[, which(type=='unint')], 'type', 'unint')
+	set(window.table, window.table[, which(TYPE=='trueInt')], 'TYPE', 'int')
+	set(window.table, window.table[, which(TYPE %in% c("intTrans"))], 'TYPE', 'trans')	
 }
 if(!allow.splits)
 {
-	set(window.table, window.table[, which(type %in% c("trueInt", "intTrans"))], 'type', 'int')
-	#set(window.table, window.table[, which(type=="anc")], 'type', 'anc')
-	#set(window.table, window.table[, which(type=="desc")], 'type', 'desc')
-	#set(window.table, window.table[, which(type=='cher')], 'type', 'cher')
-	#set(window.table, window.table[, which(type=='unint')], 'type', 'unint')
+	set(window.table, window.table[, which(TYPE %in% c("trueInt", "intTrans"))], 'TYPE', 'int')	
 }
 
 #	OR: calculate #unique reads and #reads for each window 
@@ -388,23 +396,29 @@ dp			<- merge(dp, tmp, by=c('W_FROM','pat.1'))
 setnames(tmp, c("pat.1","pat.1_leaves","pat.1_reads"), c("pat.2","pat.2_leaves","pat.2_reads"))
 dp			<- merge(dp, tmp, by=c('W_FROM','pat.2'))
 #	OR: add window.table to this table of pairs. keep track of direction
-tmp			<- subset(window.table, !is.na(type), select=c('pat.1','pat.2','W_FROM','type'))
-set(tmp, tmp[, which(type=='trans')], 'type', 'trans_12')
+tmp			<- subset(window.table, !is.na(TYPE), select=c('pat.1','pat.2','W_FROM','TYPE','PATRISTIC_DIST'))
+set(tmp, tmp[, which(TYPE=='trans')], 'TYPE', 'trans_12')
 #	merge (1,2) with dp
 dp			<- merge(dp, tmp, by=c('W_FROM','pat.1','pat.2'),all.x=1)
-set(tmp, tmp[, which(type=='trans_12')], 'type', 'trans_21')
-setnames(tmp, c('pat.1','pat.2','type'), c('pat.2','pat.1','type2'))
-#	merge (2,1) with dp -- we now have all trm assignments to the unordered pair in dp either in col type or type2
+set(tmp, tmp[, which(TYPE=='trans_12')], 'TYPE', 'trans_21')
+setnames(tmp, c('pat.1','pat.2','TYPE','PATRISTIC_DIST'), c('pat.2','pat.1','TYPE2','PATRISTIC_DIST2'))
+#	merge (2,1) with dp -- we now have all trm assignments to the unordered pair in dp either in col TYPE or TYPE2
 dp			<- merge(dp, tmp, by=c('W_FROM','pat.1','pat.2'),all.x=1)
 #	consolidate assignments
-stopifnot(dp[, length(which(!is.na(type) & !is.na(type2)))==0L])
-tmp			<- dp[, which(!is.na(type2))]
-set(dp, tmp, 'type', dp[tmp,type2])
-dp[, type2:=NULL]
+stopifnot(dp[, length(which(!is.na(TYPE) & !is.na(TYPE2)))==0L])
+stopifnot(dp[, length(which(!is.na(PATRISTIC_DIST) & !is.na(PATRISTIC_DIST2)))==0L])
+tmp			<- dp[, which(!is.na(TYPE2))]
+set(dp, tmp, 'TYPE', dp[tmp,TYPE2])
+dp[, TYPE2:=NULL]
+tmp			<- dp[, which(!is.na(PATRISTIC_DIST2))]
+set(dp, tmp, 'PATRISTIC_DIST', dp[tmp,PATRISTIC_DIST2])
+dp[, PATRISTIC_DIST2:=NULL]
+#	check we have patristic distances for all cherries
+stopifnot(dp[, length(which(TYPE=='cher' & is.na(PATRISTIC_DIST)))==0L])
 #	set disconnected only when both patients present
-set(dp, dp[,which(is.na(type))], 'type','disconnected')
+set(dp, dp[,which(is.na(TYPE))], 'TYPE','disconnected')
 setkey(dp, W_FROM, W_TO, pat.1, pat.2)
-dp			<- subset(dp, select=c('W_FROM','W_TO','pat.1','pat.2','type','pat.1_leaves','pat.1_reads','pat.2_leaves','pat.2_reads'))
+dp			<- subset(dp, select=c('W_FROM','W_TO','pat.1','pat.2','TYPE','PATRISTIC_DIST','pat.1_leaves','pat.1_reads','pat.2_leaves','pat.2_reads'))
 #	write to file
 if(!is.null(detailed.output))
 {	
@@ -413,17 +427,17 @@ if(!is.null(detailed.output))
 #
 #	make summary of transmission assignments across all columns
 #
-window.table	<- subset(window.table, select=c('pat.1','pat.2','W_FROM','W_TO','type','SOURCE_FILE'))
+window.table	<- subset(window.table, select=c('pat.1','pat.2','W_FROM','W_TO','TYPE','SOURCE_FILE'))
 setkey(window.table, pat.1, pat.2, W_FROM)
 #
 cat("Making summary output table...\n")
-ans		<- window.table[, list(windows=length(W_FROM)), by=c('pat.1','pat.2','type')]
+ans		<- window.table[, list(windows=length(W_FROM)), by=c('pat.1','pat.2','TYPE')]
 #	evaluate total.trans, denominator, and fraction
-tmp		<- dp[, list(denominator=length(W_FROM), total.trans=length(W_FROM[type=='trans_12'|type=='trans_21'])), by=c('pat.1','pat.2')]
+tmp		<- dp[, list(denominator=length(W_FROM), total.trans=length(W_FROM[TYPE=='trans_12'|TYPE=='trans_21'])), by=c('pat.1','pat.2')]
 tmp2	<- copy(tmp)
 setnames(tmp2, c('pat.1','pat.2'), c('pat.2','pat.1'))
 tmp		<- rbind(tmp, tmp2)
-ans		<- merge(subset(ans, !is.na(type)), tmp, by=c('pat.1','pat.2'))
+ans		<- merge(subset(ans, !is.na(TYPE)), tmp, by=c('pat.1','pat.2'))
 ans[, fraction:=paste(windows,'/',denominator,sep='')]
 
 #if(give.denoms){
@@ -436,21 +450,21 @@ ans[, fraction:=paste(windows,'/',denominator,sep='')]
 #  
 #  ans$denominator <- mapply(determine.denominator, ans$pat.1, ans$pat.2)
 #}
-#tmp	<- ans[, list(type=type, fraction=paste(windows,'/',denominator,sep='')), by=c('pat.1','pat.2')]
-#ans	<- merge(ans, tmp, by=c('pat.1','pat.2','type'))
+#tmp	<- ans[, list(TYPE=TYPE, fraction=paste(windows,'/',denominator,sep='')), by=c('pat.1','pat.2')]
+#ans	<- merge(ans, tmp, by=c('pat.1','pat.2','TYPE'))
 #	evaluate total.trans
 
 #get.total.trans <- function(a,b){
-#  if(nrow(ans[which(ans$pat.1==a & ans$pat.2==b & ans$type=="trans"),])==0 &
-#     nrow(ans[which(ans$pat.1==b & ans$pat.2==a & ans$type=="trans"),])==0){
+#  if(nrow(ans[which(ans$pat.1==a & ans$pat.2==b & ans$TYPE=="trans"),])==0 &
+#     nrow(ans[which(ans$pat.1==b & ans$pat.2==a & ans$TYPE=="trans"),])==0){
 #    return(0)
-#  } else if (nrow(ans[which(ans$pat.1==a & ans$pat.2==b & ans$type=="trans"),])==1 &
-#             nrow(ans[which(ans$pat.1==b & ans$pat.2==a & ans$type=="trans"),])==1){
-#    return(ans[which(ans$pat.1==a & ans$pat.2==b & ans$type=="trans"), windows] + ans[which(ans$pat.1==b & ans$pat.2==a & ans$type=="trans"), windows])
-#  } else if (nrow(ans[which(ans$pat.1==a & ans$pat.2==b & ans$type=="trans"),])==1)  {
-#    return (ans[which(ans$pat.1==a & ans$pat.2==b & ans$type=="trans"), windows])
-#  } else if (nrow(ans[which(ans$pat.1==b & ans$pat.2==a & ans$type=="trans"),])==1){
-#    return (ans[which(ans$pat.1==b & ans$pat.2==a & ans$type=="trans"), windows])
+#  } else if (nrow(ans[which(ans$pat.1==a & ans$pat.2==b & ans$TYPE=="trans"),])==1 &
+#             nrow(ans[which(ans$pat.1==b & ans$pat.2==a & ans$TYPE=="trans"),])==1){
+#    return(ans[which(ans$pat.1==a & ans$pat.2==b & ans$TYPE=="trans"), windows] + ans[which(ans$pat.1==b & ans$pat.2==a & ans$TYPE=="trans"), windows])
+#  } else if (nrow(ans[which(ans$pat.1==a & ans$pat.2==b & ans$TYPE=="trans"),])==1)  {
+#    return (ans[which(ans$pat.1==a & ans$pat.2==b & ans$TYPE=="trans"), windows])
+#  } else if (nrow(ans[which(ans$pat.1==b & ans$pat.2==a & ans$TYPE=="trans"),])==1){
+#    return (ans[which(ans$pat.1==b & ans$pat.2==a & ans$TYPE=="trans"), windows])
 #  } else {
 #    stop("Too many transmission rows")
 #  }
@@ -458,7 +472,7 @@ ans[, fraction:=paste(windows,'/',denominator,sep='')]
 
 #ans$total.trans <- mapply(get.total.trans, ans$pat.1, ans$pat.2)
 
-setkey(ans, pat.1, pat.2, type)
+setkey(ans, pat.1, pat.2, TYPE)
 #	write to file
 write.csv(subset(ans, total.trans>=min.threshold), file=output.file, row.names=FALSE, quote=FALSE)
 
@@ -494,8 +508,8 @@ write.csv(subset(ans, total.trans>=min.threshold), file=output.file, row.names=F
 #       if(length(early.date)>0 & length(late.date)>0){
 #         if(!is.na(early.date) & !is.na(late.date)){
 #           if(early.date<=late.date){
-#             temporal <- new.out.2[which(new.out.2$pat.1==early & new.out.2$pat.2==late & new.out.2$type=="trans"),]
-#             contratemporal <- new.out.2[which(new.out.2$pat.1==late & new.out.2$pat.2==early & new.out.2$type=="trans"),]
+#             temporal <- new.out.2[which(new.out.2$pat.1==early & new.out.2$pat.2==late & new.out.2$TYPE=="trans"),]
+#             contratemporal <- new.out.2[which(new.out.2$pat.1==late & new.out.2$pat.2==early & new.out.2$TYPE=="trans"),]
 #             if(nrow(temporal) > 0){
 #               forwards.windows <- temporal$windows
 #               total.trans <- temporal$total.trans
@@ -554,8 +568,8 @@ write.csv(subset(ans, total.trans>=min.threshold), file=output.file, row.names=F
 #       if(length(early.date)>0 & length(late.date)>0){
 #         if(!is.na(early.date) & !is.na(late.date)){
 #           if(early.date<=late.date){
-#             temporal <- new.out[which(new.out$pat.1==early & new.out$pat.2==late & new.out$type=="MP"),]
-#             contratemporal <- new.out[which(new.out$pat.1==late & new.out$pat.2==early & new.out$type=="MP"),]
+#             temporal <- new.out[which(new.out$pat.1==early & new.out$pat.2==late & new.out$TYPE=="MP"),]
+#             contratemporal <- new.out[which(new.out$pat.1==late & new.out$pat.2==early & new.out$TYPE=="MP"),]
 #             if(nrow(temporal) > 0){
 #               forwards.windows <- temporal$windows
 #               total.trans <- temporal$total.trans
@@ -612,8 +626,8 @@ write.csv(subset(ans, total.trans>=min.threshold), file=output.file, row.names=F
 #       if(length(early.date)>0 & length(late.date)>0){
 #         if(!is.na(early.date) & !is.na(late.date)){
 #           if(early.date<=late.date){
-#             temporal <- new.out.2[which(new.out.2$pat.1==early & new.out.2$pat.2==late & new.out.2$type=="trans"),]
-#             contratemporal <- new.out.2[which(new.out.2$pat.1==late & new.out.2$pat.2==early & new.out.2$type=="trans"),]
+#             temporal <- new.out.2[which(new.out.2$pat.1==early & new.out.2$pat.2==late & new.out.2$TYPE=="trans"),]
+#             contratemporal <- new.out.2[which(new.out.2$pat.1==late & new.out.2$pat.2==early & new.out.2$TYPE=="trans"),]
 #             if(nrow(temporal) > 0){
 #               forwards.windows <- temporal$windows
 #               total.trans <- temporal$total.trans
@@ -670,7 +684,7 @@ write.csv(subset(ans, total.trans>=min.threshold), file=output.file, row.names=F
 #       if(length(early.date)>0 & length(late.date)>0){
 #         if(!is.na(early.date) & !is.na(late.date)){
 #           if(early.date<=late.date){
-#             temporal <- new.out[which(new.out$pat.1==early & new.out$pat.2==late & new.out$type=="MP"),]
+#             temporal <- new.out[which(new.out$pat.1==early & new.out$pat.2==late & new.out$TYPE=="MP"),]
 #             contratemporal <- new.out[which(new.out$pat.1==late & new.out$pat.2==early & new.out$type=="MP"),]
 #             if(nrow(temporal) > 0){
 #               forwards.windows <- temporal$windows
