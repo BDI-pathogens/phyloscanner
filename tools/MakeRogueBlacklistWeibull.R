@@ -37,6 +37,7 @@ if(F){
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_160915_couples_w270/")
   drop.prop <- 0.01
   branch.limit <- 0.1
+  prob.threshold <- 0.05
   tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
   outgroup <- "REF_CPX_AF460972"
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
@@ -103,7 +104,7 @@ rogue.hunt <- function(tree, patient, patient.ids, length.threshold, read.prop.t
       }
       
       if(condition){
-        long.edge.ends <- tree.2$edge[which(tree.2$edge.length>=length.threshold),]
+        long.edge.ends <- tree.2$edge[which(tree.2$edge.length==longest.branch),]
         which.end <- vector()
         groups.identified <- rep(FALSE, length(tree.2$tip.label))
         counter <- 1
