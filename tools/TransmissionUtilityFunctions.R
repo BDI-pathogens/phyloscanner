@@ -1,6 +1,6 @@
-require(phangorn, quietly=TRUE, warn.conflicts=FALSE)
-require(gdata, quietly=TRUE, warn.conflicts=FALSE)
-require(prodlim, quietly=TRUE, warn.conflicts=FALSE)
+suppressMessages(require(phangorn, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(gdata, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(prodlim, quietly=TRUE, warn.conflicts=FALSE))
 
 # Get the tip number of this label
 

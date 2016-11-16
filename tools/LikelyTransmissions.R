@@ -7,7 +7,7 @@ new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
 
 if(command.line){
-  library(argparse, quietly=TRUE, warn.conflicts=FALSE)
+  suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
   
   arg_parser = ArgumentParser(description="Identify the likely direction of transmission between all patients present in a phylogeny.")
   arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", 
@@ -76,8 +76,8 @@ if(command.line){
   }
 }
 
-library(phytools, quietly=TRUE, warn.conflicts=FALSE)
-library(phangorn, quietly=TRUE, warn.conflicts=FALSE)
+suppressMessages(library(phytools, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(library(phangorn, quietly=TRUE, warn.conflicts=FALSE))
 #
 #	load external functions
 #
@@ -285,7 +285,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	            subtree <- extract.subtrees.for.patients(tree, c(pat.1.id, pat.2.id), splits)
 	            min.length.prop <- 0
 	            for(node in all.nodes){
-	              print(node)
+	              #print(node)
 	              length.prop <- prop.internal.longer.than.root(subtree, node, splits)
 	              if(length.prop > min.length.prop){
 	                min.length.prop <- length.prop

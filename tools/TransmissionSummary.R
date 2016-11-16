@@ -13,7 +13,7 @@ prefix.wto 			<- 'Window_[0-9]+_to_'
 #
 command.line <- TRUE
 if(command.line){
-  library(argparse, quietly=TRUE, warn.conflicts=FALSE)
+  suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
   #	OR line breaks result in error "rjson::fromJSON(output) : unexpected character 'F'"
   tmp	<- "Summarise topological relationships suggesting direction of transmission across windows. Outputs a .csv file of relationships between patient IDs. Relationship types: 'anc' indicates a topology that suggests the patient in column 1 infected the patient in column 2, 'cher' where there is only one subtree per patient and the MRCAs of both have the same parent in the phylogeny, 'unint' where cher is not present reads from the patients form sibling clades from an unsampled common ancestor patient (and that neither has any sampled ancestors occuring later in the transmission chain than that common ancestor), 'int' one where reads from both patients are intermingled and the direction of transmission cannot be established. (More documentation to follow.)"
   arg_parser = ArgumentParser(description=tmp)
@@ -73,11 +73,11 @@ if(command.line){
 
 num.windows <- length(input.files)
 
-library(prodlim, quietly=TRUE, warn.conflicts=FALSE)
-library(reshape2, quietly=TRUE, warn.conflicts=FALSE)
-library(gdata, quietly=TRUE, warn.conflicts=FALSE)
-library(ggplot2, quietly=TRUE, warn.conflicts=FALSE)
-require(data.table, quietly=TRUE, warn.conflicts=FALSE)
+suppressMessages(library(prodlim, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(library(reshape2, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(library(gdata, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(library(ggplot2, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
 
 # Get the denominators
 
@@ -346,7 +346,7 @@ cat("Making per-window output table...\n")
 window.table[] 	<- lapply(window.table, as.character)
 window.table <- melt(window.table, id.vars=c('pat.1','pat.2'), value.name="TYPE")
 dist.table[] 	<- lapply(dist.table, as.character)
-dist.table <- melt(dist.table, id.vars=c('pat.1','pat.2'), value.name="PATRISTIC_DIST")
+dist.table <- melt(dist.table, id.vars=c('pat.1','pat.2'), value.name="P_INTBR_LNGR_ROOT")
 window.table <- merge(window.table, dist.table, by=c('pat.1','pat.2','variable'))
 dist.table <- NULL
 # convert "anc" and "desc" to "trans" depending on direction
@@ -396,29 +396,29 @@ dp			<- merge(dp, tmp, by=c('W_FROM','pat.1'))
 setnames(tmp, c("pat.1","pat.1_leaves","pat.1_reads"), c("pat.2","pat.2_leaves","pat.2_reads"))
 dp			<- merge(dp, tmp, by=c('W_FROM','pat.2'))
 #	OR: add window.table to this table of pairs. keep track of direction
-tmp			<- subset(window.table, !is.na(TYPE), select=c('pat.1','pat.2','W_FROM','TYPE','PATRISTIC_DIST'))
+tmp			<- subset(window.table, !is.na(TYPE), select=c('pat.1','pat.2','W_FROM','TYPE','P_INTBR_LNGR_ROOT'))
 set(tmp, tmp[, which(TYPE=='trans')], 'TYPE', 'trans_12')
 #	merge (1,2) with dp
 dp			<- merge(dp, tmp, by=c('W_FROM','pat.1','pat.2'),all.x=1)
 set(tmp, tmp[, which(TYPE=='trans_12')], 'TYPE', 'trans_21')
-setnames(tmp, c('pat.1','pat.2','TYPE','PATRISTIC_DIST'), c('pat.2','pat.1','TYPE2','PATRISTIC_DIST2'))
+setnames(tmp, c('pat.1','pat.2','TYPE','P_INTBR_LNGR_ROOT'), c('pat.2','pat.1','TYPE2','P_INTBR_LNGR_ROOT2'))
 #	merge (2,1) with dp -- we now have all trm assignments to the unordered pair in dp either in col TYPE or TYPE2
 dp			<- merge(dp, tmp, by=c('W_FROM','pat.1','pat.2'),all.x=1)
 #	consolidate assignments
 stopifnot(dp[, length(which(!is.na(TYPE) & !is.na(TYPE2)))==0L])
-stopifnot(dp[, length(which(!is.na(PATRISTIC_DIST) & !is.na(PATRISTIC_DIST2)))==0L])
+stopifnot(dp[, length(which(!is.na(P_INTBR_LNGR_ROOT) & !is.na(P_INTBR_LNGR_ROOT2)))==0L])
 tmp			<- dp[, which(!is.na(TYPE2))]
 set(dp, tmp, 'TYPE', dp[tmp,TYPE2])
 dp[, TYPE2:=NULL]
-tmp			<- dp[, which(!is.na(PATRISTIC_DIST2))]
-set(dp, tmp, 'PATRISTIC_DIST', dp[tmp,PATRISTIC_DIST2])
-dp[, PATRISTIC_DIST2:=NULL]
+tmp			<- dp[, which(!is.na(P_INTBR_LNGR_ROOT2))]
+set(dp, tmp, 'P_INTBR_LNGR_ROOT', dp[tmp,P_INTBR_LNGR_ROOT2])
+dp[, P_INTBR_LNGR_ROOT2:=NULL]
 #	check we have patristic distances for all cherries
-stopifnot(dp[, length(which(TYPE=='cher' & is.na(PATRISTIC_DIST)))==0L])
+stopifnot(dp[, length(which(TYPE=='cher' & is.na(P_INTBR_LNGR_ROOT)))==0L])
 #	set disconnected only when both patients present
 set(dp, dp[,which(is.na(TYPE))], 'TYPE','disconnected')
 setkey(dp, W_FROM, W_TO, pat.1, pat.2)
-dp			<- subset(dp, select=c('W_FROM','W_TO','pat.1','pat.2','TYPE','PATRISTIC_DIST','pat.1_leaves','pat.1_reads','pat.2_leaves','pat.2_reads'))
+dp			<- subset(dp, select=c('W_FROM','W_TO','pat.1','pat.2','TYPE','P_INTBR_LNGR_ROOT','pat.1_leaves','pat.1_reads','pat.2_leaves','pat.2_reads'))
 #	write to file
 if(!is.null(detailed.output))
 {	

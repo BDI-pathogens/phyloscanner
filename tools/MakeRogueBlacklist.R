@@ -2,8 +2,8 @@ list.of.packages <- c("argparse", "phangorn")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
 
-library(argparse)
-library(phangorn)
+suppressMessages(library(argparse))
+suppressMessages(library(phangorn))
 
 arg_parser = ArgumentParser(description="Examine all patients from the input tree that match a given regexp and blacklist tips with low read counts that are distant from the main clades of tips (and hence likely contaminants).")
 
