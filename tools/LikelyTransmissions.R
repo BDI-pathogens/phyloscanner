@@ -39,10 +39,23 @@ if(command.line){
   romero.severson <- args$romeroSeverson
   
 } else {
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_160930_couples_w270_rerun/")
+  # BEEHIVE example
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
-  tree.file.names <- "ptyr1_trees_newick/ptyr1_InWindow_1000_to_1249.tree"
-  splits.file.names <- "ptyr1_subtrees_r_csv/Subtrees_r_ptyr1_InWindow_1000_to_1249.csv"
+  tree.file.names <- "RAxML_bestTree.InWindow_800_to_1150.tree"
+  splits.file.names <- "Subtrees_r_run20160517_inWindow_800_to_1150.csv"
+  
+  output.name <- "hi.csv"
+  root.name <- "C.BW.00.00BW07621.AF443088"
+  split.threshold <- NA
+  zero.length.tips.count <- F
+  romero.severson <- T
+  
+  # Rakai example
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_161007_couples_w270_rerun")
+  script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
+  tree.file.names <- "ptyr5_trees_newick/ptyr5_InWindow_8625_to_8874.tree"
+  splits.file.names <- "ptyr5_subtrees_r_csv/Subtrees_r_ptyr5_InWindow_8625_to_8874.csv"
   output.name <- "hi.csv"
   root.name <- "REF_CPX_AF460972"
   split.threshold <- NA
@@ -137,7 +150,6 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	  was.split <- unique(splits$orig.patients[which(splits$orig.patients!=splits$patient.splits)])
 	  
 	  assocs <- node.assocs$details
-	  
 	}
 	
 	splits.for.patients <- lapply(patients, function(x) unique(splits$patient.splits[which(splits$orig.patients==x)] ))
@@ -171,7 +183,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	
 	count <- 0
 	direct.descendant.matrix <- matrix(NA, length(patients.included), length(patients.included))
-	distance.matrix <- matrix(NA, length(patients.included), length(patients.included))
+	branches.longer.than.root.matrix <- matrix(NA, length(patients.included), length(patients.included))
 	for(pat.1 in seq(1, length(patients.included))){
 	  for(pat.2 in  seq(1, length(patients.included))){
 	    if (pat.1 < pat.2) {
@@ -253,19 +265,8 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	        if(!entangled){
 	          for(pat.1.splt in splits.for.patients[[pat.1.id]]){
 	            ancestors <- get.tt.ancestors(tt, pat.1.splt)
-	            if(length(intersect(ancestors, splits.for.patients[[pat.2.id]]))>0){
+	            if(length(intersect(ancestors, splits.for.patients[[pat.2.id]])) > 0){
 	              direct.descendant.matrix[pat.1, pat.2] <- "desc"
-	              if(length(all.nodes)==2){
-	                length <- 0
-	                current.node <- tt$root.nos[which(tt$unique.splits==pat.1.id)]
-	                while(assocs[[current.node]]!=pat.2.id){
-	                  length <- length + get.edge.length(tree, current.node)
-	                  current.node <- Ancestors(tree, current.node, type="parent")
-	                }
-	                distance.matrix[pat.1, pat.2] <- length
-	              } else {
-	                distance.matrix[pat.1, pat.2] <- NA
-	              }
 	              rel.determined <- T
 	              break
 	            }
@@ -275,23 +276,23 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	              ancestors <- get.tt.ancestors(tt, pat.2.splt)
 	              if(length(intersect(ancestors, splits.for.patients[[pat.1.id]]))>0){
 	                direct.descendant.matrix[pat.1, pat.2] <- "anc"
-	                if(length(all.nodes)==2){
-	                  length <- 0
-	                  current.node <- tt$root.nos[which(tt$unique.splits==pat.2.id)]
-	                  while(assocs[[current.node]]!=pat.1.id){
-	                    length <- length + get.edge.length(tree, current.node)
-	                    current.node <- Ancestors(tree, current.node, type="parent")
-	                  }
-	                  distance.matrix[pat.1, pat.2] <- length
-	                } else {
-	                  distance.matrix[pat.1, pat.2] <- NA
-	                }
 	                rel.determined <- T
 	                break
 	              }
 	            }
 	          }
 	          if(!rel.determined){
+	            subtree <- extract.subtrees.for.patients(tree, c(pat.1.id, pat.2.id), splits)
+	            min.length.prop <- 0
+	            for(node in all.nodes){
+	              print(node)
+	              length.prop <- prop.internal.longer.than.root(subtree, node, splits)
+	              if(length.prop > min.length.prop){
+	                min.length.prop <- length.prop
+	              }
+	            }
+	            branches.longer.than.root.matrix[pat.1, pat.2] <- min.length.prop
+	            
 	            if(length(all.nodes)==2){
 	              root.1 <- tt$root.nos[which(tt$unique.splits==pat.1.id)]
 	              root.2 <- tt$root.nos[which(tt$unique.splits==pat.2.id)]
@@ -308,10 +309,8 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	              } else {
 	                direct.descendant.matrix[pat.1, pat.2] <- "unint"
 	              }
-	              distance.matrix[pat.1, pat.2] <- dist.nodes(tree)[root.1, root.2]
 	            } else {
 	              direct.descendant.matrix[pat.1, pat.2] <- "unint"
-	              distance.matrix[pat.1, pat.2] <- NA
 	            }
 	          }
 	        } else {
@@ -321,13 +320,10 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	          }
 	          if(startsWith(current.node, "none")){
 	            direct.descendant.matrix[pat.1, pat.2] <- "trueInt"
-	            distance.matrix[pat.1, pat.2] <- NA
 	          } else if(patients.for.splits[[current.node]]==pat.1.id){
 	            direct.descendant.matrix[pat.1, pat.2] <- "intAnc"
-	            distance.matrix[pat.1, pat.2] <- NA
 	          } else if(patients.for.splits[[current.node]]==pat.2.id){
 	            direct.descendant.matrix[pat.1, pat.2] <- "intDesc"
-	            distance.matrix[pat.1, pat.2] <- NA
 	          } else {
 	            stop("Classification failure (email the authors)")
 	          }
@@ -346,13 +342,13 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	}
 	
 	direct.descendant.table <- as.table(direct.descendant.matrix)
-	distance.table <- as.table(distance.matrix)
+	branches.longer.than.root.table <- as.table(branches.longer.than.root.matrix)
 	
 	colnames(direct.descendant.table) <- patients.included
 	rownames(direct.descendant.table) <- patients.included
 	
-	colnames(distance.table) <- patients.included
-	rownames(distance.table) <- patients.included
+	colnames(branches.longer.than.root.table) <- patients.included
+	rownames(branches.longer.than.root.table) <- patients.included
 	
 	dddf <- as.data.frame(direct.descendant.table)
 	
@@ -360,12 +356,12 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	
 	dddf <- dddf[keep,]
 	
-	dmf <- as.data.frame(distance.table)
+	dmf <- as.data.frame(branches.longer.than.root.table)
 	dmf <- dmf[keep,]
 	
 	dddf <- cbind(dddf, dmf[,3])
 	
-	colnames(dddf) <- c("Patient_1", "Patient_2", "Relationship", "Distance")
+	colnames(dddf) <- c("Patient_1", "Patient_2", "Relationship", "Prop.internal.branches.longer.than.root.branch")
 	dddf
 }
 

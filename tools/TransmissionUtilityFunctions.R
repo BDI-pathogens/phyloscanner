@@ -839,3 +839,35 @@ drop.tip.get.map <- function(phy, tip){
   }
   return(list(tree = phy.2, reference=reference))
 }
+
+extract.subtrees.for.patients <- function(tree, patients, splits){
+  labels.to.keep <- splits$tip.names[which(splits$orig.patients %in% patients)]
+  
+  pruned.tree <- drop.tip(tree, which(!(tree$tip.label %in% labels.to.keep)))
+  
+  return(pruned.tree)
+}
+
+prop.internal.longer.than.root <- function(tree, split, splits){
+  tips <- splits$tip.names[which(splits$patient.splits==split)]
+  
+  if(length(tips)==1){
+    return(0)
+  }
+  
+  split.root <- mrca.phylo.or.unique.tip(tree, which(tree$tip.label %in% tips))
+  dist.to.root <- 0 
+  
+  current.node <- split.root
+  while(!is.root(tree, current.node)){
+    dist.to.root <- dist.to.root + get.edge.length(tree, split.root)
+    current.node <- Ancestors(tree, current.node, type="parent")
+  }
+  
+  just.clade <- drop.tip(tree, which(!(tree$tip.label %in% tips)))
+  
+  edges <- just.clade$edge.length
+  
+  return(sum(which(edges > dist.to.root))/length(edges))
+}
+
