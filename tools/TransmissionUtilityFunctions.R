@@ -811,3 +811,31 @@ neighbouring.nodes <- function(tree, node){
 }
 
 
+# Drop a set of tips and return a vector which maps nodes from the full tree to the subtree
+
+drop.tip.get.map <- function(phy, tip){
+  if(length(unique(tree$tip.label))!=length(tree$tip.label)){
+    stop("This won't work if there are duplicate tip names")
+  }
+  reference <- vector()
+  
+  phy.2 <- drop.tip(phy, tip)
+  
+  for(new.label in seq(1, length(phy.2$tip.label))){
+    reference[new.label] = which(phy$tip.label==phy.2$tip.label[new.label])
+  }
+  
+  mrcas.1 <- mrca(phy)
+  mrcas.2 <- mrca(phy.2)
+  
+  for(tip.1 in seq(1, length(phy.2$tip.label))){
+    for(tip.2 in seq(1, length(phy.2$tip.label))){
+      if(tip.1 < tip.2){
+        new.mrca <- mrcas.2[tip.1,tip.2]
+        old.mrca <- mrcas.1[reference[tip.1], reference[tip.2]]
+        reference[new.mrca] = old.mrca
+      }
+    }
+  }
+  return(list(tree = phy.2, reference=reference))
+}
