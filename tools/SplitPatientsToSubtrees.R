@@ -44,7 +44,7 @@ if(command.line){
   pdf.w <- as.numeric(args$pdfwidth)
   debug <- args$debug
   
-  if(!(mode %in% c("c", "r"))){
+  if(!(mode %in% c("c", "r", "f", "s"))){
     stop(paste("Unknown split classifier: ", mode, "\n", sep=""))
   }
 #  if(debug)
@@ -57,13 +57,21 @@ if(command.line){
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
   tree.file.names <- "RAxML_bestTree.InWindow_800_to_1150.tree"
   blacklist.files <- "FullBlacklist_InWindow_800_to_1150.csv"
-  out.identifier <- "test"
+  out.identifier <- "test_r"
   root.name <- "C.BW.00.00BW07621.AF443088"
   tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
-  mode <- "c"
+  mode <- "f"
   zero.length.tips.count <- F
+  
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_161007_couples_w270_rerun/")
+  script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
+  tree.file.names <- "ptyr5_trees_newick/ptyr5_InWindow_2400_to_2649.tree"
+  blacklist.files <- "ptyr5_trees_blacklist/ptyr5_blacklist_InWindow_2400_to_2649.csv"
+  root.name <- "REF_CPX_AF460972"
+  tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
 
-  pdf.w = 10
+
+  pdf.w = 40
   pdf.hm = 1
   if(0)
   {
@@ -206,6 +214,7 @@ if(!inherits(can.read.tree, "try-error"))
 	cat("Drawing tree...\n")
 	tree.display 		<- ggtree(tree, aes(color=INDIVIDUAL)) +
 									geom_point2(shape = 16, size=3, aes(subset=NODE_SHAPES)) +
+	                geom_text(aes(label=seq(1, length(tree$tip.label) + tree$Nnode))) +
 									scale_fill_hue(na.value = "black") +
 									scale_color_hue(na.value = "black") +
 									theme(legend.position="none") +
