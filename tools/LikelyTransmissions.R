@@ -112,6 +112,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	patient.tips <- lapply(patients, function(x) which(tree$tip.label %in% splits[which(splits$orig.patients==x), "tip.names"]))
 	names(patient.tips) <- patients
 	all.splits <- unique(splits$patient.splits)
+	
 	if(romero.severson){
 	  
 	  # The reason the procedure is repeated is that the RS classification for internal nodes cannot simply be determined 
@@ -183,7 +184,10 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	
 	count <- 0
 	direct.descendant.matrix <- matrix(NA, length(patients.included), length(patients.included))
+	distance.matrix <- matrix(NA, length(patients.included), length(patients.included))
 	branches.longer.than.root.matrix <- matrix(NA, length(patients.included), length(patients.included))
+	details.matrix <- matrix(NA, length(patients.included), length(patients.included))
+	
 	for(pat.1 in seq(1, length(patients.included))){
 	  for(pat.2 in  seq(1, length(patients.included))){
 	    if (pat.1 < pat.2) {
@@ -267,6 +271,17 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	            ancestors <- get.tt.ancestors(tt, pat.1.splt)
 	            if(length(intersect(ancestors, splits.for.patients[[pat.2.id]])) > 0){
 	              direct.descendant.matrix[pat.1, pat.2] <- "desc"
+	              if(length(all.nodes)==2){
+	                length <- 0
+	                current.node <- tt$root.nos[which(tt$unique.splits==pat.1.id)]
+	                while(assocs[[current.node]]!=pat.2.id){
+	                  length <- length + get.edge.length(tree, current.node)
+	                  current.node <- Ancestors(tree, current.node, type="parent")
+	                }
+	                distance.matrix[pat.1, pat.2] <- length
+	              } else {
+	                distance.matrix[pat.1, pat.2] <- NA
+	              }
 	              rel.determined <- T
 	              break
 	            }
@@ -276,6 +291,17 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	              ancestors <- get.tt.ancestors(tt, pat.2.splt)
 	              if(length(intersect(ancestors, splits.for.patients[[pat.1.id]]))>0){
 	                direct.descendant.matrix[pat.1, pat.2] <- "anc"
+	                if(length(all.nodes)==2){
+	                  length <- 0
+	                  current.node <- tt$root.nos[which(tt$unique.splits==pat.2.id)]
+	                  while(assocs[[current.node]]!=pat.1.id){
+	                    length <- length + get.edge.length(tree, current.node)
+	                    current.node <- Ancestors(tree, current.node, type="parent")
+	                  }
+	                  distance.matrix[pat.1, pat.2] <- length
+	                } else {
+	                  distance.matrix[pat.1, pat.2] <- NA
+	                }
 	                rel.determined <- T
 	                break
 	              }
@@ -283,14 +309,23 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	          }
 	          if(!rel.determined){
 	            subtree <- extract.subtrees.for.patients(tree, c(pat.1.id, pat.2.id), splits)
-	            min.length.prop <- 0
+	            max.length.prop <- 0
+	            details.string <- ""
+	            first <- T
 	            for(node in all.nodes){
 	              length.prop <- prop.internal.longer.than.root(subtree, node, splits)
-	              if(length.prop > min.length.prop){
-	                min.length.prop <- length.prop
+	              if(length.prop > max.length.prop){
+	                max.length.prop <- length.prop
 	              }
+	              if(first){
+	                first <- F
+	              } else {
+	                details.string <- paste(details.string, ";", sep="")
+	              }
+	              details.string <- paste(details.string,node,":",length.prop, sep="")
 	            }
-	            branches.longer.than.root.matrix[pat.1, pat.2] <- min.length.prop
+	            branches.longer.than.root.matrix[pat.1, pat.2] <- max.length.prop
+	            details.matrix[pat.1, pat.2] <- details.string
 	            
 	            if(length(all.nodes)==2){
 	              root.1 <- tt$root.nos[which(tt$unique.splits==pat.1.id)]
@@ -308,8 +343,10 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	              } else {
 	                direct.descendant.matrix[pat.1, pat.2] <- "unint"
 	              }
+	              distance.matrix[pat.1, pat.2] <- dist.nodes(tree)[root.1, root.2]
 	            } else {
 	              direct.descendant.matrix[pat.1, pat.2] <- "unint"
+	              distance.matrix[pat.1, pat.2] <- NA
 	            }
 	          }
 	        } else {
@@ -326,6 +363,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	          } else {
 	            stop("Classification failure (email the authors)")
 	          }
+	          distance.matrix[pat.1, pat.2] <- NA
 	        }
 	      }
 	      
@@ -342,12 +380,20 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	
 	direct.descendant.table <- as.table(direct.descendant.matrix)
 	branches.longer.than.root.table <- as.table(branches.longer.than.root.matrix)
+	distance.table <- as.table(distance.matrix)
+	details.table <- as.table(details.matrix)
 	
 	colnames(direct.descendant.table) <- patients.included
 	rownames(direct.descendant.table) <- patients.included
 	
+	colnames(distance.table) <- patients.included
+	rownames(distance.table) <- patients.included
+	
 	colnames(branches.longer.than.root.table) <- patients.included
 	rownames(branches.longer.than.root.table) <- patients.included
+	
+	colnames(details.table) <- patients.included
+	rownames(details.table) <- patients.included
 	
 	dddf <- as.data.frame(direct.descendant.table)
 	
@@ -355,12 +401,18 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	
 	dddf <- dddf[keep,]
 	
-	dmf <- as.data.frame(branches.longer.than.root.table)
+	dmf <- as.data.frame(distance.table)
 	dmf <- dmf[keep,]
 	
-	dddf <- cbind(dddf, dmf[,3])
+	blmf <- as.data.frame(branches.longer.than.root.table)
+	blmf <- blmf[keep,]
 	
-	colnames(dddf) <- c("Patient_1", "Patient_2", "Relationship", "Prop.internal.branches.longer.than.root.branch")
+	dtmf <- as.data.frame(details.table)
+  dtmf <- dtmf[keep,]
+		
+	dddf <- cbind(dddf, dmf[,3], blmf[,3], dtmf[,3])
+	
+	colnames(dddf) <- c("Patient_1", "Patient_2", "Relationship", "Distance", "Prop.internal.branches.longer.than.root.branch", "details")
 	dddf
 }
 

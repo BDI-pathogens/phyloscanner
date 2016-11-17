@@ -835,7 +835,8 @@ output.trans.tree <- function(tree, assocs, file.name = NULL){
   
   splits.vec <- assocs.vec
   
-  splits.vec[which(splits.vec=="none" & first.of.split)] <- paste("none", which(splits.vec=="none" & first.of.split), sep="-S")
+  splits.vec[which(splits.vec=="none" & first.of.split)] <- 
+    paste("none", which(splits.vec=="none" & first.of.split), sep="-S")
   
   for(node.no in seq(1, tree$Nnode + length(tree$tip.label))){
     if(assocs.vec[node.no]=="none" & !first.of.split[node.no]){
