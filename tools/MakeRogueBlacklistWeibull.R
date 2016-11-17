@@ -1,10 +1,11 @@
-list.of.packages <- c("argparse", "phangorn")
+list.of.packages <- c("argparse", "phangorn", "data.table")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
 
-library(argparse)
-library(phangorn)
-library(gamlss)
+suppressMessages(library(argparse))
+suppressMessages(library(phangorn))
+suppressMessages(library(gamlss))
+suppressMessages(library(data.table))
 
 arg_parser = ArgumentParser(description="Examine all patients from the input tree that match a given regexp and blacklist tips with low read counts that are distant from the main clades of tips (and hence likely contaminants).")
 
@@ -85,11 +86,11 @@ rogue.hunt <- function(tree, patient, patient.ids, length.threshold, read.prop.t
     tree.2 <- drop.tip(tree, tip=tree$tip.label[setdiff(seq(1, length(tree$tip.label)), tips.to.keep)])
     if(length(tree.2$tip.label)>2){
       tree.2 <- unroot(tree.2)
-      
+	  longest.branch <- max(tree.2$edge.length)
+	  
       if(length(tree.2$tip.label)>3){
       
-        total.reads <- sum(as.numeric(sapply(tree.2$tip.label, function(tip) read.count.from.label(tip, tip.regex))))
-        longest.branch <- max(tree.2$edge.length)
+        total.reads <- sum(as.numeric(sapply(tree.2$tip.label, function(tip) read.count.from.label(tip, tip.regex))))        
         nonzero.lengths <- tree.2$edge.length[tree.2$edge.length>1E-5]
         
         wei.dist <- gamlss(data=data.table(BRL=nonzero.lengths), formula = BRL ~ 1, family=WEI, trace=F)

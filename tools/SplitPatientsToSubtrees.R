@@ -9,7 +9,7 @@ if(!("ggtree" %in% installed.packages()[,"Package"])){
 }
 
 if(command.line){
-  require(argparse, quietly=TRUE, warn.conflicts=FALSE)
+  suppressMessages(require(argparse, quietly=TRUE, warn.conflicts=FALSE))
   
   arg_parser = ArgumentParser(description="Split the tips from each patient up, according to one of several schemes, such that the tree can subsequently be partitioned into connected subtrees, one per split.")
   
@@ -89,11 +89,11 @@ if(command.line){
   }
 }
 
-require(phangorn, quietly=TRUE, warn.conflicts=FALSE)
-require(phytools, quietly=TRUE, warn.conflicts=FALSE)
-require(ggplot2, quietly=TRUE, warn.conflicts=FALSE)
-require(ggtree, quietly=TRUE, warn.conflicts=FALSE)
-require(data.table, quietly=TRUE, warn.conflicts=FALSE)
+suppressMessages(require(phangorn, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(phytools, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(ggplot2, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(ggtree, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
 
 source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
 source(file.path(script.dir, "SubtreeMethods.R"))
