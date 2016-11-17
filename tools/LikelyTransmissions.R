@@ -285,7 +285,6 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	            subtree <- extract.subtrees.for.patients(tree, c(pat.1.id, pat.2.id), splits)
 	            min.length.prop <- 0
 	            for(node in all.nodes){
-	              print(node)
 	              length.prop <- prop.internal.longer.than.root(subtree, node, splits)
 	              if(length.prop > min.length.prop){
 	                min.length.prop <- length.prop
