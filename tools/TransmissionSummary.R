@@ -60,13 +60,13 @@ if(command.line){
   if(0)
   {
     script.dir					<- "/Users/Oliver/git/phylotypes/tools"
-    summary.file				<- "~/duke/tmp/pty_16-11-10-07-48-21/ptyr12_patStatsFull.csv"
-    id.file 					<- "~/duke/tmp/pty_16-11-10-07-48-21/ptyr12_patients.txt"
-	input.files.name			<- "~/duke/tmp/pty_16-11-10-07-48-21/ptyr12_"
+    summary.file				<- "~/duke/tmp/pty_16-11-17-15-04-28/ptyr22_patStatsFull.csv"
+    id.file 					<- "~/duke/tmp/pty_16-11-17-15-04-28/ptyr22_patients.txt"
+	input.files.name			<- "~/duke/tmp/pty_16-11-17-15-04-28/ptyr22_"
     min.threshold				<- 1
     allow.splits 				<- TRUE
-    output.file 				<- "~/duke/tmp/pty_16-11-10-07-48-21/ptyr12_trmStats.csv"
-	detailed.output				<- "~/duke/tmp/pty_16-11-10-07-48-21/ptyr12_patStatsPerWindow.csv"
+    output.file 				<- "~/duke/tmp/pty_16-11-17-15-04-28/ptyr22_trmStats.csv"
+	detailed.output				<- "~/duke/tmp/pty_16-11-17-15-04-28/ptyr22_patStatsPerWindow.csv"
     input.files 				<- sort(list.files(dirname(input.files.name), pattern=paste(basename(input.files.name),".*LikelyTransmissions.csv$",sep=''), full.names=TRUE))
   }
 }
@@ -148,6 +148,8 @@ for(window in seq(1, num.windows)){
   
   window.vector <- rep(NA, nrow(relationships.ever.suggested))
   dist.vector <- rep(NA, nrow(relationships.ever.suggested))
+  p1.vector <- rep(NA, nrow(relationships.ever.suggested))
+  p2.vector <- rep(NA, nrow(relationships.ever.suggested))
   #  sib.window.vector <- rep(NA, nrow(transmissions.ever.suggested))
   
   window.count <- window.count + 1
@@ -158,6 +160,19 @@ for(window in seq(1, num.windows)){
                                     sep=",", 
                                     header=TRUE,
                                     stringsAsFactors=FALSE)
+	# transform 'details' column into usable format: max p for Patient_1 and the same for Patient_2
+	tmp	<- strsplit(transmissions.table$details,';')
+	tmp	<- do.call('rbind',lapply(seq_along(tmp), function(i){
+				z	<- data.table(ROW=i, ID=NA_character_, P=NA_character_)
+				if(!any(is.na(tmp[[i]])))
+					z<- data.table(ROW=i, ID=gsub('(.*):[0-9]*\\.?[0-9]*','\\1',tmp[[i]]), P=gsub('.*:([0-9]*\\.?[0-9]*)','\\1',tmp[[i]]))
+				z
+			} ))
+	tmp	<- subset(tmp, !is.na(ID))[, list(P=max(P)), by=c('ROW','ID')]
+	tmp	<- tmp[, list(Patient_1=ID[1], Patient_2=ID[2], Patient_1_P=P[1], Patient_2_P=P[2]), by='ROW']
+	transmissions.table$ROW	<- seq_len(nrow(transmissions.table))
+	transmissions.table		<- merge(transmissions.table, subset(tmp, select=c(ROW, Patient_1_P, Patient_2_P)), by="ROW", all=1)
+	transmissions.table$ROW	<- NULL
   # Not used right now
   
   # sib.dist.table <- read.table(paste("SibDists_",start,"_to_",end,".csv",sep=""), 
@@ -186,11 +201,16 @@ for(window in seq(1, num.windows)){
       if(!is.na(row.match(transmissions.table[row,1:2], relationships.ever.suggested))){
         #whatever the third column says, things are the right way round        
         window.vector[row.match(transmissions.table[row,1:2], relationships.ever.suggested)] <- transmissions.table[row,3] 		
-		dist.vector[row.match(transmissions.table[row,1:2], relationships.ever.suggested)] <- transmissions.table[row,4]
+		dist.vector[row.match(transmissions.table[row,1:2], relationships.ever.suggested)] <- transmissions.table[row,'Distance']
+		p1.vector[row.match(transmissions.table[row,1:2], relationships.ever.suggested)] <- transmissions.table[row,'Patient_1_P']
+		p2.vector[row.match(transmissions.table[row,1:2], relationships.ever.suggested)] <- transmissions.table[row,'Patient_2_P']
 		
       } else if(!is.na(row.match(rev(transmissions.table[row,1:2]), relationships.ever.suggested))){
 		
-		dist.vector[row.match(rev(transmissions.table[row,1:2]), relationships.ever.suggested)] <- transmissions.table[row,4]
+		dist.vector[row.match(rev(transmissions.table[row,1:2]), relationships.ever.suggested)] <- transmissions.table[row,'Distance']
+		#p's will be the wrong way round
+		p1.vector[row.match(rev(transmissions.table[row,1:2]), relationships.ever.suggested)] <- transmissions.table[row,'Patient_2_P']
+		p2.vector[row.match(rev(transmissions.table[row,1:2]), relationships.ever.suggested)] <- transmissions.table[row,'Patient_1_P']
 		#transmissions will be the wrong way round        
         if(transmissions.table[row,3] == "anc"){
           window.vector[row.match(rev(transmissions.table[row,1:2]), relationships.ever.suggested)] <- "desc" 
@@ -213,9 +233,13 @@ for(window in seq(1, num.windows)){
     first <- FALSE
     window.table <- window.vector
 	dist.table <- dist.vector
+	p1.table <- p1.vector
+	p2.table <- p2.vector
   } else {
     window.table <- cbind(window.table, window.vector)
 	dist.table <- cbind(dist.table, dist.vector)
+	p1.table <- cbind(p1.table, p1.vector)
+	p2.table <- cbind(p2.table, p2.vector)
   }
   # if(first.sib){
   #   first.sib <- FALSE
@@ -227,10 +251,14 @@ for(window in seq(1, num.windows)){
 
 window.table <- cbind(relationships.ever.suggested, window.table)
 dist.table <- cbind(relationships.ever.suggested, dist.table)
+p1.table <- cbind(relationships.ever.suggested, p1.table)
+p2.table <- cbind(relationships.ever.suggested, p2.table)
 #out.sib <- cbind(transmissions.ever.suggested, out.sib)
 
 colnames(window.table) <- c("pat.1", "pat.2", basename(input.files))
 colnames(dist.table) <- c("pat.1", "pat.2", basename(input.files))
+colnames(p1.table) <- c("pat.1", "pat.2", basename(input.files))
+colnames(p2.table) <- c("pat.1", "pat.2", basename(input.files))
 #colnames(out.sib) <- c("pat.1", "pat.2", paste("window.start.",seq(800,9050,by=250), sep=""))
 #write.table(out.sib, file="quickout_sib.csv", sep=",", col.names=NA)
 # out <- read.table("quickout.csv", sep=",", stringsAsFactors = F, header = T)
@@ -344,11 +372,20 @@ colnames(dist.table) <- c("pat.1", "pat.2", basename(input.files))
 cat("Making per-window output table...\n")
 #	get tables into long format
 window.table[] 	<- lapply(window.table, as.character)
-window.table <- melt(window.table, id.vars=c('pat.1','pat.2'), value.name="TYPE")
+window.table	<- melt(window.table, id.vars=c('pat.1','pat.2'), value.name="TYPE")
 dist.table[] 	<- lapply(dist.table, as.character)
-dist.table <- melt(dist.table, id.vars=c('pat.1','pat.2'), value.name="P_INTBR_LNGR_ROOT")
+dist.table		<- melt(dist.table, id.vars=c('pat.1','pat.2'), value.name="PATRISTIC_DISTANCE")
+p1.table[] 		<- lapply(p1.table, as.character)
+p1.table		<- melt(p1.table, id.vars=c('pat.1','pat.2'), value.name="ID1_P")
+p2.table[] 		<- lapply(p2.table, as.character)
+p2.table		<- melt(p2.table, id.vars=c('pat.1','pat.2'), value.name="ID2_P")
+
 window.table <- merge(window.table, dist.table, by=c('pat.1','pat.2','variable'))
+window.table <- merge(window.table, p1.table, by=c('pat.1','pat.2','variable'))
+window.table <- merge(window.table, p2.table, by=c('pat.1','pat.2','variable'))
 dist.table <- NULL
+p1.table <- NULL
+p2.table <- NULL
 # convert "anc" and "desc" to "trans" depending on direction
 
 window.table[which(window.table$TYPE=="desc"), c("pat.1", "pat.2")] <- window.table[which(window.table$TYPE=="desc"), c("pat.2", "pat.1")]
@@ -374,6 +411,10 @@ if(!allow.splits)
 {
 	set(window.table, window.table[, which(TYPE %in% c("trueInt", "intTrans"))], 'TYPE', 'int')	
 }
+#	set to numeric
+set(window.table, NULL, 'PATRISTIC_DISTANCE', window.table[, as.numeric(PATRISTIC_DISTANCE)])
+set(window.table, NULL, 'ID1_P', window.table[, as.numeric(ID1_P)])
+set(window.table, NULL, 'ID2_P', window.table[, as.numeric(ID2_P)])
 
 #	OR: calculate #unique reads and #reads for each window 
 reads.table	<- as.data.table(reads.table)
@@ -396,29 +437,37 @@ dp			<- merge(dp, tmp, by=c('W_FROM','pat.1'))
 setnames(tmp, c("pat.1","pat.1_leaves","pat.1_reads"), c("pat.2","pat.2_leaves","pat.2_reads"))
 dp			<- merge(dp, tmp, by=c('W_FROM','pat.2'))
 #	OR: add window.table to this table of pairs. keep track of direction
-tmp			<- subset(window.table, !is.na(TYPE), select=c('pat.1','pat.2','W_FROM','TYPE','P_INTBR_LNGR_ROOT'))
+tmp			<- subset(window.table, !is.na(TYPE), select=c('pat.1','pat.2','W_FROM','TYPE','PATRISTIC_DISTANCE','ID1_P','ID2_P'))
 set(tmp, tmp[, which(TYPE=='trans')], 'TYPE', 'trans_12')
 #	merge (1,2) with dp
 dp			<- merge(dp, tmp, by=c('W_FROM','pat.1','pat.2'),all.x=1)
 set(tmp, tmp[, which(TYPE=='trans_12')], 'TYPE', 'trans_21')
-setnames(tmp, c('pat.1','pat.2','TYPE','P_INTBR_LNGR_ROOT'), c('pat.2','pat.1','TYPE2','P_INTBR_LNGR_ROOT2'))
+setnames(tmp, c('pat.1','pat.2','TYPE','PATRISTIC_DISTANCE','ID1_P','ID2_P'), c('pat.2','pat.1','TYPE2','PATRISTIC_DISTANCE2','ID1_P2','ID2_P2'))
 #	merge (2,1) with dp -- we now have all trm assignments to the unordered pair in dp either in col TYPE or TYPE2
 dp			<- merge(dp, tmp, by=c('W_FROM','pat.1','pat.2'),all.x=1)
 #	consolidate assignments
 stopifnot(dp[, length(which(!is.na(TYPE) & !is.na(TYPE2)))==0L])
-stopifnot(dp[, length(which(!is.na(P_INTBR_LNGR_ROOT) & !is.na(P_INTBR_LNGR_ROOT2)))==0L])
+stopifnot(dp[, length(which(!is.na(PATRISTIC_DISTANCE) & !is.na(PATRISTIC_DISTANCE2)))==0L])
 tmp			<- dp[, which(!is.na(TYPE2))]
 set(dp, tmp, 'TYPE', dp[tmp,TYPE2])
 dp[, TYPE2:=NULL]
-tmp			<- dp[, which(!is.na(P_INTBR_LNGR_ROOT2))]
-set(dp, tmp, 'P_INTBR_LNGR_ROOT', dp[tmp,P_INTBR_LNGR_ROOT2])
-dp[, P_INTBR_LNGR_ROOT2:=NULL]
+tmp			<- dp[, which(!is.na(PATRISTIC_DISTANCE2))]
+set(dp, tmp, 'PATRISTIC_DISTANCE', dp[tmp,PATRISTIC_DISTANCE2])
+dp[, PATRISTIC_DISTANCE2:=NULL]
+tmp			<- dp[, which(!is.na(ID1_P2))]
+set(dp, tmp, 'ID1_P', dp[tmp,ID1_P2])
+dp[, ID1_P2:=NULL]
+tmp			<- dp[, which(!is.na(ID2_P2))]
+set(dp, tmp, 'ID2_P', dp[tmp,ID2_P2])
+dp[, ID2_P2:=NULL]
 #	check we have patristic distances for all cherries
-stopifnot(dp[, length(which(TYPE=='cher' & is.na(P_INTBR_LNGR_ROOT)))==0L])
+stopifnot(dp[, length(which(TYPE=='cher' & is.na(PATRISTIC_DISTANCE)))==0L])
+stopifnot(dp[, length(which(TYPE%in%c('cher','unint') & is.na(ID1_P)))==0L])
+stopifnot(dp[, length(which(TYPE%in%c('cher','unint') & is.na(ID2_P)))==0L])
 #	set disconnected only when both patients present
 set(dp, dp[,which(is.na(TYPE))], 'TYPE','disconnected')
 setkey(dp, W_FROM, W_TO, pat.1, pat.2)
-dp			<- subset(dp, select=c('W_FROM','W_TO','pat.1','pat.2','TYPE','P_INTBR_LNGR_ROOT','pat.1_leaves','pat.1_reads','pat.2_leaves','pat.2_reads'))
+dp			<- subset(dp, select=c('W_FROM','W_TO','pat.1','pat.2','TYPE','PATRISTIC_DISTANCE','ID1_P','ID2_P','pat.1_leaves','pat.1_reads','pat.2_leaves','pat.2_reads'))
 #	write to file
 if(!is.null(detailed.output))
 {	
