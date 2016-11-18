@@ -1,4 +1,4 @@
-split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, method="r"){
+split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, method="r", k=NA){
   
   if(method == "c"){
     cat("Finding nodes that would have to be associated with more than one patient with no splits...\n")
@@ -158,7 +158,9 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     
   } else if (method=="s") {
     
-    k <- 10
+    if(is.na(k)){
+      stop("k must be specified for Sankhoff reconstruction")
+    }
     
     cat("Reconstructing internal node hosts with the Sankhoff algorithm...")
     
@@ -166,10 +168,9 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     
     non.patient.tips <- which(is.na(sapply(tree$tip.label, function(name) patient.from.label(name, tip.regex))))
     
-
     patient.ids <- sapply(tree$tip.label, function(x)  patient.from.label(x, tip.regex))
     
-    patient.ids[non.patient.tips] <- "unsampled"
+    patient.ids[c(non.patient.tips,blacklist)] <- "unsampled"
  
     patients <- unique(patient.ids)
     patient.tips <- lapply(patients, function(x)  which(patient.ids==x))
@@ -227,68 +228,29 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
       }
     }
     
-    tree.display 		<- ggtree(tree, aes(color=temp.ca)) +
-      scale_fill_hue(na.value = "black") +
-      scale_color_hue(na.value = "black") +
-      theme(legend.position="none") +
-      geom_text(aes(label=seq(1, length(tree$tip.label) + tree$Nnode))) +
-      geom_tiplab(aes(col=temp.ca)) +
-    
-    ggsave("test.pdf", height=49)
-    
-  } else if (method=="f") {
-    # Fitch-Hartigan. Because RS is Fitch without multifurcations; this should make it more rigorous
-    
-    cat("Applying Fitch-Hartigan parsimony to internal nodes...\n")
-    
-    tip.assocs <- annotate.tips(tree, patients, patient.tips)
-    
-    for(tip in seq(1, length(tree$tip.label))){
-      if(tip %in% blacklist | is.na(patient.from.label(tree$tip.label[tip], tip.regex))){
-        tip.assocs[[tip]] <- "*"
-      }
-    }
-    
-    results <- classify.down.fh(getRoot(tree), tree, tip.assocs, list(), list())
-    new.assocs <- results$short
-    
-    
-    for(node in seq(1, tree$Nnode)){
-      assoc <- new.assocs[[node]]
-      if(assoc != "*"){
-        if(node %in% Ancestors(tree, patient.mrcas[[assoc]], type="all")){
-          new.assocs[[node]] <- "*"
-        }
-      }
-    }
-
-    cat("Filling in stars...\n")
-    
-    star.results <- fill.stars.fh(getRoot(tree), tree, new.assocs, results$long)
-    
-    resolved.assocs <- star.results$short
-    
     # Now the splits. A new split is where you encounter a node with a different association to its parent
+    
+    actual.patients <- patients[which(patients!="unsampled")]
     
     cat("Identifying split patients...\n")
     
-    splits.count <- rep(0, length(patients))
+    splits.count <- rep(0, length(actual.patients))
     first.nodes <- list()
     
-    splits <- count.splits(tree, getRoot(tree), resolved.assocs, patients, splits.count, first.nodes)
+    splits <- count.splits(tree, getRoot(tree), full.assocs, actual.patients, splits.count, first.nodes)
     
     counts.by.patient <- splits$counts
     first.nodes.by.patients <- splits$first.nodes
     
-    patients.copy <- patients
+    patients.copy <- actual.patients
     patient.tips.copy <- patient.tips
     
-    split.assocs <- resolved.assocs
+    split.assocs <- full.assocs
     
     #find the splits and reannotate the tree
     
-    for(pat.no in seq(1, length(patients))){
-      patient <- patients[pat.no]
+    for(pat.no in seq(1, length(actual.patients))){
+      patient <- actual.patients[pat.no]
       no.splits <- counts.by.patient[pat.no]
       
       if(no.splits>1){
@@ -327,11 +289,11 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
       }
     }
     
-    # No need for the stars anymore
-    
     return(list(assocs = split.assocs, split.patients = patients.copy, split.tips = patient.tips.copy, 
                 first.nodes = first.nodes.by.patients))
-
+    
+    
+  
   } else {
     stop("Unsupported splitting method")
   }
@@ -475,7 +437,7 @@ count.splits <- function(tree, node, assocs, patients, counts.vec, first.nodes.l
     change <- T
   }
   
-  if(assocs[[node]]!="*"){
+  if(!(assocs[[node]] %in% c("*", "unsampled"))){
     if(change){
       patient <- assocs[[node]]
       pat.index <- which(patients == patient)

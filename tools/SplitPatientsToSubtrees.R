@@ -1,4 +1,4 @@
-command.line <- T
+command.line <- F
 list.of.packages <- c("phangorn", "argparse", "phytools", "ggplot2", "gdata", "mvtnorm", "expm")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
@@ -19,6 +19,7 @@ if(command.line){
   arg_parser$add_argument("-z", "--zeroLengthTipsCount", action="store_true", default=FALSE, help="If present, a zero length terminal branch associates the patient at the tip with its parent node, interrupting any inferred transmission pathway between another pair of hosts that goes through the node.")
   arg_parser$add_argument("-s", "--splitsRule", action="store", default="r", help="The rules by which the sets of patients are split into groups in order to ensure that all groups can be members of connected subtrees without causing conflicts. Currently available: c=conservative, r=Romero-Severson (default).")
   arg_parser$add_argument("-b", "--blacklist", action="store", help="A .csv file listing tips to ignore. Alternatively, a base name that identifies blacklist files. Blacklist files are assumed to end in .csv.")
+  arg_parser$add_argument("-k", "--kParam", action="store", default=NA, help="The k parameter in the cost matrix for Sankhoff reconstruction (see documentation)")
   arg_parser$add_argument("inputFile", metavar="inputTreeFileName", help="Tree file name. Alternatively, a base name that identifies a group of tree file names can be specified. Tree files are assumed to end in .tree.")  
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
   arg_parser$add_argument("-OD", "--outputdir", action="store", help="Full path of the directory for output; if absent, current working directory")
@@ -60,19 +61,20 @@ if(command.line){
   out.identifier <- "test_r"
   root.name <- "C.BW.00.00BW07621.AF443088"
   tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
-  mode <- "f"
+  mode <- "s"
   zero.length.tips.count <- F
+  k <- 35
   
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_161007_couples_w270_rerun/")
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
   tree.file.names <- "ptyr5_trees_newick/ptyr5_InWindow_2400_to_2649.tree"
-  blacklist.files <- "ptyr5_trees_blacklist/ptyr5_blacklist_InWindow_2400_to_2649.csv"
+  blacklist.files <- "ptyr5_trees_blacklist/ptyr5_blacklist_InWindow_2400_to_2649a.csv"
   root.name <- "REF_CPX_AF460972"
   tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
 
 
-  pdf.w = 40
-  pdf.hm = 1
+  pdf.w = 35
+  pdf.hm = 0.5
   if(0)
   {
 	  script.dir		<- '/Users/Oliver/git/phylotypes/tools'
@@ -147,7 +149,7 @@ split.patients.to.subtrees<- function(file.name, mode, blacklist.file, root.name
 	
 	patient.mrcas <- lapply(patient.tips, function(node) mrca.phylo.or.unique.tip(tree, node, zero.length.tips.count))
 	
-	results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode)
+	results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, k)
 	
 	node.shapes <- rep(FALSE, length(tree$tip.label) + tree$Nnode)
 	for(mrca in results$first.nodes){
@@ -158,7 +160,7 @@ split.patients.to.subtrees<- function(file.name, mode, blacklist.file, root.name
 	
 	for(item in seq(1, length(results$assocs))){
 		if(!is.null(results$assocs[[item]])){
-			if(results$assocs[[item]] != "*"){
+			if(!(results$assocs[[item]] %in% c("*", "unsampled"))) {
 				temp.ca[item] <- results$assocs[[item]]
 			}
 		}
@@ -214,7 +216,6 @@ if(!inherits(can.read.tree, "try-error"))
 	cat("Drawing tree...\n")
 	tree.display 		<- ggtree(tree, aes(color=INDIVIDUAL)) +
 									geom_point2(shape = 16, size=3, aes(subset=NODE_SHAPES)) +
-	                geom_text(aes(label=seq(1, length(tree$tip.label) + tree$Nnode))) +
 									scale_fill_hue(na.value = "black") +
 									scale_color_hue(na.value = "black") +
 									theme(legend.position="none") +
