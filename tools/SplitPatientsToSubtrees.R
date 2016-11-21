@@ -53,6 +53,9 @@ if(command.line){
   
   
 } else {
+  #BEEHIVE example
+  
+  
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
   output.dir <- getwd()
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
@@ -61,18 +64,10 @@ if(command.line){
   out.identifier <- "test_r"
   root.name <- "C.BW.00.00BW07621.AF443088"
   tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
-  mode <- "s"
+  mode <- "r"
   zero.length.tips.count <- F
   k <- 35
   
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_161007_couples_w270_rerun/")
-  script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
-  tree.file.names <- "ptyr5_trees_newick/ptyr5_InWindow_2400_to_2649.tree"
-  blacklist.files <- "ptyr5_trees_blacklist/ptyr5_blacklist_InWindow_2400_to_2649a.csv"
-  root.name <- "REF_CPX_AF460972"
-  tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
-
-
   pdf.w = 35
   pdf.hm = 0.5
   if(0)
@@ -99,6 +94,7 @@ suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
 
 source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
 source(file.path(script.dir, "SubtreeMethods.R"))
+source(file.path(script.dir, "WriteAnnotatedTrees.R"))
 
 #
 #	define internal functions
@@ -169,6 +165,7 @@ split.patients.to.subtrees<- function(file.name, mode, blacklist.file, root.name
 	temp.ca.pat <- sapply(temp.ca, function(x) unlist(strsplit(x, "-S"))[1] )
 	names(temp.ca.pat) <- NULL
 	temp.ca.pat <- factor(temp.ca.pat, levels = sample(levels(as.factor(temp.ca.pat))))
+	attr(tree, 'SPLIT') <- factor(temp.ca)
 	attr(tree, 'INDIVIDUAL') <- temp.ca.pat
 	attr(tree, 'NODE_SHAPES') <- node.shapes
 			
@@ -229,9 +226,15 @@ if(!inherits(can.read.tree, "try-error"))
 	tmp	<- file.path(output.dir,paste('Tree_',mode,'_',out.identifier,'.pdf',sep=''))
 	cat("Plot to file",tmp,"...\n")
 	ggsave(tmp, device="pdf", height = pdf.hm*length(tree$tip.label), width = pdf.w, limitsize = F)
+
+	tmp 				<- file.path(output.dir, paste('ProcessedTree_',mode,'_',out.identifier,'.tree',sep=''))
+	cat("Writing rerooted, multifurcating, annotated tree to file",tmp,"...\n")	
+	write.ann.nexus(tree, file=tmp, annotations = c("INDIVIDUAL", "SPLIT"))
+
 	#
 	#	write csv file
 	#
+	
 	tmp 				<- file.path(output.dir, paste('Subtrees_',mode,'_',out.identifier,'.csv',sep=''))
 	cat("Writing output to file",tmp,"...\n")	
 	write.csv(rs.subtrees, file=tmp, row.names = F, quote=F)	
@@ -285,6 +288,7 @@ if(inherits(can.read.tree, "try-error"))
 		tmp 				<- file.path(output.dir,paste('Subtrees_',mode,'_',out.identifier,'.rda',sep=''))
 		cat("Writing output to file",tmp,"...\n")
 		save(rs.subtrees, tree, file=tmp)	
+	
 		#
 		#	plot tree
 		#
@@ -310,6 +314,11 @@ if(inherits(can.read.tree, "try-error"))
 		tmp 				<- file.path(output.dir, paste('Subtrees_',mode,'_',out.identifier,'.csv',sep=''))
 		cat("Writing output to file",tmp,"...\n")	
 		write.csv(rs.subtrees, file=tmp, row.names = F, quote=F)
+		
+		tmp 				<- file.path(output.dir, paste('ProcessedTree_',mode,'_',out.identifier,'.tree',sep=''))
+		cat("Writing rerooted, multifurcating, annotated tree to file",tmp,"...\n")	
+		write.ann.nexus(tree, file=tmp, annotations = c("INDIVIDUAL", "SPLIT"))
+		
 		tmp 				<- file.path(output.dir,paste('Subtrees_',mode,'_',out.identifier,'.rda',sep=''))
 		cat("Writing output to file",tmp,"...\n")
 		save(rs.subtrees, tree, file=tmp)		
