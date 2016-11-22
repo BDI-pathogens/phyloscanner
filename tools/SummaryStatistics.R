@@ -35,7 +35,7 @@ prefix.bootstrap	<- 'bootstrap_'
 #
 #	command line
 #
-command.line <- TRUE
+command.line <- T
 if (command.line) {
   require(argparse, quietly=TRUE, warn.conflicts=FALSE)
   
@@ -207,7 +207,7 @@ AlignPlots <- function(...) {
 }
 
 add.no.data.rectangles <- function(graph, rectangle.coords, log = F){
-  y.limits <- ggplot_build(graph)$panel$ranges[[1]]$y.range
+  y.limits <- ggplot_build(graph)$layout$panel_ranges[[1]]$y.range
   
   if(nrow(rectangle.coords)>0){
     for(rect.no in seq(1, nrow(rectangles))){
