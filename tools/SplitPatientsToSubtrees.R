@@ -74,8 +74,8 @@ if(command.line){
   
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_161007_couples_w270_rerun/")
   output.dir <- getwd()
-  tree.file.names <- "ptyr5_trees_newick/ptyr5_InWindow_1150_to_1399.tree"
-  blacklist.files <- "ptyr5_trees_blacklist/ptyr5_blacklist_InWindow_1150_to_1399.csv"
+  tree.file.names <- "ptyr5_trees_newick/ptyr5_InWindow_1800_to_2049.tree"
+  blacklist.files <- "ptyr5_trees_blacklist/ptyr5_blacklist_InWindow_1800_to_2049.csv"
   out.identifier <- "test_pytr5"
   root.name <- "REF_CPX_AF460972"
   tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"

@@ -868,6 +868,6 @@ prop.internal.longer.than.root <- function(tree, split, splits){
   
   edges <- just.clade$edge.length
   
-  return(sum(which(edges > dist.to.root))/length(edges))
+  return(sum(edges > dist.to.root)/length(edges))
 }
 
