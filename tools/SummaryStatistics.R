@@ -687,10 +687,11 @@ for (i in seq(1, length(ids))) {
     
     splits.props.1col$ngroup <- sapply(splits.props.1col$variable, function(x) which(levels(splits.props.1col$variable)==x))
     
-    colourCount = length(unique(splits.props.1col$ngroup))
-    getPalette = colorRampPalette(brewer.pal(9, "Greens"))
+    splits.props.1col$fgroup <- as.factor(splits.props.1col$ngroup)
     
-    graph.5 <- ggplot(splits.props.1col, aes(x=window.middle, weight=value, fill=as.factor(ngroup)))
+    colourCount = length(unique(splits.props.1col$ngroup))
+    
+    graph.5 <- ggplot(splits.props.1col, aes(x=window.middle, weight=value, fill=reorder(fgroup, rev(order(splits.props.1col$ngroup)))))
     
     graph.5 <- graph.5 +
       geom_bar(width=200, colour="black", size=0.25) +
@@ -698,7 +699,7 @@ for (i in seq(1, length(ids))) {
       ylab("Proportion of reads\nin discrete subtrees") +
       xlab("Window centre") +
       scale_x_continuous(limits=c(ews, lwe)) +
-      scale_fill_manual(values = rev(getPalette(colourCount))) +
+      scale_fill_manual(values = getPalette(colourCount)) +
       theme(text = element_text(size=7)) + 
       guides(fill = guide_legend(title = "Subtree rank\n(by tip count)", keywidth = 1, keyheight = 0.4))
     
