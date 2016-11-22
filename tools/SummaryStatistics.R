@@ -674,7 +674,7 @@ for (i in seq(1, length(ids))) {
     graph.4 <- graph.4 +
       geom_point(alpha=0.5, na.rm=TRUE) +
       theme_bw() + 
-      ylab("Mean patristic distance in\nlargest connected subtree") +
+      ylab("Largest patristic distance in\nlargest connected subtree") +
       xlab("Window centre") +
       scale_x_continuous(limits=c(ews, lwe)) +
       expand_limits(y=0) +

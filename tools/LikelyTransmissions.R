@@ -2,9 +2,14 @@
 
 command.line <- T
 
-list.of.packages <- c("phangorn", "argparse", "phytools")
+list.of.packages <- c("phangorn", "argparse", "phytools", "OutbreakTools")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
+
+if(!("ggtree" %in% installed.packages()[,"Package"])){
+  source("https://bioconductor.org/biocLite.R")
+  biocLite("ggtree")
+}
 
 if(command.line){
   suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
@@ -12,12 +17,9 @@ if(command.line){
   arg_parser = ArgumentParser(description="Identify the likely direction of transmission between all patients present in a phylogeny.")
   arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", 
                           help="Regular expression identifying tips from the dataset. Three groups: patient ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name. Necessary only if -s is specified.")
-  arg_parser$add_argument("-r", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
-  arg_parser$add_argument("-z", "--zeroLengthTipsCount", action="store_true", default=FALSE, help="If present, a zero length terminal branch associates the patient at the tip with its parent node, interrupting any inferred transmission pathway between another pair of hosts that goes through the node.")
   arg_parser$add_argument("-t", "--dualInfectionThreshold", type="double", help="Length threshold at which a branch of the subtree constructed just from reads from a single patient is considered long enough to indicate a dual infection (such a patient will be ignored, at present). If absent, keep all patients.")
-  arg_parser$add_argument("-s", "--romeroSeverson", default=FALSE, action="store_true", help="If present, the Romero-Severson classification will be repeated on tree to annotate internal nodes beyond the MRCAs of each split. Recommended if R-S was used to determine splits.")
   arg_parser$add_argument("-c", "--collapsedTree", action="store", help="If present, the collapsed tree (in which all adjacent nodes with the same assignment are collapsed to one) is output as a .csv file to the path specified.")
-  arg_parser$add_argument("treeFileName", action="store", help="Tree file name. Alternatively, a base name that identifies a group of tree file names can be specified. Tree files are assumed to end in '.tree'.")
+  arg_parser$add_argument("treeFileName", action="store", help="Tree file name. Alternatively, a base name that identifies a group of tree file names can be specified. Tree files are assumed to end in '.tree'. This must be the 'processed' tree produced by SplitTreesToSubtrees.R.")
   arg_parser$add_argument("splitsFileName", action="store", help="Splits file name. Alternatively, a base name that identifies a group of split file names can be specified. Split files are assumed to end in '_subtree_[a-z].csv'.")
   arg_parser$add_argument("outputFileName", action="store", help="Output file name (.csv format)")
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
@@ -29,39 +31,37 @@ if(command.line){
   collapsed.file.names <- args$collapsedTree
   script.dir <- args$scriptdir
   output.name <- args$outputFileName
-  root.name <- args$outgroupName
   tip.regex <- args$tipRegex
   split.threshold <- args$dualInfectionThreshold
   if(is.null(split.threshold)){
     split.threshold <- Inf
   }
   zero.length.tips.count <- args$zeroLengthTipsCount
-  romero.severson <- args$romeroSeverson
   
 } else {
+  script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
+  
   # BEEHIVE example
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
-  script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
-  tree.file.names <- "RAxML_bestTree.InWindow_800_to_1150.tree"
-  splits.file.names <- "Subtrees_r_run20160517_inWindow_800_to_1150.csv"
+  tree.file.names <- "ProcessedTree_r_test_r.tree"
+  splits.file.names <- "Subtrees_r_test_r.csv"
   
   output.name <- "hi.csv"
-  root.name <- "C.BW.00.00BW07621.AF443088"
+  collapsed.file.names <- "collapsed.csv"
   split.threshold <- NA
-  zero.length.tips.count <- F
-  romero.severson <- T
   
   # Rakai example
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_161007_couples_w270_rerun")
-  script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
-  tree.file.names <- "ptyr5_trees_newick/ptyr5_InWindow_8625_to_8874.tree"
-  splits.file.names <- "ptyr5_subtrees_r_csv/Subtrees_r_ptyr5_InWindow_8625_to_8874.csv"
+  
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_161007_couples_w270_rerun/")
+  tree.file.names <- "ProcessedTree_r_test_pytr5.tree"
+  splits.file.names <- "Subtrees_r_test_pytr5.csv"
+  
   output.name <- "hi.csv"
-  root.name <- "REF_CPX_AF460972"
+  collapsed.file.names <- "collapsed.csv"
   split.threshold <- NA
-  zero.length.tips.count <- F
   romero.severson <- T
-  tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
+  
+  
   if(0)
   {
 	  script.dir				<- "/Users/Oliver/git/phylotypes/tools"
@@ -78,6 +78,7 @@ if(command.line){
 
 suppressMessages(library(phytools, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(phangorn, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(library(ggtree, quietly=TRUE, warn.conflicts=FALSE))
 #
 #	load external functions
 #
@@ -95,12 +96,9 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 {	
 	cat("Opening file: ", tree.file.name, "...\n", sep = "")
 	
-	tree <-read.tree(tree.file.name)
-	tree <- root(tree, root.name)
-	
-	cat("Making tree multiphyletic...\n")
-	
-	tree <- di2multi(tree, tol = 1E-5)
+  pseudo.beast.import <- read.beast(tree.file.name)
+  
+	tree <- attr(pseudo.beast.import, "phylo")
 	
 	cat("Reading splits file",splits.file.name,"...\n")
 	
@@ -113,46 +111,20 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	names(patient.tips) <- patients
 	all.splits <- unique(splits$patient.splits)
 	
-	if(romero.severson){
-	  
-	  # The reason the procedure is repeated is that the RS classification for internal nodes cannot simply be determined 
-	  # from the set of tips in each subtree (unlike the conservative classification). While it would be possible to export 
-	  # annotations in SplitPatientsToSubtrees.R, the concern is over anything that might renumber the tree nodes.
-	  
-	  # Really the only reason to load the splits in is to avoid needing the blacklist yet again. Maybe rethink this.
-	  
-	  patient.mrcas <- lapply(patient.tips, function(node) mrca.phylo.or.unique.tip(tree, node, zero.length.tips.count))
-	  
-	  # custom blacklist
-	  
-	  blacklist <- which(!(tree$tip.label %in% splits$tip.names))
-	  
-	  classification <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, "r")
-
-	  split.ids <- classification$split.patients
-	  
-	  was.split <- unique(patients[!(patients %in% split.ids)])
-	  
-	  split.tips <- classification$split.tips
-	  assocs <- classification$assocs
-	  
-	} else {
-	  cat("Collecting tips for each split...\n")
-	  
-	  split.tips <- lapply(all.splits, function(x) which(tree$tip.label %in% splits[which(splits$patient.splits==x), "tip.names"]))
-	  names(split.tips) <- all.splits
-	  
-	  tip.assocs.splits <- lapply(tree$tip.label, function(x) if(x %in% splits$tip.names) return(splits$patient.splits[which(splits$tip.names==x)]) else return("*"))
-	  
-	  split.mrcas <- lapply(split.tips, function(node) mrca.phylo.or.unique.tip(tree, node, zero.length.tips.count))
-	  
-	  node.assocs <- annotate.internal(tree, all.splits, split.tips, split.mrcas)
-	  
-	  was.split <- unique(splits$orig.patients[which(splits$orig.patients!=splits$patient.splits)])
-	  
-	  assocs <- node.assocs$details
-	}
+	cat("Reading annotations...\n")
 	
+  annotations <- attr(pseudo.beast.import, "stats")
+  annotations$INDIVIDUAL <- sapply(as.character(annotations$INDIVIDUAL), function(x) substr(x, 2, nchar(x)-1))
+  annotations$SPLIT <- sapply(as.character(annotations$SPLIT), function(x) substr(x, 2, nchar(x)-1))
+
+  was.split <- unique(annotations$INDIVIDUAL[which(annotations$SPLIT!=annotations$INDIVIDUAL)])
+  
+  in.order <- match(seq(1, length(tree$tip.label) + tree$Nnode), annotations$node)
+  
+  assocs <- annotations$SPLIT[in.order]
+  
+  assocs <- lapply(assocs, function(x) replace(x,is.na(x),"none"))
+  
 	splits.for.patients <- lapply(patients, function(x) unique(splits$patient.splits[which(splits$orig.patients==x)] ))
 	names(splits.for.patients) <- patients
 	
@@ -163,13 +135,17 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	
 	ignore.because.split <- vector()
 	
-	for(split.patient in was.split){
-	  tips <- patient.tips[[split.patient]]
-	  subtree <- drop.tip(phy = tree, tip = tree$tip.label[-patient.tips[[split.patient]]])
-	  max.length <- max(subtree$edge.length)
-	  if(max.length > split.threshold){
-	    ignore.because.split <- c(ignore.because.split, split.patient)
-	  }
+	# TODO currently this checks only split patients and it should probably check all patients?
+	
+	if(!is.na(split.threshold)){
+  	for(split.patient in was.split){
+  	  tips <- patient.tips[[split.patient]]
+  	  subtree <- drop.tip(phy = tree, tip = tree$tip.label[-patient.tips[[split.patient]]])
+  	  max.length <- max(subtree$edge.length)
+  	  if(max.length > split.threshold){
+  	    ignore.because.split <- c(ignore.because.split, split.patient)
+  	  }
+  	}
 	}
 	
 	patients.included <- setdiff(patients, ignore.because.split)
@@ -421,11 +397,10 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 #
 
 #	check if 'tree.file.names' is tree
-options(show.error.messages = FALSE)		
-can.read.tree		<- try(suppressWarnings(read.tree(tree.file.names)))
-options(show.error.messages = TRUE)	
 
-if(!inherits(can.read.tree, "try-error"))
+single.file	<- file.exists(tree.file.names)
+
+if(single.file)
 {
 	#	if 'tree.file.names' is tree, process just one tree
 	tree.file.name		<- tree.file.names[1]
@@ -433,10 +408,7 @@ if(!inherits(can.read.tree, "try-error"))
 	dddf				<- likely.transmissions(tree.file.name, splits.file.name, tip.regex, split.threshold, romero.severson, zero.length.tips.count, collapsed.file.names)
 	cat("Write to file",output.name,"...\n")
 	write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE, quote=F)	
-}
-
-if(inherits(can.read.tree, "try-error"))
-{
+} else {
 	#	if 'tree.file.names' is not tree, process multiple trees
 	tree.file.names		<- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),'.*\\.tree$',sep=''), full.names=TRUE))
 	splits.file.names	<- sort(list.files(dirname(splits.file.names), pattern=paste(basename(splits.file.names),'.*\\.csv$',sep=''), full.names=TRUE))	

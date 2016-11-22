@@ -164,8 +164,6 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     
     cat("Reconstructing internal node hosts with the Sankhoff algorithm...")
     
-    cat("Pruning the tree (may take some time)...")
-    
     non.patient.tips <- which(is.na(sapply(tree$tip.label, function(name) patient.from.label(name, tip.regex))))
     
     patient.ids <- sapply(tree$tip.label, function(x)  patient.from.label(x, tip.regex))
@@ -774,7 +772,9 @@ output.trans.tree <- function(tree, assocs, file.name = NULL){
       assocs.vec[node.no] <- "none"
     } else if (is.null(assocs[[node.no]])){
       assocs.vec[node.no] <- "none"
-    } else if (assocs[[node.no]]=="*") {
+    } else if (is.na(assocs[[node.no]])){
+      assocs.vec[node.no] <- "none"
+    } else if (assocs[[node.no]] %in% c("*", "unsampled")) {
       assocs.vec[node.no] <- "none"
     } else {
       if(length(assocs[[node.no]])>1){

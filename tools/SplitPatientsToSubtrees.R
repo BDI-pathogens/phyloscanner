@@ -1,4 +1,4 @@
-command.line <- F
+command.line <- T
 list.of.packages <- c("phangorn", "argparse", "phytools", "ggplot2", "gdata", "mvtnorm", "expm")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
@@ -53,23 +53,33 @@ if(command.line){
   
   
 } else {
-  #BEEHIVE example
-  
-  
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
-  output.dir <- getwd()
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
-  tree.file.names <- "RAxML_bestTree.InWindow_800_to_1150.tree"
-  blacklist.files <- "FullBlacklist_InWindow_800_to_1150.csv"
-  out.identifier <- "test_r"
-  root.name <- "C.BW.00.00BW07621.AF443088"
-  tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
   mode <- "r"
   zero.length.tips.count <- F
   k <- 35
-  
   pdf.w = 35
   pdf.hm = 0.5
+  
+  # BEEHIVE example
+  
+  # setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
+  # output.dir <- getwd()
+  # tree.file.names <- "RAxML_bestTree.InWindow_800_to_1150.tree"
+  # blacklist.files <- "FullBlacklist_InWindow_800_to_1150.csv"
+  # out.identifier <- "test_r"
+  # root.name <- "C.BW.00.00BW07621.AF443088"
+  # tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
+
+  # Rakai example 
+  
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_161007_couples_w270_rerun/")
+  output.dir <- getwd()
+  tree.file.names <- "ptyr5_trees_newick/ptyr5_InWindow_1150_to_1399.tree"
+  blacklist.files <- "ptyr5_trees_blacklist/ptyr5_blacklist_InWindow_1150_to_1399.csv"
+  out.identifier <- "test_pytr5"
+  root.name <- "REF_CPX_AF460972"
+  tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
+  
   if(0)
   {
 	  script.dir		<- '/Users/Oliver/git/phylotypes/tools'
@@ -219,7 +229,7 @@ if(!inherits(can.read.tree, "try-error"))
 									geom_tiplab(aes(col=INDIVIDUAL)) + 
 	                geom_treescale(width=0.01, y=-5, offset=1.5)
 	
-	x.max <- ggplot_build(tree.display)$panel$ranges[[1]]$x.range[2]
+	x.max <- ggplot_build(tree.display)$layout$panel_ranges[[1]]$x.range[2]
 	
 	tree.display <- tree.display + ggplot2::xlim(0, 1.1*x.max)
 	tree.display	
@@ -301,7 +311,7 @@ if(inherits(can.read.tree, "try-error"))
 				geom_tiplab(aes(col=INDIVIDUAL)) + 
 		    geom_treescale(width = 0.01, y=-5, offset=1.5)
 		
-		x.max <- ggplot_build(tree.display)$panel$ranges[[1]]$x.range[2]
+		x.max <- ggplot_build(tree.display)$layout$panel_ranges[[1]]$x.range[2]
 		
 		tree.display <- tree.display + ggplot2::xlim(0, 1.1*x.max)
 		tree.display	
