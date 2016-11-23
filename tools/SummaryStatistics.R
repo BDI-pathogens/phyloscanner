@@ -71,12 +71,12 @@ if (command.line) {
 #  cat(paste(id.file, script.dir, files.are.lists, root.name, tip.regex, tree.file.names, splits.file.names, blacklist.file.names, output.root, sep='\n'))
   
   if(!files.are.lists){
-	  tree.files <- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))
-	  splits.files <- sort(list.files(dirname(splits.file.names), pattern=paste(basename(splits.file.names),".*\\.csv",sep=""), full.names=TRUE))
-	  sequence.files <- sort(list.files(dirname(sequence.file.names), pattern=paste(basename(sequence.file.names),".*\\.fasta",sep=""), full.names=TRUE))
+	  tree.files <- sort(list.files(dirname(tree.file.names), pattern=paste('^',basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))
+	  splits.files <- sort(list.files(dirname(splits.file.names), pattern=paste('^',basename(splits.file.names),".*\\.csv",sep=""), full.names=TRUE))
+	  sequence.files <- sort(list.files(dirname(sequence.file.names), pattern=paste('^',basename(sequence.file.names),".*\\.fasta",sep=""), full.names=TRUE))
 	  blacklist.files <- NULL
 	  if(!is.null(blacklist.file.names)){
-		  blacklist.files <- sort(list.files(dirname(blacklist.file.names), pattern=paste(basename(blacklist.file.names),".*\\.csv",sep=""), full.names=TRUE))
+		  blacklist.files <- sort(list.files(dirname(blacklist.file.names), pattern=paste('^',basename(blacklist.file.names),".*\\.csv",sep=""), full.names=TRUE))
 	  }
   } else {
 	  tree.files <- unlist(strsplit(tree.file.names, ":"))
