@@ -690,6 +690,7 @@ for (i in seq(1, length(ids))) {
     splits.props.1col$fgroup <- as.factor(splits.props.1col$ngroup)
     
     colourCount = length(unique(splits.props.1col$ngroup))
+    getPalette = colorRampPalette(brewer.pal(9, "Greens"))
     
     graph.5 <- ggplot(splits.props.1col, aes(x=window.middle, weight=value, fill=reorder(fgroup, rev(order(splits.props.1col$ngroup)))))
     
