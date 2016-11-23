@@ -136,11 +136,10 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	ignore.because.split <- vector()
 	
 	# TODO currently this checks only split patients and it should probably check all patients?
-	print(tree)
 	if(!is.na(split.threshold)){
   	for(split.patient in was.split){
   	  tips <- patient.tips[[split.patient]]
-  	  subtree <- drop.tip(phy = tree, tip = tree$tip.label[-patient.tips[[split.patient]]])
+	  subtree <- drop.tip(tree, tree$tip.label[-patient.tips[[split.patient]]])
   	  max.length <- max(subtree$edge.length)
   	  if(max.length > split.threshold){
   	    ignore.because.split <- c(ignore.because.split, split.patient)
