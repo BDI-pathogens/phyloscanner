@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-command.line <- F
+command.line <- T
 
 list.of.packages <- c("phangorn", "argparse", "phytools", "OutbreakTools")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
