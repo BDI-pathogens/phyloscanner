@@ -59,8 +59,16 @@ if(command.line){
   output.name <- "hi.csv"
   collapsed.file.names <- "collapsed.csv"
   split.threshold <- NA
-  romero.severson <- T
   
+  #other example
+  
+  # setwd("/Users/twoseventwo/Documents/Work/pty_16-11-23-15-05-35/")
+  # tree.file.names <- "ProcessedTree_r_ptyr22_InWindow_"
+  # splits.file.names <- "Subtrees_r_ptyr22_InWindow_"
+  # 
+  # output.name <- "ptyr22_"
+  # collapsed.file.names <- NULL
+  # split.threshold <- NA
   
   if(0)
   {
