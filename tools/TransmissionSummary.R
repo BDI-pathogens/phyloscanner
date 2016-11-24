@@ -170,6 +170,7 @@ for(window in seq(1, num.windows)){
 								z<- data.table(ROW=i, ID=gsub('(.*):[0-9]*\\.?[0-9]*','\\1',tmp[[i]]), P=gsub('.*:([0-9]*\\.?[0-9]*)','\\1',tmp[[i]]))
 							z
 						} ))
+		set(tmp, NULL, 'P', tmp[, as.numeric(P)])
 		tmp	<- subset(tmp, !is.na(ID))[, list(P=max(P)), by=c('ROW','ID')]
 		tmp	<- tmp[, list(Patient_1=ID[1], Patient_2=ID[2], Patient_1_P=P[1], Patient_2_P=P[2]), by='ROW']
 		transmissions.table$ROW	<- seq_len(nrow(transmissions.table))
