@@ -19,7 +19,7 @@ arg_parser$add_argument("longestBranchLength", type="double", action="store", he
 arg_parser$add_argument("inputFile", metavar="inputTreeFileName", help="Tree file name. Alternatively, a base name that identifies a group of tree file names can be specified. Tree files are assumed to end in .tree.")  
 arg_parser$add_argument("outputFile", metavar="outputFileName", help="The file to write the output to, a list of tips to be blacklisted.")  
 arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
-
+ 
 args <- arg_parser$parse_args()
 script.dir <- args$scriptdir
 tip.regex <- args$tipRegex
