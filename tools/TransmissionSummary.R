@@ -161,18 +161,27 @@ for(window in seq(1, num.windows)){
                                     header=TRUE,
                                     stringsAsFactors=FALSE)
 	# transform 'details' column into usable format: max p for Patient_1 and the same for Patient_2
-	tmp	<- strsplit(transmissions.table$details,';')
-	tmp	<- do.call('rbind',lapply(seq_along(tmp), function(i){
-				z	<- data.table(ROW=i, ID=NA_character_, P=NA_character_)
-				if(!any(is.na(tmp[[i]])))
-					z<- data.table(ROW=i, ID=gsub('(.*):[0-9]*\\.?[0-9]*','\\1',tmp[[i]]), P=gsub('.*:([0-9]*\\.?[0-9]*)','\\1',tmp[[i]]))
-				z
-			} ))
-	tmp	<- subset(tmp, !is.na(ID))[, list(P=max(P)), by=c('ROW','ID')]
-	tmp	<- tmp[, list(Patient_1=ID[1], Patient_2=ID[2], Patient_1_P=P[1], Patient_2_P=P[2]), by='ROW']
-	transmissions.table$ROW	<- seq_len(nrow(transmissions.table))
-	transmissions.table		<- merge(transmissions.table, subset(tmp, select=c(ROW, Patient_1_P, Patient_2_P)), by="ROW", all=1)
-	transmissions.table$ROW	<- NULL
+	if(any(!is.na(transmissions.table$details)))
+	{
+		tmp	<- strsplit(transmissions.table$details,';')
+		tmp	<- do.call('rbind',lapply(seq_along(tmp), function(i){
+							z	<- data.table(ROW=i, ID=NA_character_, P=NA_character_)
+							if(!any(is.na(tmp[[i]])))
+								z<- data.table(ROW=i, ID=gsub('(.*):[0-9]*\\.?[0-9]*','\\1',tmp[[i]]), P=gsub('.*:([0-9]*\\.?[0-9]*)','\\1',tmp[[i]]))
+							z
+						} ))
+		tmp	<- subset(tmp, !is.na(ID))[, list(P=max(P)), by=c('ROW','ID')]
+		tmp	<- tmp[, list(Patient_1=ID[1], Patient_2=ID[2], Patient_1_P=P[1], Patient_2_P=P[2]), by='ROW']
+		transmissions.table$ROW	<- seq_len(nrow(transmissions.table))
+		transmissions.table		<- merge(transmissions.table, subset(tmp, select=c(ROW, Patient_1_P, Patient_2_P)), by="ROW", all=1)
+		transmissions.table$ROW	<- NULL
+	}
+	else
+	{
+		transmissions.table$Patient_1_P <- NA_real_
+		transmissions.table$Patient_2_P <- NA_real_
+	}
+	
   # Not used right now
   
   # sib.dist.table <- read.table(paste("SibDists_",start,"_to_",end,".csv",sep=""), 
