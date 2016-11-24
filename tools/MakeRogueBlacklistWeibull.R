@@ -37,14 +37,15 @@ prob.threshold <- args$probThreshold
 if(F){
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_160915_couples_w270/")
   drop.prop <- 0.01
-  branch.limit <- 0.1
-  prob.threshold <- 0.05
+  branch.limit <- 0.05
+  prob.threshold <- 0.001
+  root.name <- 'REF_CPX_AF460972'
   tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
   outgroup <- "REF_CPX_AF460972"
-  script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
-  input.file.name <- "ptyr42_trees_newick/ptyr42_InWindow_1225_to_1474.tree"
-  blacklist.file.name <- "ptyr42_otherstuff/blacklist_test.txt"
-  output.file.name <- "ptyr42_otherstuff/blacklist_test_2.txt"
+  script.dir <- "/Users/Oliver/git/phylotypes/tools"
+  input.file.name <- "/Users/Oliver/duke/tmp/pty_16-11-23-23-34-30/ptyr1_InWindow_1525_to_1774.tree"
+  blacklist.file.name <- "/Users/Oliver/duke/tmp/pty_16-11-23-23-34-30/ptyr1_blacklist_InWindow_1525_to_1774.csv"
+  output.file.name <- "xxx.txt"
 }
 
 source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
@@ -79,7 +80,7 @@ patients.present <- unique(patients.present)
 
 patient.ids <- sapply(tree.1$tip.label, function(x) patient.from.label(x, tip.regex))
 
-rogue.hunt <- function(tree, patient, patient.ids, length.threshold, read.prop.threshold){
+rogue.hunt <- function(tree, patient, patient.ids, length.threshold, read.prop.threshold){	
   tips.to.keep <- which(patient.ids==patient)
   new.blacklist <- vector()
   if(length(tips.to.keep) > 1){
@@ -87,23 +88,46 @@ rogue.hunt <- function(tree, patient, patient.ids, length.threshold, read.prop.t
     if(length(tree.2$tip.label)>2){
       tree.2 <- unroot(tree.2)
 	  longest.branch <- max(tree.2$edge.length)
+	  condition <- NA_real_
+	  total.reads <- sum(as.numeric(sapply(tree.2$tip.label, function(tip) read.count.from.label(tip, tip.regex))))        
+	  nonzero.lengths <- tree.2$edge.length[tree.2$edge.length>1E-5]
 	  
-      if(length(tree.2$tip.label)>3){
-      
-        total.reads <- sum(as.numeric(sapply(tree.2$tip.label, function(tip) read.count.from.label(tip, tip.regex))))        
-        nonzero.lengths <- tree.2$edge.length[tree.2$edge.length>1E-5]
-        
-        wei.dist <- gamlss(data=data.table(BRL=nonzero.lengths), formula = BRL ~ 1, family=WEI, trace=F)
-        wei.l <- exp(coef(wei.dist, what="mu"))
-        wei.k <- exp(coef(wei.dist, what="sigma"))
-        
-        p <- 1-(1-exp(-(longest.branch/wei.l)^wei.k))^length(nonzero.lengths)
-        
-        condition <- p>=prob.threshold
-      }  else {
-        condition <- longest.branch >= length.threshold
-      }
-      
+      if(length(nonzero.lengths)>3)
+	  { 
+		tryCatch(
+		{  
+	        tryCatch({
+						wei.dist <- gamlss(data=data.table(BRL=nonzero.lengths), formula = BRL ~ 1, family=WEI, trace=FALSE)					
+					}, 				
+					error=function(e)
+					{ 					
+						wei.dist <<- gamlss(data=data.table(BRL=nonzero.lengths), formula = BRL ~ 1, family=WEI, 
+												control=gamlss.control(gd.tol=5, mu.step=0.05, sigma.step=0.1, trace=FALSE),
+												i.control=glim.control(cc = 0.001, cyc = 50,  glm.trace=FALSE, bf.cyc = 30, bf.tol = 0.001, bf.trace=FALSE))					
+					},				
+					warning=function(w)
+					{ 					
+						wei.dist <<- gamlss(data=data.table(BRL=nonzero.lengths), formula = BRL ~ 1, family=WEI, 
+								control=gamlss.control(gd.tol=5, mu.step=0.05, sigma.step=0.1, trace=FALSE),
+								i.control=glim.control(cc = 0.001, cyc = 50,  glm.trace=FALSE, bf.cyc = 30, bf.tol = 0.001, bf.trace=FALSE))					
+					})			
+			wei.l <- exp(coef(wei.dist, what="mu"))
+			wei.k <- exp(coef(wei.dist, what="sigma"))        
+			p <- 1-(1-exp(-(longest.branch/wei.l)^wei.k))^length(nonzero.lengths)
+			condition <- p>=prob.threshold
+		}, error=function(e)
+		{
+			cat('\nWarning: Weibull fit did not converge for individual',patient,'despite nonzero edges n=',length(nonzero.lengths),'. Using brl criterion')
+		}, warning=function(w)
+		{
+			cat('\nWarning: Weibull fit did not converge for individual',patient,'despite nonzero edges n=',length(nonzero.lengths),'. Using brl criterion')
+			condition <<- NA
+		})
+      }  
+	  if(is.na(condition))
+	  {
+		condition <- longest.branch >= length.threshold
+      }      
       if(condition){
         long.edge.ends <- tree.2$edge[which(tree.2$edge.length==longest.branch),]
         which.end <- vector()
