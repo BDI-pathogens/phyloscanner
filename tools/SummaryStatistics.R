@@ -35,6 +35,7 @@ prefix.bootstrap	<- 'bootstrap_'
 #
 #	command line
 #
+BEEHIVE <- F
 command.line <- T
 if (command.line) {
   require(argparse, quietly=TRUE, warn.conflicts=FALSE)
@@ -561,6 +562,96 @@ pat.stats.summary <-
 tmp <- file.path(paste(output.root,"_patStatsSummary.csv",sep=""))
 cat("Writing output to file",tmp,"...\n")
 write.csv(pat.stats.summary, tmp, quote = F, row.names = F)
+
+if(BEEHIVE){
+  amplicon.starts <- c(480, 1485, 2407, 4783, 5058, 5967, 7848)
+  amplicon.ends <- c(1485, 2407, 4783, 5058, 5967, 7848, 9517)
+  overlap.area <- c(F, T, F, T, F, T, F)
+  amplicon.names <- c("Amplicon 1 unique", "Amplicon 1/2 overlap", "Amplicon 2 unique", "Amplicon 2/3 overlap", 
+                      "Amplicon 3 unique", "Amplicon 3/4 overlap", "Amplicon 4")
+  
+  amplicon.df <- data.frame(start = amplicon.starts, end = amplicon.ends, overlap.area = overlap.area, name = amplicon.names)
+  
+  #amplicon-specific
+  
+  first <- T
+  
+  for(amplicon.no in seq(1, nrow(amplicon.df))){
+    start <- amplicon.df[amplicon.no, "start"]
+    end <- amplicon.df[amplicon.no, "end"]
+    if(!amplicon.df[amplicon.no, "overlap.area"]){
+      
+      pat.stats.amp <- pat.stats[which(
+        (pat.stats$window.start > start) & (pat.stats$window.end < end) | 
+          (pat.stats$window.start < start) & (pat.stats$window.end > start) |
+          (pat.stats$window.start < end) & (pat.stats$window.end > end)
+      ),]
+      pat.stats.amp <- pat.stats.amp[which(pat.stats.amp$reads>0) ,c("patient",
+                                                                     "leaves",
+                                                                     "reads",
+                                                                     "subtrees",
+                                                                     "clades",
+                                                                     "overall.rtt",
+                                                                     "largest.rtt",
+                                                                     "largest.pat.dist",
+                                                                     "prop.reads.largest.subtree",
+                                                                     "longest.branch",
+                                                                     "mean.pat.dist",
+                                                                     "branch.to.pat.ratio")]
+      
+      if(nrow(pat.stats.amp)>0){
+        by.patient <- pat.stats.amp %>% group_by(patient)
+        pat.stats.amp.summary <-
+          as.data.frame(by.patient %>% summarise_each(funs(mean.na.rm)))
+        pat.stats.amp.summary$region <- amplicon.df[amplicon.no, "name"]
+        if(first){
+          first <- F
+          all.amp.summaries <- pat.stats.amp.summary
+        } else {
+          all.amp.summaries <- rbind(all.amp.summaries, pat.stats.amp.summary)
+        }
+      }
+      
+    } else {
+      #overlapping regions
+      
+      pat.stats.amp <- pat.stats[which(
+        (pat.stats$window.start > start) & (pat.stats$window.end < end)
+      ),]
+      pat.stats.amp <- pat.stats.amp[which(pat.stats.amp$reads>0) ,c("patient",
+                                                                     "leaves",
+                                                                     "reads",
+                                                                     "subtrees",
+                                                                     "clades",
+                                                                     "overall.rtt",
+                                                                     "largest.rtt",
+                                                                     "largest.pat.dist",
+                                                                     "prop.reads.largest.subtree",
+                                                                     "longest.branch",
+                                                                     "mean.pat.dist",
+                                                                     "branch.to.pat.ratio")]
+      
+      if(nrow(pat.stats.amp)>0){
+        by.patient <- pat.stats.amp %>% group_by(patient)
+        pat.stats.amp.summary <-
+          as.data.frame(by.patient %>% summarise_each(funs(mean.na.rm)))
+        pat.stats.amp.summary$region <- amplicon.df[amplicon.no, "name"]
+        if(first){
+          first <- F
+          all.amp.summaries <- pat.stats.amp.summary
+        } else {
+          all.amp.summaries <- rbind(all.amp.summaries, pat.stats.amp.summary)
+        }
+      }
+    }
+  }
+  
+  all.amp.summaries <- all.amp.summaries[order(all.amp.summaries$patient),]
+  
+  tmp <- file.path(paste(output.root,"_patStatsAmpliconSummary.csv",sep=""))
+  cat("Writing output to file",tmp,"...\n")
+  write.csv(all.amp.summaries, tmp, quote = F, row.names = F)
+}
 
 tmp <- paste(output.root,"_patStats.pdf",sep="")
 cat("Plotting to file",tmp,"...\n")
