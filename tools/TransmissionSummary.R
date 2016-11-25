@@ -179,8 +179,8 @@ for(window in seq(1, num.windows)){
 	}
 	else
 	{
-		transmissions.table$Patient_1_P <- NA_real_
-		transmissions.table$Patient_2_P <- NA_real_
+		transmissions.table$Patient_1_P <- rep(NA_real_, nrow(transmissions.table))
+		transmissions.table$Patient_2_P <- rep(NA_real_, nrow(transmissions.table))
 	}
 	
   # Not used right now
