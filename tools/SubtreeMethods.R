@@ -835,11 +835,12 @@ output.trans.tree <- function(tree, assocs, file.name = NULL){
   }
   
   patients <-  unlist(lapply(strsplit(unique.splits, "-"), `[[`, 1)) 
+  parent.patients <-  unlist(lapply(strsplit(parent.splits, "-"), `[[`, 1)) 
   
-  cytoscape.input <- data.frame(unique.splits, parent.splits, patients, lengths, root.nos, stringsAsFactors = F)
+  cytoscape.input <- data.frame(unique.splits, parent.splits, patients, parent.patients, lengths, root.nos, stringsAsFactors = F)
   
   if(!is.null(file.name)){
-    write.csv(cytoscape.input[,1:4], file.name, row.names = F, quote=F)
+    write.csv(cytoscape.input[,1:5], file.name, row.names = F, quote=F)
   }
   
   return(cytoscape.input)
