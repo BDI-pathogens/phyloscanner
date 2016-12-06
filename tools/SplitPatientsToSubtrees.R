@@ -71,13 +71,26 @@ if(command.line){
 
   # Rakai example 
   
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_161007_couples_w270_rerun/")
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_160915_couples_w270/")
   output.dir <- getwd()
-  tree.file.names <- "ptyr5_trees_newick/ptyr5_InWindow_1800_to_2049.tree"
-  blacklist.files <- "ptyr5_trees_blacklist/ptyr5_blacklist_InWindow_1800_to_2049.csv"
-  out.identifier <- "test_pytr5"
+  tree.file.names <- "ptyr1_trees_newick/ptyr1_InWindow_1000_to_1249.tree"
+  blacklist.files <- "ptyr1_trees_blacklist/ptyr1_blacklist_InWindow_1000_to_1249.csv"
+  out.identifier <- "test_pytr1"
   root.name <- "REF_CPX_AF460972"
   tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
+  
+  # MRSA example
+  
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/")
+  output.dir <- getwd()
+  tree.file.names <- "lsdfit.date.newick"
+  blacklist.files <- NULL
+  out.identifier <- "mrsa_lsd"
+  root.name <- NA
+  tip.regex <- "^([ST][0-9][0-9][0-9][a-z]?)_([A-Z0-9]*)_[A-Z][0-9][0-9]$"
+  mode <- "s"
+  zero.length.tips.count <- F
+  sankhoff.k <- 26.3
   
   if(0)
   {

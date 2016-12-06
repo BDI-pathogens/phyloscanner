@@ -43,8 +43,8 @@ if(command.line){
   
   # BEEHIVE example
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
-  tree.file.names <- "ProcessedTree_r_test_r.tree"
-  splits.file.names <- "Subtrees_r_test_r.csv"
+  tree.file.names <- "ProcessedTree_r_run20160517_inWindow_800_to_1150.tree"
+  splits.file.names <- "Subtrees_r_run20160517_inWindow_800_to_1150.csv"
   
   output.name <- "hi.csv"
   collapsed.file.names <- "collapsed.csv"
@@ -69,6 +69,17 @@ if(command.line){
   # output.name <- "ptyr22_"
   # collapsed.file.names <- NULL
   # split.threshold <- NA
+  
+  # MRSA example
+  
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/")
+  tree.file.names <- "ProcessedTree_s_mrsa_s.tree"
+  splits.file.names <- "Subtrees_s_mrsa_s.csv"
+  
+  output.name <- "LT_s_mrsa_s.csv"
+  collapsed.file.names <- "collapsed_s_mrsa_s.csv"
+  split.threshold <- NA
+  tip.regex <- "^([ST][0-9][0-9][0-9])_[A-Z0-9]*_[A-Z][0-9][0-9]$"
   
   if(0)
   {
@@ -163,7 +174,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	
 	tt <- output.trans.tree(tree, assocs, tt.file.name)
 	
-	cat("Testing pairs\n")
+	cat("Testing pairs...\n")
 	
 	count <- 0
 	direct.descendant.matrix <- matrix(NA, length(patients.included), length(patients.included))
@@ -266,6 +277,18 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	                distance.matrix[pat.1, pat.2] <- NA
 	              }
 	              rel.determined <- T
+	              
+	              if(length(splits.for.patients[[pat.1.id]] == 1)){
+	                subtree <- extract.subtrees.for.patients(tree, c(pat.1.id, pat.2.id), splits)
+	                
+	                length.prop <- prop.internal.longer.than.root(subtree, splits.for.patients[[pat.1.id]][1], splits)
+
+                  details.string <- paste(splits.for.patients[[pat.1.id]][1],":",length.prop, sep="")
+
+	                branches.longer.than.root.matrix[pat.1, pat.2] <- length.prop
+	                details.matrix[pat.1, pat.2] <- details.string
+	              }
+	              
 	              break
 	            }
 	          }
@@ -286,6 +309,18 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	                  distance.matrix[pat.1, pat.2] <- NA
 	                }
 	                rel.determined <- T
+	                
+	                if(length(splits.for.patients[[pat.2.id]] == 1)){
+	                  subtree <- extract.subtrees.for.patients(tree, c(pat.1.id, pat.2.id), splits)
+	                  
+	                  length.prop <- prop.internal.longer.than.root(subtree, splits.for.patients[[pat.2.id]][1], splits)
+	                  
+	                  details.string <- paste(splits.for.patients[[pat.2.id]][1],":",length.prop, sep="")
+	                  
+	                  branches.longer.than.root.matrix[pat.1, pat.2] <- length.prop
+	                  details.matrix[pat.1, pat.2] <- details.string
+	                }
+	                
 	                break
 	              }
 	            }
