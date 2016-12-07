@@ -98,18 +98,6 @@ def TranslateSeqCoordsToAlnCoords(seq, coords):
   assert len(TranslatedCoords) == len(coords)
   return TranslatedCoords
 
-  # Find the coordinates.
-  PositionInRef=0
-  CoordsInAlignment_ZeroBased = [-1 for coord in coords]
-  for PositionMin1,base in enumerate(ChosenRefSeq):
-    if not base in GapChars:
-      PositionInRef += 1
-      for i,coord in enumerate(coords):
-        if coord == PositionInRef:
-          CoordsInAlignment_ZeroBased[i] = PositionMin1
-      if not -1 in CoordsInAlignment_ZeroBased:
-        break
-
 
 class PseudoRead:
   "A class similar to pysam.AlignedSegment. Writable, and with extra features."
