@@ -199,8 +199,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	      all.nodes <-  c(splits.for.patients[[pat.1.id]], splits.for.patients[[pat.2.id]])
 	      
 	      #we want that they form a perfect blob with no intervening nodes for any other patients
-	      OK <- check.contiguous(tt, c(pat.1.id, pat.2.id), splits.for.patients, patients.for.splits)
-	      
+	      OK <- check.contiguous(tt, c(pat.1.id, pat.2.id), splits.for.patients, patients.for.splits)		  
 	      # then we want to see if any node from one patient interrupts a path between two nodes from the other
 	      if(OK){
 	        entangled <- F
