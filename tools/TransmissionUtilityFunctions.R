@@ -738,6 +738,29 @@ get.tt.mrca.patient <- function(tt, label1, label2){
 
 get.tt.path <- function(tt, label1, label2){
   mrca <- get.tt.mrca(tt, label1, label2)
+  
+  if(mrca == label1){
+    result <- vector()
+    current.node <- label2
+    while(current.node != label1){
+      result <- c(result, current.node)
+      current.node <- get.tt.parent(tt, current.node)
+    }
+    result <- c(result, label1)
+    return(result)
+  }
+  
+  if(mrca == label2){
+    result <- vector()
+    current.node <- label1
+    while(current.node != label2){
+      result <- c(result, current.node)
+      current.node <- get.tt.parent(tt, current.node)
+    }
+    result <- c(result, label2)
+    return(result)
+  }
+  
   first.half <- vector()
   current.node <- label1
   while(current.node != mrca){
