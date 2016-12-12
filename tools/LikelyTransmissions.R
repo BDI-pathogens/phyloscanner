@@ -73,11 +73,11 @@ if(command.line){
   # MRSA example
   
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/")
-  tree.file.names <- "ProcessedTree_s_mrsa_lsd_k0.tree"
-  splits.file.names <- "Subtrees_s_mrsa_lsd_k0.csv"
+  tree.file.names <- "ProcessedTree_s_mrsa_k0.tree"
+  splits.file.names <- "Subtrees_s_mrsa_k0.csv"
   
-  output.name <- "LT_s_mrsa_lsd_k0.csv"
-  collapsed.file.names <- "collapsed_s_mrsa_lsd_k0.csv"
+  output.name <- "LT_s_mrsa_k0.csv"
+  collapsed.file.names <- "collapsed_s_mrsa_k0.csv"
   split.threshold <- NA
   tip.regex <- "^([ST][0-9][0-9][0-9])_[A-Z0-9]*_[A-Z][0-9][0-9]$"
   
@@ -199,7 +199,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	      all.nodes <-  c(splits.for.patients[[pat.1.id]], splits.for.patients[[pat.2.id]])
 	      
 	      #we want that they form a perfect blob with no intervening nodes for any other patients
-	      OK <- check.contiguous(tt, c(pat.1.id, pat.2.id), splits.for.patients)
+	      OK <- check.contiguous(tt, c(pat.1.id, pat.2.id), splits.for.patients, patients.for.splits)
 	      
 	      # then we want to see if any node from one patient interrupts a path between two nodes from the other
 	      if(OK){
@@ -365,7 +365,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	          distance.matrix[pat.1, pat.2] <- NA
 	        }
 	        # new distance calculations
-	        nodes.within.subtree <- extract.tt.subtree(tt, c(pat.1.id, pat.2.id), splits.for.patients)
+	        nodes.within.subtree <- extract.tt.subtree(tt, c(pat.1.id, pat.2.id), splits.for.patients, patients.for.splits)
 	        all.distances <- vector()
 	        for(node.1 in splits.for.patients[[pat.1.id]]){
 	          for(node.2 in splits.for.patients[[pat.2.id]]){
