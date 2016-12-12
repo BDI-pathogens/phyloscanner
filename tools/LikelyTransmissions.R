@@ -73,11 +73,11 @@ if(command.line){
   # MRSA example
   
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/")
-  tree.file.names <- "ProcessedTree_s_mrsa_lsd.tree"
-  splits.file.names <- "Subtrees_s_mrsa_lsd.csv"
+  tree.file.names <- "ProcessedTree_s_mrsa_lsd_k0.tree"
+  splits.file.names <- "Subtrees_s_mrsa_lsd_k0.csv"
   
-  output.name <- "LT_s_mrsa_lsd.csv"
-  collapsed.file.names <- "collapsed_s_mrsa_lsd.csv"
+  output.name <- "LT_s_mrsa_lsd_k0.csv"
+  collapsed.file.names <- "collapsed_s_mrsa_lsd_k0.csv"
   split.threshold <- NA
   tip.regex <- "^([ST][0-9][0-9][0-9])_[A-Z0-9]*_[A-Z][0-9][0-9]$"
   
@@ -194,7 +194,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	      pat.1.id <- patients.included[pat.1]
 	      pat.2.id <- patients.included[pat.2]
 	      
-	      cat(pat.1.id, pat.2.id, "\n")
+#	      cat(pat.1.id, pat.2.id, "\n")
 	      
 	      all.nodes <-  c(splits.for.patients[[pat.1.id]], splits.for.patients[[pat.2.id]])
 	      
@@ -369,6 +369,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	        all.distances <- vector()
 	        for(node.1 in splits.for.patients[[pat.1.id]]){
 	          for(node.2 in splits.for.patients[[pat.2.id]]){
+#	            cat(node.1, node.2, "\n")
 	            if(node.1 %in% get.tt.adjacent(tt, node.2)){
 	              if(node.1 == get.tt.parent(tt, node.2)){
 	                root.node <- tt$root.nos[which(tt$unique.splits==node.2)]
@@ -380,7 +381,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	            } else {
 	              # the concern is when there is a single "none" separating them
 	              path <- get.tt.path(tt, node.1, node.2)
-	              if(length(path)!=3){
+	              if(length(path)==3){
 	                middle.label <- path[2]
 	                if(!startsWith(middle.label, "none")){
 	                  stop("Big problem here (1)")
