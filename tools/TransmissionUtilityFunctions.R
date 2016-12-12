@@ -708,6 +708,10 @@ get.tt.children <- function(tt, label){
   return(tt$unique.splits[which(tt$parent.splits==label)])
 }
 
+get.tt.adjacent <- function(tt, label){
+  return(c(get.tt.children(tt, label), get.tt.parent(tt, label)))
+}
+
 get.tt.parent.patient <- function(tt, label){
   if(length(which(tt$unique.splits==label))>0){
     return(tt$patients[which(tt$unique.splits==label)])
