@@ -1,4 +1,4 @@
-split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, method="r", k=NA){
+split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, method="r", k=NA, break.ties.unsampled = TRUE){
   
   if(method == "c"){
     cat("Finding nodes that would have to be associated with more than one patient with no splits...\n")
@@ -171,8 +171,13 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     patient.ids[c(non.patient.tips,blacklist)] <- "unsampled"
  
     patients <- unique(patient.ids)
+
     patient.tips <- lapply(patients, function(x)  which(patient.ids==x))
     names(patient.tips) <- patients
+    
+    if(!("unsampled" %in% patients)){
+      patients <- c(patients, "unsampled")
+    }
     
     tip.assocs <- annotate.tips(tree, patients, patient.tips)
     
@@ -214,7 +219,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     
     cost.matrix <- make.cost.matrix(getRoot(tree), tree, patients, tip.assocs, individual.costs, cost.matrix, k)
     
-    full.assocs <- reconstruct(tree, getRoot(tree), "unsampled", list(), tip.assocs, patients, cost.matrix, individual.costs, k)
+    full.assocs <- reconstruct(tree, getRoot(tree), "unsampled", list(), tip.assocs, patients, cost.matrix, individual.costs, k, break.ties.unsampled)
     
     temp.ca <- rep(NA, length(tree$tip.label) + tree$Nnode)
     
@@ -252,37 +257,24 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
       no.splits <- counts.by.patient[pat.no]
       
       if(no.splits>1){
-        pat.tips <- patient.tips[[patient]]
+        
         patient.tips.copy[[patient]] <- NULL
         patients.copy <- patients.copy[which(patients.copy!=patient)]
         patients.copy <- c(patients.copy, paste(patient,"-S",seq(1, no.splits),sep=""))
         
-        for(tip in pat.tips){
-          # go up until you find one of the first nodes
-          current.node <- tip
-          subtree.roots <- first.nodes.by.patients[[patient]]
-          while(!(current.node %in% subtree.roots)){
-            if(current.node == 0){
-              stop("Reached the root?!")
+        subtree.roots <- first.nodes.by.patients[[patient]]
+        
+        for(split.no in 1:no.splits){
+          split.root <- subtree.roots[split.no]
+          new.name <- paste(patient,"-S", split.no, sep="")
+          split.assocs[[split.root]] <- new.name
+          split.assocs <- assign.splits.down(split.root, tree, full.assocs, split.assocs)
+          
+          for(tip in 1:length(tree$tip.label)){
+            if(split.assocs[[tip]] == new.name){
+              patient.tips.copy[[new.name]] <- c(patient.tips.copy[[new.name]], tip)
             }
-            current.node <- Ancestors(tree, current.node, type="parent")
           }
-          split.index <- which(subtree.roots == current.node)
-          new.name <- paste(patient,"-S", split.index, sep="")
-          
-          current.node <- tip
-          split.assocs[[subtree.roots[split.index]]] <- new.name
-          
-          while(current.node != subtree.roots[split.index]){
-            if(current.node == 0){
-              stop("Reached the root?!")
-            }
-            split.assocs[[current.node]] <- new.name
-            current.node <- Ancestors(tree, current.node, type="parent")
-          }
-          
-          
-          patient.tips.copy[[new.name]] <- c(patient.tips.copy[[new.name]], tip)
         }
       }
     }
@@ -445,6 +437,20 @@ count.splits <- function(tree, node, assocs, patients, counts.vec, first.nodes.l
   }
   return(list(counts = counts.vec, first.nodes = first.nodes.list))
 }
+
+# paints new associations
+
+assign.splits.down <- function(node, tree, unsplit.assocs, split.assocs){
+  for(child in Children(tree, node)){
+    if(unsplit.assocs[[child]] == unsplit.assocs[[node]]){
+      split.assocs[[child]] <- split.assocs[[node]]
+      split.assocs <- assign.splits.down(child, tree, unsplit.assocs, split.assocs)
+    }
+  }
+  return(split.assocs)
+}
+
+
 
 # Does the RS classification (todo move to TUF?)
 
@@ -624,7 +630,7 @@ make.cost.matrix <- function(node, tree, patients, tip.assocs, individual.costs,
 }
 
 
-reconstruct <- function(tree, node, node.state, node.assocs, tip.assocs, patients, full.cost.matrix, node.cost.matrix, k){
+reconstruct <- function(tree, node, node.state, node.assocs, tip.assocs, patients, full.cost.matrix, node.cost.matrix, k, break.ties.unsampled){
   node.assocs[[node]] <- node.state
   cat("Node ",node," reconstructed as ",node.state,"\n", sep="")
   if(is.tip(tree, node)){
@@ -659,17 +665,24 @@ reconstruct <- function(tree, node, node.state, node.assocs, tip.assocs, patient
         decision <- patients[which(costs == min.cost)]
         cat("Single minimum cost belongs to ", decision, "\n", sep="")
       } else {
-        if("unsampled" %in% patients[which(costs == min.cost)]){
-          # second preference is for unsampled
-          decision <- "unsampled"
-        } else if(node.state %in% patients[which(costs == min.cost)]){
-          # first preference is for uninterrupted lineage
-          decision <- node.state
+        cat("Tie at node",node,"between",patients[which(costs == min.cost)],"...")
+        if(break.ties.unsampled){
+          cat("broken in favour of unsampled\n")
+          if("unsampled" %in% patients[which(costs == min.cost)] & break.ties.unsampled){
+            decision <- "unsampled"
+          } else {
+            stop("We have a tie")
+          }
         } else {
-          stop("We have a tie")
+          cat("broken in favour of",node.state,"\n")
+          if(node.state %in% patients[which(costs == min.cost)]){
+            decision <- node.state
+          } else {
+            stop("We have a tie")
+          }
         }
       }
-      node.assocs <- reconstruct(tree, child, decision, node.assocs, tip.assocs, patients, full.cost.matrix, node.cost.matrix, k)
+      node.assocs <- reconstruct(tree, child, decision, node.assocs, tip.assocs, patients, full.cost.matrix, node.cost.matrix, k, break.ties.unsampled)
     }
   }
   return(node.assocs)
@@ -844,5 +857,72 @@ output.trans.tree <- function(tree, assocs, file.name = NULL){
   }
   
   return(cytoscape.input)
+}
+
+check.contiguous <- function(tt, patients, splits.for.patients){
+  if(length(patients)!=2){
+    stop("Not implemented")
+  }
+  pat.1.id <- patients[1]
+  pat.2.id <- patients[2]
+  
+  OK <- TRUE
+  all.nodes <-  c(splits.for.patients[[pat.1.id]], splits.for.patients[[pat.2.id]])
+  
+  for(node.1 in seq(1, length(all.nodes))){
+    for(node.2 in seq(1, length(all.nodes))){
+      if(node.1 < node.2){
+        node.1.id <- all.nodes[node.1]
+        node.2.id <- all.nodes[node.2]
+        path <- get.tt.path(tt, node.1.id, node.2.id)
+        for(node in path){
+          if(!startsWith(node, "none")){
+            if(!(patients.for.splits[[node]] %in% c(pat.1.id, pat.2.id))){
+              OK <- FALSE
+              break
+            }
+          }
+        }
+      }
+      if(!OK){
+        break
+      }
+    }
+    if(!OK){
+      break
+    }
+  }
+  
+  return(OK)
+}
+
+extract.tt.subtree <- function(tt, patients, splits.for.patients){
+  # for now, at least
+  
+  if(length(patients)!=2){
+    stop("Not implemented")
+  }
+  if(!check.contiguous(tt, patients, splits.for.patients)){
+    stop("Not contiguous")
+  }
+  
+  pat.1.id <- patients[1]
+  pat.2.id <- patients[2]
+  
+  pat.1.splts <- splits.for.patients[[pat.1.id]]
+  pat.2.splts <- splits.for.patients[[pat.2.id]]
+  
+  sub.tt <- tt[which(tt$unique.splits %in% c(pat.1.splts, pat.2.splts)),]
+  unsampled.below <- tt[which(tt$patients == "none" & (tt$parent.splits %in% c(pat.1.splts, pat.2.splts))),]
+  unsampled.above <- tt[which(tt$patients == "none" & (tt$unique.splits %in% sub.tt$parent.splits)),]
+  
+  none.but.maybe.relevant <- c(unsampled.above$unique.splits, unsampled.below$unique.splits)
+  
+  adjacent.relevance.count <- sapply(none.but.relevant, function(x) length(intersect(c(pat.1.splts, pat.2.splts), get.tt.adjacent(tt, x) ) ))
+  
+
+  
+  return(c(sub.tt$unique.splits, none.but.maybe.relevant[which(adjacent.relevance.count > 1)]))
+  
 }
 
