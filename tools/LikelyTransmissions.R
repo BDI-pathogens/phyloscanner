@@ -73,11 +73,11 @@ if(command.line){
   # MRSA example
   
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/")
-  tree.file.names <- "ProcessedTree_s_mrsa_s.tree"
-  splits.file.names <- "Subtrees_s_mrsa_s.csv"
+  tree.file.names <- "ProcessedTree_s_mrsa_lsd.tree"
+  splits.file.names <- "Subtrees_s_mrsa_lsd.csv"
   
-  output.name <- "LT_s_mrsa_s.csv"
-  collapsed.file.names <- "collapsed_s_mrsa_s.csv"
+  output.name <- "LT_s_mrsa_lsd.csv"
+  collapsed.file.names <- "collapsed_s_mrsa_lsd.csv"
   split.threshold <- NA
   tip.regex <- "^([ST][0-9][0-9][0-9])_[A-Z0-9]*_[A-Z][0-9][0-9]$"
   
@@ -181,6 +181,9 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	distance.matrix <- matrix(NA, length(patients.included), length(patients.included))
 	branches.longer.than.root.matrix <- matrix(NA, length(patients.included), length(patients.included))
 	details.matrix <- matrix(NA, length(patients.included), length(patients.included))
+	mean.distance.matrix <- matrix(NA, length(patients.included), length(patients.included))
+	
+	tree.distances <- dist.nodes(tree)
 	
 	for(pat.1 in seq(1, length(patients.included))){
 	  for(pat.2 in  seq(1, length(patients.included))){
@@ -191,34 +194,12 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	      pat.1.id <- patients.included[pat.1]
 	      pat.2.id <- patients.included[pat.2]
 	      
+	      cat(pat.1.id, pat.2.id, "\n")
+	      
 	      all.nodes <-  c(splits.for.patients[[pat.1.id]], splits.for.patients[[pat.2.id]])
 	      
 	      #we want that they form a perfect blob with no intervening nodes for any other patients
-	      OK <- TRUE
-	      
-	      for(node.1 in seq(1, length(all.nodes))){
-	        for(node.2 in seq(1, length(all.nodes))){
-	          if(node.1 < node.2){
-	            node.1.id <- all.nodes[node.1]
-	            node.2.id <- all.nodes[node.2]
-	            path <- get.tt.path(tt, node.1.id, node.2.id)
-	            for(node in path){
-	              if(!startsWith(node, "none")){
-	                if(!(patients.for.splits[[node]] %in% c(pat.1.id, pat.2.id))){
-	                  OK <- FALSE
-	                  break
-	                }
-	              }
-	            }
-	          }
-	          if(!OK){
-	            break
-	          }
-	        }
-	        if(!OK){
-	          break
-	        }
-	      }
+	      OK <- check.contiguous(tt, c(pat.1.id, pat.2.id), splits.for.patients)
 	      
 	      # then we want to see if any node from one patient interrupts a path between two nodes from the other
 	      if(OK){
@@ -361,7 +342,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	              } else {
 	                direct.descendant.matrix[pat.1, pat.2] <- "unint"
 	              }
-	              distance.matrix[pat.1, pat.2] <- dist.nodes(tree)[root.1, root.2]
+	              distance.matrix[pat.1, pat.2] <- tree.distances[root.1, root.2]
 	            } else {
 	              direct.descendant.matrix[pat.1, pat.2] <- "unint"
 	              distance.matrix[pat.1, pat.2] <- NA
@@ -383,8 +364,65 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	          }
 	          distance.matrix[pat.1, pat.2] <- NA
 	        }
+	        # new distance calculations
+	        nodes.within.subtree <- extract.tt.subtree(tt, c(pat.1.id, pat.2.id), splits.for.patients)
+	        all.distances <- vector()
+	        for(node.1 in splits.for.patients[[pat.1.id]]){
+	          for(node.2 in splits.for.patients[[pat.2.id]]){
+	            if(node.1 %in% get.tt.adjacent(tt, node.2)){
+	              if(node.1 == get.tt.parent(tt, node.2)){
+	                root.node <- tt$root.nos[which(tt$unique.splits==node.2)]
+	              } else {
+	                root.node <- tt$root.nos[which(tt$unique.splits==node.1)]
+	              }
+	              all.distances <- c(all.distances, get.edge.length(tree, root.node))
+	              
+	            } else {
+	              # the concern is when there is a single "none" separating them
+	              path <- get.tt.path(tt, node.1, node.2)
+	              if(length(path)!=3){
+	                middle.label <- path[2]
+	                if(!startsWith(middle.label, "none")){
+	                  stop("Big problem here (1)")
+	                }
+	                if(middle.label==get.tt.parent(tt, node.1) & middle.label==get.tt.parent(tt, node.2)){
+	                  # siblings
+	                  all.distances <- c(all.distances, tree.distances[tt$root.nos[which(tt$unique.splits==node.1)], tt$root.nos[which(tt$unique.splits==node.2)]])
+	                } else {
+	                  if(node.1 %in% get.tt.ancestors(tt, node.2)){
+	                    current.node <- tt$root.nos[which(tt$unique.splits==node.2)]
+	                    length <- 0
+	                    while(annotations$INDIVIDUAL[current.node]!=pat.1.id){
+	                      length <- length + get.edge.length(tree, current.node)
+	                      current.node <- Ancestors(tree, current.node, type="parent")
+	                      if(isRoot(tree, current.node)){
+	                        stop("Big problem here (3)")
+	                      }
+	                    }
+	                    all.distances <- c(all.distances, length)
+	                  } else if(node.2 %in% get.tt.ancestors(tt, node.1)){
+	                    current.node <- tt$root.nos[which(tt$unique.splits==node.1)]
+	                    length <- 0
+	                    while(annotations$INDIVIDUAL[current.node]!=pat.2.id){
+	                      length <- length + get.edge.length(tree, current.node)
+	                      current.node <- Ancestors(tree, current.node, type="parent")
+	                      if(isRoot(tree, current.node)){
+	                        stop("Big problem here (3)")
+	                      }
+	                    }
+	                    all.distances <- c(all.distances, length)
+	                  } else {
+	                    stop("Big problem here (2)")
+	                  }
+	                }
+	              }
+	            }
+	          }
+	        }
+	        mean.pd <- mean(all.distances)
+	        mean.distance.matrix[pat.1, pat.2] <- mean.pd
+	        
 	      }
-	      
 	      if (count %% 100 == 0) {
 	        cat(
 	          paste(
@@ -400,6 +438,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	branches.longer.than.root.table <- as.table(branches.longer.than.root.matrix)
 	distance.table <- as.table(distance.matrix)
 	details.table <- as.table(details.matrix)
+	mean.distance.table <- as.table(mean.distance.matrix)
 	
 	colnames(direct.descendant.table) <- patients.included
 	rownames(direct.descendant.table) <- patients.included
@@ -412,6 +451,9 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	
 	colnames(details.table) <- patients.included
 	rownames(details.table) <- patients.included
+	
+	colnames(mean.distance.table) <- patients.included
+	rownames(mean.distance.table) <- patients.included
 	
 	dddf <- as.data.frame(direct.descendant.table)
 	
@@ -428,9 +470,12 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	dtmf <- as.data.frame(details.table)
   dtmf <- dtmf[keep,]
 		
-	dddf <- cbind(dddf, dmf[,3], blmf[,3], dtmf[,3])
+  mpdf <- as.data.frame(mean.distance.table)
+  mpdf <- mpdf[keep,]
+  
+	dddf <- cbind(dddf, dmf[,3], blmf[,3], dtmf[,3], mpdf[,3])
 	
-	colnames(dddf) <- c("Patient_1", "Patient_2", "Relationship", "Distance", "Prop.internal.branches.longer.than.root.branch", "details")
+	colnames(dddf) <- c("Patient_1", "Patient_2", "Relationship", "Distance", "Prop.internal.branches.longer.than.root.branch", "details", "mean.distance.between.subtrees")
 	dddf
 }
 
