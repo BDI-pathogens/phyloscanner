@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-command.line <- F
+command.line <- T
 
 list.of.packages <- c("phangorn", "argparse", "phytools", "OutbreakTools")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -73,13 +73,19 @@ if(command.line){
   # MRSA example
   
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/")
-  tree.file.names <- "ProcessedTree_s_mrsa_k100.tree"
-  splits.file.names <- "Subtrees_s_mrsa_k100.csv"
+  tree.file.names <- "ProcessedTree_s_mrsa_k0.5.tree"
+  splits.file.names <- "Subtrees_s_mrsa_k0.5.csv"
   
-  output.name <- "LT_s_mrsa_k100.csv"
-  collapsed.file.names <- "collapsed_s_mrsa_k100.csv"
+  output.name <- "LT_s_mrsa_k.csv"
+  collapsed.file.names <- "collapsed_s_mrsa_k0.5.csv"
   split.threshold <- NA
   tip.regex <- "^([ST][0-9][0-9][0-9])_[A-Z0-9]*_[A-Z][0-9][0-9]$"
+  
+  setwd("/Users/twoseventwo/Library/Containers/com.apple.mail/Data/Library/Mail Downloads/8F3471FA-C4B8-447F-9E78-FD436ADBE9DE/pty_16-12-12-20-49-03/")
+  tree.file.names <- "ProcessedTree_r_ptyr22_"
+  splits.file.names <- "Subtrees_r_ptyr22_"
+  output.name <- "ptyr22_"
+  tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
   
   if(0)
   {
@@ -135,14 +141,16 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
   annotations <- attr(pseudo.beast.import, "stats")
   annotations$INDIVIDUAL <- sapply(as.character(annotations$INDIVIDUAL), function(x) substr(x, 2, nchar(x)-1))
   annotations$SPLIT <- sapply(as.character(annotations$SPLIT), function(x) substr(x, 2, nchar(x)-1))
-
+  
   was.split <- unique(annotations$INDIVIDUAL[which(annotations$SPLIT!=annotations$INDIVIDUAL)])
   
   in.order <- match(seq(1, length(tree$tip.label) + tree$Nnode), annotations$node)
   
   assocs <- annotations$SPLIT[in.order]
+  assocs.ind <- annotations$INDIVIDUAL[in.order]
   
   assocs <- lapply(assocs, function(x) replace(x,is.na(x),"none"))
+  assocs.ind <- lapply(assocs.ind, function(x) replace(x,is.na(x),"none"))
   
 	splits.for.patients <- lapply(patients, function(x) unique(splits$patient.splits[which(splits$orig.patients==x)] ))
 	names(splits.for.patients) <- patients
@@ -364,11 +372,10 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	          distance.matrix[pat.1, pat.2] <- NA
 	        }
 	        # new distance calculations
-	        nodes.within.subtree <- extract.tt.subtree(tt, c(pat.1.id, pat.2.id), splits.for.patients, patients.for.splits)
 	        all.distances <- vector()
 	        for(node.1 in splits.for.patients[[pat.1.id]]){
 	          for(node.2 in splits.for.patients[[pat.2.id]]){
-#	            cat(node.1, node.2, "\n")
+#              cat(node.1, node.2, "\n")
 	            if(node.1 %in% get.tt.adjacent(tt, node.2)){
 	              if(node.1 == get.tt.parent(tt, node.2)){
 	                root.node <- tt$root.nos[which(tt$unique.splits==node.2)]
@@ -392,10 +399,10 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	                  if(node.1 %in% get.tt.ancestors(tt, node.2)){
 	                    current.node <- tt$root.nos[which(tt$unique.splits==node.2)]
 	                    length <- 0
-	                    while(annotations$INDIVIDUAL[current.node]!=pat.1.id){
+	                    while(assocs.ind[[current.node]]!=pat.1.id){
 	                      length <- length + get.edge.length(tree, current.node)
 	                      current.node <- Ancestors(tree, current.node, type="parent")
-	                      if(isRoot(tree, current.node)){
+	                      if(is.root(tree, current.node)){
 	                        stop("Big problem here (3)")
 	                      }
 	                    }
@@ -403,10 +410,10 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
 	                  } else if(node.2 %in% get.tt.ancestors(tt, node.1)){
 	                    current.node <- tt$root.nos[which(tt$unique.splits==node.1)]
 	                    length <- 0
-	                    while(annotations$INDIVIDUAL[current.node]!=pat.2.id){
+	                    while(assocs.ind[[current.node]]!=pat.2.id){
 	                      length <- length + get.edge.length(tree, current.node)
 	                      current.node <- Ancestors(tree, current.node, type="parent")
-	                      if(isRoot(tree, current.node)){
+	                      if(is.root(tree, current.node)){
 	                        stop("Big problem here (3)")
 	                      }
 	                    }
