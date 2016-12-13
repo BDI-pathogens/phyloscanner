@@ -1,4 +1,4 @@
-command.line <- T
+command.line <- F
 list.of.packages <- c("phangorn", "argparse", "phytools", "ggplot2", "gdata", "mvtnorm", "expm")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
@@ -55,7 +55,7 @@ if(command.line){
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
   mode <- "r"
   zero.length.tips.count <- F
-  sankhoff.k <- 35
+  sankhoff.k <- 0
   pdf.w = 35
   pdf.hm = 0.5
   
@@ -83,14 +83,14 @@ if(command.line){
   
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/")
   output.dir <- getwd()
-  tree.file.names <- "lsdfit.date.newick"
+  tree.file.names <- "RAxML_bipartitions.ST239_no_bootstraps.tree"
   blacklist.files <- NULL
-  out.identifier <- "mrsa_lsd"
-  root.name <- NA
+  out.identifier <- "mrsa_k100"
+  root.name <- "TW20"
   tip.regex <- "^([ST][0-9][0-9][0-9][a-z]?)_([A-Z0-9]*)_[A-Z][0-9][0-9]$"
   mode <- "s"
   zero.length.tips.count <- F
-  sankhoff.k <- 26.3
+  sankhoff.k <- 100
   
   if(0)
   {
@@ -167,7 +167,7 @@ split.patients.to.subtrees<- function(file.name, mode, blacklist.file, root.name
 	
 	patient.mrcas <- lapply(patient.tips, function(node) mrca.phylo.or.unique.tip(tree, node, zero.length.tips.count))
 	
-	results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k)
+	results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, FALSE)
 	
 	node.shapes <- rep(FALSE, length(tree$tip.label) + tree$Nnode)
 	for(mrca in results$first.nodes){

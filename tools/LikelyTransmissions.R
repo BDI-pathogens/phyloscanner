@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-command.line <- T
+command.line <- F
 
 list.of.packages <- c("phangorn", "argparse", "phytools", "OutbreakTools")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -73,11 +73,11 @@ if(command.line){
   # MRSA example
   
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/")
-  tree.file.names <- "ProcessedTree_s_mrsa_k0.tree"
-  splits.file.names <- "Subtrees_s_mrsa_k0.csv"
+  tree.file.names <- "ProcessedTree_s_mrsa_k100.tree"
+  splits.file.names <- "Subtrees_s_mrsa_k100.csv"
   
-  output.name <- "LT_s_mrsa_k0.csv"
-  collapsed.file.names <- "collapsed_s_mrsa_k0.csv"
+  output.name <- "LT_s_mrsa_k100.csv"
+  collapsed.file.names <- "collapsed_s_mrsa_k100.csv"
   split.threshold <- NA
   tip.regex <- "^([ST][0-9][0-9][0-9])_[A-Z0-9]*_[A-Z][0-9][0-9]$"
   

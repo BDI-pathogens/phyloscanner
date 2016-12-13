@@ -859,7 +859,7 @@ output.trans.tree <- function(tree, assocs, file.name = NULL){
   return(cytoscape.input)
 }
 
-check.contiguous <- function(tt, patients, splits.for.patients){
+check.contiguous <- function(tt, patients, splits.for.patients, patients.for.splits){
   if(length(patients)!=2){
     stop("Not implemented")
   }
@@ -896,13 +896,13 @@ check.contiguous <- function(tt, patients, splits.for.patients){
   return(OK)
 }
 
-extract.tt.subtree <- function(tt, patients, splits.for.patients){
+extract.tt.subtree <- function(tt, patients, splits.for.patients, patients.for.splits){
   # for now, at least
   
   if(length(patients)!=2){
     stop("Not implemented")
   }
-  if(!check.contiguous(tt, patients, splits.for.patients)){
+  if(!check.contiguous(tt, patients, splits.for.patients, patients.for.splits)){
     stop("Not contiguous")
   }
   
@@ -918,7 +918,7 @@ extract.tt.subtree <- function(tt, patients, splits.for.patients){
   
   none.but.maybe.relevant <- c(unsampled.above$unique.splits, unsampled.below$unique.splits)
   
-  adjacent.relevance.count <- sapply(none.but.relevant, function(x) length(intersect(c(pat.1.splts, pat.2.splts), get.tt.adjacent(tt, x) ) ))
+  adjacent.relevance.count <- sapply(none.but.maybe.relevant, function(x) length(intersect(c(pat.1.splts, pat.2.splts), get.tt.adjacent(tt, x) ) ))
   
 
   
