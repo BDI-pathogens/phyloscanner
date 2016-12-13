@@ -60,13 +60,13 @@ if(command.line){
   if(0)
   {
     script.dir					<- "/Users/Oliver/git/phylotypes/tools"
-    summary.file				<- "~/duke/tmp/pty_16-11-17-15-04-28/ptyr22_patStatsFull.csv"
-    id.file 					<- "~/duke/tmp/pty_16-11-17-15-04-28/ptyr22_patients.txt"
-	input.files.name			<- "~/duke/tmp/pty_16-11-17-15-04-28/ptyr22_"
+    summary.file				<- "~/duke/tmp/pty_16-12-13-14-34-39/ptyr22_patStatsFull.csv"
+    id.file 					<- "~/duke/tmp/pty_16-12-13-14-34-39/ptyr22_patients.txt"
+	input.files.name			<- "~/duke/tmp/pty_16-12-13-14-34-39/ProcessedTree_r_ptyr22_"
     min.threshold				<- 1
     allow.splits 				<- TRUE
-    output.file 				<- "~/duke/tmp/pty_16-11-17-15-04-28/ptyr22_trmStats.csv"
-	detailed.output				<- "~/duke/tmp/pty_16-11-17-15-04-28/ptyr22_patStatsPerWindow.csv"
+    output.file 				<- "~/duke/tmp/pty_16-12-13-14-34-39/ptyr22_trmStats.csv"
+	detailed.output				<- "~/duke/tmp/pty_16-12-13-14-34-39/ptyr22_patStatsPerWindow.csv"
     input.files 				<- sort(list.files(dirname(input.files.name), pattern=paste(basename(input.files.name),".*LikelyTransmissions.csv$",sep=''), full.names=TRUE))
   }
 }
@@ -211,13 +211,13 @@ for(window in seq(1, num.windows)){
       if(!is.na(row.match(transmissions.table[row,1:2], relationships.ever.suggested))){
         #whatever the third column says, things are the right way round        
         window.vector[row.match(transmissions.table[row,1:2], relationships.ever.suggested)] <- transmissions.table[row,3] 		
-		dist.vector[row.match(transmissions.table[row,1:2], relationships.ever.suggested)] <- transmissions.table[row,'Distance']
+		dist.vector[row.match(transmissions.table[row,1:2], relationships.ever.suggested)] <- transmissions.table[row,'mean.distance.between.subtrees']
 		p1.vector[row.match(transmissions.table[row,1:2], relationships.ever.suggested)] <- transmissions.table[row,'Patient_1_P']
 		p2.vector[row.match(transmissions.table[row,1:2], relationships.ever.suggested)] <- transmissions.table[row,'Patient_2_P']
 		
       } else if(!is.na(row.match(rev(transmissions.table[row,1:2]), relationships.ever.suggested))){
 		
-		dist.vector[row.match(rev(transmissions.table[row,1:2]), relationships.ever.suggested)] <- transmissions.table[row,'Distance']
+		dist.vector[row.match(rev(transmissions.table[row,1:2]), relationships.ever.suggested)] <- transmissions.table[row,'mean.distance.between.subtrees']
 		#p's will be the wrong way round
 		p1.vector[row.match(rev(transmissions.table[row,1:2]), relationships.ever.suggested)] <- transmissions.table[row,'Patient_2_P']
 		p2.vector[row.match(rev(transmissions.table[row,1:2]), relationships.ever.suggested)] <- transmissions.table[row,'Patient_1_P']
@@ -263,122 +263,11 @@ window.table <- cbind(relationships.ever.suggested, window.table)
 dist.table <- cbind(relationships.ever.suggested, dist.table)
 p1.table <- cbind(relationships.ever.suggested, p1.table)
 p2.table <- cbind(relationships.ever.suggested, p2.table)
-#out.sib <- cbind(transmissions.ever.suggested, out.sib)
-
 colnames(window.table) <- c("pat.1", "pat.2", basename(input.files))
 colnames(dist.table) <- c("pat.1", "pat.2", basename(input.files))
 colnames(p1.table) <- c("pat.1", "pat.2", basename(input.files))
 colnames(p2.table) <- c("pat.1", "pat.2", basename(input.files))
-#colnames(out.sib) <- c("pat.1", "pat.2", paste("window.start.",seq(800,9050,by=250), sep=""))
-#write.table(out.sib, file="quickout_sib.csv", sep=",", col.names=NA)
-# out <- read.table("quickout.csv", sep=",", stringsAsFactors = F, header = T)
-# out.sib <- read.table("quickout_sib.csv", sep=",", stringsAsFactors = F, header = T)
-
-#first <- TRUE
-#for(row in seq(1, nrow(window.table))){
-  
-#  row.list <- list()
-  
-#  row.list["anc"] <- 0
-#  row.list["desc"] <- 0
-#  row.list["int"] <- 0
-#  row.list["cher"] <- 0
-#  row.list["unint"] <- 0
-  
-#  if(give.denoms){
-#    first.patient <- window.table$pat.1[row]
-#    first.present <- reads.table[which(reads.table$patient==first.patient & reads.table$present),]
-#    second.patient <- window.table$pat.2[row]
-#    second.present <- reads.table[which(reads.table$patient==second.patient & reads.table$present),]
-#    
-#    denominator <- length(intersect(first.present$window.start, second.present$window.start))
-#  }
-  
-#  for(col in seq(3, ncol(window.table))){
-#    if(!is.na(window.table[row, col])){
-#      if(allow.splits){
-#        if(as.character(window.table[row,col])=="trueInt"){
-#          row.list[["int"]] <- row.list[["int"]] + 1
-#        } else if(as.character(window.table[row,col]) %in% c("anc", "intAnc")) {
-#          row.list[["anc"]] <- row.list[["anc"]] + 1
-#        } else if(as.character(window.table[row,col]) %in% c("desc", "intDesc")) {
-#          row.list[["desc"]] <- row.list[["desc"]] + 1
-#        } else if(as.character(window.table[row,col])=="cher") {
-#          row.list[["cher"]] <- row.list[["cher"]] + 1
-#        } else if(as.character(window.table[row,col])=="unint") {
-#          row.list[["unint"]] <- row.list[["unint"]] + 1
-#        }
-#      } else {
-#        if(as.character(window.table[row,col]) %in% c("trueInt", "intAnc", "intDesc")){
-#          row.list[["int"]] <- row.list[["int"]] + 1
-#        } else if(as.character(window.table[row,col])=="anc") {
-#          row.list[["anc"]] <- row.list[["anc"]] + 1
-#        } else if(as.character(window.table[row,col])=="desc") {
-#          row.list[["desc"]] <- row.list[["desc"]] + 1
-#        } else if(as.character(window.table[row,col])=="cher") {
-#          row.list[["cher"]] <- row.list[["cher"]] + 1
-#        } else if(as.character(window.table[row,col])=="unint") {
-#          row.list[["unint"]] <- row.list[["unint"]] + 1
-#        }
-#      }
-#    }
-#  }
-  
-#  cher.row <- c(window.table[row,1], window.table[row,2], row.list[["cher"]], "cher", row.list[["anc"]]+row.list[["desc"]])
-#  unint.row <- c(window.table[row,1], window.table[row,2], row.list[["unint"]], "unint", row.list[["anc"]]+row.list[["desc"]])
-#  anc.row <- c(window.table[row,1], window.table[row,2], row.list[["anc"]], "anc", row.list[["anc"]]+row.list[["desc"]])
-#  desc.row <- c(window.table[row,2], window.table[row,1], row.list[["desc"]], "anc", row.list[["anc"]]+row.list[["desc"]])
-#  int.row <- c(window.table[row,1], window.table[row,2], row.list[["int"]], "int", row.list[["anc"]]+row.list[["desc"]])
-  
-#  if(give.denoms){
-#    cher.row <- c(cher.row, paste(row.list[["cher"]], "/", denominator, sep=""))
-#    unint.row <- c(unint.row, paste(row.list[["unint"]], "/", denominator, sep=""))
-#    anc.row <- c(anc.row, paste(row.list[["anc"]], "/", denominator, sep=""))
-#    desc.row <- c(desc.row, paste(row.list[["desc"]], "/", denominator, sep=""))
-#    int.row <- c(int.row, paste(row.list[["int"]], "/", denominator, sep=""))
-# }
-  
-  # intAnc.row <- c(out[row,1], out[row,2], row.list[["intAnc"]], "PPU", row.list[["anc"]]+row.list[["desc"]]+row.list[["intAnc"]]+row.list[["intDesc"]]+row.list[["trueInt"]], denominator, paste(row.list[["intAnc"]], "/", denominator, sep=""), NA)
-  # intDesc.row <- c(out[row,2], out[row,1], row.list[["intDesc"]], "PPU", row.list[["anc"]]+row.list[["desc"]]+row.list[["intAnc"]]+row.list[["intDesc"]]+row.list[["trueInt"]], denominator, paste(row.list[["intDesc"]], "/", denominator, sep=""), NA)
-  # trueInt.row <- c(out[row,1], out[row,2], row.list[["trueInt"]], "PPE", row.list[["anc"]]+row.list[["desc"]]+row.list[["intAnc"]]+row.list[["intDesc"]]+row.list[["trueInt"]], denominator, paste(row.list[["trueInt"]], "/", denominator, sep=""), NA)
-  
-#  new.rows <- data.frame(rbind(cher.row, unint.row, anc.row, desc.row, int.row), stringsAsFactors = F)
-  
-#  colnames(new.rows) <- c("pat.1", "pat.2", "windows", "type", "total.trans")
-#  if(give.denoms){
-#    colnames(new.rows)[6] <- "fraction"
-#  }
-  
-  # sib.row.2 <- c(out[row,1], out[row,2], row.list.2[["sib"]], "sib", row.list.2[["anc"]]+row.list.2[["desc"]]+row.list.2[["int"]], denominator, paste(row.list.2[["sib"]], "/", denominator, sep=""), mean.sib)
-  # anc.row.2 <- c(out[row,1], out[row,2], row.list.2[["anc"]], "trans", row.list.2[["anc"]]+row.list.2[["desc"]]+row.list.2[["int"]], denominator, paste(row.list.2[["anc"]], "/", denominator, sep=""), NA)
-  # desc.row.2 <- c(out[row,2], out[row,1], row.list.2[["desc"]], "trans", row.list.2[["anc"]]+row.list.2[["desc"]]+row.list.2[["int"]], denominator, paste(row.list.2[["desc"]], "/", denominator, sep=""), NA)
-  # int.row.2 <- c(out[row,1], out[row,2], row.list.2[["int"]], "int", row.list.2[["anc"]]+row.list.2[["desc"]]+row.list.2[["int"]], denominator, paste(row.list.2[["int"]], "/", denominator, sep=""), NA)
-  # 
-  # new.rows.2 <- data.frame(rbind(sib.row.2, anc.row.2, desc.row.2, int.row.2), stringsAsFactors = F)
-  
-  #  colnames(new.rows.2) <- c("pat.1", "pat.2", "windows", "type", "total.trans", "present", "fraction", "mean.sib")
-  
-#  if(first){
-#    first <- FALSE
-#    new.out <- new.rows[which(new.rows$windows>0),]
-    #    new.out.2 <- new.rows.2[which(new.rows.2$windows>0),]
-#  } else {
-#    new.out <- rbind(new.out, new.rows[which(new.rows$windows>0),])
-    #    new.out.2 <- rbind(new.out.2, new.rows.2[which(new.rows.2$windows>0),])
-#  }
-#  
-#  if(row %% 100 == 0){
-#    cat("Written ",row," out of ",nrow(window.table)," rows\n",sep="")
-#  }
-#}
-#new.out$windows <- as.numeric(new.out$windows)
-#new.out$total.trans <- as.numeric(new.out$total.trans)
-#write.table(new.out[which(new.out$total.trans>=min.threshold),], file=output.file, row.names = F, sep=",", quote=FALSE)
 #
-#	OR: 	I vectorized the code above this line-- hopefulling speeding things up a bit
-#			suggest to remove and replace with the lines below
-#
-
 cat("Making per-window output table...\n")
 #	get tables into long format
 window.table[] 	<- lapply(window.table, as.character)
@@ -397,15 +286,12 @@ dist.table <- NULL
 p1.table <- NULL
 p2.table <- NULL
 # convert "anc" and "desc" to "trans" depending on direction
-
 window.table[which(window.table$TYPE=="desc"), c("pat.1", "pat.2")] <- window.table[which(window.table$TYPE=="desc"), c("pat.2", "pat.1")]
 window.table[which(window.table$TYPE=="anc"), "TYPE"] <- "trans"
 window.table[which(window.table$TYPE=="desc"), "TYPE"] <- "trans"
-
 window.table[which(window.table$TYPE=="intDesc"), c("pat.1", "pat.2")] <- window.table[which(window.table$TYPE=="intDesc"), c("pat.2", "pat.1")]
 window.table[which(window.table$TYPE=="intAnc"), "TYPE"] <- "intTrans"
 window.table[which(window.table$TYPE=="intDesc"), "TYPE"] <- "intTrans"
-
 window.table	<- as.data.table(window.table)
 setnames(window.table, c('variable'), c('SOURCE_FILE'))
 #	add window coordinates
@@ -425,8 +311,7 @@ if(!allow.splits)
 set(window.table, NULL, 'PATRISTIC_DISTANCE', window.table[, as.numeric(PATRISTIC_DISTANCE)])
 set(window.table, NULL, 'ID1_P', window.table[, as.numeric(ID1_P)])
 set(window.table, NULL, 'ID2_P', window.table[, as.numeric(ID2_P)])
-
-#	OR: calculate #unique reads and #reads for each window 
+#	calculate #unique reads and #reads for each window 
 reads.table	<- as.data.table(reads.table)
 setnames(reads.table, c("window.start","window.end"), c("W_FROM","W_TO"))
 dp			<-  reads.table[,{
@@ -446,7 +331,7 @@ setnames(tmp, c("patient","reads","leaves"), c("pat.1","pat.1_reads","pat.1_leav
 dp			<- merge(dp, tmp, by=c('W_FROM','pat.1'))
 setnames(tmp, c("pat.1","pat.1_leaves","pat.1_reads"), c("pat.2","pat.2_leaves","pat.2_reads"))
 dp			<- merge(dp, tmp, by=c('W_FROM','pat.2'))
-#	OR: add window.table to this table of pairs. keep track of direction
+#	add window.table to this table of pairs. keep track of direction
 tmp			<- subset(window.table, !is.na(TYPE), select=c('pat.1','pat.2','W_FROM','TYPE','PATRISTIC_DISTANCE','ID1_P','ID2_P'))
 set(tmp, tmp[, which(TYPE=='trans')], 'TYPE', 'trans_12')
 #	merge (1,2) with dp
@@ -471,7 +356,7 @@ tmp			<- dp[, which(!is.na(ID2_P2))]
 set(dp, tmp, 'ID2_P', dp[tmp,ID2_P2])
 dp[, ID2_P2:=NULL]
 #	check we have patristic distances for all cherries
-stopifnot(dp[, length(which(TYPE=='cher' & is.na(PATRISTIC_DISTANCE)))==0L])
+stopifnot(dp[, length(which(TYPE%in%c('cher','unint','int','trans_12','trans_21') & is.na(PATRISTIC_DISTANCE)))==0L])
 stopifnot(dp[, length(which(TYPE%in%c('cher','unint') & is.na(ID1_P)))==0L])
 stopifnot(dp[, length(which(TYPE%in%c('cher','unint') & is.na(ID2_P)))==0L])
 #	set disconnected only when both patients present
