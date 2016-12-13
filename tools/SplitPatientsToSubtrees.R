@@ -1,4 +1,4 @@
-command.line <- F
+command.line <- T
 list.of.packages <- c("phangorn", "argparse", "phytools", "ggplot2", "gdata", "mvtnorm", "expm")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
@@ -34,7 +34,7 @@ if(command.line){
   if(is.null(output.dir)){
     output.dir <- getwd()
   }
-  sankhoff.k <- args$kParam
+  sankhoff.k <- as.numeric(args$kParam)
   out.identifier <- args$outputfileid
   blacklist.files <- args$blacklist
   root.name <- args$outgroupName
@@ -85,12 +85,12 @@ if(command.line){
   output.dir <- getwd()
   tree.file.names <- "RAxML_bipartitions.ST239_no_bootstraps.tree"
   blacklist.files <- NULL
-  out.identifier <- "mrsa_k100"
+  out.identifier <- "mrsa_k1"
   root.name <- "TW20"
   tip.regex <- "^([ST][0-9][0-9][0-9][a-z]?)_([A-Z0-9]*)_[A-Z][0-9][0-9]$"
   mode <- "s"
   zero.length.tips.count <- F
-  sankhoff.k <- 100
+  sankhoff.k <- 1
   
   if(0)
   {
@@ -209,14 +209,11 @@ split.patients.to.subtrees<- function(file.name, mode, blacklist.file, root.name
 #
 
 #	check if 'tree.file.names' is tree
-options(show.error.messages = FALSE)		
-can.read.tree		<- try(suppressWarnings(read.tree(tree.file.names)))
-options(show.error.messages = TRUE)
+single.file	<- file.exists(tree.file.names)
 #
 #	if is tree, single file mode:
 #
-if(!inherits(can.read.tree, "try-error"))
-{
+if(single.file) {
 	#	if 'tree.file.names' is tree, process just one tree
 	tree.file.name		<- tree.file.names[1]	
 	blacklist.file		<- blacklist.files[1]
@@ -260,12 +257,7 @@ if(!inherits(can.read.tree, "try-error"))
 	tmp 				<- file.path(output.dir, paste('Subtrees_',mode,'_',out.identifier,'.csv',sep=''))
 	cat("Writing output to file",tmp,"...\n")	
 	write.csv(rs.subtrees, file=tmp, row.names = F, quote=F)	
-}
-#
-#	if not is tree, multi-file mode:
-#
-if(inherits(can.read.tree, "try-error"))
-{	
+} else {	
 	prefix.wfrom 		<- 'Window_'
 	prefix.wto 			<- 'Window_[0-9]+_to_'
 	tree.file.names		<- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),'.*\\.tree$',sep=''), full.names=TRUE))
