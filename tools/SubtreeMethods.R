@@ -665,20 +665,28 @@ reconstruct <- function(tree, node, node.state, node.assocs, tip.assocs, patient
         decision <- patients[which(costs == min.cost)]
         cat("Single minimum cost belongs to ", decision, "\n", sep="")
       } else {
-        cat("Tie at node",node,"between",patients[which(costs == min.cost)],"...")
+        cat("Tie at node ",node," between ",paste(patients[which(costs == min.cost)], sep=" "),"...", sep="")
         if(break.ties.unsampled){
-          cat("broken in favour of unsampled\n")
-          if("unsampled" %in% patients[which(costs == min.cost)] & break.ties.unsampled){
+          if("unsampled" %in% patients[which(costs == min.cost)]){
+            cat("broken in favour of unsampled\n")
             decision <- "unsampled"
-          } else {
-            stop("We have a tie")
-          }
-        } else {
-          cat("broken in favour of",node.state,"\n")
-          if(node.state %in% patients[which(costs == min.cost)]){
+          } else if (node.state %in% patients[which(costs == min.cost)]) {
+            cat("broken in favour of",node.state,"\n")
             decision <- node.state
           } else {
-            stop("We have a tie")
+            warning(paste("WARNING: tie between ", paste(patients[which(costs == min.cost)], sep=" "), "broken AT RANDOM", sep=""))
+            decision <- patients[sample(which(costs == min.cost), 1)]
+          }
+        } else {
+          if(node.state %in% patients[which(costs == min.cost)]){
+            cat("broken in favour of",node.state,"\n")
+            decision <- node.state
+          } else if("unsampled" %in% patients[which(costs == min.cost)]) {
+            cat("broken in favour of unsampled\n")
+            decision <- "unsampled"
+          } else {
+            warning(paste("WARNING: tie between ", paste(patients[which(costs == min.cost)], sep=" "), "broken AT RANDOM", sep=""))
+            decision <- patients[sample(which(costs == min.cost), 1)]
           }
         }
       }
