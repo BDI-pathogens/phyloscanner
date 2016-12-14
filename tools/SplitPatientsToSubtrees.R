@@ -19,6 +19,7 @@ if(command.line){
   arg_parser$add_argument("-b", "--blacklist", action="store", help="A .csv file listing tips to ignore. Alternatively, a base name that identifies blacklist files. Blacklist files are assumed to end in .csv.")
   arg_parser$add_argument("-k", "--kParam", action="store", default=35, help="The k parameter in the cost matrix for Sankhoff reconstruction (see documentation)")
   arg_parser$add_argument("-i", "--inputFile", metavar="inputTreeFileName", help="Tree file name. Alternatively, a base name that identifies a group of tree file names can be specified. Tree files are assumed to end in .tree.")  
+  arg_parser$add_argument("-t", "--breakTiesUnsampled", action="store_true", default=FALSE)
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
   arg_parser$add_argument("-OD", "--outputdir", action="store", help="Full path of the directory for output; if absent, current working directory")
   arg_parser$add_argument("-OF", "--outputfileid", action="store", help="A string identifying output files.")
@@ -29,6 +30,7 @@ if(command.line){
   args <- arg_parser$parse_args()
   script.dir <- args$scriptdir
   zero.length.tips.count <- args$zeroLengthTipsCount
+  break.ties.unsampled <- args$breakTiesUnsampled
   tree.file.names <- args$inputFile
   output.dir <- args$outputdir
   if(is.null(output.dir)){
@@ -85,12 +87,13 @@ if(command.line){
   output.dir <- getwd()
   tree.file.names <- "RAxML_bipartitions.ST239_no_bootstraps.tree"
   blacklist.files <- NULL
-  out.identifier <- "mrsa_k1"
+  out.identifier <- "mrsa_k50_alt"
   root.name <- "TW20"
   tip.regex <- "^([ST][0-9][0-9][0-9][a-z]?)_([A-Z0-9]*)_[A-Z][0-9][0-9]$"
   mode <- "s"
   zero.length.tips.count <- F
-  sankhoff.k <- 1
+  sankhoff.k <- 50
+  break.ties.unsampled <- F
   
   if(0)
   {
@@ -121,11 +124,11 @@ source(file.path(script.dir, "WriteAnnotatedTrees.R"))
 #
 #	define internal functions
 #
-split.patients.to.subtrees<- function(file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count, sankhoff.k)
+split.patients.to.subtrees<- function(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count, sankhoff.k, break.ties.unsampled)
 {
-	cat("SplitPatientsToSubtrees.R run on: ", file.name,", rules = ",mode,"\n", sep="")
+	cat("SplitPatientsToSubtrees.R run on: ", tree.file.name,", rules = ",mode,"\n", sep="")
 	
-	tree <- read.tree(file.name)
+	tree <- read.tree(tree.file.name)
 	tree <- unroot(tree)
 	tree <- di2multi(tree, tol = 1E-5)
 	if(!is.null(root.name)){
@@ -167,7 +170,7 @@ split.patients.to.subtrees<- function(file.name, mode, blacklist.file, root.name
 	
 	patient.mrcas <- lapply(patient.tips, function(node) mrca.phylo.or.unique.tip(tree, node, zero.length.tips.count))
 	
-	results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, FALSE)
+	results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, break.ties.unsampled)
 	
 	node.shapes <- rep(FALSE, length(tree$tip.label) + tree$Nnode)
 	for(mrca in results$first.nodes){
@@ -217,7 +220,7 @@ if(single.file) {
 	#	if 'tree.file.names' is tree, process just one tree
 	tree.file.name		<- tree.file.names[1]	
 	blacklist.file		<- blacklist.files[1]
-	tmp					<- split.patients.to.subtrees(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count, sankhoff.k)
+	tmp					<- split.patients.to.subtrees(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count, sankhoff.k, break.ties.unsampled)
 	tree				<- tmp[['tree']]	
 	rs.subtrees			<- tmp[['rs.subtrees']]
 	#
@@ -293,7 +296,7 @@ if(single.file) {
 		if(is.na(blacklist.file))	
 			blacklist.file	<- NULL
 		out.identifier		<- gsub('\\.tree$','',basename(tree.file.name))
-		tmp					<- split.patients.to.subtrees(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count, sankhoff.k)
+		tmp					<- split.patients.to.subtrees(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count, sankhoff.k, break.ties.unsampled)
 		tree				<- tmp[['tree']]	
 		rs.subtrees			<- tmp[['rs.subtrees']]
 		#
