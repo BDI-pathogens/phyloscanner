@@ -162,7 +162,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
       stop("k must be specified for Sankhoff reconstruction")
     }
     
-    cat("Reconstructing internal node hosts with the Sankhoff algorithm...")
+    cat("Reconstructing internal node hosts with the Sankhoff algorithm...\n")
     
     non.patient.tips <- which(is.na(sapply(tree$tip.label, function(name) patient.from.label(name, tip.regex))))
     
@@ -181,7 +181,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     
     tip.assocs <- annotate.tips(tree, patients, patient.tips)
     
-    cat("Calculating all costs\n")
+    cat("Calculating all costs...\n")
     
     # This matrix is the cost of an infection for a given patient along the branch ENDING in a given
     # node. This is the distance from the START of the branch (could make it halfway at a later point) 
@@ -272,6 +272,8 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     
     cost.matrix <- make.cost.matrix(getRoot(tree), tree, patients, tip.assocs, individual.costs, cost.matrix, k, cheat.matrix =  single.desc.patient, verbose=F)
 
+    cat("Reconstructing...\n")
+    
     full.assocs <- reconstruct(tree, getRoot(tree), "unsampled", list(), tip.assocs, patients, cost.matrix, individual.costs, k, break.ties.unsampled)
     
     temp.ca <- rep(NA, length(tree$tip.label) + tree$Nnode)
@@ -673,7 +675,7 @@ make.cost.matrix <- function(node, tree, patients, tip.assocs, individual.costs,
           if(bottom.patient!="unsampled"){
             score <- current.matrix[child, only.possible.desc] + 1 + k*individual.costs[child, only.possible.desc]
           } else {
-            scores[only.possible.desc] <- current.matrix[child, only.possible.desc]
+            score <- current.matrix[child, only.possible.desc]
           }
           if(is.nan(score)){
             score <- Inf
@@ -1012,6 +1014,134 @@ extract.tt.subtree <- function(tt, patients, splits.for.patients, patients.for.s
   adjacent.relevance.count <- sapply(none.but.maybe.relevant, function(x) length(intersect(c(pat.1.splts, pat.2.splts), get.tt.adjacent(tt, x) ) ))
   
   return(c(sub.tt$unique.splits, unique(none.but.maybe.relevant[which(adjacent.relevance.count > 1)])))
-  
 }
 
+# every distance between subtrees
+
+all.subtree.distances <- function(tree, tt, splits, assocs){
+  tree.dist <- dist.nodes(tree)
+  
+  temp <- matrix(ncol = length(splits), nrow=length(splits))
+  for(spt.1.no in 1:length(splits)){
+    for(spt.2.no in 1:length(splits)){
+      if(spt.1.no==spt.2.no){
+        temp[spt.1.no, spt.2.no] <- 0
+      } else if(spt.1.no<spt.2.no){
+        spt.1 <- splits[spt.1.no]
+        spt.2 <- splits[spt.2.no]
+        
+        chain.1 <- get.tt.ancestors(tt, spt.1)
+        chain.2 <- get.tt.ancestors(tt, spt.2)
+        
+        if(spt.1 %in% chain.2){
+          mrca.2 <- tt$root.nos[which(tt$unique.splits==spt.2)]
+          current.node <- mrca.2
+          length <- 0
+          while(assocs[[current.node]]!=spt.1){
+            length <- length + get.edge.length(tree, current.node)
+            current.node <- Ancestors(tree, current.node, type="parent")
+            if(is.root(tree, current.node)){
+              stop("Big problem here (1)")
+            }
+          }
+          temp[spt.1.no, spt.2.no] <- length
+          
+        } else if(spt.2 %in% chain.1){
+          mrca.1 <- tt$root.nos[which(tt$unique.splits==spt.1)]
+          current.node <- mrca.1
+          length <- 0
+          while(assocs[[current.node]]!=spt.2){
+            length <- length + get.edge.length(tree, current.node)
+            current.node <- Ancestors(tree, current.node, type="parent")
+            if(is.root(tree, current.node)){
+              stop("Big problem here (1)")
+            }
+          }
+          temp[spt.1.no, spt.2.no] <- length
+          
+        } else {
+
+          mrca.1 <- tt$root.nos[which(tt$unique.splits==spt.1)]
+          mrca.2 <- tt$root.nos[which(tt$unique.splits==spt.2)]
+          temp[spt.1.no, spt.2.no] <- tree.dist[mrca.1, mrca.2]
+        }
+        temp[spt.2.no, spt.1.no] <- temp[spt.1.no, spt.2.no]
+      }
+    }
+  }
+  
+  
+  colnames(temp) <- splits
+  rownames(temp) <- splits
+  return(temp)
+}
+
+# are each pair of subtrees adjacent? If unsampled does not matter then two nodes separated only by "none"
+# are still adjacent
+
+subtrees.adjacent <- function(tt, splits, none.matters = F){
+  out <- matrix(ncol = length(splits), nrow=length(splits))
+  for(spt.1.no in 1:length(splits)){
+    for(spt.2.no in 1:length(splits)){
+      if(spt.1.no==spt.2.no){
+        out[spt.1.no, spt.2.no] <- NA
+      } else if(spt.1.no<spt.2.no){
+        spt.1 <- splits[spt.1.no]
+        spt.2 <- splits[spt.2.no]
+        
+        if(spt.1 %in%  get.tt.adjacent(tt, spt.2)){
+          out[spt.1.no, spt.2.no] <- T
+          out[spt.2.no, spt.1.no] <- T
+        } else if(!none.matters) {
+          path <- get.tt.path(tt, spt.1, spt.2)
+          internal.path <- path[2:(length(path)-1)]
+          adj <- length(internal.path)==1 & startsWith(internal.path[1], "none")
+          out[spt.1.no, spt.2.no] <- adj
+          out[spt.2.no, spt.1.no] <- adj
+        } else {
+          out[spt.1.no, spt.2.no] <- F
+          out[spt.2.no, spt.1.no] <- F
+        }
+      }
+    }
+  }
+  colnames(out) <- splits
+  rownames(out) <- splits
+  
+  return(out)
+}
+
+# are pairs of subtrees from two patients not separated by any other subtrees from either of those patients?
+
+subtrees.unblocked <- function(tt, splits){
+  out <- matrix(ncol = length(splits), nrow=length(splits))
+  for(spt.1.no in 1:length(splits)){
+    for(spt.2.no in 1:length(splits)){
+      if(spt.1.no==spt.2.no){
+        out[spt.1.no, spt.2.no] <- NA
+      } else if(spt.1.no<spt.2.no){
+        spt.1 <- splits[spt.1.no]
+        spt.2 <- splits[spt.2.no]
+        pat.1 <- strsplit(spt.1, "-S")[[1]][1]
+        pat.2 <- strsplit(spt.2, "-S")[[1]][1]
+        
+        if(spt.1 %in%  get.tt.adjacent(tt, spt.2)){
+          out[spt.1.no, spt.2.no] <- T
+          out[spt.2.no, spt.1.no] <- T
+        } else {
+          path <- get.tt.path(tt, spt.1, spt.2)
+          internal.path <- path[2:(length(path)-1)]
+          blockers <- which(startsWith(internal.path, pat.1) | startsWith(internal.path, pat.2))
+
+          adj <- length(blockers) == 0
+          out[spt.1.no, spt.2.no] <- adj
+          out[spt.2.no, spt.1.no] <- adj
+        } 
+      }
+    }
+  }
+  colnames(out) <- splits
+  rownames(out) <- splits
+  
+  return(out)
+}
