@@ -215,8 +215,8 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
         # then we want to see if any node from one patient interrupts a path between two nodes from the other
         if(OK){
           entangled <- F
-          if(length(splits.for.patients[[pat.1.id]])>1){
-            combns.1 <- t(combn(splits.for.patients[[pat.1.id]], 2))
+          if(length(nodes.1)>1){
+            combns.1 <- t(combn(nodes.1, 2))
             for(comb in seq(1, nrow(combns.1))){
               path <- get.tt.path(tt, combns.1[comb, 1], combns.1[comb, 2])
               for(node in path){
@@ -232,8 +232,8 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
               }
             }
           }
-          if(!entangled & length(splits.for.patients[[pat.2.id]])>1){
-            combns.2 <- t(combn(splits.for.patients[[pat.2.id]], 2))
+          if(!entangled & length(nodes.2)>1){
+            combns.2 <- t(combn(nodes.2, 2))
             for(comb in seq(1, nrow(combns.2))){
               path <- get.tt.path(tt, combns.2[comb, 1], combns.2[comb, 2])
               for(node in path){
@@ -252,9 +252,9 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
           rel.determined <- F
           
           if(!entangled){
-            for(pat.1.splt in splits.for.patients[[pat.1.id]]){
+            for(pat.1.splt in nodes.1){
               ancestors <- get.tt.ancestors(tt, pat.1.splt)
-              if(length(intersect(ancestors, splits.for.patients[[pat.2.id]])) > 0){
+              if(length(intersect(ancestors, nodes.2)) > 0){
                 relationship.matrix[pat.1, pat.2] <- "desc"
                 # if(length(all.nodes)==2){
                 #   length <- 0
@@ -279,9 +279,9 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
               }
             }
             if(!rel.determined){
-              for(pat.2.splt in splits.for.patients[[pat.2.id]]){
+              for(pat.2.splt in nodes.2){
                 ancestors <- get.tt.ancestors(tt, pat.2.splt)
-                if(length(intersect(ancestors, splits.for.patients[[pat.1.id]]))>0){
+                if(length(intersect(ancestors, nodes.1))>0){
                   relationship.matrix[pat.1, pat.2] <- "anc"
                   # if(length(all.nodes)==2){
                   #   length <- 0
