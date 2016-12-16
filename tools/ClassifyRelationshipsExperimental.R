@@ -184,6 +184,8 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
   count <- 0
   contiguous.matrix <- matrix(NA, length(patients.included), length(patients.included))
   path.matrix <- matrix(NA, length(patients.included), length(patients.included))
+  nodes.12.matrix <- matrix(NA, length(patients.included), length(patients.included))
+  nodes.21.matrix <- matrix(NA, length(patients.included), length(patients.included))
   dir.12.matrix <- matrix(NA, length(patients.included), length(patients.included))
   dir.21.matrix <- matrix(NA, length(patients.included), length(patients.included))
   mean.distance.matrix <- matrix(NA, length(patients.included), length(patients.included))
@@ -227,25 +229,31 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
           }
         }
         
+        prop.12 <- count.12/length(nodes.2)
+        prop.21 <- count.21/length(nodes.1)
+        
+        nodes.12.matrix[pat.1, pat.2] <- length(nodes.1)
+        nodes.21.matrix[pat.1, pat.2] <- length(nodes.2)
+        
         dir.12.matrix[pat.1, pat.2] <- count.12
         dir.21.matrix[pat.1, pat.2] <- count.21
         
         if(count.12 == 0 & count.21 == 0){
           path.matrix[pat.1, pat.2] <- "none"
-        } else if(count.12 !=0 & count.21 !=0){
-          path.matrix[pat.1, pat.2] <- "conflict"
-        } else if(count.12 != 0) {
+        } else if(count.12 != 0 & count.21 == 0 & prop.12 == 1) {
           if(count.12 == 1){
             path.matrix[pat.1, pat.2] <- "anc"
           } else {
             path.matrix[pat.1, pat.2] <- "multiAnc"
           }
-        } else {
+        } else if(count.21 != 0 & count.12 == 0 & prop.21 == 1) {
           if(count.21 == 1){
             path.matrix[pat.1, pat.2] <- "desc"
           } else {
             path.matrix[pat.1, pat.2] <- "multiDesc"
           }
+        } else {
+          path.matrix[pat.1, pat.2] <- "conflict"
         }
         
         pairwise.distances <- 0
