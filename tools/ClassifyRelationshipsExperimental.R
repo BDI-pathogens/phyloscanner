@@ -103,11 +103,6 @@ suppressMessages(library(ggtree, quietly=TRUE, warn.conflicts=FALSE))
 #
 source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
 source(file.path(script.dir, "SubtreeMethods.R"))
-#	OR changelog:
-#	Put all calculations per tree into function, so that this script can  
-#	also loop over several windows. This allows to combine the SummaryStats.R and LikelyTransmissions.R into
-#	a single UNIX script
-
 #
 #	define internal functions
 #
@@ -189,6 +184,8 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
   count <- 0
   contiguous.matrix <- matrix(NA, length(patients.included), length(patients.included))
   path.matrix <- matrix(NA, length(patients.included), length(patients.included))
+  dir.12.matrix <- matrix(NA, length(patients.included), length(patients.included))
+  dir.21.matrix <- matrix(NA, length(patients.included), length(patients.included))
   mean.distance.matrix <- matrix(NA, length(patients.included), length(patients.included))
   
   tree.distances <- dist.nodes(tree)
@@ -213,8 +210,15 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
         
         contiguous.matrix[pat.1, pat.2] <- OK
       
-        count.12 <-0
-        count.21 <-0
+        count.12 <- 0
+        count.21 <- 0
+        
+        for(node.2 in nodes.2){
+          ancestors <- get.tt.ancestors(tt, node.2)
+          if(length(intersect(ancestors, nodes.1)) > 0){
+            count.12 <- count.12 + 1
+          }
+        }
         
         for(node.1 in nodes.1){
           ancestors <- get.tt.ancestors(tt, node.1)
@@ -223,12 +227,8 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
           }
         }
         
-        for(node.2 in nodes.2){
-          ancestors <- get.tt.ancestors(tt, node.2)
-          if(length(intersect(ancestors, nodes.1)) > 0){
-            count.12 <- count.12 + 1
-          }
-        }
+        dir.12.matrix[pat.1, pat.2] <- count.12
+        dir.21.matrix[pat.1, pat.2] <- count.21
         
         if(count.12 == 0 & count.21 == 0){
           path.matrix[pat.1, pat.2] <- "none"
@@ -269,6 +269,8 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
   }
   
   contiguous.table <- as.table(contiguous.matrix)
+  dir.12.table <- as.table(dir.12.matrix)
+  dir.21.table <- as.table(dir.21.matrix)
   path.table <- as.table(path.matrix)
   mean.distance.table <- as.table(mean.distance.matrix)
   
@@ -277,6 +279,12 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
   
   colnames(path.table) <- patients.included
   rownames(path.table) <- patients.included
+  
+  colnames(dir.12.table) <- patients.included
+  rownames(dir.12.table) <- patients.included
+  
+  colnames(dir.21.table) <- patients.included
+  rownames(dir.21.table) <- patients.included
 
   colnames(mean.distance.table) <- patients.included
   rownames(mean.distance.table) <- patients.included
@@ -290,13 +298,17 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
   pdf <- as.data.frame(path.table)
   pdf <- pdf[keep,]
   
+  d12df <- as.data.frame(dir.12.table)
+  d21df <- as.data.frame(dir.21.table)
+  d12df <- d12df[keep,]
+  d21df <- d21df[keep,]
+  
   mddf <- as.data.frame(mean.distance.table)
   mddf <- mddf[keep,]
   
-#  dddf <- cbind(dddf, dmf[,3], blmf[,3], dtmf[,3], mpdf[,3])
-  cdf <- cbind(cdf, pdf[,3], mddf[,3])
+  cdf <- cbind(cdf, d12df[,3], d21df[,3], pdf[,3], mddf[,3])
   
-  colnames(cdf) <- c("Patient_1", "Patient_2", "contiguous", "paths", "mean.distance.between.subtrees")
+  colnames(cdf) <- c("Patient_1", "Patient_2", "contiguous", "paths.12", "paths21", "path.classification", "mean.distance.between.subtrees")
   cdf
 }
 
