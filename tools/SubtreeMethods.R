@@ -257,21 +257,8 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     
     cost.matrix <- matrix(NA, ncol=length(patients), nrow=length(tree$tip.label) + tree$Nnode)
     
-    single.desc.patient <- rep(NA, length(tree$tip.label) + tree$Nnode)
-    for(node in 1:length(tree$tip.label) + tree$Nnode){
-      if(is.tip(tree, node)){
-        single.desc.patient[node] <- tip.assocs[[node]]
-      } else {
-        tips <- unlist(Descendants(tree, node, type="tips"))
-        patients.amongst.tips <- unique(unlist(tip.assocs[tips]))
-        if(length(patients.amongst.tips)==1){
-          single.desc.patient[node] <- unique(unlist(tip.assocs[tips]))
-        }
-      }
-    }
+    cost.matrix <- make.cost.matrix(getRoot(tree), tree, patients, tip.assocs, individual.costs, cost.matrix, k, verbose=F)
     
-    cost.matrix <- make.cost.matrix(getRoot(tree), tree, patients, tip.assocs, individual.costs, cost.matrix, k, cheat.matrix =  single.desc.patient, verbose=F)
-
     cat("Reconstructing...\n")
     
     full.assocs <- reconstruct(tree, getRoot(tree), "unsampled", list(), tip.assocs, patients, cost.matrix, individual.costs, k, break.ties.unsampled)
@@ -631,157 +618,73 @@ find.ignored.descendants <- function(node, tree, temp.ignore.list, temp.surrogat
   return(list(ignore = current.ignore.list, surrogates = current.surrogate.list))
 }
 
-make.cost.matrix <- function(node, tree, patients, tip.assocs, individual.costs, current.matrix, k, cheat.matrix = NULL, verbose = T){
-  if(!is.null(cheat.matrix)){
-    # Observation: you can save a lot of time in clades that come from one patient only
-    only.one.descendant <- matrix
-    
+make.cost.matrix <- function(node, tree, patients, tip.assocs, individual.costs, current.matrix, k, verbose = T){
+  if(verbose){
+    cat("Node number ",node,":", sep="")
+  }
+  if(is.tip(tree, node)){
     if(verbose){
-      cat("Node number ",node,":", sep="")
+      cat(" is a tip (host = ",tip.assocs[[node]],")\n", sep="")
     }
-    if(is.tip(tree, node)){
-      if(verbose){
-        cat(" is a tip (host = ",tip.assocs[[node]],")\n", sep="")
-      }
-      infinity.vector <- rep(Inf, length(patients))
-      infinity.vector[which(patients == tip.assocs[[node]])] <- 0
-      current.matrix[node,] <- infinity.vector
-    } else {
-      if(verbose){
-        cat(" looking at children (")
-        cat(Children(tree, node),sep=" ")
-        cat(")\n")
-      }
-      this.row <- vector()
-      child.nos <- Children(tree, node)
-      nodes.for.calcs <- vector()
-      for(child in Children(tree, node)){
-        current.matrix <- make.cost.matrix(child, tree, patients, tip.assocs, individual.costs, current.matrix, k, cheat.matrix, verbose)
-      }
-      if(length(child.nos)==0){
-        stop("huh?")
-      }
-      if(verbose){
-        cat("Done; back to node ",node,"\n", sep="")
-      }
-      row <- vector(length=length(patients))
-      
-      if(!is.na(cheat.matrix[node])){
-        only.possible.desc <- which(patients==cheat.matrix[node])
-        score.sum <- 0
-        bottom.patient <- patients[only.possible.desc]
-        for(child in child.nos){
-          scores <- vector()
-          if(bottom.patient!="unsampled"){
-            score <- current.matrix[child, only.possible.desc] + 1 + k*individual.costs[child, only.possible.desc]
-          } else {
-            score <- current.matrix[child, only.possible.desc]
-          }
-          if(is.nan(score)){
-            score <- Inf
-          }
-          
-          score.sum <- score.sum + score
-        }
-        row <- rep(score.sum, length(patients))
-        row[only.possible.desc] <- 0
-      } else {
-        for(top.patient.no in seq(1,length(patients))) {
-          score.sum <- 0
-          for(child in child.nos){
-            scores <- vector()
-            for(bottom.patient.no in seq(1,length(patients))){
-              bottom.patient <- patients[bottom.patient.no]
-              if(top.patient.no == bottom.patient.no){
-                scores[bottom.patient.no] <- current.matrix[child, bottom.patient.no]
-              } else if(patients[bottom.patient.no] != "unsampled"){
-                scores[bottom.patient.no] <- current.matrix[child, bottom.patient.no] + 1 + k*individual.costs[child, bottom.patient.no]
-                if(is.nan(scores[bottom.patient.no])){
-                  scores[bottom.patient.no] <- Inf
-                }
-              } else {
-                # note: is it OK for the cost of transmission to unsampled to be zero?
-                scores[bottom.patient.no] <- current.matrix[child, bottom.patient.no]
-              }
-            }
-            score.sum <- score.sum + min(scores)
-          }
-          row[top.patient.no] <- score.sum
-        }
-      }
-      current.matrix[node,] <- row
-    }
-    if(verbose){
-      cat("Lowest cost (",min(current.matrix[node,]),") for node ",node," goes to ",patients[which(current.matrix[node,] == min(current.matrix[node,]))],"\n",sep="") 
-      cat("\n")
-    }
-    return(current.matrix)
+    infinity.vector <- rep(Inf, length(patients))
+    infinity.vector[which(patients == tip.assocs[[node]])] <- 0
+    current.matrix[node,] <- infinity.vector
   } else {
     if(verbose){
-      cat("Node number ",node,":", sep="")
+      cat(" looking at children (")
+      cat(Children(tree, node),sep=" ")
+      cat(")\n")
     }
-    if(is.tip(tree, node)){
-      if(verbose){
-        cat(" is a tip (host = ",tip.assocs[[node]],")\n", sep="")
-      }
-      infinity.vector <- rep(Inf, length(patients))
-      infinity.vector[which(patients == tip.assocs[[node]])] <- 0
-      current.matrix[node,] <- infinity.vector
-    } else {
-      if(verbose){
-        cat(" looking at children (")
-        cat(Children(tree, node),sep=" ")
-        cat(")\n")
-      }
-      this.row <- vector()
-      child.nos <- Children(tree, node)
-      nodes.for.calcs <- vector()
-      for(child in Children(tree, node)){
-        current.matrix <- make.cost.matrix(child, tree, patients, tip.assocs, individual.costs, current.matrix, k, cheat.matrix, verbose)
-      }
-      if(length(child.nos)==0){
-        stop("huh?")
-      }
-      if(verbose){
-        cat("Done; back to node ",node,"\n", sep="")
-      }
-      row <- vector()
-      
-      for(top.patient.no in seq(1,length(patients))) {
-        sum <- 0
-        for(child in child.nos){
-          scores <- vector()
-          for(bottom.patient.no in seq(1,length(patients))){
-            bottom.patient <- patients[bottom.patient.no]
-            if(top.patient.no == bottom.patient.no){
-              scores[bottom.patient.no] <- current.matrix[child, bottom.patient.no]
-            } else if(patients[bottom.patient.no] != "unsampled"){
-              scores[bottom.patient.no] <- current.matrix[child, bottom.patient.no] + 1 + k*individual.costs[child, bottom.patient.no]
-              if(is.nan(scores[bottom.patient.no])){
-                scores[bottom.patient.no] <- Inf
-              }
-            } else {
-              # note: is it OK for the cost of transmission to unsampled to be zero?
-              scores[bottom.patient.no] <- current.matrix[child, bottom.patient.no]
-            }
-          }
-          sum <- sum + min(scores)
-        }
-        row[top.patient.no] <- sum
-      }
-      current.matrix[node,] <- row
+    this.row <- vector()
+    child.nos <- Children(tree, node)
+    nodes.for.calcs <- vector()
+    for(child in Children(tree, node)){
+      current.matrix <- make.cost.matrix(child, tree, patients, tip.assocs, individual.costs, current.matrix, k, verbose)
+    }
+    if(length(child.nos)==0){
+      stop("huh?")
     }
     if(verbose){
-      cat("Lowest cost (",min(current.matrix[node,]),") for node ",node," goes to ",patients[which(current.matrix[node,] == min(current.matrix[node,]))],"\n",sep="") 
-      cat("\n")
+      cat("Done; back to node ",node,"\n", sep="")
     }
-    return(current.matrix)
+    row <- vector()
+    
+    for(top.patient.no in seq(1,length(patients))) {
+      sum <- 0
+      for(child in child.nos){
+        scores <- vector()
+        for(bottom.patient.no in seq(1,length(patients))){
+          bottom.patient <- patients[bottom.patient.no]
+          if(top.patient.no == bottom.patient.no){
+            scores[bottom.patient.no] <- current.matrix[child, bottom.patient.no]
+          } else if(patients[bottom.patient.no] != "unsampled"){
+            scores[bottom.patient.no] <- current.matrix[child, bottom.patient.no] + 1 + k*individual.costs[child, bottom.patient.no]
+            if(is.nan(scores[bottom.patient.no])){
+              scores[bottom.patient.no] <- Inf
+            }
+          } else {
+            scores[bottom.patient.no] <- current.matrix[child, bottom.patient.no]
+          }
+        }
+        sum <- sum + min(scores)
+      }
+      row[top.patient.no] <- sum
+    }
+    current.matrix[node,] <- row
   }
+  if(verbose){
+    cat("Lowest cost (",min(current.matrix[node,]),") for node ",node," goes to ",patients[which(current.matrix[node,] == min(current.matrix[node,]))],"\n",sep="") 
+    cat("\n")
+  }
+  return(current.matrix)
+  
 }
 
-reconstruct <- function(tree, node, node.state, node.assocs, tip.assocs, patients, full.cost.matrix, node.cost.matrix, k, break.ties.unsampled){
+reconstruct <- function(tree, node, node.state, node.assocs, tip.assocs, patients, full.cost.matrix, node.cost.matrix, k, break.ties.unsampled, verbose=F){
   node.assocs[[node]] <- node.state
-  cat("Node ",node," reconstructed as ",node.state,"\n", sep="")
+  if(verbose){
+    cat("Node ",node," reconstructed as ",node.state,"\n", sep="")
+  }
   if(is.tip(tree, node)){
     if(node.state != tip.assocs[[node]]){
       stop("Something is badly wrong")
@@ -812,30 +715,46 @@ reconstruct <- function(tree, node, node.state, node.assocs, tip.assocs, patient
       if(length(which(costs == min.cost))==1){
         
         decision <- patients[which(costs == min.cost)]
-        cat("Single minimum cost belongs to ", decision, "\n", sep="")
+        if(verbose){
+          cat("Single minimum cost belongs to ", decision, "\n", sep="")
+        }
       } else {
-        cat("Tie at node",node,"between",patients[which(costs == min.cost)],"...", sep=" ")
+        if(verbose){
+          cat("Tie at node",node,"between",patients[which(costs == min.cost)],"...", sep=" ")
+        }
         if(break.ties.unsampled){
           if("unsampled" %in% patients[which(costs == min.cost)]){
-            cat("broken in favour of unsampled\n")
+            if(verbose){
+              cat("broken in favour of unsampled\n")
+            }
             decision <- "unsampled"
           } else if (node.state %in% patients[which(costs == min.cost)]) {
-            cat("broken in favour of",node.state,"\n")
+            if(verbose){
+              cat("broken in favour of",node.state,"\n")
+            }
             decision <- node.state
           } else {
-            cat(patients[which(costs == min.cost)], '\n')
+            if(verbose){
+              cat(patients[which(costs == min.cost)], '\n')
+            }
             paste("WARNING: some ties broken at random\n", sep="")
             decision <- patients[sample(which(costs == min.cost), 1)]
           }
         } else {
           if(node.state %in% patients[which(costs == min.cost)]){
-            cat("broken in favour of",node.state,"\n")
+            if(verbose){
+              cat("broken in favour of",node.state,"\n")
+            }
             decision <- node.state
           } else if("unsampled" %in% patients[which(costs == min.cost)]) {
-            cat("broken in favour of unsampled\n")
+            if(verbose){
+              cat("broken in favour of unsampled\n")
+            }
             decision <- "unsampled"
           } else {
-            cat(patients[which(costs == min.cost)], '\n')
+            if(verbose){
+              cat(patients[which(costs == min.cost)], '\n')
+            }
             paste("WARNING: some ties broken at random\n", sep="")
             decision <- patients[sample(which(costs == min.cost), 1)]
           }
@@ -1060,7 +979,7 @@ all.subtree.distances <- function(tree, tt, splits, assocs){
           temp[spt.1.no, spt.2.no] <- length
           
         } else {
-
+          
           mrca.1 <- tt$root.nos[which(tt$unique.splits==spt.1)]
           mrca.2 <- tt$root.nos[which(tt$unique.splits==spt.2)]
           temp[spt.1.no, spt.2.no] <- tree.dist[mrca.1, mrca.2]
@@ -1132,7 +1051,7 @@ subtrees.unblocked <- function(tt, splits){
           path <- get.tt.path(tt, spt.1, spt.2)
           internal.path <- path[2:(length(path)-1)]
           blockers <- which(startsWith(internal.path, pat.1) | startsWith(internal.path, pat.2))
-
+          
           adj <- length(blockers) == 0
           out[spt.1.no, spt.2.no] <- adj
           out[spt.2.no, spt.1.no] <- adj
