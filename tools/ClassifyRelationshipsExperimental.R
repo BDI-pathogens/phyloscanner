@@ -279,6 +279,8 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
   contiguous.table <- as.table(contiguous.matrix)
   dir.12.table <- as.table(dir.12.matrix)
   dir.21.table <- as.table(dir.21.matrix)
+  nodes.12.table <- as.table(nodes.12.matrix)
+  nodes.21.table <- as.table(nodes.21.matrix)
   path.table <- as.table(path.matrix)
   mean.distance.table <- as.table(mean.distance.matrix)
   
@@ -293,7 +295,13 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
   
   colnames(dir.21.table) <- patients.included
   rownames(dir.21.table) <- patients.included
-
+  
+  colnames(nodes.12.table) <- patients.included
+  rownames(nodes.12.table) <- patients.included
+  
+  colnames(nodes.21.table) <- patients.included
+  rownames(nodes.21.table) <- patients.included
+  
   colnames(mean.distance.table) <- patients.included
   rownames(mean.distance.table) <- patients.included
   
@@ -311,12 +319,17 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
   d12df <- d12df[keep,]
   d21df <- d21df[keep,]
   
+  n12df <- as.data.frame(nodes.12.table)
+  n21df <- as.data.frame(nodes.21.table)
+  n12df <- n12df[keep,]
+  n21df <- n21df[keep,]
+  
   mddf <- as.data.frame(mean.distance.table)
   mddf <- mddf[keep,]
   
-  cdf <- cbind(cdf, d12df[,3], d21df[,3], pdf[,3], mddf[,3])
+  cdf <- cbind(cdf, d12df[,3], d21df[,3], n12df[,3], n21df[,3], pdf[,3], mddf[,3])
   
-  colnames(cdf) <- c("Patient_1", "Patient_2", "contiguous", "paths.12", "paths21", "path.classification", "mean.distance.between.subtrees")
+  colnames(cdf) <- c("Patient_1", "Patient_2", "contiguous", "paths.12", "paths21", "nodes12", "nodes21", "path.classification", "mean.distance.between.subtrees")
   cdf
 }
 
