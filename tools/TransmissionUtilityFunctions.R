@@ -678,7 +678,7 @@ patient.from.label <- function(label, regexp){
 
 read.count.from.label <- function(label, regexp){
   if(length(grep(regexp, label)>0)) {
-    return(sub(regexp, "\\3", label))
+    return(as.numeric(sub(regexp, "\\3", label)))
   } else {
     return(NA)
   }
