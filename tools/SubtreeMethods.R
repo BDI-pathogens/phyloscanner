@@ -1,4 +1,4 @@
-split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, method="r", k=NA, break.ties.unsampled = FALSE, sankhoff.mode = "total.lengths"){
+split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, method="r", k=NA, break.ties.unsampled = FALSE, sankhoff.mode = "total.lengths", verbose=F){
   
   if(method == "c"){
     cat("Finding nodes that would have to be associated with more than one patient with no splits...\n")
@@ -162,7 +162,9 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
       stop("k must be specified for Sankhoff reconstruction")
     }
     
-    cat("Reconstructing internal node hosts with the Sankhoff algorithm...\n")
+    if(verbose){
+      cat("Reconstructing internal node hosts with the Sankhoff algorithm...\n")
+    }
     
     non.patient.tips <- which(is.na(sapply(tree$tip.label, function(name) patient.from.label(name, tip.regex))))
     
@@ -181,7 +183,9 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     
     tip.assocs <- annotate.tips(tree, patients, patient.tips)
     
-    cat("Calculating all costs...\n")
+    if(verbose){
+      cat("Calculating all costs...\n")
+    }
     
     # This matrix is the cost of an infection for a given patient along the branch ENDING in a given
     # node. This is the distance from the START of the branch (could make it halfway at a later point) 
@@ -257,11 +261,13 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     
     cost.matrix <- matrix(NA, ncol=length(patients), nrow=length(tree$tip.label) + tree$Nnode)
     
-    cost.matrix <- make.cost.matrix(getRoot(tree), tree, patients, tip.assocs, individual.costs, cost.matrix, k, verbose=F)
+    cost.matrix <- make.cost.matrix(getRoot(tree), tree, patients, tip.assocs, individual.costs, cost.matrix, k, verbose)
     
-    cat("Reconstructing...\n")
+    if(verbose){
+      cat("Reconstructing...\n")
+    }
     
-    full.assocs <- reconstruct(tree, getRoot(tree), "unsampled", list(), tip.assocs, patients, cost.matrix, individual.costs, k, break.ties.unsampled)
+    full.assocs <- reconstruct(tree, getRoot(tree), "unsampled", list(), tip.assocs, patients, cost.matrix, individual.costs, k, break.ties.unsampled, verbose)
     
     temp.ca <- rep(NA, length(tree$tip.label) + tree$Nnode)
     
@@ -277,7 +283,9 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     
     actual.patients <- patients[which(patients!="unsampled")]
     
-    cat("Identifying split patients...\n")
+    if(verbose){
+      cat("Identifying split patients...\n")
+    }
     
     splits.count <- rep(0, length(actual.patients))
     first.nodes <- list()
