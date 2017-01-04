@@ -60,13 +60,13 @@ if(command.line){
   if(0)
   {
     script.dir					<- "/Users/Oliver/git/phylotypes/tools"
-    summary.file				<- "~/duke/tmp/pty_16-12-16-20-41-31/ptyr22_patStatsFull.csv"
-    id.file 					<- "~/duke/tmp/pty_16-12-16-20-41-31/ptyr22_patients.txt"
-	input.files.name			<- "~/duke/tmp/pty_16-12-16-20-41-31/ProcessedTree_r_ptyr22_"
+    summary.file				<- "/Users/Oliver/duke/tmp/pty_17-01-02-20-41-36/ptyr110_patStatsFull.csv"
+    id.file 					<- "/Users/Oliver/duke/tmp/pty_17-01-02-20-41-36/ptyr110_patients.txt"
+	input.files.name			<- "/Users/Oliver/duke/tmp/pty_17-01-02-20-41-36/ProcessedTree_r_ptyr110_"
     min.threshold				<- 1
     allow.splits 				<- TRUE
-    output.file 				<- "~/duke/tmp/pty_16-12-16-20-41-31/ptyr22_trmStats.csv"
-	detailed.output				<- "~/duke/tmp/pty_16-12-16-20-41-31/ptyr22_patStatsPerWindow.csv"
+    output.file 				<- "/Users/Oliver/duke/tmp/pty_17-01-02-20-41-36/ptyr110_trmStats.csv"
+	detailed.output				<- "/Users/Oliver/duke/tmp/pty_17-01-02-20-41-36/ptyr110_patStatsPerWindow.csv"
     input.files 				<- sort(list.files(dirname(input.files.name), pattern=paste(basename(input.files.name),".*LikelyTransmissions.csv$",sep=''), full.names=TRUE))
   }
 }
@@ -110,10 +110,12 @@ tt	<- lapply(tt, function(x){
 			#x	<- tt[[1]]
 			tmp	<- copy(x)
 			setnames(tmp, c('Patient_1','Patient_2','paths.12','paths.21'), c('Patient_2','Patient_1','paths.21','paths.12'))
-			set(tmp, tmp[, which(path.classification=="anc")], 'path.classification', 'desc')
+			set(tmp, tmp[, which(path.classification=="anc")], 'path.classification', 'TMP')
 			set(tmp, tmp[, which(path.classification=="desc")], 'path.classification', 'anc')
-			set(tmp, tmp[, which(path.classification=="multiAnc")], 'path.classification', 'multiDesc')
+			set(tmp, tmp[, which(path.classification=="TMP")], 'path.classification', 'desc')
+			set(tmp, tmp[, which(path.classification=="multiAnc")], 'path.classification', 'TMP')
 			set(tmp, tmp[, which(path.classification=="multiDesc")], 'path.classification', 'multiAnc')
+			set(tmp, tmp[, which(path.classification=="TMP")], 'path.classification', 'multiDesc')
 			x	<- rbind(x, tmp)
 			setkey(x, Patient_1, Patient_2)
 			subset(x, Patient_1<Patient_2)
