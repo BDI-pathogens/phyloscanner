@@ -16,16 +16,16 @@ list.of.packages <- c("argparse",
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
 #	load packages
-require(phytools, quietly=TRUE, warn.conflicts=FALSE)
-require(ggplot2, quietly=TRUE, warn.conflicts=FALSE)
-require(reshape, quietly=TRUE, warn.conflicts=FALSE)
-require(gtable, quietly=TRUE, warn.conflicts=FALSE)
-require(grid, quietly=TRUE, warn.conflicts=FALSE)
-require(gridExtra, quietly=TRUE, warn.conflicts=FALSE)
-require(RColorBrewer, quietly=TRUE, warn.conflicts=FALSE)
-require(scales, quietly=TRUE, warn.conflicts=FALSE)
-require(dplyr, quietly=TRUE, warn.conflicts=FALSE)
-require(dtplyr, quietly=TRUE, warn.conflicts=FALSE)
+suppressMessages(require(phytools, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(ggplot2, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(reshape, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(gtable, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(grid, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(gridExtra, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(RColorBrewer, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(scales, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(dplyr, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(dtplyr, quietly=TRUE, warn.conflicts=FALSE))
 #
 #	constants
 #
@@ -35,7 +35,8 @@ prefix.bootstrap	<- 'bootstrap_'
 #
 #	command line
 #
-command.line <- TRUE
+BEEHIVE <- F
+command.line <- T
 if (command.line) {
   require(argparse, quietly=TRUE, warn.conflicts=FALSE)
   
@@ -71,12 +72,12 @@ if (command.line) {
 #  cat(paste(id.file, script.dir, files.are.lists, root.name, tip.regex, tree.file.names, splits.file.names, blacklist.file.names, output.root, sep='\n'))
   
   if(!files.are.lists){
-	  tree.files <- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))
-	  splits.files <- sort(list.files(dirname(splits.file.names), pattern=paste(basename(splits.file.names),".*\\.csv",sep=""), full.names=TRUE))
-	  sequence.files <- sort(list.files(dirname(sequence.file.names), pattern=paste(basename(sequence.file.names),".*\\.fasta",sep=""), full.names=TRUE))
+	  tree.files <- sort(list.files(dirname(tree.file.names), pattern=paste('^',basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))
+	  splits.files <- sort(list.files(dirname(splits.file.names), pattern=paste('^',basename(splits.file.names),".*\\.csv",sep=""), full.names=TRUE))
+	  sequence.files <- sort(list.files(dirname(sequence.file.names), pattern=paste('^',basename(sequence.file.names),".*\\.fasta",sep=""), full.names=TRUE))
 	  blacklist.files <- NULL
 	  if(!is.null(blacklist.file.names)){
-		  blacklist.files <- sort(list.files(dirname(blacklist.file.names), pattern=paste(basename(blacklist.file.names),".*\\.csv",sep=""), full.names=TRUE))
+		  blacklist.files <- sort(list.files(dirname(blacklist.file.names), pattern=paste('^',basename(blacklist.file.names),".*\\.csv",sep=""), full.names=TRUE))
 	  }
   } else {
 	  tree.files <- unlist(strsplit(tree.file.names, ":"))
@@ -181,7 +182,7 @@ source(file.path(script.dir, "SummariseTrees_funcs.R"))
 
 
 AlignPlots <- function(...) {
-  LegendWidth <- function(x) x$grobs[[8]]$grobs[[1]]$widths[[4]]
+  LegendWidth <- function(x) x$grobs[[15]]$grobs[[1]]$widths[[4]]
   
   plots.grobs <- lapply(list(...), ggplotGrob)
   
@@ -207,7 +208,7 @@ AlignPlots <- function(...) {
 }
 
 add.no.data.rectangles <- function(graph, rectangle.coords, log = F){
-  y.limits <- ggplot_build(graph)$panel$ranges[[1]]$y.range
+  y.limits <- ggplot_build(graph)$layout$panel_ranges[[1]]$y.range
   
   if(nrow(rectangle.coords)>0){
     for(rect.no in seq(1, nrow(rectangles))){
@@ -562,6 +563,96 @@ tmp <- file.path(paste(output.root,"_patStatsSummary.csv",sep=""))
 cat("Writing output to file",tmp,"...\n")
 write.csv(pat.stats.summary, tmp, quote = F, row.names = F)
 
+if(BEEHIVE){
+  amplicon.starts <- c(480, 1485, 2407, 4783, 5058, 5967, 7848)
+  amplicon.ends <- c(1485, 2407, 4783, 5058, 5967, 7848, 9517)
+  overlap.area <- c(F, T, F, T, F, T, F)
+  amplicon.names <- c("Amplicon 1 unique", "Amplicon 1/2 overlap", "Amplicon 2 unique", "Amplicon 2/3 overlap", 
+                      "Amplicon 3 unique", "Amplicon 3/4 overlap", "Amplicon 4")
+  
+  amplicon.df <- data.frame(start = amplicon.starts, end = amplicon.ends, overlap.area = overlap.area, name = amplicon.names)
+  
+  #amplicon-specific
+  
+  first <- T
+  
+  for(amplicon.no in seq(1, nrow(amplicon.df))){
+    start <- amplicon.df[amplicon.no, "start"]
+    end <- amplicon.df[amplicon.no, "end"]
+    if(!amplicon.df[amplicon.no, "overlap.area"]){
+      
+      pat.stats.amp <- pat.stats[which(
+        (pat.stats$window.start > start) & (pat.stats$window.end < end) | 
+          (pat.stats$window.start < start) & (pat.stats$window.end > start) |
+          (pat.stats$window.start < end) & (pat.stats$window.end > end)
+      ),]
+      pat.stats.amp <- pat.stats.amp[which(pat.stats.amp$reads>0) ,c("patient",
+                                                                     "leaves",
+                                                                     "reads",
+                                                                     "subtrees",
+                                                                     "clades",
+                                                                     "overall.rtt",
+                                                                     "largest.rtt",
+                                                                     "largest.pat.dist",
+                                                                     "prop.reads.largest.subtree",
+                                                                     "longest.branch",
+                                                                     "mean.pat.dist",
+                                                                     "branch.to.pat.ratio")]
+      
+      if(nrow(pat.stats.amp)>0){
+        by.patient <- pat.stats.amp %>% group_by(patient)
+        pat.stats.amp.summary <-
+          as.data.frame(by.patient %>% summarise_each(funs(mean.na.rm)))
+        pat.stats.amp.summary$region <- amplicon.df[amplicon.no, "name"]
+        if(first){
+          first <- F
+          all.amp.summaries <- pat.stats.amp.summary
+        } else {
+          all.amp.summaries <- rbind(all.amp.summaries, pat.stats.amp.summary)
+        }
+      }
+      
+    } else {
+      #overlapping regions
+      
+      pat.stats.amp <- pat.stats[which(
+        (pat.stats$window.start > start) & (pat.stats$window.end < end)
+      ),]
+      pat.stats.amp <- pat.stats.amp[which(pat.stats.amp$reads>0) ,c("patient",
+                                                                     "leaves",
+                                                                     "reads",
+                                                                     "subtrees",
+                                                                     "clades",
+                                                                     "overall.rtt",
+                                                                     "largest.rtt",
+                                                                     "largest.pat.dist",
+                                                                     "prop.reads.largest.subtree",
+                                                                     "longest.branch",
+                                                                     "mean.pat.dist",
+                                                                     "branch.to.pat.ratio")]
+      
+      if(nrow(pat.stats.amp)>0){
+        by.patient <- pat.stats.amp %>% group_by(patient)
+        pat.stats.amp.summary <-
+          as.data.frame(by.patient %>% summarise_each(funs(mean.na.rm)))
+        pat.stats.amp.summary$region <- amplicon.df[amplicon.no, "name"]
+        if(first){
+          first <- F
+          all.amp.summaries <- pat.stats.amp.summary
+        } else {
+          all.amp.summaries <- rbind(all.amp.summaries, pat.stats.amp.summary)
+        }
+      }
+    }
+  }
+  
+  all.amp.summaries <- all.amp.summaries[order(all.amp.summaries$patient),]
+  
+  tmp <- file.path(paste(output.root,"_patStatsAmpliconSummary.csv",sep=""))
+  cat("Writing output to file",tmp,"...\n")
+  write.csv(all.amp.summaries, tmp, quote = F, row.names = F)
+}
+
 tmp <- paste(output.root,"_patStats.pdf",sep="")
 cat("Plotting to file",tmp,"...\n")
 pdf(file=tmp, width=8.26772, height=11.6929)
@@ -674,7 +765,7 @@ for (i in seq(1, length(ids))) {
     graph.4 <- graph.4 +
       geom_point(alpha=0.5, na.rm=TRUE) +
       theme_bw() + 
-      ylab("Mean patristic distance in\nlargest connected subtree") +
+      ylab("Largest patristic distance in\nlargest connected subtree") +
       xlab("Window centre") +
       scale_x_continuous(limits=c(ews, lwe)) +
       expand_limits(y=0) +
@@ -687,10 +778,12 @@ for (i in seq(1, length(ids))) {
     
     splits.props.1col$ngroup <- sapply(splits.props.1col$variable, function(x) which(levels(splits.props.1col$variable)==x))
     
+    splits.props.1col$fgroup <- as.factor(splits.props.1col$ngroup)
+    
     colourCount = length(unique(splits.props.1col$ngroup))
     getPalette = colorRampPalette(brewer.pal(9, "Greens"))
     
-    graph.5 <- ggplot(splits.props.1col, aes(x=window.middle, weight=value, fill=as.factor(ngroup)))
+    graph.5 <- ggplot(splits.props.1col, aes(x=window.middle, weight=value, fill=reorder(fgroup, rev(order(splits.props.1col$ngroup)))))
     
     graph.5 <- graph.5 +
       geom_bar(width=200, colour="black", size=0.25) +
@@ -698,7 +791,7 @@ for (i in seq(1, length(ids))) {
       ylab("Proportion of reads\nin discrete subtrees") +
       xlab("Window centre") +
       scale_x_continuous(limits=c(ews, lwe)) +
-      scale_fill_manual(values = rev(getPalette(colourCount))) +
+      scale_fill_manual(values = getPalette(colourCount)) +
       theme(text = element_text(size=7)) + 
       guides(fill = guide_legend(title = "Subtree rank\n(by tip count)", keywidth = 1, keyheight = 0.4))
     

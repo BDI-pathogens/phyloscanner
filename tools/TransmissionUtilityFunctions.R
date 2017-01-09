@@ -1,6 +1,6 @@
-require(phangorn, quietly=TRUE, warn.conflicts=FALSE)
-require(gdata, quietly=TRUE, warn.conflicts=FALSE)
-require(prodlim, quietly=TRUE, warn.conflicts=FALSE)
+suppressMessages(require(phangorn, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(gdata, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(prodlim, quietly=TRUE, warn.conflicts=FALSE))
 
 # Get the tip number of this label
 
@@ -678,7 +678,7 @@ patient.from.label <- function(label, regexp){
 
 read.count.from.label <- function(label, regexp){
   if(length(grep(regexp, label)>0)) {
-    return(sub(regexp, "\\3", label))
+    return(as.numeric(sub(regexp, "\\3", label)))
   } else {
     return(NA)
   }
@@ -706,6 +706,10 @@ get.tt.ancestors <- function(tt, label){
 
 get.tt.children <- function(tt, label){
   return(tt$unique.splits[which(tt$parent.splits==label)])
+}
+
+get.tt.adjacent <- function(tt, label){
+  return(c(get.tt.children(tt, label), get.tt.parent(tt, label)))
 }
 
 get.tt.parent.patient <- function(tt, label){
@@ -738,6 +742,29 @@ get.tt.mrca.patient <- function(tt, label1, label2){
 
 get.tt.path <- function(tt, label1, label2){
   mrca <- get.tt.mrca(tt, label1, label2)
+  
+  if(mrca == label1){
+    result <- vector()
+    current.node <- label2
+    while(current.node != label1){
+      result <- c(result, current.node)
+      current.node <- get.tt.parent(tt, current.node)
+    }
+    result <- c(result, label1)
+    return(result)
+  }
+  
+  if(mrca == label2){
+    result <- vector()
+    current.node <- label1
+    while(current.node != label2){
+      result <- c(result, current.node)
+      current.node <- get.tt.parent(tt, current.node)
+    }
+    result <- c(result, label2)
+    return(result)
+  }
+  
   first.half <- vector()
   current.node <- label1
   while(current.node != mrca){
@@ -810,4 +837,64 @@ neighbouring.nodes <- function(tree, node){
   return(c(part.1, part.2))
 }
 
+
+# Drop a set of tips and return a vector which maps nodes from the full tree to the subtree
+
+drop.tip.get.map <- function(phy, tip){
+  if(length(unique(tree$tip.label))!=length(tree$tip.label)){
+    stop("This won't work if there are duplicate tip names")
+  }
+  reference <- vector()
+  
+  phy.2 <- drop.tip(phy, tip)
+  
+  for(new.label in seq(1, length(phy.2$tip.label))){
+    reference[new.label] = which(phy$tip.label==phy.2$tip.label[new.label])
+  }
+  
+  mrcas.1 <- mrca(phy)
+  mrcas.2 <- mrca(phy.2)
+  
+  for(tip.1 in seq(1, length(phy.2$tip.label))){
+    for(tip.2 in seq(1, length(phy.2$tip.label))){
+      if(tip.1 < tip.2){
+        new.mrca <- mrcas.2[tip.1,tip.2]
+        old.mrca <- mrcas.1[reference[tip.1], reference[tip.2]]
+        reference[new.mrca] = old.mrca
+      }
+    }
+  }
+  return(list(tree = phy.2, reference=reference))
+}
+
+extract.subtrees.for.patients <- function(tree, patients, splits){
+  labels.to.keep <- splits$tip.names[which(splits$orig.patients %in% patients)]
+  
+  pruned.tree <- drop.tip(tree, which(!(tree$tip.label %in% labels.to.keep)))
+  
+  return(pruned.tree)
+}
+
+prop.internal.longer.than.root <- function(tree, split, splits){
+  tips <- splits$tip.names[which(splits$patient.splits==split)]
+  
+  if(length(tips)==1){
+    return(0)
+  }
+  
+  split.root <- mrca.phylo.or.unique.tip(tree, which(tree$tip.label %in% tips))
+  dist.to.root <- 0 
+  
+  current.node <- split.root
+  while(!is.root(tree, current.node)){
+    dist.to.root <- dist.to.root + get.edge.length(tree, split.root)
+    current.node <- Ancestors(tree, current.node, type="parent")
+  }
+  
+  just.clade <- drop.tip(tree, which(!(tree$tip.label %in% tips)))
+  
+  edges <- just.clade$edge.length
+  
+  return(sum(edges > dist.to.root)/length(edges))
+}
 

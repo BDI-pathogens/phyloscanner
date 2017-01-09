@@ -60,13 +60,13 @@ if(command.line){
   if(0)
   {
     script.dir					<- "/Users/Oliver/git/phylotypes/tools"
-    summary.file				<- "~/duke/tmp/pty_16-12-16-08-44-25/ptyr22_patStatsFull.csv"
-    id.file 					<- "~/duke/tmp/pty_16-12-16-08-44-25/ptyr22_patients.txt"
-	input.files.name			<- "~/duke/tmp/pty_16-12-16-08-44-25/ProcessedTree_r_ptyr22_"
+    summary.file				<- "/Users/Oliver/duke/tmp/pty_17-01-02-20-41-36/ptyr110_patStatsFull.csv"
+    id.file 					<- "/Users/Oliver/duke/tmp/pty_17-01-02-20-41-36/ptyr110_patients.txt"
+	input.files.name			<- "/Users/Oliver/duke/tmp/pty_17-01-02-20-41-36/ProcessedTree_r_ptyr110_"
     min.threshold				<- 1
     allow.splits 				<- TRUE
-    output.file 				<- "~/duke/tmp/pty_16-12-16-08-44-25/ptyr22_trmStats.csv"
-	detailed.output				<- "~/duke/tmp/pty_16-12-16-08-44-25/ptyr22_patStatsPerWindow.csv"
+    output.file 				<- "/Users/Oliver/duke/tmp/pty_17-01-02-20-41-36/ptyr110_trmStats.csv"
+	detailed.output				<- "/Users/Oliver/duke/tmp/pty_17-01-02-20-41-36/ptyr110_patStatsPerWindow.csv"
     input.files 				<- sort(list.files(dirname(input.files.name), pattern=paste(basename(input.files.name),".*LikelyTransmissions.csv$",sep=''), full.names=TRUE))
   }
 }
@@ -99,6 +99,7 @@ if(!length(patient.ids))
 tt	<-	lapply(input.files, function(x){
 			tt <- as.data.table(read.table(x, sep=",", header=TRUE, stringsAsFactors=FALSE))
 			tt[, FILE:=basename(x)]
+			setnames(tt, c('paths21'),c('paths.21'))
 			tt
 		})	
 #
@@ -108,11 +109,13 @@ tt	<-	lapply(input.files, function(x){
 tt	<- lapply(tt, function(x){
 			#x	<- tt[[1]]
 			tmp	<- copy(x)
-			setnames(tmp, c('Patient_1','Patient_2'), c('Patient_2','Patient_1'))
-			set(tmp, tmp[, which(Relationship=="anc")], 'Relationship', 'desc')
-			set(tmp, tmp[, which(Relationship=="desc")], 'Relationship', 'anc')
-			set(tmp, tmp[, which(Relationship=="intAnc")], 'Relationship', 'intDesc')
-			set(tmp, tmp[, which(Relationship=="intDesc")], 'Relationship', 'intAnc')
+			setnames(tmp, c('Patient_1','Patient_2','paths.12','paths.21'), c('Patient_2','Patient_1','paths.21','paths.12'))
+			set(tmp, tmp[, which(path.classification=="anc")], 'path.classification', 'TMP')
+			set(tmp, tmp[, which(path.classification=="desc")], 'path.classification', 'anc')
+			set(tmp, tmp[, which(path.classification=="TMP")], 'path.classification', 'desc')
+			set(tmp, tmp[, which(path.classification=="multiAnc")], 'path.classification', 'TMP')
+			set(tmp, tmp[, which(path.classification=="multiDesc")], 'path.classification', 'multiAnc')
+			set(tmp, tmp[, which(path.classification=="TMP")], 'path.classification', 'multiDesc')
 			x	<- rbind(x, tmp)
 			setkey(x, Patient_1, Patient_2)
 			subset(x, Patient_1<Patient_2)
@@ -121,20 +124,17 @@ tt	<- lapply(tt, function(x){
 # rbind consolidated files
 #
 tt	<- do.call('rbind',tt)
-setnames(tt, c('Patient_1','Patient_2','Relationship','mean.distance.between.subtrees'), c('pat.1','pat.2','TYPE','PATRISTIC_DISTANCE'))
+setnames(tt, c('Patient_1','Patient_2','path.classification','contiguous','paths.21','paths.12','mean.distance.between.subtrees'), c('pat.1','pat.2','TYPE','CONTIGUOUS','PATHS.21','PATHS.12','PATRISTIC_DISTANCE'))
 # change type name depending on allow.splits
-if(allow.splits)
-{
-	set(tt, tt[, which(TYPE=='trueInt')], 'TYPE', 'int')
-	set(tt, tt[, which(TYPE=="intAnc")], 'TYPE', 'anc')
-	set(tt, tt[, which(TYPE=="intDesc")], 'TYPE', 'desc')
-}
 if(!allow.splits)
 {
-	set(tt, tt[, which(TYPE %in% c("trueInt", "intAnc", "intDesc"))], 'TYPE', 'int')	
+	set(tt, tt[, which(TYPE%in%c("multiAnc", "multiDesc") & CONTIGUOUS)], 'TYPE', 'conflict')
+	set(tt, tt[, which(TYPE%in%c("multiAnc", "multiDesc") & !CONTIGUOUS)], 'TYPE', 'none')
 }
-#	check we have patristic distances 
-stopifnot( !nrow(subset(tt, is.na(PATRISTIC_DISTANCE))) )		
+#	check we have patristic distances, paths
+stopifnot( !nrow(subset(tt, is.na(PATRISTIC_DISTANCE))) )
+stopifnot( !nrow(subset(tt, is.na(PATHS.12))) )
+stopifnot( !nrow(subset(tt, is.na(PATHS.21))) )
 #	set to numeric
 set(tt, NULL, 'PATRISTIC_DISTANCE', tt[, as.numeric(PATRISTIC_DISTANCE)])
 # 	add window coordinates
@@ -172,46 +172,47 @@ stopifnot(nrow(dp)==nrow(tt))
 tt			<- merge(tt, dp, by=c('pat.1','pat.2','W_FROM','W_TO'))
 stopifnot(nrow(dp)==nrow(tt))
 #	rename TYPE
-set(tt, tt[,which(TYPE=='disc')], 'TYPE','disconnected')
-set(tt, tt[,which(TYPE=='sib')], 'TYPE','sibling')
-set(tt, tt[,which(TYPE=='int')], 'TYPE','intermingled')
 set(tt, tt[,which(TYPE=='anc')], 'TYPE','anc_12')
 set(tt, tt[,which(TYPE=='desc')], 'TYPE','anc_21')
+set(tt, tt[,which(TYPE=='multiAnc')], 'TYPE','multi_anc_12')
+set(tt, tt[,which(TYPE=='multiDesc')], 'TYPE','multi_anc_21')
+
 #	reorder
 setkey(tt, W_FROM, W_TO, pat.1, pat.2)
-tt			<- subset(tt, select=c('W_FROM','W_TO','pat.1','pat.2','TYPE','PATRISTIC_DISTANCE','pat.1_leaves','pat.1_reads','pat.2_leaves','pat.2_reads'))
+tt			<- subset(tt, select=c('W_FROM','W_TO','pat.1','pat.2','TYPE','PATRISTIC_DISTANCE','CONTIGUOUS','PATHS.12','PATHS.21','pat.1_leaves','pat.1_reads','pat.2_leaves','pat.2_reads'))
+setnames(tt, colnames(tt),toupper(colnames(tt)))
 #	write to file
 if(!is.null(detailed.output))
 {	
+	cat("Save detailed per window table:",detailed.output)
 	save(tt, file=gsub('\\.csv','\\.rda',detailed.output))
 }
-#
+# 	Not currently in use
 #	make summary of transmission assignments across all columns
 #
-cat("Making summary output table...\n")
-set(tt, NULL, c('pat.1_leaves','pat.1_reads','pat.2_leaves','pat.2_reads'),NULL)
-tmp		<- tt[, list(windows=length(W_FROM)), by=c('pat.1','pat.2','TYPE')]
-tt		<- merge(tt, tmp, by=c('pat.1','pat.2','TYPE'))
+#cat("Making summary output table...\n")
+#set(tt, NULL, c('pat.1_leaves','pat.1_reads','pat.2_leaves','pat.2_reads'),NULL)
+#tmp		<- tt[, list(windows=length(W_FROM)), by=c('pat.1','pat.2','TYPE')]
+#tt		<- merge(tt, tmp, by=c('pat.1','pat.2','TYPE'))
 #	evaluate total.trans, denominator, and fraction
-tmp		<- tt[, list(denominator=length(W_FROM), total.notdisc=length(which(TYPE!='disconnected')), total.trans=length(which(grepl('anc',TYPE)))), by=c('pat.1','pat.2')]
-tmp		<- subset(tmp, total.notdisc>0)
-tt		<- merge(tt, tmp, by=c('pat.1','pat.2'))
-tt[, fraction:=paste(windows,'/',denominator,sep='')]
+#tmp		<- tt[, list(denominator=length(W_FROM), total.notdisc=length(which(TYPE!='disconnected')), total.trans=length(which(grepl('anc',TYPE)))), by=c('pat.1','pat.2')]
+#tmp		<- subset(tmp, total.notdisc>0)
+#tt		<- merge(tt, tmp, by=c('pat.1','pat.2'))
+#tt[, fraction:=paste(windows,'/',denominator,sep='')]
 #	convert "anc_12" and "ans_21" to "anc" depending on direction
-tt[, DUMMY:=NA_character_]
-tmp			<- tt[, which(TYPE=="anc_12")]
-set(tt, tmp, 'TYPE', "anc")
-tmp			<- tt[, which(TYPE=="anc_21")]
-set(tt, tmp, 'DUMMY', tt[tmp, pat.1])
-set(tt, tmp, 'pat.1', tt[tmp, pat.2])
-set(tt, tmp, 'pat.2', tt[tmp, DUMMY])
-set(tt, tmp, 'TYPE', "anc")
-tt[, DUMMY:=NULL]
+#tt[, DUMMY:=NA_character_]
+#tmp			<- tt[, which(TYPE=="anc_12")]
+#set(tt, tmp, 'TYPE', "anc")
+#tmp			<- tt[, which(TYPE=="anc_21")]
+#set(tt, tmp, 'DUMMY', tt[tmp, pat.1])
+#set(tt, tmp, 'pat.1', tt[tmp, pat.2])
+#set(tt, tmp, 'pat.2', tt[tmp, DUMMY])
+#set(tt, tmp, 'TYPE', "anc")
+#tt[, DUMMY:=NULL]
 #	write to file
-setkey(tt, pat.1, pat.2, TYPE)
-tt			<- subset(tt, TYPE!='disconnected')
-write.csv(subset(tt, total.trans>=min.threshold), file=output.file, row.names=FALSE, quote=FALSE)
-
+#setkey(tt, pat.1, pat.2, TYPE)
+#tt			<- subset(tt, TYPE!='disconnected')
+#write.csv(subset(tt, total.trans>=min.threshold), file=output.file, row.names=FALSE, quote=FALSE)
 
 # Not currently in use - for dating
 

@@ -9,17 +9,17 @@ if(!("ggtree" %in% installed.packages()[,"Package"])){
 }
 
 if(command.line){
-  require(argparse, quietly=TRUE, warn.conflicts=FALSE)
+  suppressMessages(require(argparse, quietly=TRUE, warn.conflicts=FALSE))
   
-  arg_parser = ArgumentParser(description="Split the tips from each patient up, according to one of several schemes, such that the tree can subsequently be partitioned into connected subtrees, one per split.")
-  
-  arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", 
-                          help="Regular expression identifying tips from the dataset. Three groups: patient ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name.")
+  arg_parser = ArgumentParser(description="Split the tips from each patient up, according to one of several schemes, such that the tree can subsequently be partitioned into connected subtrees, one per split.")  
+  arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. Three groups: patient ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name.")
   arg_parser$add_argument("-r", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
   arg_parser$add_argument("-z", "--zeroLengthTipsCount", action="store_true", default=FALSE, help="If present, a zero length terminal branch associates the patient at the tip with its parent node, interrupting any inferred transmission pathway between another pair of hosts that goes through the node.")
   arg_parser$add_argument("-s", "--splitsRule", action="store", default="r", help="The rules by which the sets of patients are split into groups in order to ensure that all groups can be members of connected subtrees without causing conflicts. Currently available: c=conservative, r=Romero-Severson (default).")
   arg_parser$add_argument("-b", "--blacklist", action="store", help="A .csv file listing tips to ignore. Alternatively, a base name that identifies blacklist files. Blacklist files are assumed to end in .csv.")
-  arg_parser$add_argument("inputFile", metavar="inputTreeFileName", help="Tree file name. Alternatively, a base name that identifies a group of tree file names can be specified. Tree files are assumed to end in .tree.")  
+  arg_parser$add_argument("-k", "--kParam", action="store", default=35, help="The k parameter in the cost matrix for Sankhoff reconstruction (see documentation)")
+  arg_parser$add_argument("-i", "--inputFile", metavar="inputTreeFileName", help="Tree file name. Alternatively, a base name that identifies a group of tree file names can be specified. Tree files are assumed to end in .tree.")  
+  arg_parser$add_argument("-t", "--breakTiesUnsampled", action="store_true", default=FALSE)
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
   arg_parser$add_argument("-OD", "--outputdir", action="store", help="Full path of the directory for output; if absent, current working directory")
   arg_parser$add_argument("-OF", "--outputfileid", action="store", help="A string identifying output files.")
@@ -30,11 +30,13 @@ if(command.line){
   args <- arg_parser$parse_args()
   script.dir <- args$scriptdir
   zero.length.tips.count <- args$zeroLengthTipsCount
+  break.ties.unsampled <- args$breakTiesUnsampled
   tree.file.names <- args$inputFile
   output.dir <- args$outputdir
   if(is.null(output.dir)){
     output.dir <- getwd()
   }
+  sankhoff.k <- as.numeric(args$kParam)
   out.identifier <- args$outputfileid
   blacklist.files <- args$blacklist
   root.name <- args$outgroupName
@@ -44,7 +46,7 @@ if(command.line){
   pdf.w <- as.numeric(args$pdfwidth)
   debug <- args$debug
   
-  if(!(mode %in% c("c", "r"))){
+  if(!(mode %in% c("c", "r", "f", "s"))){
     stop(paste("Unknown split classifier: ", mode, "\n", sep=""))
   }
 #  if(debug)
@@ -52,19 +54,50 @@ if(command.line){
   
   
 } else {
+  script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
+  mode <- "r"
+  zero.length.tips.count <- F
+  sankhoff.k <- 0
+  pdf.w = 35
+  pdf.hm = 0.5
+  
+  # BEEHIVE example
+  
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
   output.dir <- getwd()
-  script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
   tree.file.names <- "RAxML_bestTree.InWindow_800_to_1150.tree"
   blacklist.files <- "FullBlacklist_InWindow_800_to_1150.csv"
-  out.identifier <- "test"
+  out.identifier <- "test_s"
+  mode <- "s"
   root.name <- "C.BW.00.00BW07621.AF443088"
   tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
-  mode <- "c"
-  zero.length.tips.count <- F
+  sankhoff.k <- 25
+  break.ties.unsampled <- TRUE
 
-  pdf.w = 10
-  pdf.hm = 1
+  # Rakai example 
+  
+  # setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_160915_couples_w270/")
+  # output.dir <- getwd()
+  # tree.file.names <- "ptyr1_trees_newick/ptyr1_InWindow_1000_to_1249.tree"
+  # blacklist.files <- "ptyr1_trees_blacklist/ptyr1_blacklist_InWindow_1000_to_1249.csv"
+  # out.identifier <- "test_pytr1"
+  # root.name <- "REF_CPX_AF460972"
+  # tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
+  # 
+  # MRSA example
+  # 
+  # setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/")
+  # output.dir <- getwd()
+  # tree.file.names <- "RAxML_bipartitions.ST239_no_bootstraps.tree"
+  # blacklist.files <- NULL
+  # out.identifier <- "mrsa_k50_alt"
+  # root.name <- "TW20"
+  # tip.regex <- "^([ST][0-9][0-9][0-9][a-z]?)_([A-Z0-9]*)_[A-Z][0-9][0-9]$"
+  # mode <- "s"
+  # zero.length.tips.count <- F
+  # sankhoff.k <- 50
+  # break.ties.unsampled <- F
+  
   if(0)
   {
 	  script.dir		<- '/Users/Oliver/git/phylotypes/tools'
@@ -81,23 +114,24 @@ if(command.line){
   }
 }
 
-require(phangorn, quietly=TRUE, warn.conflicts=FALSE)
-require(phytools, quietly=TRUE, warn.conflicts=FALSE)
-require(ggplot2, quietly=TRUE, warn.conflicts=FALSE)
-require(ggtree, quietly=TRUE, warn.conflicts=FALSE)
-require(data.table, quietly=TRUE, warn.conflicts=FALSE)
+suppressMessages(require(phangorn, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(phytools, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(ggplot2, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(ggtree, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
 
 source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
 source(file.path(script.dir, "SubtreeMethods.R"))
+source(file.path(script.dir, "WriteAnnotatedTrees.R"))
 
 #
 #	define internal functions
 #
-split.patients.to.subtrees<- function(file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count)
+split.patients.to.subtrees<- function(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count, sankhoff.k, break.ties.unsampled)
 {
-	cat("SplitPatientsToSubtrees.R run on: ", file.name,", rules = ",mode,"\n", sep="")
+	cat("SplitPatientsToSubtrees.R run on: ", tree.file.name,", rules = ",mode,"\n", sep="")
 	
-	tree <- read.tree(file.name)
+	tree <- read.tree(tree.file.name)
 	tree <- unroot(tree)
 	tree <- di2multi(tree, tol = 1E-5)
 	if(!is.null(root.name)){
@@ -139,7 +173,7 @@ split.patients.to.subtrees<- function(file.name, mode, blacklist.file, root.name
 	
 	patient.mrcas <- lapply(patient.tips, function(node) mrca.phylo.or.unique.tip(tree, node, zero.length.tips.count))
 	
-	results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode)
+	results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, break.ties.unsampled)
 	
 	node.shapes <- rep(FALSE, length(tree$tip.label) + tree$Nnode)
 	for(mrca in results$first.nodes){
@@ -150,7 +184,7 @@ split.patients.to.subtrees<- function(file.name, mode, blacklist.file, root.name
 	
 	for(item in seq(1, length(results$assocs))){
 		if(!is.null(results$assocs[[item]])){
-			if(results$assocs[[item]] != "*"){
+			if(!(results$assocs[[item]] %in% c("*", "unsampled"))) {
 				temp.ca[item] <- results$assocs[[item]]
 			}
 		}
@@ -159,6 +193,7 @@ split.patients.to.subtrees<- function(file.name, mode, blacklist.file, root.name
 	temp.ca.pat <- sapply(temp.ca, function(x) unlist(strsplit(x, "-S"))[1] )
 	names(temp.ca.pat) <- NULL
 	temp.ca.pat <- factor(temp.ca.pat, levels = sample(levels(as.factor(temp.ca.pat))))
+	attr(tree, 'SPLIT') <- factor(temp.ca)
 	attr(tree, 'INDIVIDUAL') <- temp.ca.pat
 	attr(tree, 'NODE_SHAPES') <- node.shapes
 			
@@ -180,18 +215,15 @@ split.patients.to.subtrees<- function(file.name, mode, blacklist.file, root.name
 #
 
 #	check if 'tree.file.names' is tree
-options(show.error.messages = FALSE)		
-can.read.tree		<- try(suppressWarnings(read.tree(tree.file.names)))
-options(show.error.messages = TRUE)
+single.file	<- file.exists(tree.file.names)
 #
 #	if is tree, single file mode:
 #
-if(!inherits(can.read.tree, "try-error"))
-{
+if(single.file) {
 	#	if 'tree.file.names' is tree, process just one tree
 	tree.file.name		<- tree.file.names[1]	
 	blacklist.file		<- blacklist.files[1]
-	tmp					<- split.patients.to.subtrees(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count)
+	tmp					<- split.patients.to.subtrees(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count, sankhoff.k, break.ties.unsampled)
 	tree				<- tmp[['tree']]	
 	rs.subtrees			<- tmp[['rs.subtrees']]
 	#
@@ -210,27 +242,28 @@ if(!inherits(can.read.tree, "try-error"))
 									scale_color_hue(na.value = "black") +
 									theme(legend.position="none") +
 									geom_tiplab(aes(col=INDIVIDUAL)) + 
-	                geom_treescale(width=0.01, y=-5, offset=1.5)
+	                				geom_treescale(width=0.01, y=-5, offset=1.5)
 	
-	x.max <- ggplot_build(tree.display)$panel$ranges[[1]]$x.range[2]
+	x.max <- ggplot_build(tree.display)$layout$panel_ranges[[1]]$x.range[2]
 	
 	tree.display <- tree.display + ggplot2::xlim(0, 1.1*x.max)
 	tree.display	
 	tmp	<- file.path(output.dir,paste('Tree_',mode,'_',out.identifier,'.pdf',sep=''))
 	cat("Plot to file",tmp,"...\n")
 	ggsave(tmp, device="pdf", height = pdf.hm*length(tree$tip.label), width = pdf.w, limitsize = F)
+
+	tmp 				<- file.path(output.dir, paste('ProcessedTree_',mode,'_',out.identifier,'.tree',sep=''))
+	cat("Writing rerooted, multifurcating, annotated tree to file",tmp,"...\n")	
+	write.ann.nexus(tree, file=tmp, annotations = c("INDIVIDUAL", "SPLIT"))
+
 	#
 	#	write csv file
 	#
+	
 	tmp 				<- file.path(output.dir, paste('Subtrees_',mode,'_',out.identifier,'.csv',sep=''))
 	cat("Writing output to file",tmp,"...\n")	
 	write.csv(rs.subtrees, file=tmp, row.names = F, quote=F)	
-}
-#
-#	if not is tree, multi-file mode:
-#
-if(inherits(can.read.tree, "try-error"))
-{	
+} else {	
 	prefix.wfrom 		<- 'Window_'
 	prefix.wto 			<- 'Window_[0-9]+_to_'
 	tree.file.names		<- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),'.*\\.tree$',sep=''), full.names=TRUE))
@@ -266,7 +299,7 @@ if(inherits(can.read.tree, "try-error"))
 		if(is.na(blacklist.file))	
 			blacklist.file	<- NULL
 		out.identifier		<- gsub('\\.tree$','',basename(tree.file.name))
-		tmp					<- split.patients.to.subtrees(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count)
+		tmp					<- split.patients.to.subtrees(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count, sankhoff.k, break.ties.unsampled)
 		tree				<- tmp[['tree']]	
 		rs.subtrees			<- tmp[['rs.subtrees']]
 		#
@@ -275,6 +308,7 @@ if(inherits(can.read.tree, "try-error"))
 		tmp 				<- file.path(output.dir,paste('Subtrees_',mode,'_',out.identifier,'.rda',sep=''))
 		cat("Writing output to file",tmp,"...\n")
 		save(rs.subtrees, tree, file=tmp)	
+	
 		#
 		#	plot tree
 		#
@@ -287,7 +321,7 @@ if(inherits(can.read.tree, "try-error"))
 				geom_tiplab(aes(col=INDIVIDUAL)) + 
 		    geom_treescale(width = 0.01, y=-5, offset=1.5)
 		
-		x.max <- ggplot_build(tree.display)$panel$ranges[[1]]$x.range[2]
+		x.max <- ggplot_build(tree.display)$layout$panel_ranges[[1]]$x.range[2]
 		
 		tree.display <- tree.display + ggplot2::xlim(0, 1.1*x.max)
 		tree.display	
@@ -300,9 +334,10 @@ if(inherits(can.read.tree, "try-error"))
 		tmp 				<- file.path(output.dir, paste('Subtrees_',mode,'_',out.identifier,'.csv',sep=''))
 		cat("Writing output to file",tmp,"...\n")	
 		write.csv(rs.subtrees, file=tmp, row.names = F, quote=F)
-		tmp 				<- file.path(output.dir,paste('Subtrees_',mode,'_',out.identifier,'.rda',sep=''))
-		cat("Writing output to file",tmp,"...\n")
-		save(rs.subtrees, tree, file=tmp)		
+		
+		tmp 				<- file.path(output.dir, paste('ProcessedTree_',mode,'_',out.identifier,'.tree',sep=''))
+		cat("Writing rerooted, multifurcating, annotated tree to file",tmp,"...\n")	
+		write.ann.nexus(tree, file=tmp, annotations = c("INDIVIDUAL", "SPLIT"))		
 	}
 }
   
