@@ -162,10 +162,8 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
       stop("k must be specified for Sankhoff reconstruction")
     }
     
-    if(verbose){
-      cat("Reconstructing internal node hosts with the Sankhoff algorithm...\n")
-    }
-    
+    cat("Reconstructing internal node hosts with the Sankhoff algorithm...\n")
+ 
     non.patient.tips <- which(is.na(sapply(tree$tip.label, function(name) patient.from.label(name, tip.regex))))
     
     patient.ids <- sapply(tree$tip.label, function(x)  patient.from.label(x, tip.regex))
