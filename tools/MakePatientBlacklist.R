@@ -27,7 +27,7 @@ cat("MakePatientBlacklist.R run on: ", paste(tree.root,"_",start,"_to_",end,".tr
 bad.patients <- vector()
 
 for(row in seq(1,nrow(amps))){
-  if(amps[row,2]){
+  if(!amps[row,2]){
     bad.patients <- c(bad.patients, amps[row,1])
   } else {
     for(amp.id in seq(1,7)){
