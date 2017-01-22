@@ -157,7 +157,7 @@ split.patients.to.subtrees<- function(tree.file.name, mode, blacklist.file, root
 				blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
 			}
 		} else {
-			warning(paste("File ",blacklist.file.name," does not exist; skipping.",paste=""))
+			warning(paste("File ",blacklist.file," does not exist; skipping.",paste=""))
 		}
 	} 
 	
