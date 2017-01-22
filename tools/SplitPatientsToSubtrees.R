@@ -21,13 +21,21 @@ if(command.line){
   arg_parser$add_argument("-i", "--inputFile", metavar="inputTreeFileName", help="Tree file name. Alternatively, a base name that identifies a group of tree file names can be specified. Tree files are assumed to end in .tree.")  
   arg_parser$add_argument("-t", "--breakTiesUnsampled", action="store_true", default=FALSE)
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
+  arg_parser$add_argument("-L", "--libdir", action="store", help="Path to directory for additional libraries")
   arg_parser$add_argument("-OD", "--outputdir", action="store", help="Full path of the directory for output; if absent, current working directory")
   arg_parser$add_argument("-OF", "--outputfileid", action="store", help="A string identifying output files.")
   arg_parser$add_argument("-pw", "--pdfwidth", action="store", default=100, help="Width of tree pdf in inches.")
   arg_parser$add_argument("-ph", "--pdfrelheight", action="store", default=0.15, help="Relative height of tree pdf.")
   arg_parser$add_argument("-db", "--debug", action="store_true", default=FALSE, help="Debugging mode.")
   
+  
+  
   args <- arg_parser$parse_args()
+  
+  if(!is.null(args$libdir)){
+    .libPaths(args$libdir)
+  }
+  
   script.dir <- args$scriptdir
   zero.length.tips.count <- args$zeroLengthTipsCount
   break.ties.unsampled <- args$breakTiesUnsampled
@@ -58,15 +66,15 @@ if(command.line){
   mode <- "r"
   zero.length.tips.count <- F
   sankhoff.k <- 0
-  pdf.w = 35
-  pdf.hm = 0.5
+  pdf.w = 10
+  pdf.hm = 0.2
   
   # BEEHIVE example
   
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
   output.dir <- getwd()
-  tree.file.names <- "RAxML_bestTree.InWindow_800_to_1150.tree"
-  blacklist.files <- "FullBlacklist_InWindow_800_to_1150.csv"
+  tree.file.names <- "RAxML_bestTree.InWindow_1550_to_1900.tree"
+  blacklist.files <- "PatientBlacklist_InWindow_1550_to_1900.csv"
   out.identifier <- "test_s"
   mode <- "s"
   root.name <- "C.BW.00.00BW07621.AF443088"
@@ -76,27 +84,31 @@ if(command.line){
 
   # Rakai example 
   
-  # setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_160915_couples_w270/")
-  # output.dir <- getwd()
-  # tree.file.names <- "ptyr1_trees_newick/ptyr1_InWindow_1000_to_1249.tree"
-  # blacklist.files <- "ptyr1_trees_blacklist/ptyr1_blacklist_InWindow_1000_to_1249.csv"
-  # out.identifier <- "test_pytr1"
-  # root.name <- "REF_CPX_AF460972"
-  # tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
-  # 
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/RakaiSeqs/")
+  output.dir <- getwd()
+  tree.file.names <- "RAxML_bestTree.InWindow_550_to_900.tree"
+  blacklist.files <- "FullBlacklist_InWindow_550_to_900.csv"
+  out.identifier <- "test_pytr1"
+  root.name <- "B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
+  tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
+  mode <- "s"
+  zero.length.tips.count <- F
+  sankhoff.k <- 10
+  break.ties.unsampled <- F
+   
   # MRSA example
-  # 
-  # setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/")
-  # output.dir <- getwd()
-  # tree.file.names <- "RAxML_bipartitions.ST239_no_bootstraps.tree"
-  # blacklist.files <- NULL
-  # out.identifier <- "mrsa_k50_alt"
-  # root.name <- "TW20"
-  # tip.regex <- "^([ST][0-9][0-9][0-9][a-z]?)_([A-Z0-9]*)_[A-Z][0-9][0-9]$"
-  # mode <- "s"
-  # zero.length.tips.count <- F
-  # sankhoff.k <- 50
-  # break.ties.unsampled <- F
+  
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/")
+  output.dir <- "/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/refinement"
+  tree.file.names <- "RAxML_bipartitions.ST239_no_bootstraps_T056corr.tree"
+  blacklist.files <- NULL
+  out.identifier <- "mrsa_k10_bp"
+  root.name <- "TW20"
+  tip.regex <- "^([ST][0-9][0-9][0-9]_[A-Z])[A-Z0-9]*_[A-Z][0-9][0-9]$"
+  mode <- "s"
+  zero.length.tips.count <- F
+  sankhoff.k <- 10
+  break.ties.unsampled <- F
   
   if(0)
   {
