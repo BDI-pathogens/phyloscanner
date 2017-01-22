@@ -21,7 +21,6 @@ if(command.line){
   arg_parser$add_argument("-i", "--inputFile", metavar="inputTreeFileName", help="Tree file name. Alternatively, a base name that identifies a group of tree file names can be specified. Tree files are assumed to end in .tree.")  
   arg_parser$add_argument("-t", "--breakTiesUnsampled", action="store_true", default=FALSE)
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
-  arg_parser$add_argument("-L", "--libdir", action="store", help="Path to directory for additional libraries")
   arg_parser$add_argument("-OD", "--outputdir", action="store", help="Full path of the directory for output; if absent, current working directory")
   arg_parser$add_argument("-OF", "--outputfileid", action="store", help="A string identifying output files.")
   arg_parser$add_argument("-pw", "--pdfwidth", action="store", default=100, help="Width of tree pdf in inches.")
@@ -31,11 +30,7 @@ if(command.line){
   
   
   args <- arg_parser$parse_args()
-  
-  if(!is.null(args$libdir)){
-    .libPaths(args$libdir)
-  }
-  
+
   script.dir <- args$scriptdir
   zero.length.tips.count <- args$zeroLengthTipsCount
   break.ties.unsampled <- args$breakTiesUnsampled
