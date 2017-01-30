@@ -165,9 +165,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     cat("Reconstructing internal node hosts with the Sankhoff algorithm...\n")
  
     non.patient.tips <- which(is.na(sapply(tree$tip.label, function(name) patient.from.label(name, tip.regex))))
-    
-    patient.ids <- sapply(tree$tip.label, function(x)  patient.from.label(x, tip.regex))
-    
+    patient.ids <- sapply(tree$tip.label, function(x) patient.from.label(x, tip.regex))
     patient.ids[c(non.patient.tips, blacklist)] <- "unsampled"
     
     patients <- unique(patient.ids)
@@ -644,38 +642,17 @@ make.cost.matrix <- function(node, tree, patients, tip.assocs, individual.costs,
     this.row <- vector()
     child.nos <- Children(tree, node)
     nodes.for.calcs <- vector()
-    for(child in Children(tree, node)){
+    for(child in child.nos){
       current.matrix <- make.cost.matrix(child, tree, patients, tip.assocs, individual.costs, current.matrix, k, verbose)
     }
     if(length(child.nos)==0){
-      stop("huh?")
+      stop("Reached an internal node with no children(?)")
     }
     if(verbose){
       cat("Done; back to node ",node,"\n", sep="")
     }
-    row <- vector()
-    
-    for(top.patient.no in seq(1,length(patients))) {
-      sum <- 0
-      for(child in child.nos){
-        scores <- vector()
-        for(bottom.patient.no in seq(1,length(patients))){
-          bottom.patient <- patients[bottom.patient.no]
-          if(top.patient.no == bottom.patient.no){
-            scores[bottom.patient.no] <- current.matrix[child, bottom.patient.no]
-          } else if(patients[bottom.patient.no] != "unsampled"){
-            scores[bottom.patient.no] <- current.matrix[child, bottom.patient.no] + 1 + k*individual.costs[child, bottom.patient.no]
-            if(is.nan(scores[bottom.patient.no])){
-              scores[bottom.patient.no] <- Inf
-            }
-          } else {
-            scores[bottom.patient.no] <- current.matrix[child, bottom.patient.no]
-          }
-        }
-        sum <- sum + min(scores)
-      }
-      row[top.patient.no] <- sum
-    }
+
+    row <- vapply(seq(1, length(patients)), function(x) node.cost(x, patients, current.matrix, individual.costs, k, child.nos), 0)
     current.matrix[node,] <- row
   }
   if(verbose){
@@ -684,6 +661,30 @@ make.cost.matrix <- function(node, tree, patients, tip.assocs, individual.costs,
   }
   return(current.matrix)
   
+}
+
+node.cost <- function(patient.index, patients, current.matrix, individual.costs, k, child.nos){
+  return(sum(vapply(child.nos, function (x) child.min.cost(x, patients, patient.index, current.matrix, individual.costs, k), 0)))
+}
+
+child.min.cost <- function(child.index, patients, top.patient.no, current.matrix, individual.costs, k){
+  scores <- vapply(seq(1, length(patients)), function(x) child.cost(child.index, top.patient.no, x, current.matrix, individual.costs, k), 0)   
+  return(min(scores))
+}
+
+child.cost <- function(child.index, top.patient.no, bottom.patient.no, current.matrix, individual.costs, k){
+  bottom.patient <- patients[bottom.patient.no]
+  if(top.patient.no == bottom.patient.no) {
+    out <- current.matrix[child.index, bottom.patient.no]
+  } else if(patients[bottom.patient.no] != "unsampled") {
+    out <- current.matrix[child.index, bottom.patient.no] + 1 + k*individual.costs[child.index, bottom.patient.no]
+    if(is.nan(out)) {
+      out <- Inf
+    }
+  } else {
+    out <- current.matrix[child.index, bottom.patient.no]
+  }
+  return(out)
 }
 
 reconstruct <- function(tree, node, node.state, node.assocs, tip.assocs, patients, full.cost.matrix, node.cost.matrix, k, break.ties.unsampled, verbose=F){
