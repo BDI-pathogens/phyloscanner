@@ -57,40 +57,40 @@ if(command.line){
   
   
 } else {
-  script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
-  mode <- "r"
-  zero.length.tips.count <- F
-  sankhoff.k <- 0
-  pdf.w = 10
-  pdf.hm = 0.2
-  
-  # BEEHIVE example
-  
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
-  output.dir <- getwd()
-  tree.file.names <- "RAxML_bestTree.InWindow_1550_to_1900.tree"
-  blacklist.files <- "PatientBlacklist_InWindow_1550_to_1900.csv"
-  out.identifier <- "test_s"
-  mode <- "s"
-  root.name <- "C.BW.00.00BW07621.AF443088"
-  tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
-  sankhoff.k <- 25
-  break.ties.unsampled <- TRUE
-
-  # Rakai example 
-  
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/RakaiSeqs/")
-  output.dir <- getwd()
-  tree.file.names <- "RAxML_bestTree.InWindow_550_to_900.tree"
-  blacklist.files <- "FullBlacklist_InWindow_550_to_900.csv"
-  out.identifier <- "test_pytr1"
-  root.name <- "B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
-  tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
-  mode <- "s"
-  zero.length.tips.count <- F
-  sankhoff.k <- 10
-  break.ties.unsampled <- F
-   
+  # script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
+  # mode <- "r"
+  # zero.length.tips.count <- F
+  # sankhoff.k <- 0
+  # pdf.w = 10
+  # pdf.hm = 0.2
+  # 
+  # # BEEHIVE example
+  # 
+  # setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
+  # output.dir <- getwd()
+  # tree.file.names <- "RAxML_bestTree.InWindow_1550_to_1900.tree"
+  # blacklist.files <- "PatientBlacklist_InWindow_1550_to_1900.csv"
+  # out.identifier <- "test_s"
+  # mode <- "s"
+  # root.name <- "C.BW.00.00BW07621.AF443088"
+  # tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
+  # sankhoff.k <- 25
+  # break.ties.unsampled <- TRUE
+  # 
+  # # Rakai example 
+  # 
+  # setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/RakaiSeqs/")
+  # output.dir <- getwd()
+  # tree.file.names <- "RAxML_bestTree.InWindow_550_to_900.tree"
+  # blacklist.files <- "FullBlacklist_InWindow_550_to_900.csv"
+  # out.identifier <- "test_pytr1"
+  # root.name <- "B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
+  # tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
+  # mode <- "s"
+  # zero.length.tips.count <- F
+  # sankhoff.k <- 10
+  # break.ties.unsampled <- F
+  #  
   # MRSA example
   
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/")
@@ -182,6 +182,9 @@ split.patients.to.subtrees<- function(tree.file.name, mode, blacklist.file, root
 	
 	results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, break.ties.unsampled)
 	
+	rm(patient.tips)
+	rm(patient.mrcas)
+	
 	node.shapes <- rep(FALSE, length(tree$tip.label) + tree$Nnode)
 	for(mrca in results$first.nodes){
 		node.shapes[mrca] <- TRUE
@@ -213,6 +216,9 @@ split.patients.to.subtrees<- function(tree.file.name, mode, blacklist.file, root
 		patient.splits <- c(patient.splits, rep(patient.plus, length(tips)))
 		tip.names <- c(tip.names, tree$tip.label[tips])
 	}	
+	
+	rm(results)
+	
 	rs.subtrees <- data.frame(orig.patients, patient.splits, tip.names)
 			
 	list(tree=tree, rs.subtrees=rs.subtrees)
