@@ -673,7 +673,6 @@ child.min.cost <- function(child.index, patients, top.patient.no, current.matrix
 }
 
 child.cost <- function(child.index, top.patient.no, bottom.patient.no, current.matrix, individual.costs, k){
-  bottom.patient <- patients[bottom.patient.no]
   if(top.patient.no == bottom.patient.no) {
     out <- current.matrix[child.index, bottom.patient.no]
   } else if(patients[bottom.patient.no] != "unsampled") {
@@ -694,29 +693,14 @@ reconstruct <- function(tree, node, node.state, node.assocs, tip.assocs, patient
   }
   if(is.tip(tree, node)){
     if(node.state != tip.assocs[[node]]){
-      stop("Something is badly wrong")
+      stop("Attempting to reconstruct the wrong state onto a tip")
     }
     decision <- node.state
   } else {
     for(child in Children(tree, node)){
-      costs <- vector()
-      
-      for(patient.no in seq(1, length(patients))){
-        patient <- patients[patient.no]
-        if(patient == node.state){
-          # No cost for the transition because it doesn't happen here
-          costs[patient.no] <- full.cost.matrix[child, patient.no]
-        } else if(patient == "unsampled"){
-          # "unsampled" - no cost for the infection
-          costs[patient.no] <- full.cost.matrix[child, patient.no]
-        } else {
-          # the cost of "patient" being at the child plus the cost of "patient" being infected along this branch 
-          costs[patient.no] <- full.cost.matrix[child, patient.no] + 1 + k*node.cost.matrix[child, patient.no]
-          if(is.nan(costs[patient.no])){
-            costs[patient.no] <- Inf
-          }
-        }
-      }
+
+      costs <- vapply(seq(1, length(patients)), function(x) calc.costs(x, patients, node.state, child, node.cost.matrix, full.cost.matrix, k), 0)
+
       
       min.cost <- min(costs)
       if(length(which(costs == min.cost))==1){
@@ -771,6 +755,25 @@ reconstruct <- function(tree, node, node.state, node.assocs, tip.assocs, patient
     }
   }
   return(node.assocs)
+}
+
+
+calc.costs <- function(patient.no, patients, node.state, child.node, node.cost.matrix, full.cost.matrix, k){
+  patient <- patients[patient.no]
+  if(patient == node.state){
+    # No cost for the transition because it doesn't happen here
+    out <- full.cost.matrix[child.node, patient.no]
+  } else if(patient == "unsampled"){
+    # "unsampled" - no cost for the infection
+    out <- full.cost.matrix[child.node, patient.no]
+  } else {
+    # the cost of "patient" being at the child plus the cost of "patient" being infected along this branch 
+    out <- full.cost.matrix[child.node, patient.no] + 1 + k*node.cost.matrix[child.node, patient.no]
+    if(is.nan(out)){
+      out <- Inf
+    }
+  }
+  return(out)
 }
 
 cost.of.subtree <- function(tree, node, patient, tip.assocs, finite.cost.col, results){
