@@ -668,11 +668,11 @@ node.cost <- function(patient.index, patients, current.matrix, individual.costs,
 }
 
 child.min.cost <- function(child.index, patients, top.patient.no, current.matrix, individual.costs, k){
-  scores <- vapply(seq(1, length(patients)), function(x) child.cost(child.index, top.patient.no, x, current.matrix, individual.costs, k), 0)   
+  scores <- vapply(seq(1, length(patients)), function(x) child.cost(child.index, patients, top.patient.no, x, current.matrix, individual.costs, k), 0)   
   return(min(scores))
 }
 
-child.cost <- function(child.index, top.patient.no, bottom.patient.no, current.matrix, individual.costs, k){
+child.cost <- function(child.index, patients, top.patient.no, bottom.patient.no, current.matrix, individual.costs, k){
   if(top.patient.no == bottom.patient.no) {
     out <- current.matrix[child.index, bottom.patient.no]
   } else if(patients[bottom.patient.no] != "unsampled") {
