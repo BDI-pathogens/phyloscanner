@@ -265,6 +265,9 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     
     full.assocs <- reconstruct(tree, getRoot(tree), "unsampled", list(), tip.assocs, patients, cost.matrix, individual.costs, k, break.ties.unsampled, verbose)
     
+    rm(cost.matrix)
+    rm(individual.costs)
+    
     temp.ca <- rep(NA, length(tree$tip.label) + tree$Nnode)
     
     for(item in seq(1, length(full.assocs))){
