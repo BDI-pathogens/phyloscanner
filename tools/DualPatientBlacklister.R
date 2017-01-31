@@ -2,20 +2,17 @@
 
 suppressMessages(require(tools, quietly=TRUE, warn.conflicts=FALSE))
 
-if (command.line) {
+command.line <- T
+
+if(command.line){
   require(argparse, quietly=TRUE, warn.conflicts=FALSE)
   
-  arg_parser = ArgumentParser(description="Summarise patient statistics from each phylogeny across all windows.")
-  
-  arg_parser$add_argument("threshold", "What proportion of windows that a dual infection needs to appear in to be considered genuine.
-                          Those patients whose dual infections are considered genuine are blacklisted entirely. Those who are not
-                          are reduced to their largest subtrees only.")
-  arg_parser$add_argument("dualReportsPrefix", help="A file path and initial string identifying all dual infection files output
-                          from ParsimonyBasedBlacklister.R.")
-  arg_parser$add_argument(-b, "existingBlacklistsPrefix", action="store", help="A file path and initial string identifying 
-                          existing (.csv) blacklists whose output is to be appended to. Only such files whose suffix (the string after 
-                          the prefix, without the file extension) matches a suffix from the dual reports will be appended to.")
-  arg_parser$add_argument("newBlacklistsPrefix", help="A file path and initial string for all output blacklist files.")
+  arg_parser = ArgumentParser(description="Look at identified multiple infections across all windows, and identify which are to be ignored entirely or reduced to largest subtree only.")
+
+  arg_parser$add_argument("-b", "--existingBlacklistsPrefix", action="store", help="A file path and initial string identifying existing (.csv) blacklists whose output is to be appended to. Only such files whose suffix (the string after the prefix, without the file extension) matches a suffix from the dual reports will be appended to.")
+  arg_parser$add_argument("threshold", action="store", help="What proportion of windows that a dual infection needs to appear in to be considered genuine. Those patients whose dual infections are considered genuine are blacklisted entirely. Those who are not are reduced to their largest subtrees only.")
+  arg_parser$add_argument("dualReportsPrefix", action="store", help="A file path and initial string identifying all dual infection files output from ParsimonyBasedBlacklister.R.")
+  arg_parser$add_argument("newBlacklistsPrefix", action="store", help="A file path and initial string for all output blacklist files.")
 
   
   
@@ -27,6 +24,7 @@ if (command.line) {
   duals.prefix <- args$dualReportsPrefix
   output.prefix <- args$newBlacklistsPrefix 
   threshold <- args$threshold
+
   
   dual.files <- list.files(dirname(duals.prefix), pattern=paste('^',basename(duals.prefix),sep=""), full.names=TRUE)
   dual.files.sans.ext <- file_path_sans_ext(dual.files)
@@ -73,16 +71,16 @@ for(suffix in suffixes){
 
 total.windows <- length(suffixes)
 
-for(patient in labels(window.count.by.patient)){
+for(patient in labels(window.count.by.patient)[order(labels(window.count.by.patient))]){
   if(window.count.by.patient[[patient]]/total.windows > threshold){
-    cat("Patient ",patient," meets the threshold for dual infection and is blacklisted entirely.\n", sep="")
+    cat("Patient ",patient," meets the threshold for dual infection (",window.count.by.patient[[patient]]," out of ",total.windows,") and is blacklisted entirely.\n", sep="")
     # this is a dual infection and we want it removed in its entirety
     for(suffix in suffixes){
       dual.file <- read.csv(paste(duals.prefix, suffix, ".csv", sep=""), stringsAsFactors = F)
       pat.tips <- dual.file$tip.name[which(dual.file$patient==patient)]
       if(length(pat.tips)>0){
         if(file.exists(paste(output.prefix, suffix, ".csv", sep=""))){
-          existing.bl <- read.csv(paste(output.prefix, suffix, ".csv", sep=""), stringsAsFactors = F)$x
+          existing.bl <- read.table(paste(output.prefix, suffix, ".csv", sep=""), sep=",", stringsAsFactors = F, header=F)$V1
           new.bl <- unique(c(existing.bl, pat.tips))
   
         } else {
@@ -92,7 +90,7 @@ for(patient in labels(window.count.by.patient)){
       }
     }
   } else {
-    cat("Patient ",patient," does not meet the threshold for dual infection and smaller subtrees are being blacklisted.\n", sep="")
+    cat("Patient ",patient," does not meet the threshold for dual infection (",window.count.by.patient[[patient]]," out of ",total.windows,") and smaller subtrees are being blacklisted.\n", sep="")
     # this is to have smaller subtrees blacklisted away on windows where they occur
     for(suffix in suffixes){
       
@@ -103,7 +101,7 @@ for(patient in labels(window.count.by.patient)){
         smaller.tips <- pat.rows$tip.name[which(pat.rows$reads.in.subtree!=max.reads)]
       
         if(file.exists(paste(output.prefix, suffix, ".csv", sep=""))){
-          existing.bl <- read.csv(paste(output.prefix, suffix, ".csv", sep=""), stringsAsFactors = F)$x
+          existing.bl <- read.table(paste(output.prefix, suffix, ".csv", sep=""), sep=",", stringsAsFactors = F, header=F)$V1
           new.bl <- unique(c(existing.bl, smaller.tips))
           
         } else {
