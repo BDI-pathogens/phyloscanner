@@ -57,7 +57,7 @@ if(command.line){
   
   
 } else {
-  # script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
+  script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
   # mode <- "r"
   # zero.length.tips.count <- F
   # sankhoff.k <- 0
@@ -97,7 +97,7 @@ if(command.line){
   output.dir <- "/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/refinement"
   tree.file.names <- "RAxML_bipartitions.ST239_no_bootstraps_T056corr.tree"
   blacklist.files <- NULL
-  out.identifier <- "mrsa_k10_bp"
+  out.identifier <- "mrsa_k10_bp_another"
   root.name <- "TW20"
   tip.regex <- "^([ST][0-9][0-9][0-9]_[A-Z])[A-Z0-9]*_[A-Z][0-9][0-9]$"
   mode <- "s"
@@ -161,6 +161,7 @@ split.patients.to.subtrees<- function(tree.file.name, mode, blacklist.file, root
 		}
 	} 
 	
+	cat("Identifying tips with patients...\n")
 	
 	patient.ids <- sapply(tip.labels, function(x) patient.from.label(x, tip.regex))
 	
@@ -181,9 +182,6 @@ split.patients.to.subtrees<- function(tree.file.name, mode, blacklist.file, root
 	patient.mrcas <- lapply(patient.tips, function(node) mrca.phylo.or.unique.tip(tree, node, zero.length.tips.count))
 	
 	results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, break.ties.unsampled)
-	
-	rm(patient.tips)
-	rm(patient.mrcas)
 	
 	node.shapes <- rep(FALSE, length(tree$tip.label) + tree$Nnode)
 	for(mrca in results$first.nodes){
@@ -217,8 +215,6 @@ split.patients.to.subtrees<- function(tree.file.name, mode, blacklist.file, root
 		tip.names <- c(tip.names, tree$tip.label[tips])
 	}	
 	
-	rm(results)
-	
 	rs.subtrees <- data.frame(orig.patients, patient.splits, tip.names)
 			
 	list(tree=tree, rs.subtrees=rs.subtrees)
@@ -236,6 +232,8 @@ if(single.file) {
 	#	if 'tree.file.names' is tree, process just one tree
 	tree.file.name		<- tree.file.names[1]	
 	blacklist.file		<- blacklist.files[1]
+	
+
 	tmp					<- split.patients.to.subtrees(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count, sankhoff.k, break.ties.unsampled)
 	tree				<- tmp[['tree']]	
 	rs.subtrees			<- tmp[['rs.subtrees']]
@@ -312,7 +310,9 @@ if(single.file) {
 		if(is.na(blacklist.file))	
 			blacklist.file	<- NULL
 		out.identifier		<- gsub('\\.tree$','',basename(tree.file.name))
+		
 		tmp					<- split.patients.to.subtrees(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count, sankhoff.k, break.ties.unsampled)
+
 		tree				<- tmp[['tree']]	
 		rs.subtrees			<- tmp[['rs.subtrees']]
 		#
@@ -353,4 +353,3 @@ if(single.file) {
 		write.ann.nexus(tree, file=tmp, annotations = c("INDIVIDUAL", "SPLIT"))		
 	}
 }
-  

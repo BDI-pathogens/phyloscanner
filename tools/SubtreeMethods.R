@@ -1,4 +1,4 @@
-split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, method="r", k=NA, break.ties.unsampled = FALSE, sankhoff.mode = "total.lengths", verbose=F){
+split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, method="r", k=NA, break.ties.unsampled = FALSE, sankhoff.mode = "total.lengths", verbose=T){
   
   if(method == "c"){
     cat("Finding nodes that would have to be associated with more than one patient with no splits...\n")
@@ -179,9 +179,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     
     tip.assocs <- annotate.tips(tree, patients, patient.tips)
     
-    if(verbose){
-      cat("Calculating all costs...\n")
-    }
+    cat("Calculating node costs...\n")
     
     # This matrix is the cost of an infection for a given patient along the branch ENDING in a given
     # node. This is the distance from the START of the branch (could make it halfway at a later point) 
@@ -255,18 +253,15 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     # The rows of the cost matrix are nodes. The columns are patients; the last column is the unsampled
     # state
     
+    cat("Building full cost matrix...\n")
+    
     cost.matrix <- matrix(NA, ncol=length(patients), nrow=length(tree$tip.label) + tree$Nnode)
     
-    cost.matrix <- make.cost.matrix(getRoot(tree), tree, patients, tip.assocs, individual.costs, cost.matrix, k, verbose)
+    cost.matrix <- make.cost.matrix(getRoot(tree), tree, patients, tip.assocs, individual.costs, cost.matrix, k)
     
-    if(verbose){
-      cat("Reconstructing...\n")
-    }
-    
+    cat("Reconstructing...\n")
+
     full.assocs <- reconstruct(tree, getRoot(tree), "unsampled", list(), tip.assocs, patients, cost.matrix, individual.costs, k, break.ties.unsampled, verbose)
-    
-    rm(cost.matrix)
-    rm(individual.costs)
     
     temp.ca <- rep(NA, length(tree$tip.label) + tree$Nnode)
     
@@ -282,10 +277,8 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     
     actual.patients <- patients[which(patients!="unsampled")]
     
-    if(verbose){
-      cat("Identifying split patients...\n")
-    }
-    
+    cat("Identifying split patients...\n")
+
     splits.count <- rep(0, length(actual.patients))
     first.nodes <- list()
     
@@ -633,9 +626,9 @@ make.cost.matrix <- function(node, tree, patients, tip.assocs, individual.costs,
     if(verbose){
       cat(" is a tip (host = ",tip.assocs[[node]],")\n", sep="")
     }
-    infinity.vector <- rep(Inf, length(patients))
-    infinity.vector[which(patients == tip.assocs[[node]])] <- 0
-    current.matrix[node,] <- infinity.vector
+    current.matrix[node,] <- rep(Inf, length(patients))
+    current.matrix[node, which(patients == tip.assocs[[node]])] <- 0
+
   } else {
     if(verbose){
       cat(" looking at children (")
@@ -644,7 +637,6 @@ make.cost.matrix <- function(node, tree, patients, tip.assocs, individual.costs,
     }
     this.row <- vector()
     child.nos <- Children(tree, node)
-    nodes.for.calcs <- vector()
     for(child in child.nos){
       current.matrix <- make.cost.matrix(child, tree, patients, tip.assocs, individual.costs, current.matrix, k, verbose)
     }
@@ -654,16 +646,19 @@ make.cost.matrix <- function(node, tree, patients, tip.assocs, individual.costs,
     if(verbose){
       cat("Done; back to node ",node,"\n", sep="")
     }
+    
+    current.matrix[node,] <- vapply(seq(1, length(patients)), function(x) node.cost(x, patients, current.matrix, individual.costs, k, child.nos), 0)
 
-    row <- vapply(seq(1, length(patients)), function(x) node.cost(x, patients, current.matrix, individual.costs, k, child.nos), 0)
-    current.matrix[node,] <- row
+    if(verbose){
+      cat("Row for node ",node," calculated\n", sep="")
+    }
   }
   if(verbose){
     cat("Lowest cost (",min(current.matrix[node,]),") for node ",node," goes to ",patients[which(current.matrix[node,] == min(current.matrix[node,]))],"\n",sep="") 
+
     cat("\n")
   }
   return(current.matrix)
-  
 }
 
 node.cost <- function(patient.index, patients, current.matrix, individual.costs, k, child.nos){
@@ -671,7 +666,15 @@ node.cost <- function(patient.index, patients, current.matrix, individual.costs,
 }
 
 child.min.cost <- function(child.index, patients, top.patient.no, current.matrix, individual.costs, k){
-  scores <- vapply(seq(1, length(patients)), function(x) child.cost(child.index, patients, top.patient.no, x, current.matrix, individual.costs, k), 0)   
+  scores <- rep(Inf, length(patients))
+
+  finite.scores <- c(top.patient.no, which(patients=="unsampled"), which(is.finite(individual.costs[child.index,])))
+  finite.scores <- finite.scores[order(finite.scores)]
+
+  scores[finite.scores] <- vapply(finite.scores, function(x) child.cost(child.index, patients, top.patient.no, x, current.matrix, individual.costs, k), 0)
+
+  # scores <- vapply(seq(1, length(patients)), function(x) child.cost(child.index, patients, top.patient.no, x, current.matrix, individual.costs, k), 0)   
+  
   return(min(scores))
 }
 
