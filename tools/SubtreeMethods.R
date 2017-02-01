@@ -1,4 +1,4 @@
-split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, method="r", k=NA, break.ties.unsampled = FALSE, sankhoff.mode = "total.lengths", verbose=T){
+split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, method="r", k=NA, break.ties.unsampled = FALSE, sankhoff.mode = "total.lengths", verbose=F){
   
   if(method == "c"){
     cat("Finding nodes that would have to be associated with more than one patient with no splits...\n")
