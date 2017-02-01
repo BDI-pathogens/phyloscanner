@@ -618,7 +618,7 @@ find.ignored.descendants <- function(node, tree, temp.ignore.list, temp.surrogat
   return(list(ignore = current.ignore.list, surrogates = current.surrogate.list))
 }
 
-make.cost.matrix <- function(node, tree, patients, tip.assocs, individual.costs, current.matrix, k, verbose = T){
+make.cost.matrix <- function(node, tree, patients, tip.assocs, individual.costs, current.matrix, k, verbose = F){
   if(verbose){
     cat("Node number ",node,":", sep="")
   }
@@ -652,10 +652,14 @@ make.cost.matrix <- function(node, tree, patients, tip.assocs, individual.costs,
     if(verbose){
       cat("Row for node ",node," calculated\n", sep="")
     }
+
   }
   if(verbose){
     cat("Lowest cost (",min(current.matrix[node,]),") for node ",node," goes to ",patients[which(current.matrix[node,] == min(current.matrix[node,]))],"\n",sep="") 
 
+    if(length(which(!is.na(current.matrix[,1]))) %% 100 == 0){
+      cat(length(which(!is.na(current.matrix[,1]))), " of ", nrow(current.matrix), " matrix rows calculated.\n", sep="")
+    }
     cat("\n")
   }
   return(current.matrix)
