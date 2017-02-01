@@ -656,12 +656,12 @@ make.cost.matrix <- function(node, tree, patients, tip.assocs, individual.costs,
   }
   if(verbose){
     cat("Lowest cost (",min(current.matrix[node,]),") for node ",node," goes to ",patients[which(current.matrix[node,] == min(current.matrix[node,]))],"\n",sep="") 
-
-    if(length(which(!is.na(current.matrix[,1]))) %% 100 == 0){
-      cat(length(which(!is.na(current.matrix[,1]))), " of ", nrow(current.matrix), " matrix rows calculated.\n", sep="")
-    }
-    cat("\n")
+    cat("\n")  
   }
+  if(length(which(!is.na(current.matrix[,1]))) %% 100 == 0){
+    cat(length(which(!is.na(current.matrix[,1]))), " of ", nrow(current.matrix), " matrix rows calculated.\n", sep="")
+  }
+
   return(current.matrix)
 }
 
