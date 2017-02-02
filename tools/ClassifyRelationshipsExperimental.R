@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-command.line <- T
+command.line <- 
 
 list.of.packages <- c("phangorn", "argparse", "phytools", "OutbreakTools")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -72,13 +72,13 @@ if(command.line){
   
   # MRSA example
   
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/")
-  tree.file.names <- "ProcessedTree_s_mrsa_k50.tree"
-  splits.file.names <- "Subtrees_s_mrsa_k50.csv"
-  output.name <- "LT_s_mrsa_k.csv"
-  collapsed.file.names <- "collapsed_s_mrsa_k50.csv"
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/refinement")
+  tree.file.names <- "ProcessedTree_s_mrsa_k10_bp.tree"
+  splits.file.names <- "Subtrees_s_mrsa_k10_bp.csv"
+  output.name <- "LT_s_mrsa_k10_bp.csv"
+  collapsed.file.names <- "collapsed_s_mrsa_k10_bp.csv"
   split.threshold <- NA
-  tip.regex <- "^([ST][0-9][0-9][0-9])_[A-Z0-9]*_[A-Z][0-9][0-9]$"
+  tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
   
   
   if(0)
@@ -111,7 +111,6 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
   cat("Opening file: ", tree.file.name, "...\n", sep = "")
   
   pseudo.beast.import <- read.beast(tree.file.name)
-  
   tree <- attr(pseudo.beast.import, "phylo")
   
   cat("Reading splits file",splits.file.name,"...\n")
@@ -184,8 +183,8 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
   count <- 0
   contiguous.matrix <- matrix(NA, length(patients.included), length(patients.included))
   path.matrix <- matrix(NA, length(patients.included), length(patients.included))
-  nodes.12.matrix <- matrix(NA, length(patients.included), length(patients.included))
-  nodes.21.matrix <- matrix(NA, length(patients.included), length(patients.included))
+  nodes.1.matrix <- matrix(NA, length(patients.included), length(patients.included))
+  nodes.2.matrix <- matrix(NA, length(patients.included), length(patients.included))
   dir.12.matrix <- matrix(NA, length(patients.included), length(patients.included))
   dir.21.matrix <- matrix(NA, length(patients.included), length(patients.included))
   mean.distance.matrix <- matrix(NA, length(patients.included), length(patients.included))
@@ -232,8 +231,8 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
         prop.12 <- count.12/length(nodes.2)
         prop.21 <- count.21/length(nodes.1)
         
-        nodes.12.matrix[pat.1, pat.2] <- length(nodes.1)
-        nodes.21.matrix[pat.1, pat.2] <- length(nodes.2)
+        nodes.1.matrix[pat.1, pat.2] <- length(nodes.1)
+        nodes.2.matrix[pat.1, pat.2] <- length(nodes.2)
         
         dir.12.matrix[pat.1, pat.2] <- count.12
         dir.21.matrix[pat.1, pat.2] <- count.21
@@ -279,8 +278,8 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
   contiguous.table <- as.table(contiguous.matrix)
   dir.12.table <- as.table(dir.12.matrix)
   dir.21.table <- as.table(dir.21.matrix)
-  nodes.12.table <- as.table(nodes.12.matrix)
-  nodes.21.table <- as.table(nodes.21.matrix)
+  nodes.1.table <- as.table(nodes.1.matrix)
+  nodes.2.table <- as.table(nodes.2.matrix)
   path.table <- as.table(path.matrix)
   mean.distance.table <- as.table(mean.distance.matrix)
   
@@ -296,11 +295,11 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
   colnames(dir.21.table) <- patients.included
   rownames(dir.21.table) <- patients.included
   
-  colnames(nodes.12.table) <- patients.included
-  rownames(nodes.12.table) <- patients.included
+  colnames(nodes.1.table) <- patients.included
+  rownames(nodes.1.table) <- patients.included
   
-  colnames(nodes.21.table) <- patients.included
-  rownames(nodes.21.table) <- patients.included
+  colnames(nodes.2.table) <- patients.included
+  rownames(nodes.2.table) <- patients.included
   
   colnames(mean.distance.table) <- patients.included
   rownames(mean.distance.table) <- patients.included
@@ -319,17 +318,17 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
   d12df <- d12df[keep,]
   d21df <- d21df[keep,]
   
-  n12df <- as.data.frame(nodes.12.table)
-  n21df <- as.data.frame(nodes.21.table)
-  n12df <- n12df[keep,]
-  n21df <- n21df[keep,]
+  n1df <- as.data.frame(nodes.1.table)
+  n2df <- as.data.frame(nodes.2.table)
+  n1df <- n1df[keep,]
+  n2df <- n2df[keep,]
   
   mddf <- as.data.frame(mean.distance.table)
   mddf <- mddf[keep,]
   
-  cdf <- cbind(cdf, d12df[,3], d21df[,3], n12df[,3], n21df[,3], pdf[,3], mddf[,3])
+  cdf <- cbind(cdf, d12df[,3], d21df[,3], n1df[,3], n2df[,3], pdf[,3], mddf[,3])
   
-  colnames(cdf) <- c("Patient_1", "Patient_2", "contiguous", "paths.12", "paths21", "nodes12", "nodes21", "path.classification", "mean.distance.between.subtrees")
+  colnames(cdf) <- c("Patient_1", "Patient_2", "contiguous", "paths12", "paths21", "nodes1", "nodes2", "path.classification", "mean.distance.between.subtrees")
   cdf
 }
 
