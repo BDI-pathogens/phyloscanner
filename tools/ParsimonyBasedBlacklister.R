@@ -127,7 +127,7 @@ for(patient in patients[order(patients)]){
     patient.tips <- list()
     patient.tips[[patient]] <- setdiff(1:length(subtree$tip.label), root.no)
     
-    split.results <- split.and.annotate(subtree, patient, patient.tips, NULL, NULL, tip.regex, "s", sankhoff.k, TRUE, "total.lengths")
+    split.results <- split.and.annotate(subtree, patient, patient.tips, NULL, NULL, tip.regex, "s", sankhoff.k, "u", "total.lengths")
     
     if(length(split.results$split.patients)==1){
       cat("No splits for patient ", patient, "\n", sep="")

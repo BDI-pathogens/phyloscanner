@@ -1,4 +1,4 @@
-split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, method="r", k=NA, break.ties.unsampled = FALSE, sankhoff.mode = "total.lengths", verbose=F){
+split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, method="r", k=NA, ties.rule = "c", sankhoff.mode = "total.lengths", verbose=F){
   
   if(method == "c"){
     cat("Finding nodes that would have to be associated with more than one patient with no splits...\n")
@@ -261,7 +261,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     
     cat("Reconstructing...\n")
 
-    full.assocs <- reconstruct(tree, getRoot(tree), "unsampled", list(), tip.assocs, patients, cost.matrix, individual.costs, k, break.ties.unsampled, verbose)
+    full.assocs <- reconstruct(tree, getRoot(tree), "unsampled", list(), tip.assocs, patients, cost.matrix, individual.costs, k, ties.rule, verbose)
     
     temp.ca <- rep(NA, length(tree$tip.label) + tree$Nnode)
     
@@ -696,7 +696,7 @@ child.cost <- function(child.index, patients, top.patient.no, bottom.patient.no,
   return(out)
 }
 
-reconstruct <- function(tree, node, node.state, node.assocs, tip.assocs, patients, full.cost.matrix, node.cost.matrix, k, break.ties.unsampled, verbose=F){
+reconstruct <- function(tree, node, node.state, node.assocs, tip.assocs, patients, full.cost.matrix, node.cost.matrix, k, ties.rule, verbose=F){
   node.assocs[[node]] <- node.state
   if(verbose){
     cat("Node ",node," reconstructed as ",node.state,"\n", sep="")
@@ -723,7 +723,7 @@ reconstruct <- function(tree, node, node.state, node.assocs, tip.assocs, patient
         if(verbose){
           cat("Tie at node",node,"between",patients[which(costs == min.cost)],"...", sep=" ")
         }
-        if(break.ties.unsampled){
+        if(ties.rule == "u"){
           if("unsampled" %in% patients[which(costs == min.cost)]){
             if(verbose){
               cat("broken in favour of unsampled\n")
@@ -741,7 +741,7 @@ reconstruct <- function(tree, node, node.state, node.assocs, tip.assocs, patient
             paste("WARNING: some ties broken at random\n", sep="")
             decision <- patients[sample(which(costs == min.cost), 1)]
           }
-        } else {
+        } else if(ties.rule == "c")  {
           if(node.state %in% patients[which(costs == min.cost)]){
             if(verbose){
               cat("broken in favour of",node.state,"\n")
@@ -759,9 +759,31 @@ reconstruct <- function(tree, node, node.state, node.assocs, tip.assocs, patient
             paste("WARNING: some ties broken at random\n", sep="")
             decision <- patients[sample(which(costs == min.cost), 1)]
           }
+        } else if(ties.rule=="b"){
+          # if this branch is longer than its parent branch, give it "unsampled". Otherwise, give it its parent's state
+          
+          if(node.state %in% patients[which(costs == min.cost)] & "unsampled" %in% patients[which(costs == min.cost)]){
+            child.branch.length <- get.edge.length(tree, child)
+            parent.branch.length <- get.edge.length(tree, node)
+            if(child.branch.length > 2*parent.branch.length){
+              decision <- "unsampled"
+            } else {
+              decision <- node.state
+            }
+            
+          } else {
+            if(verbose){
+              cat(patients[which(costs == min.cost)], '\n')
+            }
+            paste("WARNING: some ties broken at random\n", sep="")
+            decision <- patients[sample(which(costs == min.cost), 1)]
+          }
+          
+        } else {
+          stop("Unknown tie-breaking method.")
         }
       }
-      node.assocs <- reconstruct(tree, child, decision, node.assocs, tip.assocs, patients, full.cost.matrix, node.cost.matrix, k, break.ties.unsampled)
+      node.assocs <- reconstruct(tree, child, decision, node.assocs, tip.assocs, patients, full.cost.matrix, node.cost.matrix, k, ties.rule)
     }
   }
   return(node.assocs)
