@@ -131,16 +131,16 @@ if (command.line) {
     windows <- NULL
   }
 } else {
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/")
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
   id.file <- "patientIDList.txt"
   root.name<- "C.BW.00.00BW07621.AF443088"
   tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
-  tree.files <- sort(list.files(getwd(), pattern="RAxML_bestTree.InWindow_.*\\.tree"))
-  splits.files <- sort(list.files(getwd(), pattern="Subtrees_r_run20160517_inWindow_.*\\.csv"))
-  sequence.files <- sort(list.files(getwd(), pattern="AlignedReads_PositionsExcised_.*\\.fasta"))
-  blacklist.files <- sort(list.files(getwd(), pattern="FullBlacklist_InWindow_.*\\.csv"))
-  output.root <- "ss_c_new"
+  tree.files <- sort(list.files(paste(getwd(),"/AllTrees",sep=""), pattern="RAxML_bestTree.InWindow_.*\\.tree"))
+  splits.files <- sort(list.files(paste(getwd(),"/SubtreeFiles_r",sep=""), pattern="Subtrees_r_run20161013_RS_inWindow_.*\\.csv"))
+  sequence.files <- sort(list.files(paste(getwd(),"/AlignedReads",sep=""), pattern="AlignedReads_PositionsExcised_.*\\.fasta"))
+  blacklist.files <- sort(list.files(paste(getwd(),"/Blacklists",sep=""), pattern="DualsBlacklist.InWindow_.*\\.csv"))
+  output.root <- "ss_r_new"
   windows <- NULL
 
 #  if(0)
@@ -274,10 +274,10 @@ max.splits <- 0
 
 for(window.no in seq(1, length(tree.files))){
 
-  tree.file.name <- tree.files[window.no]
-  blacklist.file.name <- blacklist.files[window.no]
-  splits.file.name <- splits.files[window.no]
-  sequence.file.name <- sequence.files[window.no]
+  tree.file.name <- paste("AllTrees/",tree.files[window.no], sep="")
+  blacklist.file.name <- paste("Blacklists/",blacklist.files[window.no], sep="")
+  splits.file.name <- paste("SubtreeFiles_r/",splits.files[window.no], sep="")
+  sequence.file.name <- paste("AlignedReads/",sequence.files[window.no], sep="")
   
   if(!is.null(windows)){
     window <- windows[window.no]
@@ -351,7 +351,7 @@ for(window.no in seq(1, length(tree.files))){
   # Get each statistic for each patient
   
   for (i in 1:num.ids) {
-#    cat("Calculating statistics in window",start, " for patient ", ids[i], "\n", sep="")
+#    cat("Calculating statistics in window ",start, " for patient ", ids[i], "\n", sep="")
     id <- ids[i]
 
     num.leaves <- length(patient.tips[[id]])
@@ -749,7 +749,7 @@ for (i in seq(1, length(ids))) {
       geom_point(aes(shape=variable, size=variable), na.rm=TRUE) +
       aes(col = variable) +
       theme_bw() + 
-      ylab("Root-to-tip-distance") +
+      ylab("Mean root-to-tip-distance\n(read-weighted)") +
       xlab("Window centre") +
       scale_x_continuous(limits=c(ews, lwe)) +
       expand_limits(y=0) + 

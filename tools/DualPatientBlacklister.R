@@ -53,8 +53,6 @@ if(command.line){
 
 window.count.by.patient <- list()
 
-
-
 for(suffix in suffixes){
   dual.file <- read.csv(paste(duals.prefix, suffix, ".csv", sep=""), stringsAsFactors = F)
   for(patient in unique(dual.file$patient)){
