@@ -14,6 +14,7 @@ if(command.line){
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
   arg_parser$add_argument("-r", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
   arg_parser$add_argument("-b", "--blacklist", action="store", help="A blacklist to be applied before this script is run.")
+  arg_parser$add_argument("-c", "--noReadCounts", action="store_true", help="If present, each tip is assumed to represent one read")
   arg_parser$add_argument("rawThreshold", action="store", type="double", help="Raw threshold; tips with read counts less than this that are identical to a tip from another patient will be blacklisted, regardless of the count of the other read.")
   arg_parser$add_argument("ratioThreshold", action="store", type="double", help="Ratio threshold; tips will be blacklisted if the ratio of their tip count to that of of another, identical tip from another patient is less than this value.")
   arg_parser$add_argument("sankhoffK", action="store", type="double", help="The k parameter in the cost matrix for Sankhoff reconstruction (see documentation)")
@@ -36,15 +37,16 @@ if(command.line){
   script.dir <- args$scriptdir
   root.name <- args$outgroupName
   blacklist.file.name <- args$blacklist
+  no.read.counts <- args$noReadCounts
 
 } else {
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/AllTrees/")
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
   
-  input.name <- "RAxML_bestTree.InWindow_800_to_1150.tree"
+  input.name <- "RAxML_bestTree.InWindow_1550_to_1900.tree"
   
   #anything already blacklisted
-  blacklist.file.name <- "PatientBlacklist_InWindow_800_to_1150.csv"
+  blacklist.file.name <- "AmpliconBlacklist_InWindow_1550_to_1900.csv"
   
   root.name <- "C.BW.00.00BW07621.AF443088"
   tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
@@ -131,10 +133,13 @@ for(patient in patients[order(patients)]){
       cat("No splits for patient ", patient, "\n", sep="")
       
     } else {
-      
-      
+    
       cat(length(split.results$split.patients), " splits for patient ", patient, "\n", sep="")
-      total.reads <- sum(sapply(subtree$tip.label[setdiff(1:length(subtree$tip.label), root.no)], function(x) read.count.from.label(x, tip.regex)))
+      if(!no.read.counts){
+        total.reads <- sum(sapply(subtree$tip.label[setdiff(1:length(subtree$tip.label), root.no)], function(x) read.count.from.label(x, tip.regex)))
+      } else {
+        total.reads <- length(subtree$tip.label)
+      }
       props <- vector()
       too.small <- vector()
       
@@ -143,7 +148,11 @@ for(patient in patients[order(patients)]){
       tip.count.vector <- vector()
       
       for(split in split.results$split.patients){
-        count.in.split <- sum(sapply(subtree$tip.label[split.results$split.tips[[split]]] , function(x) read.count.from.label(x, tip.regex)))
+        if(!no.read.counts){
+          count.in.split <- sum(sapply(subtree$tip.label[split.results$split.tips[[split]]], function(x) read.count.from.label(x, tip.regex)))
+        } else {
+          count.in.split <- length(subtree$tip.label[split.results$split.tips[[split]]])
+        }
         prop.in.split <- count.in.split/total.reads
         props <- c(props, prop.in.split)
         too.small <- c(too.small, count.in.split < raw.threshold | prop.in.split < ratio.threshold)
@@ -153,7 +162,6 @@ for(patient in patients[order(patients)]){
         tip.count.vector <- c(tip.count.vector, rep(length(split.results$split.tips[[split]]), length(split.results$split.tips[[split]])))
         
       }
-
       if(length(which(!too.small))>1){
         cat(patient, " looks like a dual infection\n", sep="")
         mi.patient.column <- c(mi.patient.column, rep(patient, length(subtree$tip.label)-1))
