@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-command.line <- 
+command.line <- T
 
 list.of.packages <- c("phangorn", "argparse", "phytools", "OutbreakTools")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -42,23 +42,23 @@ if(command.line){
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
   
   # BEEHIVE example
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
-  tree.file.names <- "ProcessedTree_r_run20160517_inWindow_800_to_1150.tree"
-  splits.file.names <- "Subtrees_r_run20160517_inWindow_800_to_1150.csv"
-  
-  output.name <- "hi.csv"
-  collapsed.file.names <- "collapsed.csv"
-  split.threshold <- NA
+  # setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
+  # tree.file.names <- "ProcessedTree_r_run20160517_inWindow_800_to_1150.tree"
+  # splits.file.names <- "Subtrees_r_run20160517_inWindow_800_to_1150.csv"
+  # 
+  # output.name <- "hi.csv"
+  # collapsed.file.names <- "collapsed.csv"
+  # split.threshold <- NA
   
   # Rakai example
   
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_161007_couples_w270_rerun/")
-  tree.file.names <- "ProcessedTree_r_test_pytr5.tree"
-  splits.file.names <- "Subtrees_r_test_pytr5.csv"
-  
-  output.name <- "hi.csv"
-  collapsed.file.names <- "collapsed.csv"
-  split.threshold <- NA
+  # setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_161007_couples_w270_rerun/")
+  # tree.file.names <- "ProcessedTree_r_test_pytr5.tree"
+  # splits.file.names <- "Subtrees_r_test_pytr5.csv"
+  # 
+  # output.name <- "hi.csv"
+  # collapsed.file.names <- "collapsed.csv"
+  # split.threshold <- NA
   
   #other example
   
@@ -73,12 +73,12 @@ if(command.line){
   # MRSA example
   
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/refinement")
-  tree.file.names <- "ProcessedTree_s_mrsa_k10_bp.tree"
-  splits.file.names <- "Subtrees_s_mrsa_k10_bp.csv"
-  output.name <- "LT_s_mrsa_k10_bp.csv"
-  collapsed.file.names <- "collapsed_s_mrsa_k10_bp.csv"
+  tree.file.names <- "ProcessedTree_s_mrsa_k10_bp_yetanother.tree"
+  splits.file.names <- "Subtrees_s_mrsa_k10_bp_yetanother.csv"
+  output.name <- "LT_s_mrsa_k10_yetanother.csv"
+  collapsed.file.names <- "collapsed_s_mrsa_k10_yetanother.csv"
   split.threshold <- NA
-  tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
+  tip.regex <- "^([ST][0-9][0-9][0-9])_[A-Z0-9]*_[A-Z][0-9][0-9]$"
   
   
   if(0)
