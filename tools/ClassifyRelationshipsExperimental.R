@@ -17,7 +17,6 @@ if(command.line){
   arg_parser = ArgumentParser(description="Identify the likely direction of transmission between all patients present in a phylogeny.")
   arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", 
                           help="Regular expression identifying tips from the dataset. Three groups: patient ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name. Necessary only if -s is specified.")
-  arg_parser$add_argument("-t", "--dualInfectionThreshold", type="double", help="Length threshold at which a branch of the subtree constructed just from reads from a single patient is considered long enough to indicate a dual infection (such a patient will be ignored, at present). If absent, keep all patients.")
   arg_parser$add_argument("-c", "--collapsedTree", action="store", help="If present, the collapsed tree (in which all adjacent nodes with the same assignment are collapsed to one) is output as a .csv file to the path specified.")
   arg_parser$add_argument("treeFileName", action="store", help="Tree file name. Alternatively, a base name that identifies a group of tree file names can be specified. Tree files are assumed to end in '.tree'. This must be the 'processed' tree produced by SplitTreesToSubtrees.R.")
   arg_parser$add_argument("splitsFileName", action="store", help="Splits file name. Alternatively, a base name that identifies a group of split file names can be specified. Split files are assumed to end in '_subtree_[a-z].csv'.")
@@ -32,10 +31,6 @@ if(command.line){
   script.dir <- args$scriptdir
   output.name <- args$outputFileName
   tip.regex <- args$tipRegex
-  split.threshold <- args$dualInfectionThreshold
-  if(is.null(split.threshold)){
-    split.threshold <- Inf
-  }
   zero.length.tips.count <- args$zeroLengthTipsCount
   
 } else {
@@ -48,7 +43,6 @@ if(command.line){
   # 
   # output.name <- "hi.csv"
   # collapsed.file.names <- "collapsed.csv"
-  # split.threshold <- NA
   
   # Rakai example
   
@@ -58,7 +52,6 @@ if(command.line){
   # 
   # output.name <- "hi.csv"
   # collapsed.file.names <- "collapsed.csv"
-  # split.threshold <- NA
   
   #other example
   
@@ -68,7 +61,6 @@ if(command.line){
   # 
   # output.name <- "ptyr22_"
   # collapsed.file.names <- NULL
-  # split.threshold <- NA
   
   # MRSA example
   
@@ -77,7 +69,6 @@ if(command.line){
   splits.file.names <- "Subtrees_s_mrsa_k10_bp_yetanother.csv"
   output.name <- "LT_s_mrsa_k10_yetanother.csv"
   collapsed.file.names <- "collapsed_s_mrsa_k10_yetanother.csv"
-  split.threshold <- NA
   tip.regex <- "^([ST][0-9][0-9][0-9])_[A-Z0-9]*_[A-Z][0-9][0-9]$"
   
   
@@ -89,7 +80,6 @@ if(command.line){
     output.name 			<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_'
     root.name				<- "REF_CPX_AF460972_read_1_count_0"
     tip.regex 				<- "^(.*)_read_([0-9]+)_count_([0-9]+)$"	  		
-    split.threshold			<- Inf 
     romero.severson 		<- TRUE
     zero.length.tips.count 	<- FALSE
   }
@@ -106,7 +96,7 @@ source(file.path(script.dir, "SubtreeMethods.R"))
 #
 #	define internal functions
 #
-likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, split.threshold, romero.severson, zero.length.tips.count, tt.file.name = NULL)
+likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, romero.severson, zero.length.tips.count, tt.file.name = NULL)
 {	
   cat("Opening file: ", tree.file.name, "...\n", sep = "")
   
@@ -146,23 +136,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
   patients.for.splits <- lapply(all.splits, function(x) unique(splits$orig.patients[which(splits$patient.splits==x)] ))
   names(patients.for.splits) <- all.splits
   
-  # get rid of what look like dual infections
-  
-  ignore.because.split <- vector()
-  
-  # TODO currently this checks only split patients and it should probably check all patients?
-  if(!is.na(split.threshold)){
-    for(split.patient in was.split){
-      tips <- patient.tips[[split.patient]]
-      subtree <- drop.tip(tree, tree$tip.label[-patient.tips[[split.patient]]])
-      max.length <- max(subtree$edge.length)
-      if(max.length > split.threshold){
-        ignore.because.split <- c(ignore.because.split, split.patient)
-      }
-    }
-  }
-  
-  patients.included <- setdiff(patients, ignore.because.split)
+  patients.included <- patients
   
   total.pairs <- (length(patients.included) ^ 2 - length(patients.included))/2
   
@@ -345,7 +319,7 @@ if(single.file)
   #	if 'tree.file.names' is tree, process just one tree
   tree.file.name		<- tree.file.names[1]
   splits.file.name	<- splits.file.names[1]
-  dddf				<- likely.transmissions(tree.file.name, splits.file.name, tip.regex, split.threshold, romero.severson, zero.length.tips.count, collapsed.file.names)
+  dddf				<- likely.transmissions(tree.file.name, splits.file.name, tip.regex, romero.severson, zero.length.tips.count, collapsed.file.names)
   cat("Write to file",output.name,"...\n")
   write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE, quote=F)	
 } else {
@@ -359,7 +333,7 @@ if(single.file)
     splits.file.name	<- splits.file.names[tree.i]
     output.name			<- gsub('\\.tree','_LikelyTransmissions.csv', tree.file.name)		
     collapsed.file.name	<- gsub('\\.tree','_collapsed.csv', tree.file.name)
-    dddf				<- likely.transmissions(tree.file.name, splits.file.name, tip.regex, split.threshold, romero.severson, zero.length.tips.count, collapsed.file.name)
+    dddf				<- likely.transmissions(tree.file.name, splits.file.name, tip.regex, romero.severson, zero.length.tips.count, collapsed.file.name)
     cat("Write to file",output.name,"...\n")
     write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE, quote=F)
   }
