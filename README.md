@@ -2,7 +2,7 @@
 Generating phylogenies between and within hosts at once, in windows along the genome, using mapped reads as input.  
 Dependencies: [samtools](http://www.htslib.org/), [pysam](https://github.com/pysam-developers/pysam), [biopython](http://biopython.org/wiki/Download), [mafft](http://mafft.cbrc.jp/alignment/software/) and [RAxML](http://sco.h-its.org/exelixis/web/software/raxml/index.html).  
 
-<p align="center"><img src="InfoAndInputs/PhylotypesDiagram.jpg" alt="Phyloscanner" width="500", height="290"/></p>
+<p align="center"><img src="InfoAndInputs/PhyloscannerDiagram_big2_ShiverNotNamed.jpg" alt="Phyloscanner" width="820", height="315"/></p>
 
 ### Basic usage:
 ```bash

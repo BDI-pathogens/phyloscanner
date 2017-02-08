@@ -290,6 +290,9 @@ RecallContaminants = args.contaminant_read_dir != None
 CheckDuplicates = not args.dont_check_duplicates
 ExploreWindowWidths = args.explore_window_widths != None
 
+# Print how this script was called, for logging purposes.
+print('phyloscanner was called thus:\n' + ' '.join(sys.argv))
+
 # Make and change into the output directory if desired.
 if args.output_dir != None:
   try:
@@ -696,9 +699,6 @@ def TranslateCoords(CodeArgs):
             exit(1)
     CoordsDict[SeqName] = coords
   return CoordsDict
-
-# Print how this script was called, for logging purposes.
-print('phyloscanner was called thus:\n' + ' '.join(sys.argv))
 
 # If there is only one bam and no other refs, no coordinate translation
 # is necessary - we use the coords as they are, though setting any after the end
