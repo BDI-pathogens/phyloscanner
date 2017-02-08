@@ -64,12 +64,12 @@ if(command.line){
   
   # MRSA example
 
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/refinement")
-  tree.file.names <- "ProcessedTree_s_mrsa_k10_bp_yetanother.tree"
-  splits.file.names <- "Subtrees_s_mrsa_k10_bp_yetanother.csv"
-  output.name <- "LT_s_mrsa_k10_yetanother.csv"
-  collapsed.file.names <- "collapsed_s_mrsa_k10_yetanother.csv"
-  tip.regex <- "^([ST][0-9][0-9][0-9])_[A-Z0-9]*_[A-Z][0-9][0-9]$"
+  # setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/refinement")
+  # tree.file.names <- "ProcessedTree_s_mrsa_k10_bp_yetanother.tree"
+  # splits.file.names <- "Subtrees_s_mrsa_k10_bp_yetanother.csv"
+  # output.name <- "LT_s_mrsa_k10_yetanother.csv"
+  # collapsed.file.names <- "collapsed_s_mrsa_k10_yetanother.csv"
+  # tip.regex <- "^([ST][0-9][0-9][0-9])_[A-Z0-9]*_[A-Z][0-9][0-9]$"
   
   
   if(0)
@@ -150,11 +150,11 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, rom
   
   cat("Calculating pairwise distances between splits...\n")
   
-  split.distances <-  tryCatch(
+  split.distances <- tryCatch(
     all.subtree.distances(tree, tt, all.splits, assocs), warning=function(w){return(NULL)}, error=function(e){return(NULL)})
 
   if(is.null(split.distances)){
-    split.distances <- all.subtree.distances.slow(tree, tt, all.splits, assocs)
+    split.distances <- all.subtree.distances.slow(tree, tt, all.splits, assocs, TRUE)
   }
   
   cat("Testing pairs...\n")
