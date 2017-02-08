@@ -2,7 +2,7 @@
 
 command.line <- T
 
-list.of.packages <- c("phangorn", "argparse", "phytools", "OutbreakTools")
+list.of.packages <- c("phangorn", "argparse", "phytools")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
 
@@ -37,12 +37,12 @@ if(command.line){
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
   
   # BEEHIVE example
-  # setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
-  # tree.file.names <- "ProcessedTree_r_run20160517_inWindow_800_to_1150.tree"
-  # splits.file.names <- "Subtrees_r_run20160517_inWindow_800_to_1150.csv"
-  # 
-  # output.name <- "hi.csv"
-  # collapsed.file.names <- "collapsed.csv"
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/")
+  tree.file.names <- "ProcessedTrees_r/ProcessedTree_r_run20161013_RS_inWindow_6050_to_6400.tree"
+  splits.file.names <- "SubtreeFiles_r/Subtrees_r_run20161013_RS_inWindow_6050_to_6400.csv"
+
+  output.name <- "outTest.csv"
+  collapsed.file.names <- "outCollapsed.csv"
   
   # Rakai example
   
@@ -63,13 +63,13 @@ if(command.line){
   # collapsed.file.names <- NULL
   
   # MRSA example
-  
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/refinement")
-  tree.file.names <- "ProcessedTree_s_mrsa_k10_bp_yetanother.tree"
-  splits.file.names <- "Subtrees_s_mrsa_k10_bp_yetanother.csv"
-  output.name <- "LT_s_mrsa_k10_yetanother.csv"
-  collapsed.file.names <- "collapsed_s_mrsa_k10_yetanother.csv"
-  tip.regex <- "^([ST][0-9][0-9][0-9])_[A-Z0-9]*_[A-Z][0-9][0-9]$"
+
+  # setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/refinement")
+  # tree.file.names <- "ProcessedTree_s_mrsa_k10_bp_yetanother.tree"
+  # splits.file.names <- "Subtrees_s_mrsa_k10_bp_yetanother.csv"
+  # output.name <- "LT_s_mrsa_k10_yetanother.csv"
+  # collapsed.file.names <- "collapsed_s_mrsa_k10_yetanother.csv"
+  # tip.regex <- "^([ST][0-9][0-9][0-9])_[A-Z0-9]*_[A-Z][0-9][0-9]$"
   
   
   if(0)
@@ -150,7 +150,12 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, rom
   
   cat("Calculating pairwise distances between splits...\n")
   
-  split.distances <- all.subtree.distances(tree, tt, all.splits, assocs)
+  split.distances <- tryCatch(
+    all.subtree.distances(tree, tt, all.splits, assocs), warning=function(w){return(NULL)}, error=function(e){return(NULL)})
+
+  if(is.null(split.distances)){
+    split.distances <- all.subtree.distances.slow(tree, tt, all.splits, assocs, TRUE)
+  }
   
   cat("Testing pairs...\n")
   

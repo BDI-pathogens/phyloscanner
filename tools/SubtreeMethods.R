@@ -169,6 +169,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     patient.ids[c(non.patient.tips, blacklist)] <- "unsampled"
     
     patients <- unique(patient.ids)
+    # patients <- patients[order(patients)]
     
     patient.tips <- lapply(patients, function(x)  which(patient.ids==x))
     names(patient.tips) <- patients
@@ -670,6 +671,10 @@ node.cost <- function(patient.index, patients, current.matrix, individual.costs,
 }
 
 child.min.cost <- function(child.index, patients, top.patient.no, current.matrix, individual.costs, k){
+  # if(impossible[Ancestors(tree, child.index, type="parent"), top.patient.no]){
+  #   return(Inf)
+  # }
+  
   scores <- rep(Inf, length(patients))
 
   finite.scores <- c(top.patient.no, which(patients=="unsampled"), which(is.finite(individual.costs[child.index,])))
@@ -685,7 +690,7 @@ child.min.cost <- function(child.index, patients, top.patient.no, current.matrix
 child.cost <- function(child.index, patients, top.patient.no, bottom.patient.no, current.matrix, individual.costs, k){
   if(top.patient.no == bottom.patient.no) {
     out <- current.matrix[child.index, bottom.patient.no]
-  } else if(patients[bottom.patient.no] != "unsampled") {
+  } else if (patients[bottom.patient.no] != "unsampled") {
     out <- current.matrix[child.index, bottom.patient.no] + 1 + k*individual.costs[child.index, bottom.patient.no]
     if(is.nan(out)) {
       out <- Inf
@@ -979,8 +984,13 @@ extract.tt.subtree <- function(tt, patients, splits.for.patients, patients.for.s
 
 # every distance between subtrees
 
-all.subtree.distances <- function(tree, tt, splits, assocs){
-  tree.dist <- dist.nodes(tree)
+all.subtree.distances <- function(tree, tt, splits, assocs, slow=F){
+  
+  if(!slow){
+    tree.dist <- dist.nodes(tree)
+  } else {
+    depths <- node.depth.edgelength(tree)
+  }
   
   temp <- matrix(ncol = length(splits), nrow=length(splits))
   for(spt.1.no in 1:length(splits)){
@@ -1024,7 +1034,11 @@ all.subtree.distances <- function(tree, tt, splits, assocs){
           
           mrca.1 <- tt$root.nos[which(tt$unique.splits==spt.1)]
           mrca.2 <- tt$root.nos[which(tt$unique.splits==spt.2)]
-          temp[spt.1.no, spt.2.no] <- tree.dist[mrca.1, mrca.2]
+          if(!slow){
+            temp[spt.1.no, spt.2.no] <- tree.dist[mrca.1, mrca.2]
+          } else {
+            temp[spt.1.no, spt.2.no] <- pat.dist(tree, depths, mrca.1, mrca.2)
+          }
         }
         temp[spt.2.no, spt.1.no] <- temp[spt.1.no, spt.2.no]
       }
@@ -1035,6 +1049,22 @@ all.subtree.distances <- function(tree, tt, splits, assocs){
   colnames(temp) <- splits
   rownames(temp) <- splits
   return(temp)
+}
+
+pat.dist <- function(tree, depths, node.1, node.2){
+  node.1.chain <- Ancestors(tree, node.1, type="all")
+  node.2.chain <- Ancestors(tree, node.2, type="all")
+  if(node.1 %in% node.2.chain){
+    mrca <- node.1
+    dist <- depths[node.2] - depths[node.1]
+  } else if(node.2 %in% node.1.chain){
+    mrca <- node.2
+    dist <- depths[node.1] - depths[node.2]
+  } else {
+    mrca <- node.1.chain[which(node.1.chain %in% node.2.chain)][1]
+    dist <- (depths[node.1] - depths[mrca]) + (depths[node.2] - depths[mrca])
+  }
+  return(dist)
 }
 
 # are each pair of subtrees adjacent? If unsampled does not matter then two nodes separated only by "none"
