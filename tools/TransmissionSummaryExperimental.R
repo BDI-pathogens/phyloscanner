@@ -98,8 +98,7 @@ if(!length(patient.ids))
 #
 tt	<-	lapply(input.files, function(x){
 			tt <- as.data.table(read.table(x, sep=",", header=TRUE, stringsAsFactors=FALSE))
-			tt[, FILE:=basename(x)]
-			setnames(tt, c('paths21'),c('paths.21'))
+			tt[, FILE:=basename(x)]			
 			tt
 		})	
 #
@@ -109,7 +108,7 @@ tt	<-	lapply(input.files, function(x){
 tt	<- lapply(tt, function(x){
 			#x	<- tt[[1]]
 			tmp	<- copy(x)
-			setnames(tmp, c('Patient_1','Patient_2','paths.12','paths.21'), c('Patient_2','Patient_1','paths.21','paths.12'))
+			setnames(tmp, c('Patient_1','Patient_2','paths12','paths21'), c('Patient_2','Patient_1','paths21','paths12'))
 			set(tmp, tmp[, which(path.classification=="anc")], 'path.classification', 'TMP')
 			set(tmp, tmp[, which(path.classification=="desc")], 'path.classification', 'anc')
 			set(tmp, tmp[, which(path.classification=="TMP")], 'path.classification', 'desc')
@@ -124,7 +123,7 @@ tt	<- lapply(tt, function(x){
 # rbind consolidated files
 #
 tt	<- do.call('rbind',tt)
-setnames(tt, c('Patient_1','Patient_2','path.classification','contiguous','paths.21','paths.12','mean.distance.between.subtrees'), c('pat.1','pat.2','TYPE','CONTIGUOUS','PATHS.21','PATHS.12','PATRISTIC_DISTANCE'))
+setnames(tt, c('Patient_1','Patient_2','path.classification','contiguous','paths21','paths12','mean.distance.between.subtrees'), c('pat.1','pat.2','TYPE','CONTIGUOUS','PATHS.21','PATHS.12','PATRISTIC_DISTANCE'))
 # change type name depending on allow.splits
 if(!allow.splits)
 {
