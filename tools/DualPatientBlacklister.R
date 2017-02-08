@@ -25,11 +25,14 @@ if(command.line){
   output.prefix <- args$newBlacklistsPrefix 
   threshold <- args$threshold
 
-  
+  #print(duals.prefix)  
   dual.files <- list.files(dirname(duals.prefix), pattern=paste('^',basename(duals.prefix),sep=""), full.names=TRUE)
   dual.files.sans.ext <- file_path_sans_ext(dual.files)
+  #print(dual.files)
+  #print(dual.files.sans.ext)
+ 
   suffixes <- substr(dual.files.sans.ext, nchar(duals.prefix)+1, nchar(dual.files.sans.ext))
-  
+  #print(suffixes) 
   expected.blacklists <- paste(existing.bl.prefix, suffixes, ".csv", sep="")
   
   observed.bl.files <- list.files(dirname(existing.bl.prefix), pattern=paste('^',basename(existing.bl.prefix),sep=""), full.names=TRUE)
@@ -54,6 +57,7 @@ if(command.line){
 window.count.by.patient <- list()
 
 for(suffix in suffixes){
+  cat('Reading file',paste0(duals.prefix, suffix, ".csv"),'\n')
   dual.file <- read.csv(paste(duals.prefix, suffix, ".csv", sep=""), stringsAsFactors = F)
   for(patient in unique(dual.file$patient)){
     if(is.null(window.count.by.patient[[patient]])){
@@ -62,8 +66,10 @@ for(suffix in suffixes){
       window.count.by.patient[[patient]] <- window.count.by.patient[[patient]]+1
     }
   }
-  if(file.exists(paste(existing.bl.prefix, suffix, ".csv", sep=""))){
-    file.copy(paste(existing.bl.prefix, suffix, ".csv", sep=""), paste(output.prefix, suffix, ".csv", sep=""))
+  tmp	<- paste0(existing.bl.prefix, suffix, ".csv")
+  if(file.exists(tmp) & file.size(tmp)>0){
+	cat('Copy existing blacklist to',paste0(output.prefix, suffix, ".csv\n"))
+    file.copy(tmp, paste(output.prefix, suffix, ".csv", sep=""))
   }
 }
 
@@ -78,12 +84,14 @@ for(patient in labels(window.count.by.patient)[order(labels(window.count.by.pati
       pat.tips <- dual.file$tip.name[which(dual.file$patient==patient)]
       if(length(pat.tips)>0){
         if(file.exists(paste(output.prefix, suffix, ".csv", sep=""))){
+		  cat('Reading table to update',paste0(output.prefix, suffix, ".csv"))
           existing.bl <- read.table(paste(output.prefix, suffix, ".csv", sep=""), sep=",", stringsAsFactors = F, header=F)$V1
           new.bl <- unique(c(existing.bl, pat.tips))
   
         } else {
           new.bl <- pat.tips
         }
+		cat('Writing table',paste0(output.prefix, suffix, ".csv\n"))
         write.table(new.bl, paste(output.prefix, suffix, ".csv", sep=""), sep=",", row.names=FALSE, col.names=FALSE, quote=F)
       }
     }
