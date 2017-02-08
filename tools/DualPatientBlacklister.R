@@ -23,8 +23,7 @@ if(command.line){
   duals.prefix <- args$dualReportsPrefix
   output.prefix <- args$newBlacklistsPrefix 
   threshold <- args$threshold
-  total.windows <- args$windowCount
-
+  total.windows <- as.numeric(args$windowCount)
   #print(duals.prefix)  
   dual.files <- list.files(dirname(duals.prefix), pattern=paste('^',basename(duals.prefix),sep=""), full.names=TRUE)
   dual.files.sans.ext <- file_path_sans_ext(dual.files)
@@ -77,6 +76,7 @@ if(is.null(total.windows)){
   total.windows <- length(suffixes)
 }
   
+count.dual <- count.not <- 0
 for(patient in labels(window.count.by.patient)[order(labels(window.count.by.patient))]){
   if(window.count.by.patient[[patient]]/total.windows > threshold){
     count.dual <- count.dual + 1
