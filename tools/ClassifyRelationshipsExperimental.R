@@ -2,7 +2,7 @@
 
 command.line <- T
 
-list.of.packages <- c("phangorn", "argparse", "phytools", "OutbreakTools")
+list.of.packages <- c("phangorn", "argparse", "phytools")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
 
@@ -17,7 +17,6 @@ if(command.line){
   arg_parser = ArgumentParser(description="Identify the likely direction of transmission between all patients present in a phylogeny.")
   arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", 
                           help="Regular expression identifying tips from the dataset. Three groups: patient ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name. Necessary only if -s is specified.")
-  arg_parser$add_argument("-t", "--dualInfectionThreshold", type="double", help="Length threshold at which a branch of the subtree constructed just from reads from a single patient is considered long enough to indicate a dual infection (such a patient will be ignored, at present). If absent, keep all patients.")
   arg_parser$add_argument("-c", "--collapsedTree", action="store", help="If present, the collapsed tree (in which all adjacent nodes with the same assignment are collapsed to one) is output as a .csv file to the path specified.")
   arg_parser$add_argument("treeFileName", action="store", help="Tree file name. Alternatively, a base name that identifies a group of tree file names can be specified. Tree files are assumed to end in '.tree'. This must be the 'processed' tree produced by SplitTreesToSubtrees.R.")
   arg_parser$add_argument("splitsFileName", action="store", help="Splits file name. Alternatively, a base name that identifies a group of split file names can be specified. Split files are assumed to end in '_subtree_[a-z].csv'.")
@@ -32,33 +31,27 @@ if(command.line){
   script.dir <- args$scriptdir
   output.name <- args$outputFileName
   tip.regex <- args$tipRegex
-  split.threshold <- args$dualInfectionThreshold
-  if(is.null(split.threshold)){
-    split.threshold <- Inf
-  }
   zero.length.tips.count <- args$zeroLengthTipsCount
   
 } else {
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
   
   # BEEHIVE example
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
-  tree.file.names <- "ProcessedTree_r_run20160517_inWindow_800_to_1150.tree"
-  splits.file.names <- "Subtrees_r_run20160517_inWindow_800_to_1150.csv"
-  
-  output.name <- "hi.csv"
-  collapsed.file.names <- "collapsed.csv"
-  split.threshold <- NA
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/")
+  tree.file.names <- "ProcessedTrees_r/ProcessedTree_r_run20161013_RS_inWindow_6050_to_6400.tree"
+  splits.file.names <- "SubtreeFiles_r/Subtrees_r_run20161013_RS_inWindow_6050_to_6400.csv"
+
+  output.name <- "outTest.csv"
+  collapsed.file.names <- "outCollapsed.csv"
   
   # Rakai example
   
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_161007_couples_w270_rerun/")
-  tree.file.names <- "ProcessedTree_r_test_pytr5.tree"
-  splits.file.names <- "Subtrees_r_test_pytr5.csv"
-  
-  output.name <- "hi.csv"
-  collapsed.file.names <- "collapsed.csv"
-  split.threshold <- NA
+  # setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_161007_couples_w270_rerun/")
+  # tree.file.names <- "ProcessedTree_r_test_pytr5.tree"
+  # splits.file.names <- "Subtrees_r_test_pytr5.csv"
+  # 
+  # output.name <- "hi.csv"
+  # collapsed.file.names <- "collapsed.csv"
   
   #other example
   
@@ -68,17 +61,15 @@ if(command.line){
   # 
   # output.name <- "ptyr22_"
   # collapsed.file.names <- NULL
-  # split.threshold <- NA
   
   # MRSA example
-  
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/")
-  tree.file.names <- "ProcessedTree_s_mrsa_k50.tree"
-  splits.file.names <- "Subtrees_s_mrsa_k50.csv"
-  output.name <- "LT_s_mrsa_k.csv"
-  collapsed.file.names <- "collapsed_s_mrsa_k50.csv"
-  split.threshold <- NA
-  tip.regex <- "^([ST][0-9][0-9][0-9])_[A-Z0-9]*_[A-Z][0-9][0-9]$"
+
+  # setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/refinement")
+  # tree.file.names <- "ProcessedTree_s_mrsa_k10_bp_yetanother.tree"
+  # splits.file.names <- "Subtrees_s_mrsa_k10_bp_yetanother.csv"
+  # output.name <- "LT_s_mrsa_k10_yetanother.csv"
+  # collapsed.file.names <- "collapsed_s_mrsa_k10_yetanother.csv"
+  # tip.regex <- "^([ST][0-9][0-9][0-9])_[A-Z0-9]*_[A-Z][0-9][0-9]$"
   
   
   if(0)
@@ -89,7 +80,6 @@ if(command.line){
     output.name 			<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_'
     root.name				<- "REF_CPX_AF460972_read_1_count_0"
     tip.regex 				<- "^(.*)_read_([0-9]+)_count_([0-9]+)$"	  		
-    split.threshold			<- Inf 
     romero.severson 		<- TRUE
     zero.length.tips.count 	<- FALSE
   }
@@ -106,12 +96,11 @@ source(file.path(script.dir, "SubtreeMethods.R"))
 #
 #	define internal functions
 #
-likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, split.threshold, romero.severson, zero.length.tips.count, tt.file.name = NULL)
+likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, romero.severson, zero.length.tips.count, tt.file.name = NULL)
 {	
   cat("Opening file: ", tree.file.name, "...\n", sep = "")
   
   pseudo.beast.import <- read.beast(tree.file.name)
-  
   tree <- attr(pseudo.beast.import, "phylo")
   
   cat("Reading splits file",splits.file.name,"...\n")
@@ -147,23 +136,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
   patients.for.splits <- lapply(all.splits, function(x) unique(splits$orig.patients[which(splits$patient.splits==x)] ))
   names(patients.for.splits) <- all.splits
   
-  # get rid of what look like dual infections
-  
-  ignore.because.split <- vector()
-  
-  # TODO currently this checks only split patients and it should probably check all patients?
-  if(!is.na(split.threshold)){
-    for(split.patient in was.split){
-      tips <- patient.tips[[split.patient]]
-      subtree <- drop.tip(tree, tree$tip.label[-patient.tips[[split.patient]]])
-      max.length <- max(subtree$edge.length)
-      if(max.length > split.threshold){
-        ignore.because.split <- c(ignore.because.split, split.patient)
-      }
-    }
-  }
-  
-  patients.included <- setdiff(patients, ignore.because.split)
+  patients.included <- patients
   
   total.pairs <- (length(patients.included) ^ 2 - length(patients.included))/2
   
@@ -177,15 +150,20 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
   
   cat("Calculating pairwise distances between splits...\n")
   
-  split.distances <- all.subtree.distances(tree, tt, all.splits, assocs)
+  split.distances <- tryCatch(
+    all.subtree.distances(tree, tt, all.splits, assocs), warning=function(w){return(NULL)}, error=function(e){return(NULL)})
+
+  if(is.null(split.distances)){
+    split.distances <- all.subtree.distances.slow(tree, tt, all.splits, assocs, TRUE)
+  }
   
   cat("Testing pairs...\n")
   
   count <- 0
   contiguous.matrix <- matrix(NA, length(patients.included), length(patients.included))
   path.matrix <- matrix(NA, length(patients.included), length(patients.included))
-  nodes.12.matrix <- matrix(NA, length(patients.included), length(patients.included))
-  nodes.21.matrix <- matrix(NA, length(patients.included), length(patients.included))
+  nodes.1.matrix <- matrix(NA, length(patients.included), length(patients.included))
+  nodes.2.matrix <- matrix(NA, length(patients.included), length(patients.included))
   dir.12.matrix <- matrix(NA, length(patients.included), length(patients.included))
   dir.21.matrix <- matrix(NA, length(patients.included), length(patients.included))
   mean.distance.matrix <- matrix(NA, length(patients.included), length(patients.included))
@@ -232,8 +210,8 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
         prop.12 <- count.12/length(nodes.2)
         prop.21 <- count.21/length(nodes.1)
         
-        nodes.12.matrix[pat.1, pat.2] <- length(nodes.1)
-        nodes.21.matrix[pat.1, pat.2] <- length(nodes.2)
+        nodes.1.matrix[pat.1, pat.2] <- length(nodes.1)
+        nodes.2.matrix[pat.1, pat.2] <- length(nodes.2)
         
         dir.12.matrix[pat.1, pat.2] <- count.12
         dir.21.matrix[pat.1, pat.2] <- count.21
@@ -279,8 +257,8 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
   contiguous.table <- as.table(contiguous.matrix)
   dir.12.table <- as.table(dir.12.matrix)
   dir.21.table <- as.table(dir.21.matrix)
-  nodes.12.table <- as.table(nodes.12.matrix)
-  nodes.21.table <- as.table(nodes.21.matrix)
+  nodes.1.table <- as.table(nodes.1.matrix)
+  nodes.2.table <- as.table(nodes.2.matrix)
   path.table <- as.table(path.matrix)
   mean.distance.table <- as.table(mean.distance.matrix)
   
@@ -296,11 +274,11 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
   colnames(dir.21.table) <- patients.included
   rownames(dir.21.table) <- patients.included
   
-  colnames(nodes.12.table) <- patients.included
-  rownames(nodes.12.table) <- patients.included
+  colnames(nodes.1.table) <- patients.included
+  rownames(nodes.1.table) <- patients.included
   
-  colnames(nodes.21.table) <- patients.included
-  rownames(nodes.21.table) <- patients.included
+  colnames(nodes.2.table) <- patients.included
+  rownames(nodes.2.table) <- patients.included
   
   colnames(mean.distance.table) <- patients.included
   rownames(mean.distance.table) <- patients.included
@@ -319,17 +297,17 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, spl
   d12df <- d12df[keep,]
   d21df <- d21df[keep,]
   
-  n12df <- as.data.frame(nodes.12.table)
-  n21df <- as.data.frame(nodes.21.table)
-  n12df <- n12df[keep,]
-  n21df <- n21df[keep,]
+  n1df <- as.data.frame(nodes.1.table)
+  n2df <- as.data.frame(nodes.2.table)
+  n1df <- n1df[keep,]
+  n2df <- n2df[keep,]
   
   mddf <- as.data.frame(mean.distance.table)
   mddf <- mddf[keep,]
   
-  cdf <- cbind(cdf, d12df[,3], d21df[,3], n12df[,3], n21df[,3], pdf[,3], mddf[,3])
+  cdf <- cbind(cdf, d12df[,3], d21df[,3], n1df[,3], n2df[,3], pdf[,3], mddf[,3])
   
-  colnames(cdf) <- c("Patient_1", "Patient_2", "contiguous", "paths.12", "paths21", "nodes12", "nodes21", "path.classification", "mean.distance.between.subtrees")
+  colnames(cdf) <- c("Patient_1", "Patient_2", "contiguous", "paths12", "paths21", "nodes1", "nodes2", "path.classification", "mean.distance.between.subtrees")
   cdf
 }
 
@@ -346,7 +324,7 @@ if(single.file)
   #	if 'tree.file.names' is tree, process just one tree
   tree.file.name		<- tree.file.names[1]
   splits.file.name	<- splits.file.names[1]
-  dddf				<- likely.transmissions(tree.file.name, splits.file.name, tip.regex, split.threshold, romero.severson, zero.length.tips.count, collapsed.file.names)
+  dddf				<- likely.transmissions(tree.file.name, splits.file.name, tip.regex, romero.severson, zero.length.tips.count, collapsed.file.names)
   cat("Write to file",output.name,"...\n")
   write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE, quote=F)	
 } else {
@@ -360,7 +338,7 @@ if(single.file)
     splits.file.name	<- splits.file.names[tree.i]
     output.name			<- gsub('\\.tree','_LikelyTransmissions.csv', tree.file.name)		
     collapsed.file.name	<- gsub('\\.tree','_collapsed.csv', tree.file.name)
-    dddf				<- likely.transmissions(tree.file.name, splits.file.name, tip.regex, split.threshold, romero.severson, zero.length.tips.count, collapsed.file.name)
+    dddf				<- likely.transmissions(tree.file.name, splits.file.name, tip.regex, romero.severson, zero.length.tips.count, collapsed.file.name)
     cat("Write to file",output.name,"...\n")
     write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE, quote=F)
   }

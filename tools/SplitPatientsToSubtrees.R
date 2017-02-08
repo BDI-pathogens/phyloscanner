@@ -14,12 +14,12 @@ if(command.line){
   arg_parser = ArgumentParser(description="Split the tips from each patient up, according to one of several schemes, such that the tree can subsequently be partitioned into connected subtrees, one per split.")  
   arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. Three groups: patient ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name.")
   arg_parser$add_argument("-r", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
-  arg_parser$add_argument("-z", "--zeroLengthTipsCount", action="store_true", default=FALSE, help="If present, a zero length terminal branch associates the patient at the tip with its parent node, interrupting any inferred transmission pathway between another pair of hosts that goes through the node.")
+  arg_parser$add_argument("-z", "--zeroLengthTipsCount", action="store_true", default=FALSE, help="Conservative classification only; if present, a zero length terminal branch associates the patient at the tip with its parent node, interrupting any inferred transmission pathway between another pair of hosts that goes through the node.")
   arg_parser$add_argument("-s", "--splitsRule", action="store", default="r", help="The rules by which the sets of patients are split into groups in order to ensure that all groups can be members of connected subtrees without causing conflicts. Currently available: c=conservative, r=Romero-Severson (default).")
   arg_parser$add_argument("-b", "--blacklist", action="store", help="A .csv file listing tips to ignore. Alternatively, a base name that identifies blacklist files. Blacklist files are assumed to end in .csv.")
   arg_parser$add_argument("-k", "--kParam", action="store", default=35, help="The k parameter in the cost matrix for Sankhoff reconstruction (see documentation)")
   arg_parser$add_argument("-i", "--inputFile", metavar="inputTreeFileName", help="Tree file name. Alternatively, a base name that identifies a group of tree file names can be specified. Tree files are assumed to end in .tree.")  
-  arg_parser$add_argument("-t", "--breakTiesUnsampled", action="store_true", default=FALSE)
+  arg_parser$add_argument("-t", "--tiesRule", action="store", default="c")
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
   arg_parser$add_argument("-OD", "--outputdir", action="store", help="Full path of the directory for output; if absent, current working directory")
   arg_parser$add_argument("-OF", "--outputfileid", action="store", help="A string identifying output files.")
@@ -27,10 +27,16 @@ if(command.line){
   arg_parser$add_argument("-ph", "--pdfrelheight", action="store", default=0.15, help="Relative height of tree pdf.")
   arg_parser$add_argument("-db", "--debug", action="store_true", default=FALSE, help="Debugging mode.")
   
+
   args <- arg_parser$parse_args()
+
   script.dir <- args$scriptdir
   zero.length.tips.count <- args$zeroLengthTipsCount
-  break.ties.unsampled <- args$breakTiesUnsampled
+  ties.rule <- args$tiesRule
+  
+  if(!(ties.rule %in% c("u", "c", "b"))){
+    stop("Unknown tie-breaking rule")
+  }
   tree.file.names <- args$inputFile
   output.dir <- args$outputdir
   if(is.null(output.dir)){
@@ -49,54 +55,55 @@ if(command.line){
   if(!(mode %in% c("c", "r", "f", "s"))){
     stop(paste("Unknown split classifier: ", mode, "\n", sep=""))
   }
-#  if(debug)
-#	  cat(paste(script.dir, zero.length.tips.count, tree.file.names, out.identifier, blacklist.files, root.name, tip.regex, mode, pdf.hm, pdf.w, sep='\n'))
-  
   
 } else {
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
-  mode <- "r"
-  zero.length.tips.count <- F
-  sankhoff.k <- 0
-  pdf.w = 35
-  pdf.hm = 0.5
-  
-  # BEEHIVE example
-  
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
-  output.dir <- getwd()
-  tree.file.names <- "RAxML_bestTree.InWindow_800_to_1150.tree"
-  blacklist.files <- "FullBlacklist_InWindow_800_to_1150.csv"
-  out.identifier <- "test_s"
-  mode <- "s"
-  root.name <- "C.BW.00.00BW07621.AF443088"
-  tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
-  sankhoff.k <- 25
-  break.ties.unsampled <- TRUE
+  # mode <- "r"
+  # zero.length.tips.count <- F
+  # sankhoff.k <- 0
+  pdf.w = 10
+  pdf.hm = 0.2
 
-  # Rakai example 
-  
-  # setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_160915_couples_w270/")
+  # # BEEHIVE example
+  # 
+  # setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/")
   # output.dir <- getwd()
-  # tree.file.names <- "ptyr1_trees_newick/ptyr1_InWindow_1000_to_1249.tree"
-  # blacklist.files <- "ptyr1_trees_blacklist/ptyr1_blacklist_InWindow_1000_to_1249.csv"
+  # tree.file.names <- "RAxML_bestTree.InWindow_1550_to_1900.tree"
+  # blacklist.files <- "PatientBlacklist_InWindow_1550_to_1900.csv"
+  # out.identifier <- "test_s"
+  # mode <- "s"
+  # root.name <- "C.BW.00.00BW07621.AF443088"
+  # tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
+  # sankhoff.k <- 25
+  # break.ties.unsampled <- TRUE
+  # 
+  # # Rakai example 
+  # 
+  # setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/RakaiSeqs/")
+  # output.dir <- getwd()
+  # tree.file.names <- "RAxML_bestTree.InWindow_550_to_900.tree"
+  # blacklist.files <- "FullBlacklist_InWindow_550_to_900.csv"
   # out.identifier <- "test_pytr1"
-  # root.name <- "REF_CPX_AF460972"
-  # tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
-  # 
-  # MRSA example
-  # 
-  # setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/")
-  # output.dir <- getwd()
-  # tree.file.names <- "RAxML_bipartitions.ST239_no_bootstraps.tree"
-  # blacklist.files <- NULL
-  # out.identifier <- "mrsa_k50_alt"
-  # root.name <- "TW20"
-  # tip.regex <- "^([ST][0-9][0-9][0-9][a-z]?)_([A-Z0-9]*)_[A-Z][0-9][0-9]$"
+  # root.name <- "B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
+  # tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
   # mode <- "s"
   # zero.length.tips.count <- F
-  # sankhoff.k <- 50
+  # sankhoff.k <- 10
   # break.ties.unsampled <- F
+  #  
+  # MRSA example
+  
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/")
+  output.dir <- "/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/refinement"
+  tree.file.names <- "RAxML_bipartitions.ST239_no_bootstraps_T056corr.tree"
+  blacklist.files <- NULL
+  out.identifier <- "mrsa_k10_bp_yetanother"
+  root.name <- "TW20"
+  tip.regex <- "^([ST][0-9][0-9][0-9])_[A-Z0-9]*_[A-Z][0-9][0-9]$"
+  mode <- "s"
+  zero.length.tips.count <- F
+  sankhoff.k <- 10
+  ties.rule <- "b"
   
   if(0)
   {
@@ -127,7 +134,7 @@ source(file.path(script.dir, "WriteAnnotatedTrees.R"))
 #
 #	define internal functions
 #
-split.patients.to.subtrees<- function(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count, sankhoff.k, break.ties.unsampled)
+split.patients.to.subtrees<- function(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count, sankhoff.k, ties.rule)
 {
 	cat("SplitPatientsToSubtrees.R run on: ", tree.file.name,", rules = ",mode,"\n", sep="")
 	
@@ -150,10 +157,11 @@ split.patients.to.subtrees<- function(tree.file.name, mode, blacklist.file, root
 				blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
 			}
 		} else {
-			warning(paste("File ",blacklist.file.name," does not exist; skipping.",paste=""))
+			warning(paste("File ",blacklist.file," does not exist; skipping.",paste=""))
 		}
 	} 
 	
+	cat("Identifying tips with patients...\n")
 	
 	patient.ids <- sapply(tip.labels, function(x) patient.from.label(x, tip.regex))
 	
@@ -172,8 +180,8 @@ split.patients.to.subtrees<- function(tree.file.name, mode, blacklist.file, root
 	names(patient.tips) <- patients
 	
 	patient.mrcas <- lapply(patient.tips, function(node) mrca.phylo.or.unique.tip(tree, node, zero.length.tips.count))
-	
-	results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, break.ties.unsampled)
+
+	results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, ties.rule)
 	
 	node.shapes <- rep(FALSE, length(tree$tip.label) + tree$Nnode)
 	for(mrca in results$first.nodes){
@@ -206,6 +214,7 @@ split.patients.to.subtrees<- function(tree.file.name, mode, blacklist.file, root
 		patient.splits <- c(patient.splits, rep(patient.plus, length(tips)))
 		tip.names <- c(tip.names, tree$tip.label[tips])
 	}	
+	
 	rs.subtrees <- data.frame(orig.patients, patient.splits, tip.names)
 			
 	list(tree=tree, rs.subtrees=rs.subtrees)
@@ -223,7 +232,9 @@ if(single.file) {
 	#	if 'tree.file.names' is tree, process just one tree
 	tree.file.name		<- tree.file.names[1]	
 	blacklist.file		<- blacklist.files[1]
-	tmp					<- split.patients.to.subtrees(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count, sankhoff.k, break.ties.unsampled)
+	
+
+	tmp					<- split.patients.to.subtrees(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count, sankhoff.k, ties.rule)
 	tree				<- tmp[['tree']]	
 	rs.subtrees			<- tmp[['rs.subtrees']]
 	#
@@ -299,7 +310,9 @@ if(single.file) {
 		if(is.na(blacklist.file))	
 			blacklist.file	<- NULL
 		out.identifier		<- gsub('\\.tree$','',basename(tree.file.name))
-		tmp					<- split.patients.to.subtrees(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count, sankhoff.k, break.ties.unsampled)
+		
+		tmp					<- split.patients.to.subtrees(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count, sankhoff.k, ties.rule)
+
 		tree				<- tmp[['tree']]	
 		rs.subtrees			<- tmp[['rs.subtrees']]
 		#
@@ -340,4 +353,3 @@ if(single.file) {
 		write.ann.nexus(tree, file=tmp, annotations = c("INDIVIDUAL", "SPLIT"))		
 	}
 }
-  
