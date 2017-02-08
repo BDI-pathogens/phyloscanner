@@ -274,10 +274,14 @@ max.splits <- 0
 
 for(window.no in seq(1, length(tree.files))){
 
-  tree.file.name <- paste("AllTrees/",tree.files[window.no], sep="")
-  blacklist.file.name <- paste("Blacklists/",blacklist.files[window.no], sep="")
-  splits.file.name <- paste("SubtreeFiles_r/",splits.files[window.no], sep="")
-  sequence.file.name <- paste("AlignedReads/",sequence.files[window.no], sep="")
+  #tree.file.name <- paste("AllTrees/",tree.files[window.no], sep="")
+  #blacklist.file.name <- paste("Blacklists/",blacklist.files[window.no], sep="")
+  #splits.file.name <- paste("SubtreeFiles_r/",splits.files[window.no], sep="")
+  #sequence.file.name <- paste("AlignedReads/",sequence.files[window.no], sep="")
+  tree.file.name <- tree.files[window.no]
+  blacklist.file.name <- blacklist.files[window.no]
+  splits.file.name <- splits.files[window.no]
+  sequence.file.name <- sequence.files[window.no]
   
   if(!is.null(windows)){
     window <- windows[window.no]
