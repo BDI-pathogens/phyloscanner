@@ -90,7 +90,8 @@ if (command.line) {
   }
   
   if(length(tree.files)!=length(splits.files)){
-	  stop("Number of tree files and number of splits files differ")
+	  stop(paste("Found", length(tree.files), "tree files and",
+    length(splits.files), "splits files"))
   }
   #	OR: try expand fasta files if bootstrap trees
   # this is a temporary hack, but I need to get these runs processed ..
@@ -118,14 +119,16 @@ if (command.line) {
   
   if(!is.null(blacklist.file.names)){
 	  if(length(tree.files)!=length(blacklist.files)){
-		  stop("Number of tree files and number of blacklist files differ")
+  	  stop(paste("Found", length(tree.files), "tree files and",
+      length(blacklist.files), "blacklist files"))
 	  }
   }
   
   if(!is.null(args$windows)){
     windows <- unlist(strsplit(args$windows, ":"))
     if(length(tree.files)!=length(windows)){
-      stop("Number of tree files and number of windows differ")
+  	  stop(paste("Found", length(tree.files), "tree files but there are",
+      length(windows), "windows"))
     }
   } else {
     windows <- NULL
