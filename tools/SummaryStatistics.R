@@ -50,7 +50,7 @@ if (command.line) {
   arg_parser$add_argument("-w", "--windows", action="store", help="The window in the genome which each tree file, in the same order as the tree files (user-specified if -l is present, in the order provided by the file system if now), is constructed from. In each window this is given as n-m where n is the start and m the end; coordinates for each window are separated by a colon. If not given, the script will attempt to obtain these from the file names.")
   arg_parser$add_argument("idFile", action="store", help="A file containing a list of the IDs of all the patients to calcualte and display statistics for.")
   arg_parser$add_argument("treeFiles", action="store", help="Either (if -l is present) a list of tree files, separated by colons, or (if not) a single string that begins every tree file name.")
-  arg_parser$add_argument("sequenceFiles", action="store", help="Either (if -l is present) a list of sequence files, separated by colons, or (if not) a single string that begins every tree file name.")
+#  arg_parser$add_argument("sequenceFiles", action="store", help="Either (if -l is present) a list of sequence files, separated by colons, or (if not) a single string that begins every tree file name.")
   arg_parser$add_argument("splitsFiles", action="store",help="Either (if -l is present) a list of splits files, in the same order as the tree files and separated by colons, or (if not) a single string that begins every splits file name.")
   arg_parser$add_argument("outputBaseName", action="store", help="A string to begin the names of all output files.")
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
@@ -64,7 +64,7 @@ if (command.line) {
   root.name <- args$outgroupName
   tip.regex <- args$tipRegex
   tree.file.names <- args$treeFiles
-  sequence.file.names <- args$sequenceFiles
+#  sequence.file.names <- args$sequenceFiles
   splits.file.names <- args$splitsFiles
   blacklist.file.names <- args$blacklists  
   output.root <- args$outputBaseName
@@ -74,7 +74,7 @@ if (command.line) {
   if(!files.are.lists){
 	  tree.files <- sort(list.files(dirname(tree.file.names), pattern=paste('^',basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))
 	  splits.files <- sort(list.files(dirname(splits.file.names), pattern=paste('^',basename(splits.file.names),".*\\.csv",sep=""), full.names=TRUE))
-	  sequence.files <- sort(list.files(dirname(sequence.file.names), pattern=paste('^',basename(sequence.file.names),".*\\.fasta",sep=""), full.names=TRUE))
+#	  sequence.files <- sort(list.files(dirname(sequence.file.names), pattern=paste('^',basename(sequence.file.names),".*\\.fasta",sep=""), full.names=TRUE))
 	  blacklist.files <- NULL
 	  if(!is.null(blacklist.file.names)){
 		  blacklist.files <- sort(list.files(dirname(blacklist.file.names), pattern=paste('^',basename(blacklist.file.names),".*\\.csv",sep=""), full.names=TRUE))
@@ -82,7 +82,7 @@ if (command.line) {
   } else {
 	  tree.files <- unlist(strsplit(tree.file.names, ":"))
 	  splits.files <- unlist(strsplit(splits.file.names, ":"))
-	  sequence.files <- unlist(strsplit(splits.file.names, ":"))
+#	  sequence.files <- unlist(strsplit(splits.file.names, ":"))
 	  blacklist.files <- NULL
 	  if(!is.null(blacklist.file.names)){
 		  blacklist.files <- unlist(strsplit(blacklist.file.names, ":"))
@@ -94,27 +94,27 @@ if (command.line) {
   }
   #	OR: try expand fasta files if bootstrap trees
   # this is a temporary hack, but I need to get these runs processed ..
-  if(length(tree.files)!=length(sequence.files) & any(grepl('bootstrap', tree.files)))
-  {
-	df	<- data.table(TF= tree.files)
-	df[, PTY_RUN:= df[,as.integer(gsub('ptyr','',regmatches(TF, regexpr(paste('ptyr','[0-9]+',sep=''),TF))))]]
-	df[, W_FROM:= df[,as.integer(gsub(prefix.wfrom,'',regmatches(TF, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),TF))))]]
-	df[, W_TO:= df[, as.integer(gsub(prefix.wto,'',regmatches(TF, regexpr(paste(prefix.wto,'[0-9]+',sep=''),TF))))]]	
-	df[, BS:= NA_integer_]
-	tmp	<- df[, which(grepl(prefix.bootstrap, TF))]				
-	set(df, tmp, 'BS', df[tmp, as.integer(gsub(prefix.bootstrap,'',regmatches(TF, regexpr(paste(prefix.bootstrap,'[0-9]+',sep=''),TF))))])	
-	df2	<- data.table(SF= sequence.files)
-	df2[, PTY_RUN:= df2[,as.integer(gsub('ptyr','',regmatches(SF, regexpr(paste('ptyr','[0-9]+',sep=''),SF))))]]
-	df2[, W_FROM:= df2[,as.integer(gsub(prefix.wfrom,'',regmatches(SF, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),SF))))]]
-	df2[, W_TO:= df2[, as.integer(gsub(prefix.wto,'',regmatches(SF, regexpr(paste(prefix.wto,'[0-9]+',sep=''),SF))))]]	
-	df	<- merge(df, df2, by=c('PTY_RUN','W_FROM','W_TO'))
-	setkey(df, PTY_RUN, W_FROM, W_TO, BS)
-	tree.files	<- df[, TF]
-	sequence.files <- df[, SF]	
-  }  
-  if(length(tree.files)!=length(sequence.files)){	  
-    stop("Number of tree files and number of sequence files differ")
-  }
+#   if(length(tree.files)!=length(sequence.files) & any(grepl('bootstrap', tree.files)))
+#   {
+# 	df	<- data.table(TF= tree.files)
+# 	df[, PTY_RUN:= df[,as.integer(gsub('ptyr','',regmatches(TF, regexpr(paste('ptyr','[0-9]+',sep=''),TF))))]]
+# 	df[, W_FROM:= df[,as.integer(gsub(prefix.wfrom,'',regmatches(TF, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),TF))))]]
+# 	df[, W_TO:= df[, as.integer(gsub(prefix.wto,'',regmatches(TF, regexpr(paste(prefix.wto,'[0-9]+',sep=''),TF))))]]	
+# 	df[, BS:= NA_integer_]
+# 	tmp	<- df[, which(grepl(prefix.bootstrap, TF))]				
+# 	set(df, tmp, 'BS', df[tmp, as.integer(gsub(prefix.bootstrap,'',regmatches(TF, regexpr(paste(prefix.bootstrap,'[0-9]+',sep=''),TF))))])	
+# 	df2	<- data.table(SF= sequence.files)
+# 	df2[, PTY_RUN:= df2[,as.integer(gsub('ptyr','',regmatches(SF, regexpr(paste('ptyr','[0-9]+',sep=''),SF))))]]
+# 	df2[, W_FROM:= df2[,as.integer(gsub(prefix.wfrom,'',regmatches(SF, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),SF))))]]
+# 	df2[, W_TO:= df2[, as.integer(gsub(prefix.wto,'',regmatches(SF, regexpr(paste(prefix.wto,'[0-9]+',sep=''),SF))))]]	
+# 	df	<- merge(df, df2, by=c('PTY_RUN','W_FROM','W_TO'))
+# 	setkey(df, PTY_RUN, W_FROM, W_TO, BS)
+# 	tree.files	<- df[, TF]
+# 	sequence.files <- df[, SF]	
+#   }  
+  # if(length(tree.files)!=length(sequence.files)){	  
+  #   stop("Number of tree files and number of sequence files differ")
+  # }
   
   if(!is.null(blacklist.file.names)){
 	  if(length(tree.files)!=length(blacklist.files)){
@@ -138,7 +138,7 @@ if (command.line) {
   tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
   tree.files <- sort(list.files(paste(getwd(),"/AllTrees",sep=""), pattern="RAxML_bestTree.InWindow_.*\\.tree"))
   splits.files <- sort(list.files(paste(getwd(),"/SubtreeFiles_r",sep=""), pattern="Subtrees_r_run20161013_RS_inWindow_.*\\.csv"))
-  sequence.files <- sort(list.files(paste(getwd(),"/AlignedReads",sep=""), pattern="AlignedReads_PositionsExcised_.*\\.fasta"))
+  # sequence.files <- sort(list.files(paste(getwd(),"/AlignedReads",sep=""), pattern="AlignedReads_PositionsExcised_.*\\.fasta"))
   blacklist.files <- sort(list.files(paste(getwd(),"/Blacklists",sep=""), pattern="DualsBlacklist.InWindow_.*\\.csv"))
   output.root <- "ss_r_new"
   windows <- NULL
@@ -165,11 +165,11 @@ if (command.line) {
 	  root.name		<- "REF_CPX_AF460972_read_1_count_0"
 	  tip.regex 	<- "^(.*)_read_([0-9]+)_count_([0-9]+)$"	  
 	  tree.file.names		<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput_160902_w250/ptyr22_InWindow_'
-	  sequence.file.names	<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput_160902_w250/ptyr22_InWindow_'
+	  # sequence.file.names	<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput_160902_w250/ptyr22_InWindow_'
 	  splits.file.names		<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_'
 	  blacklist.file.names	<- NULL
 	  tree.files 		<- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))
-	  sequence.files 	<- sort(list.files(dirname(sequence.file.names), pattern=paste(basename(sequence.file.names),".*\\.fasta",sep=""), full.names=TRUE))
+	  # sequence.files 	<- sort(list.files(dirname(sequence.file.names), pattern=paste(basename(sequence.file.names),".*\\.fasta",sep=""), full.names=TRUE))
 	  splits.files 		<- sort(list.files(dirname(splits.file.names), pattern=paste(basename(splits.file.names),".*\\.csv",sep=""), full.names=TRUE))
 	  blacklist.files 	<- NULL
 	  output.root 		<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115"
@@ -281,7 +281,7 @@ for(window.no in seq(1, length(tree.files))){
   tree.file.name <- tree.files[window.no]
   blacklist.file.name <- blacklist.files[window.no]
   splits.file.name <- splits.files[window.no]
-  sequence.file.name <- sequence.files[window.no]
+  # sequence.file.name <- sequence.files[window.no]
   
   if(!is.null(windows)){
     window <- windows[window.no]
@@ -297,7 +297,7 @@ for(window.no in seq(1, length(tree.files))){
   # Read the tree
   
   tree <- read.tree(file=tree.file.name)
-  sequences <- read.dna(file=sequence.file.name, format="fasta")
+  # sequences <- read.dna(file=sequence.file.name, format="fasta")
   
   # Root the tree
   if(!is.null(root.name)){
@@ -408,7 +408,7 @@ for(window.no in seq(1, length(tree.files))){
       max.pat.distance <- max(pat.distances)
 #      mean.pat.dist.all <- mean(pat.distances)
       
-      pat.sequences <- sequences[which(labels(sequences) %in% all.tips),]
+#      pat.sequences <- sequences[which(labels(sequences) %in% all.tips),]
       
 #      nuc.div <- nuc.div(pat.sequences)
       
