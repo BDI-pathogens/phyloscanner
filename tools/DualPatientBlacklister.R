@@ -51,7 +51,7 @@ if(command.line){
 	  	tree.files	<- data.table(F=list.files(dirname(tree.prefix), pattern=basename(tree.prefix), full.names=TRUE))
 		cat('Found tree.files to determine total.windows per patient, n=', nrow(tree.files))
   }  
-  suffixes <- substr(dual.files.sans.ext, nchar(duals.prefix)+1, nchar(dual.files.sans.ext))
+  suffixes <- substr(dual.files.sans.ext, nchar(duals.prefix)+3, nchar(dual.files.sans.ext))
   #print(suffixes) 
   expected.blacklists <- paste(existing.bl.prefix, suffixes, ".csv", sep="")  
   observed.bl.files <- list.files(dirname(existing.bl.prefix), pattern=paste('^',basename(existing.bl.prefix),sep=""), full.names=TRUE)
