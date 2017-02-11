@@ -150,12 +150,12 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, rom
   
   cat("Calculating pairwise distances between splits...\n")
   
-  # split.distances <- tryCatch(
-  #   all.subtree.distances(tree, tt, all.splits, assocs), warning=function(w){return(NULL)}, error=function(e){return(NULL)})
-# 
-#   if(is.null(split.distances)){
+split.distances <- tryCatch(
+  all.subtree.distances(tree, tt, all.splits, assocs), warning=function(w){return(NULL)}, error=function(e){return(NULL)})
+
+  if(is.null(split.distances)){
     split.distances <- all.subtree.distances(tree, tt, all.splits, assocs, TRUE)
-  # }
+  }
   
   cat("Testing pairs...\n")
   
