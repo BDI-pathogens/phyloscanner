@@ -150,12 +150,12 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, rom
   
   cat("Calculating pairwise distances between splits...\n")
   
-  split.distances <- tryCatch(
-    all.subtree.distances(tree, tt, all.splits, assocs), warning=function(w){return(NULL)}, error=function(e){return(NULL)})
-
-  if(is.null(split.distances)){
+  # split.distances <- tryCatch(
+  #   all.subtree.distances(tree, tt, all.splits, assocs), warning=function(w){return(NULL)}, error=function(e){return(NULL)})
+# 
+#   if(is.null(split.distances)){
     split.distances <- all.subtree.distances(tree, tt, all.splits, assocs, TRUE)
-  }
+  # }
   
   cat("Testing pairs...\n")
   
@@ -167,9 +167,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, rom
   dir.12.matrix <- matrix(NA, length(patients.included), length(patients.included))
   dir.21.matrix <- matrix(NA, length(patients.included), length(patients.included))
   mean.distance.matrix <- matrix(NA, length(patients.included), length(patients.included))
-  
-  tree.distances <- dist.nodes(tree)
-  
+
   for(pat.1 in seq(1, length(patients.included))){
     for(pat.2 in  seq(1, length(patients.included))){
       if (pat.1 < pat.2) {
