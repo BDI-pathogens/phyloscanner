@@ -14,6 +14,7 @@ if(command.line){
   arg_parser$add_argument("-b", "--existingBlacklistsPrefix", action="store", help="A file path and initial string identifying existing (.csv) blacklists whose output is to be appended to. Only such files whose suffix (the string after the prefix, without the file extension) matches a suffix from the dual reports will be appended to.")
   arg_parser$add_argument("-t", "--treePrefix", action="store", help="A file path and initial string identifying read trees of all analyzed windows. From these, we determine the number of windows in which each individual is present.")
   arg_parser$add_argument("-w", "--windowCount", action="store", help="The total number of windows in the analysis (will default to the total number of dual infection files if absent.)")
+  arg_parser$add_argument("-s", "--summaryFile", action="store", help="A file to write a summary of the results to, detailing window counts for all patients")
   arg_parser$add_argument("threshold", action="store", help="The proportion of windows that a dual infection needs to appear in to be considered genuine. Those patients whose dual infections are considered genuine are blacklisted entirely. Those who are not are reduced to their largest subtrees only.")
   arg_parser$add_argument("dualReportsPrefix", action="store", help="A file path and initial string identifying all dual infection files output from ParsimonyBasedBlacklister.R.")
   arg_parser$add_argument("newBlacklistsPrefix", action="store", help="A file path and initial string for all output blacklist files.")
@@ -26,6 +27,7 @@ if(command.line){
   duals.prefix <- args$dualReportsPrefix
   output.prefix <- args$newBlacklistsPrefix 
   threshold <- args$threshold
+  summary.file <- args$summaryFile
   total.windows	<- NULL
   if(!is.null(args$windowCount))
   	total.windows	<- as.numeric(args$windowCount)
@@ -39,12 +41,8 @@ if(command.line){
 		threshold			<- 0.5	
 	}
 #
-  #print(duals.prefix)  
+ 
   dual.files <- list.files(dirname(duals.prefix), pattern=paste('^',basename(duals.prefix),sep=""), full.names=TRUE)
-  dual.files.sans.ext <- file_path_sans_ext(dual.files)
-  #print(dual.files)
-  #print(dual.files.sans.ext)
-  
   tree.files	<- data.table(F=rep(NA_character_,0))	
   if(!is.null(tree.prefix))
   {
@@ -52,7 +50,6 @@ if(command.line){
 		cat('Found tree.files to determine total.windows per patient, n=', nrow(tree.files))
   }  
   suffixes <- substr(dual.files.sans.ext, nchar(duals.prefix)+3, nchar(dual.files.sans.ext))
-  #print(suffixes) 
   expected.blacklists <- paste(existing.bl.prefix, suffixes, ".csv", sep="")  
   observed.bl.files <- list.files(dirname(existing.bl.prefix), pattern=paste('^',basename(existing.bl.prefix),sep=""), full.names=TRUE)
   expected.but.not.seen <- setdiff(expected.blacklists, observed.bl.files)
@@ -65,7 +62,7 @@ if(command.line){
   }
   
   if(length(seen.but.not.expected)>0){
-    for(sbne in expected.but.not.seen){
+    for(sbne in seen.but.not.expected){
       warning("Blacklist file ",sbne," found but does not match a dual infections file; will be ignored.")
     }
   }
@@ -131,10 +128,16 @@ if(nrow(tree.files)==0 & is.null(total.windows))
 #
 #
 #
-count.dual <- count.not <- 0
+
+counts <- vector()
+proportions <- vector()
+
 for(patient in labels(window.count.by.patient)[order(labels(window.count.by.patient))]){
+  proportions <- c(proportions, window.count.by.patient[[patient]]/total.windows[patient])
+  counts <- c(counts, window.count.by.patient[[patient]])
+  
   if(window.count.by.patient[[patient]]/total.windows[patient] >= threshold){
-    count.dual <- count.dual + 1
+
     cat("Patient ",patient," meets the threshold for dual infection (",window.count.by.patient[[patient]]," out of ",total.windows[patient],") and is blacklisted entirely.\n", sep="")
     # this is a dual infection and we want it removed in its entirety
     for(suffix in suffixes){
@@ -154,7 +157,7 @@ for(patient in labels(window.count.by.patient)[order(labels(window.count.by.pati
       }
     }
   } else {
-    count.not <- count.not + 1
+
     cat("Patient ",patient," does not meet the threshold for dual infection (",window.count.by.patient[[patient]]," out of ",total.windows[patient],") and smaller subtrees are being blacklisted.\n", sep="")
     # this is to have smaller subtrees blacklisted away on windows where they occur
     for(suffix in suffixes){
@@ -176,4 +179,9 @@ for(patient in labels(window.count.by.patient)[order(labels(window.count.by.pati
       }
     }
   }
+}
+
+if(!is.null(summary.file)){
+  out.df <- data.frame(patient = labels(window.count.by.patient)[order(labels(window.count.by.patient))], count = counts, proportion = proportions, stringsAsFactors = F)
+  write.csv(out.df, summary.file, row.names = F, quote = F)
 }
