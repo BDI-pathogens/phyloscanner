@@ -99,13 +99,11 @@ if (command.line) {
 		tmp[, W_FROM:= tmp[,as.integer(gsub(prefix.wfrom,'',regmatches(SF, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),SF))))]]
 		tmp[, W_TO:= tmp[, as.integer(gsub(prefix.wto,'',regmatches(SF, regexpr(paste(prefix.wto,'[0-9]+',sep=''),SF))))]]			
 		df				<- merge(df, tmp, by=c('W_FROM','W_TO'))
-		print(df)
 		tree.files		<- df[, TF]
 		splits.files	<- df[, SF]
 		if(!is.null(blacklist.files))
 		{
 			tmp					<- data.table(BF= blacklist.files)		
-			print(tmp)
 			tmp[, W_FROM:= tmp[,as.integer(gsub(prefix.wfrom,'',regmatches(BF, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),BF))))]]
 			tmp[, W_TO:= tmp[, as.integer(gsub(prefix.wto,'',regmatches(BF, regexpr(paste(prefix.wto,'[0-9]+',sep=''),BF))))]]			
 			df					<- merge(df, tmp, by=c('W_FROM','W_TO'))
