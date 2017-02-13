@@ -441,6 +441,7 @@ for(window.no in seq(1, length(tree.files))){
         if(length(all.tips)==1){
           mean.pat <- NA
         } else {
+          subtree.all <- drop.tip(tree, tip=tree$tip.label[!(tree$tip.label %in% all.tips)])
           pat.distances <- cophenetic(subtree.all)
           mean.pat <- mean(pat.distances[upper.tri(pat.distances)])
         }

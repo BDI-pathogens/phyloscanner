@@ -15,6 +15,7 @@ if(command.line){
   arg_parser$add_argument("-r", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
   arg_parser$add_argument("-b", "--blacklist", action="store", help="A blacklist to be applied before this script is run.")
   arg_parser$add_argument("-c", "--noReadCounts", action="store_true", help="If present, each tip is assumed to represent one read")
+  arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what I'm doing.")
   arg_parser$add_argument("rawThreshold", action="store", type="double", help="Raw threshold; tips with read counts less than this that are identical to a tip from another patient will be blacklisted, regardless of the count of the other read.")
   arg_parser$add_argument("ratioThreshold", action="store", type="double", help="Ratio threshold; tips will be blacklisted if the ratio of their tip count to that of of another, identical tip from another patient is less than this value.")
   arg_parser$add_argument("sankhoffK", action="store", type="double", help="The k parameter in the cost matrix for Sankhoff reconstruction (see documentation)")
@@ -38,6 +39,7 @@ if(command.line){
   root.name <- args$outgroupName
   blacklist.file.name <- args$blacklist
   no.read.counts <- args$noReadCounts
+  verbose <- args$verbose
 
 } else {
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/AllTrees/")
@@ -129,7 +131,7 @@ for(patient in patients[order(patients)]){
     
     split.results <- split.and.annotate(subtree, patient, patient.tips, NULL, NULL, tip.regex, "s", sankhoff.k, "u", "total.lengths")
     
-    if(length(split.results$split.patients)==1){
+    if(length(split.results$split.patients)==1 & verbose){
       cat("No splits for patient ", patient, "\n", sep="")
       
     } else {
@@ -163,7 +165,9 @@ for(patient in patients[order(patients)]){
         
       }
       if(length(which(!too.small))>1){
-        cat(patient, " looks like a dual infection\n", sep="")
+        if(verbose){
+          cat(patient, " looks like a dual infection\n", sep="")
+        }
         mi.patient.column <- c(mi.patient.column, rep(patient, length(subtree$tip.label)-1))
         mi.tip.names.column <- c(mi.tip.names.column, tips.vector)
         mi.read.count.column <- c(mi.read.count.column, read.count.vector)
