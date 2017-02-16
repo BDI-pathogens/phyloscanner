@@ -13,7 +13,7 @@ def FindAndCheckCode(CodeBasename):
   executable with a -h flag, and returns its path.'''
   CodeFullPath = os.path.join(DirectoryOfThisScript, CodeBasename)
   if not os.path.isfile(CodeFullPath):
-    print(CodeBasename, 'is not in the same directory as', sys.argv[0] +\
+    print(CodeBasename, 'is not in the same directory as', __file__ +\
     '\nQuitting', file=sys.stderr)
     exit(1)
   FNULL = open(os.devnull, 'w')

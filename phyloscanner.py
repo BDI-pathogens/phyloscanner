@@ -61,7 +61,7 @@ from Bio import Seq
 from Bio import Phylo
 from Bio import AlignIO
 from Bio import Align
-import phyloscanner_funcs as pf
+import tools.phyloscanner_funcs as pf
 
 # Define a function to check files exist, as a type for the argparse.
 def File(MyFile):
