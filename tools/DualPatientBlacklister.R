@@ -41,23 +41,23 @@ if(command.line){
 	  	tree.files	<- data.table(F=list.files(dirname(tree.prefix), pattern=basename(tree.prefix), full.names=TRUE))
 		cat('Found tree.files to determine total.windows per patient, n=', nrow(tree.files))
   }  
-  suffixes <- substr(dual.files.sans.ext, nchar(duals.prefix)+3, nchar(dual.files.sans.ext))
-  expected.blacklists <- paste(existing.bl.prefix, suffixes, ".csv", sep="")  
+  
+  suffixes	<- gsub('.*_(InWindow_[0-9]+_to_[0-9]+).*$','\\1',dual.files)
+  #suffixes <- substr(dual.files.sans.ext, nchar(duals.prefix)+3, nchar(dual.files.sans.ext))
+  expected.blacklists <- paste(existing.bl.prefix, suffixes, ".csv", sep="")
   observed.bl.files <- list.files(dirname(existing.bl.prefix), pattern=paste('^',basename(existing.bl.prefix),sep=""), full.names=TRUE)
   expected.but.not.seen <- setdiff(expected.blacklists, observed.bl.files)
   seen.but.not.expected <- setdiff(observed.bl.files, expected.blacklists)
-  
   if(length(expected.but.not.seen)>0){
     for(ebns in expected.but.not.seen){
       warning("Blacklist file ",ebns," not found. Will make a new blacklist file with this extension.")
     }
   }
-  
   if(length(seen.but.not.expected)>0){
     for(sbne in seen.but.not.expected){
       warning("Blacklist file ",sbne," found but does not match a dual infections file; will be ignored.")
     }
-  }
+  }  
 } else {
   
   if(0)

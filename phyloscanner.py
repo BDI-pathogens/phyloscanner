@@ -61,8 +61,7 @@ from Bio import Seq
 from Bio import Phylo
 from Bio import AlignIO
 from Bio import Align
-from MergeSimilarStrings import MergeSimilarStrings
-import phyloscanner_funcs as pf
+import tools.phyloscanner_funcs as pf
 
 # Define a function to check files exist, as a type for the argparse.
 def File(MyFile):
@@ -104,13 +103,14 @@ help='A comma-separated series of paired coordinates defining the boundaries '+\
 ' 21-320.')
 parser.add_argument('-AW', '--auto-window-params', \
 type=CommaSeparatedInts, help='''Used to specify 2, 3 or 4 comma-separated
-integers controlling automatic window finding. The integer is the width you want
-windows to be, weighting each column in the alignment of bam file references
-(plus any extra references included) by its non-gap fraction. The second is the
-overlap between the end of one window and the start of the next (which can be
-negative). The optional third integer is the start position for the first window
-(by default, 1). The optional fourth integer is the end position for the last
-window (by default, windows will continue up to the end of the alignment of references).''')
+integers controlling automatic window finding. The first integer is the width
+you want windows to be, weighting each column in the alignment of bam file
+references (plus any extra references included) by its non-gap fraction. The
+second is the overlap between the end of one window and the start of the next
+(which can be negative). The optional third integer is the start position for
+the first window (by default, 1). The optional fourth integer is the end
+position for the last window (by default, windows will continue up to the end of
+the alignment of references).''')
 parser.add_argument('-A', '--alignment-of-other-refs', type=File,\
 help='An alignment of any reference sequences (which need not be those used '+\
 'to produce the bam files) to be cut into the same windows as the bam files '+\
@@ -205,8 +205,8 @@ action='store_true', help='When read pairs are merged, those pairs that '+\
 ' to the working directory) for your inspection.')
 parser.add_argument('-MT', '--merging-threshold', type=int, default=0, help=\
 'Reads that differ by a number of bases equal to or less than this are merged'+\
-', following the algorithm in MergeSimilarStrings.py. The default value of '+\
-'0 means there is no merging.')
+', those with higher counts effectively absorbing those with lower counts. '+\
+'The default value of 0 means there is no merging.')
 parser.add_argument('-MC', '--min-read-count', type=int, default=1, help=\
 'Reads with a count less than this value (after merging, if merging is being '+\
 'done) are discarded. The default value of 1 means all reads are kept.')
@@ -928,7 +928,7 @@ def ProcessReadDict(ReadDict, WhichBam, LeftWindowEdge, RightWindowEdge):
 
   # Merge similar reads if desired
   if args.merging_threshold > 0:
-    ReadDict = MergeSimilarStrings(ReadDict, args.merging_threshold)
+    ReadDict = pf.MergeSimilarStrings(ReadDict, args.merging_threshold)
 
   # Implement the minimum read count
   if args.min_read_count > 1:
@@ -1008,7 +1008,8 @@ def ReMergeAlignedReads(alignment):
   for SampleName in SampleReadCounts:
     if args.merging_threshold > 0:
       SampleReadCounts[SampleName] = \
-      MergeSimilarStrings(SampleReadCounts[SampleName], args.merging_threshold)
+      pf.MergeSimilarStrings(SampleReadCounts[SampleName],
+      args.merging_threshold)
     for k, (read, count) in enumerate(sorted(\
     SampleReadCounts[SampleName].items(), key=lambda x: x[1], reverse=True)):
       ID = SampleName+'_read_'+str(k+1)+'_count_'+str(count)

@@ -26,6 +26,7 @@ suppressMessages(require(RColorBrewer, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(scales, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(dplyr, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(dtplyr, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
 #
 #	constants
 #
@@ -88,44 +89,43 @@ if (command.line) {
 		  blacklist.files <- unlist(strsplit(blacklist.file.names, ":"))
 	  }
   }
-  
-  if(length(tree.files)!=length(splits.files)){
-	  stop("Number of tree files and number of splits files differ")
-  }
-  #	OR: try expand fasta files if bootstrap trees
-  # this is a temporary hack, but I need to get these runs processed ..
-#   if(length(tree.files)!=length(sequence.files) & any(grepl('bootstrap', tree.files)))
-#   {
-# 	df	<- data.table(TF= tree.files)
-# 	df[, PTY_RUN:= df[,as.integer(gsub('ptyr','',regmatches(TF, regexpr(paste('ptyr','[0-9]+',sep=''),TF))))]]
-# 	df[, W_FROM:= df[,as.integer(gsub(prefix.wfrom,'',regmatches(TF, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),TF))))]]
-# 	df[, W_TO:= df[, as.integer(gsub(prefix.wto,'',regmatches(TF, regexpr(paste(prefix.wto,'[0-9]+',sep=''),TF))))]]	
-# 	df[, BS:= NA_integer_]
-# 	tmp	<- df[, which(grepl(prefix.bootstrap, TF))]				
-# 	set(df, tmp, 'BS', df[tmp, as.integer(gsub(prefix.bootstrap,'',regmatches(TF, regexpr(paste(prefix.bootstrap,'[0-9]+',sep=''),TF))))])	
-# 	df2	<- data.table(SF= sequence.files)
-# 	df2[, PTY_RUN:= df2[,as.integer(gsub('ptyr','',regmatches(SF, regexpr(paste('ptyr','[0-9]+',sep=''),SF))))]]
-# 	df2[, W_FROM:= df2[,as.integer(gsub(prefix.wfrom,'',regmatches(SF, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),SF))))]]
-# 	df2[, W_TO:= df2[, as.integer(gsub(prefix.wto,'',regmatches(SF, regexpr(paste(prefix.wto,'[0-9]+',sep=''),SF))))]]	
-# 	df	<- merge(df, df2, by=c('PTY_RUN','W_FROM','W_TO'))
-# 	setkey(df, PTY_RUN, W_FROM, W_TO, BS)
-# 	tree.files	<- df[, TF]
-# 	sequence.files <- df[, SF]	
-#   }  
-  # if(length(tree.files)!=length(sequence.files)){	  
-  #   stop("Number of tree files and number of sequence files differ")
-  # }
-  
-  if(!is.null(blacklist.file.names)){
+  	#	continue with the min number of windows for which splits files are present
+  	if(length(tree.files)!=length(splits.files))
+  	{	  	
+	 	df				<- data.table(TF= tree.files)		
+		df[, W_FROM:= df[,as.integer(gsub(prefix.wfrom,'',regmatches(TF, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),TF))))]]
+		df[, W_TO:= df[, as.integer(gsub(prefix.wto,'',regmatches(TF, regexpr(paste(prefix.wto,'[0-9]+',sep=''),TF))))]]			
+		tmp				<- data.table(SF= splits.files)		
+		tmp[, W_FROM:= tmp[,as.integer(gsub(prefix.wfrom,'',regmatches(SF, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),SF))))]]
+		tmp[, W_TO:= tmp[, as.integer(gsub(prefix.wto,'',regmatches(SF, regexpr(paste(prefix.wto,'[0-9]+',sep=''),SF))))]]			
+		df				<- merge(df, tmp, by=c('W_FROM','W_TO'))
+		tree.files		<- df[, TF]
+		splits.files	<- df[, SF]
+		if(!is.null(blacklist.files))
+		{
+			tmp					<- data.table(BF= blacklist.files)		
+			tmp[, W_FROM:= tmp[,as.integer(gsub(prefix.wfrom,'',regmatches(BF, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),BF))))]]
+			tmp[, W_TO:= tmp[, as.integer(gsub(prefix.wto,'',regmatches(BF, regexpr(paste(prefix.wto,'[0-9]+',sep=''),BF))))]]			
+			df					<- merge(df, tmp, by=c('W_FROM','W_TO'))
+			print(df)
+			tree.files			<- df[, TF]
+			splits.files		<- df[, SF]			
+			blacklist.files		<- df[, BF]	
+		}		
+	}
+	if(length(tree.files)!=length(splits.files))
+		stop(paste("Found", length(tree.files), "tree files and",length(splits.files), "splits files"))  	
+  	if(!is.null(blacklist.files)){
 	  if(length(tree.files)!=length(blacklist.files)){
-		  stop("Number of tree files and number of blacklist files differ")
+  	  stop(paste("Found", length(tree.files), "tree files and",
+      length(blacklist.files), "blacklist files"))
 	  }
   }
-  
   if(!is.null(args$windows)){
     windows <- unlist(strsplit(args$windows, ":"))
     if(length(tree.files)!=length(windows)){
-      stop("Number of tree files and number of windows differ")
+  	  stop(paste("Found", length(tree.files), "tree files but there are",
+      length(windows), "windows"))
     }
   } else {
     windows <- NULL
@@ -161,18 +161,18 @@ if (command.line) {
   if(0)
   {
 	  script.dir	<- "/Users/Oliver/git/phylotypes/tools"
-	  id.file 		<- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20160517_clean/ss_c_plots.pdf"
-	  root.name		<- "REF_CPX_AF460972_read_1_count_0"
+	  id.file 		<- "/Users/Oliver/duke/tmp/pty_17-02-13-15-45-07/ptyr3_patients.txt"
+	  root.name		<- "REF_CPX_AF460972"
 	  tip.regex 	<- "^(.*)_read_([0-9]+)_count_([0-9]+)$"	  
-	  tree.file.names		<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput_160902_w250/ptyr22_InWindow_'
+	  tree.file.names		<- '/Users/Oliver/duke/tmp/pty_17-02-13-15-45-07/ptyr3_InWindow_'
 	  # sequence.file.names	<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput_160902_w250/ptyr22_InWindow_'
-	  splits.file.names		<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_'
-	  blacklist.file.names	<- NULL
+	  splits.file.names		<- '/Users/Oliver/duke/tmp/pty_17-02-13-15-45-07/Subtrees_r_ptyr3_InWindow_'
+	  blacklist.file.names	<- '/Users/Oliver/duke/tmp/pty_17-02-13-15-45-07/ptyr3_blacklistdwns_'
 	  tree.files 		<- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))
 	  # sequence.files 	<- sort(list.files(dirname(sequence.file.names), pattern=paste(basename(sequence.file.names),".*\\.fasta",sep=""), full.names=TRUE))
 	  splits.files 		<- sort(list.files(dirname(splits.file.names), pattern=paste(basename(splits.file.names),".*\\.csv",sep=""), full.names=TRUE))
-	  blacklist.files 	<- NULL
-	  output.root 		<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115"
+	  blacklist.files 	<- sort(list.files(dirname(blacklist.file.names), pattern=paste(basename(blacklist.file.names),".*\\.csv",sep=""), full.names=TRUE))
+	  output.root 		<- "/Users/Oliver/duke/tmp/pty_17-02-13-15-45-07/ptyr3"
 	  windows <- NULL	  
   }
 }
