@@ -74,7 +74,7 @@ cat("Reading functions...\n")
 source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
 source(file.path(script.dir, "SubtreeMethods.R"))
 
-cat("Reading tree...\n")
+cat(paste("Reading tree (",input.name,")...\n",sep=""))
 
 tree <- read.tree(input.name)
 tree <- unroot(tree)
