@@ -137,7 +137,7 @@ for(patient in labels(window.count.by.patient)[order(labels(window.count.by.pati
   proportions <- c(proportions, window.count.by.patient[[patient]]/total.windows[patient])
   counts <- c(counts, window.count.by.patient[[patient]])
   
-  if(window.count.by.patient[[patient]]/total.windows[patient] >= threshold){
+  if(window.count.by.patient[[patient]]/total.windows[patient] > threshold){
     if(verbose){
       cat("Patient ",patient," meets the threshold for dual infection (",window.count.by.patient[[patient]]," out of ",total.windows[patient],") and is blacklisted entirely.\n", sep="")
     }
