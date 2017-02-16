@@ -1,4 +1,4 @@
-split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, method="r", k=NA, ties.rule = "c", sankhoff.mode = "total.lengths", verbose=F){
+split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, method="r", k=NA, ties.rule = "c", sankhoff.mode = "total.lengths", useff=F, verbose=F){
   
   if(method == "c"){
     cat("Finding nodes that would have to be associated with more than one patient with no splits...\n")
@@ -186,8 +186,13 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     # node. This is the distance from the START of the branch (could make it halfway at a later point) 
     # to the first tip from that patient
     
-    individual.costs <- matrix(Inf, ncol=length(patients), nrow=length(tree$tip.label) + tree$Nnode) 
-    
+    if(useff){
+      individual.costs <- ff(Inf, dim=c(length(tree$tip.label) + tree$Nnode,length(patients))) 
+    } else {
+      individual.costs <- matrix(Inf, ncol=length(patients), nrow=length(tree$tip.label) + tree$Nnode) 
+    }
+   
+
     if(sankhoff.mode == "close.tip"){
       for(tip in seq(1, length(tree$tip.label))){
         pat <- tip.assocs[[tip]]
@@ -216,7 +221,11 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
       # First, go up the tree and flag which nodes have finite costs for which patients (i.e. those
       # that are ancestral to a tip _from_ that patient)
       
-      finite.cost <- matrix(FALSE, ncol=length(patients), nrow=length(tree$tip.label) + tree$Nnode) 
+      if(useff){
+        finite.cost <- ff(FALSE, dim=c(length(tree$tip.label) + tree$Nnode, length(patients)))
+      } else {
+        finite.cost <- matrix(FALSE, ncol=length(patients), nrow=length(tree$tip.label) + tree$Nnode) 
+      }
       
       for(tip in seq(1, length(tree$tip.label))){
         pat <- tip.assocs[[tip]]
@@ -256,7 +265,11 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     
     cat("Building full cost matrix...\n")
     
-    cost.matrix <- matrix(NA, ncol=length(patients), nrow=length(tree$tip.label) + tree$Nnode)
+    if(useff){
+      cost.matrix <- ff(NA, dim=c(length(tree$tip.label) + tree$Nnode, length(patients)), vmode = "single")
+    } else {
+      cost.matrix <- matrix(NA, nrow=c(length(tree$tip.label) + tree$Nnode, ncol=length(patients)))
+    }
     
     cost.matrix <- make.cost.matrix(getRoot(tree), tree, patients, tip.assocs, individual.costs, cost.matrix, k)
     
@@ -713,13 +726,10 @@ reconstruct <- function(tree, node, node.state, node.assocs, tip.assocs, patient
     decision <- node.state
   } else {
     for(child in Children(tree, node)){
-
       costs <- vapply(seq(1, length(patients)), function(x) calc.costs(x, patients, node.state, child, node.cost.matrix, full.cost.matrix, k), 0)
 
-      
       min.cost <- min(costs)
       if(length(which(costs == min.cost))==1){
-        
         decision <- patients[which(costs == min.cost)]
         if(verbose){
           cat("Single minimum cost belongs to ", decision, "\n", sep="")
@@ -788,7 +798,7 @@ reconstruct <- function(tree, node, node.state, node.assocs, tip.assocs, patient
           stop("Unknown tie-breaking method.")
         }
       }
-      node.assocs <- reconstruct(tree, child, decision, node.assocs, tip.assocs, patients, full.cost.matrix, node.cost.matrix, k, ties.rule)
+      node.assocs <- reconstruct(tree, child, decision, node.assocs, tip.assocs, patients, full.cost.matrix, node.cost.matrix, k, ties.rule, verbose)
     }
   }
   return(node.assocs)
@@ -985,6 +995,8 @@ extract.tt.subtree <- function(tt, patients, splits.for.patients, patients.for.s
 # every distance between subtrees
 
 all.subtree.distances <- function(tree, tt, splits, assocs, slow=F){
+  
+  cat("Slow is ", slow, '\n')
   
   if(!slow){
     tree.dist <- dist.nodes(tree)

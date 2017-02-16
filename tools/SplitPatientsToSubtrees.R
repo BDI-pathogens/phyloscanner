@@ -1,5 +1,5 @@
 command.line <- T
-list.of.packages <- c("phangorn", "argparse", "phytools", "ggplot2", "gdata", "mvtnorm", "expm")
+list.of.packages <- c("phangorn", "argparse", "phytools", "ggplot2", "gdata", "mvtnorm", "expm", "ff")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
 
@@ -26,6 +26,7 @@ if(command.line){
   arg_parser$add_argument("-pw", "--pdfwidth", action="store", default=100, help="Width of tree pdf in inches.")
   arg_parser$add_argument("-ph", "--pdfrelheight", action="store", default=0.15, help="Relative height of tree pdf.")
   arg_parser$add_argument("-db", "--debug", action="store_true", default=FALSE, help="Debugging mode.")
+  arg_parser$add_argument("-ff", "--useff", action="store_true", default=FALSE, help="Use ff to store parsimony reconstruction matrices. Use if you run out of memory.")
   
 
   args <- arg_parser$parse_args()
@@ -51,6 +52,7 @@ if(command.line){
   pdf.hm <- as.numeric(args$pdfrelheight)
   pdf.w <- as.numeric(args$pdfwidth)
   debug <- args$debug
+  useff = args$useff
   
   if(!(mode %in% c("c", "r", "f", "s"))){
     stop(paste("Unknown split classifier: ", mode, "\n", sep=""))
@@ -58,9 +60,6 @@ if(command.line){
   
 } else {
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
-  # mode <- "r"
-  # zero.length.tips.count <- F
-  # sankhoff.k <- 0
   pdf.w = 10
   pdf.hm = 0.2
 
@@ -77,19 +76,19 @@ if(command.line){
   # sankhoff.k <- 25
   # break.ties.unsampled <- TRUE
   # 
-  # # Rakai example 
-  # 
-  # setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/RakaiSeqs/")
-  # output.dir <- getwd()
-  # tree.file.names <- "RAxML_bestTree.InWindow_550_to_900.tree"
-  # blacklist.files <- "FullBlacklist_InWindow_550_to_900.csv"
-  # out.identifier <- "test_pytr1"
-  # root.name <- "B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
-  # tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
-  # mode <- "s"
-  # zero.length.tips.count <- F
-  # sankhoff.k <- 10
-  # break.ties.unsampled <- F
+  # Rakai example
+
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_160915_couples_w270/ptyr3_trees_collapsed.zip")
+  output.dir <- getwd()
+  tree.file.names <- "ptyr3_trees_newick/ptyr3_InWindow_3900_to_4149.tree"
+  blacklist.files <- "ptyr3_trees_blacklist/ptyr3_blacklist_InWindow_3900_to_4149.csv"
+  out.identifier <- "test_pytr1"
+  root.name <- "B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
+  tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
+  mode <- "s"
+  zero.length.tips.count <- F
+  sankhoff.k <- 10
+  break.ties.unsampled <- F
   #  
   # MRSA example
   
@@ -97,7 +96,7 @@ if(command.line){
   output.dir <- "/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/refinement"
   tree.file.names <- "RAxML_bipartitions.ST239_no_bootstraps_T056corr.tree"
   blacklist.files <- NULL
-  out.identifier <- "mrsa_k10_bp_yetanother"
+  out.identifier <- "mrsa_k10_bp_test"
   root.name <- "TW20"
   tip.regex <- "^([ST][0-9][0-9][0-9])_[A-Z0-9]*_[A-Z][0-9][0-9]$"
   mode <- "s"
@@ -126,6 +125,9 @@ suppressMessages(require(phytools, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(ggplot2, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(ggtree, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
+if(useff){
+  suppressMessages(require(ff, quietly=TRUE, warn.conflicts=FALSE))
+}
 
 source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
 source(file.path(script.dir, "SubtreeMethods.R"))
@@ -134,7 +136,7 @@ source(file.path(script.dir, "WriteAnnotatedTrees.R"))
 #
 #	define internal functions
 #
-split.patients.to.subtrees<- function(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count, sankhoff.k, ties.rule)
+split.patients.to.subtrees<- function(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count, sankhoff.k, ties.rule, useff)
 {
 	cat("SplitPatientsToSubtrees.R run on: ", tree.file.name,", rules = ",mode,"\n", sep="")
 	
@@ -171,6 +173,8 @@ split.patients.to.subtrees<- function(tree.file.name, mode, blacklist.file, root
 		patients <- unique(na.omit(patient.ids))
 	}
 	
+	# patients <- patients[order(patients)]
+	
 	if(length(patients)==0){
 	  stop("No patient IDs detected")
 	} 
@@ -181,7 +185,7 @@ split.patients.to.subtrees<- function(tree.file.name, mode, blacklist.file, root
 	
 	patient.mrcas <- lapply(patient.tips, function(node) mrca.phylo.or.unique.tip(tree, node, zero.length.tips.count))
 
-	results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, ties.rule)
+	results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, ties.rule, useff)
 	
 	node.shapes <- rep(FALSE, length(tree$tip.label) + tree$Nnode)
 	for(mrca in results$first.nodes){
@@ -234,7 +238,7 @@ if(single.file) {
 	blacklist.file		<- blacklist.files[1]
 	
 
-	tmp					<- split.patients.to.subtrees(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count, sankhoff.k, ties.rule)
+	tmp					<- split.patients.to.subtrees(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count, sankhoff.k, ties.rule, useff)
 	tree				<- tmp[['tree']]	
 	rs.subtrees			<- tmp[['rs.subtrees']]
 	#
@@ -311,7 +315,7 @@ if(single.file) {
 			blacklist.file	<- NULL
 		out.identifier		<- gsub('\\.tree$','',basename(tree.file.name))
 		
-		tmp					<- split.patients.to.subtrees(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count, sankhoff.k, ties.rule)
+		tmp					<- split.patients.to.subtrees(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count, sankhoff.k, ties.rule, useff)
 
 		tree				<- tmp[['tree']]	
 		rs.subtrees			<- tmp[['rs.subtrees']]
