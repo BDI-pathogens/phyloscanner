@@ -11,6 +11,7 @@ if(command.line){
   
   arg_parser = ArgumentParser(description="Look at identified multiple infections across all windows, and identify which are to be ignored entirely or reduced to largest subtree only.")
 
+  arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what I'm doing.")
   arg_parser$add_argument("-b", "--existingBlacklistsPrefix", action="store", help="A file path and initial string identifying existing (.csv) blacklists whose output is to be appended to. Only such files whose suffix (the string after the prefix, without the file extension) matches a suffix from the dual reports will be appended to.")
   arg_parser$add_argument("-t", "--treePrefix", action="store", help="A file path and initial string identifying read trees of all analyzed windows. From these, we determine the number of windows in which each individual is present.")
   arg_parser$add_argument("-w", "--windowCount", action="store", help="The total number of windows in the analysis (will default to the total number of dual infection files if absent.)")
@@ -28,19 +29,10 @@ if(command.line){
   output.prefix <- args$newBlacklistsPrefix 
   threshold <- args$threshold
   summary.file <- args$summaryFile
+  verbose <- args$verbose
   total.windows	<- NULL
   if(!is.null(args$windowCount))
   	total.windows	<- as.numeric(args$windowCount)
-
-	if(0)
-	{
-		tree.prefix			<- '/Users/Oliver/duke/tmp/pty_17-02-08-15-42-03/ptyr22_.*tree'
-		existing.bl.prefix	<- '/Users/Oliver/duke/tmp/pty_17-02-08-15-42-03/ptyr22_blacklistsank_'
-		output.prefix		<- '/Users/Oliver/duke/tmp/pty_17-02-08-15-42-03/ptyr22_blacklistdual_'
-		duals.prefix		<- '/Users/Oliver/duke/tmp/pty_17-02-08-15-42-03/ptyr22_duallistsank_'
-		threshold			<- 0.5	
-	}
-#
  
   dual.files <- list.files(dirname(duals.prefix), pattern=paste('^',basename(duals.prefix),sep=""), full.names=TRUE)
   tree.files	<- data.table(F=rep(NA_character_,0))	
@@ -67,6 +59,15 @@ if(command.line){
     }
   }
 } else {
+  
+  if(0)
+  {
+    tree.prefix			<- '/Users/Oliver/duke/tmp/pty_17-02-08-15-42-03/ptyr22_.*tree'
+    existing.bl.prefix	<- '/Users/Oliver/duke/tmp/pty_17-02-08-15-42-03/ptyr22_blacklistsank_'
+    output.prefix		<- '/Users/Oliver/duke/tmp/pty_17-02-08-15-42-03/ptyr22_blacklistdual_'
+    duals.prefix		<- '/Users/Oliver/duke/tmp/pty_17-02-08-15-42-03/ptyr22_duallistsank_'
+    threshold			<- 0.5	
+  }
 
 }
 
@@ -84,7 +85,7 @@ for(suffix in suffixes){
   }
   tmp	<- paste0(existing.bl.prefix, suffix, ".csv")
   if(file.exists(tmp) & file.size(tmp)>0){
-	cat('Copy existing blacklist to',paste0(output.prefix, suffix, ".csv\n"))
+	cat('Copying existing blacklist to',paste0(output.prefix, suffix, ".csv\n"))
     file.copy(tmp, paste(output.prefix, suffix, ".csv", sep=""))
   }
 }
@@ -137,8 +138,9 @@ for(patient in labels(window.count.by.patient)[order(labels(window.count.by.pati
   counts <- c(counts, window.count.by.patient[[patient]])
   
   if(window.count.by.patient[[patient]]/total.windows[patient] >= threshold){
-
-    cat("Patient ",patient," meets the threshold for dual infection (",window.count.by.patient[[patient]]," out of ",total.windows[patient],") and is blacklisted entirely.\n", sep="")
+    if(verbose){
+      cat("Patient ",patient," meets the threshold for dual infection (",window.count.by.patient[[patient]]," out of ",total.windows[patient],") and is blacklisted entirely.\n", sep="")
+    }
     # this is a dual infection and we want it removed in its entirety
     for(suffix in suffixes){
       dual.file <- read.csv(paste(duals.prefix, suffix, ".csv", sep=""), stringsAsFactors=FALSE)
@@ -157,8 +159,9 @@ for(patient in labels(window.count.by.patient)[order(labels(window.count.by.pati
       }
     }
   } else {
-
-    cat("Patient ",patient," does not meet the threshold for dual infection (",window.count.by.patient[[patient]]," out of ",total.windows[patient],") and smaller subtrees are being blacklisted.\n", sep="")
+    if(verbose){
+      cat("Patient ",patient," does not meet the threshold for dual infection (",window.count.by.patient[[patient]]," out of ",total.windows[patient],") and smaller subtrees are being blacklisted.\n", sep="")
+    }
     # this is to have smaller subtrees blacklisted away on windows where they occur
     for(suffix in suffixes){
       
