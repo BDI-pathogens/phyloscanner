@@ -136,11 +136,11 @@ if (command.line) {
   id.file <- "patientIDList.txt"
   root.name<- "C.BW.00.00BW07621.AF443088"
   tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
-  tree.files <- sort(list.files(paste(getwd(),"/AllTrees",sep=""), pattern="RAxML_bestTree.InWindow_.*\\.tree"))
-  splits.files <- sort(list.files(paste(getwd(),"/SubtreeFiles_r",sep=""), pattern="Subtrees_r_run20161013_RS_inWindow_.*\\.csv"))
+  tree.files <- sort(list.files(paste(getwd(),sep=""), pattern="RAxML_bestTree.InWindow_.*\\.tree"))
+  splits.files <- sort(list.files(paste(getwd(),sep=""), pattern="Subtrees_s_run20161013_inWindow_.*\\.csv"))
   # sequence.files <- sort(list.files(paste(getwd(),"/AlignedReads",sep=""), pattern="AlignedReads_PositionsExcised_.*\\.fasta"))
-  blacklist.files <- sort(list.files(paste(getwd(),"/Blacklists",sep=""), pattern="DualsBlacklist.InWindow_.*\\.csv"))
-  output.root <- "ss_r_new"
+  blacklist.files <- sort(list.files(paste(getwd(),sep=""), pattern="DualsBlacklist.InWindow_.*\\.csv"))
+  output.root <- "ss_s"
   windows <- NULL
 
 #  if(0)
@@ -245,7 +245,6 @@ ids <- scan(id.file, what="", sep="\n", quiet=TRUE)
 # tmp	<- setdiff(ids, tmp[, unique(IDS)])
 # if(length(tmp))
 # 	cat('\nwarning: IDs in id.file not found in any tree', paste(tmp, collapse=' '))
-
 
 num.ids <- length(unique(ids))
 if (num.ids == 0) {
@@ -355,7 +354,7 @@ for(window.no in seq(1, length(tree.files))){
   # Get each statistic for each patient
   
   for (i in 1:num.ids) {
-#    cat("Calculating statistics in window ",start, " for patient ", ids[i], "\n", sep="")
+    cat("Calculating statistics in window ",start, " for patient ", ids[i], "\n", sep="")
     id <- ids[i]
 
     num.leaves <- length(patient.tips[[id]])
@@ -379,6 +378,8 @@ for(window.no in seq(1, length(tree.files))){
     
     all.tips <- patient.tips[[id]]
 
+    subtree.all <- NULL
+    
     if(length(all.tips)>1){
       
       subtree.all <- drop.tip(tree, tip=tree$tip.label[!(tree$tip.label %in% all.tips)])
@@ -438,7 +439,6 @@ for(window.no in seq(1, length(tree.files))){
         if(length(all.tips)==1){
           mean.pat <- NA
         } else {
-          subtree.all <- drop.tip(tree, tip=tree$tip.label[!(tree$tip.label %in% all.tips)])
           pat.distances <- cophenetic(subtree.all)
           mean.pat <- mean(pat.distances[upper.tri(pat.distances)])
         }
@@ -577,6 +577,8 @@ if(BEEHIVE){
   
   amplicon.df <- data.frame(start = amplicon.starts, end = amplicon.ends, overlap.area = overlap.area, name = amplicon.names)
   
+  duals.summary <- read.csv("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/Blacklists/duals_summary.csv")
+  
   #amplicon-specific
   
   first <- T
@@ -662,7 +664,7 @@ tmp <- paste(output.root,"_patStats.pdf",sep="")
 cat("Plotting to file",tmp,"...\n")
 pdf(file=tmp, width=8.26772, height=11.6929)
 
-for (i in seq(1, length(ids))) {
+for (i in seq(1, num.ids)) {
   
   patient <- sort(ids)[i]
   cat("Drawing graphs for patient ",patient,"\n", sep="")
@@ -819,7 +821,24 @@ for (i in seq(1, length(ids))) {
     graph.6 <- add.no.data.rectangles(graph.6, rectangles)
     
     plots1 <- list()
-    plots1$main <- textGrob(patient,gp=gpar(fontsize=20))
+    
+    if(BEEHIVE){
+      if(patient %in% duals.summary$patient){
+        pat.row <- which(duals.summary$patient == patient)
+
+        if(duals.summary$type[pat.row]!="single"){
+          title.string <- paste(patient, " (",duals.summary$type[pat.row]," dual infection)",sep="")
+        } else {
+          title.string <- patient
+        }
+
+      } else {
+        title.string <- patient
+      }
+      plots1$main <- textGrob(title.string,gp=gpar(fontsize=20))
+    } else {
+      plots1$main <- textGrob(patient,gp=gpar(fontsize=20))
+    }  
     plots1 <- c(plots1, AlignPlots(graph.1, graph.2, graph.3, graph.4, graph.5, graph.6))
     plots1$ncol <- 1
     plots1$heights <- unit(c(0.25, rep(1,6)), "null")
