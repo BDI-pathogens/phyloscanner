@@ -185,7 +185,7 @@ split.patients.to.subtrees<- function(tree.file.name, mode, blacklist.file, root
 	
 	patient.mrcas <- lapply(patient.tips, function(node) mrca.phylo.or.unique.tip(tree, node, zero.length.tips.count))
 
-	results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, ties.rule, useff)
+	results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, ties.rule, useff = useff)
 	
 	node.shapes <- rep(FALSE, length(tree$tip.label) + tree$Nnode)
 	for(mrca in results$first.nodes){
