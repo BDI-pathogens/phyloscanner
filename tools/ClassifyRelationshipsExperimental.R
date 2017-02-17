@@ -100,6 +100,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, rom
 {	
   cat("Opening file: ", tree.file.name, "...\n", sep = "")
   
+  
   pseudo.beast.import <- read.beast(tree.file.name)
   tree <- attr(pseudo.beast.import, "phylo")
   
@@ -336,8 +337,11 @@ if(single.file)
     splits.file.name	<- splits.file.names[tree.i]
     output.name			<- gsub('\\.tree','_LikelyTransmissions.csv', tree.file.name)		
     collapsed.file.name	<- gsub('\\.tree','_collapsed.csv', tree.file.name)
-    dddf				<- likely.transmissions(tree.file.name, splits.file.name, tip.regex, romero.severson, zero.length.tips.count, collapsed.file.name)
-    cat("Write to file",output.name,"...\n")
-    write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE, quote=F)
+	tryCatch({
+				dddf	<- likely.transmissions(tree.file.name, splits.file.name, tip.regex, romero.severson, zero.length.tips.count, collapsed.file.name)
+				cat("Write to file",output.name,"...\n")
+				write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE, quote=F)			
+			},
+			error=function(e){ print(e$message); cat("No output written to file.\n") })    
   }
 }
