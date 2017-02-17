@@ -40,7 +40,7 @@ if(command.line){
   blacklist.file.name <- args$blacklist
   no.read.counts <- args$noReadCounts
   verbose <- args$verbose
-
+  
 } else {
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/AllTrees/")
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
@@ -129,19 +129,31 @@ for(patient in patients[order(patients)]){
     patient.tips <- list()
     patient.tips[[patient]] <- setdiff(1:length(subtree$tip.label), root.no)
     
-    split.results <- split.and.annotate(subtree, patient, patient.tips, NULL, NULL, tip.regex, "s", sankhoff.k, "u", "total.lengths")
+    split.results <- split.and.annotate(subtree, patient, patient.tips, NULL, NULL, tip.regex, "s", sankhoff.k, "u", sankhoff.mode = "total.lengths", useff = F)
     
-    if(length(split.results$split.patients)==1 & verbose){
-      cat("No splits for patient ", patient, "\n", sep="")
+    if(!no.read.counts){
+      total.reads <- sum(sapply(subtree$tip.label[setdiff(1:length(subtree$tip.label), root.no)], function(x) read.count.from.label(x, tip.regex)))
+    } else {
+      total.reads <- length(subtree$tip.label)
+    }
+    
+    if(length(split.results$split.patients)==1){
+      if(verbose){
+        cat("No splits for patient ", patient, "\n", sep="")
+      }
+      if(total.reads < raw.threshold){
+        if(verbose){
+          cat("Blacklisting ",patient,"; not enough reads in total.\n", sep="")
+        }
+        new.blacklist <- c(new.blacklist, subtree$tip.label[which(subtree$tip.label!=root.name)])
+      }
       
     } else {
-    
+      
       cat(length(split.results$split.patients), " splits for patient ", patient, "\n", sep="")
-      if(!no.read.counts){
-        total.reads <- sum(sapply(subtree$tip.label[setdiff(1:length(subtree$tip.label), root.no)], function(x) read.count.from.label(x, tip.regex)))
-      } else {
-        total.reads <- length(subtree$tip.label)
-      }
+      
+      
+      
       props <- vector()
       too.small <- vector()
       
@@ -172,7 +184,7 @@ for(patient in patients[order(patients)]){
         mi.tip.names.column <- c(mi.tip.names.column, tips.vector)
         mi.read.count.column <- c(mi.read.count.column, read.count.vector)
         mi.tip.count.column <- c(mi.tip.count.column, tip.count.vector)
-
+        
       }
       for(small.group in which(too.small)){
         cat("Tips from ", split.results$split.patients[small.group], " blacklisted\n", sep="")
