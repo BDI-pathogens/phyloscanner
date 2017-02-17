@@ -176,7 +176,8 @@ split.patients.to.subtrees<- function(tree.file.name, mode, blacklist.file, root
 	# patients <- patients[order(patients)]
 	
 	if(length(patients)==0){
-	  stop("No patient IDs detected")
+	  cat("No patient IDs detected, nothing to do. Quit.\n")
+	  quit(save='no')
 	} 
 
 	patient.tips <-
