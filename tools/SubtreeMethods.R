@@ -268,7 +268,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     if(useff){
       cost.matrix <- ff(NA, dim=c(length(tree$tip.label) + tree$Nnode, length(patients)), vmode = "single")
     } else {
-      cost.matrix <- matrix(NA, nrow=c(length(tree$tip.label) + tree$Nnode, ncol=length(patients)))
+      cost.matrix <- matrix(NA, nrow=length(tree$tip.label) + tree$Nnode, ncol=length(patients))
     }
     
     cost.matrix <- make.cost.matrix(getRoot(tree), tree, patients, tip.assocs, individual.costs, cost.matrix, k)
