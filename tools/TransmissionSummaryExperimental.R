@@ -189,29 +189,31 @@ if(!is.null(detailed.output))
 # 	Not currently in use
 #	make summary of transmission assignments across all columns
 #
-#cat("Making summary output table...\n")
-#set(tt, NULL, c('pat.1_leaves','pat.1_reads','pat.2_leaves','pat.2_reads'),NULL)
-#tmp		<- tt[, list(windows=length(W_FROM)), by=c('pat.1','pat.2','TYPE')]
-#tt		<- merge(tt, tmp, by=c('pat.1','pat.2','TYPE'))
+cat("Making summary output table...\n")
+set(tt, NULL, c('PAT.1_LEAVES','PAT.1_READS','PAT.2_LEAVES','PAT.2_READS'),NULL)
+tmp		<- tt[, list(windows=length(W_FROM)), by=c('PAT.1','PAT.2','TYPE')]
+tt		<- merge(tt, tmp, by=c('PAT.1','PAT.2','TYPE'))
 #	evaluate total.trans, denominator, and fraction
-#tmp		<- tt[, list(denominator=length(W_FROM), total.notdisc=length(which(TYPE!='disconnected')), total.trans=length(which(grepl('anc',TYPE)))), by=c('pat.1','pat.2')]
-#tmp		<- subset(tmp, total.notdisc>0)
-#tt		<- merge(tt, tmp, by=c('pat.1','pat.2'))
-#tt[, fraction:=paste(windows,'/',denominator,sep='')]
+tmp		<- tt[, list(denominator=length(W_FROM), total.notdisc=length(which(TYPE!='none')), total.trans=length(which(grepl('anc',TYPE)))), by=c('PAT.1','PAT.2')]
+tmp		<- subset(tmp, total.notdisc>0)
+tt		<- merge(tt, tmp, by=c('PAT.1','PAT.2'))
+tt[, fraction:=paste(windows,'/',denominator,sep='')]
 #	convert "anc_12" and "ans_21" to "anc" depending on direction
-#tt[, DUMMY:=NA_character_]
-#tmp			<- tt[, which(TYPE=="anc_12")]
-#set(tt, tmp, 'TYPE', "anc")
-#tmp			<- tt[, which(TYPE=="anc_21")]
-#set(tt, tmp, 'DUMMY', tt[tmp, pat.1])
-#set(tt, tmp, 'pat.1', tt[tmp, pat.2])
-#set(tt, tmp, 'pat.2', tt[tmp, DUMMY])
-#set(tt, tmp, 'TYPE', "anc")
-#tt[, DUMMY:=NULL]
+tt[, DUMMY:=NA_character_]
+tmp			<- tt[, which(TYPE=="anc_12")]
+set(tt, tmp, 'TYPE', "anc")
+tmp			<- tt[, which(TYPE=="anc_21")]
+set(tt, tmp, 'DUMMY', tt[tmp, PAT.1])
+set(tt, tmp, 'PAT.1', tt[tmp, PAT.2])
+set(tt, tmp, 'PAT.2', tt[tmp, DUMMY])
+set(tt, tmp, 'TYPE', "anc")
+tt[, DUMMY:=NULL]
 #	write to file
-#setkey(tt, pat.1, pat.2, TYPE)
-#tt			<- subset(tt, TYPE!='disconnected')
-#write.csv(subset(tt, total.trans>=min.threshold), file=output.file, row.names=FALSE, quote=FALSE)
+tt		<- subset(tt, TYPE!='none')
+setkey(tt, PAT.1, PAT.2, TYPE)
+#
+cat('Write summary to file',output.file,'\n')
+write.csv(subset(tt, total.trans>=min.threshold), file=output.file, row.names=FALSE, quote=FALSE)
 
 # Not currently in use - for dating
 

@@ -176,8 +176,7 @@ split.patients.to.subtrees<- function(tree.file.name, mode, blacklist.file, root
 	# patients <- patients[order(patients)]
 	
 	if(length(patients)==0){
-	  cat("No patient IDs detected, nothing to do. Quit.\n")
-	  quit(save='no')
+	  stop("No patient IDs detected, nothing to do.")
 	} 
 
 	patient.tips <-
@@ -310,51 +309,53 @@ if(single.file) {
 	}
 	for(tree.i in seq_len(nrow(df)))
 	{
-		tree.file.name		<- df[tree.i, TF]
-		blacklist.file		<- df[tree.i, BF]
-		if(is.na(blacklist.file))	
-			blacklist.file	<- NULL
-		out.identifier		<- gsub('\\.tree$','',basename(tree.file.name))
-		
-		tmp					<- split.patients.to.subtrees(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count, sankhoff.k, ties.rule, useff)
-
-		tree				<- tmp[['tree']]	
-		rs.subtrees			<- tmp[['rs.subtrees']]
-		#
-		#	write rda file (potentially before plotting fails so we can recover)
-		#
-		tmp 				<- file.path(output.dir,paste('Subtrees_',mode,'_',out.identifier,'.rda',sep=''))
-		cat("Writing output to file",tmp,"...\n")
-		save(rs.subtrees, tree, file=tmp)	
-	
-		#
-		#	plot tree
-		#
-		cat("Drawing tree...\n")
-		tree.display 		<- ggtree(tree, aes(color=INDIVIDUAL)) +
-				geom_point2(shape = 16, size=3, aes(subset=NODE_SHAPES)) +
-				scale_fill_hue(na.value = "black") +
-				scale_color_hue(na.value = "black") +
-				theme(legend.position="none") +
-				geom_tiplab(aes(col=INDIVIDUAL)) + 
-		    geom_treescale(width = 0.01, y=-5, offset=1.5)
-		
-		x.max <- ggplot_build(tree.display)$layout$panel_ranges[[1]]$x.range[2]
-		
-		tree.display <- tree.display + ggplot2::xlim(0, 1.1*x.max)
-		tree.display	
-		tmp					<- file.path(output.dir,paste('Tree_',mode,'_',out.identifier,'.pdf',sep=''))
-		cat("Plot to file",tmp,"...\n")
-		ggsave(tmp, device="pdf", height = pdf.hm*length(tree$tip.label), width = pdf.w, limitsize = F)
-		#
-		#	write csv file
-		#
-		tmp 				<- file.path(output.dir, paste('Subtrees_',mode,'_',out.identifier,'.csv',sep=''))
-		cat("Writing output to file",tmp,"...\n")	
-		write.csv(rs.subtrees, file=tmp, row.names = F, quote=F)
-		
-		tmp 				<- file.path(output.dir, paste('ProcessedTree_',mode,'_',out.identifier,'.tree',sep=''))
-		cat("Writing rerooted, multifurcating, annotated tree to file",tmp,"...\n")	
-		write.ann.nexus(tree, file=tmp, annotations = c("INDIVIDUAL", "SPLIT"))		
+		tryCatch({
+					tree.file.name		<- df[tree.i, TF]
+					blacklist.file		<- df[tree.i, BF]
+					if(is.na(blacklist.file))	
+						blacklist.file	<- NULL
+					out.identifier		<- gsub('\\.tree$','',basename(tree.file.name))
+					
+					tmp					<- split.patients.to.subtrees(tree.file.name, mode, blacklist.file, root.name, tip.regex, zero.length.tips.count, sankhoff.k, ties.rule, useff)
+					
+					tree				<- tmp[['tree']]	
+					rs.subtrees			<- tmp[['rs.subtrees']]
+					#
+					#	write rda file (potentially before plotting fails so we can recover)
+					#
+					tmp 				<- file.path(output.dir,paste('Subtrees_',mode,'_',out.identifier,'.rda',sep=''))
+					cat("Writing output to file",tmp,"...\n")
+					save(rs.subtrees, tree, file=tmp)						
+					#
+					#	plot tree
+					#
+					cat("Drawing tree...\n")
+					tree.display 		<- ggtree(tree, aes(color=INDIVIDUAL)) +
+							geom_point2(shape = 16, size=3, aes(subset=NODE_SHAPES)) +
+							scale_fill_hue(na.value = "black") +
+							scale_color_hue(na.value = "black") +
+							theme(legend.position="none") +
+							geom_tiplab(aes(col=INDIVIDUAL)) + 
+							geom_treescale(width = 0.01, y=-5, offset=1.5)
+					
+					x.max <- ggplot_build(tree.display)$layout$panel_ranges[[1]]$x.range[2]
+					
+					tree.display <- tree.display + ggplot2::xlim(0, 1.1*x.max)
+					tree.display	
+					tmp					<- file.path(output.dir,paste('Tree_',mode,'_',out.identifier,'.pdf',sep=''))
+					cat("Plot to file",tmp,"...\n")
+					ggsave(tmp, device="pdf", height = pdf.hm*length(tree$tip.label), width = pdf.w, limitsize = F)
+					#
+					#	write csv file
+					#
+					tmp 				<- file.path(output.dir, paste('Subtrees_',mode,'_',out.identifier,'.csv',sep=''))
+					cat("Writing output to file",tmp,"...\n")	
+					write.csv(rs.subtrees, file=tmp, row.names = F, quote=F)
+					
+					tmp 				<- file.path(output.dir, paste('ProcessedTree_',mode,'_',out.identifier,'.tree',sep=''))
+					cat("Writing rerooted, multifurcating, annotated tree to file",tmp,"...\n")	
+					write.ann.nexus(tree, file=tmp, annotations = c("INDIVIDUAL", "SPLIT"))
+				}, 
+				error=function(e){ print(e$message); cat("No output written to file.\n") })				
 	}
 }

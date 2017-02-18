@@ -65,7 +65,6 @@ if (command.line) {
   root.name <- args$outgroupName
   tip.regex <- args$tipRegex
   tree.file.names <- args$treeFiles
-#  sequence.file.names <- args$sequenceFiles
   splits.file.names <- args$splitsFiles
   blacklist.file.names <- args$blacklists  
   output.root <- args$outputBaseName
@@ -73,9 +72,8 @@ if (command.line) {
 #  cat(paste(id.file, script.dir, files.are.lists, root.name, tip.regex, tree.file.names, splits.file.names, blacklist.file.names, output.root, sep='\n'))
   
   if(!files.are.lists){
-	  tree.files <- sort(list.files(dirname(tree.file.names), pattern=paste('^',basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))
-	  splits.files <- sort(list.files(dirname(splits.file.names), pattern=paste('^',basename(splits.file.names),".*\\.csv",sep=""), full.names=TRUE))
-#	  sequence.files <- sort(list.files(dirname(sequence.file.names), pattern=paste('^',basename(sequence.file.names),".*\\.fasta",sep=""), full.names=TRUE))
+	  tree.files <- sort(list.files(dirname(tree.file.names), pattern=paste('^',basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))	  
+	  splits.files <- sort(list.files(dirname(splits.file.names), pattern=paste('^',basename(splits.file.names),".*\\.csv",sep=""), full.names=TRUE))	  
 	  blacklist.files <- NULL
 	  if(!is.null(blacklist.file.names)){
 		  blacklist.files <- sort(list.files(dirname(blacklist.file.names), pattern=paste('^',basename(blacklist.file.names),".*\\.csv",sep=""), full.names=TRUE))
@@ -83,7 +81,6 @@ if (command.line) {
   } else {
 	  tree.files <- unlist(strsplit(tree.file.names, ":"))
 	  splits.files <- unlist(strsplit(splits.file.names, ":"))
-#	  sequence.files <- unlist(strsplit(splits.file.names, ":"))
 	  blacklist.files <- NULL
 	  if(!is.null(blacklist.file.names)){
 		  blacklist.files <- unlist(strsplit(blacklist.file.names, ":"))
@@ -94,11 +91,12 @@ if (command.line) {
   	{	  	
 	 	df				<- data.table(TF= tree.files)		
 		df[, W_FROM:= df[,as.integer(gsub(prefix.wfrom,'',regmatches(TF, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),TF))))]]
-		df[, W_TO:= df[, as.integer(gsub(prefix.wto,'',regmatches(TF, regexpr(paste(prefix.wto,'[0-9]+',sep=''),TF))))]]			
+		df[, W_TO:= df[, as.integer(gsub(prefix.wto,'',regmatches(TF, regexpr(paste(prefix.wto,'[0-9]+',sep=''),TF))))]]
+		print(splits.files)
 		tmp				<- data.table(SF= splits.files)		
 		tmp[, W_FROM:= tmp[,as.integer(gsub(prefix.wfrom,'',regmatches(SF, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),SF))))]]
-		tmp[, W_TO:= tmp[, as.integer(gsub(prefix.wto,'',regmatches(SF, regexpr(paste(prefix.wto,'[0-9]+',sep=''),SF))))]]			
-		df				<- merge(df, tmp, by=c('W_FROM','W_TO'))
+		tmp[, W_TO:= tmp[, as.integer(gsub(prefix.wto,'',regmatches(SF, regexpr(paste(prefix.wto,'[0-9]+',sep=''),SF))))]]
+		df				<- merge(df, tmp, by=c('W_FROM','W_TO'))		
 		tree.files		<- df[, TF]
 		splits.files	<- df[, SF]
 		if(!is.null(blacklist.files))
@@ -137,8 +135,7 @@ if (command.line) {
   root.name<- "C.BW.00.00BW07621.AF443088"
   tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
   tree.files <- sort(list.files(paste(getwd(),sep=""), pattern="RAxML_bestTree.InWindow_.*\\.tree"))
-  splits.files <- sort(list.files(paste(getwd(),sep=""), pattern="Subtrees_s_run20161013_inWindow_.*\\.csv"))
-  # sequence.files <- sort(list.files(paste(getwd(),"/AlignedReads",sep=""), pattern="AlignedReads_PositionsExcised_.*\\.fasta"))
+  splits.files <- sort(list.files(paste(getwd(),sep=""), pattern="Subtrees_s_run20161013_inWindow_.*\\.csv"))  
   blacklist.files <- sort(list.files(paste(getwd(),sep=""), pattern="DualsBlacklist.InWindow_.*\\.csv"))
   output.root <- "ss_s"
   windows <- NULL
@@ -164,12 +161,10 @@ if (command.line) {
 	  id.file 		<- "/Users/Oliver/duke/tmp/pty_17-02-13-15-45-07/ptyr3_patients.txt"
 	  root.name		<- "REF_CPX_AF460972"
 	  tip.regex 	<- "^(.*)_read_([0-9]+)_count_([0-9]+)$"	  
-	  tree.file.names		<- '/Users/Oliver/duke/tmp/pty_17-02-13-15-45-07/ptyr3_InWindow_'
-	  # sequence.file.names	<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput_160902_w250/ptyr22_InWindow_'
+	  tree.file.names		<- '/Users/Oliver/duke/tmp/pty_17-02-13-15-45-07/ptyr3_InWindow_'	  
 	  splits.file.names		<- '/Users/Oliver/duke/tmp/pty_17-02-13-15-45-07/Subtrees_r_ptyr3_InWindow_'
 	  blacklist.file.names	<- '/Users/Oliver/duke/tmp/pty_17-02-13-15-45-07/ptyr3_blacklistdwns_'
-	  tree.files 		<- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))
-	  # sequence.files 	<- sort(list.files(dirname(sequence.file.names), pattern=paste(basename(sequence.file.names),".*\\.fasta",sep=""), full.names=TRUE))
+	  tree.files 		<- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))	  
 	  splits.files 		<- sort(list.files(dirname(splits.file.names), pattern=paste(basename(splits.file.names),".*\\.csv",sep=""), full.names=TRUE))
 	  blacklist.files 	<- sort(list.files(dirname(blacklist.file.names), pattern=paste(basename(blacklist.file.names),".*\\.csv",sep=""), full.names=TRUE))
 	  output.root 		<- "/Users/Oliver/duke/tmp/pty_17-02-13-15-45-07/ptyr3"
@@ -270,17 +265,15 @@ branch.to.pat.ratio.col <- vector()
 
 read.proportions <- list()
 max.splits <- 0
-
+print(tree.files)
 for(window.no in seq(1, length(tree.files))){
 
   #tree.file.name <- paste("AllTrees/",tree.files[window.no], sep="")
   #blacklist.file.name <- paste("Blacklists/",blacklist.files[window.no], sep="")
-  #splits.file.name <- paste("SubtreeFiles_r/",splits.files[window.no], sep="")
-  #sequence.file.name <- paste("AlignedReads/",sequence.files[window.no], sep="")
+  #splits.file.name <- paste("SubtreeFiles_r/",splits.files[window.no], sep="")  
   tree.file.name <- tree.files[window.no]
   blacklist.file.name <- blacklist.files[window.no]
-  splits.file.name <- splits.files[window.no]
-  # sequence.file.name <- sequence.files[window.no]
+  splits.file.name <- splits.files[window.no]  
   
   if(!is.null(windows)){
     window <- windows[window.no]
@@ -294,9 +287,8 @@ for(window.no in seq(1, length(tree.files))){
   }
   
   # Read the tree
-  
-  tree <- read.tree(file=tree.file.name)
-  # sequences <- read.dna(file=sequence.file.name, format="fasta")
+  cat('read',tree.file.name,'\n')
+  tree <- read.tree(file=tree.file.name)  
   
   # Root the tree
   if(!is.null(root.name)){

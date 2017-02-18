@@ -132,7 +132,6 @@ if(nrow(tree.files)==0 & is.null(total.windows))
 
 counts <- vector()
 proportions <- vector()
-
 for(patient in labels(window.count.by.patient)[order(labels(window.count.by.patient))]){
   proportions <- c(proportions, window.count.by.patient[[patient]]/total.windows[patient])
   counts <- c(counts, window.count.by.patient[[patient]])
@@ -140,7 +139,7 @@ for(patient in labels(window.count.by.patient)[order(labels(window.count.by.pati
   if(window.count.by.patient[[patient]]/total.windows[patient] > threshold){
     if(verbose){
       cat("Patient ",patient," meets the threshold for dual infection (",window.count.by.patient[[patient]]," out of ",total.windows[patient],") and is blacklisted entirely.\n", sep="")
-    }
+    }	
     # this is a dual infection and we want it removed in its entirety
     for(suffix in suffixes){
       dual.file <- read.csv(paste(duals.prefix, suffix, ".csv", sep=""), stringsAsFactors=FALSE)
