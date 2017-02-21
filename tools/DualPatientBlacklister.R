@@ -62,11 +62,27 @@ if(command.line){
   
   if(0)
   {
-    tree.prefix			<- '/Users/Oliver/duke/tmp/pty_17-02-08-15-42-03/ptyr22_.*tree'
-    existing.bl.prefix	<- '/Users/Oliver/duke/tmp/pty_17-02-08-15-42-03/ptyr22_blacklistsank_'
-    output.prefix		<- '/Users/Oliver/duke/tmp/pty_17-02-08-15-42-03/ptyr22_blacklistdual_'
-    duals.prefix		<- '/Users/Oliver/duke/tmp/pty_17-02-08-15-42-03/ptyr22_duallistsank_'
-    threshold			<- 0.5	
+    tree.prefix			<- '/Users/Oliver/duke/tmp/pty_17-02-21-10-23-26/ptyr1_.*tree'
+    existing.bl.prefix	<- '/Users/Oliver/duke/tmp/pty_17-02-21-10-23-26/ptyr1_blacklistsank_'
+    output.prefix		<- '/Users/Oliver/duke/tmp/pty_17-02-21-10-23-26/ptyr1_blacklistdual_'
+    duals.prefix		<- '/Users/Oliver/duke/tmp/pty_17-02-21-10-23-26/ptyr1_duallistsank_'
+	summary.file		<- '/Users/Oliver/duke/tmp/pty_17-02-21-10-23-26/ptyr1_dualsummary.csv'
+    threshold			<- 0.25	
+	
+	dual.files <- list.files(dirname(duals.prefix), pattern=paste('^',basename(duals.prefix),sep=""), full.names=TRUE)
+	tree.files	<- data.table(F=rep(NA_character_,0))	
+	if(!is.null(tree.prefix))
+	{
+		tree.files	<- data.table(F=list.files(dirname(tree.prefix), pattern=basename(tree.prefix), full.names=TRUE))
+		cat('Found tree.files to determine total.windows per patient, n=', nrow(tree.files))
+	}  	
+	suffixes	<- gsub('.*_(InWindow_[0-9]+_to_[0-9]+).*$','\\1',dual.files)
+	#suffixes <- substr(dual.files.sans.ext, nchar(duals.prefix)+3, nchar(dual.files.sans.ext))
+	expected.blacklists <- paste(existing.bl.prefix, suffixes, ".csv", sep="")
+	observed.bl.files <- list.files(dirname(existing.bl.prefix), pattern=paste('^',basename(existing.bl.prefix),sep=""), full.names=TRUE)
+	expected.but.not.seen <- setdiff(expected.blacklists, observed.bl.files)
+	seen.but.not.expected <- setdiff(observed.bl.files, expected.blacklists)
+	
   }
 
 }
@@ -107,7 +123,7 @@ if(nrow(tree.files)>0 & is.null(total.windows))
 	tmp						<- tree.files[, {
 										#F<- '/Users/Oliver/duke/tmp/pty_17-02-08-15-42-03/ptyr22_InWindow_2500_to_2749.tree'
 										tmp		<- data.table(TAXA=read.tree(F)$tip.label)
-										tmp2	<- unique(dual.file$patient)
+										tmp2	<- labels(window.count.by.patient)
 										tmp		<- sapply(tmp2, function(patient)	nrow(subset(tmp, regexpr(patient, TAXA)>0))	)
 										list(POT_DUAL_ID= tmp2, UNIQUE_READS=tmp)
 									}, by='F']						
