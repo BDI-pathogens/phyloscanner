@@ -185,5 +185,6 @@ for(patient in labels(window.count.by.patient)[order(labels(window.count.by.pati
 
 if(!is.null(summary.file)){
   out.df <- data.frame(patient = labels(window.count.by.patient)[order(labels(window.count.by.patient))], count = counts, proportion = proportions, stringsAsFactors = F)
-  write.csv(out.df, summary.file, row.names = F, quote = F)
+  cat("\nWrite dual summary file to", summary.file)
+  write.csv(out.df, file=summary.file, row.names=FALSE, quote=FALSE)
 }
