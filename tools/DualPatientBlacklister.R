@@ -62,12 +62,12 @@ if(command.line){
   
   if(0)
   {
-    tree.prefix			<- '/Users/Oliver/duke/tmp/pty_17-02-21-10-23-26/ptyr1_.*tree'
-    existing.bl.prefix	<- '/Users/Oliver/duke/tmp/pty_17-02-21-10-23-26/ptyr1_blacklistsank_'
-    output.prefix		<- '/Users/Oliver/duke/tmp/pty_17-02-21-10-23-26/ptyr1_blacklistdual_'
-    duals.prefix		<- '/Users/Oliver/duke/tmp/pty_17-02-21-10-23-26/ptyr1_duallistsank_'
-	summary.file		<- '/Users/Oliver/duke/tmp/pty_17-02-21-10-23-26/ptyr1_dualsummary.csv'
-    threshold			<- 0.25	
+    tree.prefix			<- '/Users/Oliver/duke/tmp/pty_17-02-22-10-29-08/ptyr22_.*tree'
+    existing.bl.prefix	<- '/Users/Oliver/duke/tmp/pty_17-02-22-10-29-08/ptyr22_blacklistsank_'
+    output.prefix		<- '/Users/Oliver/duke/tmp/pty_17-02-22-10-29-08/ptyr22_blacklistdual_'
+    duals.prefix		<- '/Users/Oliver/duke/tmp/pty_17-02-22-10-29-08/ptyr22_duallistsank_'
+	summary.file		<- '/Users/Oliver/duke/tmp/pty_17-02-22-10-29-08/ptyr22_dualsummary.csv'
+    threshold			<- 0.5	
 	
 	dual.files <- list.files(dirname(duals.prefix), pattern=paste('^',basename(duals.prefix),sep=""), full.names=TRUE)
 	tree.files	<- data.table(F=rep(NA_character_,0))	
@@ -86,24 +86,48 @@ if(command.line){
   }
 
 }
-
-window.count.by.patient <- list()
-
-for(suffix in suffixes){
-  cat('Reading file',paste0(duals.prefix, suffix, ".csv"),'\n')
-  dual.file <- read.csv(paste(duals.prefix, suffix, ".csv", sep=""), stringsAsFactors = FALSE)
-  for(patient in unique(dual.file$patient)){
-    if(is.null(window.count.by.patient[[patient]])){
-      window.count.by.patient[[patient]] <-  1
-    } else {
-      window.count.by.patient[[patient]] <- window.count.by.patient[[patient]]+1
-    }
-  }
-  tmp	<- paste0(existing.bl.prefix, suffix, ".csv")
-  if(file.exists(tmp) & file.size(tmp)>0){
-	cat('Copying existing blacklist to',paste0(output.prefix, suffix, ".csv\n"))
-    file.copy(tmp, paste(output.prefix, suffix, ".csv", sep=""))
-  }
+#
+#	read dual files
+#
+dd	<- data.table(PATIENT=rep(NA_character_,0), READS_IN_SUBTREE=rep(NA_integer_,0), TIPS_IN_SUBTREE=rep(NA_integer_,0), W_INFO=rep(NA_character_,0),  W_POTENTIAL_DUAL=rep(NA_integer_,0))
+if(length(suffixes)>0)
+{
+	dd	<- lapply(suffixes, function(suffix){
+				cat('Reading file',paste0(duals.prefix, suffix, ".csv"),'\n')
+				dual.file <- as.data.table(read.csv(paste(duals.prefix, suffix, ".csv", sep=""), stringsAsFactors = FALSE))	
+				dual.file <- unique(dual.file, by=c('patient','reads.in.subtree','tips.in.subtree'))
+				set(dual.file, NULL, 'tip.name', NULL)
+				setnames(dual.file, colnames(dual.file), gsub('\\.','_',toupper(colnames(dual.file))))
+				set(dual.file, NULL, 'W_INFO', suffix)
+				set(dual.file, NULL, 'W_POTENTIAL_DUAL', 1L)
+			})
+	dd	<- do.call('rbind',dd)
+}
+#
+#	write detailed info to file
+#
+if(!is.null(summary.file)){	
+	tmp	<- gsub('csv$','rda',summary.file)
+	cat("\nWrite detailed dual summary file to", tmp)
+	save(dd, file=tmp)
+}
+#
+#	count number of potential dual windows by patient
+#
+tmp								<- dd[, list(N= length(unique(W_INFO))), by='PATIENT']
+window.count.by.patient 		<- as.list(tmp$N)
+names(window.count.by.patient)	<- tmp$PATIENT
+#
+#	copy existing blacklists
+#
+for(suffix in suffixes)
+{
+	tmp	<- paste0(existing.bl.prefix, suffix, ".csv")
+	if(file.exists(tmp) & file.size(tmp)>0)
+	{
+		cat('Copying existing blacklist to',paste0(output.prefix, suffix, ".csv\n"))
+		file.copy(tmp, paste(output.prefix, suffix, ".csv", sep=""))
+  	}
 }
 #
 #	if window total in input args, convert window total to named numeric 
