@@ -16,12 +16,13 @@ if(command.line){
   arg_parser$add_argument("-b", "--blacklist", action="store", help="A blacklist to be applied before this script is run.")
   arg_parser$add_argument("-c", "--noReadCounts", action="store_true", help="If present, each tip is assumed to represent one read")
   arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what I'm doing.")
+  arg_parser$add_argument("-d", "--dualsOutputFile", action="store", help="A file to write the set of patients which seem to be dually infected according to the parameters of this run; if unspecified, do not output this.")
   arg_parser$add_argument("rawThreshold", action="store", type="double", help="Raw threshold; tips with read counts less than this that are identical to a tip from another patient will be blacklisted, regardless of the count of the other read.")
   arg_parser$add_argument("ratioThreshold", action="store", type="double", help="Ratio threshold; tips will be blacklisted if the ratio of their tip count to that of of another, identical tip from another patient is less than this value.")
   arg_parser$add_argument("sankhoffK", action="store", type="double", help="The k parameter in the cost matrix for Sankhoff reconstruction (see documentation)")
   arg_parser$add_argument("inputFileName", action="store", help="A CSV file outlining groups of tips that have identical sequences, each forming a single line.")
   arg_parser$add_argument("blacklistOutputFileName", action="store", help="The file to write a list of tips to be blacklisted to.")
-  arg_parser$add_argument("dualCandidatesOutputFileName", action="store", help="The file to write the set of patients who seem to be dually infected according to the parameters of this run.")
+  
   
   
   # Parse arguments
@@ -34,7 +35,7 @@ if(command.line){
   tip.regex <- args$tipRegex
   input.name <- args$inputFileName
   b.output.name <- args$blacklistOutputFileName
-  d.output.name <- args$dualCandidatesOutputFileName
+  d.output.name <- args$dualsOutputFile
   script.dir <- args$scriptdir
   root.name <- args$outgroupName
   blacklist.file.name <- args$blacklist
@@ -152,8 +153,6 @@ for(patient in patients[order(patients)]){
       
       cat(length(split.results$split.patients), " splits for patient ", patient, "\n", sep="")
       
-      
-      
       props <- vector()
       too.small <- vector()
       
@@ -176,7 +175,7 @@ for(patient in patients[order(patients)]){
         tip.count.vector <- c(tip.count.vector, rep(length(split.results$split.tips[[split]]), length(split.results$split.tips[[split]])))
         
       }
-      if(length(which(!too.small))>1){
+      if(length(which(!too.small))>1 & !is.null(d.output.name)){
         if(verbose){
           cat(patient, " looks like a dual infection\n", sep="")
         }
@@ -197,11 +196,14 @@ for(patient in patients[order(patients)]){
 
 write.table(new.blacklist, b.output.name, sep=",", row.names=FALSE, col.names=FALSE, quote=F)
 
-if(length(mi.patient.column>0)){
-  mi.df <- data.frame(patient = mi.patient.column, tip.name = mi.tip.names.column, reads.in.subtree = mi.read.count.column,
-                      tips.in.subtree = mi.tip.count.column)
-  
-  write.csv(mi.df, d.output.name, row.names = F)
-} else {
-  cat("No multiple infections detected.\n")
+if(!is.null(d.output.name)){
+  if(length(mi.patient.column>0)){
+    mi.df <- data.frame(patient = mi.patient.column, tip.name = mi.tip.names.column, reads.in.subtree = mi.read.count.column,
+                        tips.in.subtree = mi.tip.count.column)
+    
+    write.csv(mi.df, d.output.name, row.names = F)
+  } else {
+    cat("No multiple infections detected; writing empty file.\n")
+    file.create(d.output.name)
+  }
 }
