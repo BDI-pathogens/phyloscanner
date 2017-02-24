@@ -15,8 +15,6 @@ if(command.line){
   suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
   
   arg_parser = ArgumentParser(description="Identify the likely direction of transmission between all patients present in a phylogeny.")
-  arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", 
-                          help="Regular expression identifying tips from the dataset. Three groups: patient ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name. Necessary only if -s is specified.")
   arg_parser$add_argument("-c", "--collapsedTree", action="store", help="If present, the collapsed tree (in which all adjacent nodes with the same assignment are collapsed to one) is output as a .csv file to the path specified.")
   arg_parser$add_argument("treeFileName", action="store", help="Tree file name. Alternatively, a base name that identifies a group of tree file names can be specified. Tree files are assumed to end in '.tree'. This must be the 'processed' tree produced by SplitTreesToSubtrees.R.")
   arg_parser$add_argument("splitsFileName", action="store", help="Splits file name. Alternatively, a base name that identifies a group of split file names can be specified. Split files are assumed to end in '_subtree_[a-z].csv'.")
@@ -30,8 +28,6 @@ if(command.line){
   collapsed.file.names <- args$collapsedTree
   script.dir <- args$scriptdir
   output.name <- args$outputFileName
-  tip.regex <- args$tipRegex
-  zero.length.tips.count <- args$zeroLengthTipsCount
   
 } else {
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
@@ -79,9 +75,6 @@ if(command.line){
     splits.file.names		<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_'
     output.name 			<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_'
     root.name				<- "REF_CPX_AF460972_read_1_count_0"
-    tip.regex 				<- "^(.*)_read_([0-9]+)_count_([0-9]+)$"	  		
-    romero.severson 		<- TRUE
-    zero.length.tips.count 	<- FALSE
   }
 }
 
@@ -96,7 +89,7 @@ source(file.path(script.dir, "SubtreeMethods.R"))
 #
 #	define internal functions
 #
-likely.transmissions<- function(tree.file.name, splits.file.name, tip.regex, romero.severson, zero.length.tips.count, tt.file.name = NULL)
+likely.transmissions<- function(tree.file.name, splits.file.name, tt.file.name = NULL)
 {	
   cat("Opening file: ", tree.file.name, "...\n", sep = "")
   
@@ -323,7 +316,7 @@ if(single.file)
   #	if 'tree.file.names' is tree, process just one tree
   tree.file.name		<- tree.file.names[1]
   splits.file.name	<- splits.file.names[1]
-  dddf				<- likely.transmissions(tree.file.name, splits.file.name, tip.regex, romero.severson, zero.length.tips.count, collapsed.file.names)
+  dddf				<- likely.transmissions(tree.file.name, splits.file.name, collapsed.file.names)
   cat("Write to file",output.name,"...\n")
   write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE, quote=F)	
 } else {
@@ -338,7 +331,7 @@ if(single.file)
     output.name			<- gsub('\\.tree','_LikelyTransmissions.csv', tree.file.name)		
     collapsed.file.name	<- gsub('\\.tree','_collapsed.csv', tree.file.name)
 	tryCatch({
-				dddf	<- likely.transmissions(tree.file.name, splits.file.name, tip.regex, romero.severson, zero.length.tips.count, collapsed.file.name)
+				dddf	<- likely.transmissions(tree.file.name, splits.file.name, collapsed.file.name)
 				cat("Write to file",output.name,"...\n")
 				write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE, quote=F)			
 			},
