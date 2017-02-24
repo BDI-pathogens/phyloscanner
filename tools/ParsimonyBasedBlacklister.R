@@ -17,8 +17,8 @@ if(command.line){
   arg_parser$add_argument("-c", "--noReadCounts", action="store_true", help="If present, each tip is assumed to represent one read")
   arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what I'm doing.")
   arg_parser$add_argument("-d", "--dualsOutputFile", action="store", help="A file to write the set of patients which seem to be dually infected according to the parameters of this run; if unspecified, do not output this.")
-  arg_parser$add_argument("rawThreshold", action="store", type="double", help="Raw threshold; subgraphs with read counts less than this that are identical to a tip from another patient will be blacklisted, regardless of the count of the other read.")
-  arg_parser$add_argument("ratioThreshold", action="store", type="double", help="Ratio threshold; subgraphs will be blacklisted if the ratio of their tip count to that of of another, identical tip from another patient is less than this value.")
+  arg_parser$add_argument("rawThreshold", action="store", type="double", help="Raw threshold; subgraphs with read counts less than this will be blacklisted, regardless of the count of any other subgraphs from the same patient")
+  arg_parser$add_argument("ratioThreshold", action="store", type="double", help="Ratio threshold; subgraphs will be blacklisted if the ratio of their tip count to that of another subgraph from the same patient is less than this.")
   arg_parser$add_argument("sankhoffK", action="store", type="double", help="The k parameter in the cost matrix for Sankhoff reconstruction (see documentation)")
   arg_parser$add_argument("inputFileName", action="store", help="A CSV file outlining groups of tips that have identical sequences, each forming a single line.")
   arg_parser$add_argument("blacklistOutputFileName", action="store", help="The file to write a list of tips to be blacklisted to.")
@@ -118,7 +118,8 @@ mi.read.count.column <- vector()
 mi.tip.count.column <- vector()
 
 for(patient in patients[order(patients)]){
-  
+  cat("Identifying splits for patient ", patient, "\n")
+
   if(length(which(patient.ids==patient))>1){
     tip.nos <- c(outgroup.no, which(patient.ids==patient))
     
@@ -192,7 +193,7 @@ for(patient in patients[order(patients)]){
     }
   } 
 }
-
+cat("Finished\n")
 
 write.table(new.blacklist, b.output.name, sep=",", row.names=FALSE, col.names=FALSE, quote=F)
 
