@@ -38,7 +38,7 @@ if(command.line){
   tree.files	<- data.table(F=rep(NA_character_,0))	
   if(!is.null(tree.prefix))
   {
-    tree.files	<- data.table(F=list.files(dirname(tree.prefix), pattern=basename(tree.prefix), full.names=TRUE))
+    tree.files	<- data.table(F=list.files(dirname(tree.prefix), pattern=paste0('^',basename(tree.prefix)), full.names=TRUE))
     cat('Found tree.files to determine total.windows per patient, n=', nrow(tree.files))
   }  
   

@@ -7,10 +7,8 @@ suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
 command.line <- T
 
 if(command.line){
-  arg_parser = ArgumentParser(description="Identify phylogeny tips for blacklisting as representing suspected contaminants, based on a Sankhoff parsimony reconstruction")
-  
-  arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", 
-                          help="Regular expression identifying tips from the dataset. Three groups: patient ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name.")
+  arg_parser = ArgumentParser(description="Identify phylogeny tips for blacklisting as representing suspected contaminants, based on a Sankhoff parsimony reconstruction")  
+  arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. Three groups: patient ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name.")
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
   arg_parser$add_argument("-r", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
   arg_parser$add_argument("-b", "--blacklist", action="store", help="A blacklist to be applied before this script is run.")
@@ -22,13 +20,8 @@ if(command.line){
   arg_parser$add_argument("sankhoffK", action="store", type="double", help="The k parameter in the cost matrix for Sankhoff reconstruction (see documentation)")
   arg_parser$add_argument("inputFileName", action="store", help="A CSV file outlining groups of tips that have identical sequences, each forming a single line.")
   arg_parser$add_argument("blacklistOutputFileName", action="store", help="The file to write a list of tips to be blacklisted to.")
-  
-  
-  
   # Parse arguments
-  
   args <- arg_parser$parse_args()
-  
   raw.threshold <- args$rawThreshold
   ratio.threshold <- args$ratioThreshold
   sankhoff.k <- args$sankhoffK
