@@ -184,7 +184,19 @@ for(patient in patients[order(patients)]){
         new.blacklist <- c(new.blacklist, subtree$tip.label[split.results$split.tips[[split.results$split.patients[small.group]]]])
       }
     }
-  } 
+  } else {
+    tip.no <- which(patient.ids==patient)
+    
+    reads <- read.count.from.label(tree$tip.label[tip.no], tip.regex)
+    
+    if(reads < raw.threshold){
+      if(verbose){
+        cat("Blacklisting ",patient,"; not enough reads in total.\n", sep="")
+      }
+      new.blacklist <- c(new.blacklist, subtree$tip.label[which(subtree$tip.label!=root.name)])
+    }
+    
+  }
 }
 cat("Finished\n")
 
