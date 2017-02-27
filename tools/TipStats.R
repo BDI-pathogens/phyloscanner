@@ -94,7 +94,6 @@ tip.stats<- function(tree.file.name, splits.file.name)
   stats	<- data.table(TIP=rep(NA_character_,length(tree$tip.label)), SPLIT = rep(NA_character_,length(tree$tip.label)), PATIENT = rep(NA_character_,length(tree$tip.label)), RTT=rep(NA_real_,length(tree$tip.label)), SRTT=rep(NA_real_,length(tree$tip.label)))
   
   dd	<- lapply(seq(1, length(tree$tip.label)), function(index){
-    cat(index, "\n")
     rtt <- 0
     current.node <- index
     
