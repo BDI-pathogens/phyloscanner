@@ -965,6 +965,64 @@ check.contiguous <- function(tt, patients, splits.for.patients, patients.for.spl
   return(OK)
 }
 
+check.uninterrupted <- function(tt, patients, splits.for.patients, patients.for.splits){
+  # this could certainly be faster
+  if(length(patients)!=2){
+    stop("Not implemented")
+  }
+  pat.1.id <- patients[1]
+  pat.2.id <- patients[2]
+  
+  nodes.1 <- splits.for.patients[[pat.1.id]]
+  nodes.2 <- splits.for.patients[[pat.2.id]]
+  
+  any.contiguity <- F
+  any.interruption <- F
+  
+  for(node.1 in nodes.1){
+    current.node <- get.tt.parent(tt, node.1)
+    while(current.node!="root" & (startsWith(current.node, "none") | (if(is.null(patients.for.splits[[current.node]])) {T} else {patients.for.splits[[current.node]]==pat.1.id}))){
+      current.node <- get.tt.parent(tt, current.node)
+    }
+    if(current.node != "root"){
+      if(patients.for.splits[[current.node]]==pat.2.id){
+        any.contiguity <- T
+      } else {
+        # this is a blocking node
+        chain <- get.tt.ancestors(tt, current.node)
+        if(length(intersect(c(pat.1.id, pat.2.id), unlist(patients.for.splits[chain])))>0){
+          any.interruption <- T
+          break
+        }
+      }
+    }
+  }
+  
+  if(!any.interruption){
+    for(node.2 in nodes.2){
+      current.node <- get.tt.parent(tt, node.2)
+      while(current.node!="root" & (startsWith(current.node, "none") | (if(is.null(patients.for.splits[[current.node]])) {T} else {patients.for.splits[[current.node]]==pat.2.id}))){
+        current.node <- get.tt.parent(tt, current.node)
+      }
+      if(current.node != "root"){
+        if(patients.for.splits[[current.node]]==pat.1.id){
+          any.contiguity <- T
+        } else {
+          # this is a blocking node
+          chain <- get.tt.ancestors(tt, current.node)
+          if(length(intersect(c(pat.1.id, pat.2.id), unlist(patients.for.splits[chain])))>0){
+            any.interruption <- T
+            break
+          }
+        }
+      }
+      
+    }
+  }
+  return(any.contiguity & !any.interruption)
+}
+
+
 extract.tt.subtree <- function(tt, patients, splits.for.patients, patients.for.splits){
   # for now, at least
   
@@ -995,8 +1053,6 @@ extract.tt.subtree <- function(tt, patients, splits.for.patients, patients.for.s
 # every distance between subtrees
 
 all.subtree.distances <- function(tree, tt, splits, assocs, slow=F){
-  
-  cat("Slow is ", slow, '\n')
   
   if(!slow){
     tree.dist <- dist.nodes(tree)

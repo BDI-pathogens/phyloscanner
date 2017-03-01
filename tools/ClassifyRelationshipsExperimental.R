@@ -60,13 +60,12 @@ if(command.line){
   
   # MRSA example
 
-  # setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/refinement")
-  # tree.file.names <- "ProcessedTree_s_mrsa_k10_bp_yetanother.tree"
-  # splits.file.names <- "Subtrees_s_mrsa_k10_bp_yetanother.csv"
-  # output.name <- "LT_s_mrsa_k10_yetanother.csv"
-  # collapsed.file.names <- "collapsed_s_mrsa_k10_yetanother.csv"
-  # tip.regex <- "^([ST][0-9][0-9][0-9])_[A-Z0-9]*_[A-Z][0-9][0-9]$"
-  
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/refinement")
+  tree.file.names <- "ProcessedTree_s_mrsa_k10_bp_yetanother.tree"
+  splits.file.names <- "Subtrees_s_mrsa_k10_bp_yetanother.csv"
+  output.name <- "LT_s_mrsa_k10_yetanother.csv"
+  collapsed.file.names <- "collapsed_s_mrsa_k10_yetanother.csv"
+
   
   if(0)
   {
@@ -144,7 +143,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tt.file.name =
   
   cat("Calculating pairwise distances between splits...\n")
   
-split.distances <- tryCatch(
+  split.distances <- tryCatch(
   all.subtree.distances(tree, tt, all.splits, assocs), warning=function(w){return(NULL)}, error=function(e){return(NULL)})
 
   if(is.null(split.distances)){
@@ -155,6 +154,7 @@ split.distances <- tryCatch(
   
   count <- 0
   contiguous.matrix <- matrix(NA, length(patients.included), length(patients.included))
+  uninterrupted.matrix <- matrix(NA, length(patients.included), length(patients.included))
   path.matrix <- matrix(NA, length(patients.included), length(patients.included))
   nodes.1.matrix <- matrix(NA, length(patients.included), length(patients.included))
   nodes.2.matrix <- matrix(NA, length(patients.included), length(patients.included))
@@ -170,8 +170,6 @@ split.distances <- tryCatch(
         pat.1.id <- patients.included[pat.1]
         pat.2.id <- patients.included[pat.2]
         
-        #	      cat(pat.1.id, pat.2.id, "\n")
-        
         nodes.1 <- splits.for.patients[[pat.1.id]]
         nodes.2 <- splits.for.patients[[pat.2.id]]
         
@@ -181,6 +179,10 @@ split.distances <- tryCatch(
         OK <- check.contiguous(tt, c(pat.1.id, pat.2.id), splits.for.patients, patients.for.splits)		
         
         contiguous.matrix[pat.1, pat.2] <- OK
+        
+        OK <- check.uninterrupted(tt, c(pat.1.id, pat.2.id), splits.for.patients, patients.for.splits)	
+        
+        uninterrupted.matrix[pat.1, pat.2] <- OK
       
         count.12 <- 0
         count.21 <- 0
@@ -247,6 +249,7 @@ split.distances <- tryCatch(
   }
   
   contiguous.table <- as.table(contiguous.matrix)
+  uninterrupted.table <- as.table(uninterrupted.matrix)
   dir.12.table <- as.table(dir.12.matrix)
   dir.21.table <- as.table(dir.21.matrix)
   nodes.1.table <- as.table(nodes.1.matrix)
@@ -256,6 +259,9 @@ split.distances <- tryCatch(
   
   colnames(contiguous.table) <- patients.included
   rownames(contiguous.table) <- patients.included
+  
+  colnames(uninterrupted.table) <- patients.included
+  rownames(uninterrupted.table) <- patients.included
   
   colnames(path.table) <- patients.included
   rownames(path.table) <- patients.included
@@ -280,6 +286,10 @@ split.distances <- tryCatch(
   keep <- complete.cases(cdf)
   
   cdf <- cdf[keep,]
+  
+  udf <- as.data.frame(uninterrupted.table)
+  
+  udf <- udf[keep,]
 
   pdf <- as.data.frame(path.table)
   pdf <- pdf[keep,]
@@ -297,9 +307,9 @@ split.distances <- tryCatch(
   mddf <- as.data.frame(mean.distance.table)
   mddf <- mddf[keep,]
   
-  cdf <- cbind(cdf, d12df[,3], d21df[,3], n1df[,3], n2df[,3], pdf[,3], mddf[,3])
+  cdf <- cbind(cdf, udf[,3], d12df[,3], d21df[,3], n1df[,3], n2df[,3], pdf[,3], mddf[,3])
   
-  colnames(cdf) <- c("Patient_1", "Patient_2", "contiguous", "paths12", "paths21", "nodes1", "nodes2", "path.classification", "mean.distance.between.subtrees")
+  colnames(cdf) <- c("Patient_1", "Patient_2", "contiguous", "uninterrupted", "paths12", "paths21", "nodes1", "nodes2", "path.classification", "mean.distance.between.subtrees")
   cdf
 }
 
