@@ -51,7 +51,7 @@ source(file.path(script.dir, "SubtreeMethods.R"))
 #
 #	define internal functions
 #
-tip.stats<- function(tree.file.name, splits.file.name)
+tip.stats <- function(tree.file.name, splits.file.name)
 {	
   cat("Opening file: ", tree.file.name, "...\n", sep = "")
   
@@ -149,7 +149,7 @@ if(single.file)
   {
     tree.file.name		<- tree.file.names[tree.i]
     splits.file.name	<- splits.file.names[tree.i]
-    output.file.name			<- gsub('\\.tree',output.name,'.csv', tree.file.name)		
+    output.file.name			<- gsub('\\.tree',paste('_',output.name,'.csv',sep=''), tree.file.name)
 	tryCatch({
 				dddf	<- tip.stats(tree.file.name, splits.file.name)
 				cat("Write to file",output.name,"...\n")
