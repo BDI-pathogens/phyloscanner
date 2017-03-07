@@ -127,7 +127,7 @@ tt	<- lapply(tt, function(x){
 # rbind consolidated files
 #
 tt	<- do.call('rbind',tt)
-setnames(tt, c('Patient_1','Patient_2','path.classification','contiguous','paths21','paths12','mean.distance.between.subtrees'), c('pat.1','pat.2','TYPE','CONTIGUOUS','PATHS.21','PATHS.12','PATRISTIC_DISTANCE'))
+setnames(tt, c('Patient_1','Patient_2','path.classification','contiguous','uninterrupted','paths21','paths12','mean.distance.between.subtrees'), c('pat.1','pat.2','TYPE','CONTIGUOUS','UNINTERRUPTED','PATHS.21','PATHS.12','PATRISTIC_DISTANCE'))
 # change type name depending on allow.splits
 if(!allow.splits)
 {
@@ -182,7 +182,7 @@ set(tt, tt[,which(TYPE=='multiDesc')], 'TYPE','multi_anc_21')
 
 #	reorder
 setkey(tt, W_FROM, W_TO, pat.1, pat.2)
-tt			<- subset(tt, select=c('W_FROM','W_TO','pat.1','pat.2','TYPE','PATRISTIC_DISTANCE','CONTIGUOUS','PATHS.12','PATHS.21','pat.1_leaves','pat.1_reads','pat.2_leaves','pat.2_reads'))
+tt			<- subset(tt, select=c('W_FROM','W_TO','pat.1','pat.2','TYPE','PATRISTIC_DISTANCE','CONTIGUOUS','UNINTERRUPTED','PATHS.12','PATHS.21','pat.1_leaves','pat.1_reads','pat.2_leaves','pat.2_reads'))
 setnames(tt, colnames(tt),toupper(colnames(tt)))
 #	write to file
 if(!is.null(detailed.output))
@@ -225,7 +225,7 @@ set(tt.close, tmp, 'TYPE', "multi_trans")
 
 tt.close[, DUMMY:=NULL]
 
-set(tt.close, NULL, c('W_FROM', 'W_TO', 'CONTIGUOUS', 'PATRISTIC_DISTANCE'), NULL)
+set(tt.close, NULL, c('W_FROM', 'W_TO', 'CONTIGUOUS', 'UNINTERRUPTED','PATRISTIC_DISTANCE'), NULL)
 tt.close <- tt.close[!duplicated(tt.close),]
 
 #	write to file
