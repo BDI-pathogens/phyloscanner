@@ -193,7 +193,7 @@ for(patient in patients[order(patients)]){
       if(verbose){
         cat("Blacklisting ",patient,"; not enough reads in total.\n", sep="")
       }
-      new.blacklist <- c(new.blacklist, subtree$tip.label[which(subtree$tip.label!=root.name)])
+      new.blacklist <- c(new.blacklist, tree$tip.label[which(tree$tip.label!=root.name)])
     }
     
   }
