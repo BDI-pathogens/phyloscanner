@@ -54,6 +54,8 @@ if(command.line){
   
   raw.threshold <- 3
   ratio.threshold <- 0.005
+  
+
 }
 
 get.count <- function(string){
@@ -93,8 +95,6 @@ if(!is.null(blacklist.file.name)){
     warning(paste("File ",blacklist.file.name," does not exist; skipping.",paste=""))
   }
 } 
-
-
 
 cat("Collecting tips for each patient...\n")
 
@@ -193,7 +193,7 @@ for(patient in patients[order(patients)]){
       if(verbose){
         cat("Blacklisting ",patient,"; not enough reads in total.\n", sep="")
       }
-      new.blacklist <- c(new.blacklist, tree$tip.label[which(tree$tip.label!=root.name)])
+      new.blacklist <- c(new.blacklist, tree$tip.label[tip.no])
     }
     
   }
