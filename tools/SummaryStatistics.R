@@ -172,8 +172,8 @@ if (command.line) {
   }
 }
 
-source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
-source(file.path(script.dir, "SummariseTrees_funcs.R"))
+source(file.path(script.dir, "TreeUtilityFunctions.R"))
+source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
 
 
 AlignPlots <- function(...) {

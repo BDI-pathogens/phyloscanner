@@ -11,7 +11,7 @@ prefix.wto 			<- 'Window_[0-9]+_to_'
 #
 #
 #
-command.line <- TRUE
+command.line <- T
 if(command.line){
   suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
   #	OR line breaks result in error "rjson::fromJSON(output) : unexpected character 'F'"
@@ -212,7 +212,7 @@ setkey(tt, pat.1, pat.2, TYPE)
 tt			<- subset(tt, TYPE!='disconnected')
 write.csv(subset(tt, total.trans>=min.threshold), file=output.file, row.names=FALSE, quote=FALSE)
 
-
+sumLinks$total <- sapply(1:nrow(sumLinks), function(x) sumLinks.t$total[which(sumLinks$PAT.1 == sumLinks$PAT.1[x] & sumLinks$PAT.2 == sumLinks$PAT.2[x])])
 # Not currently in use - for dating
 
 # patient.data <- read.table("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/Collective_notebook/BEEHIVE_summary29.02.2016.csv", 

@@ -27,8 +27,8 @@ root.name <- args$outgroupName
 max.reads <- args$maxReadsPerPatient
 patients.file.name <- args$patients
 
-source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
-source(file.path(script.dir, "SubtreeMethods.R"))
+source(file.path(script.dir, "TreeUtilityFunctions.R"))
+source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
 
 #
 #	additional function definitions

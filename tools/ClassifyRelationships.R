@@ -101,8 +101,8 @@ suppressMessages(library(ggtree, quietly=TRUE, warn.conflicts=FALSE))
 #
 #	load external functions
 #
-source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
-source(file.path(script.dir, "SubtreeMethods.R"))
+source(file.path(script.dir, "TreeUtilityFunctions.R"))
+source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
 #	OR changelog:
 #	Put all calculations per tree into function, so that this script can  
 #	also loop over several windows. This allows to combine the SummaryStats.R and LikelyTransmissions.R into

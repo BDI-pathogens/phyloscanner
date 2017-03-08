@@ -77,18 +77,18 @@ if(command.line){
   # break.ties.unsampled <- TRUE
   # 
   # Rakai example
-
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_160915_couples_w270/ptyr3_trees_collapsed.zip")
-  output.dir <- getwd()
-  tree.file.names <- "ptyr3_trees_newick/ptyr3_InWindow_3900_to_4149.tree"
-  blacklist.files <- "ptyr3_trees_blacklist/ptyr3_blacklist_InWindow_3900_to_4149.csv"
-  out.identifier <- "test_pytr1"
-  root.name <- "B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
-  tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
-  mode <- "s"
-  zero.length.tips.count <- F
-  sankhoff.k <- 10
-  break.ties.unsampled <- F
+# 
+#   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_160915_couples_w270/ptyr3_trees_collapsed.zip")
+#   output.dir <- getwd()
+#   tree.file.names <- "ptyr3_trees_newick/ptyr3_InWindow_3900_to_4149.tree"
+#   blacklist.files <- "ptyr3_trees_blacklist/ptyr3_blacklist_InWindow_3900_to_4149.csv"
+#   out.identifier <- "test_pytr1"
+#   root.name <- "B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
+#   tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
+#   mode <- "s"
+#   zero.length.tips.count <- F
+#   sankhoff.k <- 10
+#   break.ties.unsampled <- F
   #  
   # MRSA example
   
@@ -103,6 +103,7 @@ if(command.line){
   zero.length.tips.count <- F
   sankhoff.k <- 10
   ties.rule <- "b"
+  useff  <- T
   
   if(0)
   {
@@ -129,8 +130,9 @@ if(useff){
   suppressMessages(require(ff, quietly=TRUE, warn.conflicts=FALSE))
 }
 
-source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
-source(file.path(script.dir, "SubtreeMethods.R"))
+source(file.path(script.dir, "TreeUtilityFunctions.R"))
+source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
+source(file.path(script.dir, "CollapsedTreeMethods.R"))
 source(file.path(script.dir, "WriteAnnotatedTrees.R"))
 
 #

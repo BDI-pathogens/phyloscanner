@@ -36,13 +36,13 @@ if(command.line){
   verbose <- args$verbose
   
 } else {
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/AllTrees/")
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/")
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
   
-  input.name <- "RAxML_bestTree.InWindow_1550_to_1900.tree"
+  input.name <- "AllTrees/RAxML_bestTree.InWindow_2300_to_2650.tree"
   
   #anything already blacklisted
-  blacklist.file.name <- "AmpliconBlacklist_InWindow_1550_to_1900.csv"
+  blacklist.file.name <- "Blacklists/AmpliconBlacklist_InWindow_2300_to_2650.csv"
   
   root.name <- "C.BW.00.00BW07621.AF443088"
   tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
@@ -67,8 +67,8 @@ get.count <- function(string){
 }
 
 cat("Reading functions...\n")
-source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
-source(file.path(script.dir, "SubtreeMethods.R"))
+source(file.path(script.dir, "TreeUtilityFunctions.R"))
+source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
 
 cat(paste("Reading tree (",input.name,")...\n",sep=""))
 

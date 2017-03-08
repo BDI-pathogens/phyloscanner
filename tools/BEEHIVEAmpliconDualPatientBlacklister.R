@@ -8,13 +8,12 @@ if(command.line){
   require(argparse, quietly=TRUE, warn.conflicts=FALSE)
   
   arg_parser = ArgumentParser(description="Look at identified multiple infections across all windows, and identify which are to be ignored entirely or reduced to largest subtree only.")
-
+  
+  arg_parser$add_argument("-s", "--summaryFile", action="store", help="A file to write a summary of the results to, detailing window counts for all patients")
   arg_parser$add_argument("-b", "--existingBlacklistsPrefix", action="store", help="A file path and initial string identifying existing (.csv) blacklists whose output is to be appended to. Only such files whose suffix (the string after the prefix, without the file extension) matches a suffix from the dual reports will be appended to.")
   arg_parser$add_argument("threshold", action="store", help="The proportion of windows in a single amplicon that a dual infection needs to appear in to be considered genuine. Those patients whose dual infections are considered genuine are blacklisted entirely. Those who are not are reduced to their largest subtrees only.")
   arg_parser$add_argument("dualReportsPrefix", action="store", help="A file path and initial string identifying all dual infection files output from ParsimonyBasedBlacklister.R.")
   arg_parser$add_argument("newBlacklistsPrefix", action="store", help="A file path and initial string for all output blacklist files.")
-
-  
   
   # Read in the arguments
   
@@ -24,7 +23,7 @@ if(command.line){
   duals.prefix <- args$dualReportsPrefix
   output.prefix <- args$newBlacklistsPrefix 
   threshold <- args$threshold
-
+  summary.file <- args$summaryFile
   
   dual.files <- list.files(dirname(duals.prefix), pattern=paste('^',basename(duals.prefix),sep=""), full.names=TRUE)
   dual.files.sans.ext <- file_path_sans_ext(dual.files)
@@ -52,10 +51,10 @@ if(command.line){
   
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/Blacklists/")
   
-  existing.bl.prefix <- "RogueBlacklist.InWindow"
+  existing.bl.prefix <- "RogueBlacklist_alt.InWindow"
   
-  duals.prefix <- "MultipleInfections.InWindow" 
-  output.prefix <- "DualsBlacklist_new.InWindow"
+  duals.prefix <- "FullInfoRB_alt.InWindow" 
+  output.prefix <- "DualsBlacklist_alt.InWindow"
   
   threshold <- 0.75
   
@@ -69,34 +68,48 @@ if(command.line){
   expected.but.not.seen <- setdiff(expected.blacklists, observed.bl.files)
   seen.but.not.expected <- setdiff(observed.bl.files, expected.blacklists)
   
+  summary.file <- "duals_summary_alt.csv"
   
 }
 
-window.count.by.patient <- list()
+numerators.by.patient <- list()
+denominators.by.patient <- list()
 
-amps <- data.frame(starts = c(800, 1505, 4805, 5985), ends = c(2385, 5037, 7831, 9400))
+for(patient.no in 1:length(dual.file$patient)){
+  patient <- dual.file$patient[patient.no]
+  numerators.by.patient[[patient]] <- rep(0,8)
+  denominators.by.patient[[patient]] <- rep(0,8)
+}
 
-total.windows.per.amp <- c(0,0,0,0)
+amps <- data.frame(starts = c(480, 1485, 4783, 5967), ends = c(2407, 5058, 7848, 9517))
 
 for(suffix in suffixes){
   start <- as.numeric(unlist(strsplit(suffix, '_'))[2])
   end <- as.numeric(unlist(strsplit(suffix, '_'))[4])
-  in.amp <- sapply(seq(1, 4), function (x) start >= amps$starts[x] & end <= amps$ends[x]  )
-  total.windows.per.amp <- total.windows.per.amp + as.numeric(in.amp)
-}
+  
+  in.amp <- vector()
+  
+  in.amp[1] <- start < amps$starts[2]
+  in.amp[2] <- start >= amps$starts[2] & end <= amps$ends[1]
+  in.amp[3] <- end > amps$ends[1] & start < amps$starts[3]
+  in.amp[4] <- start >= amps$starts[3] & end <= amps$ends[2]
+  in.amp[5] <- end > amps$ends[2] & start < amps$starts[4]
+  in.amp[6] <- start >= amps$starts[4] & end <= amps$ends[3]
+  in.amp[7] <- end > amps$ends[3]
+  in.amp[8] <- T
+  
+ if(sum(in.amp)!=2){
+   stop(suffix)
+ }
 
-for(suffix in suffixes){
-  start <- as.numeric(unlist(strsplit(suffix, '_'))[2])
-  end <- as.numeric(unlist(strsplit(suffix, '_'))[4])
-  
-  in.amp <- sapply(seq(1, 4), function (x) start >= amps$starts[x] & end <= amps$ends[x]  )
-  
   dual.file <- read.csv(paste(duals.prefix, suffix, ".csv", sep=""), stringsAsFactors = F)
-  for(patient in unique(dual.file$patient)){
-    if(is.null(window.count.by.patient[[patient]])){
-      window.count.by.patient[[patient]] <-  as.numeric(in.amp)
-    } else {
-      window.count.by.patient[[patient]] <- window.count.by.patient[[patient]] + as.numeric(in.amp)
+  for(patient.no in 1:length(dual.file$patient)){
+    patient <- dual.file$patient[patient.no]
+    if(dual.file$status[patient.no] == "dual"){
+      numerators.by.patient[[patient]] <- numerators.by.patient[[patient]] + as.numeric(in.amp)
+    }
+    if(dual.file$status[patient.no] %in% c("dual", "kept")){
+      denominators.by.patient[[patient]] <- denominators.by.patient[[patient]] + as.numeric(in.amp)
     }
   }
   if(file.exists(paste(existing.bl.prefix, suffix, ".csv", sep=""))){
@@ -106,59 +119,70 @@ for(suffix in suffixes){
 
 first <- T
 
-for(patient in labels(window.count.by.patient)[order(labels(window.count.by.patient))]){
+dual.patients <- vector()
+
+for(patient in dual.file$patient){
   thresholds <- total.windows.per.amp*threshold
   
   dual.amplicons <- which(window.count.by.patient[[patient]] > thresholds)
   
   if(first){
     first <- F
-    
-    out.table <- c(patient, window.count.by.patient[[patient]], window.count.by.patient[[patient]]/total.windows.per.amp, length(dual.amplicons))
+    out.table <- c(numerators.by.patient[[patient]], denominators.by.patient[[patient]], length(dual.amplicons))
   } else {
-    out.table <- rbind(out.table, c(patient, window.count.by.patient[[patient]], window.count.by.patient[[patient]]/total.windows.per.amp, length(dual.amplicons)))
+    out.table <- rbind(out.table, c(numerators.by.patient[[patient]], denominators.by.patient[[patient]], length(dual.amplicons)))
   }
   
-  if(length(dual.amplicons)>1){
-    
-    dual.patients <- c(dual.patients, patient)
-    
-    cat("Patient",patient,"meets the threshold for dual infection on amplicons",dual.amplicons,"(",window.count.by.patient[[patient]]/total.windows.per.amp,") and is blacklisted entirely.\n", sep=" ")
-    # this is a dual infection and we want it removed in its entirety
-    for(suffix in suffixes){
-      dual.file <- read.csv(paste(duals.prefix, suffix, ".csv", sep=""), stringsAsFactors = F)
-      pat.tips <- dual.file$tip.name[which(dual.file$patient==patient)]
-      if(length(pat.tips)>0){
-        if(file.exists(paste(output.prefix, suffix, ".csv", sep=""))){
-          existing.bl <- read.table(paste(output.prefix, suffix, ".csv", sep=""), sep=",", stringsAsFactors = F, header=F)$V1
-          new.bl <- unique(c(existing.bl, pat.tips))
-  
-        } else {
-          new.bl <- pat.tips
-        }
-        write.table(new.bl, paste(output.prefix, suffix, ".csv", sep=""), sep=",", row.names=FALSE, col.names=FALSE, quote=F)
-      }
-    }
-  } else {
-    cat("Patient",patient,"does not meet the threshold for dual infection on any amplicon (",window.count.by.patient[[patient]]/total.windows.per.amp,") and smaller subtrees are being blacklisted.\n", sep=" ")
-    # this is to have smaller subtrees blacklisted away on windows where they occur
-    for(suffix in suffixes){
-      
-      dual.file <- read.csv(paste(duals.prefix, suffix, ".csv", sep=""), stringsAsFactors = F)
-      pat.rows <- dual.file[which(dual.file$patient==patient),]
-      if(nrow(pat.rows)>0){
-        max.reads <- max(pat.rows$reads.in.subtree)
-        smaller.tips <- pat.rows$tip.name[which(pat.rows$reads.in.subtree!=max.reads)]
-      
-        if(file.exists(paste(output.prefix, suffix, ".csv", sep=""))){
-          existing.bl <- read.table(paste(output.prefix, suffix, ".csv", sep=""), sep=",", stringsAsFactors = F, header=F)$V1
-          new.bl <- unique(c(existing.bl, smaller.tips))
-          
-        } else {
-          new.bl <- smaller.tips
-        }
-        write.table(new.bl, paste(output.prefix, suffix, ".csv", sep=""), sep=",", row.names=FALSE, col.names=FALSE, quote=F)
-      }
-    }
-  }
+  # if(length(dual.amplicons)>1){
+  #   
+  #   dual.patients <- c(dual.patients, patient)
+  #   
+  #   cat("Patient",patient,"meets the threshold for dual infection on amplicons",dual.amplicons,"(",window.count.by.patient[[patient]]/total.windows.per.amp,") and is blacklisted entirely.\n", sep=" ")
+  #   # this is a dual infection and we want it removed in its entirety
+  #   for(suffix in suffixes){
+  #     dual.file <- read.csv(paste(duals.prefix, suffix, ".csv", sep=""), stringsAsFactors = F)
+  #     pat.tips <- dual.file$tip.name[which(dual.file$patient==patient)]
+  #     if(length(pat.tips)>0){
+  #       if(file.exists(paste(output.prefix, suffix, ".csv", sep=""))){
+  #         existing.bl <- read.table(paste(output.prefix, suffix, ".csv", sep=""), sep=",", stringsAsFactors = F, header=F)$V1
+  #         new.bl <- unique(c(existing.bl, pat.tips))
+  #         
+  #       } else {
+  #         new.bl <- pat.tips
+  #       }
+  #       write.table(new.bl, paste(output.prefix, suffix, ".csv", sep=""), sep=",", row.names=FALSE, col.names=FALSE, quote=F)
+  #     }
+  #   }
+  # } else {
+  #   cat("Patient",patient,"does not meet the threshold for dual infection on any amplicon (",window.count.by.patient[[patient]]/total.windows.per.amp,") and smaller subtrees are being blacklisted.\n", sep=" ")
+  #   # this is to have smaller subtrees blacklisted away on windows where they occur
+  #   for(suffix in suffixes){
+  #     
+  #     dual.file <- read.csv(paste(duals.prefix, suffix, ".csv", sep=""), stringsAsFactors = F)
+  #     pat.rows <- dual.file[which(dual.file$patient==patient),]
+  #     if(nrow(pat.rows)>0){
+  #       max.reads <- max(pat.rows$reads.in.subtree)
+  #       smaller.tips <- pat.rows$tip.name[which(pat.rows$reads.in.subtree!=max.reads)]
+  #       
+  #       if(file.exists(paste(output.prefix, suffix, ".csv", sep=""))){
+  #         existing.bl <- read.table(paste(output.prefix, suffix, ".csv", sep=""), sep=",", stringsAsFactors = F, header=F)$V1
+  #         new.bl <- unique(c(existing.bl, smaller.tips))
+  #         
+  #       } else {
+  #         new.bl <- smaller.tips
+  #       }
+  #       write.table(new.bl, paste(output.prefix, suffix, ".csv", sep=""), sep=",", row.names=FALSE, col.names=FALSE, quote=F)
+  #     }
+  #   }
+  # }
+}
+
+if(!is.null(summary.file)){
+  row.names(out.table) <- 1:nrow(out.table)
+  out.df <- data.frame(out.table[,1:16], stringsAsFactors = F)
+  out.df$patient <- dual.file$patient
+  out.df <- out.df[,c(17, 1:16)]
+  colnames(out.df) <- c("patient", "amp.1u.num", "amp.12o.num", "amp.2u.num", "amp.23o.num", "amp.3u.num", "amp.34o.num", "amp.4u.num", "total.num", 
+                        "amp.1u.denom", "amp.12o.denom", "amp.2u.denom", "amp.23o.denom", "amp.3u.denom", "amp.34o.denom", "amp.4u.denom", "total.denom")
+  write.csv(out.df, summary.file, row.names = F, quote = F)
 }

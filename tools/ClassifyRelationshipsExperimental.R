@@ -83,8 +83,8 @@ suppressMessages(library(ggtree, quietly=TRUE, warn.conflicts=FALSE))
 #
 #	load external functions
 #
-source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
-source(file.path(script.dir, "SubtreeMethods.R"))
+source(file.path(script.dir, "TreeUtilityFunctions.R"))
+source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
 #
 #	define internal functions
 #
