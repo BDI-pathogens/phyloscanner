@@ -16,6 +16,7 @@ if(command.line){
   
   arg_parser = ArgumentParser(description="Identify the likely direction of transmission between all patients present in a phylogeny.")
   arg_parser$add_argument("-c", "--collapsedTree", action="store", help="If present, the collapsed tree (in which all adjacent nodes with the same assignment are collapsed to one) is output as a .csv file to the path specified.")
+  arg_parser$add_argument("-n", "--branchLengthNormalisation", action="store", help="If present and a number, a normalising constant for all branch lengths in the tree or trees. If present and a file, the path to a .csv file with two columns: tree file name and normalising constant")
   arg_parser$add_argument("treeFileName", action="store", help="Tree file name. Alternatively, a base name that identifies a group of tree file names can be specified. Tree files are assumed to end in '.tree'. This must be the 'processed' tree produced by SplitTreesToSubtrees.R.")
   arg_parser$add_argument("splitsFileName", action="store", help="Splits file name. Alternatively, a base name that identifies a group of split file names can be specified. Split files are assumed to end in '_subtree_[a-z].csv'.")
   arg_parser$add_argument("outputFileName", action="store", help="Output file name (.csv format)")
@@ -29,6 +30,9 @@ if(command.line){
   script.dir <- args$scriptdir
   output.name <- args$outputFileName
   
+  has.normalisation <- !is.null(args$branchLengthNormalisation)
+  normalisation.argument <- args$branchLengthNormalisation
+  
 } else {
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
   
@@ -36,7 +40,7 @@ if(command.line){
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/")
   tree.file.names <- "ProcessedTrees_r/ProcessedTree_r_run20161013_RS_inWindow_6050_to_6400.tree"
   splits.file.names <- "SubtreeFiles_r/Subtrees_r_run20161013_RS_inWindow_6050_to_6400.csv"
-
+  
   output.name <- "outTest.csv"
   collapsed.file.names <- "outCollapsed.csv"
   
@@ -59,13 +63,13 @@ if(command.line){
   # collapsed.file.names <- NULL
   
   # MRSA example
-
+  
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/refinement")
   tree.file.names <- "ProcessedTree_s_mrsa_k10_bp_yetanother.tree"
   splits.file.names <- "Subtrees_s_mrsa_k10_bp_yetanother.csv"
   output.name <- "LT_s_mrsa_k10_yetanother.csv"
   collapsed.file.names <- "collapsed_s_mrsa_k10_yetanother.csv"
-
+  
   
   if(0)
   {
@@ -85,10 +89,11 @@ suppressMessages(library(ggtree, quietly=TRUE, warn.conflicts=FALSE))
 #
 source(file.path(script.dir, "TreeUtilityFunctions.R"))
 source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
+source(file.path(script.dir, "CollapsedTreeMethods.R"))
 #
 #	define internal functions
 #
-likely.transmissions<- function(tree.file.name, splits.file.name, tt.file.name = NULL)
+likely.transmissions<- function(tree.file.name, splits.file.name, normalisation.constant = NULL, tt.file.name = NULL)
 {	
   cat("Opening file: ", tree.file.name, "...\n", sep = "")
   
@@ -144,10 +149,12 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tt.file.name =
   cat("Calculating pairwise distances between splits...\n")
   
   split.distances <- tryCatch(
-  all.subtree.distances(tree, tt, all.splits, assocs), warning=function(w){return(NULL)}, error=function(e){return(NULL)})
-
-  if(is.null(split.distances)){
+    all.subtree.distances(tree, tt, all.splits, assocs), warning=function(w){return(NULL)}, error=function(e){return(NULL)})
+  
+  if(useff & is.null(split.distances)){
     split.distances <- all.subtree.distances(tree, tt, all.splits, assocs, TRUE)
+  } else {
+    quit("Out of memory error (try running again with --useff)")
   }
   
   cat("Testing pairs...\n")
@@ -161,7 +168,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tt.file.name =
   dir.12.matrix <- matrix(NA, length(patients.included), length(patients.included))
   dir.21.matrix <- matrix(NA, length(patients.included), length(patients.included))
   mean.distance.matrix <- matrix(NA, length(patients.included), length(patients.included))
-
+  
   for(pat.1 in seq(1, length(patients.included))){
     for(pat.2 in  seq(1, length(patients.included))){
       if (pat.1 < pat.2) {
@@ -183,7 +190,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tt.file.name =
         OK <- check.uninterrupted(tt, c(pat.1.id, pat.2.id), splits.for.patients, patients.for.splits)	
         
         uninterrupted.matrix[pat.1, pat.2] <- OK
-      
+        
         count.12 <- 0
         count.21 <- 0
         
@@ -248,6 +255,10 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tt.file.name =
     }
   }
   
+  if(!is.null(normalisation.constant)){
+    normalised.distance.matrix<- mean.distance.matrix/normalisation.constant
+  }
+  
   contiguous.table <- as.table(contiguous.matrix)
   uninterrupted.table <- as.table(uninterrupted.matrix)
   dir.12.table <- as.table(dir.12.matrix)
@@ -256,6 +267,10 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tt.file.name =
   nodes.2.table <- as.table(nodes.2.matrix)
   path.table <- as.table(path.matrix)
   mean.distance.table <- as.table(mean.distance.matrix)
+  
+  if(!is.null(normalisation.constant)){
+    normalised.distance.table <- as.table(normalised.distance.matrix)
+  }
   
   colnames(contiguous.table) <- patients.included
   rownames(contiguous.table) <- patients.included
@@ -281,6 +296,12 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tt.file.name =
   colnames(mean.distance.table) <- patients.included
   rownames(mean.distance.table) <- patients.included
   
+  if(!is.null(normalisation.constant)){
+    colnames(normalised.distance.table) <- patients.included
+    rownames(normalised.distance.table) <- patients.included
+  }
+  
+  
   cdf <- as.data.frame(contiguous.table)
   
   keep <- complete.cases(cdf)
@@ -290,7 +311,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tt.file.name =
   udf <- as.data.frame(uninterrupted.table)
   
   udf <- udf[keep,]
-
+  
   pdf <- as.data.frame(path.table)
   pdf <- pdf[keep,]
   
@@ -307,9 +328,21 @@ likely.transmissions<- function(tree.file.name, splits.file.name, tt.file.name =
   mddf <- as.data.frame(mean.distance.table)
   mddf <- mddf[keep,]
   
+  if(!is.null(normalisation.constant)){
+    nddf <- as.data.frame(normalised.distance.table)
+    nddf <- mddf[keep,]
+  }
+  
   cdf <- cbind(cdf, udf[,3], d12df[,3], d21df[,3], n1df[,3], n2df[,3], pdf[,3], mddf[,3])
   
-  colnames(cdf) <- c("Patient_1", "Patient_2", "contiguous", "uninterrupted", "paths12", "paths21", "nodes1", "nodes2", "path.classification", "mean.distance.between.subtrees")
+  column.names <- c("Patient_1", "Patient_2", "contiguous", "uninterrupted", "paths12", "paths21", "nodes1", "nodes2", "path.classification", "mean.distance.between.subtrees")
+  
+  if(!is.null(normalisation.constant)){
+    cdf <- cbind(cdf, nddf[,3])
+    column.names <- c(column.names, "normalised.mean.distance.between.subtrees")
+  }
+  
+  colnames(cdf) <- column.names
   cdf
 }
 
@@ -326,7 +359,27 @@ if(single.file)
   #	if 'tree.file.names' is tree, process just one tree
   tree.file.name		<- tree.file.names[1]
   splits.file.name	<- splits.file.names[1]
-  dddf				<- likely.transmissions(tree.file.name, splits.file.name, collapsed.file.names)
+  
+  normalisation.constant <- NULL
+  
+  if(has.normalisation){
+    normalisation.constant <- suppressWarnings(as.numeric(normalisation.argument))
+    
+    if(is.na(normalisation.constant)){
+      norm.table <- read.csv(normalisation.argument, stringsAsFactors = F, header = F)
+      if(nrow(norm.table[which(norm.table[,1]==tree.file.name),])==1){
+        normalisation.constant <- as.numeric(norm.table[which(norm.table[,1]==tree.file.name),2])
+      } else if (nrow(norm.table[which(norm.table[,1]==tree.file.name),])==0){
+        warning(paste("No normalisation constant given for tree file name ",tree.file.name, " in file ",normalisation.argument,"; normalised distances will not be given", sep=""))
+        normalisation.constant <- NULL
+      } else {
+        warning(paste("Two or more entries for normalisation constant for tree file name ",tree.file.name, " in file ",normalisation.argument,"; taking the first", sep=""))
+        normalisation.constant <- as.numeric(norm.table[which(norm.table[,1]==tree.file.name)[1],2])
+      }
+    }
+  }
+  
+  dddf				<- likely.transmissions(tree.file.name, splits.file.name, normalisation.constant = normalisation.constant, tt.file.name = collapsed.file.names)
   cat("Write to file",output.name,"...\n")
   write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE, quote=F)	
 } else {
@@ -334,17 +387,43 @@ if(single.file)
   tree.file.names		<- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),'.*\\.tree$',sep=''), full.names=TRUE))
   splits.file.names	<- sort(list.files(dirname(splits.file.names), pattern=paste(basename(splits.file.names),'.*\\.csv$',sep=''), full.names=TRUE))	
   stopifnot(length(tree.file.names)==length(splits.file.names))
-  for(tree.i in seq_along(tree.file.names))
-  {
+  
+  normalisation.constant <- NULL
+  
+  if(has.normalisation){
+    normalisation.constant <- suppressWarnings(as.numeric(normalisation.argument))
+    
+    if(is.na(normalisation.constant)){
+      norm.table <- read.csv(normalisation.argument, stringsAsFactors = F, header = F)
+    }
+  }
+  
+  
+  for(tree.i in seq_along(tree.file.names)){
     tree.file.name		<- tree.file.names[tree.i]
     splits.file.name	<- splits.file.names[tree.i]
     output.name			<- gsub('\\.tree','_LikelyTransmissions.csv', tree.file.name)		
     collapsed.file.name	<- gsub('\\.tree','_collapsed.csv', tree.file.name)
-	tryCatch({
-				dddf	<- likely.transmissions(tree.file.name, splits.file.name, collapsed.file.name)
-				cat("Write to file",output.name,"...\n")
-				write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE, quote=F)			
-			},
-			error=function(e){ print(e$message); cat("No output written to file.\n") })    
+
+    if(has.normalisation){
+      if(has.normalisation & is.na(normalisation.constant)) {
+        if(nrow(norm.table[which(norm.table[,1]==basename(tree.file.name)),])==1){
+          normalisation.constant <- as.numeric(norm.table[which(norm.table[,1]==basename(tree.file.name)),2])
+        } else if (nrow(norm.table[which(norm.table[,1]==basename(tree.file.name)),])==0){
+          warning(paste("No normalisation constant given for tree file name ",basename(tree.file.name), " in file ",basename(normalisation.argument),"; normalised distances will not be given", sep=""))
+          normalisation.constant <- NULL
+        } else {
+          warning(paste("Two or more entries for normalisation constant for tree file name ",basename(tree.file.name), " in file ",basename(normalisation.argument),"; taking the first", sep=""))
+          normalisation.constant <- as.numeric(norm.table[which(norm.table[,1]==basename(tree.file.name))[1],2])
+        }
+      }
+    }
+    
+    tryCatch({
+      dddf	<- likely.transmissions(tree.file.name, splits.file.name, normalisation.constant = normalisation.constant, collapsed.file.name)
+      cat("Write to file",output.name,"...\n")
+      write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE, quote=F)			
+    },
+    error=function(e){ print(e$message); cat("No output written to file.\n") })    
   }
 }
