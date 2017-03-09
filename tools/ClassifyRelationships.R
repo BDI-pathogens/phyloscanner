@@ -95,8 +95,7 @@ source(file.path(script.dir, "CollapsedTreeMethods.R"))
 #
 likely.transmissions<- function(tree.file.name, splits.file.name, normalisation.constant = NULL, tt.file.name = NULL)
 {	
-  cat("Opening file: ", tree.file.name, "...\n", sep = "")
-  
+  cat("Reading tree file ", tree.file.name, "...\n", sep = "")
   
   pseudo.beast.import <- read.beast(tree.file.name)
   tree <- attr(pseudo.beast.import, "phylo")
@@ -151,11 +150,14 @@ likely.transmissions<- function(tree.file.name, splits.file.name, normalisation.
   split.distances <- tryCatch(
     all.subtree.distances(tree, tt, all.splits, assocs), warning=function(w){return(NULL)}, error=function(e){return(NULL)})
   
-  if(useff & is.null(split.distances)){
-    split.distances <- all.subtree.distances(tree, tt, all.splits, assocs, TRUE)
-  } else {
-    quit("Out of memory error (try running again with --useff)")
+  if(is.null(split.distances)){
+    if(useff){
+      split.distances <- all.subtree.distances(tree, tt, all.splits, assocs, TRUE)
+    } else {
+      quit("Out of memory error (try running again with --useff)")
+    }
   }
+
   
   cat("Testing pairs...\n")
   
