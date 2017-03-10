@@ -112,9 +112,11 @@ get.tt.path <- function(tt, label1, label2){
   return(c(first.half, mrca, rev(second.half)))
 }
 
-# Output the collapsed tree from a phylogeny and its node assocs (write to file if file.name!=NULL)
+# Output the collapsed tree from a phylogeny and its node assocs (write to CSV file if file.name!=NULL)
+# If prune.unsampled.tips = TRUE, the output collapsed tree will not have any "None"s that have no children
+# (which usually come from blacklisted tips, and looks rather odd if e.g. read downsampling has taken place)
 
-output.trans.tree <- function(tree, assocs, file.name = NULL){
+output.trans.tree <- function(tree, assocs, file.name = NULL, prune.unsampled.tips = TRUE){
   # find the association of each node
   
   assocs.vec <- vector()
@@ -150,8 +152,10 @@ output.trans.tree <- function(tree, assocs, file.name = NULL){
   
   splits.vec <- assocs.vec
   
-  splits.vec[which(splits.vec=="none" & first.of.split)] <- 
-    paste("none", which(splits.vec=="none" & first.of.split), sep="-S")
+  unsampled.roots <- which(splits.vec=="none" & first.of.split)
+  
+  splits.vec[unsampled.roots] <- 
+    paste("unsampled_region-", 1:length(unsampled.roots), sep="")
   
   for(node.no in seq(1, tree$Nnode + length(tree$tip.label))){
     if(assocs.vec[node.no]=="none" & !first.of.split[node.no]){
@@ -159,7 +163,7 @@ output.trans.tree <- function(tree, assocs, file.name = NULL){
       while(!first.of.split[current.node.no]){
         current.node.no <- Ancestors(tree, current.node.no, type="parent")
       }
-      if(!startsWith(splits.vec[current.node.no], "none-")){
+      if(!startsWith(splits.vec[current.node.no], "unsampled_region")){
         print(node.no)
         stop("Uh-oh")
       }
@@ -190,10 +194,29 @@ output.trans.tree <- function(tree, assocs, file.name = NULL){
   patients <-  unlist(lapply(strsplit(unique.splits, "-"), `[[`, 1)) 
   parent.patients <-  unlist(lapply(strsplit(parent.splits, "-"), `[[`, 1)) 
   
-  cytoscape.input <- data.frame(unique.splits, parent.splits, patients, parent.patients, lengths, root.nos, stringsAsFactors = F)
+  tt.table <- data.frame(unique.splits, parent.splits, patients, parent.patients, lengths, root.nos, stringsAsFactors = F)
+  
+  for.output <- tt.table[,1:5]
+  
+  if(prune.unsampled.tips){
+    unsampled.tips <- which(startsWith(for.output$unique.splits, "unsampled_region") &
+                              !(for.output$unique.splits %in% for.output$parent.splits))
+    for.output <- for.output[-unsampled.tips,]
+    #renumber
+    unsampled.rows <- which(startsWith(for.output$unique.splits, "unsampled_region"))
+    
+    unsampled.labels <- for.output$unique.splits[which(startsWith(for.output$unique.splits, "unsampled_region"))]
+    
+    for(x in 1:length(unsampled.rows)) {
+      old.label <- unsampled.labels[x]
+      new.label <- paste("unsampled_region-",x,sep="")
+      for.output$unique.splits[unsampled.rows[x]] <- new.label
+      for.output$parent.splits[which(for.output$parent.splits==old.label)] <- new.label
+    } 
+  }
   
   if(!is.null(file.name)){
-    write.csv(cytoscape.input[,1:5], file.name, row.names = F, quote=F)
+    write.csv(for.output, file.name, row.names = F, quote=F)
   }
   
   return(cytoscape.input)
