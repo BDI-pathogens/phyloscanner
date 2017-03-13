@@ -179,7 +179,7 @@ After this option specify a comma-separated list of integers. The first integer
 is the starting point for stepping along the genome, in case you're not
 interested in the very beginning. The second integer is the width spanned by two
 neighbouring windows; this sets the overlap for each window width though the
-equation (two-window width) = 2x(window width) - (overlap between windows), with
+equation (width of two windows) = 2x(window width) - (overlap between windows), with
 negative overlap understood to mean space between the end of one window and the
 start of the next. Subsequent integers are window widths to try. For example, if
 you specified 1000,301,101,151,201 we would count the number of unique reads in
@@ -235,8 +235,6 @@ parser.add_argument('-RC', '--ref-for-coords', help='The coordinates are to be'\
 +'default coordinates are interpreted with respect to the alignment of all '+\
 'bam and external references.) Deprecated; the --pairwise-align-to option is'+\
 ' expected to perform better.')
-#parser.add_argument('-S', '--min-support', default=60, type=float, help=\
-#'The bootstrap support below which nodes will be collapsed, as a percentage.')
 parser.add_argument('-T', '--no-trees', action='store_true', help='Generate '+\
 'aligned sets of reads for each window then quit without making trees.')
 parser.add_argument('-XC', '--excision-coords', type=CommaSeparatedInts, \
@@ -254,6 +252,20 @@ parser.add_argument('-2', '--pairwise-align-to', help='Sequentially, and '+\
 parser.add_argument('--output-dir', help='Used to specify the name of a '+\
 'directory (which should not exist already) in which all intermediate and '+\
 'output files will be created.')
+parser.add_argument('--exact-window-start', action='store_true', help='''
+Experimental; for bioinformatic investigation only, not regular
+phyloscanner usage. Normally phyloscanner retrieves all reads that fully
+overlap a given window, i.e. starting at or anywhere before the window start,
+and ending at or anywhere after the window end. With this option, the reads that
+are retrieved are those that start at exactly the start of the window, and end
+anywhere. Window end coordinates are ignored. If combined with
+--exact-window-end, for a read to be kept it must start at exactly the window
+start AND end at exactly the window end. If --merge-paired-reads is also used,
+this explanation applies to inserts (read pairs) instead of individual
+reads.''')
+parser.add_argument('--exact-window-end', action='store_true', help='''With
+this option, the reads that are retrieved are those that end at exactly the end
+of the window, and start anywhere. Read the --exact-window-start help.''')
 parser.add_argument('--time', action='store_true', \
 help='Prints the times taken by different steps.')
 parser.add_argument('--x-raxml', default='raxmlHPC-AVX -m GTRCAT -p 1', help=\
@@ -1122,14 +1134,31 @@ for window in range(NumCoords / 2):
     LeftWindowEdge  = ThisBamCoords[window*2]
     RightWindowEdge = ThisBamCoords[window*2 +1]
 
-    # Find all unique reads in this window and count their occurrences.
-    # NB pysam uses zero-based coordinates for positions w.r.t the reference
-    AllReads = {}
-    UniqueReads = {}
+    # Pysam uses zero-based coordinates for positions w.r.t the reference.
+    # If we want all reads that start exactly at the window start and end
+    # anywhere after, or all reads that end exactly at the window end and start
+    # anywhere before, set end=start or start=end respectively, to make sure
+    # pysam's fetch function retrieves all the reads we need.
     LeftWindowEdge  = LeftWindowEdge  -1
     RightWindowEdge = RightWindowEdge -1
+    LeftWindowEdgeForFetch = LeftWindowEdge
+    RightWindowEdgeForFetch = RightWindowEdge
+    if args.exact_window_start:
+      if not args.exact_window_end:
+        RightWindowEdgeForFetch = None
+        RightWindowEdge = LeftWindowEdge
+    elif args.exact_window_end:
+      LeftWindowEdgeForFetch = None
+      LeftWindowEdge = RightWindowEdge
+
+    #RightWindowEdge = LeftWindowEdge + 10
+
+    # Find all unique reads in this window and count their occurrences.
+    AllReads = {}
+    UniqueReads = {}
     BamFile = pysam.AlignmentFile(BamFileName, "rb")
-    for read in BamFile.fetch(RefSeqName, LeftWindowEdge, RightWindowEdge):
+    for read in BamFile.fetch(RefSeqName, LeftWindowEdgeForFetch,
+    RightWindowEdgeForFetch):
 
       # Skip improperly paired reads if desired
       if args.discard_improper_pairs and read.is_paired and \
@@ -1161,6 +1190,9 @@ for window in range(NumCoords / 2):
           AllReads[read.query_name] = MergedRead
 
         # We've not come across a read with this name before. Record & move on.
+        # TODO: what about saving the (already calculated) pseudoread instead,
+        # and deleting the 'Read2asPseudoRead = ReadAsPseudoRead' line above,
+        # and deleting the 'except AttributeError:' scope below?
         else:
           AllReads[read.query_name] = read
 
@@ -1169,7 +1201,8 @@ for window in range(NumCoords / 2):
       else:
         seq = ReadAsPseudoRead.ProcessRead(LeftWindowEdge, RightWindowEdge, \
           args.quality_trim_ends, args.min_internal_quality, \
-          args.keep_overhangs, args.recover_clipped_ends)
+          args.keep_overhangs, args.recover_clipped_ends,
+          args.exact_window_start, args.exact_window_end)
         if seq == None:
           continue
         if seq in UniqueReads:
@@ -1186,13 +1219,15 @@ for window in range(NumCoords / 2):
         try:
           seq = read.ProcessRead(LeftWindowEdge, RightWindowEdge, \
           args.quality_trim_ends, args.min_internal_quality, \
-          args.keep_overhangs, args.recover_clipped_ends)
+          args.keep_overhangs, args.recover_clipped_ends,
+          args.exact_window_start, args.exact_window_end)
         except AttributeError:
           #print(type(read))
           ReadAsPseudoRead = pf.PseudoRead.InitFromRead(read)          
           seq = ReadAsPseudoRead.ProcessRead(LeftWindowEdge, RightWindowEdge, \
           args.quality_trim_ends, args.min_internal_quality, \
-          args.keep_overhangs, args.recover_clipped_ends)
+          args.keep_overhangs, args.recover_clipped_ends,
+          args.exact_window_start, args.exact_window_end)
         if seq == None:
           continue
         if seq in UniqueReads:

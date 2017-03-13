@@ -132,7 +132,8 @@ class PseudoRead:
     self.sequence, ' '.join(map(str,self.positions)), \
     ' '.join(map(str,self.qualities)))
 
-  def SpansWindow(self, LeftWindowEdge, RightWindowEdge):
+  def SpansWindow(self, LeftWindowEdge, RightWindowEdge, ExactWindowStart,
+    ExactWindowEnd):
     "Returns True if the read fully spans the specified window."
     assert LeftWindowEdge <= RightWindowEdge
     LeftMostMappedBase = 0
@@ -143,9 +144,15 @@ class PseudoRead:
       return False
     if self.positions[LeftMostMappedBase] > LeftWindowEdge:
       return False
+    if ExactWindowStart and self.positions[LeftMostMappedBase] != \
+    LeftWindowEdge:
+      return False
     RightMostMappedBase = len(self.positions)-1
     while self.positions[RightMostMappedBase] == None:
       RightMostMappedBase -= 1
+    if ExactWindowEnd and self.positions[RightMostMappedBase] != \
+    RightWindowEdge:
+      return False
     return self.positions[RightMostMappedBase] >= RightWindowEdge
 
   def QualityTrimEnds(self, MinQual):
@@ -220,7 +227,8 @@ class PseudoRead:
 
 
   def ProcessRead(self, LeftWindowEdge, RightWindowEdge, MinQualForEnds, \
-  MinInternalQual, KeepOverhangs, RecoverClippedEnds):
+  MinInternalQual, KeepOverhangs, RecoverClippedEnds, ExactWindowStart,
+  ExactWindowEnd):
     '''Returns reads that span a given window.
     Overhangs & low-Q bases are trimmed if desired. None is returned for reads
     that do not span the window. The coordinates of the window edges should be
@@ -230,13 +238,15 @@ class PseudoRead:
       self.RecoverClippedEnds()
 
     # Skip reads that only partially overlap the window
-    if not self.SpansWindow(LeftWindowEdge, RightWindowEdge):
+    if not self.SpansWindow(LeftWindowEdge, RightWindowEdge, ExactWindowStart,
+    ExactWindowEnd):
       return None
 
     # Trim low-Q ends if desired. Skip if that leaves only a partial overlap.
     if MinQualForEnds != None:
       self.QualityTrimEnds(MinQualForEnds)
-      if not self.SpansWindow(LeftWindowEdge, RightWindowEdge):
+      if not self.SpansWindow(LeftWindowEdge, RightWindowEdge, ExactWindowStart,
+    ExactWindowEnd):
         return None
 
     # Skip reads containing more than one low-quality base
@@ -246,8 +256,22 @@ class PseudoRead:
 
     SeqToReturn = self.sequence
 
-    # Trim the part of the read overhanging the window if desired.
+    # Now we trim the part of the read overhanging the window if desired.
+    # If ExactWindowStart == True, we have already selected only those reads
+    # whose first mapped position is exactly the left window edge. Ditto
+    # ExactWindowEnd and the right window edge. If either of them are true, all
+    # we want to do is trim unmapped bases off the read ends, no more. That's
+    # because if ExactWindowStart == True && ExactWindowEnd == False, the
+    # left-most mapped base is the start of what we want to keep and we don't
+    # care where the read end is, ditto for the inverted statement, and finally
+    # if both are true we do care about the start and end but we've already
+    # preselected the reads to start and end at exactly the points of interest.
     if not KeepOverhangs:
+      if ExactWindowStart or ExactWindowEnd:
+        # Do this so that the only bases to get trimmed are unmapped ones at the
+        # edges.
+        LeftWindowEdge = float('-Inf')
+        RightWindowEdge = float('Inf')
       try:
         LeftEdgePositionInRead = 0
         while self.positions[LeftEdgePositionInRead] == None or \
@@ -305,8 +329,8 @@ class PseudoRead:
       return None
 
     # Find where, relative to the reference, the left edge of each read is,
-    # *including unmapped reads*. This is the position of the left-most mapped
-    # base, minus the length of any unmapped reads to its left. Find which of
+    # *including unmapped bases*. This is the position of the left-most mapped
+    # base, minus the number of unmapped bases to its left. Find which of
     # the two reads has this position more to the left. 
     SelfStartIncClipping  = SelfLeftEdge  - self.positions.index(SelfLeftEdge)
     OtherStartIncClipping = OtherLeftEdge - other.positions.index(OtherLeftEdge)
