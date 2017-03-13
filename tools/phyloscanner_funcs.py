@@ -18,11 +18,11 @@ def FindAndCheckCode(CodeBasename):
     exit(1)
   FNULL = open(os.devnull, 'w')
   try:
-    ExitStatus = subprocess.call([CodeFullPath, '-h'], stdout=FNULL, \
+    ExitStatus = subprocess.call([CodeFullPath, '-h'], stdout=FNULL,
     stderr=subprocess.STDOUT)
     assert ExitStatus == 0
   except:
-    print('Problem running', CodeFullPath+'.\nTry running\nchmod u+x ', \
+    print('Problem running', CodeFullPath+'.\nTry running\nchmod u+x ',
     CodeFullPath+'\nIt might help...', file=sys.stderr)
     exit(1)
   return CodeFullPath
@@ -54,13 +54,13 @@ def ReadNamesFromFile(TheFile, IsFile=True):
       else:
         NameToCheck = name
       if len(NameToCheck.split(None,1)) > 1:
-        print('Name', NameToCheck, 'in', TheFile, 'contains whitespace.',\
-        'Rename to avoid this and try again. Quitting.',\
+        print('Name', NameToCheck, 'in', TheFile, 'contains whitespace.',
+        'Rename to avoid this and try again. Quitting.',
         file=sys.stderr)
         exit(1)
       if NameToCheck in NamesChecked:
         print('Encountered name', NameToCheck, 'multiple times in', TheFile +\
-        '. names should be unique, as they are used as labels. Quitting.',\
+        '. names should be unique, as they are used as labels. Quitting.',
         file=sys.stderr)
         exit(1)
       NamesChecked.append(NameToCheck)
@@ -120,16 +120,16 @@ class PseudoRead:
     positions = read.get_reference_positions(full_length=True)
     if not len(read.query_sequence) == len(positions) == \
     len(read.query_qualities) > 0:
-      print('Unexpected attribute properties for pysam.AlignedSegment\n', read,\
+      print('Unexpected attribute properties for pysam.AlignedSegment\n', read,
       '\nQuitting',  file=sys.stderr)
       exit(1)
-    return cls(read.query_name, read.query_sequence, positions, \
+    return cls(read.query_name, read.query_sequence, positions,
     read.query_qualities)
 
   def __repr__(self):
     'Defining how a PseudoRead can be printed'
-    return 'name: %s\nseq: %s\npositions: %s\nqualities: %s' % (self.name, \
-    self.sequence, ' '.join(map(str,self.positions)), \
+    return 'name: %s\nseq: %s\npositions: %s\nqualities: %s' % (self.name,
+    self.sequence, ' '.join(map(str,self.positions)),
     ' '.join(map(str,self.qualities)))
 
   def SpansWindow(self, LeftWindowEdge, RightWindowEdge, ExactWindowStart,
@@ -226,7 +226,7 @@ class PseudoRead:
           self.positions[i] = RefPosOfRightEdge + i - RightMostMappedBase
 
 
-  def ProcessRead(self, LeftWindowEdge, RightWindowEdge, MinQualForEnds, \
+  def ProcessRead(self, LeftWindowEdge, RightWindowEdge, MinQualForEnds,
   MinInternalQual, KeepOverhangs, RecoverClippedEnds, ExactWindowStart,
   ExactWindowEnd):
     '''Returns reads that span a given window.
@@ -283,11 +283,11 @@ class PseudoRead:
           RightEdgePositionInRead -= 1
         assert LeftEdgePositionInRead <= RightEdgePositionInRead
       except (IndexError, AssertionError):
-        print('Unexpected behaviour for read', self.name+', which',\
+        print('Unexpected behaviour for read', self.name+', which',
         'maps to the following positions in the reference:\n'+ \
-        ' '.join(map(str,self.positions)) +'\nUnable to determine ',\
-        'where the window edges ('+str(LeftWindowEdge+1), 'and', \
-        str(RightWindowEdge+1)+') are in this read. Skipping it.', \
+        ' '.join(map(str,self.positions)) +'\nUnable to determine ',
+        'where the window edges ('+str(LeftWindowEdge+1), 'and',
+        str(RightWindowEdge+1)+') are in this read. Skipping it.',
         file=sys.stderr)
         return None
       SeqToReturn = \
@@ -296,7 +296,7 @@ class PseudoRead:
     return SeqToReturn
 
 
-  def MergeReadPairOverWindow(self, other, LeftWindowEdge, RightWindowEdge, \
+  def MergeReadPairOverWindow(self, other, LeftWindowEdge, RightWindowEdge,
   MinQualForEnds, MinInternalQual, RecoverClippedEnds):
     '''TODO:
     Returns the value None if the pair do not overlap each other and span the
@@ -379,7 +379,7 @@ class PseudoRead:
     RightRead.positions +\
     LeftRead.positions[OverlapStartInLeftRead+Length_RightRead:]
     merged_qualities = LeftRead.sequence[:OverlapStartInLeftRead]
-    for j in range(\
+    for j in range(
     max(Length_LeftRead - OverlapStartInLeftRead, Length_RightRead)):
       try:
         BaseQLeftRead = LeftRead.sequence[OverlapStartInLeftRead+j]
@@ -392,7 +392,7 @@ class PseudoRead:
       BestBaseQ = max(BaseQLeftRead, BaseQRightRead)
       merged_qualities += BestBaseQ
     assert len(merged_qualities) == len(merged_sequence)
-    MergedRead = PseudoRead(self.name, merged_sequence, \
+    MergedRead = PseudoRead(self.name, merged_sequence,
     merged_positions, merged_qualities)
 
     return MergedRead
@@ -462,7 +462,7 @@ def MergeSimilarStrings(DictOfStringCounts, SimilarityThreshold=1):
   # Check that the keys of the dict are strings.
   for String in DictOfStringCounts:
     if type(String) != type('foo'):
-      print('The function MergeSimilarStrings was called with a dict',\
+      print('The function MergeSimilarStrings was called with a dict',
       "containing a key that's not a string.\nQuitting.", file=sys.stderr)
       exit(1)
 
@@ -471,8 +471,8 @@ def MergeSimilarStrings(DictOfStringCounts, SimilarityThreshold=1):
   try:
     TotalStringCount = sum(DictOfStringCounts.values())
   except TypeError:
-    print('The function MergeSimilarStrings was called with a dict',\
-    "containing values of types that cannot be added together.\nQuitting.",\
+    print('The function MergeSimilarStrings was called with a dict',
+    "containing values of types that cannot be added together.\nQuitting.",
     file=sys.stderr)
     exit(1)
       

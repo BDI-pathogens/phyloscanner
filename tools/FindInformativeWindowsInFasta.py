@@ -31,12 +31,12 @@ def File(MyFile):
 ExplanatoryMessage = ExplanatoryMessage.replace('\n', ' ').replace('  ', ' ')
 parser = argparse.ArgumentParser(description=ExplanatoryMessage)
 parser.add_argument('FastaFile', type=File)
-parser.add_argument('WeightedWindowWidth', type=int, \
+parser.add_argument('WeightedWindowWidth', type=int,
 help='How wide do you want your windows to be?')
 parser.add_argument('Overlap', type=int, help='The overlap between the end of'+\
 ' one window and the start of the next (measured in numbers of base pairs, or'\
 +'columns in the alignment without weighting by non-gap fraction).')
-parser.add_argument('-S', '--start-position', type=int, default=1, \
+parser.add_argument('-S', '--start-position', type=int, default=1,
 help='The position in the alignment from which to start creating windows (by '+\
 'default, 1, i.e. the beginning of the alignment).')
 parser.add_argument('-E', '--end-position', type=int, help='''The position in
@@ -53,18 +53,18 @@ except:
 NumSeqs = len(alignment)
 NumCols = alignment.get_alignment_length()
 if NumCols == 0:
-  print('All sequences in', args.FastaFile, 'are empty. Quitting.', \
+  print('All sequences in', args.FastaFile, 'are empty. Quitting.',
   file=sys.stderr)
   exit(1)
 
 # Argument sanity checks.
 if args.WeightedWindowWidth <= 0:
-  print('WeightedWindowWidth must be greater than zero. Quitting.', \
+  print('WeightedWindowWidth must be greater than zero. Quitting.',
   file=sys.stderr)
   exit(1)
 StartPos = args.start_position
 if StartPos < 1:
-  print('The start position argument must be greater than zero. Quitting.', \
+  print('The start position argument must be greater than zero. Quitting.',
   file=sys.stderr)
   exit(1)
 elif StartPos >= NumCols:
@@ -114,17 +114,17 @@ while True:
   if NextLeftEdge >= EndPos:
     break
   if NextLeftEdge <= LeftEdge:
-    print('Error: one of the windows is ', LeftEdge, '-', RightEdge, \
-    '; with an overlap of ', args.Overlap, ', the next window would start at ',\
-    NextLeftEdge, ', whereas we need each window to be after the previous ',\
-    'one. Decrease the overlap and/or increase the WeightedWindowWidth, and ',\
+    print('Error: one of the windows is ', LeftEdge, '-', RightEdge,
+    '; with an overlap of ', args.Overlap, ', the next window would start at ',
+    NextLeftEdge, ', whereas we need each window to be after the previous ',
+    'one. Decrease the overlap and/or increase the WeightedWindowWidth, and ',
     'try again. Quitting.', sep='', file=sys.stderr)
     exit(1)
   WindowLeftEdges.append(NextLeftEdge)
 
 # Sanity check
 if len(WindowLeftEdges) != len(WindowRightEdges):
-  print('Malfunction of the code: differing numbers of left and right window',\
+  print('Malfunction of the code: differing numbers of left and right window',
   'edges. Quitting.', file=sys.stderr)
   exit(1)
 
