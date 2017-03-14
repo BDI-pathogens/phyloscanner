@@ -10,7 +10,8 @@ if(command.line){
   require(argparse, quietly=TRUE, warn.conflicts=FALSE)
   
   arg_parser = ArgumentParser(description="Look at identified multiple infections across all windows, and identify which are to be ignored entirely or reduced to largest subtree only.")
-
+  
+  arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what I'm doing.")
   arg_parser$add_argument("-b", "--existingBlacklistsPrefix", action="store", help="A file path and initial string identifying existing (.csv) blacklists whose output is to be appended to. Only such files whose suffix (the string after the prefix, without the file extension) matches a suffix from the dual reports will be appended to.")
   arg_parser$add_argument("-t", "--treePrefix", action="store", help="A file path and initial string identifying read trees of all analyzed windows. From these, we determine the number of windows in which each individual is present.")
   arg_parser$add_argument("-w", "--windowCount", action="store", help="The total number of windows in the analysis (will default to the total number of dual infection files if absent.)")
@@ -18,7 +19,7 @@ if(command.line){
   arg_parser$add_argument("threshold", action="store", help="The proportion of windows that a dual infection needs to appear in to be considered genuine. Those patients whose dual infections are considered genuine are blacklisted entirely. Those who are not are reduced to their largest subtrees only.")
   arg_parser$add_argument("dualReportsPrefix", action="store", help="A file path and initial string identifying all dual infection files output from ParsimonyBasedBlacklister.R.")
   arg_parser$add_argument("newBlacklistsPrefix", action="store", help="A file path and initial string for all output blacklist files.")
-
+  
   # Read in the arguments
   
   args <- arg_parser$parse_args()
@@ -28,30 +29,20 @@ if(command.line){
   output.prefix <- args$newBlacklistsPrefix 
   threshold <- args$threshold
   summary.file <- args$summaryFile
+  verbose <- args$verbose
   total.windows	<- NULL
   if(!is.null(args$windowCount))
-  	total.windows	<- as.numeric(args$windowCount)
-
-	if(0)
-	{
-		tree.prefix			<- '/Users/Oliver/duke/tmp/pty_17-02-08-15-42-03/ptyr22_.*tree'
-		existing.bl.prefix	<- '/Users/Oliver/duke/tmp/pty_17-02-08-15-42-03/ptyr22_blacklistsank_'
-		output.prefix		<- '/Users/Oliver/duke/tmp/pty_17-02-08-15-42-03/ptyr22_blacklistdual_'
-		duals.prefix		<- '/Users/Oliver/duke/tmp/pty_17-02-08-15-42-03/ptyr22_duallistsank_'
-		threshold			<- 0.5	
-	}
-#
- 
+    total.windows	<- as.numeric(args$windowCount)
+  
   dual.files <- list.files(dirname(duals.prefix), pattern=paste('^',basename(duals.prefix),sep=""), full.names=TRUE)
   tree.files	<- data.table(F=rep(NA_character_,0))	
   if(!is.null(tree.prefix))
   {
-	  	tree.files	<- data.table(F=list.files(dirname(tree.prefix), pattern=basename(tree.prefix), full.names=TRUE))
-		cat('Found tree.files to determine total.windows per patient, n=', nrow(tree.files))
+    tree.files	<- data.table(F=list.files(dirname(tree.prefix), pattern=paste0('^',basename(tree.prefix)), full.names=TRUE))
+    cat('Found tree.files to determine total.windows per patient, n=', nrow(tree.files))
   }  
   
   suffixes	<- gsub('.*_(InWindow_[0-9]+_to_[0-9]+).*$','\\1',dual.files)
-  #suffixes <- substr(dual.files.sans.ext, nchar(duals.prefix)+3, nchar(dual.files.sans.ext))
   expected.blacklists <- paste(existing.bl.prefix, suffixes, ".csv", sep="")
   observed.bl.files <- list.files(dirname(existing.bl.prefix), pattern=paste('^',basename(existing.bl.prefix),sep=""), full.names=TRUE)
   expected.but.not.seen <- setdiff(expected.blacklists, observed.bl.files)
@@ -61,30 +52,81 @@ if(command.line){
       warning("Blacklist file ",ebns," not found. Will make a new blacklist file with this extension.")
     }
   }
-  if(length(seen.but.not.expected)>0){
-    for(sbne in seen.but.not.expected){
-      warning("Blacklist file ",sbne," found but does not match a dual infections file; will be ignored.")
-    }
-  }  
 } else {
-
-}
-
-window.count.by.patient <- list()
-
-for(suffix in suffixes){
-  cat('Reading file',paste0(duals.prefix, suffix, ".csv"),'\n')
-  dual.file <- read.csv(paste(duals.prefix, suffix, ".csv", sep=""), stringsAsFactors = FALSE)
-  for(patient in unique(dual.file$patient)){
-    if(is.null(window.count.by.patient[[patient]])){
-      window.count.by.patient[[patient]] <-  1
-    } else {
-      window.count.by.patient[[patient]] <- window.count.by.patient[[patient]]+1
-    }
+  
+  if(0)
+  {
+    tree.prefix			<- '/Users/Oliver/duke/tmp/pty_17-02-22-10-29-08/ptyr22_.*tree'
+    existing.bl.prefix	<- '/Users/Oliver/duke/tmp/pty_17-02-22-10-29-08/ptyr22_blacklistsank_'
+    output.prefix		<- '/Users/Oliver/duke/tmp/pty_17-02-22-10-29-08/ptyr22_blacklistdual_'
+    duals.prefix		<- '/Users/Oliver/duke/tmp/pty_17-02-22-10-29-08/ptyr22_duallistsank_'
+    summary.file		<- '/Users/Oliver/duke/tmp/pty_17-02-22-10-29-08/ptyr22_dualsummary.csv'
+    threshold			<- 0.5	
+    
+    dual.files <- list.files(dirname(duals.prefix), pattern=paste('^',basename(duals.prefix),sep=""), full.names=TRUE)
+    tree.files	<- data.table(F=rep(NA_character_,0))	
+    if(!is.null(tree.prefix))
+    {
+      tree.files	<- data.table(F=list.files(dirname(tree.prefix), pattern=basename(tree.prefix), full.names=TRUE))
+      cat('Found tree.files to determine total.windows per patient, n=', nrow(tree.files))
+    }  	
+    suffixes	<- gsub('.*_(InWindow_[0-9]+_to_[0-9]+).*$','\\1',dual.files)
+    #suffixes <- substr(dual.files.sans.ext, nchar(duals.prefix)+3, nchar(dual.files.sans.ext))
+    expected.blacklists <- paste(existing.bl.prefix, suffixes, ".csv", sep="")
+    observed.bl.files <- list.files(dirname(existing.bl.prefix), pattern=paste('^',basename(existing.bl.prefix),sep=""), full.names=TRUE)
+    expected.but.not.seen <- setdiff(expected.blacklists, observed.bl.files)
+    seen.but.not.expected <- setdiff(observed.bl.files, expected.blacklists)
+    
   }
+  
+}
+#
+#	read dual files
+#
+dd	<- data.table(PATIENT=rep(NA_character_,0), READS_IN_SUBTREE=rep(NA_integer_,0), TIPS_IN_SUBTREE=rep(NA_integer_,0), W_INFO=rep(NA_character_,0),  W_POTENTIAL_DUAL=rep(NA_integer_,0))
+if(length(suffixes)>0)
+{
+  dd	<- lapply(suffixes, function(suffix){
+    file.name <- paste0(duals.prefix, suffix, ".csv")
+    
+    if(file.size(file.name) ==0 ){
+      cat('Skipping file ',file.name,' as it is empty\n')
+    } else {
+    
+      cat('Reading file',file.name,'\n')
+      dual.file <- as.data.table(read.csv(paste(duals.prefix, suffix, ".csv", sep=""), stringsAsFactors = FALSE))	
+      dual.file <- unique(dual.file, by=c('patient','reads.in.subtree','tips.in.subtree'))
+      set(dual.file, NULL, 'tip.name', NULL)
+      setnames(dual.file, colnames(dual.file), gsub('\\.','_',toupper(colnames(dual.file))))
+      set(dual.file, NULL, 'W_INFO', suffix)
+      set(dual.file, NULL, 'W_POTENTIAL_DUAL', 1L)
+    }
+  })
+  dd	<- do.call('rbind',dd)
+}
+#
+#	write detailed info to file
+#
+if(!is.null(summary.file)){	
+  tmp	<- gsub('csv$','rda',summary.file)
+  cat("\nWrite detailed dual summary file to", tmp)
+  save(dd, file=tmp)
+}
+#
+#	count number of potential dual windows by patient
+#
+tmp								<- dd[, list(N= length(unique(W_INFO))), by='PATIENT']
+window.count.by.patient 		<- as.list(tmp$N)
+names(window.count.by.patient)	<- tmp$PATIENT
+#
+#	copy existing blacklists
+#
+for(suffix in suffixes)
+{
   tmp	<- paste0(existing.bl.prefix, suffix, ".csv")
-  if(file.exists(tmp) & file.size(tmp)>0){
-	cat('Copy existing blacklist to',paste0(output.prefix, suffix, ".csv\n"))
+  if(file.exists(tmp) & file.size(tmp)>0)
+  {
+    cat('Copying existing blacklist to',paste0(output.prefix, suffix, ".csv\n"))
     file.copy(tmp, paste(output.prefix, suffix, ".csv", sep=""))
   }
 }
@@ -93,8 +135,8 @@ for(suffix in suffixes){
 #
 if(!is.null(total.windows))
 {
-	total.windows			<- rep(total.windows, length(unique(dual.file$patient)))
-	names(total.windows)	<- unique(dual.file$patient)
+  total.windows			<- rep(total.windows, length(unique(dual.file$patient)))
+  names(total.windows)	<- unique(dual.file$patient)
 }
 #
 #	determine window total if no input arg and tree files: 
@@ -102,19 +144,19 @@ if(!is.null(total.windows))
 #
 if(nrow(tree.files)>0 & is.null(total.windows))
 {
-	#	count number of unique reads in each tree file for every dual candidate patient
-	tmp						<- tree.files[, {
-										#F<- '/Users/Oliver/duke/tmp/pty_17-02-08-15-42-03/ptyr22_InWindow_2500_to_2749.tree'
-										tmp		<- data.table(TAXA=read.tree(F)$tip.label)
-										tmp2	<- unique(dual.file$patient)
-										tmp		<- sapply(tmp2, function(patient)	nrow(subset(tmp, regexpr(patient, TAXA)>0))	)
-										list(POT_DUAL_ID= tmp2, UNIQUE_READS=tmp)
-									}, by='F']						
-	#	count number of windows in which dual candidate patient is present
-	tmp						<- tmp[, list( WIN_N= length(which(UNIQUE_READS>0)) ), by='POT_DUAL_ID']
-	#	convert to named numeric
-	total.windows			<- tmp$WIN_N
-	names(total.windows)	<- tmp$POT_DUAL_ID
+  #	count number of unique reads in each tree file for every dual candidate patient
+  tmp						<- tree.files[, {
+    #F<- '/Users/Oliver/duke/tmp/pty_17-02-08-15-42-03/ptyr22_InWindow_2500_to_2749.tree'
+    tmp		<- data.table(TAXA=read.tree(F)$tip.label)
+    tmp2	<- labels(window.count.by.patient)
+    tmp		<- sapply(tmp2, function(patient)	nrow(subset(tmp, regexpr(patient, TAXA)>0))	)
+    list(POT_DUAL_ID= tmp2, UNIQUE_READS=tmp)
+  }, by='F']						
+  #	count number of windows in which dual candidate patient is present
+  tmp						<- tmp[, list( WIN_N= length(which(UNIQUE_READS>0)) ), by='POT_DUAL_ID']
+  #	convert to named numeric
+  total.windows			<- tmp$WIN_N
+  names(total.windows)	<- tmp$POT_DUAL_ID
 }
 #
 #	determine window total if no input arg and no tree files: 
@@ -122,8 +164,8 @@ if(nrow(tree.files)>0 & is.null(total.windows))
 #
 if(nrow(tree.files)==0 & is.null(total.windows))
 {
-	total.windows			<- rep(length(suffixes), length(unique(dual.file$patient)))
-	names(total.windows)	<- unique(dual.file$patient)
+  total.windows			<- rep(length(suffixes), length(unique(dual.file$patient)))
+  names(total.windows)	<- unique(dual.file$patient)
 }
 #
 #
@@ -131,34 +173,35 @@ if(nrow(tree.files)==0 & is.null(total.windows))
 
 counts <- vector()
 proportions <- vector()
-
 for(patient in labels(window.count.by.patient)[order(labels(window.count.by.patient))]){
   proportions <- c(proportions, window.count.by.patient[[patient]]/total.windows[patient])
   counts <- c(counts, window.count.by.patient[[patient]])
   
-  if(window.count.by.patient[[patient]]/total.windows[patient] >= threshold){
-
-    cat("Patient ",patient," meets the threshold for dual infection (",window.count.by.patient[[patient]]," out of ",total.windows[patient],") and is blacklisted entirely.\n", sep="")
+  if(window.count.by.patient[[patient]]/total.windows[patient] > threshold){
+    if(verbose){
+      cat("Patient ",patient," meets the threshold for dual infection (",window.count.by.patient[[patient]]," out of ",total.windows[patient],") and is blacklisted entirely.\n", sep="")
+    }	
     # this is a dual infection and we want it removed in its entirety
     for(suffix in suffixes){
       dual.file <- read.csv(paste(duals.prefix, suffix, ".csv", sep=""), stringsAsFactors=FALSE)
       pat.tips <- dual.file$tip.name[which(dual.file$patient==patient)]
       if(length(pat.tips)>0){
         if(file.exists(paste(output.prefix, suffix, ".csv", sep=""))){
-		  cat('Reading table to update',paste0(output.prefix, suffix, ".csv"),'\n')
+          cat('Reading table to update',paste0(output.prefix, suffix, ".csv"),'\n')
           existing.bl <- read.table(paste(output.prefix, suffix, ".csv", sep=""), sep=",", stringsAsFactors=FALSE, header=FALSE)$V1
           new.bl <- unique(c(existing.bl, pat.tips))
-  
+          
         } else {
           new.bl <- pat.tips
         }
-		cat('Writing table',paste0(output.prefix, suffix, ".csv\n"))
+        cat('Writing table',paste0(output.prefix, suffix, ".csv\n"))
         write.table(new.bl, paste(output.prefix, suffix, ".csv", sep=""), sep=",", row.names=FALSE, col.names=FALSE, quote=FALSE)
       }
     }
   } else {
-
-    cat("Patient ",patient," does not meet the threshold for dual infection (",window.count.by.patient[[patient]]," out of ",total.windows[patient],") and smaller subtrees are being blacklisted.\n", sep="")
+    if(verbose){
+      cat("Patient ",patient," does not meet the threshold for dual infection (",window.count.by.patient[[patient]]," out of ",total.windows[patient],") and smaller subtrees are being blacklisted.\n", sep="")
+    }
     # this is to have smaller subtrees blacklisted away on windows where they occur
     for(suffix in suffixes){
       
@@ -167,7 +210,7 @@ for(patient in labels(window.count.by.patient)[order(labels(window.count.by.pati
       if(nrow(pat.rows)>0){
         max.reads <- max(pat.rows$reads.in.subtree)
         smaller.tips <- pat.rows$tip.name[which(pat.rows$reads.in.subtree!=max.reads)]
-      
+        
         if(file.exists(paste(output.prefix, suffix, ".csv", sep=""))){
           existing.bl <- read.table(paste(output.prefix, suffix, ".csv", sep=""), sep=",", stringsAsFactors=FALSE, header=FALSE)$V1
           new.bl <- unique(c(existing.bl, smaller.tips))
@@ -183,5 +226,6 @@ for(patient in labels(window.count.by.patient)[order(labels(window.count.by.pati
 
 if(!is.null(summary.file)){
   out.df <- data.frame(patient = labels(window.count.by.patient)[order(labels(window.count.by.patient))], count = counts, proportion = proportions, stringsAsFactors = F)
-  write.csv(out.df, summary.file, row.names = F, quote = F)
+  cat("\nWrite dual summary file to", summary.file)
+  write.csv(out.df, file=summary.file, row.names=FALSE, quote=FALSE)
 }

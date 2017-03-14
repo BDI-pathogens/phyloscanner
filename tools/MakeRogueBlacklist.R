@@ -42,8 +42,8 @@ if(F){
   output.file.name <- "ptyr42_otherstuff/blacklist_test_2.txt"
 }
 
-source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
-source(file.path(script.dir, "SubtreeMethods.R"))
+source(file.path(script.dir, "TreeUtilityFunctions.R"))
+source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
 
 tree <- read.tree(input.file.name)
 tree <- unroot(tree)

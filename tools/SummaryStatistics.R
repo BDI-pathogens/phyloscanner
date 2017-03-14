@@ -65,7 +65,6 @@ if (command.line) {
   root.name <- args$outgroupName
   tip.regex <- args$tipRegex
   tree.file.names <- args$treeFiles
-#  sequence.file.names <- args$sequenceFiles
   splits.file.names <- args$splitsFiles
   blacklist.file.names <- args$blacklists  
   output.root <- args$outputBaseName
@@ -73,9 +72,8 @@ if (command.line) {
 #  cat(paste(id.file, script.dir, files.are.lists, root.name, tip.regex, tree.file.names, splits.file.names, blacklist.file.names, output.root, sep='\n'))
   
   if(!files.are.lists){
-	  tree.files <- sort(list.files(dirname(tree.file.names), pattern=paste('^',basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))
-	  splits.files <- sort(list.files(dirname(splits.file.names), pattern=paste('^',basename(splits.file.names),".*\\.csv",sep=""), full.names=TRUE))
-#	  sequence.files <- sort(list.files(dirname(sequence.file.names), pattern=paste('^',basename(sequence.file.names),".*\\.fasta",sep=""), full.names=TRUE))
+	  tree.files <- sort(list.files(dirname(tree.file.names), pattern=paste('^',basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))	  
+	  splits.files <- sort(list.files(dirname(splits.file.names), pattern=paste('^',basename(splits.file.names),".*\\.csv",sep=""), full.names=TRUE))	  
 	  blacklist.files <- NULL
 	  if(!is.null(blacklist.file.names)){
 		  blacklist.files <- sort(list.files(dirname(blacklist.file.names), pattern=paste('^',basename(blacklist.file.names),".*\\.csv",sep=""), full.names=TRUE))
@@ -83,7 +81,6 @@ if (command.line) {
   } else {
 	  tree.files <- unlist(strsplit(tree.file.names, ":"))
 	  splits.files <- unlist(strsplit(splits.file.names, ":"))
-#	  sequence.files <- unlist(strsplit(splits.file.names, ":"))
 	  blacklist.files <- NULL
 	  if(!is.null(blacklist.file.names)){
 		  blacklist.files <- unlist(strsplit(blacklist.file.names, ":"))
@@ -94,11 +91,12 @@ if (command.line) {
   	{	  	
 	 	df				<- data.table(TF= tree.files)		
 		df[, W_FROM:= df[,as.integer(gsub(prefix.wfrom,'',regmatches(TF, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),TF))))]]
-		df[, W_TO:= df[, as.integer(gsub(prefix.wto,'',regmatches(TF, regexpr(paste(prefix.wto,'[0-9]+',sep=''),TF))))]]			
+		df[, W_TO:= df[, as.integer(gsub(prefix.wto,'',regmatches(TF, regexpr(paste(prefix.wto,'[0-9]+',sep=''),TF))))]]
+		print(splits.files)
 		tmp				<- data.table(SF= splits.files)		
 		tmp[, W_FROM:= tmp[,as.integer(gsub(prefix.wfrom,'',regmatches(SF, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),SF))))]]
-		tmp[, W_TO:= tmp[, as.integer(gsub(prefix.wto,'',regmatches(SF, regexpr(paste(prefix.wto,'[0-9]+',sep=''),SF))))]]			
-		df				<- merge(df, tmp, by=c('W_FROM','W_TO'))
+		tmp[, W_TO:= tmp[, as.integer(gsub(prefix.wto,'',regmatches(SF, regexpr(paste(prefix.wto,'[0-9]+',sep=''),SF))))]]
+		df				<- merge(df, tmp, by=c('W_FROM','W_TO'))		
 		tree.files		<- df[, TF]
 		splits.files	<- df[, SF]
 		if(!is.null(blacklist.files))
@@ -136,11 +134,10 @@ if (command.line) {
   id.file <- "patientIDList.txt"
   root.name<- "C.BW.00.00BW07621.AF443088"
   tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
-  tree.files <- sort(list.files(paste(getwd(),"/AllTrees",sep=""), pattern="RAxML_bestTree.InWindow_.*\\.tree"))
-  splits.files <- sort(list.files(paste(getwd(),"/SubtreeFiles_r",sep=""), pattern="Subtrees_r_run20161013_RS_inWindow_.*\\.csv"))
-  # sequence.files <- sort(list.files(paste(getwd(),"/AlignedReads",sep=""), pattern="AlignedReads_PositionsExcised_.*\\.fasta"))
-  blacklist.files <- sort(list.files(paste(getwd(),"/Blacklists",sep=""), pattern="DualsBlacklist.InWindow_.*\\.csv"))
-  output.root <- "ss_r_new"
+  tree.files <- sort(list.files(paste(getwd(),sep=""), pattern="RAxML_bestTree.InWindow_.*\\.tree"))
+  splits.files <- sort(list.files(paste(getwd(),sep=""), pattern="Subtrees_s_run20161013_inWindow_.*\\.csv"))  
+  blacklist.files <- sort(list.files(paste(getwd(),sep=""), pattern="DualsBlacklist.InWindow_.*\\.csv"))
+  output.root <- "ss_s"
   windows <- NULL
 
 #  if(0)
@@ -164,12 +161,10 @@ if (command.line) {
 	  id.file 		<- "/Users/Oliver/duke/tmp/pty_17-02-13-15-45-07/ptyr3_patients.txt"
 	  root.name		<- "REF_CPX_AF460972"
 	  tip.regex 	<- "^(.*)_read_([0-9]+)_count_([0-9]+)$"	  
-	  tree.file.names		<- '/Users/Oliver/duke/tmp/pty_17-02-13-15-45-07/ptyr3_InWindow_'
-	  # sequence.file.names	<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput_160902_w250/ptyr22_InWindow_'
+	  tree.file.names		<- '/Users/Oliver/duke/tmp/pty_17-02-13-15-45-07/ptyr3_InWindow_'	  
 	  splits.file.names		<- '/Users/Oliver/duke/tmp/pty_17-02-13-15-45-07/Subtrees_r_ptyr3_InWindow_'
 	  blacklist.file.names	<- '/Users/Oliver/duke/tmp/pty_17-02-13-15-45-07/ptyr3_blacklistdwns_'
-	  tree.files 		<- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))
-	  # sequence.files 	<- sort(list.files(dirname(sequence.file.names), pattern=paste(basename(sequence.file.names),".*\\.fasta",sep=""), full.names=TRUE))
+	  tree.files 		<- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))	  
 	  splits.files 		<- sort(list.files(dirname(splits.file.names), pattern=paste(basename(splits.file.names),".*\\.csv",sep=""), full.names=TRUE))
 	  blacklist.files 	<- sort(list.files(dirname(blacklist.file.names), pattern=paste(basename(blacklist.file.names),".*\\.csv",sep=""), full.names=TRUE))
 	  output.root 		<- "/Users/Oliver/duke/tmp/pty_17-02-13-15-45-07/ptyr3"
@@ -177,8 +172,8 @@ if (command.line) {
   }
 }
 
-source(file.path(script.dir, "TransmissionUtilityFunctions.R"))
-source(file.path(script.dir, "SummariseTrees_funcs.R"))
+source(file.path(script.dir, "TreeUtilityFunctions.R"))
+source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
 
 
 AlignPlots <- function(...) {
@@ -246,7 +241,6 @@ ids <- scan(id.file, what="", sep="\n", quiet=TRUE)
 # if(length(tmp))
 # 	cat('\nwarning: IDs in id.file not found in any tree', paste(tmp, collapse=' '))
 
-
 num.ids <- length(unique(ids))
 if (num.ids == 0) {
   cat(paste("No IDs found in ", id.file, ". Quitting.\n", sep=""))
@@ -271,17 +265,15 @@ branch.to.pat.ratio.col <- vector()
 
 read.proportions <- list()
 max.splits <- 0
-
+print(tree.files)
 for(window.no in seq(1, length(tree.files))){
 
   #tree.file.name <- paste("AllTrees/",tree.files[window.no], sep="")
   #blacklist.file.name <- paste("Blacklists/",blacklist.files[window.no], sep="")
-  #splits.file.name <- paste("SubtreeFiles_r/",splits.files[window.no], sep="")
-  #sequence.file.name <- paste("AlignedReads/",sequence.files[window.no], sep="")
+  #splits.file.name <- paste("SubtreeFiles_r/",splits.files[window.no], sep="")  
   tree.file.name <- tree.files[window.no]
   blacklist.file.name <- blacklist.files[window.no]
-  splits.file.name <- splits.files[window.no]
-  # sequence.file.name <- sequence.files[window.no]
+  splits.file.name <- splits.files[window.no]  
   
   if(!is.null(windows)){
     window <- windows[window.no]
@@ -295,9 +287,8 @@ for(window.no in seq(1, length(tree.files))){
   }
   
   # Read the tree
-  
-  tree <- read.tree(file=tree.file.name)
-  # sequences <- read.dna(file=sequence.file.name, format="fasta")
+  cat('read',tree.file.name,'\n')
+  tree <- read.tree(file=tree.file.name)  
   
   # Root the tree
   if(!is.null(root.name)){
@@ -355,7 +346,7 @@ for(window.no in seq(1, length(tree.files))){
   # Get each statistic for each patient
   
   for (i in 1:num.ids) {
-#    cat("Calculating statistics in window ",start, " for patient ", ids[i], "\n", sep="")
+    cat("Calculating statistics in window ",start, " for patient ", ids[i], "\n", sep="")
     id <- ids[i]
 
     num.leaves <- length(patient.tips[[id]])
@@ -379,6 +370,8 @@ for(window.no in seq(1, length(tree.files))){
     
     all.tips <- patient.tips[[id]]
 
+    subtree.all <- NULL
+    
     if(length(all.tips)>1){
       
       subtree.all <- drop.tip(tree, tip=tree$tip.label[!(tree$tip.label %in% all.tips)])
@@ -438,7 +431,6 @@ for(window.no in seq(1, length(tree.files))){
         if(length(all.tips)==1){
           mean.pat <- NA
         } else {
-          subtree.all <- drop.tip(tree, tip=tree$tip.label[!(tree$tip.label %in% all.tips)])
           pat.distances <- cophenetic(subtree.all)
           mean.pat <- mean(pat.distances[upper.tri(pat.distances)])
         }
@@ -577,6 +569,8 @@ if(BEEHIVE){
   
   amplicon.df <- data.frame(start = amplicon.starts, end = amplicon.ends, overlap.area = overlap.area, name = amplicon.names)
   
+  duals.summary <- read.csv("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/Blacklists/duals_summary.csv")
+  
   #amplicon-specific
   
   first <- T
@@ -662,7 +656,7 @@ tmp <- paste(output.root,"_patStats.pdf",sep="")
 cat("Plotting to file",tmp,"...\n")
 pdf(file=tmp, width=8.26772, height=11.6929)
 
-for (i in seq(1, length(ids))) {
+for (i in seq(1, num.ids)) {
   
   patient <- sort(ids)[i]
   cat("Drawing graphs for patient ",patient,"\n", sep="")
@@ -819,7 +813,24 @@ for (i in seq(1, length(ids))) {
     graph.6 <- add.no.data.rectangles(graph.6, rectangles)
     
     plots1 <- list()
-    plots1$main <- textGrob(patient,gp=gpar(fontsize=20))
+    
+    if(BEEHIVE){
+      if(patient %in% duals.summary$patient){
+        pat.row <- which(duals.summary$patient == patient)
+
+        if(duals.summary$type[pat.row]!="single"){
+          title.string <- paste(patient, " (",duals.summary$type[pat.row]," dual infection)",sep="")
+        } else {
+          title.string <- patient
+        }
+
+      } else {
+        title.string <- patient
+      }
+      plots1$main <- textGrob(title.string,gp=gpar(fontsize=20))
+    } else {
+      plots1$main <- textGrob(patient,gp=gpar(fontsize=20))
+    }  
     plots1 <- c(plots1, AlignPlots(graph.1, graph.2, graph.3, graph.4, graph.5, graph.6))
     plots1$ncol <- 1
     plots1$heights <- unit(c(0.25, rep(1,6)), "null")
