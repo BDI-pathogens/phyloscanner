@@ -46,11 +46,15 @@ if(command.line){
     
     input.names		<- sort(list.files(dirname(input.name), pattern=paste(basename(input.name),'.*\\.tree$',sep=''), full.names=TRUE))
     
+    
     if(length(input.names)==0){
-      quit("No input trees found.")
+      cat("No input trees found,\n")
+      quit()
     }
     
-    suffixes <- substr(input.names, nchar(input.names) + 1, nchar(input.names))
+    suffixes <- substr(input.names, nchar(input.name) + 1, nchar(input.names))
+    suffixes <- gsub('\\.tree','.csv',suffixes)
+    
     b.output.names <- paste(b.output.name, suffixes, sep="")
     if(!is.null(d.output.name)){
       d.output.names <- paste(d.output.name, suffixes, sep="")
@@ -214,7 +218,6 @@ check.read.count.for.split <- function(split, tips.for.splits, raw.threshold, ra
   # find what proportion of all reads from this patient are in this subgraph and check against the thresholds
   
   prop.in.split <- count.in.split/total.reads
-  props <- c(props, prop.in.split)
   return (count.in.split < raw.threshold | prop.in.split < ratio.threshold)
 }
 
