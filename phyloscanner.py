@@ -238,7 +238,9 @@ parser.add_argument('-RC', '--ref-for-coords', help='The coordinates are to be'\
 ' expected to perform better.')
 parser.add_argument('-RN1', '--read-names-1', action='store_true',
 help='''Produce a file for each window and each bam, listing the names (as they
-appear in the input bam file) of the reads that phyloscanner used.''')
+appear in the input bam file) of the reads that phyloscanner used. If you like
+this you may also like tools/ExtractNamedReadsFromBam.py, which is run
+separately from the command line.''')
 parser.add_argument('-RN2', '--read-names-2', action='store_true',
 help='''As --read-names-1, except the files will show the correspondence between
 read names and which unique sequence they correspond to. This option cannot be
