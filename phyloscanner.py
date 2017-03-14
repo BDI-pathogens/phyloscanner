@@ -33,6 +33,7 @@ FileForDiscardedReadPairs_basename = 'DiscardedReads_'
 FileForDuplicateReadCountsRaw_basename = 'DuplicateReadCountsRaw_'
 FileForDuplicateReadCountsProcessed_basename = 'DuplicateReadCountsProcessed_'
 FileForDuplicateSeqs_basename = 'DuplicateReads_contaminants_'
+FileForReadNames_basename = 'ReadNames_'
 
 # Some temporary working files we'll create
 FileForRefs = 'temp_refs.fasta'
@@ -235,6 +236,15 @@ parser.add_argument('-RC', '--ref-for-coords', help='The coordinates are to be'\
 +'default coordinates are interpreted with respect to the alignment of all '+\
 'bam and external references.) Deprecated; the --pairwise-align-to option is'+\
 ' expected to perform better.')
+parser.add_argument('-RN1', '--read-names-1', action='store_true',
+help='''Produce a file for each window and each bam, listing the names (as they
+appear in the input bam file) of the reads that phyloscanner used.''')
+parser.add_argument('-RN2', '--read-names-2', action='store_true',
+help='''As --read-names-1, except the files will show the correspondence between
+read names and which unique sequence they correspond to. This option cannot be
+used with either of the --merging-threshold or --excision-coords options,
+because they change the correspondence initially established between unique
+sequences and reads.''')
 parser.add_argument('-T', '--no-trees', action='store_true', help='Generate '+\
 'aligned sets of reads for each window then quit without making trees.')
 parser.add_argument('-XC', '--excision-coords', type=CommaSeparatedInts,
@@ -301,6 +311,7 @@ FlagContaminants = args.contaminant_count_ratio != None
 RecallContaminants = args.contaminant_read_dir != None
 CheckDuplicates = not args.dont_check_duplicates
 ExploreWindowWidths = args.explore_window_widths != None
+MergeReads = args.merging_threshold > 0
 
 # Print how this script was called, for logging purposes.
 print('phyloscanner was called thus:\n' + ' '.join(sys.argv))
@@ -393,6 +404,14 @@ if (ExcisePositions and args.excision_ref == None) or \
 ((not ExcisePositions) and args.excision_ref != None):
   print('The --excision-coords and --excision-ref options require each other:',
   'use both, or neither. Quitting.', file=sys.stderr)
+  exit(1)
+
+# --read-names-2 can't be used with read merging or position excising
+if args.read_names_2 and (ExcisePositions or MergeReads):
+  print('The --read-names-2 option cannot be used with either of the',
+  '--merging-threshold or --excision-coords options, because they change the',
+  'correspondence initially established between unique sequences and reads.',
+  'Quitting''', file=sys.stderr)
   exit(1)
 
 # Sanity checks on using the pairwise alignment option.
@@ -939,7 +958,7 @@ def ProcessReadDict(ReadDict, WhichBam, LeftWindowEdge, RightWindowEdge):
   BasenameForReads = BamAliases[WhichBam]
 
   # Merge similar reads if desired
-  if args.merging_threshold > 0:
+  if MergeReads:
     ReadDict = pf.MergeSimilarStrings(ReadDict, args.merging_threshold)
 
   # Implement the minimum read count
@@ -1018,7 +1037,7 @@ def ReMergeAlignedReads(alignment):
   SampleReadCounts, RefSeqsHere = ReadAlignedReadsIntoDicts(alignment)
   NewAlignment = AlignIO.MultipleSeqAlignment([])
   for SampleName in SampleReadCounts:
-    if args.merging_threshold > 0:
+    if MergeReads:
       SampleReadCounts[SampleName] = \
       pf.MergeSimilarStrings(SampleReadCounts[SampleName],
       args.merging_threshold)
@@ -1030,7 +1049,7 @@ def ReMergeAlignedReads(alignment):
   NewAlignment.extend(RefSeqsHere)
 
   # Merging after alignment means some columns could be pure gap. Remove these.
-  if args.merging_threshold > 0:
+  if MergeReads:
     NewAlignment = RemovePureGapCols(NewAlignment)
   return NewAlignment
 
@@ -1134,6 +1153,10 @@ for window in range(NumCoords / 2):
     LeftWindowEdge  = ThisBamCoords[window*2]
     RightWindowEdge = ThisBamCoords[window*2 +1]
 
+    # For labelling read name files
+    FileForReadNames_basename2 = FileForReadNames_basename + ThisWindowSuffix \
+    + '_InBam_'
+
     # Pysam uses zero-based coordinates for positions w.r.t the reference.
     # If we want all reads that start exactly at the window start and end
     # anywhere after, or all reads that end exactly at the window end and start
@@ -1151,11 +1174,11 @@ for window in range(NumCoords / 2):
       LeftWindowEdgeForFetch = None
       LeftWindowEdge = RightWindowEdge
 
-    #RightWindowEdge = LeftWindowEdge + 10
-
     # Find all unique reads in this window and count their occurrences.
     AllReads = {}
     UniqueReads = {}
+    ReadNames = []
+    ReadNameDict = {}
     BamFile = pysam.AlignmentFile(BamFileName, "rb")
     for read in BamFile.fetch(RefSeqName, LeftWindowEdgeForFetch,
     RightWindowEdgeForFetch):
@@ -1210,6 +1233,15 @@ for window in range(NumCoords / 2):
         else:
           UniqueReads[seq] = 1
 
+        # Record the read name if desired.
+        if args.read_names_1:
+          ReadNames.append(read.query_name)
+        if args.read_names_2:
+          if seq in ReadNameDict:
+            ReadNameDict[seq].append(read.query_name)
+          else:
+            ReadNameDict[seq] = [read.query_name]
+
     # If we did merge paired reads, we now need to process them.
     # AllReads will be a mixture of PseudoRead instances (for merged read pairs)
     # and pysam.AlignedSegment instances (for unmerged single reads). The latter
@@ -1234,6 +1266,15 @@ for window in range(NumCoords / 2):
           UniqueReads[seq] += 1
         else:
           UniqueReads[seq] = 1
+
+        # Record the read name if desired.
+        if args.read_names_1:
+          ReadNames.append(read.name)
+        if args.read_names_2:
+          if seq in ReadNameDict:
+            ReadNameDict[seq].append(read.name)
+          else:
+            ReadNameDict[seq] = [read.name]
 
     # If we've read in any contaminant reads for this window and this bam,
     # remove them from the read dict. If they're not present in the read dict,
@@ -1264,7 +1305,18 @@ for window in range(NumCoords / 2):
     else:
       AllReadsInThisWindow += \
       ProcessReadDict(UniqueReads, i, LeftWindowEdge, RightWindowEdge)
-      
+
+    # Write recorded read names to file if desired.
+    if args.read_names_1:
+      FileForReadNames1 = FileForReadNames_basename2 + BamAlias + '.txt'
+      with open(FileForReadNames1, 'w') as f:
+        f.write('\n'.join(ReadNames))
+    if args.read_names_2:
+      FileForReadNames2 = FileForReadNames_basename2 + BamAlias + '.csv'
+      with open(FileForReadNames2, 'w') as f:
+        for seq, ReadNamesForThatSeq in ReadNameDict.items():
+          f.write(seq + ',' + ' '.join(ReadNamesForThatSeq) + '\n')
+
   # We've now gathered together reads from all bam files for this window.
 
   # If we're checking for duplicate reads between samples, do so now.
@@ -1433,7 +1485,7 @@ for window in range(NumCoords / 2):
 
   # Align the reads. Prepend 'temp_' to the file name if we'll merge again after
   # aligning.
-  if args.merging_threshold > 0:
+  if MergeReads:
     FileForReads = 'temp_' + FileForAlnReadsHere
   else:
     FileForReads = FileForAlnReadsHere
@@ -1468,7 +1520,7 @@ for window in range(NumCoords / 2):
 
   # Do a second round of within-sample read merging now the reads are aligned.
   # Write the output to FileForAlnReadsHere.
-  if args.merging_threshold > 0:
+  if MergeReads:
     try:
       SeqAlignmentHere = ReMergeAlignedReads(SeqAlignmentHere)
     except:
