@@ -45,6 +45,11 @@ if(command.line){
     # Assume we are dealing with a group of files
     
     input.names		<- sort(list.files(dirname(input.name), pattern=paste(basename(input.name),'.*\\.tree$',sep=''), full.names=TRUE))
+    
+    if(length(input.names)==0){
+      quit("No input trees found.")
+    }
+    
     suffixes <- substr(input.names, nchar(input.names) + 1, nchar(input.names))
     b.output.names <- paste(b.output.name, suffixes, sep="")
     if(!is.null(d.output.name)){
