@@ -35,23 +35,23 @@ help="specify that the coordinates are with respect to the alignment")
 # arguments, and that the specified file(s) exist.
 if options.AlignmentCoords:
   if len(args) < 2:
-    print('At least two arguments are required with the -A option: the',\
-    'alignment file and at least one (integer) coordinate.\nQuitting.', \
+    print('At least two arguments are required with the -A option: the',
+    'alignment file and at least one (integer) coordinate.\nQuitting.',
     file=sys.stderr)
     exit(1)
   AlignmentFile = args[0]
   coords        = args[1:]
 else:
   if len(args) < 3:
-    print('At least three arguments are required: firstly the alignment file,',\
-    'secondly the chosen reference therein, then at least one (integer)',\
+    print('At least three arguments are required: firstly the alignment file,',
+    'secondly the chosen reference therein, then at least one (integer)',
     'coordinate for that reference.\nQuitting.', file=sys.stderr)
     exit(1)
   AlignmentFile = args[0]
   ChosenRef     = args[1]
   coords        = args[2:]
 if not os.path.isfile(AlignmentFile):
-  print(AlignmentFile, 'does not exist or is not a file. Quitting.', \
+  print(AlignmentFile, 'does not exist or is not a file. Quitting.',
   file=sys.stderr)
   exit(1)
 
@@ -77,14 +77,14 @@ for seq in SeqIO.parse(open(AlignmentFile),'fasta'):
   SeqDict[seq.id] = str(seq.seq)
 
 if len(SeqDict) == 0:
-  print("There are no sequences in", AlignmentFile+". Quitting.", \
+  print("There are no sequences in", AlignmentFile+". Quitting.",
   file=sys.stderr)
   exit(1)
 
 # Check all sequences have the same length
 AlignmentLength = len(SeqDict.values()[0])
 if any(len(seq) != AlignmentLength for seq in SeqDict.values()):
-  print("The sequences in", AlignmentFile, "are not all of the same length - ",\
+  print("The sequences in", AlignmentFile, "are not all of the same length - ",
   "it's supposed to be an alignment file. Quitting.", file=sys.stderr)
 
 # Check all sequences have at least one base
@@ -95,7 +95,7 @@ for SeqName, seq in SeqDict.items():
       NoBases = False
       break
   if NoBases:
-    print(SeqName, "has no bases, it's just one big gap.\nQuitting.", \
+    print(SeqName, "has no bases, it's just one big gap.\nQuitting.",
     file=sys.stderr)
     exit(1)
 
@@ -105,8 +105,8 @@ if options.AlignmentCoords:
   # Check for coordinates after the end of the alignment
   TooLargeCoords = [coord for coord in coords if coord > AlignmentLength]
   if TooLargeCoords != []:
-    print('Coordinates', ', '.join(map(str,TooLargeCoords)), 'occur after the',\
-    'end of the alignment ('+str(AlignmentLength), 'bases long).\nQuitting.', \
+    print('Coordinates', ', '.join(map(str,TooLargeCoords)), 'occur after the',
+    'end of the alignment ('+str(AlignmentLength), 'bases long).\nQuitting.',
     file=sys.stderr)
     exit(1)
   CoordsInAlignment_ZeroBased = [coord-1 for coord in coords]
@@ -116,7 +116,7 @@ else:
 
   # Check that the reference is in the alignment
   if not ChosenRef in SeqDict:
-    print('Could not find', ChosenRef, 'in', AlignmentFile+'.\nQuitting.', \
+    print('Could not find', ChosenRef, 'in', AlignmentFile+'.\nQuitting.',
     file=sys.stderr)
     exit(1)
   ChosenRefSeq = SeqDict[ChosenRef]
@@ -137,8 +137,8 @@ else:
   MissingCoords = \
   [coords[i] for i,coord in enumerate(CoordsInAlignment_ZeroBased) if coord == -1]
   if len(MissingCoords) != 0:
-    print('Coordinates', ', '.join(map(str,MissingCoords)), 'occur after the',\
-    'end of', ChosenRef, '('+str(PositionInRef), 'bases long).\nQuitting.', \
+    print('Coordinates', ', '.join(map(str,MissingCoords)), 'occur after the',
+    'end of', ChosenRef, '('+str(PositionInRef), 'bases long).\nQuitting.',
     file=sys.stderr)
     exit(1)
 
@@ -179,7 +179,7 @@ for SeqName, seq in SeqDict.items():
   if 0 in CoordsInThisSeq:
     MissingCoords = [coords[i] for i in range(len(coords))\
     if CoordsInThisSeq[i] == 0]
-    print('Internal malfunction of the code: the user-specified coordinates',\
+    print('Internal malfunction of the code: the user-specified coordinates',
     ' '.join(map(str, MissingCoords)), "were not found in sequence", SeqName+\
     '\nQuitting.', file=sys.stderr)
     exit(1)
@@ -188,8 +188,8 @@ for SeqName, seq in SeqDict.items():
   # this process for the chosen ref should recover the user's input coordinates.
   if not options.AlignmentCoords and SeqName == ChosenRef and \
   CoordsInThisSeq != coords:
-    print('Internal malfunction of the code: converting the chosen',\
-    "reference's coordinates to the alignment coordinates and back again",\
+    print('Internal malfunction of the code: converting the chosen',
+    "reference's coordinates to the alignment coordinates and back again",
     'gives a different result.\nQuitting.', file=sys.stderr)
     exit(1)
 
