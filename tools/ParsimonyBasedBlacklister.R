@@ -8,19 +8,19 @@ command.line <- T
 if(command.line){
   # Define arguments
   
-  arg_parser = ArgumentParser(description="Identify phylogeny tips for blacklisting as representing suspected contaminants, based on a Sankhoff parsimony reconstruction")  
-  arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. Three groups: patient ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name.")
-  arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
+  arg_parser = ArgumentParser(description="Identify phylogeny tips for blacklisting as representing suspected contaminants, based on a Sankhoff parsimony reconstruction. Input and output file name arguments are either a single file, or the root name for a group of files, in which case all files matching that root will be processed, and matching output files generated.")
+  arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. Three groups, in order: patient ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name.")
+  arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.")
   arg_parser$add_argument("-r", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
   arg_parser$add_argument("-b", "--blacklist", action="store", help="A blacklist to be applied before this script is run.")
-  arg_parser$add_argument("-c", "--noReadCounts", action="store_true", help="If present, each tip is assumed to represent one read")
-  arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what I'm doing.")
-  arg_parser$add_argument("-d", "--dualsOutputFile", action="store", help="A file to write the set of patients which seem to be dually infected according to the parameters of this run; if unspecified, do not output this.")
+  arg_parser$add_argument("-c", "--noReadCounts", action="store_true", help="If present, read counts are not taken from tip labels and each tip is assumed to represent one read")
+  arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what the script is doing.")
+  arg_parser$add_argument("-d", "--dualsOutputFile", action="store", help="A file or file root to write the set of patients which seem to be dually infected according to the parameters of this run; if unspecified, do not output this.")
   arg_parser$add_argument("rawThreshold", action="store", type="double", help="Raw threshold; subgraphs with read counts less than this will be blacklisted, regardless of the count of any other subgraphs from the same patient")
   arg_parser$add_argument("ratioThreshold", action="store", type="double", help="Ratio threshold; subgraphs will be blacklisted if the ratio of their tip count to that of another subgraph from the same patient is less than this.")
   arg_parser$add_argument("sankhoffK", action="store", type="double", help="The k parameter in the cost matrix for Sankhoff reconstruction (see documentation)")
-  arg_parser$add_argument("inputFileName", action="store", help="A CSV file outlining groups of tips that have identical sequences, each forming a single line.")
-  arg_parser$add_argument("blacklistOutputFileName", action="store", help="The file to write a list of tips to be blacklisted to.")
+  arg_parser$add_argument("inputFileName", action="store", help="The file or file root for the input tree in Newick format")
+  arg_parser$add_argument("blacklistOutputFileName", action="store", help="The file or file root to write a list of tips to be blacklisted to.")
   
   # Parse arguments
   args <- arg_parser$parse_args()
@@ -37,8 +37,23 @@ if(command.line){
   no.read.counts <- args$noReadCounts
   verbose <- args$verbose
   
+  if(file.exists(input.name)){
+    input.names <- input.name
+    d.output.names <- d.output.name
+    b.output.names <- b.output.name
+  } else {
+    # Assume we are dealing with a group of files
+    
+    input.names		<- sort(list.files(dirname(input.name), pattern=paste(basename(input.name),'.*\\.tree$',sep=''), full.names=TRUE))
+    suffixes <- substr(input.names, nchar(input.names) + 1, nchar(input.names))
+    b.output.names <- paste(b.output.name, suffixes, sep="")
+    if(!is.null(d.output.name)){
+      d.output.names <- paste(d.output.name, suffixes, sep="")
+    }
+  }
+  
 } else {
-
+  
 }
 
 # The main function for getting splits for a given patient ID
@@ -125,7 +140,7 @@ get.splits.for.patient <- function(patient, tip.patients, tree, root.name, raw.t
       tip.count.vector <- vector()
       
       too.small <- sapply(patient.split.ids, function(x) check.read.count.for.split(x, tips.for.splits, raw.threshold, ratio.threshold, reads.per.tip, total.reads))
-
+      
       if(length(which(!too.small))>1 & !is.null(d.output.name)){
         # there are at least two subgraphs which are too big to be contaminants
         
@@ -169,7 +184,7 @@ get.splits.for.patient <- function(patient, tip.patients, tree, root.name, raw.t
     read.count.vector <- reads
     tip.count.vector <- 1
   }
-
+  
   
   list(id = patient, blacklist.items = blacklist.items, tip.names = tips.vector, read.counts = read.count.vector, tip.counts = tip.count.vector, dual=dual)
 }
@@ -203,81 +218,78 @@ cat("Reading functions...\n")
 source(file.path(script.dir, "TreeUtilityFunctions.R"))
 source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
 
-cat(paste("Reading tree (",input.name,")...\n",sep=""))
-
-tree <- read.tree(input.name)
-
-# Re-root the tree
-
-tree <- unroot(tree)
-
-if(!is.null(root.name)){
-  outgroup.no <- which(tree$tip.label==root.name)
-  tree <- root(tree, outgroup = outgroup.no, resolve.root = T)
-}
-
-tip.labels <- tree$tip.label
-
-# Import existing blacklist
-
-blacklist <- vector()
-
-if(!is.null(blacklist.file.name)){
-  if(file.exists(blacklist.file.name)){
-    cat("Reading blacklist file",blacklist.file.name,'\n')
-    blacklisted.tips <- read.table(blacklist.file.name, sep=",", header=F, stringsAsFactors = F, col.names="read")
-    if(nrow(blacklisted.tips)>0){
-      blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
-    }
-  } else {
-    warning(paste("File ",blacklist.file.name," does not exist; skipping.",paste=""))
+for(i in 1:length(input.names)){
+  cat(paste("Reading tree (",input.names[i],")...\n",sep=""))
+  
+  tree <- read.tree(input.names[i])
+  
+  # Re-root the tree
+  
+  tree <- unroot(tree)
+  
+  if(!is.null(root.name)){
+    outgroup.no <- which(tree$tip.label==root.name)
+    tree <- root(tree, outgroup = outgroup.no, resolve.root = T)
   }
-} 
-
-cat("Collecting tips for each patient...\n")
-
-tip.patients <- sapply(tip.labels, function(x) patient.from.label(x, tip.regex))
-tip.patients[blacklist] <- NA
-
-patients <- unique(na.omit(tip.patients))
-
-new.blacklist <- tree$tip.label[blacklist]
-
-mi.patient.column <- vector()
-mi.tip.names.column <- vector()
-mi.read.count.column <- vector()
-mi.tip.count.column <- vector()
-
-# Re-order the patients (mostly for the sake of getting a sense of progress in screen output)
-
-patients <- patients[order(patients)]
-
-results <- lapply(patients, function(x) get.splits.for.patient(x, tip.patients, tree, root.name, raw.threshold, ratio.threshold, d.output.name, verbose))
-
-cat("Finished\n")
-
-new.blacklist <- unlist(lapply(results, "[[", 2))
-
-# Write the output
-
-write.table(new.blacklist, b.output.name, sep=",", row.names=FALSE, col.names=FALSE, quote=F)
-
-if(!is.null(d.output.name)){
   
-  which.are.duals <- which(unlist(lapply(results, "[[", 6)))
+  tip.labels <- tree$tip.label
   
-  if(length(which.are.duals) > 0) {
-    mi.df <- data.frame(patient = unlist(sapply(results[which.are.duals], function (x) rep(x$id, length(x$tip.names)) )), 
-                        tip.name = unlist(lapply(results[which.are.duals], "[[", 3)),
-                        reads.in.subtree = unlist(lapply(results[which.are.duals], "[[", 4)),
-                        tips.in.subtree = unlist(lapply(results[which.are.duals], "[[", 5))
-    )
+  # Import existing blacklist
+  
+  blacklist <- vector()
+  
+  if(!is.null(blacklist.file.name)){
+    if(file.exists(blacklist.file.name)){
+      cat("Reading blacklist file",blacklist.file.name,'\n')
+      blacklisted.tips <- read.table(blacklist.file.name, sep=",", header=F, stringsAsFactors = F, col.names="read")
+      if(nrow(blacklisted.tips)>0){
+        blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
+      }
+    } else {
+      warning(paste("File ",blacklist.file.name," does not exist; skipping.",paste=""))
+    }
+  } 
+  
+  cat("Collecting tips for each patient...\n")
+  
+  tip.patients <- sapply(tip.labels, function(x) patient.from.label(x, tip.regex))
+  tip.patients[blacklist] <- NA
+  
+  patients <- unique(na.omit(tip.patients))
+  
+  new.blacklist <- tree$tip.label[blacklist]
+  
+  # Re-order the patients (mostly for the sake of getting a sense of progress in screen output)
+  
+  patients <- patients[order(patients)]
+  
+  results <- lapply(patients, function(x) get.splits.for.patient(x, tip.patients, tree, root.name, raw.threshold, ratio.threshold, d.output.names[i], verbose))
+  
+  cat("Finished\n")
+  
+  new.blacklist <- c(new.blacklist, unlist(lapply(results, "[[", 2)))
+  
+  # Write the output
+  
+  write.table(new.blacklist, b.output.names[i], sep=",", row.names=FALSE, col.names=FALSE, quote=F)
+  
+  if(!is.null(d.output.names[i])){
     
-    write.csv(mi.df, d.output.name, row.names = F)
-  } else {
-    # Other scripts behave better when these files exist even if they are empty
+    which.are.duals <- which(unlist(lapply(results, "[[", 6)))
     
-    cat("No multiple infections detected; writing empty file.\n")
-    file.create(d.output.name)
+    if(length(which.are.duals) > 0) {
+      mi.df <- data.frame(patient = unlist(sapply(results[which.are.duals], function (x) rep(x$id, length(x$tip.names)) )), 
+                          tip.name = unlist(lapply(results[which.are.duals], "[[", 3)),
+                          reads.in.subtree = unlist(lapply(results[which.are.duals], "[[", 4)),
+                          tips.in.subtree = unlist(lapply(results[which.are.duals], "[[", 5))
+      )
+      
+      write.csv(mi.df, d.output.names[i], row.names = F)
+    } else {
+      # Other scripts behave better when these files exist even if they are empty
+      
+      cat("No multiple infections detected; writing empty file.\n")
+      file.create(d.output.name)
+    }
   }
 }
