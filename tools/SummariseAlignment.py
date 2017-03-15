@@ -25,7 +25,7 @@ def File(MyFile):
 ExplanatoryMessage = ExplanatoryMessage.replace('\n', ' ').replace('  ', ' ')
 parser = argparse.ArgumentParser(description=ExplanatoryMessage)
 parser.add_argument('FastaFile', type=File, nargs='+')
-parser.add_argument('-T', '--non-gap-threshold', type=float, \
+parser.add_argument('-T', '--non-gap-threshold', type=float,
 help='Specify a non-gap fraction threshold, such that a column is given weight'\
 +' 1 if its non-gap fraction is at least the threshold, or weight 0 if not.')
 args = parser.parse_args()

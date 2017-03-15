@@ -33,6 +33,7 @@ FileForDiscardedReadPairs_basename = 'DiscardedReads_'
 FileForDuplicateReadCountsRaw_basename = 'DuplicateReadCountsRaw_'
 FileForDuplicateReadCountsProcessed_basename = 'DuplicateReadCountsProcessed_'
 FileForDuplicateSeqs_basename = 'DuplicateReads_contaminants_'
+FileForReadNames_basename = 'ReadNames_'
 
 # Some temporary working files we'll create
 FileForRefs = 'temp_refs.fasta'
@@ -97,11 +98,11 @@ parser.add_argument('ListOfRefFiles', type=File, help='A file containing the '+\
 'names (and paths) of the reference fasta files for the bam files, one per '+\
 'line. The file basenames (i.e. the filename minus the directory) should be'+\
 ' unique and free of whitespace.')
-parser.add_argument('-W', '--windows', type=CommaSeparatedInts, \
+parser.add_argument('-W', '--windows', type=CommaSeparatedInts,
 help='A comma-separated series of paired coordinates defining the boundaries '+\
 'of the windows. e.g. 1,300,11,310,21,320 would define windows 1-300, 11-310,'+\
 ' 21-320.')
-parser.add_argument('-AW', '--auto-window-params', \
+parser.add_argument('-AW', '--auto-window-params',
 type=CommaSeparatedInts, help='''Used to specify 2, 3 or 4 comma-separated
 integers controlling automatic window finding. The first integer is the width
 you want windows to be, weighting each column in the alignment of bam file
@@ -111,20 +112,20 @@ second is the overlap between the end of one window and the start of the next
 the first window (by default, 1). The optional fourth integer is the end
 position for the last window (by default, windows will continue up to the end of
 the alignment of references).''')
-parser.add_argument('-A', '--alignment-of-other-refs', type=File,\
+parser.add_argument('-A', '--alignment-of-other-refs', type=File,
 help='An alignment of any reference sequences (which need not be those used '+\
 'to produce the bam files) to be cut into the same windows as the bam files '+\
 'and included in the alignment of reads (e.g. to help root trees).')
-parser.add_argument('-AO', '--align-refs-only', action='store_true', \
+parser.add_argument('-AO', '--align-refs-only', action='store_true',
 help='Align the references in the bam files (plus any extras specified with '+\
 '-A) then quit without parsing the reads.')
-parser.add_argument('-C', '--contaminant-count-ratio', type=float,\
+parser.add_argument('-C', '--contaminant-count-ratio', type=float,
 help='Used to specify a numerical value which is interpreted the following '+\
 'way: if a sequence is found exactly duplicated between any two bam files, '+\
 'and is more common in one than the other by a factor at least equal to this '+\
 'value, the rarer sequence is diagnosed as contamination. It does not go into'+\
 ' the tree, and instead goes into a contaminant read fasta file.')
-parser.add_argument('-CD', '--contaminant-read-dir', type=Dir, \
+parser.add_argument('-CD', '--contaminant-read-dir', type=Dir,
 help='A directory containing the contaminant read fasta files produced by a '+\
 'previous run of ' + os.path.basename(__file__) + ''' using the the -C flag:
 reads flagged as contaminants there will be considered contaminants in this run
@@ -134,7 +135,7 @@ every bam file you have in which there could conceivably by cross-contamination,
 using the -C flag (and possibly -CO to save time), and then in subsequent runs
 focussing on subsets of bam files you will be able to identify contamination
 from outside that subset.''')
-parser.add_argument('-CE', '--recover-clipped-ends', action='store_true', \
+parser.add_argument('-CE', '--recover-clipped-ends', action='store_true',
 help ='''The default behaviour of phyloscanner is to keep only reads that are
 mapped across both edges of the window in question. A read which is long enough
 to reach the edge of the window but is not mapped at its end, i.e. the end is
@@ -166,20 +167,20 @@ insight into how the reference in this window should be changed in order to have
 subsequent remapping get the local alignment right, in particular by contrasting
 the reference with the consensus of the aligned reads).
 ''')
-parser.add_argument('-CO', '--flag-contaminants-only', action='store_true', \
+parser.add_argument('-CO', '--flag-contaminants-only', action='store_true',
 help="For each window, just flag contaminant reads then move on (without "+\
 "aligning reads or making a tree). Only makes sense with the -C flag.")
-parser.add_argument('-D', '--dont-check-duplicates', action='store_true', \
+parser.add_argument('-D', '--dont-check-duplicates', action='store_true',
 help="Don't compare reads between samples to find duplicates - a possible "+\
 "indication of contamination. (By default this check is done.)")
-parser.add_argument('-E', '--explore-window-widths', type=CommaSeparatedInts, \
+parser.add_argument('-E', '--explore-window-widths', type=CommaSeparatedInts,
 help='''Use this option to explore how the number of unique reads found in each
 bam file in each window, all along the genome, depends on the window width.
 After this option specify a comma-separated list of integers. The first integer
 is the starting point for stepping along the genome, in case you're not
 interested in the very beginning. The second integer is the width spanned by two
 neighbouring windows; this sets the overlap for each window width though the
-equation (two-window width) = 2x(window width) - (overlap between windows), with
+equation (width of two windows) = 2x(window width) - (overlap between windows), with
 negative overlap understood to mean space between the end of one window and the
 start of the next. Subsequent integers are window widths to try. For example, if
 you specified 1000,301,101,151,201 we would count the number of unique reads in
@@ -194,11 +195,11 @@ parser.add_argument('-EF', '--explore-window-width-file', help='Used to '+\
 parser.add_argument('-F', '--renaming-file', type=File, help='Specify a file '\
 'with one line per bam file, showing how reads from that bam file should be '\
 "named in the output files. (By default, each bam file's basename is used.)")
-parser.add_argument('-I', '--discard-improper-pairs', action='store_true', \
+parser.add_argument('-I', '--discard-improper-pairs', action='store_true',
 help='For paired-read data, discard all reads that are improperly paired: in'+\
 ' the wrong orientation, or one mate unmapped, or too far apart (as flagged '+\
 'at the time of mapping).')
-parser.add_argument('-IO', '--inspect-disagreeing-overlaps', \
+parser.add_argument('-IO', '--inspect-disagreeing-overlaps',
 action='store_true', help='When read pairs are merged, those pairs that '+\
 'overlap but disagree are discarded. With this option, these discarded pairs '+\
 'are written to a bam file (one per patient, with their reference file copied'+\
@@ -210,15 +211,15 @@ parser.add_argument('-MT', '--merging-threshold', type=int, default=0, help=\
 parser.add_argument('-MC', '--min-read-count', type=int, default=1, help=\
 'Reads with a count less than this value (after merging, if merging is being '+\
 'done) are discarded. The default value of 1 means all reads are kept.')
-parser.add_argument('-N', '--num-bootstraps', type=int,\
+parser.add_argument('-N', '--num-bootstraps', type=int,
 help='The number of bootstraps to be calculated for RAxML trees (by default, '+\
 'none i.e. only the ML tree is calculated).')
 parser.add_argument('-Ns', '--bootstrap-seed', type=int, default=1, help='The'+\
 ' random-number seed for running RAxML with bootstraps. The default is 1.')
-parser.add_argument('-O', '--keep-overhangs', action='store_true', \
+parser.add_argument('-O', '--keep-overhangs', action='store_true',
 help='Keep the whole read. (By default, only the part of the read inside the'+\
 'window is kept, i.e. overhangs are trimmed.)')
-parser.add_argument('-P', '--merge-paired-reads', action='store_true', \
+parser.add_argument('-P', '--merge-paired-reads', action='store_true',
 help='Merge overlapping paired reads into a single read.')
 parser.add_argument('-Q1', '--quality-trim-ends', type=int, help='Each end of'+\
 ' the read is trimmed inwards until a base of this quality is met.')
@@ -235,11 +236,20 @@ parser.add_argument('-RC', '--ref-for-coords', help='The coordinates are to be'\
 +'default coordinates are interpreted with respect to the alignment of all '+\
 'bam and external references.) Deprecated; the --pairwise-align-to option is'+\
 ' expected to perform better.')
-#parser.add_argument('-S', '--min-support', default=60, type=float, help=\
-#'The bootstrap support below which nodes will be collapsed, as a percentage.')
+parser.add_argument('-RN1', '--read-names-1', action='store_true',
+help='''Produce a file for each window and each bam, listing the names (as they
+appear in the input bam file) of the reads that phyloscanner used. If you like
+this you may also like tools/ExtractNamedReadsFromBam.py, which is run
+separately from the command line.''')
+parser.add_argument('-RN2', '--read-names-2', action='store_true',
+help='''As --read-names-1, except the files will show the correspondence between
+read names and which unique sequence they correspond to. This option cannot be
+used with either of the --merging-threshold or --excision-coords options,
+because they change the correspondence initially established between unique
+sequences and reads.''')
 parser.add_argument('-T', '--no-trees', action='store_true', help='Generate '+\
 'aligned sets of reads for each window then quit without making trees.')
-parser.add_argument('-XC', '--excision-coords', type=CommaSeparatedInts, \
+parser.add_argument('-XC', '--excision-coords', type=CommaSeparatedInts,
 help='Used to specify a comma-separated set of integer coordinates that will '+\
 'be excised from the aligned reads. Useful for sites of non-neutral '+\
 'evolution. Requires the -XR flag.')
@@ -254,7 +264,21 @@ parser.add_argument('-2', '--pairwise-align-to', help='Sequentially, and '+\
 parser.add_argument('--output-dir', help='Used to specify the name of a '+\
 'directory (which should not exist already) in which all intermediate and '+\
 'output files will be created.')
-parser.add_argument('--time', action='store_true', \
+parser.add_argument('--exact-window-start', action='store_true', help='''
+Experimental; for bioinformatic investigation only, not regular
+phyloscanner usage. Normally phyloscanner retrieves all reads that fully
+overlap a given window, i.e. starting at or anywhere before the window start,
+and ending at or anywhere after the window end. With this option, the reads that
+are retrieved are those that start at exactly the start of the window, and end
+anywhere. Window end coordinates are ignored. If combined with
+--exact-window-end, for a read to be kept it must start at exactly the window
+start AND end at exactly the window end. If --merge-paired-reads is also used,
+this explanation applies to inserts (read pairs) instead of individual
+reads.''')
+parser.add_argument('--exact-window-end', action='store_true', help='''With
+this option, the reads that are retrieved are those that end at exactly the end
+of the window, and start anywhere. Read the --exact-window-start help.''')
+parser.add_argument('--time', action='store_true',
 help='Prints the times taken by different steps.')
 parser.add_argument('--x-raxml', default='raxmlHPC-AVX -m GTRCAT -p 1', help=\
 '''The command required to invoke RAxML. You may include RAxML options in this
@@ -289,6 +313,7 @@ FlagContaminants = args.contaminant_count_ratio != None
 RecallContaminants = args.contaminant_read_dir != None
 CheckDuplicates = not args.dont_check_duplicates
 ExploreWindowWidths = args.explore_window_widths != None
+MergeReads = args.merging_threshold > 0
 
 # Print how this script was called, for logging purposes.
 print('phyloscanner was called thus:\n' + ' '.join(sys.argv))
@@ -308,11 +333,11 @@ if args.output_dir != None:
 
 # Check that window coords have been specified either manually or automatically,
 # or we're exploring window widths
-NumWindowOptions = len([Bool for Bool in [UserSpecifiedCoords, AutoWindows, \
+NumWindowOptions = len([Bool for Bool in [UserSpecifiedCoords, AutoWindows,
 ExploreWindowWidths] if Bool == True])
 if NumWindowOptions != 1:
-  print('Exactly one of the --windows, --auto-window-params,', \
-  '--explore-window-widths options should specified. Quitting.', \
+  print('Exactly one of the --windows, --auto-window-params,',
+  '--explore-window-widths options should specified. Quitting.',
   file=sys.stderr)
   exit(1)
 
@@ -321,16 +346,16 @@ if NumWindowOptions != 1:
 # to, nor use a directory of contaminant reads (since windows must match to make
 # use of contaminant reads).
 if AutoWindows and args.ref_for_coords != None:
-  print('The --ref-for-coords and --auto-window-params', \
-  'options should not be specified together: the first means your',\
-  'coordinates should be interpreted with respect to a named reference, and',\
-  "the second means you're not specfiying any coordinates. Quitting.", \
+  print('The --ref-for-coords and --auto-window-params',
+  'options should not be specified together: the first means your',
+  'coordinates should be interpreted with respect to a named reference, and',
+  "the second means you're not specfiying any coordinates. Quitting.",
   file=sys.stderr)
   exit(1)
 if RecallContaminants and (not UserSpecifiedCoords):
-  print('If using the --contaminant-read-dir option you must also specify',\
-  'windows with the --windows option, because the former requires that the',\
-  'windows in the current run exactly match up with those from the run that',\
+  print('If using the --contaminant-read-dir option you must also specify',
+  'windows with the --windows option, because the former requires that the',
+  'windows in the current run exactly match up with those from the run that',
   'produces your directory of contaminant reads. Quitting.', file=sys.stderr)
   exit(1)
 
@@ -357,50 +382,58 @@ if RecallContaminants:
         ContaminantFilesByWindow[(LeftEdge, RightEdge)] = \
         os.path.join(args.contaminant_read_dir, AnyFile)
   if len(ContaminantFilesByWindow) == 0:
-    print('Failed to find any files matching the regex', ContaminantFileRegex, \
+    print('Failed to find any files matching the regex', ContaminantFileRegex,
     'in', args.contaminant_read_dir + '. Quitting.', file=sys.stderr)
     exit(1)
 
 # Check the contamination ratio is >= 1
 if FlagContaminants and args.contaminant_count_ratio < 1:
-  print('The value specified with --contaminant-count-ratio must be greater', \
-  'than 1. (It is the ratio of the more common duplicate to the less common',\
-  'one at which we consider the less common one to be contamination; it',\
+  print('The value specified with --contaminant-count-ratio must be greater',
+  'than 1. (It is the ratio of the more common duplicate to the less common',
+  'one at which we consider the less common one to be contamination; it',
   "should probably be quite a lot larger than 1.) Quitting.", file=sys.stderr)
   exit(1)
 
 # Flagging contaminants requires that we check for duplicates
 if args.dont_check_duplicates and FlagContaminants:
-  print('The --dont-check-duplicates and --contaminant-count-ratio options', \
-  'cannot be used together: flagging contaminants requires that we check',\
+  print('The --dont-check-duplicates and --contaminant-count-ratio options',
+  'cannot be used together: flagging contaminants requires that we check',
   'duplicates. Quitting.', file=sys.stderr)
   exit(1)
 
 # The -XR and -XC flags should be used together or not all.
 if (ExcisePositions and args.excision_ref == None) or \
 ((not ExcisePositions) and args.excision_ref != None):
-  print('The --excision-coords and --excision-ref options require each other:',\
+  print('The --excision-coords and --excision-ref options require each other:',
   'use both, or neither. Quitting.', file=sys.stderr)
+  exit(1)
+
+# --read-names-2 can't be used with read merging or position excising
+if args.read_names_2 and (ExcisePositions or MergeReads):
+  print('The --read-names-2 option cannot be used with either of the',
+  '--merging-threshold or --excision-coords options, because they change the',
+  'correspondence initially established between unique sequences and reads.',
+  'Quitting''', file=sys.stderr)
   exit(1)
 
 # Sanity checks on using the pairwise alignment option.
 if PairwiseAlign:
   if args.ref_for_coords != None:
-    print('Note that if the --pairwise-align-to option is used, using the',\
+    print('Note that if the --pairwise-align-to option is used, using the',
     '--ref-for-coords as well is redundant.', file=sys.stderr)
     if args.ref_for_coords != args.pairwise_align_to:
-      print('Furthermore you have chosen two different values for these flags,'\
+      print('Furthermore you have chosen two different values for these flags,'
       , 'indicating some confusion as to their use. Try again.')
       exit(1)
   if AutoWindows:
-    print('As you have chosen that references are aligned in a pairwise',\
-    'manner, please specify coordinates manually - the automatic option is',\
+    print('As you have chosen that references are aligned in a pairwise',
+    'manner, please specify coordinates manually - the automatic option is',
     "for stepping through a global alignment of all references. Quitting.",
     file=sys.stderr)
     exit(1)
   if ExcisePositions and args.excision_ref != args.pairwise_align_to:
-    print('The --pairwise-align-to and --excision-ref options can only be',\
-    'used at once if the same reference is specified for both. Qutting.',\
+    print('The --pairwise-align-to and --excision-ref options can only be',
+    'used at once if the same reference is specified for both. Qutting.',
     file=sys.stderr)
     exit(1)
 
@@ -411,9 +444,9 @@ def CheckMaxCoord(coords, ref):
   '''Check that no coordinate is after the end of the reference with respect to
   which it is supposed to be interpreted.'''
   if max(coords) > len(ref.seq.ungap("-")):
-    print('You have specified at least one coordinate (', max(coords), \
-    ') that is larger than the length of the reference with respect to which', \
-    ' those coordinates are to be interpreted - ', ref.id, '. Quitting.', \
+    print('You have specified at least one coordinate (', max(coords),
+    ') that is larger than the length of the reference with respect to which',
+    ' those coordinates are to be interpreted - ', ref.id, '. Quitting.',
     sep='', file=sys.stderr)
     exit(1)
 
@@ -452,7 +485,7 @@ if AutoWindows:
   if NumAutoWindowParams > 2:
     WindowStartPos    = args.auto_window_params[2]
     if WindowStartPos < 1:
-      print('The start position for the --auto-window-params option must be',\
+      print('The start position for the --auto-window-params option must be',
       'greater than zero. Quitting.', file=sys.stderr)
       exit(1)
     if NumAutoWindowParams == 4:
@@ -462,27 +495,27 @@ if AutoWindows:
   else:
     WindowStartPos = 1
   if WeightedWindowWidth <= 0:
-    print('The weighted window width for the --auto-window-params option must',\
+    print('The weighted window width for the --auto-window-params option must',
     'be greater than zero. Quitting.', file=sys.stderr)
     exit(1)
 
 # Sanity checks on window-width exploration parameters
 if ExploreWindowWidths:
   if args.explore_window_width_file == None:
-    print('The --explore-window-widths option requires the', \
+    print('The --explore-window-widths option requires the',
     '--explore-window-width-file option. Quitting.', file=sys.stderr)
     exit(1)
   try:
     with open(args.explore_window_width_file, 'w') as f:
       pass
   except:
-    print('Unable to open', args.explore_window_width_file, 'for writing. (Is',\
-    "it a file inside a directory that doesn't exist?). Quitting.", \
+    print('Unable to open', args.explore_window_width_file, 'for writing. (Is',
+    "it a file inside a directory that doesn't exist?). Quitting.",
     file=sys.stderr)
     raise
   if len(args.explore_window_widths) < 3:
-    print('The --explore-window-widths option should be used to specify at', \
-    'least three parameters; use the --help option for more information.', \
+    print('The --explore-window-widths option should be used to specify at',
+    'least three parameters; use the --help option for more information.',
     'Quitting.', file=sys.stderr)
     exit(1)
   ExploreStart, ExploreTwoWindowWidth = args.explore_window_widths[:2]
@@ -495,7 +528,7 @@ if ExploreWindowWidths:
   ExploreWidths = sorted(ExploreWidths)
   MinExploreWidth = ExploreWidths[0]
   if MinExploreWidth < 2:
-    print('The minimum window width specified with --explore-window-widths', \
+    print('The minimum window width specified with --explore-window-widths',
     'should be greater than 1. Quitting.', file=sys.stderr)
     exit(1)
   MaxExploreWidth = ExploreWidths[-1]
@@ -514,12 +547,12 @@ def FindExploratoryWindows(EndPoint):
   # * the length of the mapping ref if there's only one bam and no extra refs
   # * otherwise, the length of the alignment of all refs
   if EndPoint < ExploreStart + MaxExploreWidth:
-    print('With the --explore-window-widths option you specified a start', \
-    'point of', ExploreStart, 'and your largest window width was', \
-    str(MaxExploreWidth) + '; one or both of these values should be', \
-    'decreased since the length of the reference or alignment of references', \
-    'with respect to which we are interpreting coordinates is only', \
-    str(EndPoint) + '. We need to be able to fit at least one window in', \
+    print('With the --explore-window-widths option you specified a start',
+    'point of', ExploreStart, 'and your largest window width was',
+    str(MaxExploreWidth) + '; one or both of these values should be',
+    'decreased since the length of the reference or alignment of references',
+    'with respect to which we are interpreting coordinates is only',
+    str(EndPoint) + '. We need to be able to fit at least one window in',
     'between the start and end. Quitting.', file=sys.stderr)
     exit(1)
   ExploratoryCoords = []
@@ -542,7 +575,7 @@ if IncludeOtherRefs:
   try:
     ExternalRefAlignment = AlignIO.read(args.alignment_of_other_refs, "fasta")
   except:
-    print('Problem reading', args.alignment_of_other_refs + ':', \
+    print('Problem reading', args.alignment_of_other_refs + ':',
     file=sys.stderr)
     raise
   for ref in ExternalRefAlignment:
@@ -570,19 +603,19 @@ if IncludeOtherRefs:
       CheckMaxCoord(args.excision_coords, ref)
 
 # Consistency checks on flags that require a ref.
-for FlagName, FlagValue in (('--ref-for-coords',  args.ref_for_coords),\
-('--ref-for-rooting', args.ref_for_rooting), \
-('--pairwise-align-to', args.pairwise_align_to), \
+for FlagName, FlagValue in (('--ref-for-coords',  args.ref_for_coords),
+('--ref-for-rooting', args.ref_for_rooting),
+('--pairwise-align-to', args.pairwise_align_to),
 ('--excision-ref', args.excision_ref)):
   if FlagValue == None:
     continue
   if not IncludeOtherRefs:
-    print('The', FlagName, 'flag requires the --alignment-of-other-refs',\
+    print('The', FlagName, 'flag requires the --alignment-of-other-refs',
     'flag. Quitting.', file=sys.stderr)
     exit(1)
   if not FlagValue in ExternalRefNames:
-    print('Reference', FlagValue +', specified with the', FlagName, \
-    'flag, was not found in', args.alignment_of_other_refs +'. Quitting.', \
+    print('Reference', FlagValue +', specified with the', FlagName,
+    'flag, was not found in', args.alignment_of_other_refs +'. Quitting.',
     file=sys.stderr)
     exit(1)
 
@@ -607,7 +640,7 @@ RAxMLargList = args.x_raxml.split()
 if not args.no_trees:
   FNULL = open(os.devnull, 'w')
   try:
-    ExitStatus = subprocess.call(RAxMLargList + ['-h'], stdout=FNULL, \
+    ExitStatus = subprocess.call(RAxMLargList + ['-h'], stdout=FNULL,
     stderr=subprocess.STDOUT)
     assert ExitStatus == 0
   except:
@@ -629,11 +662,11 @@ else:
 # Check that there are the same number of bam and reference files
 NumberOfBams = len(BamFiles)
 if NumberOfBams != len(RefFiles):
-  print('Different numbers of files are listed in', args.ListOfBamFiles, 'and',\
+  print('Different numbers of files are listed in', args.ListOfBamFiles, 'and',
   args.ListOfRefFiles+'.\nQuitting.', file=sys.stderr)
   exit(1)
 if args.renaming_file != None and len(BamAliases) != NumberOfBams:
-  print('Different numbers of files are listed in', args.ListOfBamFiles, 'and',\
+  print('Different numbers of files are listed in', args.ListOfBamFiles, 'and',
   args.renaming_file+'.\nQuitting.', file=sys.stderr)
   exit(1)
 
@@ -643,7 +676,7 @@ RefSeqs = []
 for i,RefFile in enumerate(RefFiles):
   SeqList = list(SeqIO.parse(open(RefFile),'fasta'))
   if len(SeqList) != 1:
-    print('There are', len(SeqList), 'sequences in', RefFile+'. There should',\
+    print('There are', len(SeqList), 'sequences in', RefFile+'. There should',
     'be exactly 1.\nQuitting.', file=sys.stderr)
     exit(1)
   SeqList[0].id = BamAliases[i]
@@ -656,7 +689,7 @@ def TranslateCoords(CodeArgs):
   try:
     CoordsString = subprocess.check_output([TranslateCoordsCode]+CodeArgs)
   except:
-    print('Problem executing', TranslateCoordsCode +'. Quitting.', \
+    print('Problem executing', TranslateCoordsCode +'. Quitting.',
     file=sys.stderr)
     raise
 
@@ -693,7 +726,7 @@ def TranslateCoords(CodeArgs):
           if '.5' in coords[i]:
             coords[i] = int(float(coords[i]))
           else:
-            print('Unable to understand the coordinate', coords[i], \
+            print('Unable to understand the coordinate', coords[i],
             'as an integer in line\n' +line +'\nin the output of '+\
             TranslateCoordsCode+'\nQuitting.', file=sys.stderr)
             exit(1)
@@ -705,8 +738,8 @@ def TranslateCoords(CodeArgs):
 # of the reference to be equal to the end of the reference.
 if NumberOfBams == 1 and not IncludeOtherRefs:
   if args.align_refs_only:
-    print('As you are supplying a single bam file and no external references,',\
-    "the --align-refs-only option makes no sense - there's nothing to align.",\
+    print('As you are supplying a single bam file and no external references,',
+    "the --align-refs-only option makes no sense - there's nothing to align.",
     "Quitting.", file=sys.stderr)
     exit(1)
   RefSeqLength = len(RefSeqs[0])
@@ -756,11 +789,11 @@ else:
     for BamRefSeq in RefSeqs:
 
       # Align
-      SeqIO.write([RefForPairwiseAlns,BamRefSeq], FileForPairwiseUnalignedRefs,\
+      SeqIO.write([RefForPairwiseAlns,BamRefSeq], FileForPairwiseUnalignedRefs,
       "fasta")
       with open(FileForPairwiseAlignedRefs, 'w') as f:
         try:
-          ExitStatus = subprocess.call([args.x_mafft, '--quiet',  \
+          ExitStatus = subprocess.call([args.x_mafft, '--quiet',
           '--preservecase', FileForPairwiseUnalignedRefs], stdout=f)
           assert ExitStatus == 0
         except:
@@ -770,13 +803,13 @@ else:
       # Translate.
       # The index names in the PairwiseCoordsDict, labelling the coords found by
       # coord translation, should coincide with the two seqs we're considering.
-      PairwiseCoordsDict = TranslateCoords([FileForPairwiseAlignedRefs, \
+      PairwiseCoordsDict = TranslateCoords([FileForPairwiseAlignedRefs,
       args.pairwise_align_to] + [str(coord) for coord in WindowCoords])
       if set(PairwiseCoordsDict.keys()) != \
       set([BamRefSeq.id,args.pairwise_align_to]):
-        print('Malfunction of phylotypes: mismatch between the sequences',\
+        print('Malfunction of phylotypes: mismatch between the sequences',
         'found in the output of', TranslateCoordsCode, 'and the two names "' + \
-        BamRefSeq.id+'", "'+args.pairwise_align_to +'". Quitting.', 
+        BamRefSeq.id+'", "'+args.pairwise_align_to +'". Quitting.',
         file=sys.stderr)
         exit(1)
       CoordsInRefs[BamRefSeq.id] = PairwiseCoordsDict[BamRefSeq.id]
@@ -794,7 +827,7 @@ else:
       FinalMafftOptions = [FileForRefs]
     with open(FileForAlignedRefs, 'w') as f:
       try:
-        ExitStatus = subprocess.call([args.x_mafft, '--quiet',  \
+        ExitStatus = subprocess.call([args.x_mafft, '--quiet',
         '--preservecase'] + FinalMafftOptions, stdout=f)
         assert ExitStatus == 0
       except:
@@ -827,7 +860,7 @@ else:
           pf.TranslateSeqCoordsToAlnCoords(str(seq.seq), UserCoords)
         if seq.id == args.excision_ref:
           RefForExcisionGappySeq = str(seq.seq)
-          AlignmentExcisionCoords = pf.TranslateSeqCoordsToAlnCoords(\
+          AlignmentExcisionCoords = pf.TranslateSeqCoordsToAlnCoords(
           RefForExcisionGappySeq, args.excision_coords)
 
 
@@ -840,15 +873,15 @@ else:
       try:
         WindowsString = subprocess.check_output(command)
       except:
-        print('Problem executing', FindWindowsCode +'. Quitting.', \
+        print('Problem executing', FindWindowsCode +'. Quitting.',
         file=sys.stderr)
         raise
       try:
         WindowCoords = [int(value) for value in WindowsString.split(',')]
         assert len(WindowCoords) >= 2
       except:
-        print('Unable to understand the', FindWindowsCode, 'output -', \
-        WindowsString, '- as comma-separated integers. Quitting.', \
+        print('Unable to understand the', FindWindowsCode, 'output -',
+        WindowsString, '- as comma-separated integers. Quitting.',
         file=sys.stderr)
         raise
       try:
@@ -866,8 +899,8 @@ else:
     # coord translation, should cooincide with all seqs we're considering (i.e.
     # those in FileForAlignedRefs).
     if set(CoordsInRefs.keys()) != set(BamAliases+ExternalRefNames):
-      print('Malfunction of phylotypes: mismatch between the sequences found', \
-      'in the output of', TranslateCoordsCode, 'and those in', \
+      print('Malfunction of phylotypes: mismatch between the sequences found',
+      'in the output of', TranslateCoordsCode, 'and those in',
       FileForAlignedRefs +'. Quitting.', file=sys.stderr)
       exit(1)
 
@@ -895,7 +928,7 @@ for i,BamFileName in enumerate(BamFiles):
   # Find the reference in the bam file; there should only be one.
   AllReferences = BamFile.references
   if len(AllReferences) != 1:
-    print('Expected exactly one reference in', BamFileName+'; found',\
+    print('Expected exactly one reference in', BamFileName+'; found',
     str(len(AllReferences))+'.\nQuitting.', file=sys.stderr)
     exit(1)
   BamFileRefSeqNames[BamFileBasename] = AllReferences[0]
@@ -903,7 +936,7 @@ for i,BamFileName in enumerate(BamFiles):
   # Get the length of the reference.
   AllReferenceLengths = BamFile.lengths
   if len(AllReferenceLengths) != 1:
-    print('Pysam error: found one reference but', len(AllReferenceLengths), \
+    print('Pysam error: found one reference but', len(AllReferenceLengths),
     'reference lengths.\nQuitting.', file=sys.stderr)
     exit(1)
   RefLength = AllReferenceLengths[0]
@@ -927,7 +960,7 @@ def ProcessReadDict(ReadDict, WhichBam, LeftWindowEdge, RightWindowEdge):
   BasenameForReads = BamAliases[WhichBam]
 
   # Merge similar reads if desired
-  if args.merging_threshold > 0:
+  if MergeReads:
     ReadDict = pf.MergeSimilarStrings(ReadDict, args.merging_threshold)
 
   # Implement the minimum read count
@@ -937,7 +970,7 @@ def ProcessReadDict(ReadDict, WhichBam, LeftWindowEdge, RightWindowEdge):
 
   # Warn if there are no reads
   if len(ReadDict) == 0 and (not ExploreWindowWidths):
-    print('Warning: bam file', BamFileBasename, 'has no reads in window', \
+    print('Warning: bam file', BamFileBasename, 'has no reads in window',
     str(LeftWindowEdge+1)+'-'+   str(RightWindowEdge+1), file=sys.stderr)
     return []
 
@@ -1006,11 +1039,11 @@ def ReMergeAlignedReads(alignment):
   SampleReadCounts, RefSeqsHere = ReadAlignedReadsIntoDicts(alignment)
   NewAlignment = AlignIO.MultipleSeqAlignment([])
   for SampleName in SampleReadCounts:
-    if args.merging_threshold > 0:
+    if MergeReads:
       SampleReadCounts[SampleName] = \
       pf.MergeSimilarStrings(SampleReadCounts[SampleName],
       args.merging_threshold)
-    for k, (read, count) in enumerate(sorted(\
+    for k, (read, count) in enumerate(sorted(
     SampleReadCounts[SampleName].items(), key=lambda x: x[1], reverse=True)):
       ID = SampleName+'_read_'+str(k+1)+'_count_'+str(count)
       SeqObject = SeqIO.SeqRecord(Seq.Seq(read), id=ID, description='')
@@ -1018,7 +1051,7 @@ def ReMergeAlignedReads(alignment):
   NewAlignment.extend(RefSeqsHere)
 
   # Merging after alignment means some columns could be pure gap. Remove these.
-  if args.merging_threshold > 0:
+  if MergeReads:
     NewAlignment = RemovePureGapCols(NewAlignment)
   return NewAlignment
 
@@ -1068,7 +1101,7 @@ if args.inspect_disagreeing_overlaps:
 if args.time:
   times.append(time.time())
   LastStepTime = times[-1] - times[-2]
-  print('Bam and Reference pre-processing finished. Number of seconds taken:', \
+  print('Bam and Reference pre-processing finished. Number of seconds taken:',
   LastStepTime)
 
 # Iterate through the windows
@@ -1083,7 +1116,7 @@ for window in range(NumCoords / 2):
   ThisWindowSuffix = 'InWindow_'+str(UserLeftWindowEdge)+'_to_'+\
   str(UserRightWindowEdge)
 
-  print('Now processing window ', UserLeftWindowEdge, '-', UserRightWindowEdge,\
+  print('Now processing window ', UserLeftWindowEdge, '-', UserRightWindowEdge,
   sep='')
 
   # Get ready to record reads here from all samples
@@ -1122,14 +1155,35 @@ for window in range(NumCoords / 2):
     LeftWindowEdge  = ThisBamCoords[window*2]
     RightWindowEdge = ThisBamCoords[window*2 +1]
 
-    # Find all unique reads in this window and count their occurrences.
-    # NB pysam uses zero-based coordinates for positions w.r.t the reference
-    AllReads = {}
-    UniqueReads = {}
+    # For labelling read name files
+    FileForReadNames_basename2 = FileForReadNames_basename + ThisWindowSuffix \
+    + '_InBam_'
+
+    # Pysam uses zero-based coordinates for positions w.r.t the reference.
+    # If we want all reads that start exactly at the window start and end
+    # anywhere after, or all reads that end exactly at the window end and start
+    # anywhere before, set end=start or start=end respectively, to make sure
+    # pysam's fetch function retrieves all the reads we need.
     LeftWindowEdge  = LeftWindowEdge  -1
     RightWindowEdge = RightWindowEdge -1
+    LeftWindowEdgeForFetch = LeftWindowEdge
+    RightWindowEdgeForFetch = RightWindowEdge
+    if args.exact_window_start:
+      if not args.exact_window_end:
+        RightWindowEdgeForFetch = None
+        RightWindowEdge = LeftWindowEdge
+    elif args.exact_window_end:
+      LeftWindowEdgeForFetch = None
+      LeftWindowEdge = RightWindowEdge
+
+    # Find all unique reads in this window and count their occurrences.
+    AllReads = {}
+    UniqueReads = {}
+    ReadNames = []
+    ReadNameDict = {}
     BamFile = pysam.AlignmentFile(BamFileName, "rb")
-    for read in BamFile.fetch(RefSeqName, LeftWindowEdge, RightWindowEdge):
+    for read in BamFile.fetch(RefSeqName, LeftWindowEdgeForFetch,
+    RightWindowEdgeForFetch):
 
       # Skip improperly paired reads if desired
       if args.discard_improper_pairs and read.is_paired and \
@@ -1146,9 +1200,9 @@ for window in range(NumCoords / 2):
           Read1asPseudoRead = pf.PseudoRead.InitFromRead(Read1)
           Read2 = read
           Read2asPseudoRead = ReadAsPseudoRead
-          MergedRead = Read1asPseudoRead.MergeReadPairOverWindow( \
-          Read2asPseudoRead, LeftWindowEdge, RightWindowEdge, \
-          args.quality_trim_ends, args.min_internal_quality, \
+          MergedRead = Read1asPseudoRead.MergeReadPairOverWindow(
+          Read2asPseudoRead, LeftWindowEdge, RightWindowEdge,
+          args.quality_trim_ends, args.min_internal_quality,
           args.recover_clipped_ends)
           if MergedRead == None:
             del AllReads[read.query_name]
@@ -1161,21 +1215,34 @@ for window in range(NumCoords / 2):
           AllReads[read.query_name] = MergedRead
 
         # We've not come across a read with this name before. Record & move on.
+        # TODO: what about saving the (already calculated) pseudoread instead,
+        # and deleting the 'Read2asPseudoRead = ReadAsPseudoRead' line above,
+        # and deleting the 'except AttributeError:' scope below?
         else:
           AllReads[read.query_name] = read
 
       # If we're not merging reads, process this read now to save memory.
       # ProcessRead returns None if we don't want to consider this read.
       else:
-        seq = ReadAsPseudoRead.ProcessRead(LeftWindowEdge, RightWindowEdge, \
-          args.quality_trim_ends, args.min_internal_quality, \
-          args.keep_overhangs, args.recover_clipped_ends)
+        seq = ReadAsPseudoRead.ProcessRead(LeftWindowEdge, RightWindowEdge,
+          args.quality_trim_ends, args.min_internal_quality,
+          args.keep_overhangs, args.recover_clipped_ends,
+          args.exact_window_start, args.exact_window_end)
         if seq == None:
           continue
         if seq in UniqueReads:
           UniqueReads[seq] += 1
         else:
           UniqueReads[seq] = 1
+
+        # Record the read name if desired.
+        if args.read_names_1:
+          ReadNames.append(read.query_name)
+        if args.read_names_2:
+          if seq in ReadNameDict:
+            ReadNameDict[seq].append(read.query_name)
+          else:
+            ReadNameDict[seq] = [read.query_name]
 
     # If we did merge paired reads, we now need to process them.
     # AllReads will be a mixture of PseudoRead instances (for merged read pairs)
@@ -1184,21 +1251,32 @@ for window in range(NumCoords / 2):
     if args.merge_paired_reads:
       for read in AllReads.values():
         try:
-          seq = read.ProcessRead(LeftWindowEdge, RightWindowEdge, \
-          args.quality_trim_ends, args.min_internal_quality, \
-          args.keep_overhangs, args.recover_clipped_ends)
+          seq = read.ProcessRead(LeftWindowEdge, RightWindowEdge,
+          args.quality_trim_ends, args.min_internal_quality,
+          args.keep_overhangs, args.recover_clipped_ends,
+          args.exact_window_start, args.exact_window_end)
         except AttributeError:
           #print(type(read))
           ReadAsPseudoRead = pf.PseudoRead.InitFromRead(read)          
-          seq = ReadAsPseudoRead.ProcessRead(LeftWindowEdge, RightWindowEdge, \
-          args.quality_trim_ends, args.min_internal_quality, \
-          args.keep_overhangs, args.recover_clipped_ends)
+          seq = ReadAsPseudoRead.ProcessRead(LeftWindowEdge, RightWindowEdge,
+          args.quality_trim_ends, args.min_internal_quality,
+          args.keep_overhangs, args.recover_clipped_ends,
+          args.exact_window_start, args.exact_window_end)
         if seq == None:
           continue
         if seq in UniqueReads:
           UniqueReads[seq] += 1
         else:
           UniqueReads[seq] = 1
+
+        # Record the read name if desired.
+        if args.read_names_1:
+          ReadNames.append(read.name)
+        if args.read_names_2:
+          if seq in ReadNameDict:
+            ReadNameDict[seq].append(read.name)
+          else:
+            ReadNameDict[seq] = [read.name]
 
     # If we've read in any contaminant reads for this window and this bam,
     # remove them from the read dict. If they're not present in the read dict,
@@ -1211,17 +1289,17 @@ for window in range(NumCoords / 2):
           del UniqueReads[read]
         except KeyError:
           if not HaveWarned:
-            print('Warning: at least one contaminant read in', ContaminantFile,\
-            'from', BamAlias, 'was not found in this window in', \
-            BamFileBasename + '. This could be due to a mismatch in window',\
-            'coordinates between the run that generated that contamination'\
+            print('Warning: at least one contaminant read in', ContaminantFile,
+            'from', BamAlias, 'was not found in this window in',
+            BamFileBasename + '. This could be due to a mismatch in window',
+            'coordinates between the run that generated that contamination'
             'file and the present run. Proceeding.')
             HaveWarned = True
 
     # If we are checking for read duplication between samples, record the file 
     # name and read dict for this sample and move on to the next sample.
     if CheckDuplicates:
-      AllReadDictsInThisWindow.append((BamAlias, UniqueReads, \
+      AllReadDictsInThisWindow.append((BamAlias, UniqueReads,
       LeftWindowEdge, RightWindowEdge))
 
     # If we're not checking for read duplication between samples, process the
@@ -1229,7 +1307,18 @@ for window in range(NumCoords / 2):
     else:
       AllReadsInThisWindow += \
       ProcessReadDict(UniqueReads, i, LeftWindowEdge, RightWindowEdge)
-      
+
+    # Write recorded read names to file if desired.
+    if args.read_names_1:
+      FileForReadNames1 = FileForReadNames_basename2 + BamAlias + '.txt'
+      with open(FileForReadNames1, 'w') as f:
+        f.write('\n'.join(ReadNames))
+    if args.read_names_2:
+      FileForReadNames2 = FileForReadNames_basename2 + BamAlias + '.csv'
+      with open(FileForReadNames2, 'w') as f:
+        for seq, ReadNamesForThatSeq in ReadNameDict.items():
+          f.write(seq + ',' + ' '.join(ReadNamesForThatSeq) + '\n')
+
   # We've now gathered together reads from all bam files for this window.
 
   # If we're checking for duplicate reads between samples, do so now.
@@ -1247,7 +1336,7 @@ for window in range(NumCoords / 2):
           if read in ReadDict2:
             Bam1Count = ReadDict1[read]
             Bam2Count = ReadDict2[read]
-            DuplicateDetails.append(\
+            DuplicateDetails.append(
             (BamFile1Alias, BamFile2Alias, Bam1Count, Bam2Count))
 
             # Diagnose contaminants
@@ -1283,7 +1372,7 @@ for window in range(NumCoords / 2):
       AllContaminants = []
       for alias, reads in ContaminantReadsFound.items():
         for read in reads:
-          AllContaminants.append(SeqIO.SeqRecord(Seq.Seq(read), id=alias, \
+          AllContaminants.append(SeqIO.SeqRecord(Seq.Seq(read), id=alias,
           description=''))
       SeqIO.write(AllContaminants, FileForDuplicateSeqs, "fasta")
       for i, (BamAlias, ReadDict, LeftWindowEdge, RightWindowEdge) \
@@ -1306,12 +1395,12 @@ for window in range(NumCoords / 2):
   if AllReadsInThisWindow == []:
     if ExploreWindowWidths:
       for alias in BamAliases:
-        WindowWidthExplorationData.append([UserLeftWindowEdge, \
+        WindowWidthExplorationData.append([UserLeftWindowEdge,
         UserRightWindowEdge, alias, 0])
     else:
       print('WARNING: no bam file had any reads (after a minimum post-merging '+\
-      'read count of', args.min_read_count, 'was imposed) in the window', \
-      str(UserLeftWindowEdge)+'-'+str(UserRightWindowEdge)+'. Skipping to the', \
+      'read count of', args.min_read_count, 'was imposed) in the window',
+      str(UserLeftWindowEdge)+'-'+str(UserRightWindowEdge)+'. Skipping to the',
       'next window.', file=sys.stderr)
     continue
 
@@ -1336,8 +1425,8 @@ for window in range(NumCoords / 2):
       if RegexMatch and TheReadID[:RegexMatch.start()] in BamAliases:
         TheBamWithOneRead = TheReadID[:RegexMatch.start()]
       else:
-        print('Malfunction of phylotypes: there is only one read in this', \
-        'window -', TheReadID, "- but we can't figure out which bam we got it",\
+        print('Malfunction of phylotypes: there is only one read in this',
+        'window -', TheReadID, "- but we can't figure out which bam we got it",
         'from. Quitting.', file=sys.stderr)
         exit(1)
       for alias in BamAliases:
@@ -1345,7 +1434,7 @@ for window in range(NumCoords / 2):
           count = 1
         else:
           count = 0
-        WindowWidthExplorationData.append([UserLeftWindowEdge, \
+        WindowWidthExplorationData.append([UserLeftWindowEdge,
         UserRightWindowEdge, alias, count])
     else:
       print('There is only one read in this window, written to ' +\
@@ -1365,22 +1454,22 @@ for window in range(NumCoords / 2):
     if PairwiseAlign:
       ExternalRefLeftWindowEdge  = ExternalRefWindowCoords[window*2]
       ExternalRefRightWindowEdge = ExternalRefWindowCoords[window*2 +1]
-      RefAlignmentInWindow = ExternalRefAlignment[:, \
+      RefAlignmentInWindow = ExternalRefAlignment[:,
       ExternalRefLeftWindowEdge-1:ExternalRefRightWindowEdge]
       RefsThatAreNotPureGap = []
       for seq in RefAlignmentInWindow:
         if len(seq.seq.ungap(GapChar)) != 0:
           RefsThatAreNotPureGap.append(seq)
       if len(RefsThatAreNotPureGap) == 0:
-        print('Error: all external references are pure gap in this window;', \
+        print('Error: all external references are pure gap in this window;',
         'skipping to the next window.', file=sys.stderr)
         continue
-      AlignIO.write(Align.MultipleSeqAlignment(RefsThatAreNotPureGap), \
+      AlignIO.write(Align.MultipleSeqAlignment(RefsThatAreNotPureGap),
       FileForOtherRefsHere, 'fasta')
     else:
       with open(FileForOtherRefsHere, 'w') as f:
         try:
-          ExitStatus = subprocess.call([FindSeqsInFastaCode, \
+          ExitStatus = subprocess.call([FindSeqsInFastaCode,
           FileForAlignedRefs, '-B', '-W', str(LeftWindowEdge) + ',' + \
           str(RightWindowEdge), '-v'] + BamAliases, stdout=f)
           assert ExitStatus == 0
@@ -1393,12 +1482,12 @@ for window in range(NumCoords / 2):
   if args.time:
     times.append(time.time())
     LastStepTime = times[-1] - times[-2]
-    print('Read pre-processing in window', UserLeftWindowEdge, '-', \
+    print('Read pre-processing in window', UserLeftWindowEdge, '-',
     UserRightWindowEdge, 'finished. Number of seconds taken: ', LastStepTime)
 
   # Align the reads. Prepend 'temp_' to the file name if we'll merge again after
   # aligning.
-  if args.merging_threshold > 0:
+  if MergeReads:
     FileForReads = 'temp_' + FileForAlnReadsHere
   else:
     FileForReads = FileForAlnReadsHere
@@ -1412,7 +1501,7 @@ for window in range(NumCoords / 2):
       FinalMafftOptions, stdout=f)
       assert ExitStatus == 0
     except:
-      print('Problem calling mafft. Skipping to the next window.', \
+      print('Problem calling mafft. Skipping to the next window.',
       file=sys.stderr)
       continue
 
@@ -1420,24 +1509,24 @@ for window in range(NumCoords / 2):
   if args.time:
     times.append(time.time())
     LastStepTime = times[-1] - times[-2]
-    print('Read alignment in window', UserLeftWindowEdge, '-', \
+    print('Read alignment in window', UserLeftWindowEdge, '-',
     UserRightWindowEdge, 'finished. Number of seconds taken: ', LastStepTime)
 
   # Read in the aligned reads.
   try:
     SeqAlignmentHere = AlignIO.read(FileForReads, "fasta")
   except:
-    print('Malfunction of phylotypes: problem encountered reading in', \
+    print('Malfunction of phylotypes: problem encountered reading in',
     FileForReads, 'as an alignment. Quitting.', file=sys.stderr)
     raise
 
   # Do a second round of within-sample read merging now the reads are aligned.
   # Write the output to FileForAlnReadsHere.
-  if args.merging_threshold > 0:
+  if MergeReads:
     try:
       SeqAlignmentHere = ReMergeAlignedReads(SeqAlignmentHere)
     except:
-      print('Problem encountered while analysing', FileForReads +'. Quitting.',\
+      print('Problem encountered while analysing', FileForReads +'. Quitting.',
       file=sys.stderr)
       raise
     AlignIO.write(SeqAlignmentHere, FileForAlnReadsHere, 'fasta')
@@ -1472,7 +1561,7 @@ for window in range(NumCoords / 2):
         PositionsInUngappedRef = []
         for coord in CoordsToExciseInThisWindow:
           DistanceIntoWindow = coord - LeftWindowEdge
-          PositionsInUngappedRef.append(\
+          PositionsInUngappedRef.append(
           len(RefInThisWindowGappy[:DistanceIntoWindow+1].replace(GapChar,'')))
         UngappedRefHere = RefInThisWindowGappy.replace(GapChar,'')
 
@@ -1483,13 +1572,13 @@ for window in range(NumCoords / 2):
           RefInAlignment = str(seq.seq)
           break
       if RefInAlignment == None:
-        print('Malfunction of phylotypes: unable to find', args.excision_ref, \
+        print('Malfunction of phylotypes: unable to find', args.excision_ref,
         'in', FileForAlnReadsHere +'. Quitting.', file=sys.stderr)
         exit(1)
       if RefInAlignment.replace(GapChar,'') != UngappedRefHere:
-        print('Malfunction of phylotypes: mismatch between the ref for',\
-        'excision we expected to find in this window:\n', UngappedRefHere,\
-        '\nand the ref for excision we actually found in this window:\n',\
+        print('Malfunction of phylotypes: mismatch between the ref for',
+        'excision we expected to find in this window:\n', UngappedRefHere,
+        '\nand the ref for excision we actually found in this window:\n',
         RefInAlignment.replace(GapChar,''), '\nQuitting.', file=sys.stderr)
         exit(1)
 
@@ -1511,7 +1600,7 @@ for window in range(NumCoords / 2):
         print('Problem encountered while analysing', FileForAlnReadsHere + \
         '. Quitting.', file=sys.stderr)
         raise
-      AlignIO.write(SeqAlignmentHere, FileForAlignedReads_PositionsExcised, \
+      AlignIO.write(SeqAlignmentHere, FileForAlignedReads_PositionsExcised,
       'fasta')
       FileForTrees = FileForAlignedReads_PositionsExcised
 
@@ -1519,7 +1608,7 @@ for window in range(NumCoords / 2):
       ConsensusAlignment = FindPatientsConsensuses(SeqAlignmentHere)
       FileForConsensuses_PositionsExcised = \
       FileForConsensuses_PositionsExcised_basename + ThisWindowSuffix +'.fasta'
-      AlignIO.write(ConsensusAlignment, FileForConsensuses_PositionsExcised, \
+      AlignIO.write(ConsensusAlignment, FileForConsensuses_PositionsExcised,
       'fasta')
 
   # If we're exploring window widths, we just care how many unique reads
@@ -1532,7 +1621,7 @@ for window in range(NumCoords / 2):
         SampleName = seq.id[:RegexMatch.start()]
         NumUniqueReadsPerPatient[SampleName] += 1
     for alias, count in NumUniqueReadsPerPatient.items():
-      WindowWidthExplorationData.append([UserLeftWindowEdge, \
+      WindowWidthExplorationData.append([UserLeftWindowEdge,
       UserRightWindowEdge, alias, count])
     continue
 
@@ -1565,9 +1654,9 @@ for window in range(NumCoords / 2):
           DuplicatedAliases = [alias for alias, count in \
           collections.Counter(aliases).items() if count > 1]
           if DuplicatedAliases != []:
-            print('Malfunction of phylotypes - the each of the following bam', \
-            'files has more than one copy of the same sequence after ' \
-            'processing:', ' '.join(DuplicatedAliases) + '. Quitting.', \
+            print('Malfunction of phylotypes - the each of the following bam',
+            'files has more than one copy of the same sequence after '
+            'processing:', ' '.join(DuplicatedAliases) + '. Quitting.',
             file=sys.stderr)
             exit(1)
       FileForDuplicateReadCountsProcessed = \
@@ -1580,7 +1669,7 @@ for window in range(NumCoords / 2):
   if args.time:
     times.append(time.time())
     LastStepTime = times[-1] - times[-2]
-    print('Final read processing in window', UserLeftWindowEdge, '-', \
+    print('Final read processing in window', UserLeftWindowEdge, '-',
     UserRightWindowEdge, 'finished. Number of seconds taken: ', LastStepTime)
 
   if args.no_trees:
@@ -1588,17 +1677,17 @@ for window in range(NumCoords / 2):
 
   # Create the ML tree
   MLtreeFile = 'RAxML_bestTree.' +ThisWindowSuffix +'.tree'
-  RAxMLcall = RAxMLargList + ['-s', FileForTrees, '-n', \
+  RAxMLcall = RAxMLargList + ['-s', FileForTrees, '-n',
   ThisWindowSuffix+'.tree']
   if args.ref_for_rooting != None:
     RAxMLcall += ['-o', args.ref_for_rooting]
-  proc = subprocess.Popen(RAxMLcall, stdout=subprocess.PIPE, \
+  proc = subprocess.Popen(RAxMLcall, stdout=subprocess.PIPE,
   stderr=subprocess.PIPE)
   out, err = proc.communicate()
   ExitStatus = proc.returncode
   if ExitStatus != 0:
-    print('Problem making the ML tree with RAxML. It returned an exit code of',\
-    ExitStatus, ' and printed this to stdout:\n', out, '\nand printed this to',\
+    print('Problem making the ML tree with RAxML. It returned an exit code of',
+    ExitStatus, ' and printed this to stdout:\n', out, '\nand printed this to',
     'stderr:\n', err, '\nSkipping to the next window.', file=sys.stderr)
     continue
   if not os.path.isfile(MLtreeFile):
@@ -1610,18 +1699,18 @@ for window in range(NumCoords / 2):
   if args.time:
     times.append(time.time())
     LastStepTime = times[-1] - times[-2]
-    print('ML tree in window', UserLeftWindowEdge, '-', \
+    print('ML tree in window', UserLeftWindowEdge, '-',
     UserRightWindowEdge, 'finished. Number of seconds taken: ', LastStepTime)
 
   # If desired, make bootstrapped alignments
   if args.num_bootstraps != None:
     try:
-      ExitStatus = subprocess.call(RAxMLargList + ['-b', \
-      str(args.bootstrap_seed), '-f', 'j', '-#', str(args.num_bootstraps), '-s',\
+      ExitStatus = subprocess.call(RAxMLargList + ['-b',
+      str(args.bootstrap_seed), '-f', 'j', '-#', str(args.num_bootstraps), '-s',
       FileForTrees, '-n', ThisWindowSuffix + '_bootstraps'])
       assert ExitStatus == 0
     except:
-      print('Problem generating bootstrapped alignments with RAxML', \
+      print('Problem generating bootstrapped alignments with RAxML',
       '\nSkipping to the next window.', file=sys.stderr)
       continue
     BootstrappedAlignments = [FileForTrees+'.BS'+str(bootstrap) for \
@@ -1636,12 +1725,12 @@ for window in range(NumCoords / 2):
     # Make a tree for each bootstrap
     for bootstrap,BootstrappedAlignment in enumerate(BootstrappedAlignments):
       try:
-        ExitStatus = subprocess.call(RAxMLargList + ['-s',\
+        ExitStatus = subprocess.call(RAxMLargList + ['-s',
         BootstrappedAlignment, '-n', ThisWindowSuffix + '_bootstrap_' + \
         str(bootstrap)+'.tree'])
         assert ExitStatus == 0
       except:
-        print('Problem generating a tree with RAxML for bootstrap', \
+        print('Problem generating a tree with RAxML for bootstrap',
         str(bootstrap), '\Breaking.', file=sys.stderr)
         break
     BootstrappedTrees = ['RAxML_bestTree.' +ThisWindowSuffix +'_bootstrap_' +\
@@ -1664,11 +1753,11 @@ for window in range(NumCoords / 2):
     # Collect the trees from all bootstraps onto the ML tree
     MainTreeFile = 'MLtreeWbootstraps' +ThisWindowSuffix +'.tree'
     try:
-      ExitStatus = subprocess.call(RAxMLargList + ['-f', 'b', '-t', MLtreeFile,\
+      ExitStatus = subprocess.call(RAxMLargList + ['-f', 'b', '-t', MLtreeFile,
        '-z', AllBootstrappedTreesFile, '-n', MainTreeFile])
       assert ExitStatus == 0
     except:
-      print('Problem collecting all the bootstrapped trees onto the ML tree', \
+      print('Problem collecting all the bootstrapped trees onto the ML tree',
       'with RAxML. Skipping to the next window.', file=sys.stderr)
       continue
     MainTreeFile = 'RAxML_bipartitions.' +MainTreeFile
@@ -1681,7 +1770,7 @@ for window in range(NumCoords / 2):
     if args.time:
       times.append(time.time())
       LastStepTime = times[-1] - times[-2]
-      print('Bootstrapped trees in window', UserLeftWindowEdge, '-', \
+      print('Bootstrapped trees in window', UserLeftWindowEdge, '-',
       UserRightWindowEdge, 'finished. Number of seconds taken: ', LastStepTime)
 
   # With no bootstraps, just use the ML tree:
@@ -1719,7 +1808,7 @@ for window in range(NumCoords / 2):
 
   #  #if clade.name == None:
   #  #  for clade2 in clade.find_clades():
-  #  #print(clade2.name, clade2.confidence, clade2.count_terminals(), \
+  #  #print(clade2.name, clade2.confidence, clade2.count_terminals(),
   #  #clade2.is_preterminal(), '\n', clade2, '\n\n')
   #  if clade2.is_preterminal()
 
@@ -1748,7 +1837,7 @@ if ExploreWindowWidths:
       ReorganisedData[width] = {WindowStart : {BamAlias : NumReads}}
   OutputTables = ''
   FirstWidth = True
-  for width, DataDictOuter in sorted(ReorganisedData.items(), \
+  for width, DataDictOuter in sorted(ReorganisedData.items(),
   key=lambda x: x[0]):
     if not FirstWidth:
       OutputTables += '\n\n'
@@ -1756,7 +1845,7 @@ if ExploreWindowWidths:
       FirstWidth = False
     OutputTables += 'Number of unique reads per-bam and per-window with ' +\
     'window width = ' + str(width) + ':\n' + TableHeaders
-    for WindowStart, DataDictInner in sorted(DataDictOuter.items(), \
+    for WindowStart, DataDictInner in sorted(DataDictOuter.items(),
     key=lambda x: x[0]):
       ReadCountsSortedByBam = [count for bam, count in \
       sorted(DataDictInner.items(), key=lambda x: x[0])]
@@ -1792,7 +1881,7 @@ if args.inspect_disagreeing_overlaps:
       DiscardedReadPairsOut.close()
       DiscardedReadPairsFiles.append(OutFile)
   if DiscardedReadPairsFiles != []:
-    print('Info: read pairs that overlapped but disagreed on the overlap were',\
+    print('Info: read pairs that overlapped but disagreed on the overlap were',
     'found. These have been written to', ' '.join(DiscardedReadPairsFiles) +'.')
 
 
