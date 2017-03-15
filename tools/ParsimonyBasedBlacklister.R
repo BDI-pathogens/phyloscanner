@@ -87,7 +87,8 @@ get.splits.for.patient <- function(patient, tip.patients, tree, root.name, raw.t
     } else {
       patient.mrca <- mrca.phylo(tree, which(tip.patients==patient))
       if(patient.mrca == getRoot(tree)){
-        exit("No suitable outgroup found for patient ",patient,"; try adding one and specifying its tip name with --outgroupName")
+        message("No suitable outgroup found for patient ",patient,"; try adding one and specifying its tip name with --outgroupName", sep="")
+        quit(save = F)
       }
       
       outgroup.no <- sample(1:length(tree$tip.label), 1)
