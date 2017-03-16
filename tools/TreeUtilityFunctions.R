@@ -276,7 +276,7 @@ total.length.between <- function(tree, node.1, node.2) {
 # mrca.phylo applied to a tip only will not return that tip. This function will.
 
 mrca.phylo.or.unique.tip <-
-  function(tree, node, zero.length.tips.count = TRUE) {
+  function(tree, node, zero.length.tips.count = FALSE) {
     if (length(node) == 1) {
       if (!zero.length.tips.count | !is.tip(tree,node)) {
         return(node)
@@ -449,4 +449,3 @@ prop.internal.longer.than.root <- function(tree, split, splits){
   
   return(sum(edges > dist.to.root)/length(edges))
 }
-
