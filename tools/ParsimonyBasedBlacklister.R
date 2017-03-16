@@ -109,6 +109,10 @@ get.splits.for.patient <- function(patient, tip.patients, tree, root.name, raw.t
     
     st.outgroup.no <- which(subtree$tip.label==root.name)
     
+    # di2multi actually unroots the tree!
+    
+    subtree <- root(subtree, st.outgroup.no, resolve.root = T)
+    
     # Set up split.and.annotate (which takes a list)
     
     patient.tips <- list()
