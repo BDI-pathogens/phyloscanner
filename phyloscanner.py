@@ -1505,6 +1505,11 @@ for window in range(NumCoords / 2):
       print('Problem calling mafft. Skipping to the next window.',
       file=sys.stderr)
       continue
+    if not os.path.isfile(FileForReads):
+      print('Error:', FileForReads +', expected to be produced by mafft, does',
+      'not exist. Skipping to the next window.', file=sys.stderr)
+      continue
+
 
   # Update on time taken if desired
   if args.time:
