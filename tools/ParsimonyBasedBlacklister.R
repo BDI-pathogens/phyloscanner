@@ -37,6 +37,10 @@ if(command.line){
   no.read.counts <- args$noReadCounts
   verbose <- args$verbose
   
+  if(is.null(root.name)){
+    cat("No outgroup name given; will assume the tree is rooted and use a random other tip as an outgroup for each patient\n")
+  }
+  
   if(file.exists(input.name)){
     input.names <- input.name
     d.output.names <- d.output.name
@@ -78,7 +82,21 @@ get.splits.for.patient <- function(patient, tip.patients, tree, root.name, raw.t
     
     # Keep only the tips from this patient and the outgroup
     
-    outgroup.no <- which(tree$tip.label==root.name)
+    if(!is.null(root.name)){
+      outgroup.no <- which(tree$tip.label==root.name)
+    } else {
+      patient.mrca <- mrca.phylo(tree, which(tip.patients==patient))
+      if(patient.mrca == getRoot(tree)){
+        message("No suitable outgroup found for patient ",patient,"; try adding one and specifying its tip name with --outgroupName", sep="")
+        quit(save = F)
+      }
+      
+      outgroup.no <- sample(1:length(tree$tip.label), 1)
+      while(patient.mrca %in% Ancestors(tree, a.random.tip)){
+        outgroup.no <- sample(1:length(tree$tip.label), 1)
+      }
+    }
+    
     tip.nos <- c(outgroup.no, which(tip.patients==patient))
     
     subtree <- drop.tip(tree, setdiff(1:length(tree$tip.label), tip.nos))
@@ -90,6 +108,10 @@ get.splits.for.patient <- function(patient, tip.patients, tree, root.name, raw.t
     # Re-find the root
     
     st.outgroup.no <- which(subtree$tip.label==root.name)
+    
+    # di2multi actually unroots the tree!
+    
+    subtree <- root(subtree, st.outgroup.no, resolve.root = T)
     
     # Set up split.and.annotate (which takes a list)
     
