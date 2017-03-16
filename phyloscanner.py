@@ -1190,8 +1190,6 @@ for window in range(NumCoords / 2):
       not read.is_proper_pair:
         continue
 
-      ReadAsPseudoRead = pf.PseudoRead.InitFromRead(read)
-
       if args.merge_paired_reads:
 
         # If we've seen this read's mate already, merge the pair.
@@ -1199,7 +1197,7 @@ for window in range(NumCoords / 2):
           Read1 = AllReads[read.query_name]
           Read1asPseudoRead = pf.PseudoRead.InitFromRead(Read1)
           Read2 = read
-          Read2asPseudoRead = ReadAsPseudoRead
+          Read2asPseudoRead = pf.PseudoRead.InitFromRead(read)
           MergedRead = Read1asPseudoRead.MergeReadPairOverWindow(
           Read2asPseudoRead, LeftWindowEdge, RightWindowEdge,
           args.quality_trim_ends, args.min_internal_quality,
@@ -1215,15 +1213,15 @@ for window in range(NumCoords / 2):
           AllReads[read.query_name] = MergedRead
 
         # We've not come across a read with this name before. Record & move on.
-        # TODO: what about saving the (already calculated) pseudoread instead,
-        # and deleting the 'Read2asPseudoRead = ReadAsPseudoRead' line above,
-        # and deleting the 'except AttributeError:' scope below?
+        # Note that we need to save the read, rather than the pseudoread, in
+        # case
         else:
           AllReads[read.query_name] = read
 
       # If we're not merging reads, process this read now to save memory.
       # ProcessRead returns None if we don't want to consider this read.
       else:
+        ReadAsPseudoRead = pf.PseudoRead.InitFromRead(read)
         seq = ReadAsPseudoRead.ProcessRead(LeftWindowEdge, RightWindowEdge,
           args.quality_trim_ends, args.min_internal_quality,
           args.keep_overhangs, args.recover_clipped_ends,
@@ -1262,6 +1260,9 @@ for window in range(NumCoords / 2):
           args.quality_trim_ends, args.min_internal_quality,
           args.keep_overhangs, args.recover_clipped_ends,
           args.exact_window_start, args.exact_window_end)
+          ReadName = read.query_name
+        else:
+          ReadName = read.name
         if seq == None:
           continue
         if seq in UniqueReads:
@@ -1271,12 +1272,12 @@ for window in range(NumCoords / 2):
 
         # Record the read name if desired.
         if args.read_names_1:
-          ReadNames.append(read.name)
+          ReadNames.append(ReadName)
         if args.read_names_2:
           if seq in ReadNameDict:
-            ReadNameDict[seq].append(read.name)
+            ReadNameDict[seq].append(ReadName)
           else:
-            ReadNameDict[seq] = [read.name]
+            ReadNameDict[seq] = [ReadName]
 
     # If we've read in any contaminant reads for this window and this bam,
     # remove them from the read dict. If they're not present in the read dict,
