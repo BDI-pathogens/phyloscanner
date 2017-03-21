@@ -137,7 +137,7 @@ resolveTreeIntoPatientClades <- function(tree, ids, tip.regex, blacklisted.tips 
 
   # Make a vector of bools describing which tips are patients. Remove blacklisted tips from this vector.
   is.patient <- grep(tip.regex, tree$tip.label)
-  is.patient <- is.patient[which(!(is.patient %in% blacklist))]
+  is.patient <- is.patient[which(!(is.patient %in% blacklisted.tips))]
   
   tip.ids <- sub(tip.regex, "\\1", tree$tip.label[is.patient])
   is.patient <- is.patient[tip.ids %in% ids]
