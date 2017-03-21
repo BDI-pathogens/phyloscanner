@@ -218,8 +218,8 @@ output.trans.tree <- function(tree, assocs, file.name = NULL, prune.unsampled.ti
   if(!is.null(file.name)){
     write.csv(for.output, file.name, row.names = F, quote=F)
   }
-  
-  return(cytoscape.input)
+  return(for.output)
+  #return(cytoscape.input)
 }
 
 check.contiguous <- function(tt, patients, splits.for.patients, patients.for.splits){

@@ -174,7 +174,7 @@ if (command.line) {
 
 source(file.path(script.dir, "TreeUtilityFunctions.R"))
 source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
-
+source(file.path(script.dir, "SummariseTrees_funcs.R"))
 
 AlignPlots <- function(...) {
   LegendWidth <- function(x) x$grobs[[15]]$grobs[[1]]$widths[[4]]

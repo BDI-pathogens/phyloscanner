@@ -21,7 +21,7 @@ if(command.line){
   arg_parser$add_argument("splitsFileName", action="store", help="Splits file name. Alternatively, a base name that identifies a group of split file names can be specified. Split files are assumed to end in '_subtree_[a-z].csv'.")
   arg_parser$add_argument("outputFileName", action="store", help="Output file name (.csv format)")
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
-  
+  arg_parser$add_argument("-ff", "--useff", action="store_true", default=FALSE, help="Use ff to store parsimony reconstruction matrices. Use if you run out of memory.")
   args <- arg_parser$parse_args()
   
   tree.file.names <- args$treeFileName
@@ -29,7 +29,7 @@ if(command.line){
   collapsed.file.names <- args$collapsedTree
   script.dir <- args$scriptdir
   output.name <- args$outputFileName
-  
+  useff = args$useff
   has.normalisation <- !is.null(args$branchLengthNormalisation)
   normalisation.argument <- args$branchLengthNormalisation
   
@@ -93,7 +93,7 @@ source(file.path(script.dir, "CollapsedTreeMethods.R"))
 #
 #	define internal functions
 #
-likely.transmissions<- function(tree.file.name, splits.file.name, normalisation.constant = NULL, tt.file.name = NULL)
+likely.transmissions<- function(tree.file.name, splits.file.name, normalisation.constant = NULL, tt.file.name = NULL, useff = FALSE)
 {	
   cat("Reading tree file ", tree.file.name, "...\n", sep = "")
   
@@ -381,7 +381,7 @@ if(single.file)
     }
   }
   
-  dddf				<- likely.transmissions(tree.file.name, splits.file.name, normalisation.constant = normalisation.constant, tt.file.name = collapsed.file.names)
+  dddf				<- likely.transmissions(tree.file.name, splits.file.name, normalisation.constant = normalisation.constant, tt.file.name = collapsed.file.names, useff=useff)
   cat("Write to file",output.name,"...\n")
   write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE, quote=F)	
 } else {
@@ -422,7 +422,7 @@ if(single.file)
     }
     
     tryCatch({
-      dddf	<- likely.transmissions(tree.file.name, splits.file.name, normalisation.constant = normalisation.constant, collapsed.file.name)
+      dddf	<- likely.transmissions(tree.file.name, splits.file.name, normalisation.constant = normalisation.constant, collapsed.file.name, useff=useff)
       cat("Write to file",output.name,"...\n")
       write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE, quote=F)			
     },
