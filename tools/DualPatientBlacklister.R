@@ -64,9 +64,9 @@ if(command.line){
   tree.prefix <- "AllTrees/RAxML_bestTree.InWindow_"
   existing.bl.prefix <- "Blacklists/Rogue blacklists/RogueBlacklist.InWindow_"
   duals.prefix <- "Blacklists/Multiple infection files/MultipleInfections.InWindow_"
-  output.prefix <- "Blacklists/Dual blacklists/DualBlacklist.InWindow_"
+  output.prefix <- "Blacklists/Duals blacklists/DualBlacklist.InWindow_"
   threshold <- 1
-  summary.file <- "Blacklists/Dual blacklists/DualsSummary.csv"
+  summary.file <- "Blacklists/Duals blacklists/DualsSummary.csv"
   verbose <- TRUE
   total.windows	<- NULL
   
@@ -117,13 +117,13 @@ if(length(suffixes)>0){
   dd	<- do.call('rbind',dd)
 }
 
-#	write detailed info to file
-
-if(!is.null(summary.file)){	
-  tmp	<- gsub('csv$','rda',summary.file)
-  cat("\nWrite detailed dual summary file to", tmp)
-  save(dd, file=tmp)
-}
+# #	write detailed info to file
+# 
+# if(!is.null(summary.file)){	
+#   tmp	<- gsub('csv$','rda',summary.file)
+#   cat("\nWrite detailed dual summary file to", tmp)
+#   save(dd, file=tmp)
+# }
 
 #	Count number of potential dual windows by patient
 
