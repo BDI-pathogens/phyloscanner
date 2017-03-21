@@ -1,6 +1,9 @@
-list.of.packages <- c("argparse", "phangorn")
+list.of.packages <- c("argparse", "ape", "phangorn")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
+if(length(new.packages)){
+  cat("Please run PackageInstall.R to continue")
+  quit(save='n')
+}
 
 suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
 
@@ -66,8 +69,32 @@ if(command.line){
   }
   
 } else {
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/")
+  script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
   
+  input.names <- "AllTrees/RAxML_bestTree.InWindow_2300_to_2650.tree"
+  
+  #anything already blacklisted
+  blacklist.file.name <- "Blacklists/Amplicon blacklists/AmpliconBlacklist_InWindow_2300_to_2650.csv"
+  
+  root.name <- "C.BW.00.00BW07621.AF443088"
+  tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
+  
+  sankhoff.k <- 20
+  
+  # Threshold for propotion of reads that come from a patient to be in a split for it to be considered a dual infection, not a
+  # rogue
+  
+  raw.threshold <- 3
+  ratio.threshold <- 0.005
+  
+  b.output.names <- "test1"
+  d.output.names <- "test2"
+  
+  no.read.counts <- F
+  verbose <- T
 }
+
 
 # The main function for getting splits for a given patient ID
 
@@ -242,6 +269,9 @@ check.read.count.for.split <- function(split, tips.for.splits, raw.threshold, ra
   prop.in.split <- count.in.split/total.reads
   return (count.in.split < raw.threshold | prop.in.split < ratio.threshold)
 }
+
+suppressMessages(library(ape, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(library(phangorn, quietly=TRUE, warn.conflicts=FALSE))
 
 cat("Reading functions...\n")
 

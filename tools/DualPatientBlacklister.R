@@ -1,6 +1,9 @@
-suppressMessages(require(tools, quietly=TRUE, warn.conflicts=FALSE))
-suppressMessages(require(ape, quietly=TRUE, warn.conflicts=FALSE))
-suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
+list.of.packages <- c("argparse", "tools", "ape", "data.table")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)){
+  cat("Please run PackageInstall.R to continue")
+  quit(save='n')
+}
 
 command.line <- T
 
@@ -56,8 +59,40 @@ if(command.line){
     }
   }
 } else {
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/")
+  
+  tree.prefix <- "AllTrees/RAxML_bestTree.InWindow_"
+  existing.bl.prefix <- "Blacklists/Rogue blacklists/RogueBlacklist.InWindow_"
+  duals.prefix <- "Blacklists/Multiple infection files/MultipleInfections.InWindow_"
+  output.prefix <- "Blacklists/Dual blacklists/DualBlacklist.InWindow_"
+  threshold <- 1
+  summary.file <- "Blacklists/Dual blacklists/DualsSummary.csv"
+  verbose <- TRUE
+  total.windows	<- NULL
+  
+  dual.files <- list.files(dirname(duals.prefix), pattern=paste('^',basename(duals.prefix),sep=""), full.names=TRUE)
+  
 
+  tree.files	<- data.table(F=rep(NA_character_,0))	
+  if(!is.null(tree.prefix)){
+    tree.files	<- data.table(F=list.files(dirname(tree.prefix), pattern=paste0('^',basename(tree.prefix)), full.names=TRUE))
+    cat('Found tree.files to determine total.windows per patient, n=', nrow(tree.files))
+  }  
+  
+  suffixes	<- substr(dual.files, nchar(duals.prefix)+1, nchar(dual.files))
+  expected.blacklists <- paste(existing.bl.prefix, suffixes, sep="")
+  observed.bl.files <- list.files(dirname(existing.bl.prefix), pattern=paste('^',basename(existing.bl.prefix),sep=""), full.names=TRUE)
+  expected.but.not.seen <- setdiff(expected.blacklists, observed.bl.files)
+  seen.but.not.expected <- setdiff(observed.bl.files, expected.blacklists)
+  if(length(expected.but.not.seen)>0){
+    for(ebns in expected.but.not.seen){
+      warning("Blacklist file ",ebns," not found. Will make a new blacklist file with this extension.")
+    }
+  }
 }
+
+suppressMessages(library(data.table, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(library(ape, quietly=TRUE, warn.conflicts=FALSE))
 
 #	read dual files output by ParsimonyBasedBlacklister
 
