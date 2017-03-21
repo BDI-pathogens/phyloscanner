@@ -1,7 +1,3 @@
-suppressMessages(require(phangorn, quietly=TRUE, warn.conflicts=FALSE))
-suppressMessages(require(gdata, quietly=TRUE, warn.conflicts=FALSE))
-suppressMessages(require(prodlim, quietly=TRUE, warn.conflicts=FALSE))
-
 # Get the tip number of this label
 
 get.tip.no <- function(tree, name) {

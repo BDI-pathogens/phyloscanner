@@ -1,4 +1,4 @@
-list.of.packages <- c("argparse", "tools", "ape", "data.table")
+list.of.packages <- c("argparse", "ape", "data.table")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)){
   cat("Please run PackageInstall.R to continue")
@@ -10,7 +10,7 @@ command.line <- T
 if(command.line){
   require(argparse, quietly=TRUE, warn.conflicts=FALSE)
   
-  arg_parser = ArgumentParser(description="Look at identified multiple infections across all windows, and identify which are to be ignored entirely or reduced to largest subtree only.")
+  arg_parser = ArgumentParser(description="Look at identified multiple infections across all windows, and identify which are to be ignored entirely or reduced to largest subtree only. Requires the output of ParsimonyBasedBlacklister.R.")
   
   arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what I'm doing.")
   arg_parser$add_argument("-b", "--existingBlacklistsPrefix", action="store", help="A file path and initial string identifying existing (.csv) blacklists whose output is to be appended to. Only such files whose suffix (the string after the prefix, without the file extension) matches a suffix from the dual reports will be appended to.")
