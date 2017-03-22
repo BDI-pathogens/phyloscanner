@@ -260,12 +260,11 @@ if(file.exists(tree.file.name)){
   }
   
   suffixes <- substr(tree.file.names, nchar(tree.file.name) + 1, nchar(tree.file.names))
-  suffixes <- gsub('\\.tree','.csv',suffixes)
-  
+  suffixes <- gsub('\\.tree','\\.csv',suffixes)  
   if(!is.null(blacklist.file.name)){  
     blacklist.file.names <- paste(blacklist.file.name, suffixes, sep="")
   }
-  
+  suffixes <- gsub('\\.csv','',suffixes)
   output.file.IDs <- paste(output.file.ID, suffixes, sep="")
   
 }
@@ -286,10 +285,9 @@ for(i in 1:length(tree.file.names)){
   #
   #	write rda file (potentially before plotting fails so we can recover)
   #
-  # tmp 				<- file.path(output.dir,paste('subgraphs_',mode,'_',out.identifier,'.rda',sep=''))
-  # 
-  # cat("Writing output to file",tmp,"...\n")
-  # save(rs.subgraphs, tree, file=tmp)		
+  tmp 				<- file.path(output.dir,paste('subgraphs_',mode,'_',output.string,'.rda',sep='')) 
+  cat("Writing output to file",tmp,"...\n")
+  save(rs.subgraphs, tree, file=tmp)		
   #
   #	plot tree
   #
