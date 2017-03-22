@@ -38,7 +38,8 @@ if(command.line){
 
   
   dual.files <- list.files(dirname(duals.prefix), pattern=paste('^',basename(duals.prefix),sep=""), full.names=TRUE)
-  
+  dual.files <- sapply(dual.files, function(x) if(startsWith(x, "./")) {substr(x, 3, nchar(x))} else {x}   )
+
   if(!is.null(args$windowCount)) {
     total.windows	<- as.numeric(args$windowCount)
   } else {
@@ -50,6 +51,7 @@ if(command.line){
     tree.files	<- data.table(F=list.files(dirname(tree.prefix), pattern=paste0('^',basename(tree.prefix)), full.names=TRUE))
     cat('Found tree.files to determine total.windows per patient, n=', nrow(tree.files))
   }  
+
   suffixes	<- substr(dual.files, nchar(duals.prefix)+1, nchar(dual.files))
   expected.blacklists <- paste(existing.bl.prefix, suffixes, sep="")
   observed.bl.files <- list.files(dirname(existing.bl.prefix), pattern=paste('^',basename(existing.bl.prefix),sep=""), full.names=TRUE)
