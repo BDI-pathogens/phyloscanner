@@ -196,7 +196,7 @@ output.trans.tree <- function(tree, assocs, file.name = NULL, prune.unsampled.ti
   
   tt.table <- data.frame(unique.splits, parent.splits, patients, parent.patients, lengths, root.nos, stringsAsFactors = F)
   
-  for.output <- tt.table[,1:5]
+  for.output <- tt.table[,1:6]
   
   if(prune.unsampled.tips){
     unsampled.tips <- which(startsWith(for.output$unique.splits, "unsampled_region") &
@@ -216,10 +216,9 @@ output.trans.tree <- function(tree, assocs, file.name = NULL, prune.unsampled.ti
   }
   
   if(!is.null(file.name)){
-    write.csv(for.output, file.name, row.names = F, quote=F)
+    write.csv(for.output[,1:6], file.name, row.names = F, quote=F)
   }
   return(for.output)
-  #return(cytoscape.input)
 }
 
 check.contiguous <- function(tt, patients, splits.for.patients, patients.for.splits){
@@ -239,7 +238,7 @@ check.contiguous <- function(tt, patients, splits.for.patients, patients.for.spl
         node.2.id <- all.nodes[node.2]
         path <- get.tt.path(tt, node.1.id, node.2.id)
         for(node in path){
-          if(!startsWith(node, "none")){
+          if(!startsWith(node, "unsampled_region")){
             if(!(patients.for.splits[[node]] %in% c(pat.1.id, pat.2.id))){
               OK <- FALSE
               break
@@ -472,8 +471,10 @@ subtrees.unblocked <- function(tt, splits){
       if(spt.1.no==spt.2.no){
         out[spt.1.no, spt.2.no] <- NA
       } else if(spt.1.no<spt.2.no){
+        
         spt.1 <- splits[spt.1.no]
         spt.2 <- splits[spt.2.no]
+        
         pat.1 <- strsplit(spt.1, "-S")[[1]][1]
         pat.2 <- strsplit(spt.2, "-S")[[1]][1]
         

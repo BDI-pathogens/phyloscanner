@@ -60,7 +60,6 @@ if(command.line){
     
     input.names	<- sort(list.files.mod(dirname(input.name), pattern=paste(basename(input.name),'.*\\.tree$',sep=''), full.names=TRUE))
     
-    
     if(length(input.names)==0){
       cat("No input trees found,\n")
       quit()
