@@ -150,7 +150,6 @@ likely.transmissions<- function(tree.file.name, splits.file.name, normalisation.
     all.subtree.distances(tree, tt, all.splits, assocs), warning=function(w){return(NULL)}, error=function(e){return(NULL)})
   
   if(is.null(split.distances)){
-    cat("hi\n")
     split.distances <- all.subtree.distances(tree, tt, all.splits, assocs, TRUE)
   }
 
