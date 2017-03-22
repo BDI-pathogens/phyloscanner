@@ -55,6 +55,7 @@ if(command.line){
   suffixes	<- substr(dual.files, nchar(duals.prefix)+1, nchar(dual.files))
   expected.blacklists <- paste(existing.bl.prefix, suffixes, sep="")
   observed.bl.files <- list.files(dirname(existing.bl.prefix), pattern=paste('^',basename(existing.bl.prefix),sep=""), full.names=TRUE)
+  dual.files <- sapply(observed.bl.files, function(x) if(substr(x, 1, 2)=="./") {substr(x, 3, nchar(x))} else {x})
   expected.but.not.seen <- setdiff(expected.blacklists, observed.bl.files)
   seen.but.not.expected <- setdiff(observed.bl.files, expected.blacklists)
   if(length(expected.but.not.seen)>0){
