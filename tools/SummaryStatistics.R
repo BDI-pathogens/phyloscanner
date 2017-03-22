@@ -315,7 +315,7 @@ for(window.no in seq(1, length(tree.files))){
   
   splits.table <- read.table(splits.file.name, sep=",", stringsAsFactors = F, header=T)
 
-  splits.table$reads <- as.numeric(unlist(strsplit(splits.table$tip.names,"count_"))[seq(2,2*nrow(splits.table),2)])
+  splits.table$reads <- as.numeric(unlist(strsplit(splits.table$tip,"count_"))[seq(2,2*nrow(splits.table),2)])
 
   # Find clades
   
@@ -361,7 +361,7 @@ for(window.no in seq(1, length(tree.files))){
     
     reads.col <- c(reads.col, num.reads)
     
-    num.subtrees <- length(unique(splits.table[which(splits.table$orig.patients==id),]$patient.splits))
+    num.subtrees <- length(unique(splits.table[which(splits.table$patient==id),]$patient.splits))
    
     subtrees.counts.col <- c(subtrees.counts.col, num.subtrees)
     
@@ -436,9 +436,9 @@ for(window.no in seq(1, length(tree.files))){
         }
       }
     } else {
-      relevant.reads <- splits.table[which(splits.table$orig.patients==id),]
+      relevant.reads <- splits.table[which(splits.table$patient==id),]
       splits <- unique(relevant.reads$patient.splits)
-      reads.per.split <- sapply(splits, function(x) sum(splits.table[which(splits.table$patient.splits==x),]$reads ) )
+      reads.per.split <- sapply(splits, function(x) sum(splits.table[which(splits.table$subgraph==x),]$reads ) )
       winner <- splits[which(reads.per.split==max(reads.per.split))]
       if(length(winner)>1){
         cat("Patient ",id," has a joint winner in window ", middle, "\n", sep="" )
@@ -469,10 +469,10 @@ for(window.no in seq(1, length(tree.files))){
     largest.rtt.col <- c(largest.rtt.col, largest.rtt)
     mean.pat.dist.col <- c(mean.pat.dist.col, mean.pat)
     
-    this.pat.splits <- splits.table[which(splits.table$orig.patients==id),]
+    this.pat.splits <- splits.table[which(splits.table$patient==id),]
     
     if(nrow(this.pat.splits)>0){
-      this.pat.reads.by.split <- aggregate(this.pat.splits$reads, by=list(Category=this.pat.splits$patient.splits), sum)
+      this.pat.reads.by.split <- aggregate(this.pat.splits$reads, by=list(Category=this.pat.splits$subgraph), sum)
       
       if(nrow(this.pat.reads.by.split) > max.splits){
         max.splits <- nrow(this.pat.reads.by.split>max.splits)
