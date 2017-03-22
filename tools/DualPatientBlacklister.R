@@ -50,7 +50,6 @@ if(command.line){
     tree.files	<- data.table(F=list.files(dirname(tree.prefix), pattern=paste0('^',basename(tree.prefix)), full.names=TRUE))
     cat('Found tree.files to determine total.windows per patient, n=', nrow(tree.files))
   }  
-  
   suffixes	<- substr(dual.files, nchar(duals.prefix)+1, nchar(dual.files))
   expected.blacklists <- paste(existing.bl.prefix, suffixes, sep="")
   observed.bl.files <- list.files(dirname(existing.bl.prefix), pattern=paste('^',basename(existing.bl.prefix),sep=""), full.names=TRUE)
@@ -62,40 +61,8 @@ if(command.line){
     }
   }
 } else {
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/")
-  
-  tree.prefix <- "AllTrees/RAxML_bestTree.InWindow_"
-  existing.bl.prefix <- "Blacklists/Rogue blacklists/RogueBlacklist.InWindow_"
-  duals.prefix <- "Blacklists/Multiple infection files/MultipleInfections.InWindow_"
-  output.prefix <- "Blacklists/Duals blacklists/DualBlacklist.InWindow_"
-  threshold <- 1
-  summary.file <- "Blacklists/Duals blacklists/DualsSummary.csv"
-  verbose <- TRUE
-  total.windows	<- NULL
-  
-  dual.files <- list.files(dirname(duals.prefix), pattern=paste('^',basename(duals.prefix),sep=""), full.names=TRUE)
-  
 
-  tree.files	<- data.table(F=rep(NA_character_,0))	
-  if(!is.null(tree.prefix)){
-    tree.files	<- data.table(F=list.files(dirname(tree.prefix), pattern=paste0('^',basename(tree.prefix)), full.names=TRUE))
-    cat('Found tree.files to determine total.windows per patient, n=', nrow(tree.files))
-  }  
-  
-  suffixes	<- substr(dual.files, nchar(duals.prefix)+1, nchar(dual.files))
-  expected.blacklists <- paste(existing.bl.prefix, suffixes, sep="")
-  observed.bl.files <- list.files(dirname(existing.bl.prefix), pattern=paste('^',basename(existing.bl.prefix),sep=""), full.names=TRUE)
-  expected.but.not.seen <- setdiff(expected.blacklists, observed.bl.files)
-  seen.but.not.expected <- setdiff(observed.bl.files, expected.blacklists)
-  if(length(expected.but.not.seen)>0){
-    for(ebns in expected.but.not.seen){
-      warning("Blacklist file ",ebns," not found. Will make a new blacklist file with this extension.")
-    }
-  }
 }
-
-suppressMessages(library(data.table, quietly=TRUE, warn.conflicts=FALSE))
-suppressMessages(library(ape, quietly=TRUE, warn.conflicts=FALSE))
 
 #	read dual files output by ParsimonyBasedBlacklister
 
@@ -108,7 +75,7 @@ if(length(suffixes)>0){
       cat('Skipping file ',file.name,' as it is empty\n')
     } else {
     
-      cat('Reading file',file.name,'\n')
+      if(verbose) cat('Reading file',file.name,'\n')
       dual.file <- as.data.table(read.csv(paste(duals.prefix, suffix, sep=""), stringsAsFactors = FALSE))	
       dual.file <- unique(dual.file, by=c('patient','reads.in.subtree','tips.in.subtree'))
       set(dual.file, NULL, 'tip.name', NULL)
@@ -147,10 +114,9 @@ for(suffix in suffixes){
 
 #	If window total in input args, convert window total to named numeric 
 
-if(!is.null(total.windows))
-{
-  total.windows			<- rep(total.windows, length(unique(dual.file$patient)))
-  names(total.windows)	<- unique(dual.file$patient)
+if(!is.null(total.windows)) {
+  total.windows			<- rep(total.windows, length(unique(dd$PATIENT)))
+  names(total.windows)	<- unique(dd$PATIENT)
 }
 #
 #	determine window total if no input arg and tree files: 
@@ -175,8 +141,8 @@ if(nrow(tree.files)>0 & is.null(total.windows)){
 #	by default length of dual files
 
 if(nrow(tree.files)==0 & is.null(total.windows)){
-  total.windows			<- rep(length(suffixes), length(unique(dual.file$patient)))
-  names(total.windows)	<- unique(dual.file$patient)
+  total.windows			<- rep(length(suffixes), length(unique(dd$PATIENT)))
+  names(total.windows)	<- unique(dd$PATIENT)
 }
 
 # Output function
@@ -192,7 +158,7 @@ blacklist.reads.for.patient <- function(patient){
       pat.tips <- dual.file$tip.name[which(dual.file$patient==patient)]
       if(length(pat.tips)>0){
         if(file.exists(paste(output.prefix, suffix, sep=""))){
-          cat('Reading table to update',paste0(output.prefix, suffix),'\n')
+          if(verbose) cat('Reading table to update',paste0(output.prefix, suffix),'\n')
           existing.bl <- read.table(paste(output.prefix, suffix, sep=""), sep=",", stringsAsFactors=FALSE, header=FALSE)$V1
           new.bl <- unique(c(existing.bl, pat.tips))
         } else {
@@ -241,8 +207,8 @@ output <- lapply(pat.vector, blacklist.reads.for.patient)
 proportions <- unlist(lapply(output, "[[", 1))
 counts <- unlist(lapply(output, "[[", 2))
 
-if(!is.null(summary.file)){
+if(!is.null(summary.file)) {
   out.df <- data.frame(patient = labels(window.count.by.patient)[order(labels(window.count.by.patient))], count = counts, proportion = proportions, stringsAsFactors = F)
-  cat("\nWrite dual summary file to", summary.file)
+  if(verbose) cat("\nWriting dual summary file to ", summary.file, "\n")
   write.csv(out.df, file=summary.file, row.names=FALSE, quote=FALSE)
 }
