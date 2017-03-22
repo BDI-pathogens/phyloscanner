@@ -472,7 +472,7 @@ for(window.no in seq(1, length(tree.files))){
     this.pat.splits <- splits.table[which(splits.table$patient==id),]
     
     if(nrow(this.pat.splits)>0){
-      this.pat.reads.by.split <- aggregate(this.pat.splits$reads, by=list(Category=this.pat.splits$patient.splits), sum)
+      this.pat.reads.by.split <- aggregate(this.pat.splits$reads, by=list(Category=this.pat.splits$subgraph), sum)
       
       if(nrow(this.pat.reads.by.split) > max.splits){
         max.splits <- nrow(this.pat.reads.by.split>max.splits)
