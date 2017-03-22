@@ -38,7 +38,7 @@ if(command.line){
 
   
   dual.files <- list.files(dirname(duals.prefix), pattern=paste('^',basename(duals.prefix),sep=""), full.names=TRUE)
-  dual.files <- sapply(dual.files, function(x) if(startsWith(x, "./")) {substr(x, 3, nchar(x))} else {x}   )
+  dual.files <- sapply(dual.files, function(x) if(substr(x, 1, 2, "./")) {substr(x, 3, nchar(x))} else {x})
 
   if(!is.null(args$windowCount)) {
     total.windows	<- as.numeric(args$windowCount)
