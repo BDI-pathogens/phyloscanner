@@ -1,8 +1,8 @@
 list.of.packages <- c("argparse", "ggplot2", "ff", "ggtree", "phangorn")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)){
-  cat("Please run PackageInstall.R to continue")
-  quit(save='n')
+  cat("Please run PackageInstall.R to continue\n")
+  quit(save='no')
 }
 
 command.line <- T
