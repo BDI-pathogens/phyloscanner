@@ -10,9 +10,6 @@ suppressMessages(library(phangorn, quietly=TRUE, warn.conflicts=FALSE))
 
 cat("Reading functions...\n")
 
-source(file.path(script.dir, "TreeUtilityFunctions.R"))
-source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
-
 command.line <- T
 if(command.line){
   suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
@@ -46,6 +43,9 @@ if(command.line){
   blacklist.file.name <- args$blacklist
   no.read.counts <- args$noReadCounts
   verbose <- args$verbose
+  
+  source(file.path(script.dir, "TreeUtilityFunctions.R"))
+  source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
   
   if(is.null(root.name)){
     cat("No outgroup name given; will assume the tree is rooted and use a random other tip as an outgroup for each patient\n")

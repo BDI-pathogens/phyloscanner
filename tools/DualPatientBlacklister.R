@@ -10,14 +10,13 @@ command.line <- T
 suppressMessages(library(data.table, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(ape, quietly=TRUE, warn.conflicts=FALSE))
 
-source(file.path(script.dir, "TreeUtilityFunctions.R"))
-
 if(command.line){
   suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
   
   arg_parser = ArgumentParser(description="Look at identified multiple infections across all windows, and identify which are to be ignored entirely or reduced to largest subtree only. Requires the output of ParsimonyBasedBlacklister.R.")
   
   arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what I'm doing.")
+  arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.")
   arg_parser$add_argument("-b", "--existingBlacklistsPrefix", action="store", help="A file path and initial string identifying existing (.csv) blacklists whose output is to be appended to. Only such files whose suffix (the string after the prefix, without the file extension) matches a suffix from the dual reports will be appended to.")
   arg_parser$add_argument("-t", "--treePrefix", action="store", help="A file path and initial string identifying read trees of all analyzed windows. From these, we determine the number of windows in which each individual is present.")
   arg_parser$add_argument("-w", "--windowCount", action="store", help="The total number of windows in the analysis (will default to the total number of dual infection files if absent.)")
@@ -29,6 +28,11 @@ if(command.line){
   # Read in the arguments
   
   args <- arg_parser$parse_args()
+  
+  script.dir <- args$scriptdir
+
+  source(file.path(script.dir, "TreeUtilityFunctions.R"))
+
   tree.prefix <- args$treePrefix
   existing.bl.prefix <- args$existingBlacklistsPrefix
   duals.prefix <- args$dualReportsPrefix
