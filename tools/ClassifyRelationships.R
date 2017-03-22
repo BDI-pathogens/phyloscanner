@@ -28,7 +28,6 @@ if(command.line){
   collapsed.file.names <- args$collapsedTree
   script.dir <- args$scriptdir
   output.name <- args$outputFileName
-  useff = args$useff
   has.normalisation <- !is.null(args$branchLengthNormalisation)
   normalisation.argument <- args$branchLengthNormalisation
   
