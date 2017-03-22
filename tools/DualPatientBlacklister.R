@@ -7,6 +7,9 @@ if(length(new.packages)){
 
 command.line <- T
 
+suppressMessages(library(data.table, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(library(ape, quietly=TRUE, warn.conflicts=FALSE))
+
 if(command.line){
   require(argparse, quietly=TRUE, warn.conflicts=FALSE)
   
