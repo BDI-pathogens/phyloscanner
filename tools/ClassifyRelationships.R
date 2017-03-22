@@ -104,10 +104,10 @@ likely.transmissions<- function(tree.file.name, splits.file.name, normalisation.
   
   cat("Collecting tips for each patient...\n")
   
-  patients <- unique(splits$orig.patients)
-  patient.tips <- lapply(patients, function(x) which(tree$tip.label %in% splits[which(splits$orig.patients==x), "tip.names"]))
+  patients <- unique(splits$patient)
+  patient.tips <- lapply(patients, function(x) which(tree$tip.label %in% splits[which(splits$patient==x), "tip.names"]))
   names(patient.tips) <- patients
-  all.splits <- unique(splits$patient.splits)
+  all.splits <- unique(splits$patient)
   
   cat("Reading annotations...\n")
   
@@ -125,10 +125,10 @@ likely.transmissions<- function(tree.file.name, splits.file.name, normalisation.
   assocs <- lapply(assocs, function(x) replace(x,is.na(x),"none"))
   assocs.ind <- lapply(assocs.ind, function(x) replace(x,is.na(x),"none"))
   
-  splits.for.patients <- lapply(patients, function(x) unique(splits$patient.splits[which(splits$orig.patients==x)] ))
+  splits.for.patients <- lapply(patients, function(x) unique(splits$subgraph[which(splits$patient==x)] ))
   names(splits.for.patients) <- patients
   
-  patients.for.splits <- lapply(all.splits, function(x) unique(splits$orig.patients[which(splits$patient.splits==x)] ))
+  patients.for.splits <- lapply(all.splits, function(x) unique(splits$patient[which(splits$subgraph==x)] ))
   names(patients.for.splits) <- all.splits
   
   patients.included <- patients
