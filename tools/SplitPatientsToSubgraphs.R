@@ -114,8 +114,8 @@ if(command.line){
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/")
   output.dir <- "/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/refinement"
   tree.file.names <- "RAxML_bipartitions.ST239_no_bootstraps_T056corr.tree"
-  blacklist.files <- NULL
-  out.identifier <- "mrsa_k10_bp_test"
+  blacklist.file.name <- NULL
+  output.file.IDs <- "mrsa_k10_bp_test"
   root.name <- "TW20"
   tip.regex <- "^([ST][0-9][0-9][0-9])_[A-Z0-9]*_[A-Z][0-9][0-9]$"
   mode <- "s"
@@ -196,7 +196,7 @@ split.patients.to.subgraphs<- function(tree.file.name, mode, blacklist.file, roo
   # Where to put the node shapes that display subgraph MRCAs
   
   node.shapes <- rep(FALSE, length(tree$tip.label) + tree$Nnode)
-  node.shapes[results$first.nodes] <- TRUE
+  node.shapes[unlist(results$first.nodes)] <- TRUE
 
   # For display purposes. "unsampled" nodes should have NA as annotations
   
