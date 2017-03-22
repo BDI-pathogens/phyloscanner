@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-command.line <- T
+command.line <- F
 
 list.of.packages <- c("phangorn", "argparse", "phytools")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -21,7 +21,6 @@ if(command.line){
   arg_parser$add_argument("splitsFileName", action="store", help="Splits file name. Alternatively, a base name that identifies a group of split file names can be specified. Split files are assumed to end in '_subtree_[a-z].csv'.")
   arg_parser$add_argument("outputFileName", action="store", help="Output file name (.csv format)")
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
-  arg_parser$add_argument("-ff", "--useff", action="store_true", default=FALSE, help="Use ff to store parsimony reconstruction matrices. Use if you run out of memory.")
   args <- arg_parser$parse_args()
   
   tree.file.names <- args$treeFileName
@@ -73,11 +72,12 @@ if(command.line){
   
   if(0)
   {
-    script.dir				<- "/Users/Oliver/git/phylotypes/tools"
-    tree.file.names			<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_'
-    splits.file.names		<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_'
-    output.name 			<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_'
-    root.name				<- "REF_CPX_AF460972_read_1_count_0"
+    setwd("/Users/twoseventwo/Library/Containers/com.apple.mail/Data/Library/Mail Downloads/F227CCD4-159E-462A-9DC5-80CB75544B68/pty_17-03-21-20-44-58")
+    script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
+    tree.file.names			<- 'ProcessedTree_s_ptyr22_InWindow_'
+    splits.file.names		<- 'Subtrees_s_ptyr22_InWindow_'
+    output.name 			<- 'testpit'
+    has.normalisation <- F
   }
 }
 
@@ -93,8 +93,7 @@ source(file.path(script.dir, "CollapsedTreeMethods.R"))
 #
 #	define internal functions
 #
-likely.transmissions<- function(tree.file.name, splits.file.name, normalisation.constant = NULL, tt.file.name = NULL, useff = FALSE)
-{	
+likely.transmissions<- function(tree.file.name, splits.file.name, normalisation.constant = NULL, tt.file.name = NULL) {	
   cat("Reading tree file ", tree.file.name, "...\n", sep = "")
   
   pseudo.beast.import <- read.beast(tree.file.name)
@@ -151,14 +150,10 @@ likely.transmissions<- function(tree.file.name, splits.file.name, normalisation.
     all.subtree.distances(tree, tt, all.splits, assocs), warning=function(w){return(NULL)}, error=function(e){return(NULL)})
   
   if(is.null(split.distances)){
-    if(useff){
-      split.distances <- all.subtree.distances(tree, tt, all.splits, assocs, TRUE)
-    } else {
-      quit("Out of memory error (try running again with --useff)")
-    }
+    cat("hi\n")
+    split.distances <- all.subtree.distances(tree, tt, all.splits, assocs, TRUE)
   }
 
-  
   cat("Testing pairs...\n")
   
   count <- 0
@@ -174,6 +169,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, normalisation.
   for(pat.1 in seq(1, length(patients.included))){
     for(pat.2 in  seq(1, length(patients.included))){
       if (pat.1 < pat.2) {
+
         count <- count + 1
         
         pat.1.id <- patients.included[pat.1]
@@ -381,7 +377,7 @@ if(single.file)
     }
   }
   
-  dddf				<- likely.transmissions(tree.file.name, splits.file.name, normalisation.constant = normalisation.constant, tt.file.name = collapsed.file.names, useff=useff)
+  dddf				<- likely.transmissions(tree.file.name, splits.file.name, normalisation.constant = normalisation.constant, tt.file.name = collapsed.file.names)
   cat("Write to file",output.name,"...\n")
   write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE, quote=F)	
 } else {
@@ -422,7 +418,7 @@ if(single.file)
     }
     
     tryCatch({
-      dddf	<- likely.transmissions(tree.file.name, splits.file.name, normalisation.constant = normalisation.constant, collapsed.file.name, useff=useff)
+      dddf	<- likely.transmissions(tree.file.name, splits.file.name, normalisation.constant = normalisation.constant, collapsed.file.name)
       cat("Write to file",output.name,"...\n")
       write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE, quote=F)			
     },
