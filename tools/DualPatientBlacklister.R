@@ -10,8 +10,10 @@ command.line <- T
 suppressMessages(library(data.table, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(ape, quietly=TRUE, warn.conflicts=FALSE))
 
+source(file.path(script.dir, "TreeUtilityFunctions.R"))
+
 if(command.line){
-  require(argparse, quietly=TRUE, warn.conflicts=FALSE)
+  suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
   
   arg_parser = ArgumentParser(description="Look at identified multiple infections across all windows, and identify which are to be ignored entirely or reduced to largest subtree only. Requires the output of ParsimonyBasedBlacklister.R.")
   
@@ -37,8 +39,7 @@ if(command.line){
   total.windows	<- NULL
 
   
-  dual.files <- list.files(dirname(duals.prefix), pattern=paste('^',basename(duals.prefix),sep=""), full.names=TRUE)
-  dual.files <- sapply(dual.files, function(x) if(substr(x, 1, 2)=="./") {substr(x, 3, nchar(x))} else {x})
+  dual.files <- list.files.mod(dirname(duals.prefix), pattern=paste('^',basename(duals.prefix),sep=""), full.names=TRUE)
 
   if(!is.null(args$windowCount)) {
     total.windows	<- as.numeric(args$windowCount)
@@ -54,8 +55,7 @@ if(command.line){
 
   suffixes	<- substr(dual.files, nchar(duals.prefix)+1, nchar(dual.files))
   expected.blacklists <- paste(existing.bl.prefix, suffixes, sep="")
-  observed.bl.files <- list.files(dirname(existing.bl.prefix), pattern=paste('^',basename(existing.bl.prefix),sep=""), full.names=TRUE)
-  observed.bl.files <- sapply(observed.bl.files, function(x) if(substr(x, 1, 2)=="./") {substr(x, 3, nchar(x))} else {x})
+  observed.bl.files <- list.files.mod(dirname(existing.bl.prefix), pattern=paste('^',basename(existing.bl.prefix),sep=""), full.names=TRUE)
   expected.but.not.seen <- setdiff(expected.blacklists, observed.bl.files)
   seen.but.not.expected <- setdiff(observed.bl.files, expected.blacklists)
   if(length(expected.but.not.seen)>0){

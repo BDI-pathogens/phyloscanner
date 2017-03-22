@@ -5,10 +5,17 @@ if(length(new.packages)){
   quit(save='n')
 }
 
-suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(library(ape, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(library(phangorn, quietly=TRUE, warn.conflicts=FALSE))
+
+cat("Reading functions...\n")
+
+source(file.path(script.dir, "TreeUtilityFunctions.R"))
+source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
 
 command.line <- T
 if(command.line){
+  suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
   # Define arguments
   
   arg_parser = ArgumentParser(description="Identify phylogeny tips for blacklisting as representing suspected contaminants, based on a Sankhoff parsimony reconstruction. Input and output file name arguments are either a single file, or the root name for a group of files, in which case all files matching that root will be processed, and matching output files generated.")
@@ -51,7 +58,7 @@ if(command.line){
   } else {
     # Assume we are dealing with a group of files
     
-    input.names		<- sort(list.files(dirname(input.name), pattern=paste(basename(input.name),'.*\\.tree$',sep=''), full.names=TRUE))
+    input.names	<- sort(list.files.mod(dirname(input.name), pattern=paste(basename(input.name),'.*\\.tree$',sep=''), full.names=TRUE))
     
     
     if(length(input.names)==0){
@@ -270,13 +277,6 @@ check.read.count.for.split <- function(split, tips.for.splits, raw.threshold, ra
   return (count.in.split < raw.threshold | prop.in.split < ratio.threshold)
 }
 
-suppressMessages(library(ape, quietly=TRUE, warn.conflicts=FALSE))
-suppressMessages(library(phangorn, quietly=TRUE, warn.conflicts=FALSE))
-
-cat("Reading functions...\n")
-
-source(file.path(script.dir, "TreeUtilityFunctions.R"))
-source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
 
 for(i in 1:length(input.names)){
   cat(paste("Reading tree (",input.names[i],")...\n",sep=""))
