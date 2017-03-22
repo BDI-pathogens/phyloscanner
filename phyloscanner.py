@@ -5,19 +5,16 @@ from __future__ import print_function
 ## Acknowledgement: I wrote this while funded by ERC Advanced Grant PBDR-339251
 ##
 ## Overview:
-ExplanatoryMessage = '''This script creates between-sample alignments of reads.
-The reference sequences used to create a number of bam files (i.e. the sequences
-to which the reads were mapped) are aligned. User-specified coordinates,
-interpreted with respect to this alignment, are translated to coordinates with
-respect to (ungapped versions of) each separate reference, dividing each
-reference into a set of matching windows. For each window: for each sample, all
+ExplanatoryMessage = '''phyloscanner analyses the phylogenetic relationships
+between and within samples of mapped reads. The user specifies one or more
+windows of the genome in which this done. For each window: for each sample, all
 reads mapped to that window are found, identical reads are collected together
 with an associated count, similar reads are merged together based on the counts,
 then a minimum count is imposed. Then all reads from all samples in this window 
-are aligned using mafft and a phylogeny is constructed using RAxML.
-Temporary files and output files are written to the current working directory;
-to avoid overwriting existing files, you might to want to call this code from an
-empty directory.
+are aligned using mafft and a phylogeny is constructed using RAxML. All
+phylogenies are then analysed. Temporary files and output files are written to
+the current working directory; to avoid overwriting existing files, you might to
+want to call this code from an empty directory.
 '''
 
 ################################################################################
@@ -88,62 +85,222 @@ def CommaSeparatedInts(MyCommaSeparatedInts):
     return ListOfInts
 
 # Set up the arguments for this script
-ExplanatoryMessage = ExplanatoryMessage.replace('\n', ' ').replace('  ', ' ')
 parser = argparse.ArgumentParser(description=ExplanatoryMessage)
-parser.add_argument('ListOfBamFiles', type=File, help='A file containing the '+\
-'names (and paths) of the bam files to be included, one per line. The file '+\
-'basenames (i.e. the filename minus the directory) should be unique and free '+\
-'of whitespace.')
-parser.add_argument('ListOfRefFiles', type=File, help='A file containing the '+\
-'names (and paths) of the reference fasta files for the bam files, one per '+\
-'line. The file basenames (i.e. the filename minus the directory) should be'+\
-' unique and free of whitespace.')
-parser.add_argument('-W', '--windows', type=CommaSeparatedInts,
-help='A comma-separated series of paired coordinates defining the boundaries '+\
-'of the windows. e.g. 1,300,11,310,21,320 would define windows 1-300, 11-310,'+\
-' 21-320.')
-parser.add_argument('-AW', '--auto-window-params',
+
+# Positional args
+parser.add_argument('ListOfBamFiles', type=File, help='''A file containing the
+names (and paths) of the bam files to be included, one per line. The file
+basenames (i.e. the filename minus the directory) should be unique and free
+of whitespace.''')
+parser.add_argument('ListOfRefFiles', type=File, help='''A file containing the
+names (and paths) of the reference fasta files for the bam files, one per
+line. The file basenames (i.e. the filename minus the directory) should be
+unique and free of whitespace. The order in which the references appear in this
+file should match the order of bams specified in the ListOfBamFiles file.''')
+
+WindowArgs = parser.add_argument_group('Window options - you must choose'
+' exactly one of -W, -AW or -E')
+WindowArgs.add_argument('-W', '--windows', type=CommaSeparatedInts,
+help='''A comma-separated series of paired coordinates defining the boundaries
+of the windows. e.g. 1,300,11,310,21,320 would define windows 1-300, 11-310,
+21-320.''')
+WindowArgs.add_argument('-AW', '--auto-window-params',
 type=CommaSeparatedInts, help='''Used to specify 2, 3 or 4 comma-separated
-integers controlling automatic window finding. The first integer is the width
-you want windows to be, weighting each column in the alignment of bam file
-references (plus any extra references included) by its non-gap fraction. The
+integers controlling the automatic creation of regular windows. The first
+integer is the width you want windows to be, weighting each column in the
+alignment of bam file references (plus any extra references included) by its
+non-gap fraction (so that windows become wider to accommodate insertions). The
 second is the overlap between the end of one window and the start of the next
-(which can be negative). The optional third integer is the start position for
-the first window (by default, 1). The optional fourth integer is the end
-position for the last window (by default, windows will continue up to the end of
-the alignment of references).''')
-parser.add_argument('-A', '--alignment-of-other-refs', type=File,
-help='An alignment of any reference sequences (which need not be those used '+\
-'to produce the bam files) to be cut into the same windows as the bam files '+\
-'and included in the alignment of reads (e.g. to help root trees).')
-parser.add_argument('-AO', '--align-refs-only', action='store_true',
-help='Align the references in the bam files (plus any extras specified with '+\
-'-A) then quit without parsing the reads.')
-parser.add_argument('-C', '--contaminant-count-ratio', type=float,
-help='Used to specify a numerical value which is interpreted the following '+\
-'way: if a sequence is found exactly duplicated between any two bam files, '+\
-'and is more common in one than the other by a factor at least equal to this '+\
-'value, the rarer sequence is diagnosed as contamination. It does not go into'+\
-' the tree, and instead goes into a contaminant read fasta file.')
-parser.add_argument('-CD', '--contaminant-read-dir', type=Dir,
-help='A directory containing the contaminant read fasta files produced by a '+\
+(which can be negative, implying unused space in between windows). The optional
+third integer is the start position for the first window (by default, 1). The
+optional fourth integer is the end position for the last window (by default,
+windows will continue up to the end of the alignment of references).''')
+WindowArgs.add_argument('-E', '--explore-window-widths',
+type=CommaSeparatedInts, help='''Use this option to explore how the number of
+unique reads found in each bam file in each window, all along the genome,
+depends on the window width. After this option specify a comma-separated list of
+integers. The first integer is the starting point for stepping along the genome,
+in case you're not interested in the very beginning. The second integer is the
+width spanned by two neighbouring windows; this sets the overlap for each window
+width though the equation (width of two windows) = 2x(window width) - (overlap
+between windows), with negative overlap understood to mean space between the end
+of one window and the start of the next. Subsequent integers are window widths
+to try. For example, if you specified 1000,301,101,151,201 we would count the
+number of unique reads in windows 1000-1100, 1200-1300, 1400-1500, ... and in
+1000-1150, 1150-1300, 1300-1450 ... and in 1000-1200, 1100-1300, 1200-1400, ...
+where the dots denote continuation to the end of the genome. (Note that both end
+coordinates of the window are included, hence why 1000-1100 has width 101.)
+Output is written to the file specified with the --explore-window-width-file
+option.''')
+WindowArgs.add_argument('-EF', '--explore-window-width-file', help='Used to '
+'specify an output file for window width data, when the '
+'--explore-window-widths option is used. Output is in in csv format.')
+
+RecommendedArgs = parser.add_argument_group('Options we particularly recommend')
+RecommendedArgs.add_argument('-A', '--alignment-of-other-refs', type=File,
+help='''Used to specify an alignment of reference sequences (which need not be
+those used to produce the bam files) that will be cut into the same windows as
+the bam files and included in the alignment of reads, for comparison. This is
+required if phyloscanner is to analyse the trees it produces.''')
+RecommendedArgs.add_argument('-RR', '--ref-for-rooting', help='''Used to name a
+reference sequence, which must be present in the file you specify with -A, to be
+an outgroup in each tree. This is required if phyloscanner is to analyse the
+trees it produces.''')
+RecommendedArgs.add_argument('-2', '--pairwise-align-to', help='''By default,
+phyloscanner figures out where corresponding windows are in different bam files
+by creating a multiple sequence alignment containing all of the mapping
+references used to create the bam files (plus any extra references included with
+-A), and window coordinates are intepreted with respect to this alignment.
+However using this option, the mapping references used to create the bam files
+are each separately pairwise aligned to one of the extra references included
+with -A, and window coordinates are interpreted with respect to this
+reference.''')
+
+QualityArgs = parser.add_argument_group('Options intended to minimise the '
+'impact of poor quality reads')
+QualityArgs.add_argument('-I', '--discard-improper-pairs', action='store_true',
+help='''For paired-read data, discard all reads that are improperly paired: in
+the wrong orientation, or one mate unmapped, or too far apart (as flagged
+at the time of mapping).''')
+QualityArgs.add_argument('-Q1', '--quality-trim-ends', type=int, help='''Each
+end of the read is trimmed inwards until a base of this quality is met.''')
+QualityArgs.add_argument('-Q2', '--min-internal-quality', type=int, help=\
+'''Discard reads containing more than one base of a quality below this
+parameter. (If used in conjuction with the --quality-trim-ends option, the
+trimming of the ends is done first.)''')
+QualityArgs.add_argument('-MC', '--min-read-count', type=int, default=1, help=\
+'''Reads with a count less than this value (after merging, if merging is being
+done) are discarded. The default value of 1 means all reads are kept. You
+may want to discard rare reads to protect against sequencing error and/or
+low-level contamination. Retaining fewer reads will also speed up all
+subsequent processing and analysis of the reads.''')
+
+OtherArgs = parser.add_argument_group('Other assorted options')
+OtherArgs.add_argument('-C', '--contaminant-count-ratio', type=float,
+help='''Used to specify a numerical value which is interpreted in the following
+'way: if a sequence is found exactly duplicated between any two bam files,
+'and is more common in one than the other by a factor at least equal to this
+'value, the rarer sequence is diagnosed as contamination. It does not go into
+' the tree, and instead goes into a contaminant read fasta file.''')
+OtherArgs.add_argument('-CD', '--contaminant-read-dir', type=Dir,
+help='A directory containing the contaminant read fasta files produced by a '
 'previous run of ' + os.path.basename(__file__) + ''' using the the -C flag:
 reads flagged as contaminants there will be considered contaminants in this run
 too. The windows must exactly match up between these two runs, most easily
 achieved with the -2 option. The point of this option is to first do a run with
-every bam file you have in which there could conceivably by cross-contamination,
+every bam file you have in which there could conceivably be cross-contamination,
 using the -C flag (and possibly -CO to save time), and then in subsequent runs
 focussing on subsets of bam files you will be able to identify contamination
 from outside that subset.''')
-parser.add_argument('-CE', '--recover-clipped-ends', action='store_true',
-help ='''The default behaviour of phyloscanner is to keep only reads that are
-mapped across both edges of the window in question. A read which is long enough
-to reach the edge of the window but is not mapped at its end, i.e. the end is
-clipped, will therefore not be included. With this option, clipped ends are
-recovered by considering any bases at the ends of the read that are unmapped to
-be mapped instead to 1 more than the base to their left (at the right end) or 1
-less than the base to their right (at the left end), iterating out from the
-centre. e.g. a 9bp read mapped to positions
+OtherArgs.add_argument('-F', '--renaming-file', type=File, help='Specify a file '
+'with one line per bam file, showing how reads from that bam file should be '
+"named in the output files. (By default, each bam file's basename is used.)")
+OtherArgs.add_argument('-MT', '--merging-threshold', type=int, default=0, help=\
+'Reads that differ by a number of bases equal to or less than this are merged'
+', those with higher counts effectively absorbing those with lower counts. '
+'The default value of 0 means there is no merging.')
+OtherArgs.add_argument('-N', '--num-bootstraps', type=int,
+help='The number of bootstraps to be calculated for RAxML trees (by default, '
+'none i.e. only the ML tree is calculated).')
+OtherArgs.add_argument('-Ns', '--bootstrap-seed', type=int, default=1, help='The'
+' random-number seed for running RAxML with bootstraps. The default is 1.')
+OtherArgs.add_argument('-O', '--keep-overhangs', action='store_true',
+help='''Keep the part of the read that overhangs the edge of the window. (By
+default this is trimmed, i.e. only the part of the read inside the window is
+kept.) Keeping overhangs means that, within each bam file, reads that are
+identical inside the window but have different overhangs will not be merged into
+a single sequence (with a count greater than 1). Differences in overhangs may be
+SNPs, or simply because the overhangs start or end at different points; this
+option is therefore a bit weird, because it's nice to merge all reads that are
+identical inside the window of interest.''')
+OtherArgs.add_argument('-P', '--merge-paired-reads', action='store_true',
+help='For paired-read data for which the reads in a pair (sometimes) overlap '
+'with each other: merge overlapping paired reads into a single read. Allows '
+'wider windows to be used.')
+OtherArgs.add_argument('-RC', '--ref-for-coords', help='''(Deprecated; the
+--pairwise-align-to option is expected to perform better.) If the
+--pairwise-align-to option is not used, then a multiple sequence alignment is
+created with all the mapping references used to create the bam files (plus any
+extra references included with -A). By default, window coordinates are
+interpreted with respect to this alignment, i.e. they are in the alignment
+coordinates. With this option (--ref-for-coords), the multiple sequence
+alignment is still created but window coordinates are interpreted with respect
+to a named reference, which must be one of those included with -A.''')
+OtherArgs.add_argument('-XC', '--excision-coords', type=CommaSeparatedInts,
+help='Used to specify a comma-separated set of integer coordinates that will '
+'be excised from the aligned reads. Useful for sites of non-neutral '
+'evolution, which distort phylogenies. Requires the -XR flag.')
+OtherArgs.add_argument('-XR', '--excision-ref', help='''Used to specify the name
+of a reference (which must be present in the file you specify with -A) with
+respect to which the coordinates specified with -XC are interpreted. If you are
+also using the --pairwise-align-to option, you must use the same reference there
+and here.''')
+OtherArgs.add_argument('--output-dir', help='Used to specify the name of a '
+'directory (which should not exist already) in which all intermediate and '
+'output files will be created.')
+OtherArgs.add_argument('--time', action='store_true',
+help='Prints the times taken by different steps.')
+OtherArgs.add_argument('--x-raxml', default='raxmlHPC-AVX -m GTRCAT -p 1',
+help='''The command required to invoke RAxML. You may include RAxML options in
+this command, which need to separated by white space as usual and then the whole
+thing needs to be surrounded with one pair of quotation marks (so that the raxml
+command and its options are kept together as one option for phyloscanner). If
+you include a path to your raxml binary (necessary if it is not in the $PATH
+variable of your terminal), it may not include whitespace, since whitespace is
+interpreted as separating raxml options. The default is 'raxmlHPC-AVX -m GTRCAT
+-p 1', where -m specifies an evolutionary model and -p specifies a random number
+seed for the parsimony inferences. If changing from the default, note that the
+-m and -p options are compulsory. Do not include in this command options
+relating to bootstraps: use phyloscanner's --num-bootstraps and --bootstrap-seed
+options instead. Do not include options relating to the naming of files.''')
+OtherArgs.add_argument('--x-mafft', default='mafft', help=\
+'The command required to invoke mafft (by default: mafft).')
+OtherArgs.add_argument('--x-samtools', default='samtools', help=\
+'The command required to invoke samtools, if needed (by default: samtools).')
+
+BioinformaticsArgs = parser.add_argument_group('Options for detailed'
+' bioinformatic interrogation of the input bam files (not intended for normal'
+' usage)')
+BioinformaticsArgs.add_argument('-IO', '--inspect-disagreeing-overlaps',
+action='store_true', help='When read pairs are merged, those pairs that '+\
+'overlap but disagree are discarded. With this option, these discarded pairs '+\
+'are written to a bam file (one per patient, with their reference file copied'+\
+' to the working directory) for your inspection.')
+BioinformaticsArgs.add_argument('-RN1', '--read-names-1', action='store_true',
+help='''Produce a file for each window and each bam, listing the names (as they
+appear in the input bam file) of the reads that phyloscanner used. If you like
+this you may also like tools/ExtractNamedReadsFromBam.py, which is run
+separately from the command line.''')
+BioinformaticsArgs.add_argument('-RN2', '--read-names-2', action='store_true',
+help='''As --read-names-1, except the files will show the correspondence between
+read names and which unique sequence they correspond to. This option cannot be
+used with either of the --merging-threshold or --excision-coords options,
+because they change the correspondence initially established between unique
+sequences and reads.''')
+BioinformaticsArgs.add_argument('--exact-window-start', action='store_true',
+help='''Experimental; for bioinformatic investigation only, not regular
+phyloscanner usage. Normally phyloscanner retrieves all reads that fully
+overlap a given window, i.e. starting at or anywhere before the window start,
+and ending at or anywhere after the window end. With this option, the reads that
+are retrieved are those that start at exactly the start of the window, and end
+anywhere. Window end coordinates are ignored. If combined with
+--exact-window-end, for a read to be kept it must start at exactly the window
+start AND end at exactly the window end. If --merge-paired-reads is also used,
+this explanation applies to inserts (read pairs) instead of individual
+reads.''')
+BioinformaticsArgs.add_argument('--exact-window-end', action='store_true',
+help='''With this option, the reads that are retrieved are those that end at
+exactly the end of the window, and start anywhere. Read the --exact-window-start
+help.''')
+BioinformaticsArgs.add_argument('-CE', '--recover-clipped-ends',
+action='store_true', help ='''The default behaviour of phyloscanner is to keep
+only reads that fully span the window in question. A read which is long enough
+in principle to reach the edge of the window but is not mapped at its end, i.e.
+the end is clipped, will therefore not be included. With this option, clipped
+ends are recovered by considering any bases at the ends of the read that are
+unmapped to be mapped instead to 1 more than the base to their left (at the
+right end) or 1 less than the base to their right (at the left end), iterating
+out from the centre. e.g. a 9bp read mapped to positions
 None,None,10,11,13,14,None,None,None
 (i.e. clipped on the left by 2bp, and on the right by 3bp, with a 1bp deletion
 in the middle), is taken to be mapped instead to positions
@@ -167,136 +324,26 @@ insight into how the reference in this window should be changed in order to have
 subsequent remapping get the local alignment right, in particular by contrasting
 the reference with the consensus of the aligned reads).
 ''')
-parser.add_argument('-CO', '--flag-contaminants-only', action='store_true',
-help="For each window, just flag contaminant reads then move on (without "+\
+
+StopEarlyArgs = parser.add_argument_group('Options to only partially run '
+'phyloscanner, stopping early or skipping steps')
+StopEarlyArgs.add_argument('-AO', '--align-refs-only', action='store_true',
+help='''Align the mapping references used to create the bam files, plus any
+extra reference sequences specified with -A, then quit without doing anything
+else. The point is to allow inspection of this alignment, whose coordinates are
+used to interpret window coordinates.''')
+StopEarlyArgs.add_argument('-CO', '--flag-contaminants-only', action='store_true',
+help="For each window, just flag contaminant reads then move on (without "
 "aligning reads or making a tree). Only makes sense with the -C flag.")
-parser.add_argument('-D', '--dont-check-duplicates', action='store_true',
+StopEarlyArgs.add_argument('-RNO', '--read-names-only', action='store_true',
+help='''To be combined with --read-names-1 or --read-names-2: quit after writing
+the read names to a file (which means the reads are not aligned).''')
+StopEarlyArgs.add_argument('-T', '--no-trees', action='store_true',
+help='Process and align the reads from each window, then quit without making '
+'trees.')
+StopEarlyArgs.add_argument('-D', '--dont-check-duplicates', action='store_true',
 help="Don't compare reads between samples to find duplicates - a possible "+\
 "indication of contamination. (By default this check is done.)")
-parser.add_argument('-E', '--explore-window-widths', type=CommaSeparatedInts,
-help='''Use this option to explore how the number of unique reads found in each
-bam file in each window, all along the genome, depends on the window width.
-After this option specify a comma-separated list of integers. The first integer
-is the starting point for stepping along the genome, in case you're not
-interested in the very beginning. The second integer is the width spanned by two
-neighbouring windows; this sets the overlap for each window width though the
-equation (width of two windows) = 2x(window width) - (overlap between windows), with
-negative overlap understood to mean space between the end of one window and the
-start of the next. Subsequent integers are window widths to try. For example, if
-you specified 1000,301,101,151,201 we would count the number of unique reads in
-windows 1000-1100, 1200-1300, 1400-1500, ... and in 1000-1150, 1150-1300,
-1300-1450 ... and in 1000-1200, 1100-1300, 1200-1400, ... where the dots denote
-continuation to the end of the genome. (Note that both end coordinates of the
-window are included, hence why 1000-1100 has width 101.) Output is written to
-the file specified with the --explore-window-width-file option.''')
-parser.add_argument('-EF', '--explore-window-width-file', help='Used to '+\
-'specify an output file for window width data, when the '+\
-'--explore-window-widths option is used. Output is in in csv format.')
-parser.add_argument('-F', '--renaming-file', type=File, help='Specify a file '\
-'with one line per bam file, showing how reads from that bam file should be '\
-"named in the output files. (By default, each bam file's basename is used.)")
-parser.add_argument('-I', '--discard-improper-pairs', action='store_true',
-help='For paired-read data, discard all reads that are improperly paired: in'+\
-' the wrong orientation, or one mate unmapped, or too far apart (as flagged '+\
-'at the time of mapping).')
-parser.add_argument('-IO', '--inspect-disagreeing-overlaps',
-action='store_true', help='When read pairs are merged, those pairs that '+\
-'overlap but disagree are discarded. With this option, these discarded pairs '+\
-'are written to a bam file (one per patient, with their reference file copied'+\
-' to the working directory) for your inspection.')
-parser.add_argument('-MT', '--merging-threshold', type=int, default=0, help=\
-'Reads that differ by a number of bases equal to or less than this are merged'+\
-', those with higher counts effectively absorbing those with lower counts. '+\
-'The default value of 0 means there is no merging.')
-parser.add_argument('-MC', '--min-read-count', type=int, default=1, help=\
-'Reads with a count less than this value (after merging, if merging is being '+\
-'done) are discarded. The default value of 1 means all reads are kept.')
-parser.add_argument('-N', '--num-bootstraps', type=int,
-help='The number of bootstraps to be calculated for RAxML trees (by default, '+\
-'none i.e. only the ML tree is calculated).')
-parser.add_argument('-Ns', '--bootstrap-seed', type=int, default=1, help='The'+\
-' random-number seed for running RAxML with bootstraps. The default is 1.')
-parser.add_argument('-O', '--keep-overhangs', action='store_true',
-help='Keep the whole read. (By default, only the part of the read inside the'+\
-'window is kept, i.e. overhangs are trimmed.)')
-parser.add_argument('-P', '--merge-paired-reads', action='store_true',
-help='Merge overlapping paired reads into a single read.')
-parser.add_argument('-Q1', '--quality-trim-ends', type=int, help='Each end of'+\
-' the read is trimmed inwards until a base of this quality is met.')
-parser.add_argument('-Q2', '--min-internal-quality', type=int, help=\
-'Discard reads containing more than one base of a quality below this parameter'\
-+'. If used in conjuction with the --quality-trim-ends option, the trimming '+\
-'of the ends is done first.')
-parser.add_argument('-RR', '--ref-for-rooting', help='Used to name a reference'\
-' (which must be present in the file you specify with -A) to be an outgroup'+\
-' in the tree.')
-parser.add_argument('-RC', '--ref-for-coords', help='The coordinates are to be'\
-' interpreted with respect to (an ungapped version of) the reference named '\
-+'after this flag, which must be present in the file you specify with -A. (By '\
-+'default coordinates are interpreted with respect to the alignment of all '+\
-'bam and external references.) Deprecated; the --pairwise-align-to option is'+\
-' expected to perform better.')
-parser.add_argument('-RN1', '--read-names-1', action='store_true',
-help='''Produce a file for each window and each bam, listing the names (as they
-appear in the input bam file) of the reads that phyloscanner used. If you like
-this you may also like tools/ExtractNamedReadsFromBam.py, which is run
-separately from the command line.''')
-parser.add_argument('-RN2', '--read-names-2', action='store_true',
-help='''As --read-names-1, except the files will show the correspondence between
-read names and which unique sequence they correspond to. This option cannot be
-used with either of the --merging-threshold or --excision-coords options,
-because they change the correspondence initially established between unique
-sequences and reads.''')
-parser.add_argument('-T', '--no-trees', action='store_true', help='Generate '+\
-'aligned sets of reads for each window then quit without making trees.')
-parser.add_argument('-XC', '--excision-coords', type=CommaSeparatedInts,
-help='Used to specify a comma-separated set of integer coordinates that will '+\
-'be excised from the aligned reads. Useful for sites of non-neutral '+\
-'evolution. Requires the -XR flag.')
-parser.add_argument('-XR', '--excision-ref', help='Used to specify the '+\
-'name of a reference (which must be present in the file you specify with -A)'+\
-' with respect to which the coordinates specified with -XC are interpreted.')
-parser.add_argument('-2', '--pairwise-align-to', help='Sequentially, and '+\
-'separately, align the bam file references to this reference (which must be '+\
-'present in the file you specify with -A) instead of aligning all references '+\
-'together. Window coordinates will be interpreted with respect to this '+\
-'reference.')
-parser.add_argument('--output-dir', help='Used to specify the name of a '+\
-'directory (which should not exist already) in which all intermediate and '+\
-'output files will be created.')
-parser.add_argument('--exact-window-start', action='store_true', help='''
-Experimental; for bioinformatic investigation only, not regular
-phyloscanner usage. Normally phyloscanner retrieves all reads that fully
-overlap a given window, i.e. starting at or anywhere before the window start,
-and ending at or anywhere after the window end. With this option, the reads that
-are retrieved are those that start at exactly the start of the window, and end
-anywhere. Window end coordinates are ignored. If combined with
---exact-window-end, for a read to be kept it must start at exactly the window
-start AND end at exactly the window end. If --merge-paired-reads is also used,
-this explanation applies to inserts (read pairs) instead of individual
-reads.''')
-parser.add_argument('--exact-window-end', action='store_true', help='''With
-this option, the reads that are retrieved are those that end at exactly the end
-of the window, and start anywhere. Read the --exact-window-start help.''')
-parser.add_argument('--time', action='store_true',
-help='Prints the times taken by different steps.')
-parser.add_argument('--x-raxml', default='raxmlHPC-AVX -m GTRCAT -p 1', help=\
-'''The command required to invoke RAxML. You may include RAxML options in this
-command, which need to separated by white space as usual and then the whole
-thing needs to be surrounded with one pair of quotation marks (so that the raxml
-binary and its options are kept together as one option for phyloscanner). If you
-include a path to your raxml binary (necessary if it is not in the $PATH
-variable of your terminal), it may not include whitespace, since whitespace is
-interpreted as separating raxml options. The default is 'raxmlHPC-AVX -m GTRCAT
--p 1', where -m specifies an evolutionary model and -p specifies a random number
-seed for the parsimony inferences. If changing from the default, note that the
--m and -p options are compulsory. Do not include in this command options
-relating to bootstraps: use phyloscanner's --num-bootstraps and --bootstrap-seed
-options instead. Do not include options relating to the naming of files.''')
-parser.add_argument('--x-mafft', default='mafft', help=\
-'The command required to invoke mafft (by default: mafft).')
-parser.add_argument('--x-samtools', default='samtools', help=\
-'The command required to invoke samtools, if needed (by default: samtools).')
 
 args = parser.parse_args()
 
@@ -1319,6 +1366,8 @@ for window in range(NumCoords / 2):
       with open(FileForReadNames2, 'w') as f:
         for seq, ReadNamesForThatSeq in ReadNameDict.items():
           f.write(seq + ',' + ' '.join(ReadNamesForThatSeq) + '\n')
+  if args.read_names_only:
+    continue
 
   # We've now gathered together reads from all bam files for this window.
 
