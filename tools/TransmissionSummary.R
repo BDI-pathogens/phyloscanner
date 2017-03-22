@@ -24,7 +24,7 @@ if(command.line){
   arg_parser$add_argument("-p", "--allowSplits", action="store_true", default=FALSE, help="If absent, directionality is only inferred between pairs of patients whose reads are not split; this is more conservative.")
   arg_parser$add_argument("-d", "--detailedOutput", action="store", help="If present, a file describing the relationships between each pair of patients on each window will be written to the specified path in .rda format")
   arg_parser$add_argument("idFile", action="store", help="A file containing a list of the IDs of all the patients to calculate and display statistics for.")
-  arg_parser$add_argument("inputFiles", action="store", help="Either (if -l is present) a list of all input files (output from LikelyTransmissions.R), separated by colons, or (if not) a single string that begins every input file name.")
+  arg_parser$add_argument("inputFiles", action="store", help="Either (if -l is present) a list of all input files (output from ClassifyRelationships.R), separated by colons, or (if not) a single string that begins every input file name.")
   arg_parser$add_argument("outputFile", action="store", help="A .csv file to write the output to.")
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
   args <- arg_parser$parse_args()
@@ -98,7 +98,7 @@ patient.ids	<- unique(scan(id.file, what="", sep="\n", quiet=TRUE))
 if(!length(patient.ids))
   stop(paste("No IDs found in ", id.file, ". Quitting.\n", sep=""))  
 #
-# Read likely transmissions files
+# Read classification files
 #
 tt	<-	lapply(input.files, function(x){
 			tt <- as.data.table(read.table(x, sep=",", header=TRUE, stringsAsFactors=FALSE))

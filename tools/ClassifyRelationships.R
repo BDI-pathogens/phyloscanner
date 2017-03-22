@@ -71,10 +71,10 @@ if(command.line){
   
   if(0)
   {
-    setwd("/Users/twoseventwo/Library/Containers/com.apple.mail/Data/Library/Mail Downloads/F227CCD4-159E-462A-9DC5-80CB75544B68/pty_17-03-21-20-44-58")
+    setwd("/Users/twoseventwo/Library/Containers/com.apple.mail/Data/Library/Mail Downloads/8D40D980-06B2-46EE-9BA2-789D541F19E2")
     script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
-    tree.file.names			<- 'ProcessedTree_s_ptyr22_InWindow_'
-    splits.file.names		<- 'Subtrees_s_ptyr22_InWindow_'
+    tree.file.names			<- '/Users/twoseventwo/Library/Containers/com.apple.mail/Data/Library/Mail Downloads/8D40D980-06B2-46EE-9BA2-789D541F19E2/pty_17-03-22-16-12-38/ProcessedTree_s_ptyr22_InWindow_'
+    splits.file.names		<- '/Users/twoseventwo/Library/Containers/com.apple.mail/Data/Library/Mail Downloads/8D40D980-06B2-46EE-9BA2-789D541F19E2/pty_17-03-22-16-12-38/subgraphs_s_ptyr22_InWindow_'
     output.name 			<- 'testpit'
     has.normalisation <- F
   }
@@ -107,7 +107,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, normalisation.
   patients <- unique(splits$patient)
   patient.tips <- lapply(patients, function(x) which(tree$tip.label %in% splits[which(splits$patient==x), "tip.names"]))
   names(patient.tips) <- patients
-  all.splits <- unique(splits$patient)
+  all.splits <- unique(splits$subgraph)
   
   cat("Reading annotations...\n")
   
