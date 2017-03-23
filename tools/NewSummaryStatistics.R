@@ -15,7 +15,13 @@ list.of.packages <- c("argparse",
                       "pegas")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
-#	load packages
+# #	load packages
+
+source(file.path(script.dir, "TreeUtilityFunctions.R"))
+source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
+source(file.path(script.dir, "SummariseTrees_funcs.R"))
+
+suppressMessages(require(ape, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(phytools, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(ggplot2, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(reshape, quietly=TRUE, warn.conflicts=FALSE))
@@ -25,9 +31,9 @@ suppressMessages(require(gridExtra, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(RColorBrewer, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(scales, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(dplyr, quietly=TRUE, warn.conflicts=FALSE))
-suppressMessages(require(dtplyr, quietly=TRUE, warn.conflicts=FALSE))
+# suppressMessages(require(dtplyr, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
-#
+# #
 #	constants
 #
 prefix.wfrom 		<- 'Window_'
@@ -36,8 +42,7 @@ prefix.bootstrap	<- 'bootstrap_'
 #
 #	command line
 #
-BEEHIVE <- F
-command.line <- T
+command.line <- F
 if (command.line) {
   require(argparse, quietly=TRUE, warn.conflicts=FALSE)
   
@@ -46,21 +51,23 @@ if (command.line) {
   arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", 
                           help="Regular expression identifying tips from the dataset. Three groups: patient ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name.")
   arg_parser$add_argument("-r", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
-  arg_parser$add_argument("-l", "--filesAreLists", action="store_true", default=FALSE, help="If present, arguments specifying input files (trees, splits and blacklists) will be parsed as lists of files separated by colons. If absent, they will be parsed as a string which each file of that type begins with.")
   arg_parser$add_argument("-b", "--blacklists", help="Either (if -l is present) a list of blacklist files, in the same order as the tree files and separated by colons, or (if not) a single string that begins every blacklist file name.")
   arg_parser$add_argument("-w", "--windows", action="store", help="The window in the genome which each tree file, in the same order as the tree files (user-specified if -l is present, in the order provided by the file system if now), is constructed from. In each window this is given as n-m where n is the start and m the end; coordinates for each window are separated by a colon. If not given, the script will attempt to obtain these from the file names.")
   arg_parser$add_argument("idFile", action="store", help="A file containing a list of the IDs of all the patients to calcualte and display statistics for.")
   arg_parser$add_argument("treeFiles", action="store", help="Either (if -l is present) a list of tree files, separated by colons, or (if not) a single string that begins every tree file name.")
-  #  arg_parser$add_argument("sequenceFiles", action="store", help="Either (if -l is present) a list of sequence files, separated by colons, or (if not) a single string that begins every tree file name.")
   arg_parser$add_argument("splitsFiles", action="store",help="Either (if -l is present) a list of splits files, in the same order as the tree files and separated by colons, or (if not) a single string that begins every splits file name.")
   arg_parser$add_argument("outputBaseName", action="store", help="A string to begin the names of all output files.")
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
+  
   # Read in the arguments
   
   args <- arg_parser$parse_args()
   
   id.file <- args$idFile
   script.dir <- args$scriptdir
+  
+
+  
   files.are.lists <- args$filesAreLists
   root.name <- args$outgroupName
   tip.regex <- args$tipRegex
@@ -68,8 +75,6 @@ if (command.line) {
   splits.file.names <- args$splitsFiles
   blacklist.file.names <- args$blacklists  
   output.root <- args$outputBaseName
-  
-  #  cat(paste(id.file, script.dir, files.are.lists, root.name, tip.regex, tree.file.names, splits.file.names, blacklist.file.names, output.root, sep='\n'))
   
   if(!files.are.lists){
     tree.files <- sort(list.files(dirname(tree.file.names), pattern=paste('^',basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))	  
@@ -86,12 +91,12 @@ if (command.line) {
       blacklist.files <- unlist(strsplit(blacklist.file.names, ":"))
     }
   }
+  
   #	continue with the min number of windows for which splits files are present
   if(length(tree.files)!=length(splits.files)){	  	
     df				<- data.table(TF= tree.files)		
     df[, W_FROM:= df[,as.integer(gsub(prefix.wfrom,'',regmatches(TF, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),TF))))]]
     df[, W_TO:= df[, as.integer(gsub(prefix.wto,'',regmatches(TF, regexpr(paste(prefix.wto,'[0-9]+',sep=''),TF))))]]
-    print(splits.files)
     tmp				<- data.table(SF= splits.files)		
     tmp[, W_FROM:= tmp[,as.integer(gsub(prefix.wfrom,'',regmatches(SF, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),SF))))]]
     tmp[, W_TO:= tmp[, as.integer(gsub(prefix.wto,'',regmatches(SF, regexpr(paste(prefix.wto,'[0-9]+',sep=''),SF))))]]
@@ -103,7 +108,6 @@ if (command.line) {
       tmp[, W_FROM:= tmp[,as.integer(gsub(prefix.wfrom,'',regmatches(BF, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),BF))))]]
       tmp[, W_TO:= tmp[, as.integer(gsub(prefix.wto,'',regmatches(BF, regexpr(paste(prefix.wto,'[0-9]+',sep=''),BF))))]]			
       df					<- merge(df, tmp, by=c('W_FROM','W_TO'))
-      print(df)
       tree.files			<- df[, TF]
       splits.files		<- df[, SF]			
       blacklist.files		<- df[, BF]	
@@ -132,47 +136,23 @@ if (command.line) {
   id.file <- "patientIDList.txt"
   root.name<- "C.BW.00.00BW07621.AF443088"
   tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
-  tree.files <- sort(list.files(paste(getwd(),sep=""), pattern="RAxML_bestTree.InWindow_.*\\.tree"))
-  splits.files <- sort(list.files(paste(getwd(),sep=""), pattern="Subtrees_s_run20161013_inWindow_.*\\.csv"))  
-  blacklist.files <- sort(list.files(paste(getwd(),sep=""), pattern="DualsBlacklist.InWindow_.*\\.csv"))
+  tree.file.name <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/AllTrees/RAxML_bestTree.InWindow_"
+  splits.file.name <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/SubtreeFiles_s/Subtrees_s_run20161013_inWindow_"
+  blacklist.file.name <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013//Blacklists/Duals blacklists/DualBlacklist.InWindow_"
+  
+  tree.files <- sort(list.files.mod(dirname(tree.file.name), pattern=paste('^',basename(tree.file.name),".*\\.tree",sep=""), full.names=TRUE))	  
+  
+  tree.files <- tree.files[c(1:23, 25:33)]
+  
+  splits.files <- sort(list.files.mod(dirname(splits.file.name), pattern=paste('^',basename(splits.file.name),".*\\.csv",sep=""), full.names=TRUE))	  
+  blacklist.files <- sort(list.files.mod(dirname(blacklist.file.name), pattern=paste('^',basename(blacklist.file.name),".*\\.csv",sep=""), full.names=TRUE))	  
+  
+  blacklist.files <- blacklist.files[c(1:23, 25:33)]
+  
+  
   output.root <- "ss_s"
   windows <- NULL
-  
-  #  if(0)
-  #   {
-  # 	  script.dir	<- "/Users/Oliver/git/phylotypes/tools"
-  # 	  id.file 		<- "/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_patients.txt"
-  # 	  root.name		<- "REF_CPX_AF460972_read_1_count_0"
-  # 	  tip.regex 	<- "^(.*)_read_([0-9]+)_count_([0-9]+)$"	  
-  # 	  tree.file.names		<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_'
-  # 	  splits.file.names		<- '/Users/Oliver/duke/2016_PANGEAphylotypes/Rakai_ptoutput/ptyr115_'
-  # 	  blacklist.file.names	<- NULL
-  # 	  tree.files 		<- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))
-  # 	  splits.files 		<- sort(list.files(dirname(splits.file.names), pattern=paste(basename(splits.file.names),".*\\.csv",sep=""), full.names=TRUE))
-  # 	  blacklist.files 	<- NULL
-  # 	  output.root 		<- "ss_c"
-  # 	  windows <- NULL	  
-  #   }
-  if(0)
-  {
-    script.dir	<- "/Users/Oliver/git/phylotypes/tools"
-    id.file 		<- "/Users/Oliver/duke/tmp/pty_17-02-13-15-45-07/ptyr3_patients.txt"
-    root.name		<- "REF_CPX_AF460972"
-    tip.regex 	<- "^(.*)_read_([0-9]+)_count_([0-9]+)$"	  
-    tree.file.names		<- '/Users/Oliver/duke/tmp/pty_17-02-13-15-45-07/ptyr3_InWindow_'	  
-    splits.file.names		<- '/Users/Oliver/duke/tmp/pty_17-02-13-15-45-07/Subtrees_r_ptyr3_InWindow_'
-    blacklist.file.names	<- '/Users/Oliver/duke/tmp/pty_17-02-13-15-45-07/ptyr3_blacklistdwns_'
-    tree.files 		<- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))	  
-    splits.files 		<- sort(list.files(dirname(splits.file.names), pattern=paste(basename(splits.file.names),".*\\.csv",sep=""), full.names=TRUE))
-    blacklist.files 	<- sort(list.files(dirname(blacklist.file.names), pattern=paste(basename(blacklist.file.names),".*\\.csv",sep=""), full.names=TRUE))
-    output.root 		<- "/Users/Oliver/duke/tmp/pty_17-02-13-15-45-07/ptyr3"
-    windows <- NULL	  
-  }
 }
-
-source(file.path(script.dir, "TreeUtilityFunctions.R"))
-source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
-source(file.path(script.dir, "SummariseTrees_funcs.R"))
 
 AlignPlots <- function(...) {
   LegendWidth <- function(x) x$grobs[[15]]$grobs[[1]]$widths[[4]]
@@ -228,23 +208,18 @@ unfactorDataFrame <- function(x) {
 # OR CHANGELOG: removed skip=1 this was not reading the first entry?
 # Read in the IDs. Remove duplicates. Shuffle their order if desired.
 ids <- scan(id.file, what="", sep="\n", quiet=TRUE)
-# Check if all IDs in at least one tree
-# require(data.table)
-# tmp	<- data.table(FILE_TREE=tree.files)
-# tmp	<- tmp[, {			
-# 				ph	<- read.tree(FILE_TREE)
-# 				list(IDS= unique(gsub('_read_[0-9]+_count_[0-9]+','',ph$tip.label)) )
-# 			}, by='FILE_TREE']
-# tmp	<- setdiff(ids, tmp[, unique(IDS)])
-# if(length(tmp))
-# 	cat('\nwarning: IDs in id.file not found in any tree', paste(tmp, collapse=' '))
+ids <- unique(ids)
+ids <- ids[1:2]
 
-num.ids <- length(unique(ids))
+num.ids <- length(ids)
+
+
 if (num.ids == 0) {
   cat(paste("No IDs found in ", id.file, ". Quitting.\n", sep=""))
   quit("no", 1)
 }
-ids <- unique(ids)
+
+
 
 ids.col <- vector()
 window.start.col <- vector()
@@ -263,12 +238,9 @@ branch.to.pat.ratio.col <- vector()
 
 read.proportions <- list()
 max.splits <- 0
-print(tree.files)
+
 for(window.no in seq(1, length(tree.files))){
   
-  #tree.file.name <- paste("AllTrees/",tree.files[window.no], sep="")
-  #blacklist.file.name <- paste("Blacklists/",blacklist.files[window.no], sep="")
-  #splits.file.name <- paste("SubtreeFiles_r/",splits.files[window.no], sep="")  
   tree.file.name <- tree.files[window.no]
   blacklist.file.name <- blacklist.files[window.no]
   splits.file.name <- splits.files[window.no]  
@@ -285,8 +257,10 @@ for(window.no in seq(1, length(tree.files))){
   }
   
   # Read the tree
-  cat('read',tree.file.name,'\n')
+  
   tree <- read.tree(file=tree.file.name)  
+  
+  cat('Read',tree.file.name,'\n')
   
   # Root the tree
   if(!is.null(root.name)){
@@ -312,6 +286,8 @@ for(window.no in seq(1, length(tree.files))){
   # Load the splits
   
   splits.table <- read.table(splits.file.name, sep=",", stringsAsFactors = F, header=T)
+  #get rid of this quickly
+  colnames(splits.table) <- c("patient", "subgraph", "tip")
   
   splits.table$reads <- as.numeric(unlist(strsplit(splits.table$tip,"count_"))[seq(2,2*nrow(splits.table),2)])
   
@@ -558,98 +534,6 @@ tmp <- file.path(paste(output.root,"_patStatsSummary.csv",sep=""))
 cat("Writing output to file",tmp,"...\n")
 write.csv(pat.stats.summary, tmp, quote = F, row.names = F)
 
-if(BEEHIVE){
-  amplicon.starts <- c(480, 1485, 2407, 4783, 5058, 5967, 7848)
-  amplicon.ends <- c(1485, 2407, 4783, 5058, 5967, 7848, 9517)
-  overlap.area <- c(F, T, F, T, F, T, F)
-  amplicon.names <- c("Amplicon 1 unique", "Amplicon 1/2 overlap", "Amplicon 2 unique", "Amplicon 2/3 overlap", 
-                      "Amplicon 3 unique", "Amplicon 3/4 overlap", "Amplicon 4")
-  
-  amplicon.df <- data.frame(start = amplicon.starts, end = amplicon.ends, overlap.area = overlap.area, name = amplicon.names)
-  
-  duals.summary <- read.csv("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/Blacklists/duals_summary.csv")
-  
-  #amplicon-specific
-  
-  first <- T
-  
-  for(amplicon.no in seq(1, nrow(amplicon.df))){
-    start <- amplicon.df[amplicon.no, "start"]
-    end <- amplicon.df[amplicon.no, "end"]
-    if(!amplicon.df[amplicon.no, "overlap.area"]){
-      
-      pat.stats.amp <- pat.stats[which(
-        (pat.stats$window.start > start) & (pat.stats$window.end < end) | 
-          (pat.stats$window.start < start) & (pat.stats$window.end > start) |
-          (pat.stats$window.start < end) & (pat.stats$window.end > end)
-      ),]
-      pat.stats.amp <- pat.stats.amp[which(pat.stats.amp$reads>0) ,c("patient",
-                                                                     "leaves",
-                                                                     "reads",
-                                                                     "subtrees",
-                                                                     "clades",
-                                                                     "overall.rtt",
-                                                                     "largest.rtt",
-                                                                     "largest.pat.dist",
-                                                                     "prop.reads.largest.subtree",
-                                                                     "longest.branch",
-                                                                     "mean.pat.dist",
-                                                                     "branch.to.pat.ratio")]
-      
-      if(nrow(pat.stats.amp)>0){
-        by.patient <- pat.stats.amp %>% group_by(patient)
-        pat.stats.amp.summary <-
-          as.data.frame(by.patient %>% summarise_each(funs(mean.na.rm)))
-        pat.stats.amp.summary$region <- amplicon.df[amplicon.no, "name"]
-        if(first){
-          first <- F
-          all.amp.summaries <- pat.stats.amp.summary
-        } else {
-          all.amp.summaries <- rbind(all.amp.summaries, pat.stats.amp.summary)
-        }
-      }
-      
-    } else {
-      #overlapping regions
-      
-      pat.stats.amp <- pat.stats[which(
-        (pat.stats$window.start > start) & (pat.stats$window.end < end)
-      ),]
-      pat.stats.amp <- pat.stats.amp[which(pat.stats.amp$reads>0) ,c("patient",
-                                                                     "leaves",
-                                                                     "reads",
-                                                                     "subtrees",
-                                                                     "clades",
-                                                                     "overall.rtt",
-                                                                     "largest.rtt",
-                                                                     "largest.pat.dist",
-                                                                     "prop.reads.largest.subtree",
-                                                                     "longest.branch",
-                                                                     "mean.pat.dist",
-                                                                     "branch.to.pat.ratio")]
-      
-      if(nrow(pat.stats.amp)>0){
-        by.patient <- pat.stats.amp %>% group_by(patient)
-        pat.stats.amp.summary <-
-          as.data.frame(by.patient %>% summarise_each(funs(mean.na.rm)))
-        pat.stats.amp.summary$region <- amplicon.df[amplicon.no, "name"]
-        if(first){
-          first <- F
-          all.amp.summaries <- pat.stats.amp.summary
-        } else {
-          all.amp.summaries <- rbind(all.amp.summaries, pat.stats.amp.summary)
-        }
-      }
-    }
-  }
-  
-  all.amp.summaries <- all.amp.summaries[order(all.amp.summaries$patient),]
-  
-  tmp <- file.path(paste(output.root,"_patStatsAmpliconSummary.csv",sep=""))
-  cat("Writing output to file",tmp,"...\n")
-  write.csv(all.amp.summaries, tmp, quote = F, row.names = F)
-}
-
 tmp <- paste(output.root,"_patStats.pdf",sep="")
 cat("Plotting to file",tmp,"...\n")
 pdf(file=tmp, width=8.26772, height=11.6929)
@@ -812,23 +696,6 @@ for (i in seq(1, num.ids)) {
     
     plots1 <- list()
     
-    if(BEEHIVE){
-      if(patient %in% duals.summary$patient){
-        pat.row <- which(duals.summary$patient == patient)
-        
-        if(duals.summary$type[pat.row]!="single"){
-          title.string <- paste(patient, " (",duals.summary$type[pat.row]," dual infection)",sep="")
-        } else {
-          title.string <- patient
-        }
-        
-      } else {
-        title.string <- patient
-      }
-      plots1$main <- textGrob(title.string,gp=gpar(fontsize=20))
-    } else {
-      plots1$main <- textGrob(patient,gp=gpar(fontsize=20))
-    }  
     plots1 <- c(plots1, AlignPlots(graph.1, graph.2, graph.3, graph.4, graph.5, graph.6))
     plots1$ncol <- 1
     plots1$heights <- unit(c(0.25, rep(1,6)), "null")
