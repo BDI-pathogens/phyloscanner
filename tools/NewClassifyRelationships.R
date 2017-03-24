@@ -92,7 +92,7 @@ source(file.path(script.dir, "CollapsedTreeMethods.R"))
 #
 #	define internal functions
 #
-likely.transmissions<- function(tree.file.name, splits.file.name, normalisation.constant = NULL, tt.file.name = NULL) {	
+classify <- function(tree.file.name, splits.file.name, normalisation.constant = NULL, tt.file.name = NULL) {	
   cat("Reading tree file ", tree.file.name, "...\n", sep = "")
   
   pseudo.beast.import <- read.beast(tree.file.name)
@@ -101,6 +101,8 @@ likely.transmissions<- function(tree.file.name, splits.file.name, normalisation.
   cat("Reading splits file",splits.file.name,"...\n")
   
   splits <- read.csv(splits.file.name, stringsAsFactors = F)
+  
+  colnames(splits) <- c("patient", "subgraph", "split")
   
   cat("Collecting tips for each patient...\n")
   
@@ -155,14 +157,13 @@ likely.transmissions<- function(tree.file.name, splits.file.name, normalisation.
   cat("Testing pairs...\n")
   
   count <- 0
-  contiguous.matrix <- matrix(NA, length(patients.included), length(patients.included))
-  uninterrupted.matrix <- matrix(NA, length(patients.included), length(patients.included))
+  adjacency.matrix <- matrix(NA, length(patients.included), length(patients.included))
   path.matrix <- matrix(NA, length(patients.included), length(patients.included))
   nodes.1.matrix <- matrix(NA, length(patients.included), length(patients.included))
   nodes.2.matrix <- matrix(NA, length(patients.included), length(patients.included))
   dir.12.matrix <- matrix(NA, length(patients.included), length(patients.included))
   dir.21.matrix <- matrix(NA, length(patients.included), length(patients.included))
-  mean.distance.matrix <- matrix(NA, length(patients.included), length(patients.included))
+  min.distance.matrix <- matrix(NA, length(patients.included), length(patients.included))
   
   for(pat.1 in seq(1, length(patients.included))){
     for(pat.2 in  seq(1, length(patients.included))){
@@ -179,14 +180,10 @@ likely.transmissions<- function(tree.file.name, splits.file.name, normalisation.
         all.nodes <-  c(nodes.1, nodes.2)
         
         # we want that they form a perfect blob with no intervening nodes for any other patients
-        OK <- check.contiguous(tt, c(pat.1.id, pat.2.id), splits.for.patients, patients.for.splits)		
+        OK <- check.adjacency(tt, c(pat.1.id, pat.2.id), splits.for.patients)		
         
-        contiguous.matrix[pat.1, pat.2] <- OK
-        
-        OK <- check.uninterrupted(tt, c(pat.1.id, pat.2.id), splits.for.patients, patients.for.splits)	
-        
-        uninterrupted.matrix[pat.1, pat.2] <- OK
-        
+        adjacency.matrix[pat.1, pat.2] <- OK
+
         count.12 <- 0
         count.21 <- 0
         
@@ -241,7 +238,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, normalisation.
           }
         }
         
-        mean.distance.matrix[pat.1, pat.2] <- mean(pairwise.distances)
+        min.distance.matrix[pat.1, pat.2] <- min(pairwise.distances)
         
         
         if (count %% 100 == 0) {
@@ -255,24 +252,20 @@ likely.transmissions<- function(tree.file.name, splits.file.name, normalisation.
     normalised.distance.matrix<- mean.distance.matrix/normalisation.constant
   }
   
-  contiguous.table <- as.table(contiguous.matrix)
-  uninterrupted.table <- as.table(uninterrupted.matrix)
+  adjacency.table <- as.table(adjacency.matrix)
   dir.12.table <- as.table(dir.12.matrix)
   dir.21.table <- as.table(dir.21.matrix)
   nodes.1.table <- as.table(nodes.1.matrix)
   nodes.2.table <- as.table(nodes.2.matrix)
   path.table <- as.table(path.matrix)
-  mean.distance.table <- as.table(mean.distance.matrix)
+  min.distance.table <- as.table(min.distance.matrix)
   
   if(!is.null(normalisation.constant)){
     normalised.distance.table <- as.table(normalised.distance.matrix)
   }
   
-  colnames(contiguous.table) <- patients.included
-  rownames(contiguous.table) <- patients.included
-  
-  colnames(uninterrupted.table) <- patients.included
-  rownames(uninterrupted.table) <- patients.included
+  colnames(adjacency.table) <- patients.included
+  rownames(adjacency.table) <- patients.included
   
   colnames(path.table) <- patients.included
   rownames(path.table) <- patients.included
@@ -289,8 +282,8 @@ likely.transmissions<- function(tree.file.name, splits.file.name, normalisation.
   colnames(nodes.2.table) <- patients.included
   rownames(nodes.2.table) <- patients.included
   
-  colnames(mean.distance.table) <- patients.included
-  rownames(mean.distance.table) <- patients.included
+  colnames(min.distance.table) <- patients.included
+  rownames(min.distance.table) <- patients.included
   
   if(!is.null(normalisation.constant)){
     colnames(normalised.distance.table) <- patients.included
@@ -298,15 +291,11 @@ likely.transmissions<- function(tree.file.name, splits.file.name, normalisation.
   }
   
   
-  cdf <- as.data.frame(contiguous.table)
+  adf <- as.data.frame(adjacency.table)
   
-  keep <- complete.cases(cdf)
+  keep <- complete.cases(adf)
   
-  cdf <- cdf[keep,]
-  
-  udf <- as.data.frame(uninterrupted.table)
-  
-  udf <- udf[keep,]
+  adf <- adf[keep,]
   
   pdf <- as.data.frame(path.table)
   pdf <- pdf[keep,]
@@ -321,7 +310,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, normalisation.
   n1df <- n1df[keep,]
   n2df <- n2df[keep,]
   
-  mddf <- as.data.frame(mean.distance.table)
+  mddf <- as.data.frame(min.distance.table)
   mddf <- mddf[keep,]
   
   if(!is.null(normalisation.constant)){
@@ -329,17 +318,17 @@ likely.transmissions<- function(tree.file.name, splits.file.name, normalisation.
     nddf <- mddf[keep,]
   }
   
-  cdf <- cbind(cdf, udf[,3], d12df[,3], d21df[,3], n1df[,3], n2df[,3], pdf[,3], mddf[,3])
+  adf <- cbind(adf, d12df[,3], d21df[,3], n1df[,3], n2df[,3], pdf[,3], mddf[,3])
   
-  column.names <- c("Patient_1", "Patient_2", "contiguous", "uninterrupted", "paths12", "paths21", "nodes1", "nodes2", "path.classification", "mean.distance.between.subtrees")
+  column.names <- c("Patient_1", "Patient_2", "adjacent", "paths12", "paths21", "nodes1", "nodes2", "path.classification", "min.distance.between.subtrees")
   
   if(!is.null(normalisation.constant)){
-    cdf <- cbind(cdf, nddf[,3])
+    adf <- cbind(adf, nddf[,3])
     column.names <- c(column.names, "normalised.mean.distance.between.subtrees")
   }
   
-  colnames(cdf) <- column.names
-  cdf
+  colnames(adf) <- column.names
+  adf
 }
 
 #
@@ -375,7 +364,7 @@ if(single.file)
     }
   }
   
-  dddf				<- likely.transmissions(tree.file.name, splits.file.name, normalisation.constant = normalisation.constant, tt.file.name = collapsed.file.names)
+  dddf				<- classify(tree.file.name, splits.file.name, normalisation.constant = normalisation.constant, tt.file.name = collapsed.file.names)
   cat("Write to file",output.name,"...\n")
   write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE, quote=F)	
 } else {
@@ -416,7 +405,7 @@ if(single.file)
     }
     
     tryCatch({
-      dddf	<- likely.transmissions(tree.file.name, splits.file.name, normalisation.constant = normalisation.constant, collapsed.file.name)
+      dddf	<- classify(tree.file.name, splits.file.name, normalisation.constant = normalisation.constant, collapsed.file.name)
       cat("Write to file",output.name,"...\n")
       write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE, quote=F)			
     },

@@ -319,7 +319,6 @@ check.uninterrupted <- function(tt, patients, splits.for.patients, patients.for.
   return(any.contiguity & !any.interruption)
 }
 
-
 extract.tt.subtree <- function(tt, patients, splits.for.patients, patients.for.splits){
   # for now, at least
   
@@ -503,3 +502,50 @@ subtrees.unblocked <- function(tt, splits){
   
   return(out)
 }
+
+check.adjacency <- function(tt, patients, splits.for.patients){
+  # this could certainly be faster
+  if(length(patients)!=2){
+    stop("Not implemented")
+  }
+  pat.1.id <- patients[1]
+  pat.2.id <- patients[2]
+  
+  nodes.1 <- splits.for.patients[[pat.1.id]]
+  nodes.2 <- splits.for.patients[[pat.2.id]]
+  
+  any.contiguity <- F
+  any.interruption <- F
+  
+  for(node.1 in nodes.1){
+    for(node.2 in nodes.2){
+      if(check.tt.node.adjacency(tt, node.1, node.2, T)){
+        return(T)
+      }
+    }
+  } 
+  
+  return(F)
+}
+
+check.tt.node.adjacency <- function(tt, label1, label2, allow.unsampled = F){
+  path <- get.tt.path(tt, label1, label2)
+  
+  if(!allow.unsampled){
+    return(length(path)==2)
+  }
+  
+  if(length(path)==2){
+    # they must be next to each other
+    return(T)
+  }
+  
+  if(length(path)>3){
+    # they can't be - a path length greater than 2 can only go through an unsampled region, and adjacent unsampled regions are not allowed
+    return(F)
+  }
+  
+  return(substr(path[2], 1, 16) =="unsampled_region")
+  
+}
+
