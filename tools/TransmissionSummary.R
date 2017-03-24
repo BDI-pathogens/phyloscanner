@@ -127,7 +127,19 @@ tt	<- lapply(tt, function(x){
 # rbind consolidated files
 #
 tt	<- do.call('rbind',tt)
-setnames(tt, c('Patient_1','Patient_2','path.classification','contiguous','uninterrupted','paths21','paths12','mean.distance.between.subtrees'), c('pat.1','pat.2','TYPE','CONTIGUOUS','UNINTERRUPTED','PATHS.21','PATHS.12','PATRISTIC_DISTANCE'))
+# reset names depending on which Classify script was used
+if(any('mean.distance.between.subtrees'==colnames(tt)))
+	setnames(tt, 'mean.distance.between.subtrees', 'PATRISTIC_DISTANCE')
+if(any('min.distance.between.subtrees'==colnames(tt)))
+	setnames(tt, 'min.distance.between.subtrees', 'PATRISTIC_DISTANCE')
+if(any('contiguous'==colnames(tt)))
+	setnames(tt, 'contiguous', 'CONTIGUOUS')
+if(any('adjacent'==colnames(tt)))
+	setnames(tt, 'adjacent', 'CONTIGUOUS')
+if(!any('uninterrupted'==colnames(tt)))
+	tt[, uninterrupted:=FALSE]
+setnames(tt, 'uninterrupted', 'UNINTERRUPTED')
+setnames(tt, c('Patient_1','Patient_2','path.classification','paths21','paths12'), c('pat.1','pat.2','TYPE','PATHS.21','PATHS.12'))
 # change type name depending on allow.splits
 if(!allow.splits)
 {
