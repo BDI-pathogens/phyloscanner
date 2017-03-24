@@ -199,7 +199,7 @@ output.trans.tree <- function(tree, assocs, file.name = NULL, prune.unsampled.ti
   for.output <- tt.table[,1:6]
   
   if(prune.unsampled.tips){
-    unsampled.tips <- which(startsWith(for.output$unique.splits, "unsampled") &
+    unsampled.tips <- which(grepl("unsampled",for.output$unique.splits) &
                               !(for.output$unique.splits %in% for.output$parent.splits))
     
     if(length(unsampled.tips) > 0){
