@@ -113,7 +113,7 @@ get.tt.path <- function(tt, label1, label2){
 }
 
 # Output the collapsed tree from a phylogeny and its node assocs (write to CSV file if file.name!=NULL)
-# If prune.unsampled.tips = TRUE, the output collapsed tree will not have any "None"s that have no children
+# If prune.unsampled.tips = TRUE, the output collapsed tree will not have any "unsampled_region"s that have no children
 # (which usually come from blacklisted tips, and looks rather odd if e.g. read downsampling has taken place)
 
 output.trans.tree <- function(tree, assocs, file.name = NULL, prune.unsampled.tips = TRUE){
@@ -469,7 +469,6 @@ subtrees.unblocked <- function(tt, splits){
   
   out <- matrix(ncol = length(splits), nrow=length(splits))
   for(spt.1.no in 1:length(splits)){
-    cat(spt.1.no, spt.2.no, "\n")
     for(spt.2.no in 1:length(splits)){
       if(spt.1.no==spt.2.no){
         out[spt.1.no, spt.2.no] <- NA
