@@ -99,14 +99,14 @@ if(command.line){
   # 
   #   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_160915_couples_w270/ptyr3_trees_collapsed.zip")
   #   output.dir <- getwd()
-  #   tree.file.names <- "ptyr3_trees_newick/ptyr3_InWindow_3900_to_4149.tree"
-  #   blacklist.files <- "ptyr3_trees_blacklist/ptyr3_blacklist_InWindow_3900_to_4149.csv"
-  #   out.identifier <- "test_pytr1"
-  #   root.name <- "B.FR.83.HXB2_LAI_IIIB_BRU.K03455"
-  #   tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
+  #   tree.file.names <- "/Users/Oliver/duke/tmp/pty_17-03-23-20-42-16/ptyr122_InWindow_3200_to_3449.tree"
+  #   blacklist.files <- "/Users/Oliver/duke/tmp/pty_17-03-23-20-42-16/ptyr122_blacklistdwns_InWindow_3200_to_3449.csv"
+  #   out.identifier <- "ptyr1_"
+  #   root.name <- "REF_CPX_AF460972"
+  #   tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
   #   mode <- "s"
   #   zero.length.tips.count <- F
-  #   sankhoff.k <- 10
+  #   sankhoff.k <- 20
   #   break.ties.unsampled <- F
   #  
   # MRSA example
@@ -222,19 +222,13 @@ split.patients.to.subgraphs<- function(tree.file.name, mode, blacklist.file, roo
   attr(tree, 'INDIVIDUAL') <- patient.annotation
   attr(tree, 'NODE_SHAPES') <- node.shapes
   
-  orig.patients <- vector()
-  patient.splits <- vector()
-  tip.names <- vector()	
+  #orig.patients <- vector()
+  #patient.splits <- vector()
+  #tip.names <- vector()	
   
-  rs.subgraphs <- sapply(results$split.patients, function(split.patient){
-    tips <- results$split.tips[[split.patient]]
-    cbind(rep(unlist(strsplit(split.patient, "-S"))[1], length(tips)), rep(split.patient, length(tips)), tree$tip.label[tips])
-  })
-  
-  rs.subgraphs <- do.call(rbind, rs.subgraphs)
-  
-  rs.subgraphs <- as.data.frame(rs.subgraphs, stringsAsFactors = F)
-  colnames(rs.subgraphs) <- c("patient", "subgraph", "tip")
+  rs.subgraphs <- data.table(subgraph=results$split.patients)
+  rs.subgraphs <- rs.subgraphs[, list(patient= unlist(strsplit(subgraph, "-S"))[1], tip= tree$tip.label[ results$split.tips[[subgraph]] ]	), by='subgraph']
+  rs.subgraphs <- as.data.frame(subset(rs.subgraphs, select=c(patient, subgraph, tip)))
   
   list(tree=tree, rs.subgraphs=rs.subgraphs)
 }

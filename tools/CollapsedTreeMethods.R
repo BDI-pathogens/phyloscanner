@@ -113,7 +113,7 @@ get.tt.path <- function(tt, label1, label2){
 }
 
 # Output the collapsed tree from a phylogeny and its node assocs (write to CSV file if file.name!=NULL)
-# If prune.unsampled.tips = TRUE, the output collapsed tree will not have any "None"s that have no children
+# If prune.unsampled.tips = TRUE, the output collapsed tree will not have any "unsampled_region"s that have no children
 # (which usually come from blacklisted tips, and looks rather odd if e.g. read downsampling has taken place)
 
 output.trans.tree <- function(tree, assocs, file.name = NULL, prune.unsampled.tips = TRUE){
@@ -163,7 +163,7 @@ output.trans.tree <- function(tree, assocs, file.name = NULL, prune.unsampled.ti
       while(!first.of.split[current.node.no]){
         current.node.no <- Ancestors(tree, current.node.no, type="parent")
       }
-      if(!startsWith(splits.vec[current.node.no], "unsampled_region")){
+	  if(!grepl("^unsampled_region", splits.vec[current.node.no])){      
         print(node.no)
         stop("Uh-oh")
       }
@@ -199,13 +199,16 @@ output.trans.tree <- function(tree, assocs, file.name = NULL, prune.unsampled.ti
   for.output <- tt.table[,1:6]
   
   if(prune.unsampled.tips){
-    unsampled.tips <- which(startsWith(for.output$unique.splits, "unsampled_region") &
+    unsampled.tips <- which(grepl("unsampled",for.output$unique.splits) &
                               !(for.output$unique.splits %in% for.output$parent.splits))
-    for.output <- for.output[-unsampled.tips,]
-    #renumber
-    unsampled.rows <- which(startsWith(for.output$unique.splits, "unsampled_region"))
     
-    unsampled.labels <- for.output$unique.splits[which(startsWith(for.output$unique.splits, "unsampled_region"))]
+    if(length(unsampled.tips) > 0){
+      for.output <- for.output[-unsampled.tips,]
+    }
+    #renumber
+    unsampled.rows <- which(grepl("^unsampled_region",for.output$unique.splits))
+    
+    unsampled.labels <- for.output$unique.splits[which(grepl("^unsampled_region",for.output$unique.splits))]
     
     for(x in 1:length(unsampled.rows)) {
       old.label <- unsampled.labels[x]
@@ -238,7 +241,7 @@ check.contiguous <- function(tt, patients, splits.for.patients, patients.for.spl
         node.2.id <- all.nodes[node.2]
         path <- get.tt.path(tt, node.1.id, node.2.id)
         for(node in path){
-          if(!startsWith(node, "unsampled_region")){
+          if(!grepl("^unsampled_region",node)){
             if(!(patients.for.splits[[node]] %in% c(pat.1.id, pat.2.id))){
               OK <- FALSE
               break
@@ -274,7 +277,8 @@ check.uninterrupted <- function(tt, patients, splits.for.patients, patients.for.
   
   for(node.1 in nodes.1){
     current.node <- get.tt.parent(tt, node.1)
-    while(current.node!="root" & (startsWith(current.node, "none") | (if(is.null(patients.for.splits[[current.node]])) {T} else {patients.for.splits[[current.node]]==pat.1.id}))){
+    while(current.node!="root" & (grepl("^unsampled_region",current.node) | (if(is.null(patients.for.splits[[current.node]])) {T} else {patients.for.splits[[current.node]]==pat.1.id}))){
+
       current.node <- get.tt.parent(tt, current.node)
     }
     if(current.node != "root"){
@@ -294,7 +298,7 @@ check.uninterrupted <- function(tt, patients, splits.for.patients, patients.for.
   if(!any.interruption){
     for(node.2 in nodes.2){
       current.node <- get.tt.parent(tt, node.2)
-      while(current.node!="root" & (startsWith(current.node, "none") | (if(is.null(patients.for.splits[[current.node]])) {T} else {patients.for.splits[[current.node]]==pat.2.id}))){
+      while(current.node!="root" & (grepl("unsampled_region",current.node) | (if(is.null(patients.for.splits[[current.node]])) {T} else {patients.for.splits[[current.node]]==pat.2.id}))){
         current.node <- get.tt.parent(tt, current.node)
       }
       if(current.node != "root"){
@@ -333,8 +337,8 @@ extract.tt.subtree <- function(tt, patients, splits.for.patients, patients.for.s
   pat.2.splts <- splits.for.patients[[pat.2.id]]
   
   sub.tt <- tt[which(tt$unique.splits %in% c(pat.1.splts, pat.2.splts)),]
-  unsampled.below <- tt[which(tt$patients == "none" & (tt$parent.splits %in% c(pat.1.splts, pat.2.splts))),]
-  unsampled.above <- tt[which(tt$patients == "none" & (tt$unique.splits %in% sub.tt$parent.splits)),]
+  unsampled.below <- tt[which(tt$patients == "unsampled_region" & (tt$parent.splits %in% c(pat.1.splts, pat.2.splts))),]
+  unsampled.above <- tt[which(tt$patients == "unsampled_region" & (tt$unique.splits %in% sub.tt$parent.splits)),]
   
   none.but.maybe.relevant <- c(unsampled.above$unique.splits, unsampled.below$unique.splits)
   
@@ -446,7 +450,7 @@ subtrees.adjacent <- function(tt, splits, none.matters = F){
         } else if(!none.matters) {
           path <- get.tt.path(tt, spt.1, spt.2)
           internal.path <- path[2:(length(path)-1)]
-          adj <- length(internal.path)==1 & startsWith(internal.path[1], "none")
+          adj <- length(internal.path)==1 & grepl("unsampled_region",internal.path[1])
           out[spt.1.no, spt.2.no] <- adj
           out[spt.2.no, spt.1.no] <- adj
         } else {
@@ -465,6 +469,7 @@ subtrees.adjacent <- function(tt, splits, none.matters = F){
 # are pairs of subtrees from two patients not separated by any other subtrees from either of those patients?
 
 subtrees.unblocked <- function(tt, splits){
+  
   out <- matrix(ncol = length(splits), nrow=length(splits))
   for(spt.1.no in 1:length(splits)){
     for(spt.2.no in 1:length(splits)){
@@ -484,7 +489,7 @@ subtrees.unblocked <- function(tt, splits){
         } else {
           path <- get.tt.path(tt, spt.1, spt.2)
           internal.path <- path[2:(length(path)-1)]
-          blockers <- which(startsWith(internal.path, pat.1) | startsWith(internal.path, pat.2))
+          blockers <- which(grepl(paste0('^',pat.1),internal.path) | grepl(paste0('^',pat.2),internal.path))
           
           adj <- length(blockers) == 0
           out[spt.1.no, spt.2.no] <- adj

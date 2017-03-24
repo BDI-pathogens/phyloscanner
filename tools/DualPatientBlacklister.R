@@ -54,7 +54,7 @@ if(command.line){
   tree.files	<- data.table(F=rep(NA_character_,0))	
   if(!is.null(tree.prefix)){
     tree.files	<- data.table(F=list.files(dirname(tree.prefix), pattern=paste0('^',basename(tree.prefix)), full.names=TRUE))
-    cat('Found tree.files to determine total.windows per patient, n=', nrow(tree.files))
+    cat('Found tree files to determine total windows present per patient, n=', nrow(tree.files), "\n", sep="")
   }  
 
   suffixes	<- substr(dual.files, nchar(duals.prefix)+1, nchar(dual.files))
