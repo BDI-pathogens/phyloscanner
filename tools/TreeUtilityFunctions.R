@@ -19,7 +19,7 @@ get.tip.no <- function(tree, name) {
 
 get.tips.for.patient <-
   function(tree, patient.string, patient.ids, blacklist) {
-    node.numbers <- which(startsWith(patient.ids, patient.string))
+    node.numbers <- which(grepl(paste0('^',patient.string),patient.ids))
     
     node.numbers <-
       node.numbers[which(!(node.numbers %in% blacklist))]
@@ -28,7 +28,7 @@ get.tips.for.patient <-
 
 get.tips.for.sample <-
   function(tree, sample.string){
-    return(which(startsWith(tree$tip.label, sample.string)))
+    return(which(grepl(paste0('^',sample.string),tree$tip.label)))
   }
 
 # Edge length by node number (probably in some library somewhere)
