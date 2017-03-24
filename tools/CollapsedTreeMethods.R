@@ -274,11 +274,8 @@ check.uninterrupted <- function(tt, patients, splits.for.patients, patients.for.
   
   for(node.1 in nodes.1){
     current.node <- get.tt.parent(tt, node.1)
-<<<<<<< HEAD
-    while(current.node!="root" & (startsWith(current.node, "unsampled_region") | (if(is.null(patients.for.splits[[current.node]])) {T} else {patients.for.splits[[current.node]]==pat.1.id}))){
-=======
-    while(current.node!="root" & (grepl("^none",current.node) | (if(is.null(patients.for.splits[[current.node]])) {T} else {patients.for.splits[[current.node]]==pat.1.id}))){
->>>>>>> 7302f809fbd383c5061c0fa4290c9edb6688624a
+    while(current.node!="root" & (grepl("^unsampled_region",current.node) | (if(is.null(patients.for.splits[[current.node]])) {T} else {patients.for.splits[[current.node]]==pat.1.id}))){
+
       current.node <- get.tt.parent(tt, current.node)
     }
     if(current.node != "root"){
@@ -298,11 +295,7 @@ check.uninterrupted <- function(tt, patients, splits.for.patients, patients.for.
   if(!any.interruption){
     for(node.2 in nodes.2){
       current.node <- get.tt.parent(tt, node.2)
-<<<<<<< HEAD
-      while(current.node!="root" & (startsWith(current.node, "unsampled_region") | (if(is.null(patients.for.splits[[current.node]])) {T} else {patients.for.splits[[current.node]]==pat.2.id}))){
-=======
-      while(current.node!="root" & (grepl("none",current.node) | (if(is.null(patients.for.splits[[current.node]])) {T} else {patients.for.splits[[current.node]]==pat.2.id}))){
->>>>>>> 7302f809fbd383c5061c0fa4290c9edb6688624a
+      while(current.node!="root" & (grepl("unsampled_region",current.node) | (if(is.null(patients.for.splits[[current.node]])) {T} else {patients.for.splits[[current.node]]==pat.2.id}))){
         current.node <- get.tt.parent(tt, current.node)
       }
       if(current.node != "root"){
@@ -454,11 +447,7 @@ subtrees.adjacent <- function(tt, splits, none.matters = F){
         } else if(!none.matters) {
           path <- get.tt.path(tt, spt.1, spt.2)
           internal.path <- path[2:(length(path)-1)]
-<<<<<<< HEAD
-          adj <- length(internal.path)==1 & startsWith(internal.path[1], "unsampled_region")
-=======
-          adj <- length(internal.path)==1 & grepl("none",internal.path[1])
->>>>>>> 7302f809fbd383c5061c0fa4290c9edb6688624a
+          adj <- length(internal.path)==1 & grepl("unsampled_region",internal.path[1])
           out[spt.1.no, spt.2.no] <- adj
           out[spt.2.no, spt.1.no] <- adj
         } else {
