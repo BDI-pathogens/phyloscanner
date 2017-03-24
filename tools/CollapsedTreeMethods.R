@@ -199,9 +199,12 @@ output.trans.tree <- function(tree, assocs, file.name = NULL, prune.unsampled.ti
   for.output <- tt.table[,1:6]
   
   if(prune.unsampled.tips){
-    unsampled.tips <- which(grepl("^unsampled_region",for.output$unique.splits) &
+    unsampled.tips <- which(startsWith(for.output$unique.splits, "unsampled") &
                               !(for.output$unique.splits %in% for.output$parent.splits))
-    for.output <- for.output[-unsampled.tips,]
+    
+    if(length(unsampled.tips) > 0){
+      for.output <- for.output[-unsampled.tips,]
+    }
     #renumber
     unsampled.rows <- which(grepl("^unsampled_region",for.output$unique.splits))
     
