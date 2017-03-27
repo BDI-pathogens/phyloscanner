@@ -1,25 +1,10 @@
-#!/usr/bin/env Rscript
-
-#	install missing packages
-list.of.packages <- c("argparse",
-                      "phytools", 
-                      "dplyr", 
-                      "ggplot2", 
-                      "reshape", 
-                      "dtplyr",
-                      "gtable", 
-                      "grid", 
-                      "gridExtra", 
-                      "RColorBrewer", 
-                      "scales",
-                      "pegas")
+list.of.packages <- c("argparse","phytools", "dplyr", "ggplot2", "reshape", "dtplyr", "gtable", "grid", "gridExtra", "RColorBrewer", "scales", "pegas")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
-# #	load packages
-
-source(file.path(script.dir, "TreeUtilityFunctions.R"))
-source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
-source(file.path(script.dir, "SummariseTrees_funcs.R"))
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)){
+  cat("Please run PackageInstall.R to continue\n")
+  quit(save='no')
+}
 
 suppressMessages(require(ape, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(phytools, quietly=TRUE, warn.conflicts=FALSE))
@@ -31,18 +16,30 @@ suppressMessages(require(gridExtra, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(RColorBrewer, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(scales, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(dplyr, quietly=TRUE, warn.conflicts=FALSE))
-# suppressMessages(require(dtplyr, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(dtplyr, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
-# #
+# 
 #	constants
 #
 prefix.wfrom 		<- 'Window_'
 prefix.wto 			<- 'Window_[0-9]+_to_'
 prefix.bootstrap	<- 'bootstrap_'
+
+tree.fe <- ".tree"
+csv.fe <- ".csv"
+get.suffix <- function(file.name, prefix, extension){
+
+  file.name <- basename(file.name)
+  prefix <- basename(prefix)
+
+  substr(file.name, nchar(prefix)+1, nchar(file.name)-nchar(extension))
+}
+
+
 #
 #	command line
 #
-command.line <- F
+command.line <- T
 if (command.line) {
   require(argparse, quietly=TRUE, warn.conflicts=FALSE)
   
@@ -51,13 +48,13 @@ if (command.line) {
   arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", 
                           help="Regular expression identifying tips from the dataset. Three groups: patient ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name.")
   arg_parser$add_argument("-r", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
-  arg_parser$add_argument("-b", "--blacklists", help="Either (if -l is present) a list of blacklist files, in the same order as the tree files and separated by colons, or (if not) a single string that begins every blacklist file name.")
-  arg_parser$add_argument("-w", "--windows", action="store", help="The window in the genome which each tree file, in the same order as the tree files (user-specified if -l is present, in the order provided by the file system if now), is constructed from. In each window this is given as n-m where n is the start and m the end; coordinates for each window are separated by a colon. If not given, the script will attempt to obtain these from the file names.")
+  arg_parser$add_argument("-b", "--blacklists", help="An optional file path and initial string identifying blacklist files (file extension must be .csv).")
+  arg_parser$add_argument("-w", "--windowCoords", action="store", help="The path for a .csv file describing the position in the genome which each tree file represents (e.g. the midpoint of a window); used for the x-axis in output. The first column in the file should the tree file name, the second the coordinate. If not given, the script will attempt to obtain these from the file names (which should work if the input is from the phyloscanner pipeline).")
   arg_parser$add_argument("idFile", action="store", help="A file containing a list of the IDs of all the patients to calcualte and display statistics for.")
-  arg_parser$add_argument("treeFiles", action="store", help="Either (if -l is present) a list of tree files, separated by colons, or (if not) a single string that begins every tree file name.")
-  arg_parser$add_argument("splitsFiles", action="store",help="Either (if -l is present) a list of splits files, in the same order as the tree files and separated by colons, or (if not) a single string that begins every splits file name.")
-  arg_parser$add_argument("outputBaseName", action="store", help="A string to begin the names of all output files.")
-  arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
+  arg_parser$add_argument("treeFiles", action="store", help="A file path and initial string identifying all tree files (file extension must be .tree).")
+  arg_parser$add_argument("splitsFiles", action="store",help="A file path and initial string identifying all splits files (file extension must be .csv).")
+  arg_parser$add_argument("outputBaseName", action="store", help="A path and string to begin the names of all output files.")
+  arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.")
   
   # Read in the arguments
   
@@ -65,71 +62,125 @@ if (command.line) {
   
   id.file <- args$idFile
   script.dir <- args$scriptdir
-  
 
+  source(file.path(script.dir, "TreeUtilityFunctions.R"))
+  source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
+  source(file.path(script.dir, "SummariseTrees_funcs.R"))
   
-  files.are.lists <- args$filesAreLists
   root.name <- args$outgroupName
   tip.regex <- args$tipRegex
-  tree.file.names <- args$treeFiles
-  splits.file.names <- args$splitsFiles
-  blacklist.file.names <- args$blacklists  
+  tree.file.root <- args$treeFiles
+  splits.file.root <- args$splitsFiles
+  blacklist.file.root <- args$blacklists  
   output.root <- args$outputBaseName
+
+  tree.files <- sort(list.files.mod(dirname(tree.file.root), pattern=paste('^',basename(tree.file.root),".*\\.tree",sep=""), full.names=TRUE))
   
-  if(!files.are.lists){
-    tree.files <- sort(list.files(dirname(tree.file.names), pattern=paste('^',basename(tree.file.names),".*\\.tree",sep=""), full.names=TRUE))	  
-    splits.files <- sort(list.files(dirname(splits.file.names), pattern=paste('^',basename(splits.file.names),".*\\.csv",sep=""), full.names=TRUE))	  
-    blacklist.files <- NULL
-    if(!is.null(blacklist.file.names)){
-      blacklist.files <- sort(list.files(dirname(blacklist.file.names), pattern=paste('^',basename(blacklist.file.names),".*\\.csv",sep=""), full.names=TRUE))
-    }
-  } else {
-    tree.files <- unlist(strsplit(tree.file.names, ":"))
-    splits.files <- unlist(strsplit(splits.file.names, ":"))
-    blacklist.files <- NULL
-    if(!is.null(blacklist.file.names)){
-      blacklist.files <- unlist(strsplit(blacklist.file.names, ":"))
-    }
+  splits.files <- sort(list.files.mod(dirname(splits.file.root), pattern=paste('^',basename(splits.file.root),".*\\.csv",sep=""), full.names=TRUE))	  
+  blacklist.files <- NULL
+  if(!is.null(blacklist.file.root)){
+    blacklist.files <- sort(list.files.mod(dirname(blacklist.file.root), pattern=paste('^',basename(blacklist.file.root),".*\\.csv",sep=""), full.names=TRUE))
   }
   
-  #	continue with the min number of windows for which splits files are present
-  if(length(tree.files)!=length(splits.files)){	  	
-    df				<- data.table(TF= tree.files)		
-    df[, W_FROM:= df[,as.integer(gsub(prefix.wfrom,'',regmatches(TF, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),TF))))]]
-    df[, W_TO:= df[, as.integer(gsub(prefix.wto,'',regmatches(TF, regexpr(paste(prefix.wto,'[0-9]+',sep=''),TF))))]]
-    tmp				<- data.table(SF= splits.files)		
-    tmp[, W_FROM:= tmp[,as.integer(gsub(prefix.wfrom,'',regmatches(SF, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),SF))))]]
-    tmp[, W_TO:= tmp[, as.integer(gsub(prefix.wto,'',regmatches(SF, regexpr(paste(prefix.wto,'[0-9]+',sep=''),SF))))]]
-    df				<- merge(df, tmp, by=c('W_FROM','W_TO'))		
-    tree.files		<- df[, TF]
-    splits.files	<- df[, SF]
-    if(!is.null(blacklist.files))	{
-      tmp					<- data.table(BF= blacklist.files)		
-      tmp[, W_FROM:= tmp[,as.integer(gsub(prefix.wfrom,'',regmatches(BF, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),BF))))]]
-      tmp[, W_TO:= tmp[, as.integer(gsub(prefix.wto,'',regmatches(BF, regexpr(paste(prefix.wto,'[0-9]+',sep=''),BF))))]]			
-      df					<- merge(df, tmp, by=c('W_FROM','W_TO'))
-      tree.files			<- df[, TF]
-      splits.files		<- df[, SF]			
-      blacklist.files		<- df[, BF]	
-    }		
-  }
-  if(length(tree.files)!=length(splits.files))
-    stop(paste("Found", length(tree.files), "tree files and",length(splits.files), "splits files"))  	
-  if(!is.null(blacklist.files)){
-    if(length(tree.files)!=length(blacklist.files)){
-      stop(paste("Found", length(tree.files), "tree files and",
-                 length(blacklist.files), "blacklist files"))
+  # get the suffixes
+  
+  tree.suffixes	<- substr(tree.files, nchar(tree.file.root)+1, nchar(tree.files)-nchar(tree.fe))
+  
+  # re-order just in case
+  tree.suffixes <- tree.suffixes[order(tree.suffixes)]
+  
+  splits.suffixes	<- substr(splits.files, nchar(splits.file.root)+1, nchar(splits.files)-nchar(csv.fe))
+  splits.suffixes <- splits.suffixes[order(splits.suffixes)]
+  
+  ts.both.present <- intersect(tree.suffixes, splits.suffixes)
+  ts.both.present <- ts.both.present[order(ts.both.present)]
+  
+  if(length(both.present) < length(tree.files)){
+    missing.suffixes <- setdiff(tree.suffixes, ts.both.present)
+    no.partner.files <- paste(tree.file.root, missing.suffixes, tree.fe, sep="")
+    
+    for(nps in no.partner.files){
+      warning(paste("No subgraph file found for tree file ", nps, "; will ignore this file", sep=""))
     }
+  } 
+  if(length(both.present) < length(splits.files)){
+    missing.suffixes <- setdiff(tree.suffixes, ts.both.present)
+    no.partner.files <- paste(splits.file.root, missing.suffixes, csv.fe, sep="")
+    
+    for(nps in no.partner.files){
+      warning(paste("No tree file found for subgraph file ", nps, "; will ignore this file", sep=""))
+    }
+  } 
+  
+  if(!is.null(blacklist.file.root)){
+    blacklist.suffixes <- substr(blacklist.files, nchar(blacklist.file.root)+1, nchar(blacklist.files)-nchar(csv.fe))
+    # the only remaining tree files will have a splits file, no need to check the splits files separately
+    bt.both.present <- intersect(ts.both.present, blacklist.suffixes)
+    if(length(bt.both.present) < length(ts.both.present)){
+      missing.suffixes <- setdiff(ts.both.present, bt.both.present)
+      no.partner.files <- paste(tree.file.root, missing.suffixes, tree.fe, sep="")
+      
+      for(nps in no.partner.files){
+        warning(paste("No blacklist file found for tree file ",nps,"; assuming no tips were blacklisted", sep=""))
+      }
+    } 
+    if(length(bt.both.present) < length(blacklist.suffixes)){
+      missing.suffixes <- setdiff(blacklist.suffixes, bt.both.present)
+      no.partner.files <- paste(blacklist.file.root, missing.suffixes, csv.fe, sep="")
+      
+      for(nps in no.partner.files){
+        warning(paste("Tree or subgraph file missing for blacklist file ",nps,"; ignoring this file", sep=""))
+      }
+    } 
   }
+  
+  # from now on we work with suffixes, restricted to the set which have both tree and splits files
+  
+  suffixes <- ts.both.present
+  
   if(!is.null(args$windows)){
-    windows <- unlist(strsplit(args$windows, ":"))
-    if(length(tree.files)!=length(windows)){
-      stop(paste("Found", length(tree.files), "tree files but there are",
-                 length(windows), "windows"))
+    cat("Reading genome coordinates from file ", args$windows, "\n", sep="")
+    trees.to.be.worked.with <- paste(basename(tree.file.root), ts.both.present, tree.fe, sep="")
+    
+    
+    window.coords <- read.csv(args$windowCoords, header = F, stringsAsFactors = F, row.names = 1)
+    window.coords[,2] <- as.numeric(window.coords[,2])
+    files.expected <- window.coords[,1]
+    # do all trees actually have a window?
+    if(length(setdiff(trees.to.be.worked.with, files.expected))){
+      for(missing in setdiff(trees.to.be.worked.with, files.expected)){
+        cat("No genome position information found in file ", args$windowCoords, " for tree file ", missing, sep="")
+      }
+      quit(save="no")
     }
+    
+    # translate the first column to suffixes
+    
+    window.coords[,1] <- sapply(window.coords[,1], function(x) get.suffix(x, tree.file.root, tree.fe ))
+    colnames(window.coords) <- c("suffix", "coordinate")
+    
+    
   } else {
-    windows <- NULL
+    cat("Attempting to read genome coordinates from file names", sep="")
+    
+    regex <- "^\\D*([0-9]+)_to_([0-9]+).*$"
+    
+    starts <- sapply(suffixes, function(x) if(length(grep(regexp, x))>0) as.numeric(sub(regex, "\\1", x)) else NA)
+    ends <- sapply(suffixes, function(x) if(length(grep(regexp, x))>0) as.numeric(sub(regex, "\\1", x)) else NA)
+  
+    if(length(which(is.na(starts)))>0 | length(which(is.na(ends)))>0){
+      cat("Cannot obtain window coordinates from some file names\n")
+      quit(save="no")
+    }
+    
+    middles <- (starts+ends)/2
+
+    window.coords <- data.frame(suffix = suffixes, coordinate=middles)
+    
   }
+  
+  window.coords <- as.list(setNames(window.coords$coordinate, window.coords$suffix ))
+
 } else {
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/")
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
@@ -245,16 +296,6 @@ for(window.no in seq(1, length(tree.files))){
   blacklist.file.name <- blacklist.files[window.no]
   splits.file.name <- splits.files[window.no]  
   
-  if(!is.null(windows)){
-    window <- windows[window.no]
-    start <- as.numeric(unlist(strsplit(window, "-"))[1])
-    end <- as.numeric(unlist(strsplit(window, "-"))[2])
-    middle <- (start+end)/2
-  } else {    
-    start <- as.integer(gsub(prefix.wfrom,'',regmatches(tree.file.name, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),tree.file.name))))
-    end <- as.integer(gsub(prefix.wto,'',regmatches(tree.file.name, regexpr(paste(prefix.wto,'[0-9]+',sep=''),tree.file.name))))
-    middle <- (start+end)/2
-  }
   
   # Read the tree
   
