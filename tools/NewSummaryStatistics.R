@@ -84,14 +84,10 @@ if (command.line) {
   
   # get the suffixes
   
-  tree.suffixes	<- substr(tree.files, nchar(tree.file.root)+1, nchar(tree.files)-nchar(tree.fe))
+  tree.suffixes	<- sapply(tree.files, function(x) get.suffix(x, tree.file.root, tree.fe))
   
-  # re-order just in case
-  tree.suffixes <- tree.suffixes[order(tree.suffixes)]
-  
-  splits.suffixes	<- substr(splits.files, nchar(splits.file.root)+1, nchar(splits.files)-nchar(csv.fe))
-  splits.suffixes <- splits.suffixes[order(splits.suffixes)]
-  
+  splits.suffixes	<- sapply(splits.files, function(x) get.suffix(x, splits.file.root, csv.fe))
+
   ts.both.present <- intersect(tree.suffixes, splits.suffixes)
   ts.both.present <- ts.both.present[order(ts.both.present)]
   
@@ -113,7 +109,7 @@ if (command.line) {
   } 
   
   if(!is.null(blacklist.file.root)){
-    blacklist.suffixes <- substr(blacklist.files, nchar(blacklist.file.root)+1, nchar(blacklist.files)-nchar(csv.fe))
+    blacklist.suffixes <- sapply(blacklist.files, function(x) get.suffix(x, blacklist.file.root, csv.fe))
     # the only remaining tree files will have a splits file, no need to check the splits files separately
     bt.both.present <- intersect(ts.both.present, blacklist.suffixes)
     if(length(bt.both.present) < length(ts.both.present)){
@@ -165,10 +161,10 @@ if (command.line) {
     
     regex <- "^\\D*([0-9]+)_to_([0-9]+).*$"
     
-    starts <- sapply(suffixes, function(x) if(length(grep(regexp, x))>0) as.numeric(sub(regex, "\\1", x)) else NA)
-    ends <- sapply(suffixes, function(x) if(length(grep(regexp, x))>0) as.numeric(sub(regex, "\\1", x)) else NA)
+    starts <- sapply(suffixes, function(x) if(length(grep(regex, x))>0) as.numeric(sub(regex, "\\1", x)) else NA)
+    ends <- sapply(suffixes, function(x) if(length(grep(regex, x))>0) as.numeric(sub(regex, "\\2", x)) else NA)
   
-    if(length(which(is.na(starts)))>0 | length(which(is.na(ends)))>0){
+    if(any(is.na(starts)) | any(is.na(ends))){
       cat("Cannot obtain window coordinates from some file names\n")
       quit(save="no")
     }
@@ -176,7 +172,6 @@ if (command.line) {
     middles <- (starts+ends)/2
 
     window.coords <- data.frame(suffix = suffixes, coordinate=middles)
-    
   }
   
   window.coords <- as.list(setNames(window.coords$coordinate, window.coords$suffix ))
@@ -256,21 +251,212 @@ unfactorDataFrame <- function(x) {
                   stringsAsFactors = F)
 }
 
-# OR CHANGELOG: removed skip=1 this was not reading the first entry?
-# Read in the IDs. Remove duplicates. Shuffle their order if desired.
+calc.subtree.stats <- function(id, tree, patient.tips, splits.table){
+  subtrees <- length(unique(splits.table[which(splits.table$patient==id),]$subgraph))
+  
+  all.tips <- patient.tips[[id]]
+  
+  subtree.all <- NULL
+  
+  if(length(all.tips)>1){
+    
+    subtree.all <- drop.tip(tree, tip=tree$tip.label[!(tree$tip.label %in% all.tips)])
+    
+    # just in case pruning changes the tip order
+    
+    reads.per.tip <- sapply(subtree.all$tip.label, function(x) as.numeric(read.count.from.label(x, tip.regex)))
+    
+    names(reads.per.tip) <- subtree.all$tip.label
+    
+    overall.rtt <- calcMeanRootToTip(subtree.all, reads.per.tip)
+    
+    if(length(subtree.all$tip.label)>2){
+      unrooted.subtree <- unroot(subtree.all)
+      max.branch.length <- max(unrooted.subtree$edge.length)
+    } else {
+      
+      # ape won't unroot two-tip trees
+      max.branch.length <- sum(subtree.all$edge.length)
+    }
+    
+    pat.distances <- cophenetic(subtree.all)
+    max.pat.distance <- max(pat.distances)
+    
+    branch.to.pat.ratio <- max.branch.length/max.pat.distance
+    
+    if(subtrees==1){
+      mean.pat.distance <- mean(pat.distances[upper.tri(pat.distances)])
+    } else {
+      relevant.reads <- splits.table[which(splits.table$patient==id),]
+      splits <- unique(relevant.reads$subgraph)
+      reads.per.split <- sapply(splits, function(x) sum(splits.table$reads[which(splits.table$subgraph==x)] ) )
+      winner <- splits[which(reads.per.split==max(reads.per.split))]
+      if(length(winner)>1){
+        cat("Patient ",id," has a joint winner in window ", coords[[suffix]], "\n", sep="" )
+        winner <- winner[1]
+      }
+      winner.tips <- relevant.reads$tip[which(relevant.reads$subgraph==winner)]
+      if(length(winner.tips)==1){
+        largest.rtt <- 0
+        mean.pat.distance <- NA
+      } else {
+        subtree <- drop.tip(tree, tip=tree$tip.label[!(tree$tip.label %in% winner.tips)])
+        
+        # just in case pruning changes the tip order
+        
+        reads.per.tip <- sapply(subtree$tip.label, function(x) as.numeric(read.count.from.label(x, tip.regex)))
+        
+        names(reads.per.tip) <- subtree$tip.label
+        
+        largest.rtt <- calcMeanRootToTip(subtree, reads.per.tip)
+        pat.distances <- cophenetic(subtree)
+        mean.pat.distance <- mean(pat.distances[upper.tri(pat.distances)])
+      }
+    }
+    
+  } else {
+    
+    overall.rtt <- 0
+    largest.rtt <- 0
+    max.branch.length <- NA
+    max.pat.distance <- NA
+    branch.to.pat.ratio <- NA
+    mean.pat.distance <- NA
+  }
+  return(list(overall.rtt = overall.rtt, largest.rtt = largest.rtt, max.branch.length = max.branch.length, max.pat.distance = max.pat.distance,
+              branch.to.pat.ratio  = branch.to.pat.ratio, mean.pat.distance = mean.pat.distance))
+}
+
+ids <- ids[1:10]
+
+window.table <- data.table(id=ids)
+window.table <- window.table[, xcoord := 1225]
+window.table <- window.table[, leaves :=  sapply(ids, function(x) length(patient.tips[[x]]))]
+window.table <- window.table[, reads :=  sapply(ids, function(x){
+  if(length(patient.tips[[x]])==0){
+    return(0)
+  } else {
+  sum(sapply(patient.tips[[x]], function(y) as.numeric(read.count.from.label(y, tip.regex))))}
+  } 
+  )]
+window.table <- window.table[, subtrees :=  sapply(ids, function(x) length(unique(splits.table[which(splits.table$patient==x),]$subgraph)))]
+window.table <- window.table[, clades := sapply(ids, function(x) length(all.clades.by.patient[[x]]))  ]
+
+new.cols <- sapply(ids, function(x) calc.subtree.stats(x, tree, patient.tips, splits.table))
+new.cols <- as.data.table(t(new.cols))
+window.table <- cbind(window.table, new.cols) 
+
+calc.stats <- function(suffix, id, coords, splits.table, patient.tips, all.clades.by.id){
+  
+  cat("Calculating statistics in window ",coords[[suffix]], " for patient ", id, "\n", sep="")
+
+  leaves <- length(patient.tips[[id]])
+
+  reads <- sum(sapply(patient.tips[[id]], function(x) as.numeric(read.count.from.label(x, tip.regex))))
+  
+  subtrees <- length(unique(splits.table[which(splits.table$patient==id),]$subgraph))
+  
+  clades <- length(all.clades.by.patient[[id]])
+
+  all.tips <- patient.tips[[id]]
+  
+  subtree.all <- NULL
+  
+  if(length(all.tips)>1){
+    
+    subtree.all <- drop.tip(tree, tip=tree$tip.label[!(tree$tip.label %in% all.tips)])
+    
+    # just in case pruning changes the tip order
+    
+    reads.per.tip <- sapply(subtree.all$tip.label, function(x) as.numeric(read.count.from.label(x, tip.regex)))
+    
+    names(reads.per.tip) <- subtree.all$tip.label
+    
+    overall.rtt <- calcMeanRootToTip(subtree.all, reads.per.tip)
+    
+    if(length(subtree.all$tip.label)>2){
+      unrooted.subtree <- unroot(subtree.all)
+      max.branch.length <- max(unrooted.subtree$edge.length)
+    } else {
+      
+      # ape won't unroot two-tip trees
+      max.branch.length <- sum(subtree.all$edge.length)
+    }
+    
+    pat.distances <- cophenetic(subtree.all)
+    max.pat.distance <- max(pat.distances)
+
+    branch.to.pat.ratio <- max.branch.length/max.pat.distance
+    
+    if(subtrees==1){
+      mean.pat.distance <- mean(pat.distances[upper.tri(pat.distances)])
+    } else {
+      relevant.reads <- splits.table[which(splits.table$patient==id),]
+      splits <- unique(relevant.reads$subgraph)
+      reads.per.split <- sapply(splits, function(x) sum(splits.table$reads[which(splits.table$subgraph==x),] ) )
+      winner <- splits[which(reads.per.split==max(reads.per.split))]
+      if(length(winner)>1){
+        cat("Patient ",id," has a joint winner in window ", coords[[suffix]], "\n", sep="" )
+        #
+        winner <- winner[1]
+      }
+      winner.tips <- relevant.reads$tip[which(relevant.reads$subgraph==winner),]
+      if(length(winner.tips)==1){
+        largest.rtt <- 0
+        mean.pat <- NA
+      } else {
+        subtree <- drop.tip(tree, tip=tree$tip.label[!(tree$tip.label %in% winner.tips)])
+        
+        # just in case pruning changes the tip order
+
+        reads.per.tip <- sapply(subtree$tip.label, function(x) as.numeric(read.count.from.label(x, tip.regex)))
+        
+        names(reads.per.tip) <- subtree$tip.label
+        
+        largest.rtt <- calcMeanRootToTip(subtree, reads.per.tip)
+        pat.distances <- cophenetic(subtree)
+        mean.pat.distance <- mean(pat.distances[upper.tri(pat.distances)])
+      }
+    }
+    
+  } else {
+    
+    overall.rtt <- 0
+    largest.rtt <- 1
+    max.branch.length <- 0
+    max.pat.distance <- 0
+    branch.to.pat.ratio <- NA
+    mean.pat.distance <- NA
+  }
+
+  this.pat.splits <- splits.table[which(splits.table$patient==id),]
+  
+  if(nrow(this.pat.splits)>0){
+    this.pat.reads.by.split <- aggregate(this.pat.splits$reads, by=list(Category=this.pat.splits$subgraph), sum)
+    
+    if(nrow(this.pat.reads.by.split) > max.splits){
+      max.splits <- nrow(this.pat.reads.by.split>max.splits)
+    }
+    
+    this.pat.reads.by.split <- this.pat.reads.by.split[order(this.pat.reads.by.split$x, decreasing = T),]
+    this.pat.reads.by.split$proportion <- this.pat.reads.by.split$x/sum(this.pat.reads.by.split$x)
+    read.proportions.this.window[[id]] <- this.pat.reads.by.split$proportion
+  } else {
+    read.proportions.this.window[[id]] <- NA
+  }
+}
+
+# Read in the IDs. Remove duplicates. Alphabeticise.
 ids <- scan(id.file, what="", sep="\n", quiet=TRUE)
 ids <- unique(ids)
-ids <- ids[1:2]
+ids <- ids[order(ids)]
 
 num.ids <- length(ids)
-
 
 if (num.ids == 0) {
   cat(paste("No IDs found in ", id.file, ". Quitting.\n", sep=""))
   quit("no", 1)
 }
-
-
 
 ids.col <- vector()
 window.start.col <- vector()
@@ -291,6 +477,9 @@ read.proportions <- list()
 max.splits <- 0
 
 for(window.no in seq(1, length(tree.files))){
+  
+  # todo we want a warning if no patients are in a window at all.
+  # and if no patients are in any windows at all
   
   tree.file.name <- tree.files[window.no]
   blacklist.file.name <- blacklist.files[window.no]
@@ -327,10 +516,10 @@ for(window.no in seq(1, length(tree.files))){
   # Load the splits
   
   splits.table <- read.table(splits.file.name, sep=",", stringsAsFactors = F, header=T)
-  #get rid of this quickly
+  #get rid of this sooooon
   colnames(splits.table) <- c("patient", "subgraph", "tip")
   
-  splits.table$reads <- as.numeric(unlist(strsplit(splits.table$tip,"count_"))[seq(2,2*nrow(splits.table),2)])
+  splits.table$reads <- sapply(splits.table$tip, function(x) as.numeric(read.count.from.label(x, tip.regex)))
   
   # Find clades
   
@@ -376,7 +565,7 @@ for(window.no in seq(1, length(tree.files))){
     
     reads.col <- c(reads.col, num.reads)
     
-    num.subtrees <- length(unique(splits.table[which(splits.table$patient==id),]$patient.splits))
+    num.subtrees <- length(unique(splits.table[which(splits.table$patient==id),]$subgraph))
     
     subtrees.counts.col <- c(subtrees.counts.col, num.subtrees)
     
@@ -452,7 +641,7 @@ for(window.no in seq(1, length(tree.files))){
       }
     } else {
       relevant.reads <- splits.table[which(splits.table$patient==id),]
-      splits <- unique(relevant.reads$patient.splits)
+      splits <- unique(relevant.reads$subgraph)
       reads.per.split <- sapply(splits, function(x) sum(splits.table[which(splits.table$subgraph==x),]$reads ) )
       winner <- splits[which(reads.per.split==max(reads.per.split))]
       if(length(winner)>1){
@@ -460,7 +649,7 @@ for(window.no in seq(1, length(tree.files))){
         #need to talk about this...
         winner <- winner[1]
       }
-      winner.tips <- relevant.reads[which(relevant.reads$patient.splits==winner),]$tip.names
+      winner.tips <- relevant.reads$tip[which(relevant.reads$subgraph==winner),]
       if(length(winner.tips)==1){
         largest.rtt <- 0
         mean.pat <- NA
