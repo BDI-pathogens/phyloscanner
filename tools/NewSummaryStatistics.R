@@ -635,7 +635,7 @@ for (i in seq(1, num.ids)) {
     
     missing.read.rects <- NULL
     
-    if(length(which(this.pat.stats$reads==0))){
+    if(regular.gaps & length(which(this.pat.stats$reads==0))){
       missing.read.rects <- form.rectangles(this.pat.stats$xcoord[which(this.pat.stats$reads==0)], xcoords.reg, "grey")
     }
     
