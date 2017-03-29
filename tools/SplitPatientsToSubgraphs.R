@@ -24,6 +24,7 @@ if(command.line){
   arg_parser$add_argument("-b", "--blacklist", action="store", help="A .csv file listing tips to ignore. Alternatively, a base name that identifies blacklist files. Blacklist files are assumed to end in .csv.")
   arg_parser$add_argument("-k", "--kParam", action="store", default=0, help="The k parameter in the cost matrix for Sankhoff reconstruction (see documentation)")
   arg_parser$add_argument("-t", "--tiesRule", action="store", default="c", help="Sankhoff reconstruction only - determines whether ties of zero cost in the parsimony reconstruction will be reconstructed as a continued lineage in a single patient or a transition to the unsampled state. Options: u=always unsampled, c=always continue, b=branch-length based (see documentation)")
+  arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, short branches in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. If a number, this number will be used as the threshold. If 'g', it will be guessed from the branch lengths (use this only if you've checked by eye that the tree does indeed have multifurcations).")
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
   arg_parser$add_argument("-OD", "--outputdir", action="store", help="Full path of the directory for output; if absent, current working directory")
   arg_parser$add_argument("-pw", "--pdfwidth", action="store", default=100, help="Width of tree pdf in inches.")
@@ -41,7 +42,6 @@ if(command.line){
   source(file.path(script.dir, "CollapsedTreeMethods.R"))
   source(file.path(script.dir, "WriteAnnotatedTrees.R"))
 
-
   tree.file.name <- args$inputFile
   
   sankhoff.k <- as.numeric(args$kParam)
@@ -53,6 +53,19 @@ if(command.line){
   } else {
     output.dir <- getwd()
   }
+  
+  use.m.thresh <- !is.null(args$multifurcationThreshold)
+  if(use.m.thresh){
+    if(args$multifurcationThreshold=="g"){
+      m.thresh <- NA
+    } else if(!is.na(as.numeric(args$multifurcationThreshold))){
+      m.thresh <- as.numeric(args$multifurcationThreshold)
+    } else {
+      cat("Unknown argument for -m specified\n")
+      quit(save="no")
+    }
+  }
+  
   
   if(is.null(root.name)){
     cat("No outgroup name given; will assume the tree is already rooted\n")
@@ -133,10 +146,20 @@ split.patients.to.subgraphs<- function(tree.file.name, mode, blacklist.file, roo
   cat("SplitPatientsToSubgraphs.R run on: ", tree.file.name,", rules = ",mode,"\n", sep="")
   
   # Read, root and multifurcate the tree
-  
+
   tree <- read.tree(tree.file.name)
+  
   tree <- unroot(tree)
-  tree <- di2multi(tree, tol = 1E-5)
+  
+  if(use.m.thresh){
+    if(is.na(m.thresh)){
+      min.bl <- min(tree$edge.length)
+      tree <- di2multi(tree, tol = min.bl*1.001)
+    } else {
+      tree <- di2multi(tree, tol = m.thresh)
+    }
+  }
+  
   if(!is.null(root.name)){
     tree <- root(tree, outgroup = which(tree$tip.label==root.name), resolve.root = T)
   }

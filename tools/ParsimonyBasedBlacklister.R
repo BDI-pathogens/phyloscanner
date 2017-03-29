@@ -22,6 +22,7 @@ if(command.line){
   arg_parser$add_argument("-b", "--blacklist", action="store", help="A blacklist to be applied before this script is run.")
   arg_parser$add_argument("-c", "--noReadCounts", action="store_true", help="If present, read counts are not taken from tip labels and each tip is assumed to represent one read")
   arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what the script is doing.")
+  arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, short branches in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. If a number, this number will be used as the threshold. If 'g', it will be guessed from the branch lengths (use this only if you've checked by eye that the tree does indeed have multifurcations).")
   arg_parser$add_argument("-d", "--dualsOutputFile", action="store", help="A file or file root to write the set of patients which seem to be dually infected according to the parameters of this run; if unspecified, do not output this.")
   arg_parser$add_argument("rawThreshold", action="store", type="double", help="Raw threshold; subgraphs with read counts less than this will be blacklisted, regardless of the count of any other subgraphs from the same patient")
   arg_parser$add_argument("ratioThreshold", action="store", type="double", help="Ratio threshold; subgraphs will be blacklisted if the ratio of their tip count to that of another subgraph from the same patient is less than this.")
@@ -43,6 +44,17 @@ if(command.line){
   blacklist.file.name <- args$blacklist
   no.read.counts <- args$noReadCounts
   verbose <- args$verbose
+  use.m.thresh <- !is.null(args$multifurcationThreshold)
+  if(use.m.thresh){
+    if(args$multifurcationThreshold=="g"){
+      m.thresh <- NA
+    } else if(!is.na(as.numeric(args$multifurcationThreshold))){
+      m.thresh <- as.numeric(args$multifurcationThreshold)
+    } else {
+      cat("Unknown argument for -m specified\n")
+      quit(save="no")
+    }
+  }
   
   source(file.path(script.dir, "TreeUtilityFunctions.R"))
   source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
@@ -136,7 +148,14 @@ get.splits.for.patient <- function(patient, tip.patients, tree, root.name, raw.t
     
     # Collapse multifurcations
     
-    subtree <- di2multi(subtree, tol = 1E-5)
+    if(use.m.thresh){
+      if(is.na(m.thresh)){
+        min.bl <- min(tree$edge.length)
+        subtree <- di2multi(subtree, tol = min.bl*1.001)
+      } else {
+        subtree <- di2multi(subtree, tol = m.thresh)
+      }
+    }
     
     # Re-find the root
     
