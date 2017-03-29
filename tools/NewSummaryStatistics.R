@@ -1,6 +1,5 @@
 list.of.packages <- c("argparse","phytools", "dplyr", "ggplot2", "reshape", "dtplyr", "gtable", "grid", "gridExtra", "RColorBrewer", "scales", "pegas")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)){
   cat("Please run PackageInstall.R to continue\n")
   quit(save='no')
@@ -194,27 +193,15 @@ if (command.line) {
   window.coords <- as.list(setNames(window.coords$coordinate, window.coords$suffix ))
 
 } else {
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/")
-  script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
-  id.file <- "patientIDList.txt"
-  root.name<- "C.BW.00.00BW07621.AF443088"
+
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013")
+  tree.file.root <- "AllTrees/RAxML_bestTree.InWindow_"
+  blacklist.file.root <- "Blacklists/Duals blacklists/DualBlacklist.InWindow_"
+  splits.file.root <- "SubtreeFiles_s/Subtrees_s_run20161013_inWindow_"
+  root.name <- "C.BW.00.00BW07621.AF443088"
   tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
-  tree.file.name <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/AllTrees/RAxML_bestTree.InWindow_"
-  splits.file.name <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/SubtreeFiles_s/Subtrees_s_run20161013_inWindow_"
-  blacklist.file.name <- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013//Blacklists/Duals blacklists/DualBlacklist.InWindow_"
-  
-  tree.files <- sort(list.files.mod(dirname(tree.file.name), pattern=paste('^',basename(tree.file.name),".*\\.tree",sep=""), full.names=TRUE))	  
-  
-  tree.files <- tree.files[c(1:23, 25:33)]
-  
-  splits.files <- sort(list.files.mod(dirname(splits.file.name), pattern=paste('^',basename(splits.file.name),".*\\.csv",sep=""), full.names=TRUE))	  
-  blacklist.files <- sort(list.files.mod(dirname(blacklist.file.name), pattern=paste('^',basename(blacklist.file.name),".*\\.csv",sep=""), full.names=TRUE))	  
-  
-  blacklist.files <- blacklist.files[c(1:23, 25:33)]
-  
-  
-  output.root <- "ss_s"
-  windows <- NULL
+  id.file <- "patientIDListShortWDubious.txt"
+  args <- list()
 }
 
 # Align the graph output
@@ -578,11 +565,12 @@ read.prop.columns <- lapply(setNames(suffixes, suffixes), function(x){
   out
 })
   
-# Output the pat.stats table to file
 
 read.prop.columns <- rbindlist(read.prop.columns)
   
 pat.stats <- cbind(pat.stats, read.prop.columns)
+
+# Output the pat.stats table to file
 
 tmp	<- file.path(paste(output.root,"_patStatsFull.csv",sep=""))
 cat("Writing output to file ",tmp,"...\n",sep="")
@@ -755,7 +743,17 @@ for (i in seq(1, num.ids)) {
       graph.4 <- add.no.data.rectangles(graph.4, missing.rects)
     }
     
-    splits.props <- pat.stats[which(pat.stats$id==patient),c(1,3,14:19)]
+
+    proportion.column.names <- colnames(pat.stats)[which(substr(colnames(pat.stats), 1, 8)=="prop.gp.")]
+    
+  
+    # only columns with nonzero entries should be kept
+    proportion.columns <- pat.stats[which(pat.stats$id==patient), proportion.column.names, with=F]
+    
+    sums <- colSums(proportion.columns, na.rm=T)
+    proportion.column.names <- proportion.column.names[which(sums>0)]
+    
+    splits.props <- pat.stats[which(pat.stats$id==patient),c("id", "xcoord", proportion.column.names), with=F]
     
     splits.props.1col <- melt(splits.props, id=c("id", "xcoord"))
     splits.props.1col <- splits.props.1col[!is.na(splits.props.1col$value),]
