@@ -35,6 +35,7 @@ get.suffix <- function(file.name, prefix, extension){
 }
 
 command.line <- T
+
 if (command.line) {
   require(argparse, quietly=TRUE, warn.conflicts=FALSE)
   
@@ -587,7 +588,7 @@ tmp	<- file.path(paste(output.root,"_patStatsFull.csv",sep=""))
 cat("Writing output to file",tmp,"...\n")
 write.csv(pat.stats, tmp, quote = F, row.names = F)
 
-pat.stats$prop.reads.largest.subtree <- splits.props$prop.gp.1
+pat.stats$prop.reads.largest.subtree <- pat.stats$prop.gp.1
 
 mean.na.rm <- function(x) mean(x, na.rm = T)
 
@@ -597,7 +598,7 @@ pat.stats.temp <- pat.stats[which(pat.stats$reads>0), c("id", "tips", "reads", "
                                                         "prop.reads.largest.subtree", "max.branch.length", "mean.pat.distance", "branch.to.pat.ratio")] 
 
 
-by.patient <- pat.stats.temp %>% group_by(patient)
+by.patient <- pat.stats.temp %>% group_by(id)
 pat.stats.summary <-
   as.data.frame(by.patient %>% summarise_each(funs(mean.na.rm)))
 
