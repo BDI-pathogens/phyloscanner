@@ -297,7 +297,7 @@ unfactorDataFrame <- function(x) {
 calc.subtree.stats <- function(id, tree, tips.for.patients, splits.table, verbose = F){
   if(verbose) cat("Calculating detailed statistics for patient ",id,".\n", sep="")
   
-  subtrees <- length(unique(splits.table$subgraph[which(splits.table$patient==id)]))
+  subgraphs <- length(unique(splits.table$subgraph[which(splits.table$patient==id)]))
   
   all.tips <- tips.for.patients[[id]]
   
@@ -329,7 +329,7 @@ calc.subtree.stats <- function(id, tree, tips.for.patients, splits.table, verbos
     
     branch.to.pat.ratio <- max.branch.length/max.pat.distance
     
-    if(subtrees==1){
+    if(subgraphs==1){
       mean.pat.distance <- mean(pat.distances[upper.tri(pat.distances)])
       largest.rtt <- overall.rtt
     } else {
@@ -474,7 +474,7 @@ calc.all.stats.in.window <- function(suffix, verbose = F){
     }
   } 
   )]
-  window.table <- window.table[, subtrees :=  sapply(ids, function(x) length(unique(splits.table[which(splits.table$patient==x),]$subgraph)))]
+  window.table <- window.table[, subgraphs :=  sapply(ids, function(x) length(unique(splits.table[which(splits.table$patient==x),]$subgraph)))]
   window.table <- window.table[, clades := sapply(ids, function(x) length(all.clades.by.patient[[x]]))  ]
   
   new.cols <- sapply(ids, function(x) calc.subtree.stats(x, tree, tips.for.patients, splits.table, verbose))
@@ -545,7 +545,7 @@ pat.stats <- rbindlist(pat.stats)
 # If you're looking at absolutely nothing, I'm not drawing you any graphs
 
 if(length(which(pat.stats$tips > 0))==0){
-  cat("No patients from ID file ",id.file," present in any tree; stopping. Is your regex correct?", sep="")
+  cat("No patients from ID file ",id.file," present in any tree; stopping. Is your regex correct?\n", sep="")
   quit(save="no")
 }
 
@@ -585,7 +585,7 @@ read.prop.columns <- rbindlist(read.prop.columns)
 pat.stats <- cbind(pat.stats, read.prop.columns)
 
 tmp	<- file.path(paste(output.root,"_patStatsFull.csv",sep=""))
-cat("Writing output to file",tmp,"...\n")
+cat("Writing output to file ",tmp,"...\n",sep="")
 write.csv(pat.stats, tmp, quote = F, row.names = F)
 
 pat.stats$prop.reads.largest.subtree <- pat.stats$prop.gp.1
@@ -594,7 +594,7 @@ mean.na.rm <- function(x) mean(x, na.rm = T)
 
 # Output a summary of the pat.stats table to file
 
-pat.stats.temp <- pat.stats[which(pat.stats$reads>0), c("id", "tips", "reads", "subtrees", "clades", "overall.rtt", "largest.rtt", "max.pat.distance",
+pat.stats.temp <- pat.stats[which(pat.stats$reads>0), c("id", "tips", "reads", "subgraphs", "clades", "overall.rtt", "largest.rtt", "max.pat.distance",
                                                         "prop.reads.largest.subtree", "max.branch.length", "mean.pat.distance", "branch.to.pat.ratio")] 
 
 
@@ -603,13 +603,13 @@ pat.stats.summary <-
   as.data.frame(by.patient %>% summarise_each(funs(mean.na.rm)))
 
 tmp <- file.path(paste(output.root,"_patStatsSummary.csv",sep=""))
-cat("Writing output to file",tmp,"...\n")
+cat("Writing output to file ",tmp,"...\n",sep="")
 write.csv(pat.stats.summary, tmp, quote = F, row.names = F)
 
 # Draw the graphs
 
 tmp <- paste(output.root,"_patStats.pdf",sep="")
-cat("Plotting to file",tmp,"...\n")
+cat("Plotting to file ",tmp,"...\n",sep="")
 
 # Set up the boundaries of each window's region on the x-axis
 
@@ -685,9 +685,9 @@ for (i in seq(1, num.ids)) {
     }
     
     
-    #graph 2: subtree counts
+    #graph 2: subgraph and clade counts
     
-    this.pat.stats.1col <- melt(this.pat.stats.temp[,c("xcoord", "id", "subtrees", "clades")], id.vars=c("id", "xcoord"))
+    this.pat.stats.1col <- melt(this.pat.stats.temp[,c("xcoord", "id", "subgraphs", "clades")], id.vars=c("id", "xcoord"))
     
     graph.2 <- ggplot(this.pat.stats.1col, aes(x=xcoord, y=value))
     
@@ -698,9 +698,9 @@ for (i in seq(1, num.ids)) {
       ylab("Count") +
       xlab("Window centre") +
       scale_x_continuous(limits=c(ews, lwe)) +
-      scale_shape_manual(values=c(1,19), name="Variable", labels=c("Subtrees", "Clades")) +  
-      scale_size_manual(values=c(2,1), name="Variable", labels=c("Subtrees", "Clades")) +		
-      scale_color_discrete(name="Variable", labels=c("Subtrees", "Clades")) + 
+      scale_shape_manual(values=c(1,19), name="Variable", labels=c("Subgraphs", "Clades")) +  
+      scale_size_manual(values=c(2,1), name="Variable", labels=c("Subgraphs", "Clades")) +		
+      scale_color_discrete(name="Variable", labels=c("Subgraphs", "Clades")) + 
       theme(text = element_text(size=7))
     
     if(max(this.pat.stats.1col$value)==1){
@@ -717,6 +717,8 @@ for (i in seq(1, num.ids)) {
     
     this.pat.stats.1col <- melt(this.pat.stats.temp[,c("xcoord","id","overall.rtt","largest.rtt")], id.vars=c("id", "xcoord"))
    
+    # graph 3: root-to-tip distances for all reads and largest subgraph
+    
     graph.3 <- ggplot(this.pat.stats.1col, aes(x=xcoord, y=value))
     
     graph.3 <- graph.3 +
@@ -727,22 +729,23 @@ for (i in seq(1, num.ids)) {
       xlab("Window centre") +
       scale_x_continuous(limits=c(ews, lwe)) +
       expand_limits(y=0) + 
-      scale_color_discrete(name="Tip set", labels=c("All", "Largest subtree")) + 
-      scale_shape_manual(values=c(1,19), name="Tip set", labels=c("All", "Largest subtree")) +
-      scale_size_manual(values=c(2,1), name="Tip set", labels=c("All", "Largest subtree")) +
+      scale_color_discrete(name="Tip set", labels=c("All", "Largest subgraph")) + 
+      scale_shape_manual(values=c(1,19), name="Tip set", labels=c("All", "Largest subgraph")) +
+      scale_size_manual(values=c(2,1), name="Tip set", labels=c("All", "Largest subgraph")) +
       theme(text = element_text(size=7))
     
     if(regular.gaps){
       graph.3 <- add.no.data.rectangles(graph.3, missing.rects)
     }
     
-    this.pat.stats.temp$max.pat.distance <- as.numeric(this.pat.stats.temp$max.pat.distance)
+    # graph 4: largest patristic distance in largest subgraph
+    
     graph.4 <- ggplot(this.pat.stats.temp, aes(x=xcoord, y=max.pat.distance))
     
     graph.4 <- graph.4 +
       geom_point(alpha=0.5, na.rm=TRUE) +
       theme_bw() + 
-      ylab("Largest patristic distance in\nlargest connected subtree") +
+      ylab("Largest patristic distance in\nlargest connected subgraph") +
       xlab("Window centre") +
       scale_x_continuous(limits=c(ews, lwe)) +
       expand_limits(y=0) +
@@ -764,21 +767,25 @@ for (i in seq(1, num.ids)) {
     colourCount = length(unique(splits.props.1col$ngroup))
     getPalette = colorRampPalette(brewer.pal(9, "Greens"))
     
+    # graph 5: read proportions in each subgraph
+    
     graph.5 <- ggplot(splits.props.1col, aes(x=xcoord, weight=value, fill=reorder(fgroup, rev(order(splits.props.1col$ngroup)))))
     
     graph.5 <- graph.5 +
       geom_bar(width=200, colour="black", size=0.25) +
       theme_bw() + 
-      ylab("Proportion of reads\nin discrete subtrees") +
+      ylab("Proportion of reads\nin discrete subraphs") +
       xlab("Window centre") +
       scale_x_continuous(limits=c(ews, lwe)) +
       scale_fill_manual(values = getPalette(colourCount)) +
       theme(text = element_text(size=7)) + 
-      guides(fill = guide_legend(title = "Subtree rank\n(by tip count)", keywidth = 1, keyheight = 0.4))
+      guides(fill = guide_legend(title = "Subgraph rank\n(by tip count)", keywidth = 1, keyheight = 0.4))
     
     if(regular.gaps){
       graph.5 <- add.no.data.rectangles(graph.5, missing.rects)
     }
+    
+    # graph 6: longest branch to largest patristic distance ratios
     
     graph.6 <- ggplot(this.pat.stats.temp, aes(x=xcoord, y=branch.to.pat.ratio))
     
