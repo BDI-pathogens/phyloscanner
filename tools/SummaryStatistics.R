@@ -76,9 +76,9 @@ if (command.line) {
   
   # Find the input files
   
-  tree.files <- sort(list.files.mod(dirname(tree.file.root), pattern=paste('^',basename(tree.file.root),".*\\.tree",sep=""), full.names=TRUE))
+  tree.files <- sort(list.files.mod(dirname(tree.file.root), pattern=paste('^',basename(tree.file.root),".*",tree.fe,sep=""), full.names=TRUE))
   
-  splits.files <- sort(list.files.mod(dirname(splits.file.root), pattern=paste('^',basename(splits.file.root),".*\\.csv",sep=""), full.names=TRUE))	  
+  splits.files <- sort(list.files.mod(dirname(splits.file.root), pattern=paste('^',basename(splits.file.root),".*",csv.fe,sep=""), full.names=TRUE))	  
   blacklist.files <- NULL
   if(!is.null(blacklist.file.root)){
     blacklist.files <- sort(list.files.mod(dirname(blacklist.file.root), pattern=paste('^',basename(blacklist.file.root),".*\\.csv",sep=""), full.names=TRUE))
@@ -91,6 +91,7 @@ if (command.line) {
   splits.suffixes	<- sapply(splits.files, function(x) get.suffix(x, splits.file.root, csv.fe))
 
   # Only take suffixes that have both a tree file and a subgraph file
+
   
   ts.both.present <- intersect(tree.suffixes, splits.suffixes)
   ts.both.present <- ts.both.present[order(ts.both.present)]
@@ -140,12 +141,12 @@ if (command.line) {
   
   suffixes <- ts.both.present
   
-  if(!is.null(args$windows)){
+  if(!is.null(args$windowCoords)){
     cat("Reading genome coordinates from file ", args$windows, "\n", sep="")
     trees.to.be.worked.with <- paste(basename(tree.file.root), ts.both.present, tree.fe, sep="")
     
     
-    window.coords <- read.csv(args$windowCoords, header = F, stringsAsFactors = F, row.names = 1)
+    window.coords <- read.csv(args$windowCoords, header = F, stringsAsFactors = F)
     window.coords[,2] <- as.numeric(window.coords[,2])
     files.expected <- window.coords[,1]
     # do all trees actually have a window?
