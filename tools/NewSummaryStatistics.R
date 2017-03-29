@@ -221,10 +221,7 @@ AlignPlots <- function(...) {
   max.legends.width <- do.call(max, legends.widths)
   plots.grobs.eq.widths.aligned <- lapply(plots.grobs.eq.widths, function(x) {
     if (is.gtable(x$grobs[[8]])) {
-      x$grobs[[8]] <- gtable_add_cols(x$grobs[[8]],
-                                      unit(abs(diff(c(LegendWidth(x),
-                                                      max.legends.width))),
-                                           "mm"))
+      x$grobs[[8]] <- gtable_add_cols(x$grobs[[8]], unit(abs(diff(c(LegendWidth(x), max.legends.width))), "mm"))
     }
     x
   })
@@ -800,19 +797,28 @@ for (i in seq(1, num.ids)) {
     if(regular.gaps){
       graph.6 <- add.no.data.rectangles(graph.6, missing.rects)
     }
-    plots1 <- list()
+  
+
+    all.plots <- AlignPlots(graph.1, graph.2, graph.3, graph.4, graph.5, graph.6)
+
+    if(i!=1){
+      grid.newpage()
+    }
     
-    plots1$main <- textGrob(patient,gp=gpar(fontsize=20))
+    pushViewport(viewport(layout = grid.layout(7, 1, heights = unit(c(0.25, rep(1,6)), "null") )))
+    grid.text(patient, gp=gpar(fontsize=20), vp=viewport(layout.pos.row = 1, layout.pos.col = 1))
+    for(plot.no in 1:6){
+      plot <- all.plots[[plot.no]]
+      plot$vp = viewport(layout.pos.col = 1, layout.pos.row = plot.no + 1)
+      grid.draw(plot)
+    }
     
-    plots1 <- c(plots1, AlignPlots(graph.1, graph.2, graph.3, graph.4, graph.5, graph.6))
-    plots1$ncol <- 1
-    plots1$heights <- unit(c(0.25, rep(1,6)), "null")
-    
-    do.call(grid.arrange, plots1)
+
   
   } else {
     cat("Skipping graphs for patient ",patient," as no reads are present and not blacklisted\n", sep="")
   }
+
 }
 
 dev.off()
