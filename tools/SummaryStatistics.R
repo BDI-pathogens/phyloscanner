@@ -40,6 +40,7 @@ if (command.line) {
   
   arg_parser = ArgumentParser(description="Summarise patient statistics from each phylogeny across all windows.")
   
+  arg_parser$add_argument("-c", "--noReadCounts", action="store_true", default=FALSE, help="If present, tip labels have no read counts and each tip is assumed to represent a single read") 
   arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", 
                           help="Regular expression identifying tips from the dataset. Three groups: patient ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name.")
   arg_parser$add_argument("-r", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
@@ -71,6 +72,8 @@ if (command.line) {
   blacklist.file.root <- args$blacklists  
   output.root <- args$outputBaseName
 
+  no.read.counts <- args$noReadCounts
+  
   # Find the input files
   
   tree.files <- sort(list.files.mod(dirname(tree.file.root), pattern=paste('^',basename(tree.file.root),".*\\.tree",sep=""), full.names=TRUE))
@@ -516,7 +519,11 @@ all.splits.table <- lapply(setNames(suffixes, suffixes), function(x){
   
   cat('Read subgraph file ',splits.file.name,'\n', sep="")
   
-  splits.table$reads <- sapply(splits.table$tip, function(x) as.numeric(read.count.from.label(x, tip.regex)))
+  if(no.read.counts){
+    splits.table$reads <- sapply(splits.table$tip, function(x) as.numeric(read.count.from.label(x, tip.regex)))
+  } else {
+    splits.table$reads <- 1
+  }
   splits.table$suffix <- x
   splits.table
 })
