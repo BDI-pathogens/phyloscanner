@@ -24,6 +24,8 @@ suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
 tree.fe <- ".tree"
 csv.fe <- ".csv"
 
+# This function grabs the suffix which is used to uniquely identify each window through all input files
+
 get.suffix <- function(file.name, prefix, extension){
 
   file.name <- basename(file.name)
@@ -32,10 +34,6 @@ get.suffix <- function(file.name, prefix, extension){
   substr(file.name, nchar(prefix)+1, nchar(file.name)-nchar(extension))
 }
 
-
-#
-#	command line
-#
 command.line <- T
 if (command.line) {
   require(argparse, quietly=TRUE, warn.conflicts=FALSE)
@@ -60,6 +58,8 @@ if (command.line) {
   id.file <- args$idFile
   script.dir <- args$scriptdir
 
+  # The scripts are necessary here
+  
   source(file.path(script.dir, "TreeUtilityFunctions.R"))
   source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
   source(file.path(script.dir, "SummariseTrees_funcs.R"))
@@ -71,6 +71,8 @@ if (command.line) {
   blacklist.file.root <- args$blacklists  
   output.root <- args$outputBaseName
 
+  # Find the input files
+  
   tree.files <- sort(list.files.mod(dirname(tree.file.root), pattern=paste('^',basename(tree.file.root),".*\\.tree",sep=""), full.names=TRUE))
   
   splits.files <- sort(list.files.mod(dirname(splits.file.root), pattern=paste('^',basename(splits.file.root),".*\\.csv",sep=""), full.names=TRUE))	  
@@ -79,12 +81,14 @@ if (command.line) {
     blacklist.files <- sort(list.files.mod(dirname(blacklist.file.root), pattern=paste('^',basename(blacklist.file.root),".*\\.csv",sep=""), full.names=TRUE))
   }
   
-  # get the suffixes
+  # Get the suffixes
   
   tree.suffixes	<- sapply(tree.files, function(x) get.suffix(x, tree.file.root, tree.fe))
   
   splits.suffixes	<- sapply(splits.files, function(x) get.suffix(x, splits.file.root, csv.fe))
 
+  # Only take suffixes that have both a tree file and a subgraph file
+  
   ts.both.present <- intersect(tree.suffixes, splits.suffixes)
   ts.both.present <- ts.both.present[order(ts.both.present)]
   
@@ -104,6 +108,8 @@ if (command.line) {
       warning(paste("No tree file found for subgraph file ", nps, "; will ignore this file", sep=""))
     }
   } 
+  
+  # Check which suffixes from the current list have a blacklist file and vice versa
   
   if(!is.null(blacklist.file.root)){
     blacklist.suffixes <- sapply(blacklist.files, function(x) get.suffix(x, blacklist.file.root, csv.fe))
@@ -127,7 +133,7 @@ if (command.line) {
     } 
   }
   
-  # from now on we work with suffixes, restricted to the set which have both tree and splits files
+  # From now on we work with suffixes only
   
   suffixes <- ts.both.present
   
@@ -210,6 +216,8 @@ if (command.line) {
   windows <- NULL
 }
 
+# Align the graph output
+
 AlignPlots <- function(...) {
   LegendWidth <- function(x) x$grobs[[15]]$grobs[[1]]$widths[[4]]
   
@@ -236,6 +244,8 @@ AlignPlots <- function(...) {
   plots.grobs.eq.widths.aligned
 }
 
+# Add coloured rectangles to the graphs to represent areas with no coverage
+
 add.no.data.rectangles <- function(graph, rectangle.coords, log = F){
   y.limits <- ggplot_build(graph)$layout$panel_ranges[[1]]$y.range
   
@@ -252,7 +262,27 @@ add.no.data.rectangles <- function(graph, rectangle.coords, log = F){
   }
   
   return(graph)
-  
+}
+
+# Calculate the coordinates to build the rectangles for. missing.coords are x-coordinates of windows with no coverage. all.coords is the
+# full list of window coordinates.
+
+form.rectangles <- function(missing.coords, all.coords, colour = "grey"){
+  if(length(missing.coords)>0){
+    gap <-  unique(all.coords[2:length(all.coords)] - all.coords[1:length(all.coords)-1])
+    if(length(gap)>1){
+      cat("Fatal error drawing rectangles for missing data")
+      quit(save="no")
+    }
+    temp.starts <- missing.coords - gap/2
+    temp.ends <- missing.coords + gap/2
+    
+    final.starts <- setdiff(temp.starts, temp.ends)
+    final.ends <- setdiff(temp.ends, temp.starts)
+    
+    return(data.frame(starts = final.starts, ends = final.ends, colour=colour))
+  } 
+  stop("No missing coordinates given")
 }
 
 unfactorDataFrame <- function(x) {
@@ -260,6 +290,8 @@ unfactorDataFrame <- function(x) {
   x <- data.frame(lapply(x, function(y) type.convert(y, as.is=T)),
                   stringsAsFactors = F)
 }
+
+# Collects a variety of statistics about a single patient in a single tree
 
 calc.subtree.stats <- function(id, tree, tips.for.patients, splits.table, verbose = F){
   if(verbose) cat("Calculating detailed statistics for patient ",id,".\n", sep="")
@@ -351,6 +383,8 @@ calc.subtree.stats <- function(id, tree, tips.for.patients, splits.table, verbos
               branch.to.pat.ratio  = branch.to.pat.ratio, mean.pat.distance = mean.pat.distance))
 }
 
+# Calculates all statistics (apart from read proportions) for all patients in a given window
+
 calc.all.stats.in.window <- function(suffix, verbose = F){
   
   # Make the file names anew from the suffixes (probably the cleanest way to do this)
@@ -420,6 +454,7 @@ calc.all.stats.in.window <- function(suffix, verbose = F){
   if(length(patients.present)==0){
     warning(paste("No patients from file ",id.file," appear in tree ",tree.file.name,"\n",sep=""))
   }
+  
   # A list of tips for each patient 
   
   tips.for.patients <- lapply(setNames(ids, ids), function(x) tree$tip.label[which(patients.for.tips==x)])
@@ -449,6 +484,8 @@ calc.all.stats.in.window <- function(suffix, verbose = F){
   window.table
 }
 
+# Get the proportion of reads from a given patient in each of its subgraphs in a single tree
+
 get.read.proportions <- function(id, suffix, splits.table){
   this.pat.splits <- splits.table[which(splits.table$patient==id),]
   
@@ -463,23 +500,6 @@ get.read.proportions <- function(id, suffix, splits.table){
   }
 }
 
-form.rectangles <- function(missing.coords, all.coords, colour = "grey"){
-  if(length(missing.coords)>0){
-    gap <-  unique(all.coords[2:length(all.coords)] - all.coords[1:length(all.coords)-1])
-    if(length(gap)>1){
-      cat("Fatal error drawing rectangles for missing data")
-      quit(save="no")
-    }
-    temp.starts <- missing.coords - gap/2
-    temp.ends <- missing.coords + gap/2
-    
-    final.starts <- setdiff(temp.starts, temp.ends)
-    final.ends <- setdiff(temp.ends, temp.starts)
-    
-    return(data.frame(starts = final.starts, ends = final.ends, colour=colour))
-  } 
-  stop("No missing coordinates given")
-}
 
 # Read in the IDs. Remove duplicates. Alphabeticise.
 
@@ -487,17 +507,12 @@ ids <- scan(id.file, what="", sep="\n", quiet=TRUE)
 ids <- unique(ids)
 ids <- ids[order(ids)]
 
-ids<-ids[1:10]
-
 num.ids <- length(ids)
 
 if (num.ids == 0) {
   cat(paste("No IDs found in ", id.file, ". Quitting.\n", sep=""))
   quit("no", 1)
 }
-
-read.proportions <- list()
-max.splits <- 0
 
 # Load the splits first, since these tables get reused
 
@@ -521,6 +536,8 @@ all.splits.table <- lapply(setNames(suffixes, suffixes), function(x){
   splits.table
 })
 
+# Calculate all the statistics apart from the subgraph proportions
+
 pat.stats <- lapply(suffixes, function(x) calc.all.stats.in.window(x, F))
 pat.stats <- rbindlist(pat.stats)
 
@@ -531,11 +548,11 @@ if(length(which(pat.stats$tips > 0))==0){
   quit(save="no")
 }
 
-# proportions of reads in each patient subgraph in each window
+# The proportions of reads in each patient subgraph in each window
 
 read.proportions <- lapply(setNames(suffixes, suffixes), function(y) lapply(setNames(ids, ids), function(x) get.read.proportions(x, y, all.splits.table[[y]])))
 
-# max split count over every window and patient
+# Get the max split count over every window and patient (the exact number of columns depends on this)
 
 max.splits <- max(sapply(read.proportions, function(x) max(sapply(x, function(y) length(y)  ) )))
 
@@ -560,6 +577,8 @@ read.prop.columns <- lapply(setNames(suffixes, suffixes), function(x){
   out
 })
   
+# Output the pat.stats table to file
+
 read.prop.columns <- rbindlist(read.prop.columns)
   
 pat.stats <- cbind(pat.stats, read.prop.columns)
@@ -571,6 +590,8 @@ write.csv(pat.stats, tmp, quote = F, row.names = F)
 pat.stats$prop.reads.largest.subtree <- splits.props$prop.gp.1
 
 mean.na.rm <- function(x) mean(x, na.rm = T)
+
+# Output a summary of the pat.stats table to file
 
 pat.stats.temp <- pat.stats[which(pat.stats$reads>0), c("id", "tips", "reads", "subtrees", "clades", "overall.rtt", "largest.rtt", "max.pat.distance",
                                                         "prop.reads.largest.subtree", "max.branch.length", "mean.pat.distance", "branch.to.pat.ratio")] 
@@ -584,16 +605,17 @@ tmp <- file.path(paste(output.root,"_patStatsSummary.csv",sep=""))
 cat("Writing output to file",tmp,"...\n")
 write.csv(pat.stats.summary, tmp, quote = F, row.names = F)
 
+# Draw the graphs
+
 tmp <- paste(output.root,"_patStats.pdf",sep="")
 cat("Plotting to file",tmp,"...\n")
-
 
 # Set up the boundaries of each window's region on the x-axis
 
 xcoords <- unique(pat.stats$xcoord)
 xcoords <- xcoords[order(xcoords)]
 
-# Try to detect if the windows are evenly spaced. If they aren't, skip the rectangle-drawing, its too complex.
+# Try to detect if the windows are evenly spaced. If they aren't, skip the rectangle-drawing, it's too complex.
 
 gaps <- xcoords[2:length(xcoords)]-xcoords[1:length(xcoords)-1]
 
@@ -617,6 +639,7 @@ if(length(unique(gaps))==1){
 }
   
 pdf(file=tmp, width=8.26772, height=11.6929)
+
 for (i in seq(1, num.ids)) {
   
   patient <- ids[i]
@@ -661,7 +684,7 @@ for (i in seq(1, num.ids)) {
     }
     
     
-    #graph 2: subtree counts (Conservative, RS)
+    #graph 2: subtree counts
     
     this.pat.stats.1col <- melt(this.pat.stats.temp[,c("xcoord", "id", "subtrees", "clades")], id.vars=c("id", "xcoord"))
     
