@@ -126,7 +126,7 @@ ladderise.trees) {
 }
 
 
-resolveTreeIntoPatientClades <- function(tree, ids, tip.regex, blacklisted.tips = vector()) {
+resolveTreeIntoPatientClades <- function(tree, ids, tip.regex, blacklisted.tips = vector(), no.read.counts = T) {
 
   num.tips <- length(tree$tip.label)
   num.patients <- length(ids)
@@ -222,8 +222,7 @@ resolveTreeIntoPatientClades <- function(tree, ids, tip.regex, blacklisted.tips 
 }
 
 
-summariseClades <- function(tree, clades, num.clades.for.output, tip.regex,
-whose.code) {
+summariseClades <- function(tree, clades, num.clades.for.output, tip.regex, no.read.counts, whose.code) {
   # TODO: auto indent this function!
 
     num.clades <- length(clades)
@@ -244,7 +243,11 @@ whose.code) {
 		  root.to.tip.per.clade <- c(0, rep(NA, num.clades.for.output -1))
       overall.root.to.tip <- 0
       tip.name <- unlist(clades)
-      num.reads.total <- as.integer(sub(tip.regex, "\\2", tip.name))
+      if(!no.read.counts){
+        num.reads.total <- as.integer(sub(tip.regex, "\\2", tip.name))
+      } else {
+        num.reads.total <- 1
+      }
 
     # At least two tips:
     } else {
@@ -255,7 +258,11 @@ whose.code) {
         current.clade <- current.clade + 1
         num.reads.this.clade <- 0
         for (tip in clade) {
-          num.reads.this.tip <- as.integer(sub(tip.regex, "\\2", tip))
+          if(!no.read.counts){
+            num.reads.this.tip <- as.integer(sub(tip.regex, "\\2", tip))
+          } else {
+            num.reads.this.tip <- 1
+          }
           num.reads.this.clade <- num.reads.this.clade + num.reads.this.tip
           read.counts.per.tip[[tip]] <- num.reads.this.tip
         }
@@ -448,8 +455,7 @@ getIdFromTip <- function(tip.label, id.delimiter) {
 }
 # calculate this once for all tips...
 
-resolveTreeIntoPatientCladesChris <-
-function(tree, first.call=TRUE, num.tips=NULL, node=NULL) {
+resolveTreeIntoPatientCladesChris <- function(tree, first.call=TRUE, num.tips=NULL, node=NULL) {
   # Resolves a tree into a list (indexed by patient ID) of lists; each entry in
   # in one of the latter lists is a monophyletic set of tips for that patient, 
   # collected into a vector.

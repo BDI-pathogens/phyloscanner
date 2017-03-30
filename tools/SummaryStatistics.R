@@ -1,4 +1,4 @@
-list.of.packages <- c("argparse","phytools", "dplyr", "ggplot2", "reshape", "dtplyr", "gtable", "grid", "gridExtra", "RColorBrewer", "scales", "pegas")
+list.of.packages <- c("argparse","phytools", "dplyr", "ggplot2", "ggtree", "reshape", "dtplyr", "gtable", "grid", "gridExtra", "RColorBrewer", "scales", "pegas")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)){
   cat("Please run PackageInstall.R to continue\n")
@@ -8,6 +8,7 @@ if(length(new.packages)){
 suppressMessages(require(ape, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(phytools, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(ggplot2, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(ggtree, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(reshape, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(gtable, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(grid, quietly=TRUE, warn.conflicts=FALSE))
@@ -47,7 +48,7 @@ if (command.line) {
   arg_parser$add_argument("-b", "--blacklists", help="An optional file path and initial string identifying blacklist files (file extension must be .csv).")
   arg_parser$add_argument("-w", "--windowCoords", action="store", help="The path for a .csv file describing the position in the genome which each tree file represents (e.g. the midpoint of a window); used for the x-axis in output. The first column in the file should the tree file name, the second the coordinate. If not given, the script will attempt to obtain these from the file names (which should work if the input is from the phyloscanner pipeline).")
   arg_parser$add_argument("idFile", action="store", help="A file containing a list of the IDs of all the patients to calcualte and display statistics for.")
-  arg_parser$add_argument("treeFiles", action="store", help="A file path and initial string identifying all tree files (file extension must be .tree).")
+  arg_parser$add_argument("treeFiles", action="store", help="A file path and initial string identifying all tree files (processed tree files output by SplitPatientsToSubgraphs.R file extension must be .tree).")
   arg_parser$add_argument("splitsFiles", action="store",help="A file path and initial string identifying all splits files (file extension must be .csv).")
   arg_parser$add_argument("outputBaseName", action="store", help="A path and string to begin the names of all output files.")
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.")
@@ -152,7 +153,7 @@ if (command.line) {
     # do all trees actually have a window?
     if(length(setdiff(trees.to.be.worked.with, files.expected))){
       for(missing in setdiff(trees.to.be.worked.with, files.expected)){
-        cat("No genome position information found in file ", args$windowCoords, " for tree file ", missing, sep="")
+        cat("No genome position information found in file ", args$windowCoords, " for tree file ", missing, "\n", sep="")
       }
       quit(save="no")
     }
@@ -208,7 +209,7 @@ if (command.line) {
   
   setwd("/Users/twoseventwo/Documents/Croucher alignments/")
   id.file <- "patients.txt"
-  tree.file.root <- "pneumo_sample_"
+  tree.file.root <- "ProcessedTree_s_pneumo_"
   splits.file.root <- "subgraphs_s_pneumo_"
   blacklist.file.root <- NULL
   window.coords.file <- "samplecoords.csv"
@@ -340,10 +341,7 @@ calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table
       reads.per.split <- sapply(splits, function(x) sum(splits.table$reads[which(splits.table$subgraph==x)] ) )
       
       winner <- splits[which(reads.per.split==max(reads.per.split))]
-      if(length(winner)>1){
-        cat("Patient ",id," has a joint winner in window ", window.coords[[suffix]], "\n", sep="" )
-        winner <- winner[1]
-      }
+
       winner.tips <- relevant.reads$tip[which(relevant.reads$subgraph==winner)]
       if(length(winner.tips)==1){
         largest.rtt <- 0
@@ -413,7 +411,9 @@ calc.all.stats.in.window <- function(suffix, verbose = F){
   
   # Read the tree
   
-  tree <- read.tree(file=tree.file.name)  
+  pseudo.beast.import <- read.beast(tree.file.name)
+  tree <- attr(pseudo.beast.import, "phylo")
+  
   cat('Read tree file ',tree.file.name,'\n', sep="")
   
   # Root the tree
@@ -830,7 +830,6 @@ for (i in seq(1, num.ids)) {
       graph.6 <- add.no.data.rectangles(graph.6, missing.rects)
     }
   
-
     all.plots <- AlignPlots(graph.1, graph.2, graph.3, graph.4, graph.5, graph.6)
 
     if(i!=1){
@@ -844,13 +843,10 @@ for (i in seq(1, num.ids)) {
       plot$vp = viewport(layout.pos.col = 1, layout.pos.row = plot.no + 1)
       grid.draw(plot)
     }
-    
-
   
   } else {
     cat("Skipping graphs for patient ",patient," as no reads are present and not blacklisted\n", sep="")
   }
-
 }
 
 dev.off()
