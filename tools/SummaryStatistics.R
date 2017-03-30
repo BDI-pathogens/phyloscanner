@@ -342,10 +342,7 @@ calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table
       reads.per.split <- sapply(splits, function(x) sum(splits.table$reads[which(splits.table$subgraph==x)] ) )
       
       winner <- splits[which(reads.per.split==max(reads.per.split))]
-      if(length(winner)>1){
-        cat("Patient ",id," has a joint winner in window ", window.coords[[suffix]], "\n", sep="" )
-        winner <- winner[1]
-      }
+
       winner.tips <- relevant.reads$tip[which(relevant.reads$subgraph==winner)]
       if(length(winner.tips)==1){
         largest.rtt <- 0
