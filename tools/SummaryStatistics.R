@@ -180,7 +180,7 @@ if (command.line) {
     starts <- sapply(suffixes, function(x) if(length(grep(regex, x))>0) as.numeric(sub(regex, "\\1", x)) else NA)
     ends <- sapply(suffixes, function(x) if(length(grep(regex, x))>0) as.numeric(sub(regex, "\\2", x)) else NA)
   
-    if(any(is.na(starts)) | any(is.na(ends))){
+    if(any(is.na(starts)) | any(is.na(ends)) | length(starts)==0 | length(ends)==0){
       cat("Cannot obtain window coordinates from some file names\n")
       quit(save="no")
     }
