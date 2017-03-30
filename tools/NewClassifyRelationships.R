@@ -92,7 +92,7 @@ source(file.path(script.dir, "CollapsedTreeMethods.R"))
 #
 #	define internal functions
 #
-classify <- function(tree.file.name, splits.file.name, normalisation.constant = NULL, tt.file.name = NULL) {	
+classify <- function(tree.file.name, splits.file.name, normalisation.constant = 1, tt.file.name = NULL) {	
   cat("Reading tree file ", tree.file.name, "...\n", sep = "")
   
   pseudo.beast.import <- read.beast(tree.file.name)
@@ -228,7 +228,7 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
           path.matrix[pat.1, pat.2] <- "conflict"
         }
         
-        pairwise.distances <- 0
+        pairwise.distances <- vector()
         
         for(node.1 in nodes.1){
           for(node.2 in nodes.2){
@@ -248,9 +248,8 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
     }
   }
   
-  if(!is.null(normalisation.constant)){
-    normalised.distance.matrix<- mean.distance.matrix/normalisation.constant
-  }
+
+  normalised.distance.matrix<- mean.distance.matrix/normalisation.constant
   
   adjacency.table <- as.table(adjacency.matrix)
   dir.12.table <- as.table(dir.12.matrix)
@@ -260,7 +259,7 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
   path.table <- as.table(path.matrix)
   min.distance.table <- as.table(min.distance.matrix)
   
-  if(!is.null(normalisation.constant)){
+  if(normalisation.constant!=1){
     normalised.distance.table <- as.table(normalised.distance.matrix)
   }
   
@@ -313,7 +312,7 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
   mddf <- as.data.frame(min.distance.table)
   mddf <- mddf[keep,]
   
-  if(!is.null(normalisation.constant)){
+  if(normalisation.constant!=1){
     nddf <- as.data.frame(normalised.distance.table)
     nddf <- mddf[keep,]
   }
@@ -373,7 +372,7 @@ if(single.file)
   splits.file.names	<- sort(list.files(dirname(splits.file.names), pattern=paste(basename(splits.file.names),'.*\\.csv$',sep=''), full.names=TRUE))	
   stopifnot(length(tree.file.names)==length(splits.file.names))
   
-  normalisation.constant <- NULL
+  normalisation.constant <- 1
   
   if(has.normalisation){
     normalisation.constant <- suppressWarnings(as.numeric(normalisation.argument))
@@ -396,7 +395,7 @@ if(single.file)
           normalisation.constant <- as.numeric(norm.table[which(norm.table[,1]==basename(tree.file.name)),2])
         } else if (nrow(norm.table[which(norm.table[,1]==basename(tree.file.name)),])==0){
           warning(paste("No normalisation constant given for tree file name ",basename(tree.file.name), " in file ",basename(normalisation.argument),"; normalised distances will not be given", sep=""))
-          normalisation.constant <- NULL
+          normalisation.constant <- 1
         } else {
           warning(paste("Two or more entries for normalisation constant for tree file name ",basename(tree.file.name), " in file ",basename(normalisation.argument),"; taking the first", sep=""))
           normalisation.constant <- as.numeric(norm.table[which(norm.table[,1]==basename(tree.file.name))[1],2])
