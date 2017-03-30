@@ -21,7 +21,7 @@ suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
 
 #	constants
 
-tree.fe <- ".tree"
+tree.fe <- ".tree" 
 csv.fe <- ".csv"
 
 # This function grabs the suffix which is used to uniquely identify each window through all input files
