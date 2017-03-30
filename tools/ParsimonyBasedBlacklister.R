@@ -25,6 +25,7 @@ if(command.line){
   arg_parser$add_argument("-b", "--blacklist", action="store", help="A blacklist to be applied before this script is run.")
   arg_parser$add_argument("-c", "--noReadCounts", action="store_true", help="If present, read counts are not taken from tip labels and each tip is assumed to represent one read")
   arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what the script is doing.")
+  arg_parser$add_argument("-n", "--branchLengthNormalisation", action="store", help="If present and a number, a normalising constant for all branch lengths in the tree or trees. If present and a file, the path to a .csv file with two columns: tree file name and normalising constant")
   arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, short branches in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. If a number, this number will be used as the threshold. If 'g', it will be guessed from the branch lengths (use this only if you've checked by eye that the tree does indeed have multifurcations).")
   arg_parser$add_argument("-d", "--dualsOutputFile", action="store", help="A file or file root to write the set of patients which seem to be dually infected according to the parameters of this run; if unspecified, do not output this.")
   arg_parser$add_argument("rawThreshold", action="store", type="double", help="Raw threshold; subgraphs with read counts less than this will be blacklisted, regardless of the count of any other subgraphs from the same patient")
@@ -58,6 +59,8 @@ if(command.line){
       quit(save="no")
     }
   }
+  has.normalisation <- !is.null(args$branchLengthNormalisation)
+  normalisation.argument <- args$branchLengthNormalisation
   
   source(file.path(script.dir, "TreeUtilityFunctions.R"))
   source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
@@ -70,6 +73,24 @@ if(command.line){
     input.names <- input.name
     d.output.names <- d.output.name
     b.output.names <- b.output.name
+    if(!has.normalisation){
+      normalisation.constants <- 1
+    } else {
+      normalisation.constants <- suppressWarnings(as.numeric(normalisation.argument))
+      
+      if(is.na(normalisation.constant)){
+        norm.table <- read.csv(normalisation.argument, stringsAsFactors = F, header = F)
+        if(nrow(norm.table[which(norm.table[,1]==basename(input.name)),])==1){
+          normalisation.constants <- as.numeric(norm.table[which(norm.table[,1]==basename(input.name)),2])
+        } else if (nrow(norm.table[which(norm.table[,1]==basename(input.name)),])==0){
+          warning(paste("No normalisation constant given for tree file name ", basename(input.name), " in file ",normalisation.argument,"; normalised distances will not be given", sep=""))
+          normalisation.constants <- 1
+        } else {
+          warning(paste("Two or more entries for normalisation constant for tree file name ",basename(input.name)," in file ",normalisation.argument,"; taking the first", sep=""))
+          normalisation.constants <- as.numeric(norm.table[which(norm.table[,1]==basename(input.name))[1],2])
+        }
+      }
+    }
   } else {
     # Assume we are dealing with a group of files
     
@@ -86,6 +107,32 @@ if(command.line){
     b.output.names <- paste(b.output.name, suffixes, sep="")
     if(!is.null(d.output.name)){
       d.output.names <- paste(d.output.name, suffixes, sep="")
+    }
+    
+    if(has.normalisation){
+      normalisation.constant <- suppressWarnings(as.numeric(normalisation.argument))
+      
+      if(is.na(normalisation.constant)){
+        norm.table <- read.csv(normalisation.argument, stringsAsFactors = F, header = F)
+        normalisation.constants <- sapply(basename(input.names), function(x){
+          if(x %in% norm.table[,1]){
+            if(length(which(norm.table[,1]==x))>1){
+              warning(paste("Two or more entries for normalisation constant for tree file name ",x, " in file ",normalisation.argument,"; taking the first", sep=""))
+            }
+            return(norm.table[which(norm.table[,1]==x)[1],2])
+          } else {
+            warning(paste("No normalisation constant for tree file ",x," found in file, ",normalisation.argument,"; this tree will not have branch lengths normalised.", sep=""))
+            return(1)
+          }
+          
+        })  
+        
+      } else {
+        # it's a number to be used in every tree
+        normalisation.constants <- rep(normalisation.constant, length(input.names))
+      }
+    } else {
+      normalisation.constants <- rep(1, length(input.names))
     }
   }
   
@@ -303,6 +350,8 @@ for(i in 1:length(input.names)){
   cat(paste("Reading tree (",input.names[i],")...\n",sep=""))
   
   tree <- read.tree(input.names[i])
+  
+  tree$edge.length <- tree$edge.length/normalisation.constants[i]
   
   # Re-root the tree
   

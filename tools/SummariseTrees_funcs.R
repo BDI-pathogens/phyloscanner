@@ -217,8 +217,7 @@ resolveTreeIntoPatientClades <- function(tree, ids, tip.regex, blacklisted.tips 
   #group.counts <- lapply(groups, vapply,
   #function(el) sum(read.counts.per.tip[el]), integer(1))
 
-  return(list(clades.by.patient=clades.by.patient,
-  clade.mrcas.by.patient=clade.mrcas.by.patient))
+  return(list(clades.by.patient=clades.by.patient, clade.mrcas.by.patient=clade.mrcas.by.patient))
 }
 
 
@@ -572,8 +571,7 @@ function(tree, id, first.call=TRUE, num.tips=NULL, node=NULL) {
 
 
 
-analyseCladesChristophe <- function(id, patient.tips, tree,
-test.clade.ordering.only) {
+analyseCladesChristophe <- function(id, patient.tips, tree, test.clade.ordering.only) {
 	# For each patient:
 	# Determine all the distinct monophyletic clades that the patient's tips make.
 	# (NB a single isolated read is considered a type of monophyletic clade.)
