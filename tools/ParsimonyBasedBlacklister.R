@@ -10,6 +10,9 @@ suppressMessages(library(phangorn, quietly=TRUE, warn.conflicts=FALSE))
 
 cat("Reading functions...\n")
 
+tree.fe <- ".tree"
+csv.fe <- ".csv"
+
 command.line <- T
 if(command.line){
   suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
@@ -70,7 +73,7 @@ if(command.line){
   } else {
     # Assume we are dealing with a group of files
     
-    input.names	<- sort(list.files.mod(dirname(input.name), pattern=paste(basename(input.name),'.*\\.tree$',sep=''), full.names=TRUE))
+    input.names	<- sort(list.files.mod(dirname(input.name), pattern=paste(basename(input.name),'.*\\',tree.fe,'$',sep=''), full.names=TRUE))
     
     if(length(input.names)==0){
       cat("No input trees found,\n")
@@ -78,7 +81,7 @@ if(command.line){
     }
     
     suffixes <- substr(input.names, nchar(input.name) + 1, nchar(input.names))
-    suffixes <- gsub('\\.tree','.csv',suffixes)
+    suffixes <- gsub(paste('\\', tree.fe, sep="") , csv.fe ,suffixes)
     
     b.output.names <- paste(b.output.name, suffixes, sep="")
     if(!is.null(d.output.name)){
