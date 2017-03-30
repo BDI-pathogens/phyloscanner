@@ -386,7 +386,7 @@ if(single.file)
   for(tree.i in seq_along(tree.file.names)){
     tree.file.name		<- tree.file.names[tree.i]
     splits.file.name	<- splits.file.names[tree.i]
-    output.name			<- gsub('\\.tree','_LikelyTransmissions.csv', tree.file.name)		
+    output.name			<- gsub('\\.tree','_classification.csv', tree.file.name)		
     collapsed.file.name	<- gsub('\\.tree','_collapsed.csv', tree.file.name)
 
     if(has.normalisation){
