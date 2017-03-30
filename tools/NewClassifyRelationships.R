@@ -249,7 +249,7 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
   }
   
 
-  normalised.distance.matrix<- mean.distance.matrix/normalisation.constant
+  normalised.distance.matrix<- min.distance.matrix/normalisation.constant
   
   adjacency.table <- as.table(adjacency.matrix)
   dir.12.table <- as.table(dir.12.matrix)
