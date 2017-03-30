@@ -80,6 +80,9 @@ if(command.line){
   pdf.w <- as.numeric(args$pdfwidth)
   useff = args$useff
   
+  has.normalisation <- !is.null(args$branchLengthNormalisation)
+  normalisation.argument <- args$branchLengthNormalisation
+  
   if(useff){
     suppressMessages(library(ff, quietly=TRUE, warn.conflicts=FALSE))
   }
@@ -145,7 +148,7 @@ if(command.line){
 #
 #	define internal functions
 #
-split.patients.to.subgraphs<- function(tree.file.name, mode, blacklist.file, root.name, tip.regex, sankhoff.k, ties.rule, useff){
+split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 1, mode, blacklist.file, root.name, tip.regex, sankhoff.k, ties.rule, useff){
   cat("SplitPatientsToSubgraphs.R run on: ", tree.file.name,", rules = ",mode,"\n", sep="")
   
   # Read, root and multifurcate the tree
@@ -166,6 +169,9 @@ split.patients.to.subgraphs<- function(tree.file.name, mode, blacklist.file, roo
   if(!is.null(root.name)){
     tree <- root(tree, outgroup = which(tree$tip.label==root.name), resolve.root = T)
   }
+  
+  orig.tree <- tree
+  tree$edge.length <- tree$edge.length/normalisation.constant
   
   tip.labels <- tree$tip.label
   
@@ -243,20 +249,17 @@ split.patients.to.subgraphs<- function(tree.file.name, mode, blacklist.file, roo
   patient.annotation <- factor(patient.annotation, levels = sample(levels(as.factor(patient.annotation))))
   
   # For annotation
+  # We will return the original tree with the original branch lengths
   
-  attr(tree, 'SPLIT') <- factor(split.annotation)
-  attr(tree, 'INDIVIDUAL') <- patient.annotation
-  attr(tree, 'NODE_SHAPES') <- node.shapes
-  
-  #orig.patients <- vector()
-  #patient.splits <- vector()
-  #tip.names <- vector()	
+  attr(orig.tree, 'SPLIT') <- factor(split.annotation)
+  attr(orig.tree, 'INDIVIDUAL') <- patient.annotation
+  attr(orig.tree, 'NODE_SHAPES') <- node.shapes
   
   rs.subgraphs <- data.table(subgraph=results$split.patients)
   rs.subgraphs <- rs.subgraphs[, list(patient= unlist(strsplit(subgraph, "-S"))[1], tip= tree$tip.label[ results$split.tips[[subgraph]] ]	), by='subgraph']
   rs.subgraphs <- as.data.frame(subset(rs.subgraphs, select=c(patient, subgraph, tip)))
   
-  list(tree=tree, rs.subgraphs=rs.subgraphs)
+  list(tree=orig.tree, rs.subgraphs=rs.subgraphs)
 }
 #
 #	start script
@@ -269,6 +272,25 @@ if(file.exists(tree.file.name)){
   }
   
   output.file.IDs <- output.file.ID
+  
+  if(!has.normalisation){
+    normalisation.constants <- 1
+  } else {
+    normalisation.constants <- suppressWarnings(as.numeric(normalisation.argument))
+    
+    if(is.na(normalisation.constant)){
+      norm.table <- read.csv(normalisation.argument, stringsAsFactors = F, header = F)
+      if(nrow(norm.table[which(norm.table[,1]==basename(tree.file.name)),])==1){
+        normalisation.constants <- as.numeric(norm.table[which(norm.table[,1]==basename(tree.file.name)),2])
+      } else if (nrow(norm.table[which(norm.table[,1]==basename(tree.file.name)),])==0){
+        warning(paste("No normalisation constant given for tree file name ", basename(tree.file.name), " in file ",normalisation.argument,"; normalised distances will not be given", sep=""))
+        normalisation.constants <- 1
+      } else {
+        warning(paste("Two or more entries for normalisation constant for tree file name ",basename(tree.file.name)," in file ",normalisation.argument,"; taking the first", sep=""))
+        normalisation.constants <- as.numeric(norm.table[which(norm.table[,1]==basename(tree.file.name))[1],2])
+      }
+    }
+  }
 } else {
   # Assume we are dealing with a group of files
   
@@ -287,6 +309,31 @@ if(file.exists(tree.file.name)){
   suffixes <- gsub(paste('\\',csv.fe,sep=""),'',suffixes)
   output.file.IDs <- paste(output.file.ID, suffixes, sep="")
   
+  if(has.normalisation){
+    normalisation.constant <- suppressWarnings(as.numeric(normalisation.argument))
+    
+    if(is.na(normalisation.constant)){
+      norm.table <- read.csv(normalisation.argument, stringsAsFactors = F, header = F)
+      normalisation.constants <- sapply(basename(tree.file.names), function(x){
+        if(x %in% norm.table[,1]){
+          if(length(which(norm.table[,1]==x))>1){
+            warning(paste("Two or more entries for normalisation constant for tree file name ",x, " in file ",normalisation.argument,"; taking the first", sep=""))
+          }
+          return(norm.table[which(norm.table[,1]==x)[1],2])
+        } else {
+          warning(paste("No normalisation constant for tree file ",x," found in file, ",normalisation.argument,"; this tree will not have branch lengths normalised.", sep=""))
+          return(1)
+        }
+        
+      })  
+      
+    } else {
+      # it's a number to be used in every tree
+      normalisation.constants <- rep(normalisation.constant, length(tree.file.names))
+    }
+  } else {
+    normalisation.constants <- rep(1, length(tree.file.names))
+  }
 }
 
 for(i in 1:length(tree.file.names)){
@@ -299,7 +346,7 @@ for(i in 1:length(tree.file.names)){
   }
   output.string <- output.file.IDs[i] 
   
-  tmp					<- split.patients.to.subgraphs(tree.file.name, mode, blacklist.file, root.name, tip.regex, sankhoff.k, ties.rule, useff)
+  tmp					<- split.patients.to.subgraphs(tree.file.name,normalisation.constants[i], mode, blacklist.file, root.name, tip.regex, sankhoff.k, ties.rule, useff)
   tree				<- tmp[['tree']]	
   rs.subgraphs			<- tmp[['rs.subgraphs']]
   #
