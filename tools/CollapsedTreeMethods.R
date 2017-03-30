@@ -155,7 +155,7 @@ output.trans.tree <- function(tree, assocs, file.name = NULL, prune.unsampled.ti
   unsampled.roots <- which(splits.vec=="none" & first.of.split)
   
   splits.vec[unsampled.roots] <- 
-    paste("unsampled_region-", 1:length(unsampled.roots), sep="")
+    paste("unsampled_region-S", 1:length(unsampled.roots), sep="")
   
   for(node.no in seq(1, tree$Nnode + length(tree$tip.label))){
     if(assocs.vec[node.no]=="none" & !first.of.split[node.no]){
@@ -191,8 +191,8 @@ output.trans.tree <- function(tree, assocs, file.name = NULL, prune.unsampled.ti
     root.nos <- c(root.nos, root)
   }
   
-  patients <-  unlist(lapply(strsplit(unique.splits, "-"), `[[`, 1)) 
-  parent.patients <-  unlist(lapply(strsplit(parent.splits, "-"), `[[`, 1)) 
+  patients <-  unlist(lapply(strsplit(unique.splits, "-S"), `[[`, 1)) 
+  parent.patients <-  unlist(lapply(strsplit(parent.splits, "-S"), `[[`, 1)) 
   
   tt.table <- data.frame(unique.splits, parent.splits, patients, parent.patients, lengths, root.nos, stringsAsFactors = F)
   
@@ -212,7 +212,7 @@ output.trans.tree <- function(tree, assocs, file.name = NULL, prune.unsampled.ti
     
     for(x in 1:length(unsampled.rows)) {
       old.label <- unsampled.labels[x]
-      new.label <- paste("unsampled_region-",x,sep="")
+      new.label <- paste("unsampled_region-S",x,sep="")
       for.output$unique.splits[unsampled.rows[x]] <- new.label
       for.output$parent.splits[which(for.output$parent.splits==old.label)] <- new.label
     } 
