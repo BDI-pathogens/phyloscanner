@@ -71,6 +71,7 @@ if (command.line) {
   splits.file.root <- args$splitsFiles
   blacklist.file.root <- args$blacklists  
   output.root <- args$outputBaseName
+  window.coords.file <- args$windowCoords
 
   no.read.counts <- args$noReadCounts
   
@@ -141,12 +142,12 @@ if (command.line) {
   
   suffixes <- ts.both.present
   
-  if(!is.null(args$windowCoords)){
-    cat("Reading genome coordinates from file ", args$windows, "\n", sep="")
+  if(!is.null(window.coords.file)){
+    cat("Reading genome coordinates from file ", window.coords.file, "\n", sep="")
     trees.to.be.worked.with <- paste(basename(tree.file.root), ts.both.present, tree.fe, sep="")
     
     
-    window.coords <- read.csv(args$windowCoords, header = F, stringsAsFactors = F)
+    window.coords <- read.csv(window.coords.file, header = F, stringsAsFactors = F)
     window.coords[,2] <- as.numeric(window.coords[,2])
     files.expected <- window.coords[,1]
     # do all trees actually have a window?
@@ -205,7 +206,17 @@ if (command.line) {
   root.name <- "C.BW.00.00BW07621.AF443088"
   tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
   id.file <- "patientIDListShortWDubious.txt"
-  args <- list()
+  
+  setwd("/Users/twoseventwo/Documents/Croucher alignments/")
+  id.file <- "patients.txt"
+  tree.file.root <- "pneumo_sample_"
+  splits.file.root <- "subgraphs_s_pneumo_"
+  blacklist.file.root <- NULL
+  window.coords.file <- "samplecoords.csv"
+  tip.regex <- "^(ARI-[0-9][0-9][0-9][0-9]_[A-Z]*)_[0-9][0-9][0-9][0-9]_[0-9]_[0-9][0-9]?$"
+  root.name <- NULL
+  no.read.counts <- T
+  script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
 }
 
 # Align the graph output
@@ -282,7 +293,7 @@ unfactorDataFrame <- function(x) {
 
 # Collects a variety of statistics about a single patient in a single tree
 
-calc.subtree.stats <- function(id, tree, tips.for.patients, splits.table, verbose = F){
+calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table, no.read.counts, verbose = F){
   if(verbose) cat("Calculating detailed statistics for patient ",id,".\n", sep="")
   
   subgraphs <- length(unique(splits.table$subgraph[which(splits.table$patient==id)]))
@@ -297,7 +308,11 @@ calc.subtree.stats <- function(id, tree, tips.for.patients, splits.table, verbos
     
     # just in case pruning changes the tip order
     
-    reads.per.tip <- sapply(subtree.all$tip.label, function(x) as.numeric(read.count.from.label(x, tip.regex)))
+    if(!no.read.counts){
+      reads.per.tip <- sapply(subtree.all$tip.label, function(x) as.numeric(read.count.from.label(x, tip.regex)))
+    } else {
+      reads.per.tip <- rep(1, length(subtree.all$tip.label))
+    }
     
     names(reads.per.tip) <- subtree.all$tip.label
     
@@ -327,7 +342,7 @@ calc.subtree.stats <- function(id, tree, tips.for.patients, splits.table, verbos
       
       winner <- splits[which(reads.per.split==max(reads.per.split))]
       if(length(winner)>1){
-        cat("Patient ",id," has a joint winner in window ", coords[[suffix]], "\n", sep="" )
+        cat("Patient ",id," has a joint winner in window ", window.coords[[suffix]], "\n", sep="" )
         winner <- winner[1]
       }
       winner.tips <- relevant.reads$tip[which(relevant.reads$subgraph==winner)]
@@ -339,7 +354,11 @@ calc.subtree.stats <- function(id, tree, tips.for.patients, splits.table, verbos
         
         # just in case pruning changes the tip order
         
-        reads.per.tip <- sapply(subtree$tip.label, function(x) as.numeric(read.count.from.label(x, tip.regex)))
+        if(!no.read.counts){
+          reads.per.tip <- sapply(subtree$tip.label, function(x) as.numeric(read.count.from.label(x, tip.regex)))
+        } else {
+          reads.per.tip <- rep(1, length(subtree$tip.label))
+        }
         
         names(reads.per.tip) <- subtree$tip.label
         
@@ -380,7 +399,6 @@ calc.all.stats.in.window <- function(suffix, verbose = F){
   
   tree.file.name <- paste(tree.file.root, suffix, tree.fe, sep="")
   
-  
   if(!is.null(blacklist.file.root)){
     blacklist.file.name <- paste(blacklist.file.root, suffix, csv.fe, sep="")
   } else {
@@ -401,7 +419,7 @@ calc.all.stats.in.window <- function(suffix, verbose = F){
   
   # Root the tree
   if(!is.null(root.name)){
-    tree<-root(phy = tree,outgroup = root.name)
+    tree <- root(phy = tree,outgroup = root.name)
   }
   
   # Load the blacklist if it exists
@@ -427,8 +445,7 @@ calc.all.stats.in.window <- function(suffix, verbose = F){
   splits.table <- all.splits.table[[suffix]]
   
   # Find the clades
-  
-  clade.results <- resolveTreeIntoPatientClades(tree, ids, tip.regex, blacklist)
+  clade.results <- resolveTreeIntoPatientClades(tree, ids, tip.regex, blacklist, no.read.counts)
   clade.mrcas.by.patient <- clade.results$clade.mrcas.by.patient
   all.clades.by.patient <- clade.results$clades.by.patient
   
@@ -458,14 +475,18 @@ calc.all.stats.in.window <- function(suffix, verbose = F){
     if(length(tips.for.patients[[x]])==0){
       return(0)
     } else {
-      return(sum(sapply(tips.for.patients[[x]], function(y) as.numeric(read.count.from.label(y, tip.regex)))))
+      if(!no.read.counts){
+        return(sum(sapply(tips.for.patients[[x]], function(y) as.numeric(read.count.from.label(y, tip.regex)))))
+      } else {
+        return(length(tips.for.patients[[x]]))
+      }
     }
   } 
   )]
   window.table <- window.table[, subgraphs :=  sapply(ids, function(x) length(unique(splits.table[which(splits.table$patient==x),]$subgraph)))]
   window.table <- window.table[, clades := sapply(ids, function(x) length(all.clades.by.patient[[x]]))  ]
   
-  new.cols <- sapply(ids, function(x) calc.subtree.stats(x, tree, tips.for.patients, splits.table, verbose))
+  new.cols <- sapply(ids, function(x) calc.subtree.stats(x, suffix, tree, tips.for.patients, splits.table, no.read.counts, verbose))
   new.cols <- as.data.table(t(new.cols))
   new.cols <- sapply(new.cols, as.numeric)
   window.table <- cbind(window.table, new.cols) 
@@ -520,7 +541,7 @@ all.splits.table <- lapply(setNames(suffixes, suffixes), function(x){
   
   cat('Read subgraph file ',splits.file.name,'\n', sep="")
   
-  if(no.read.counts){
+  if(!no.read.counts){
     splits.table$reads <- sapply(splits.table$tip, function(x) as.numeric(read.count.from.label(x, tip.regex)))
   } else {
     splits.table$reads <- 1
@@ -631,7 +652,10 @@ if(length(unique(gaps))==1){
     missing.window.rects <- NULL
   }
 }
-  
+
+range <- max(xcoords.reg) - min(xcoords.reg)
+bar.width.5 <- range/(1.5*(length(xcoords.reg)+1))
+
 pdf(file=tmp, width=8.26772, height=11.6929)
 
 for (i in seq(1, num.ids)) {
@@ -651,12 +675,13 @@ for (i in seq(1, num.ids)) {
     #Get the zero runs for the grey rectangles
     
     missing.read.rects <- NULL
-    
+
     if(regular.gaps & length(which(this.pat.stats$reads==0))){
       missing.read.rects <- form.rectangles(this.pat.stats$xcoord[which(this.pat.stats$reads==0)], xcoords.reg, "grey")
     }
     
     missing.rects <- rbind(missing.window.rects, missing.read.rects)
+
     
     #graph 1: read count and tip count
     
@@ -704,7 +729,7 @@ for (i in seq(1, num.ids)) {
       graph.2 <- graph.2 + expand_limits(y=0) + scale_y_continuous(breaks = pretty_breaks()) 
     }
     
-    if(regular.gaps){
+    if(regular.gaps & !is.null(missing.rects)){
       graph.2 <- add.no.data.rectangles(graph.2, missing.rects)
     }
     
@@ -727,7 +752,7 @@ for (i in seq(1, num.ids)) {
       scale_size_manual(values=c(2,1), name="Tip set", labels=c("All", "Largest subgraph")) +
       theme(text = element_text(size=7))
     
-    if(regular.gaps){
+    if(regular.gaps & !is.null(missing.rects)){
       graph.3 <- add.no.data.rectangles(graph.3, missing.rects)
     }
     
@@ -744,7 +769,7 @@ for (i in seq(1, num.ids)) {
       expand_limits(y=0) +
       theme(text = element_text(size=7))
     
-    if(regular.gaps){
+    if(regular.gaps & !is.null(missing.rects)){
       graph.4 <- add.no.data.rectangles(graph.4, missing.rects)
     }
     
@@ -773,9 +798,9 @@ for (i in seq(1, num.ids)) {
     # graph 5: read proportions in each subgraph
     
     graph.5 <- ggplot(splits.props.1col, aes(x=xcoord, weight=value, fill=reorder(fgroup, rev(order(splits.props.1col$ngroup)))))
-    
+  
     graph.5 <- graph.5 +
-      geom_bar(width=200, colour="black", size=0.25) +
+      geom_bar(width=bar.width.5, colour="black", size=0.25) +
       theme_bw() + 
       ylab("Proportion of reads\nin discrete subraphs") +
       xlab("Window centre") +
@@ -784,7 +809,7 @@ for (i in seq(1, num.ids)) {
       theme(text = element_text(size=7)) + 
       guides(fill = guide_legend(title = "Subgraph rank\n(by tip count)", keywidth = 1, keyheight = 0.4))
     
-    if(regular.gaps){
+    if(regular.gaps & !is.null(missing.rects)){
       graph.5 <- add.no.data.rectangles(graph.5, missing.rects)
     }
     
@@ -802,7 +827,7 @@ for (i in seq(1, num.ids)) {
       #      scale_color_discrete(name="Tip set", labels=c("Longest branch", "Greatest patristic distance")) + 
       theme(text = element_text(size=7))
     
-    if(regular.gaps){
+    if(regular.gaps & !is.null(missing.rects)){
       graph.6 <- add.no.data.rectangles(graph.6, missing.rects)
     }
   
