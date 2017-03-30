@@ -444,7 +444,7 @@ calc.all.stats.in.window <- function(suffix, verbose = F){
   splits.table <- all.splits.table[[suffix]]
   
   # Find the clades
-  clade.results <- resolveTreeIntoPatientClades(tree, ids, tip.regex, blacklist)
+  clade.results <- resolveTreeIntoPatientClades(tree, ids, tip.regex, blacklist, no.read.counts)
   clade.mrcas.by.patient <- clade.results$clade.mrcas.by.patient
   all.clades.by.patient <- clade.results$clades.by.patient
   
