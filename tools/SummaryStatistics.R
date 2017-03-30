@@ -21,7 +21,7 @@ suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
 
 #	constants
 
-tree.fe <- ".tree"
+tree.fe <- ".tree" 
 csv.fe <- ".csv"
 
 # This function grabs the suffix which is used to uniquely identify each window through all input files
@@ -93,11 +93,8 @@ if (command.line) {
   splits.suffixes	<- sapply(splits.files, function(x) get.suffix(x, splits.file.root, csv.fe))
 
   # Only take suffixes that have both a tree file and a subgraph file
-
-  
   ts.both.present <- intersect(tree.suffixes, splits.suffixes)
   ts.both.present <- ts.both.present[order(ts.both.present)]
-  
   if(length(ts.both.present) < length(tree.files)){
     missing.suffixes <- setdiff(tree.suffixes, ts.both.present)
     no.partner.files <- paste(tree.file.root, missing.suffixes, tree.fe, sep="")
@@ -119,8 +116,10 @@ if (command.line) {
   
   if(!is.null(blacklist.file.root)){
     blacklist.suffixes <- sapply(blacklist.files, function(x) get.suffix(x, blacklist.file.root, csv.fe))
+
+
     # the only remaining tree files will have a splits file, no need to check the splits files separately
-    bt.both.present <- intersect(ts.both.present, blacklist.suffixes)
+    bt.both.present <- intersect(ts.both.present, blacklist.suffixes)	
     if(length(bt.both.present) < length(ts.both.present)){
       missing.suffixes <- setdiff(ts.both.present, bt.both.present)
       no.partner.files <- paste(tree.file.root, missing.suffixes, tree.fe, sep="")
@@ -445,7 +444,7 @@ calc.all.stats.in.window <- function(suffix, verbose = F){
   splits.table <- all.splits.table[[suffix]]
   
   # Find the clades
-  clade.results <- resolveTreeIntoPatientClades(tree, ids, tip.regex, blacklist, no.read.counts)
+  clade.results <- resolveTreeIntoPatientClades(tree, ids, tip.regex, blacklist)
   clade.mrcas.by.patient <- clade.results$clade.mrcas.by.patient
   all.clades.by.patient <- clade.results$clades.by.patient
   
