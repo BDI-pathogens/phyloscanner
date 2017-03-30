@@ -44,7 +44,6 @@ if (command.line) {
   arg_parser$add_argument("-c", "--noReadCounts", action="store_true", default=FALSE, help="If present, tip labels have no read counts and each tip is assumed to represent a single read") 
   arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", 
                           help="Regular expression identifying tips from the dataset. Three groups: patient ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name.")
-  arg_parser$add_argument("-r", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
   arg_parser$add_argument("-b", "--blacklists", help="An optional file path and initial string identifying blacklist files (file extension must be .csv).")
   arg_parser$add_argument("-w", "--windowCoords", action="store", help="The path for a .csv file describing the position in the genome which each tree file represents (e.g. the midpoint of a window); used for the x-axis in output. The first column in the file should the tree file name, the second the coordinate. If not given, the script will attempt to obtain these from the file names (which should work if the input is from the phyloscanner pipeline).")
   arg_parser$add_argument("idFile", action="store", help="A file containing a list of the IDs of all the patients to calcualte and display statistics for.")
@@ -66,7 +65,6 @@ if (command.line) {
   source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
   source(file.path(script.dir, "SummariseTrees_funcs.R"))
   
-  root.name <- args$outgroupName
   tip.regex <- args$tipRegex
   tree.file.root <- args$treeFiles
   splits.file.root <- args$splitsFiles
@@ -203,7 +201,6 @@ if (command.line) {
   tree.file.root <- "AllTrees/RAxML_bestTree.InWindow_"
   blacklist.file.root <- "Blacklists/Duals blacklists/DualBlacklist.InWindow_"
   splits.file.root <- "SubtreeFiles_s/Subtrees_s_run20161013_inWindow_"
-  root.name <- "C.BW.00.00BW07621.AF443088"
   tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
   id.file <- "patientIDListShortWDubious.txt"
   
@@ -214,9 +211,16 @@ if (command.line) {
   blacklist.file.root <- NULL
   window.coords.file <- "samplecoords.csv"
   tip.regex <- "^(ARI-[0-9][0-9][0-9][0-9]_[A-Z]*)_[0-9][0-9][0-9][0-9]_[0-9]_[0-9][0-9]?$"
-  root.name <- NULL
   no.read.counts <- T
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
+  
+  setwd("/Users/twoseventwo/Downloads/bams/")
+  id.file <- "PatientIDfile.txt"
+  tree.file.root <- "ProcessedTree_s_SimulatedDataRefs_InWindow_"
+  splits.file.root <- "subgraphs_s_SimulatedDataRefs_InWindow_"
+  blacklist.file.root <- "FinalBlacklist.InWindow_"
+  no.read.counts <- F
+  tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
 }
 
 # Align the graph output
@@ -416,11 +420,6 @@ calc.all.stats.in.window <- function(suffix, verbose = F){
   
   cat('Read tree file ',tree.file.name,'\n', sep="")
   
-  # Root the tree
-  if(!is.null(root.name)){
-    tree <- root(phy = tree,outgroup = root.name)
-  }
-  
   # Load the blacklist if it exists
   
   blacklist <- vector()
@@ -433,7 +432,7 @@ calc.all.stats.in.window <- function(suffix, verbose = F){
       
       cat('Read blacklist file ',blacklist.file.name,'\n', sep="")
       
-      if(length(blacklisted.tips)>0){
+      if(nrow(blacklisted.tips)>0){
         blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
       }
     }
