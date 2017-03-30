@@ -259,9 +259,9 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
   path.table <- as.table(path.matrix)
   min.distance.table <- as.table(min.distance.matrix)
   
-  if(normalisation.constant!=1){
-    normalised.distance.table <- as.table(normalised.distance.matrix)
-  }
+
+  normalised.distance.table <- as.table(normalised.distance.matrix)
+
   
   colnames(adjacency.table) <- patients.included
   rownames(adjacency.table) <- patients.included
@@ -284,10 +284,10 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
   colnames(min.distance.table) <- patients.included
   rownames(min.distance.table) <- patients.included
   
-  if(!is.null(normalisation.constant)){
-    colnames(normalised.distance.table) <- patients.included
-    rownames(normalised.distance.table) <- patients.included
-  }
+
+  colnames(normalised.distance.table) <- patients.included
+  rownames(normalised.distance.table) <- patients.included
+
   
   
   adf <- as.data.frame(adjacency.table)
@@ -321,7 +321,7 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
   
   column.names <- c("Patient_1", "Patient_2", "adjacent", "paths12", "paths21", "nodes1", "nodes2", "path.classification", "min.distance.between.subtrees")
   
-  if(!is.null(normalisation.constant)){
+  if(normalisation.constant!=1){
     adf <- cbind(adf, nddf[,3])
     column.names <- c(column.names, "normalised.mean.distance.between.subtrees")
   }
