@@ -13,6 +13,8 @@ suppressMessages(library(ggplot2, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(ggtree, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(data.table, quietly=TRUE, warn.conflicts=FALSE))
 
+tree.fe <- ".tree"
+csv.fe <- ".csv"
 
 if(command.line){
   suppressMessages(require(argparse, quietly=TRUE, warn.conflicts=FALSE))
@@ -25,6 +27,7 @@ if(command.line){
   arg_parser$add_argument("-k", "--kParam", action="store", default=0, help="The k parameter in the cost matrix for Sankhoff reconstruction (see documentation)")
   arg_parser$add_argument("-t", "--tiesRule", action="store", default="c", help="Sankhoff reconstruction only - determines whether ties of zero cost in the parsimony reconstruction will be reconstructed as a continued lineage in a single patient or a transition to the unsampled state. Options: u=always unsampled, c=always continue, b=branch-length based (see documentation)")
   arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, short branches in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. If a number, this number will be used as the threshold. If 'g', it will be guessed from the branch lengths (use this only if you've checked by eye that the tree does indeed have multifurcations).")
+  arg_parser$add_argument("-n", "--branchLengthNormalisation", action="store", help="If present and a number, a normalising constant for all branch lengths in the tree or trees. If present and a file, the path to a .csv file with two columns: tree file name and normalising constant")
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
   arg_parser$add_argument("-OD", "--outputdir", action="store", help="Full path of the directory for output; if absent, current working directory")
   arg_parser$add_argument("-pw", "--pdfwidth", action="store", default=100, help="Width of tree pdf in inches.")
@@ -269,7 +272,7 @@ if(file.exists(tree.file.name)){
 } else {
   # Assume we are dealing with a group of files
   
-  tree.file.names		<- sort(list.files.mod(dirname(tree.file.name), pattern=paste(basename(tree.file.name),'.*\\.tree$',sep=''), full.names=TRUE))
+  tree.file.names		<- sort(list.files.mod(dirname(tree.file.name), pattern=paste(basename(tree.file.name),'.*\\',tree.fe,'$',sep=''), full.names=TRUE))
   
   if(length(tree.file.names)==0){
     cat("No input trees found,\n")
@@ -277,11 +280,11 @@ if(file.exists(tree.file.name)){
   }
   
   suffixes <- substr(tree.file.names, nchar(tree.file.name) + 1, nchar(tree.file.names))
-  suffixes <- gsub('\\.tree','\\.csv',suffixes)  
+  suffixes <- gsub(paste('\\',tree.fe,sep=""),paste('\\',csv.fe,sep=""),suffixes)  
   if(!is.null(blacklist.file.name)){  
     blacklist.file.names <- paste(blacklist.file.name, suffixes, sep="")
   }
-  suffixes <- gsub('\\.csv','',suffixes)
+  suffixes <- gsub(paste('\\',csv.fe,sep=""),'',suffixes)
   output.file.IDs <- paste(output.file.ID, suffixes, sep="")
   
 }
@@ -326,7 +329,7 @@ for(i in 1:length(tree.file.names)){
   cat("Plot to file",tmp,"...\n")
   ggsave(tmp, device="pdf", height = pdf.hm*length(tree$tip.label), width = pdf.w, limitsize = F)
   
-  tmp <- file.path(output.dir, paste('ProcessedTree_',mode,'_',output.string,'.tree',sep=''))
+  tmp <- file.path(output.dir, paste('ProcessedTree_',mode,'_',output.string,tree.fe,sep=''))
   cat("Writing rerooted, multifurcating, annotated tree to file",tmp,"...\n")	
   write.ann.nexus(tree, file=tmp, annotations = c("INDIVIDUAL", "SPLIT"))
   
@@ -334,7 +337,7 @@ for(i in 1:length(tree.file.names)){
   #	write csv file
   #
   
-  tmp 				<- file.path(output.dir, paste('subgraphs_',mode,'_',output.string,'.csv',sep=''))
+  tmp 				<- file.path(output.dir, paste('subgraphs_',mode,'_',output.string,csv.fe,sep=''))
   cat("Writing output to file",tmp,"...\n")	
   write.csv(rs.subgraphs, file=tmp, row.names = F, quote=F)	
   
