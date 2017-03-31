@@ -287,11 +287,8 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
   colnames(min.distance.table) <- patients.included
   rownames(min.distance.table) <- patients.included
   
-
   colnames(normalised.distance.table) <- patients.included
   rownames(normalised.distance.table) <- patients.included
-
-  
   
   adf <- as.data.frame(adjacency.table)
   
@@ -384,10 +381,9 @@ if(file.exists(tree.file.name)){
   
   suffixes <- substr(tree.file.names, nchar(tree.file.name) + 1, nchar(tree.file.names))
   suffixes <- gsub(paste('\\',tree.fe,sep=""),paste('\\',csv.fe,sep=""),suffixes)  
-  suffixes <- gsub(paste('\\',csv.fe,sep=""),'',suffixes)
-  output.file.names <- paste(output.root, "_classification_", suffixes, sep="")
+  output.file.names <- paste(output.root, "_classification_", suffixes, csv.fe, sep="")
   if(do.collapsed){
-    collapsed.file.names <- paste(output.root, "_collapsedTree_", suffixes, sep="")
+    collapsed.file.names <- paste(output.root, "_collapsedTree_", csv.fe, sep="")
   }
   
   if(has.normalisation){
