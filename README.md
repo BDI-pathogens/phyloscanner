@@ -28,7 +28,7 @@ $ ls ExampleInputData/*_ref.fasta > refs.txt
 # Then
 $ ./phyloscanner.py bams.txt refs.txt --windows 1000,1300,2000,2300,3000,3300,4000,4300,5000,5300,6000,6300,7000,7300,8000,8300 -A InfoAndInputs/2refs_HXB2_C.BW.fasta --pairwise-align-to B.FR.83.HXB2_LAI_IIIB_BRU.K03455 
 ```
-(Those windows make best use of this simulated data, the `-A` option includes an alignment of external reference sequences along with the reads, and the `--pairwise-align-to` option is explained later on.)
+(Those windows make best use of this simulated data, the `-A` option includes an alignment of extra reference sequences along with the reads, and the `--pairwise-align-to` option is explained later on.)
 In the output you'll see trees and summary information indicating that these samples constitute:
 * a singly infected individual, 
 * a dually infected individual i.e. infected by two distinct strains of virus,
@@ -36,8 +36,9 @@ In the output you'll see trees and summary information indicating that these sam
 * a donor-recipient pair, the former ancestral to the latter, i.e. the latter evolved from the former, suggesting direct or indirect transmission of the pathogen.
 
 Here is one of the trees from the output.
-Each patient is coloured differently.
-External reference sequences and any reads phyloscanner decides it should ignore are coloured black.
+Each patient has many sequences (reads), with one colour per patient.
+Extra reference sequences and any reads phyloscanner decides it should ignore are coloured black.
+Can you say why each of the patients merits their label?
 
 <p align="center"><img src="InfoAndInputs/Tree_SimulatedData_InWindow_4000_to_4300.jpg" alt="ExampleTree" width="650", height="741"/></p>
 
@@ -83,7 +84,7 @@ Here are some cartoons of the `--merge-paired-reads`, `--merging-threshold` and 
 
 ### Phyloscanner options
 ```
-  -h, --help            show this help message and exit
+Window options - you must choose exactly one of -W, -AW or -E:
   -W WINDOWS, --windows WINDOWS
                         A comma-separated series of paired coordinates
                         defining the boundaries of the windows. e.g.
@@ -91,33 +92,135 @@ Here are some cartoons of the `--merge-paired-reads`, `--merging-threshold` and 
                         11-310, 21-320.
   -AW AUTO_WINDOW_PARAMS, --auto-window-params AUTO_WINDOW_PARAMS
                         Used to specify 2, 3 or 4 comma-separated integers
-                        controlling automatic window finding. The integer is
-                        the width you want windows to be, weighting each
-                        column in the alignment of bam file references (plus
-                        any extra references included) by its non-gap
-                        fraction. The second is the overlap between the end of
-                        one window and the start of the next (which can be
-                        negative). The optional third integer is the start
-                        position for the first window (by default, 1). The
-                        optional fourth integer is the end position for the
-                        last window (by default, windows will continue up to
-                        the end of the alignment of references).
+                        controlling the automatic creation of regular windows.
+                        The first integer is the width you want windows to be,
+                        weighting each column in the alignment of bam file
+                        references (plus any extra references included) by its
+                        non-gap fraction (so that windows become wider to
+                        accommodate insertions). The second is the overlap
+                        between the end of one window and the start of the
+                        next (which can be negative, implying unused space in
+                        between windows). The optional third integer is the
+                        start position for the first window (by default, 1).
+                        The optional fourth integer is the end position for
+                        the last window (by default, windows will continue up
+                        to the end of the alignment of references).
+  -E EXPLORE_WINDOW_WIDTHS, --explore-window-widths EXPLORE_WINDOW_WIDTHS
+                        Use this option to explore how the number of unique
+                        reads found in each bam file in each window, all along
+                        the genome, depends on the window width. After this
+                        option specify a comma-separated list of integers. The
+                        first integer is the starting point for stepping along
+                        the genome, in case you're not interested in the very
+                        beginning. The second integer is the width spanned by
+                        two neighbouring windows; this sets the overlap for
+                        each window width though the equation (width of two
+                        windows) = 2x(window width) - (overlap between
+                        windows), with negative overlap understood to mean
+                        space between the end of one window and the start of
+                        the next. Subsequent integers are window widths to
+                        try. For example, if you specified
+                        1000,301,101,151,201 we would count the number of
+                        unique reads in windows 1000-1100, 1200-1300,
+                        1400-1500, ... and in 1000-1150, 1150-1300, 1300-1450
+                        ... and in 1000-1200, 1100-1300, 1200-1400, ... where
+                        the dots denote continuation to the end of the genome.
+                        (Note that both end coordinates of the window are
+                        included, hence why 1000-1100 has width 101.) Output
+                        is written to the file specified with the --explore-
+                        window-width-file option.
+  -EF EXPLORE_WINDOW_WIDTH_FILE, --explore-window-width-file EXPLORE_WINDOW_WIDTH_FILE
+                        Used to specify an output file for window width data,
+                        when the --explore-window-widths option is used.
+                        Output is in in csv format.
+
+Options we particularly recommend:
   -A ALIGNMENT_OF_OTHER_REFS, --alignment-of-other-refs ALIGNMENT_OF_OTHER_REFS
-                        An alignment of any reference sequences (which need
-                        not be those used to produce the bam files) to be cut
-                        into the same windows as the bam files and included in
-                        the alignment of reads (e.g. to help root trees).
-  -AO, --align-refs-only
-                        Align the references in the bam files (plus any extras
-                        specified with -A) then quit without parsing the
-                        reads.
+                        Used to specify an alignment of reference sequences
+                        (which need not be those used to produce the bam
+                        files) that will be cut into the same windows as the
+                        bam files and included in the alignment of reads, for
+                        comparison. This is required if phyloscanner is to
+                        analyse the trees it produces.
+  -RR REF_FOR_ROOTING, --ref-for-rooting REF_FOR_ROOTING
+                        Used to name a reference sequence, which must be
+                        present in the file you specify with -A, to be an
+                        outgroup in each tree. This is required if
+                        phyloscanner is to analyse the trees it produces.
+  -2 PAIRWISE_ALIGN_TO, --pairwise-align-to PAIRWISE_ALIGN_TO
+                        By default, phyloscanner figures out where
+                        corresponding windows are in different bam files by
+                        creating a multiple sequence alignment containing all
+                        of the mapping references used to create the bam files
+                        (plus any extra references included with -A), and
+                        window coordinates are intepreted with respect to this
+                        alignment. However using this option, the mapping
+                        references used to create the bam files are each
+                        separately pairwise aligned to one of the extra
+                        references included with -A, and window coordinates
+                        are interpreted with respect to this reference.
+
+Options intended to minimise the impact of poor quality reads:
+  -I, --discard-improper-pairs
+                        For paired-read data, discard all reads that are
+                        improperly paired: in the wrong orientation, or one
+                        mate unmapped, or too far apart (as flagged at the
+                        time of mapping).
+  -Q1 QUALITY_TRIM_ENDS, --quality-trim-ends QUALITY_TRIM_ENDS
+                        Each end of the read is trimmed inwards until a base
+                        of this quality is met.
+  -Q2 MIN_INTERNAL_QUALITY, --min-internal-quality MIN_INTERNAL_QUALITY
+                        Discard reads containing more than one base of a
+                        quality below this parameter. (If used in conjuction
+                        with the --quality-trim-ends option, the trimming of
+                        the ends is done first.)
+  -MC MIN_READ_COUNT, --min-read-count MIN_READ_COUNT
+                        Reads with a count less than this value (after
+                        merging, if merging is being done) are discarded. The
+                        default value of 1 means all reads are kept. You may
+                        want to discard rare reads to protect against
+                        sequencing error and/or low-level contamination.
+                        Retaining fewer reads will also speed up all
+                        subsequent processing and analysis of the reads.
+
+Other assorted options:
+  -AR, --allow-read-repeats
+                        Some background first: by default, if a read with the
+                        same name is found to span each of a series of
+                        consecutive, overlapping windows, it is only used in
+                        the first window. 'Consecutive' means next to each
+                        other in the order you specified. For example, if you
+                        specified windows 10-20, 15-25, 20-30 and 31-40, and
+                        there was a read that spanned all four windows (i.e.
+                        it started at or before position 10 and ended at or
+                        after position 40), it would be used in window 10-20,
+                        not used in 15-25 because it spanned the last window,
+                        not used in 20-30 because it spanned the last window
+                        (even though it was skipped there), and used in 31-40
+                        because this window does not overlap with the last
+                        one. This default behaviour allows windows to overlap
+                        yet contain independent read data, which is good
+                        because overlapping windows means more windows can be
+                        fit into the same space. With paired read data, mates
+                        in a pair have the same name; the default behaviour
+                        without the --merge-paired-reads option is to use at
+                        most one of the two mates (in consecutive overlapping
+                        windows and in the same window), and the default
+                        behaviour with the --merge-paired-reads option is to
+                        merge mates into a single read, using this merged read
+                        only the first time it is encountered in consecutive
+                        overlapping windows. Using this option, --allow-read-
+                        repeats, when reads are encountered again in
+                        overlapping windows they will be used again, not
+                        skipped. This means neighbouring overlapping windows
+                        can no longer be considered independent.
   -C CONTAMINANT_COUNT_RATIO, --contaminant-count-ratio CONTAMINANT_COUNT_RATIO
                         Used to specify a numerical value which is interpreted
-                        the following way: if a sequence is found exactly
-                        duplicated between any two bam files, and is more
+                        in the following 'way: if a sequence is found exactly
+                        duplicated between any two bam files, 'and is more
                         common in one than the other by a factor at least
-                        equal to this value, the rarer sequence is diagnosed
-                        as contamination. It does not go into the tree, and
+                        equal to this 'value, the rarer sequence is diagnosed
+                        as contamination. It does not go into ' the tree, and
                         instead goes into a contaminant read fasta file.
   -CD CONTAMINANT_READ_DIR, --contaminant-read-dir CONTAMINANT_READ_DIR
                         A directory containing the contaminant read fasta
@@ -127,23 +230,146 @@ Here are some cartoons of the `--merge-paired-reads`, `--merging-threshold` and 
                         The windows must exactly match up between these two
                         runs, most easily achieved with the -2 option. The
                         point of this option is to first do a run with every
-                        bam file you have in which there could conceivably by
+                        bam file you have in which there could conceivably be
                         cross-contamination, using the -C flag (and possibly
                         -CO to save time), and then in subsequent runs
                         focussing on subsets of bam files you will be able to
                         identify contamination from outside that subset.
+  -F RENAMING_FILE, --renaming-file RENAMING_FILE
+                        Specify a file with one line per bam file, showing how
+                        reads from that bam file should be named in the output
+                        files. (By default, each bam file's basename is used.)
+  -MT MERGING_THRESHOLD, --merging-threshold MERGING_THRESHOLD
+                        Reads that differ by a number of bases equal to or
+                        less than this are merged, those with higher counts
+                        effectively absorbing those with lower counts. The
+                        default value of 0 means there is no merging.
+  -N NUM_BOOTSTRAPS, --num-bootstraps NUM_BOOTSTRAPS
+                        The number of bootstraps to be calculated for RAxML
+                        trees (by default, none i.e. only the ML tree is
+                        calculated).
+  -Ns BOOTSTRAP_SEED, --bootstrap-seed BOOTSTRAP_SEED
+                        The random-number seed for running RAxML with
+                        bootstraps. The default is 1.
+  -O, --keep-overhangs  Keep the part of the read that overhangs the edge of
+                        the window. (By default this is trimmed, i.e. only the
+                        part of the read inside the window is kept.) Keeping
+                        overhangs means that, within each bam file, reads that
+                        are identical inside the window but have different
+                        overhangs will not be merged into a single sequence
+                        (with a count greater than 1). Differences in
+                        overhangs may be SNPs, or simply because the overhangs
+                        start or end at different points; this option is
+                        therefore a bit weird, because it's nice to merge all
+                        reads that are identical inside the window of
+                        interest.
+  -P, --merge-paired-reads
+                        For paired-read data for which the reads in a pair
+                        (sometimes) overlap with each other: merge overlapping
+                        paired reads into a single read. Allows wider windows
+                        to be used.
+  -RC REF_FOR_COORDS, --ref-for-coords REF_FOR_COORDS
+                        (Deprecated; the --pairwise-align-to option is
+                        expected to perform better.) If the --pairwise-align-
+                        to option is not used, then a multiple sequence
+                        alignment is created with all the mapping references
+                        used to create the bam files (plus any extra
+                        references included with -A). By default, window
+                        coordinates are interpreted with respect to this
+                        alignment, i.e. they are in the alignment coordinates.
+                        With this option (--ref-for-coords), the multiple
+                        sequence alignment is still created but window
+                        coordinates are interpreted with respect to a named
+                        reference, which must be one of those included with
+                        -A.
+  -XC EXCISION_COORDS, --excision-coords EXCISION_COORDS
+                        Used to specify a comma-separated set of integer
+                        coordinates that will be excised from the aligned
+                        reads. Useful for sites of non-neutral evolution,
+                        which distort phylogenies. Requires the -XR flag.
+  -XR EXCISION_REF, --excision-ref EXCISION_REF
+                        Used to specify the name of a reference (which must be
+                        present in the file you specify with -A) with respect
+                        to which the coordinates specified with -XC are
+                        interpreted. If you are also using the --pairwise-
+                        align-to option, you must use the same reference there
+                        and here.
+  --output-dir OUTPUT_DIR
+                        Used to specify the name of a directory (which should
+                        not exist already) in which all intermediate and
+                        output files will be created.
+  --time                Prints the times taken by different steps.
+  --x-raxml X_RAXML     The command required to invoke RAxML. You may include
+                        RAxML options in this command, which need to separated
+                        by white space as usual and then the whole thing needs
+                        to be surrounded with one pair of quotation marks (so
+                        that the raxml command and its options are kept
+                        together as one option for phyloscanner). If you
+                        include a path to your raxml binary (necessary if it
+                        is not in the $PATH variable of your terminal), it may
+                        not include whitespace, since whitespace is
+                        interpreted as separating raxml options. The default
+                        is 'raxmlHPC-AVX -m GTRCAT -p 1', where -m specifies
+                        an evolutionary model and -p specifies a random number
+                        seed for the parsimony inferences. If changing from
+                        the default, note that the -m and -p options are
+                        compulsory. Do not include in this command options
+                        relating to bootstraps: use phyloscanner's --num-
+                        bootstraps and --bootstrap-seed options instead. Do
+                        not include options relating to the naming of files.
+  --x-mafft X_MAFFT     The command required to invoke mafft (by default:
+                        mafft).
+  --x-samtools X_SAMTOOLS
+                        The command required to invoke samtools, if needed (by
+                        default: samtools).
+
+Options for detailed bioinformatic interrogation of the input bam files (not intended for normal usage):
+  -IO, --inspect-disagreeing-overlaps
+                        When read pairs are merged, those pairs that overlap
+                        but disagree are discarded. With this option, these
+                        discarded pairs are written to a bam file (one per
+                        patient, with their reference file copied to the
+                        working directory) for your inspection.
+  -RN1, --read-names-1  Produce a file for each window and each bam, listing
+                        the names (as they appear in the input bam file) of
+                        the reads that phyloscanner used. If you like this you
+                        may also like tools/ExtractNamedReadsFromBam.py, which
+                        is run separately from the command line.
+  -RN2, --read-names-2  As --read-names-1, except the files will show the
+                        correspondence between read names and which unique
+                        sequence they correspond to. This option cannot be
+                        used with either of the --merging-threshold or
+                        --excision-coords options, because they change the
+                        correspondence initially established between unique
+                        sequences and reads.
+  --exact-window-start  Experimental; for bioinformatic investigation only,
+                        not regular phyloscanner usage. Normally phyloscanner
+                        retrieves all reads that fully overlap a given window,
+                        i.e. starting at or anywhere before the window start,
+                        and ending at or anywhere after the window end. With
+                        this option, the reads that are retrieved are those
+                        that start at exactly the start of the window, and end
+                        anywhere. Window end coordinates are ignored. If
+                        combined with --exact-window-end, for a read to be
+                        kept it must start at exactly the window start AND end
+                        at exactly the window end. If --merge-paired-reads is
+                        also used, this explanation applies to inserts (read
+                        pairs) instead of individual reads.
+  --exact-window-end    With this option, the reads that are retrieved are
+                        those that end at exactly the end of the window, and
+                        start anywhere. Read the --exact-window-start help.
   -CE, --recover-clipped-ends
                         The default behaviour of phyloscanner is to keep only
-                        reads that are mapped across both edges of the window
-                        in question. A read which is long enough to reach the
-                        edge of the window but is not mapped at its end, i.e.
-                        the end is clipped, will therefore not be included.
-                        With this option, clipped ends are recovered by
-                        considering any bases at the ends of the read that are
-                        unmapped to be mapped instead to 1 more than the base
-                        to their left (at the right end) or 1 less than the
-                        base to their right (at the left end), iterating out
-                        from the centre. e.g. a 9bp read mapped to positions
+                        reads that fully span the window in question. A read
+                        which is long enough in principle to reach the edge of
+                        the window but is not mapped at its end, i.e. the end
+                        is clipped, will therefore not be included. With this
+                        option, clipped ends are recovered by considering any
+                        bases at the ends of the read that are unmapped to be
+                        mapped instead to 1 more than the base to their left
+                        (at the right end) or 1 less than the base to their
+                        right (at the left end), iterating out from the
+                        centre. e.g. a 9bp read mapped to positions
                         None,None,10,11,13,14,None,None,None (i.e. clipped on
                         the left by 2bp, and on the right by 3bp, with a 1bp
                         deletion in the middle), is taken to be mapped instead
@@ -174,142 +400,26 @@ Here are some cartoons of the `--merge-paired-reads`, `--merging-threshold` and 
                         remapping get the local alignment right, in particular
                         by contrasting the reference with the consensus of the
                         aligned reads).
+
+Options to only partially run phyloscanner, stopping early or skipping steps:
+  -AO, --align-refs-only
+                        Align the mapping references used to create the bam
+                        files, plus any extra reference sequences specified
+                        with -A, then quit without doing anything else. The
+                        point is to allow inspection of this alignment, whose
+                        coordinates are used to interpret window coordinates.
   -CO, --flag-contaminants-only
                         For each window, just flag contaminant reads then move
                         on (without aligning reads or making a tree). Only
                         makes sense with the -C flag.
+  -RNO, --read-names-only
+                        To be combined with --read-names-1 or --read-names-2:
+                        quit after writing the read names to a file (which
+                        means the reads are not aligned).
+  -T, --no-trees        Process and align the reads from each window, then
+                        quit without making trees.
   -D, --dont-check-duplicates
                         Don't compare reads between samples to find duplicates
                         - a possible indication of contamination. (By default
                         this check is done.)
-  -E EXPLORE_WINDOW_WIDTHS, --explore-window-widths EXPLORE_WINDOW_WIDTHS
-                        Use this option to explore how the number of unique
-                        reads found in each bam file in each window, all along
-                        the genome, depends on the window width. After this
-                        option specify a comma-separated list of integers. The
-                        first integer is the starting point for stepping along
-                        the genome, in case you're not interested in the very
-                        beginning. The second integer is the width spanned by
-                        two neighbouring windows; this sets the overlap for
-                        each window width though the equation (two-window
-                        width) = 2x(window width) - (overlap between windows),
-                        with negative overlap understood to mean space between
-                        the end of one window and the start of the next.
-                        Subsequent integers are window widths to try. For
-                        example, if you specified 1000,301,101,151,201 we
-                        would count the number of unique reads in windows
-                        1000-1100, 1200-1300, 1400-1500, ... and in 1000-1150,
-                        1150-1300, 1300-1450 ... and in 1000-1200, 1100-1300,
-                        1200-1400, ... where the dots denote continuation to
-                        the end of the genome. (Note that both end coordinates
-                        of the window are included, hence why 1000-1100 has
-                        width 101.) Output is written to the file specified
-                        with the --explore-window-width-file option.
-  -EF EXPLORE_WINDOW_WIDTH_FILE, --explore-window-width-file EXPLORE_WINDOW_WIDTH_FILE
-                        Used to specify an output file for window width data,
-                        when the --explore-window-widths option is used.
-                        Output is in in csv format.
-  -F RENAMING_FILE, --renaming-file RENAMING_FILE
-                        Specify a file with one line per bam file, showing how
-                        reads from that bam file should be named in the output
-                        files. (By default, each bam file's basename is used.)
-  -I, --discard-improper-pairs
-                        For paired-read data, discard all reads that are
-                        improperly paired: in the wrong orientation, or one
-                        mate unmapped, or too far apart (as flagged at the
-                        time of mapping).
-  -IO, --inspect-disagreeing-overlaps
-                        When read pairs are merged, those pairs that overlap
-                        but disagree are discarded. With this option, these
-                        discarded pairs are written to a bam file (one per
-                        patient, with their reference file copied to the
-                        working directory) for your inspection.
-  -MT MERGING_THRESHOLD, --merging-threshold MERGING_THRESHOLD
-                        Reads that differ by a number of bases equal to or
-                        less than this are merged, following the algorithm in
-                        MergeSimilarStrings.py. The default value of 0 means
-                        there is no merging.
-  -MC MIN_READ_COUNT, --min-read-count MIN_READ_COUNT
-                        Reads with a count less than this value (after
-                        merging, if merging is being done) are discarded. The
-                        default value of 1 means all reads are kept.
-  -N NUM_BOOTSTRAPS, --num-bootstraps NUM_BOOTSTRAPS
-                        The number of bootstraps to be calculated for RAxML
-                        trees (by default, none i.e. only the ML tree is
-                        calculated).
-  -Ns BOOTSTRAP_SEED, --bootstrap-seed BOOTSTRAP_SEED
-                        The random-number seed for running RAxML with
-                        bootstraps. The default is 1.
-  -O, --keep-overhangs  Keep the whole read. (By default, only the part of the
-                        read inside thewindow is kept, i.e. overhangs are
-                        trimmed.)
-  -P, --merge-paired-reads
-                        Merge overlapping paired reads into a single read.
-  -Q1 QUALITY_TRIM_ENDS, --quality-trim-ends QUALITY_TRIM_ENDS
-                        Each end of the read is trimmed inwards until a base
-                        of this quality is met.
-  -Q2 MIN_INTERNAL_QUALITY, --min-internal-quality MIN_INTERNAL_QUALITY
-                        Discard reads containing more than one base of a
-                        quality below this parameter. If used in conjuction
-                        with the --quality-trim-ends option, the trimming of
-                        the ends is done first.
-  -RR REF_FOR_ROOTING, --ref-for-rooting REF_FOR_ROOTING
-                        Used to name a reference (which must be present in the
-                        file you specify with -A) to be an outgroup in the
-                        tree.
-  -RC REF_FOR_COORDS, --ref-for-coords REF_FOR_COORDS
-                        The coordinates are to be interpreted with respect to
-                        (an ungapped version of) the reference named after
-                        this flag, which must be present in the file you
-                        specify with -A. (By default coordinates are
-                        interpreted with respect to the alignment of all bam
-                        and external references.) Deprecated; the --pairwise-
-                        align-to option is expected to perform better.
-  -T, --no-trees        Generate aligned sets of reads for each window then
-                        quit without making trees.
-  -XC EXCISION_COORDS, --excision-coords EXCISION_COORDS
-                        Used to specify a comma-separated set of integer
-                        coordinates that will be excised from the aligned
-                        reads. Useful for sites of non-neutral evolution.
-                        Requires the -XR flag.
-  -XR EXCISION_REF, --excision-ref EXCISION_REF
-                        Used to specify the name of a reference (which must be
-                        present in the file you specify with -A) with respect
-                        to which the coordinates specified with -XC are
-                        interpreted.
-  -2 PAIRWISE_ALIGN_TO, --pairwise-align-to PAIRWISE_ALIGN_TO
-                        Sequentially, and separately, align the bam file
-                        references to this reference (which must be present in
-                        the file you specify with -A) instead of aligning all
-                        references together. Window coordinates will be
-                        interpreted with respect to this reference.
-  --output-dir OUTPUT_DIR
-                        Used to specify the name of a directory (which should
-                        not exist already) in which all intermediate and
-                        output files will be created.
-  --time                Prints the times taken by different steps.
-  --x-raxml X_RAXML     The command required to invoke RAxML. You may include
-                        RAxML options in this command, which need to separated
-                        by white space as usual and then the whole thing needs
-                        to be surrounded with one pair of quotation marks (so
-                        that the raxml binary and its options are kept
-                        together as one option for phyloscanner). If you
-                        include a path to your raxml binary (necessary if it
-                        is not in the $PATH variable of your terminal), it may
-                        not include whitespace, since whitespace is
-                        interpreted as separating raxml options. The default
-                        is 'raxmlHPC-AVX -m GTRCAT -p 1', where -m specifies
-                        an evolutionary model and -p specifies a random number
-                        seed for the parsimony inferences. If changing from
-                        the default, note that the -m and -p options are
-                        compulsory. Do not include in this command options
-                        relating to bootstraps: use phyloscanner's --num-
-                        bootstraps and --bootstrap-seed options instead. Do
-                        not include options relating to the naming of files.
-  --x-mafft X_MAFFT     The command required to invoke mafft (by default:
-                        mafft).
-  --x-samtools X_SAMTOOLS
-                        The command required to invoke samtools, if needed (by
-                        default: samtools).
-
 ```
