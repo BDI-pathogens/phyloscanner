@@ -3,14 +3,10 @@
 list.of.packages <- c("prodlim","reshape2")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = TRUE, repos="http://cran.ma.imperial.ac.uk/")
-#
-#	constants
-#
-prefix.wfrom 		<- 'Window_'
-prefix.wto 			<- 'Window_[0-9]+_to_'
-#
-#
-#
+
+tree.fe <- ".tree"
+csv.fe <- ".csv"
+
 command.line <- T
 if(command.line){
   suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
@@ -42,12 +38,8 @@ if(command.line){
   allow.splits <- args$allowSplits
   input.files.name <- args$inputFiles
   
-  	
-  if(!files.are.lists){    
-    input.files <- sort(list.files(dirname(input.files.name), pattern=paste(basename(input.files.name),".*LikelyTransmissions.*csv$",sep=""), full.names=TRUE))
-  } else {
-    input.files <- unlist(strsplit(input.files.name, ":"))
-  }
+  
+  input.files <- sort(list.files(dirname(input.file.name), pattern=paste(basename(input.file.name)), full.names=TRUE))
   
 } else {
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/")
@@ -84,11 +76,11 @@ suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
 # Get the denominators
 #
 reads.table	<- NULL		# can replace prev give.denom by is.null(reads.table)
-if(!is.null(summary.file))
-{
+if(!is.null(summary.file)){
  	cat("Getting window counts per patient...\n")
-	reads.table 	<- as.data.table(read.csv(summary.file, stringsAsFactors = F)[,c("window.start", "window.end", "patient", "reads", "leaves")])
-	setnames(reads.table, c("window.start","window.end"), c("W_FROM","W_TO"))
+	reads.table 	<- as.data.table(read.csv(summary.file, stringsAsFactors = F)[,c("file.suffix", "id", "reads", "tips")])
+	setnames(reads.table, c("file.suffix"), c("SUFFIX"))
+	reads.table$SUFFIX <- as.character(reads.table$SUFFIX)
 	reads.table[, present:= reads>0]  
 } 
 #
@@ -102,7 +94,7 @@ if(!length(patient.ids))
 #
 tt	<-	lapply(input.files, function(x){
 			tt <- as.data.table(read.table(x, sep=",", header=TRUE, stringsAsFactors=FALSE))
-			tt[, FILE:=basename(x)]			
+			tt[, SUFFIX:=get.suffix(x, input.file.name, csv.fe)]			
 			tt
 		})	
 #
@@ -121,7 +113,7 @@ tt	<- lapply(tt, function(x){
 			set(tmp, tmp[, which(path.classification=="TMP")], 'path.classification', 'multiDesc')
 			x	<- rbind(x, tmp)
 			setkey(x, Patient_1, Patient_2)
-			subset(x, Patient_1<Patient_2)
+			subset(x, Patient_1 < Patient_2)
 		})
 #
 # rbind consolidated files
@@ -132,19 +124,15 @@ if(any('mean.distance.between.subtrees'==colnames(tt)))
 	setnames(tt, 'mean.distance.between.subtrees', 'PATRISTIC_DISTANCE')
 if(any('min.distance.between.subtrees'==colnames(tt)))
 	setnames(tt, 'min.distance.between.subtrees', 'PATRISTIC_DISTANCE')
-if(any('contiguous'==colnames(tt)))
-	setnames(tt, 'contiguous', 'CONTIGUOUS')
 if(any('adjacent'==colnames(tt)))
-	setnames(tt, 'adjacent', 'CONTIGUOUS')
+	setnames(tt, 'adjacent', 'ADJACENT')
 if(!any('uninterrupted'==colnames(tt)))
 	tt[, uninterrupted:=FALSE]
-setnames(tt, 'uninterrupted', 'UNINTERRUPTED')
 setnames(tt, c('Patient_1','Patient_2','path.classification','paths21','paths12'), c('pat.1','pat.2','TYPE','PATHS.21','PATHS.12'))
 # change type name depending on allow.splits
-if(!allow.splits)
-{
-	set(tt, tt[, which(TYPE%in%c("multiAnc", "multiDesc") & CONTIGUOUS)], 'TYPE', 'conflict')
-	set(tt, tt[, which(TYPE%in%c("multiAnc", "multiDesc") & !CONTIGUOUS)], 'TYPE', 'none')
+if(!allow.splits){
+	set(tt, tt[, which(TYPE%in%c("multiAnc", "multiDesc") & ADJACENT)], 'TYPE', 'conflict')
+	set(tt, tt[, which(TYPE%in%c("multiAnc", "multiDesc") & !ADJACENT)], 'TYPE', 'none')
 }
 #	check we have patristic distances, paths
 stopifnot( !nrow(subset(tt, is.na(PATRISTIC_DISTANCE))) )
@@ -153,17 +141,14 @@ stopifnot( !nrow(subset(tt, is.na(PATHS.21))) )
 #	set to numeric
 set(tt, NULL, 'PATRISTIC_DISTANCE', tt[, as.numeric(PATRISTIC_DISTANCE)])
 # 	add window coordinates
-tt[, W_FROM:= tt[,as.integer(gsub(prefix.wfrom,'',regmatches(FILE, regexpr(paste(prefix.wfrom,'[0-9]+',sep=''),FILE))))]]
-tt[, W_TO:= tt[, as.integer(gsub(prefix.wto,'',regmatches(FILE, regexpr(paste(prefix.wto,'[0-9]+',sep=''),FILE))))]]
-#
+
 #	calculate #unique reads and #reads for each window
 #
-dp			<-  reads.table[,{
+dp	<-  reads.table[,{
 			#	combine by window only for present patients to avoid large mem
 			dp			<- data.table(pat.1=NA_character_, pat.2=NA_character_)
-			if(length(which(present))>1)
-			{
-				dp			<- t( combn( patient[present], 2 ) )
+			if(length(which(present))>1){
+				dp			<- t( combn( id[present], 2 ) )
 				colnames(dp)<- c('pat.1','pat.2')
 				dp			<- as.data.table(dp)	
 				# make sure combinations are in the direction as in 'tt'
@@ -173,18 +158,18 @@ dp			<-  reads.table[,{
 				dp			<- subset(dp, pat.1<pat.2)
 			}
 			dp						
-		}, by=c('W_FROM','W_TO')]
-dp			<- subset(dp, !is.na(pat.1) & !is.na(pat.2))
-tmp			<- subset(reads.table, present, c(W_FROM, patient, reads, leaves))
-setnames(tmp, c("patient","reads","leaves"), c("pat.1","pat.1_reads","pat.1_leaves"))
-dp			<- merge(dp, tmp, by=c('W_FROM','pat.1'))
-setnames(tmp, c("pat.1","pat.1_leaves","pat.1_reads"), c("pat.2","pat.2_leaves","pat.2_reads"))
-dp			<- merge(dp, tmp, by=c('W_FROM','pat.2'))
+		}, by=c('SUFFIX')]
+dp <- subset(dp, !is.na(pat.1) & !is.na(pat.2))
+tmp	<- subset(reads.table, present, c(SUFFIX, id, reads, tips))
+setnames(tmp, c("id","reads","tips"), c("pat.1","pat.1_reads","pat.1_tips"))
+dp <- merge(dp, tmp, by=c('SUFFIX','pat.1'))
+setnames(tmp, c("pat.1","pat.1_tips","pat.1_reads"), c("pat.2","pat.2_tips","pat.2_reads"))
+dp <- merge(dp, tmp, by=c('SUFFIX','pat.2'))
 #
 #	merge reads/leaves with tt
 #
 stopifnot(nrow(dp)==nrow(tt))
-tt			<- merge(tt, dp, by=c('pat.1','pat.2','W_FROM','W_TO'))
+tt			<- merge(tt, dp, by=c('pat.1','pat.2','SUFFIX'))
 stopifnot(nrow(dp)==nrow(tt))
 #	rename TYPE
 set(tt, tt[,which(TYPE=='anc')], 'TYPE','anc_12')
@@ -193,26 +178,26 @@ set(tt, tt[,which(TYPE=='multiAnc')], 'TYPE','multi_anc_12')
 set(tt, tt[,which(TYPE=='multiDesc')], 'TYPE','multi_anc_21')
 
 #	reorder
-setkey(tt, W_FROM, W_TO, pat.1, pat.2)
-tt			<- subset(tt, select=c('W_FROM','W_TO','pat.1','pat.2','TYPE','PATRISTIC_DISTANCE','CONTIGUOUS','UNINTERRUPTED','PATHS.12','PATHS.21','pat.1_leaves','pat.1_reads','pat.2_leaves','pat.2_reads'))
+setkey(tt, SUFFIX, pat.1, pat.2)
+tt			<- subset(tt, select=c('SUFFIX','pat.1','pat.2','TYPE','PATRISTIC_DISTANCE','ADJACENT','PATHS.12','PATHS.21','pat.1_tips','pat.1_reads','pat.2_tips','pat.2_reads'))
 setnames(tt, colnames(tt),toupper(colnames(tt)))
 #	write to file
-if(!is.null(detailed.output))
-{	
-	cat("Save detailed per window table:",detailed.output)
-	save(tt, file=gsub('\\.csv','\\.rda',detailed.output))
-}
+# if(!is.null(detailed.output))
+# {	
+# 	cat("Save detailed per window table:",detailed.output)
+# 	save(tt, file=gsub('\\.csv','\\.rda',detailed.output))
+# }
 
 cat("Making summary output table...\n")
-set(tt, NULL, c('PAT.1_LEAVES','PAT.1_READS','PAT.2_LEAVES','PAT.2_READS','PATHS.12','PATHS.21'),NULL)
+set(tt, NULL, c('PAT.1_TIPS','PAT.1_READS','PAT.2_TIPS','PAT.2_READS','PATHS.12','PATHS.21'),NULL)
 
-existence.counts <- tt[, list(both.exist=length(W_FROM)), by=c('PAT.1','PAT.2')]
+existence.counts <- tt[, list(both.exist=length(SUFFIX)), by=c('PAT.1','PAT.2')]
 tt <- merge(tt, existence.counts, by=c('PAT.1', 'PAT.2'))
 
-tt.close <- tt[which(tt$CONTIGUOUS & tt$PATRISTIC_DISTANCE < dist.threshold ),]
+tt.close <- tt[which(tt$ADJACENT & tt$PATRISTIC_DISTANCE < dist.threshold ),]
 
-type.counts	<- tt.close[, list(windows=length(W_FROM)), by=c('PAT.1','PAT.2','TYPE')]
-any.counts <- tt.close[, list(all.windows=length(W_FROM)), by=c('PAT.1','PAT.2')]
+type.counts	<- tt.close[, list(windows=length(SUFFIX)), by=c('PAT.1','PAT.2','TYPE')]
+any.counts <- tt.close[, list(all.windows=length(SUFFIX)), by=c('PAT.1','PAT.2')]
 tt.close		<- merge(tt.close, type.counts, by=c('PAT.1','PAT.2','TYPE'))
 tt.close		<- merge(tt.close, any.counts, by=c('PAT.1','PAT.2'))
 
@@ -237,7 +222,7 @@ set(tt.close, tmp, 'TYPE', "multi_trans")
 
 tt.close[, DUMMY:=NULL]
 
-set(tt.close, NULL, c('W_FROM', 'W_TO', 'CONTIGUOUS', 'UNINTERRUPTED','PATRISTIC_DISTANCE'), NULL)
+set(tt.close, NULL, c('SUFFIX', 'ADJACENT','PATRISTIC_DISTANCE'), NULL)
 tt.close <- tt.close[!duplicated(tt.close),]
 
 #	write to file
