@@ -7,16 +7,24 @@ if(length(new.packages)) install.packages(new.packages, dependencies = TRUE, rep
 tree.fe <- ".tree"
 csv.fe <- ".csv"
 
+get.suffix <- function(file.name, prefix, extension){
+  
+  file.name <- basename(file.name)
+  prefix <- basename(prefix)
+  
+  substr(file.name, nchar(prefix)+1, nchar(file.name)-nchar(extension))
+}
+
+
 command.line <- T
 if(command.line){
   suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
   #	OR line breaks result in error "rjson::fromJSON(output) : unexpected character 'F'"
   tmp	<- "Summarise topological relationships suggesting direction of transmission across windows. Outputs a .csv file of relationships between patient IDs. Relationship types: 'anc' indicates a topology that suggests the patient in column 1 infected the patient in column 2, 'cher' where there is only one subtree per patient and the MRCAs of both have the same parent in the phylogeny, 'unint' where cher is not present reads from the patients form sibling clades from an unsampled common ancestor patient (and that neither has any sampled ancestors occuring later in the transmission chain than that common ancestor), 'int' one where reads from both patients are intermingled and the direction of transmission cannot be established. (More documentation to follow.)"
   arg_parser = ArgumentParser(description=tmp)
-  arg_parser$add_argument("-l", "--filesAreLists", action="store_true", default=FALSE, help="If present, arguments specifying input files will be parsed as lists of files separated by colons. If absent, they will be parsed as a string which each file of that type begins with.")
   arg_parser$add_argument("-s", "--summaryFile", action="store", help="The full output file from SummaryStatistics.R; necessary only to identify windows in which no reads are present from each patient. If absent, window counts will be given without denominators.")
   arg_parser$add_argument("-m", "--minThreshold", action="store", default=1, type="integer", help="Relationships between two patients will only appear in output if a transmission chain between them appears in at least these many windows (default 1). High numbers are useful for drawing figures in e.g. Cytoscape with few enough arrows to be comprehensible. The script is extremely slow if this is set to 0.")
-  arg_parser$add_argument("-c", "--distanceThreshold", action="store", default=1, help="Minimum distance threshold on a window for a relationship to be reconstructed between two patients on that window.")
+  arg_parser$add_argument("-c", "--distanceThreshold", action="store", default=0, help="Minimum distance threshold on a window for a relationship to be reconstructed between two patients on that window.")
   arg_parser$add_argument("-p", "--allowSplits", action="store_true", default=FALSE, help="If absent, directionality is only inferred between pairs of patients whose reads are not split; this is more conservative.")
   arg_parser$add_argument("-d", "--detailedOutput", action="store", help="If present, a file describing the relationships between each pair of patients on each window will be written to the specified path in .rda format")
   arg_parser$add_argument("idFile", action="store", help="A file containing a list of the IDs of all the patients to calculate and display statistics for.")
@@ -24,7 +32,6 @@ if(command.line){
   arg_parser$add_argument("outputFile", action="store", help="A .csv file to write the output to.")
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
   args <- arg_parser$parse_args()
-  files.are.lists <- args$filesAreLists
   summary.file <- args$summaryFile
   id.file <- args$idFile
   output.file <- args$outputFile
@@ -36,7 +43,7 @@ if(command.line){
     split.threshold <- 1L
   }
   allow.splits <- args$allowSplits
-  input.files.name <- args$inputFiles
+  input.file.name <- args$inputFiles
   
   
   input.files <- sort(list.files(dirname(input.file.name), pattern=paste(basename(input.file.name)), full.names=TRUE))
