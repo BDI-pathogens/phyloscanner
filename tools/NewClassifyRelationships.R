@@ -11,23 +11,26 @@ if(!("ggtree" %in% installed.packages()[,"Package"])){
   biocLite("ggtree")
 }
 
+tree.fe <- ".tree"
+csv.fe <- ".csv"
+
 if(command.line){
   suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
   
-  arg_parser = ArgumentParser(description="Identify the likely direction of transmission between all patients present in a phylogeny.")
-  arg_parser$add_argument("-c", "--collapsedTree", action="store", help="If present, the collapsed tree (in which all adjacent nodes with the same assignment are collapsed to one) is output as a .csv file to the path specified.")
+  arg_parser = ArgumentParser(description="Classify relationships between study subjects based on their relative positions in the phylogeny")
+  arg_parser$add_argument("-c", "--collapsedTree", action="store_true", default=T, help="If present, the collapsed tree (in which all adjacent nodes with the same assignment are collapsed to one) is output as a .csv file or files.")
   arg_parser$add_argument("-n", "--branchLengthNormalisation", action="store", help="If present and a number, a normalising constant for all branch lengths in the tree or trees. If present and a file, the path to a .csv file with two columns: tree file name and normalising constant")
   arg_parser$add_argument("treeFileName", action="store", help="Tree file name. Alternatively, a base name that identifies a group of tree file names. Tree files are assumed to end in '.tree'. This must be the 'processed' tree produced by SplitTreesToSubtrees.R.")
   arg_parser$add_argument("splitsFileName", action="store", help="Splits file name. Alternatively, a base name that identifies a group of split file.")
-  arg_parser$add_argument("outputFileName", action="store", help="Output file name (.csv format)")
+  arg_parser$add_argument("outputFileName", action="store", help="A path and root character string identifiying all output files.")
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
   args <- arg_parser$parse_args()
   
-  tree.file.names <- args$treeFileName
-  splits.file.names <- args$splitsFileName
-  collapsed.file.names <- args$collapsedTree
+  tree.file.name<- args$treeFileName
+  splits.file.name <- args$splitsFileName
+  do.collapsed <- args$collapsedTree
   script.dir <- args$scriptdir
-  output.name <- args$outputFileName
+  output.root <- args$outputFileName
   has.normalisation <- !is.null(args$branchLengthNormalisation)
   normalisation.argument <- args$branchLengthNormalisation
   
@@ -65,8 +68,8 @@ if(command.line){
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/refinement")
   tree.file.names <- "ProcessedTree_s_mrsa_k10_bp_yetanother.tree"
   splits.file.names <- "Subtrees_s_mrsa_k10_bp_yetanother.csv"
-  output.name <- "LT_s_mrsa_k10_yetanother.csv"
-  collapsed.file.names <- "collapsed_s_mrsa_k10_yetanother.csv"
+  output.file.ID <- "LT_s_mrsa_k10_yetanother.csv"
+  collapsed.file.ID <- "collapsed_s_mrsa_k10_yetanother.csv"
   
   
   if(0)
@@ -336,78 +339,92 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
 
 #	check if 'tree.file.names' is tree
 
-single.file	<- file.exists(tree.file.names)
 
-if(single.file)
-{
-  #	if 'tree.file.names' is tree, process just one tree
-  tree.file.name		<- tree.file.names[1]
-  splits.file.name	<- splits.file.names[1]
+if(file.exists(tree.file.name)){
+  tree.file.names <- tree.file.name
+  splits.file.names <- splits.file.name
+  output.file.names <- paste(output.root, "_classification", csv.fe, sep="")
+  if(do.collapsed){
+    collapsed.file.names <- paste(output.root, "_collapsedTree", csv.fe, sep="")
+  }
   
-  normalisation.constant <- NULL
-  
-  if(has.normalisation){
-    normalisation.constant <- suppressWarnings(as.numeric(normalisation.argument))
+  if(!has.normalisation){
+    normalisation.constants <- 1
+  } else {
+    normalisation.constants <- suppressWarnings(as.numeric(normalisation.argument))
     
     if(is.na(normalisation.constant)){
       norm.table <- read.csv(normalisation.argument, stringsAsFactors = F, header = F)
-      if(nrow(norm.table[which(norm.table[,1]==tree.file.name),])==1){
-        normalisation.constant <- as.numeric(norm.table[which(norm.table[,1]==tree.file.name),2])
-      } else if (nrow(norm.table[which(norm.table[,1]==tree.file.name),])==0){
-        warning(paste("No normalisation constant given for tree file name ",tree.file.name, " in file ",normalisation.argument,"; normalised distances will not be given", sep=""))
-        normalisation.constant <- NULL
+      if(nrow(norm.table[which(norm.table[,1]==basename(tree.file.name)),])==1){
+        normalisation.constants <- as.numeric(norm.table[which(norm.table[,1]==basename(tree.file.name)),2])
+      } else if (nrow(norm.table[which(norm.table[,1]==basename(tree.file.name)),])==0){
+        warning(paste("No normalisation constant given for tree file name ", basename(tree.file.name), " in file ",normalisation.argument,"; normalised distances will not be given", sep=""))
+        normalisation.constants <- 1
       } else {
-        warning(paste("Two or more entries for normalisation constant for tree file name ",tree.file.name, " in file ",normalisation.argument,"; taking the first", sep=""))
-        normalisation.constant <- as.numeric(norm.table[which(norm.table[,1]==tree.file.name)[1],2])
+        warning(paste("Two or more entries for normalisation constant for tree file name ",basename(tree.file.name)," in file ",normalisation.argument,"; taking the first", sep=""))
+        normalisation.constants <- as.numeric(norm.table[which(norm.table[,1]==basename(tree.file.name))[1],2])
       }
     }
   }
-  
-  dddf				<- classify(tree.file.name, splits.file.name, normalisation.constant = normalisation.constant, tt.file.name = collapsed.file.names)
-  cat("Write to file",output.name,"...\n")
-  write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE, quote=F)	
 } else {
-  #	if 'tree.file.names' is not tree, process multiple trees
-  tree.file.names		<- sort(list.files(dirname(tree.file.names), pattern=paste(basename(tree.file.names),'.*\\.tree$',sep=''), full.names=TRUE))
-  splits.file.names	<- sort(list.files(dirname(splits.file.names), pattern=paste(basename(splits.file.names),'.*\\.csv$',sep=''), full.names=TRUE))	
-  stopifnot(length(tree.file.names)==length(splits.file.names))
+  # Assume we are dealing with a group of files
   
-  normalisation.constant <- 1
+  tree.file.names		<- sort(list.files.mod(dirname(tree.file.name), pattern=paste(basename(tree.file.name),'.*\\',tree.fe,'$',sep=''), full.names=TRUE))
+  splits.file.names		<- sort(list.files.mod(dirname(splits.file.name), pattern=paste(basename(splits.file.name),'.*\\',csv.fe,'$',sep=''), full.names=TRUE))
+  
+  if(length(tree.file.names)!=length(splits.file.names)){
+    cat("Numbers of tree files and subgraph files differ\n")
+    quit(save="no")
+  }
+  
+  if(length(tree.file.names)==0){
+    cat("No input trees found\n")
+    quit(save="no")
+  }
+  
+  suffixes <- substr(tree.file.names, nchar(tree.file.name) + 1, nchar(tree.file.names))
+  suffixes <- gsub(paste('\\',tree.fe,sep=""),paste('\\',csv.fe,sep=""),suffixes)  
+  suffixes <- gsub(paste('\\',csv.fe,sep=""),'',suffixes)
+  output.file.names <- paste(output.root, "_classification_", suffixes, sep="")
+  if(do.collapsed){
+    collapsed.file.names <- paste(output.root, "_collapsedTree_", suffixes, sep="")
+  }
   
   if(has.normalisation){
     normalisation.constant <- suppressWarnings(as.numeric(normalisation.argument))
     
     if(is.na(normalisation.constant)){
       norm.table <- read.csv(normalisation.argument, stringsAsFactors = F, header = F)
-    }
-  }
-  
-  
-  for(tree.i in seq_along(tree.file.names)){
-    tree.file.name		<- tree.file.names[tree.i]
-    splits.file.name	<- splits.file.names[tree.i]
-    output.name			<- gsub('\\.tree','_classification.csv', tree.file.name)		
-    collapsed.file.name	<- gsub('\\.tree','_collapsed.csv', tree.file.name)
-
-    if(has.normalisation){
-      if(has.normalisation & is.na(normalisation.constant)) {
-        if(nrow(norm.table[which(norm.table[,1]==basename(tree.file.name)),])==1){
-          normalisation.constant <- as.numeric(norm.table[which(norm.table[,1]==basename(tree.file.name)),2])
-        } else if (nrow(norm.table[which(norm.table[,1]==basename(tree.file.name)),])==0){
-          warning(paste("No normalisation constant given for tree file name ",basename(tree.file.name), " in file ",basename(normalisation.argument),"; normalised distances will not be given", sep=""))
-          normalisation.constant <- 1
+      normalisation.constants <- sapply(basename(tree.file.names), function(x){
+        if(x %in% norm.table[,1]){
+          if(length(which(norm.table[,1]==x))>1){
+            warning(paste("Two or more entries for normalisation constant for tree file name ",x, " in file ",normalisation.argument,"; taking the first", sep=""))
+          }
+          return(norm.table[which(norm.table[,1]==x)[1],2])
         } else {
-          warning(paste("Two or more entries for normalisation constant for tree file name ",basename(tree.file.name), " in file ",basename(normalisation.argument),"; taking the first", sep=""))
-          normalisation.constant <- as.numeric(norm.table[which(norm.table[,1]==basename(tree.file.name))[1],2])
+          warning(paste("No normalisation constant for tree file ",x," found in file, ",normalisation.argument,"; this tree will not have branch lengths normalised.", sep=""))
+          return(1)
         }
-      }
+        
+      })  
+      
+    } else {
+      # it's a number to be used in every tree
+      normalisation.constants <- rep(normalisation.constant, length(tree.file.names))
     }
-    
-    tryCatch({
-      dddf	<- classify(tree.file.name, splits.file.name, normalisation.constant = normalisation.constant, collapsed.file.name)
-      cat("Write to file",output.name,"...\n")
-      write.table(dddf, file = output.name, sep = ",", row.names = FALSE, col.names = TRUE, quote=F)			
-    },
-    error=function(e){ print(e$message); cat("No output written to file.\n") })    
+  } else {
+    normalisation.constants <- rep(1, length(tree.file.names))
   }
 }
+
+
+for(i in 1:length(tree.file.names)){
+
+  if(do.collapsed){
+    dddf <- classify(tree.file.names[i], splits.file.names[i], normalisation.constants[i], collapsed.file.names[i])
+  } else {
+    dddf <- classify(tree.file.names[i], splits.file.names[i], normalisation.constants[i])
+  }
+  cat("Write to file",output.file.names[i],"...\n")
+  write.table(dddf, file = output.file.names[i], sep = ",", row.names = FALSE, col.names = TRUE, quote=F)	
+} 
