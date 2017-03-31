@@ -4,8 +4,10 @@ Dependencies: [samtools](http://www.htslib.org/), [pysam](https://github.com/pys
 
 <p align="center"><img src="InfoAndInputs/PhyloscannerDiagram_big2_ShiverNotNamed.jpg" alt="Phyloscanner" width="820", height="315"/></p>
 
+The input to phyloscanner is mapped reads - bam files.
+We wrote phyloscanner to analyse bam files that each represent a pathogen population (HIV, specifically) in one host, exhibiting within-host and between-host diversity; in general use each bam file should be a sample representing some subpopulation, and we analyse within- and between-sample diversity.
+
 ### Basic usage:
-phyloscanner takes mapped reads - bam files - as input.
 With the initial `$` traditionally indicating that we're on the command line, the basic command looks like
 ```bash
 $ phyloscanner.py bams.txt refs.txt --windows 1,300,301,600,...
@@ -16,8 +18,6 @@ where
 3. the `--windows` option is used to specify an even number of comma-separated positive integers: these are the coordinates of the windows to analyse, interpreted pairwise, i.e. the first two are the left and right edges of the first window, the third and fourth are the left and right edges of the second window, ... i.e. in the above example we have windows 1-300, 301-600, ...  
 
 Details of optional arguments of phyloscanner can be seen by using the `--help` option, or seeing the section *Phyloscanner options* below.
-
-We wrote phyloscanner to analyse bam files that each represent a pathogen population (HIV, specifically) in one host, exhibiting within-host and between-host diversity; in general use each bam file should be a sample representing some subpopulation, and we can talk about within- and between-sample diversity.
 
 ### An Example
 
