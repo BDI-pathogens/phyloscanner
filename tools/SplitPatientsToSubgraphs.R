@@ -306,7 +306,6 @@ if(file.exists(tree.file.name)){
   if(!is.null(blacklist.file.name)){  
     blacklist.file.names <- paste(blacklist.file.name, suffixes, sep="")
   }
-  suffixes <- gsub(paste('\\',csv.fe,sep=""),'',suffixes)
   output.file.IDs <- paste(output.file.ID, suffixes, sep="")
   
   if(has.normalisation){
