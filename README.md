@@ -14,7 +14,9 @@ where
 1. `bams.txt` is a plain text file listing the desired bam files, one per line;  
 2. `refs.txt` is a plain text file listing the files containing the sequences to which the reads were mapped in order to create the bam files (the *references*), one per bam file, in the same order as in `bams.txt`;  
 3. the `--windows` option is used to specify an even number of comma-separated positive integers: these are the coordinates of the windows to analyse, interpreted pairwise, i.e. the first two are the left and right edges of the first window, the third and fourth are the left and right edges of the second window, ... i.e. in the above example we have windows 1-300, 301-600, ...  
-Details of optional arguments of phyloscanner can be seen by using the `--help` option, or seeing the section *Phyloscanner options* below.  
+
+Details of optional arguments of phyloscanner can be seen by using the `--help` option, or seeing the section *Phyloscanner options* below.
+
 We wrote phyloscanner to analyse bam files that each represent a pathogen population (HIV, specifically) in one host, exhibiting within-host and between-host diversity; in general use each bam file should be a sample representing some subpopulation, and we can talk about within- and between-sample diversity.
 
 ### An Example
