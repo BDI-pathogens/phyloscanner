@@ -35,12 +35,12 @@ In the output you'll see trees and summary information indicating that these sam
 * a singly infected individual, 
 * a dually infected individual i.e. infected by two distinct strains of virus,
 * a contamination pair (one contaminating the other), and
-* a donor-recipient pair, the former ancestral to the latter, i.e. the latter evolved from the former, suggesting direct or indirect transmission of the pathogen.
+* a pair exhibiting *ancestry*, i.e. one having evolved from the other. For populations of pathogens, this implies transmission, either indirectly (via unsampled intermediate patients) or directly.
 
 Here is one of the trees from the output.
 Each patient has many sequences (reads), with one colour per patient.
 Extra reference sequences and any reads phyloscanner decides it should ignore are coloured black.
-Can you say why each of the patients merits their label?
+Can you see why each of the patients merits their label?
 
 <p align="center"><img src="InfoAndInputs/Tree_SimulatedData_InWindow_4000_to_4300.jpg" alt="ExampleTree" width="650", height="741"/></p>
 
