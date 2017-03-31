@@ -156,7 +156,7 @@ if (command.line) {
       quit(save="no")
     }
     
-    # Try to find sensible start and end x-axis values. Untested.
+    # Try to find sensible start and end x-axis values.
     
     range <- max(window.coords[,2]) - min(window.coords[,2])
     increment <- range/nrow(window.coords)
