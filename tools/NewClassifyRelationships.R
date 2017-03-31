@@ -379,11 +379,10 @@ if(file.exists(tree.file.name)){
     quit(save="no")
   }
   
-  suffixes <- substr(tree.file.names, nchar(tree.file.name) + 1, nchar(tree.file.names))
-  suffixes <- gsub(paste('\\',tree.fe,sep=""),paste('\\',csv.fe,sep=""),suffixes)  
+  suffixes <- substr(tree.file.names, nchar(tree.file.name) + 1, nchar(tree.file.names) - nchar(tree.fe))
   output.file.names <- paste(output.root, "_classification_", suffixes, csv.fe, sep="")
   if(do.collapsed){
-    collapsed.file.names <- paste(output.root, "_collapsedTree_", csv.fe, sep="")
+    collapsed.file.names <- paste(output.root, "_collapsedTree_",suffixes, csv.fe, sep="")
   }
   
   if(has.normalisation){
