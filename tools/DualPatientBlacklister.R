@@ -188,7 +188,7 @@ blacklist.reads.for.patient <- function(patient){
             new.bl <- pat.tips
           }
           if(verbose){
-            cat('Writing table',paste0(output.prefix, suffix, "\n"))
+            cat('Writing table ',file.details[[suffix]]$blacklist.output,"\n",sep="")
           }
           write.table(new.bl, file.details[[suffix]]$blacklist.output, sep=",", row.names=FALSE, col.names=FALSE, quote=FALSE)
         }

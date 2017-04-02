@@ -7,7 +7,6 @@ if(length(new.packages)){
 
 command.line <- T
 
-
 suppressMessages(library(phangorn, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(ggplot2, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(ggtree, quietly=TRUE, warn.conflicts=FALSE))
@@ -171,6 +170,7 @@ split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 
   }
   
   orig.tree <- tree
+  
   tree$edge.length <- tree$edge.length/normalisation.constant
   
   tip.labels <- tree$tip.label
@@ -266,43 +266,52 @@ split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 
 #
 
 if(file.exists(tree.file.name)){
+  file.details <- list()
+  
+  file.name.list <- list()
+  file.name.list$tree.input <- tree.file.name
+
   tree.file.names <- tree.file.name
   if(!is.null(blacklist.file.name)){
-    blacklist.file.names <- blacklist.file.name
+    file.name.list$blacklist.input <- blacklist.file.name
   }
   
-  output.file.IDs <- output.file.ID
+  file.name.list$output.ID <- output.file.ID
+  
   
   if(!has.normalisation){
-    normalisation.constants <- 1
+    normalisation.constant <- 1
   } else {
-    normalisation.constants <- suppressWarnings(as.numeric(normalisation.argument))
+    normalisation.constant <- suppressWarnings(as.numeric(normalisation.argument))
     
     if(is.na(normalisation.constant)){
       norm.table <- read.csv(normalisation.argument, stringsAsFactors = F, header = F)
       if(nrow(norm.table[which(norm.table[,1]==basename(tree.file.name)),])==1){
-        normalisation.constants <- as.numeric(norm.table[which(norm.table[,1]==basename(tree.file.name)),2])
+        normalisation.constant <- as.numeric(norm.table[which(norm.table[,1]==basename(tree.file.name)),2])
       } else if (nrow(norm.table[which(norm.table[,1]==basename(tree.file.name)),])==0){
         warning(paste("No normalisation constant given for tree file name ", basename(tree.file.name), " in file ",normalisation.argument,"; normalised distances will not be given", sep=""))
-        normalisation.constants <- 1
+        normalisation.constant <- 1
       } else {
         warning(paste("Two or more entries for normalisation constant for tree file name ",basename(tree.file.name)," in file ",normalisation.argument,"; taking the first", sep=""))
-        normalisation.constants <- as.numeric(norm.table[which(norm.table[,1]==basename(tree.file.name))[1],2])
+        normalisation.constant <- as.numeric(norm.table[which(norm.table[,1]==basename(tree.file.name))[1],2])
       }
     }
   }
+  
+  file.name.list$normalisation.constant <- normalisation.constant
+  
+  file.details[[tree.file.name]] <- file.name.list
 } else {
   # Assume we are dealing with a group of files
   
-  tree.file.names		<- sort(list.files.mod(dirname(tree.file.name), pattern=paste(basename(tree.file.name),'.*\\',tree.fe,'$',sep=''), full.names=TRUE))
+  tree.file.names	<- list.files.mod(dirname(tree.file.name), pattern=paste(basename(tree.file.name),'.*\\',tree.fe,'$',sep=''), full.names=TRUE)
   
   if(length(tree.file.names)==0){
     cat("No input trees found,\n")
-    quit()
+    quit(save="no")
   }
   
-  suffixes <- substr(tree.file.names, nchar(tree.file.name) + 1, nchar(tree.file.names))
-  suffixes <- gsub(paste('\\',tree.fe,sep=""),paste('\\',csv.fe,sep=""),suffixes)  
+  suffixes <- substr(tree.file.names, nchar(tree.file.name) + 1, nchar(tree.file.names)-nchar(tree.fe))
   if(!is.null(blacklist.file.name)){  
     blacklist.file.names <- paste(blacklist.file.name, suffixes, sep="")
   }
@@ -333,19 +342,27 @@ if(file.exists(tree.file.name)){
   } else {
     normalisation.constants <- rep(1, length(tree.file.names))
   }
+  
+  
+  fn.df <- data.frame(row.names = suffixes, input.tree = tree.file.names, output.ID = output.file.IDs, normalisation.constant = normalisation.constants, stringsAsFactors = F)
+  if(!is.null(blacklist.file.name)){
+    fn.df$input.blacklist = blacklist.file.names
+  }
+  file.details <- split(fn.df, rownames(fn.df))
+  
 }
 
-for(i in 1:length(tree.file.names)){
+for(i in file.details){
   #	if 'tree.file.names' is tree, process just one tree
-  tree.file.name		<- tree.file.names[i]	
+  tree.file.name		<- i$input.tree	
   if(!is.null(blacklist.file.name)){
-    blacklist.file	<- blacklist.file.names[i]
+    blacklist.file	<- i$input.blacklist
   } else {
     blacklist.file <- NULL
   }
-  output.string <- output.file.IDs[i] 
+  output.string <- i$output.ID 
   
-  tmp					<- split.patients.to.subgraphs(tree.file.name,normalisation.constants[i], mode, blacklist.file, root.name, tip.regex, sankhoff.k, ties.rule, useff)
+  tmp					<- split.patients.to.subgraphs(tree.file.name, i$normalisation.constant, mode, blacklist.file, root.name, tip.regex, sankhoff.k, ties.rule, useff)
   tree				<- tmp[['tree']]	
   rs.subgraphs			<- tmp[['rs.subgraphs']]
   #
@@ -375,7 +392,7 @@ for(i in 1:length(tree.file.names)){
   cat("Plot to file",tmp,"...\n")
   ggsave(tmp, device="pdf", height = pdf.hm*length(tree$tip.label), width = pdf.w, limitsize = F)
   
-  tmp <- file.path(output.dir, paste('ProcessedTree_',mode,'_',output.string,tree.fe,sep=''))
+  tmp <- file.path(output.dir, paste('ProcessedTree_',mode,'_',output.string, tree.fe,sep=''))
   cat("Writing rerooted, multifurcating, annotated tree to file",tmp,"...\n")	
   write.ann.nexus(tree, file=tmp, annotations = c("INDIVIDUAL", "SPLIT"))
   
