@@ -105,6 +105,8 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
   
   splits <- read.csv(splits.file.name, stringsAsFactors = F)
   
+  # this should go eventually
+  
   colnames(splits) <- c("patient", "subgraph", "split")
   
   cat("Collecting tips for each patient...\n")
@@ -350,7 +352,7 @@ if(file.exists(tree.file.name)){
   } else {
     normalisation.constants <- suppressWarnings(as.numeric(normalisation.argument))
     
-    if(is.na(normalisation.constant)){
+    if(is.na(normalisation.constants)){
       norm.table <- read.csv(normalisation.argument, stringsAsFactors = F, header = F)
       if(nrow(norm.table[which(norm.table[,1]==basename(tree.file.name)),])==1){
         normalisation.constants <- as.numeric(norm.table[which(norm.table[,1]==basename(tree.file.name)),2])
@@ -366,8 +368,8 @@ if(file.exists(tree.file.name)){
 } else {
   # Assume we are dealing with a group of files
   
-  tree.file.names		<- sort(list.files.mod(dirname(tree.file.name), pattern=paste(basename(tree.file.name),'.*\\',tree.fe,'$',sep=''), full.names=TRUE))
-  splits.file.names		<- sort(list.files.mod(dirname(splits.file.name), pattern=paste(basename(splits.file.name),'.*\\',csv.fe,'$',sep=''), full.names=TRUE))
+  tree.file.names		<- list.files.mod(dirname(tree.file.name), pattern=paste(basename(tree.file.name),'.*\\',tree.fe,'$',sep=''), full.names=TRUE)
+  splits.file.names		<- list.files.mod(dirname(splits.file.name), pattern=paste(basename(splits.file.name),'.*\\',csv.fe,'$',sep=''), full.names=TRUE)
   
   if(length(tree.file.names)!=length(splits.file.names)){
     cat("Numbers of tree files and subgraph files differ\n")
@@ -375,11 +377,16 @@ if(file.exists(tree.file.name)){
   }
   
   if(length(tree.file.names)==0){
-    cat("No input trees found\n")
+    cat("No input trees found.\n Quitting.\n")
     quit(save="no")
   }
   
   suffixes <- substr(tree.file.names, nchar(tree.file.name) + 1, nchar(tree.file.names) - nchar(tree.fe))
+  suffixes <- suffixes[order(suffixes)]
+  
+  tree.file.names <- tree.file.name[order(suffixes)]
+  splits.file.names <- splits.file.names[order(suffixes)]
+  
   output.file.names <- paste(output.root, "_classification_", suffixes, csv.fe, sep="")
   if(do.collapsed){
     collapsed.file.names <- paste(output.root, "_collapsedTree_",suffixes, csv.fe, sep="")
