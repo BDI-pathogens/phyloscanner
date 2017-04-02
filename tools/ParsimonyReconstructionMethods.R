@@ -1,4 +1,4 @@
-split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, method="r", k=NA, ties.rule = "c", sankhoff.mode = "total.lengths", useff=F, verbose=F){
+split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, method="r", k=NA, nonancestry.penalty = 0, ties.rule = "c", sankhoff.mode = "total.lengths", useff=F, verbose=F){
   
   if (method == "r") {
     
@@ -137,10 +137,12 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     
     if(useff){
       individual.costs <- ff(Inf, dim=c(length(tree$tip.label) + tree$Nnode,length(patients))) 
+      nonancestry.penalties <- ff(0, dim=c(length(tree$tip.label) + tree$Nnode,length(patients))) 
     } else {
       individual.costs <- matrix(Inf, ncol=length(patients), nrow=length(tree$tip.label) + tree$Nnode) 
+      nonancestry.penalties <- matrix(0, ncol=length(patients), nrow=length(tree$tip.label) + tree$Nnode) 
     }
-   
+    
 
     if(sankhoff.mode == "close.tip"){
       for(tip in seq(1, length(tree$tip.label))){
@@ -169,6 +171,9 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
       
       # First, go up the tree and flag which nodes have finite costs for which patients (i.e. those
       # that are ancestral to a tip _from_ that patient)
+      
+      # Handily those which have an infinite costs as a recipient are those which have a nonancestry penalty
+      # as a donor
       
       if(useff){
         finite.cost <- ff(FALSE, dim=c(length(tree$tip.label) + tree$Nnode, length(patients)))
@@ -203,6 +208,11 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
         start.col <- sapply(finite.cost[,pat.no], function(x) if(x) 0 else Inf)
         
         individual.costs[,pat.no] <- cost.of.subtree(tree, getRoot(tree), patients[pat.no], tip.assocs, finite.cost[,pat.no], start.col)
+        
+        if(nonancestry.penalty !=0 ){
+          nonancestry.penalties[,pat.no] <- calculate.penalties(tree, getRoot(tree), !finite.cost[,pat.no], rep(NA, length(tree$tip.label) + tree$Nnode))
+          nonancestry.penalties <- nonancestry.penalty*nonancestry.penalties
+        }
       }
       
     } else {
@@ -220,7 +230,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
       cost.matrix <- matrix(NA, nrow=length(tree$tip.label) + tree$Nnode, ncol=length(patients))
     }
     
-    cost.matrix <- make.cost.matrix(getRoot(tree), tree, patients, tip.assocs, individual.costs, cost.matrix, k)
+    cost.matrix <- make.cost.matrix(getRoot(tree), tree, patients, tip.assocs, individual.costs, nonancestry.penalties, cost.matrix, k)
     
     cat("Reconstructing...\n")
 
@@ -431,7 +441,7 @@ get.star.runs <- function(tree, assocs){
 
 # Make the full Sankhoff cost matrix
 
-make.cost.matrix <- function(node, tree, patients, tip.assocs, individual.costs, current.matrix, k, verbose = F){
+make.cost.matrix <- function(node, tree, patients, tip.assocs, individual.costs, penalties, current.matrix, k, verbose = F){
   if(verbose){
     cat("Node number ",node,":", sep="")
   }
@@ -451,7 +461,7 @@ make.cost.matrix <- function(node, tree, patients, tip.assocs, individual.costs,
     this.row <- vector()
     child.nos <- Children(tree, node)
     for(child in child.nos){
-      current.matrix <- make.cost.matrix(child, tree, patients, tip.assocs, individual.costs, current.matrix, k, verbose)
+      current.matrix <- make.cost.matrix(child, tree, patients, tip.assocs, individual.costs, penalties, current.matrix, k, verbose)
     }
     if(length(child.nos)==0){
       stop("Reached an internal node with no children(?)")
@@ -460,7 +470,7 @@ make.cost.matrix <- function(node, tree, patients, tip.assocs, individual.costs,
       cat("Done; back to node ",node,"\n", sep="")
     }
     
-    current.matrix[node,] <- vapply(seq(1, length(patients)), function(x) node.cost(x, patients, current.matrix, individual.costs, k, child.nos), 0)
+    current.matrix[node,] <- vapply(seq(1, length(patients)), function(x) node.cost(x, patients, current.matrix, individual.costs, penalties, k, child.nos), 0)
 
     if(verbose){
       cat("Row for node ",node," calculated\n", sep="")
@@ -478,11 +488,11 @@ make.cost.matrix <- function(node, tree, patients, tip.assocs, individual.costs,
   return(current.matrix)
 }
 
-node.cost <- function(patient.index, patients, current.matrix, individual.costs, k, child.nos){
-  return(sum(vapply(child.nos, function (x) child.min.cost(x, patients, patient.index, current.matrix, individual.costs, k), 0)))
+node.cost <- function(patient.index, patients, current.matrix, individual.costs, penalties, k, child.nos){
+  return(sum(vapply(child.nos, function (x) child.min.cost(x, patients, patient.index, current.matrix, individual.costs, penalties, k), 0)))
 }
 
-child.min.cost <- function(child.index, patients, top.patient.no, current.matrix, individual.costs, k){
+child.min.cost <- function(child.index, patients, top.patient.no, current.matrix, individual.costs, penalties, k){
   # if(impossible[Ancestors(tree, child.index, type="parent"), top.patient.no]){
   #   return(Inf)
   # }
@@ -492,7 +502,7 @@ child.min.cost <- function(child.index, patients, top.patient.no, current.matrix
   finite.scores <- c(top.patient.no, which(patients=="unsampled"), which(is.finite(individual.costs[child.index,])))
   finite.scores <- finite.scores[order(finite.scores)]
 
-  scores[finite.scores] <- vapply(finite.scores, function(x) child.cost(child.index, patients, top.patient.no, x, current.matrix, individual.costs, k), 0)
+  scores[finite.scores] <- vapply(finite.scores, function(x) child.cost(child.index, patients, top.patient.no, x, current.matrix, individual.costs, penalties, k), 0)
 
   # scores <- vapply(seq(1, length(patients)), function(x) child.cost(child.index, patients, top.patient.no, x, current.matrix, individual.costs, k), 0)   
   
@@ -501,16 +511,18 @@ child.min.cost <- function(child.index, patients, top.patient.no, current.matrix
 
 # Submethods of the above
 
-child.cost <- function(child.index, patients, top.patient.no, bottom.patient.no, current.matrix, individual.costs, k){
+child.cost <- function(child.index, patients, top.patient.no, bottom.patient.no, current.matrix, individual.costs, penalties, k){
   if(top.patient.no == bottom.patient.no) {
     out <- current.matrix[child.index, bottom.patient.no]
   } else if (patients[bottom.patient.no] != "unsampled") {
     out <- current.matrix[child.index, bottom.patient.no] + 1 + k*individual.costs[child.index, bottom.patient.no]
+    out <- out + penalties[child.index, top.patient.no]
     if(is.nan(out)) {
       out <- Inf
     }
   } else {
     out <- current.matrix[child.index, bottom.patient.no]
+    out <- out + penalties[child.index, top.patient.no]
   }
   return(out)
 }
@@ -632,7 +644,7 @@ cost.of.subtree <- function(tree, node, patient, tip.assocs, finite.cost.col, re
     if(patient == tip.assocs[[node]]){
       results[node] <- 0
     } else {
-      stop("This should not happen")
+      stop("A tip with the wrong association has been reached")
     }
   } else {
     for(child in Children(tree, node)){
@@ -641,6 +653,28 @@ cost.of.subtree <- function(tree, node, patient, tip.assocs, finite.cost.col, re
         results[node] <- results[node] + results[child] + get.edge.length(tree, child)
       }
     }
+  }
+  return(results)
+}
+
+calculate.penalties <- function(tree, node, nonzero.penalty.col, results){
+  if(is.root(tree, node)){
+    results[node] <- 0
+  } else {
+    parent = Ancestors(tree, node, type="parent")
+    if(!nonzero.penalty.col[parent]){
+      results[node] <- 0
+    } else {
+      if(results[parent]==0){
+        results[node] <- 1/length(Children(tree, parent))
+      } else {
+        results[node] <- results[parent] * 1/length(Children(tree, parent))
+      }
+    }
+  }
+  
+  for(child in Children(tree, node)){
+    results <- calculate.penalties(tree, child, nonzero.penalty.col, results)
   }
   return(results)
 }

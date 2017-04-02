@@ -24,6 +24,7 @@ if(command.line){
   arg_parser$add_argument("-s", "--splitsRule", action="store", default="r", help="The rules by which the sets of patients are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. Currently available: s=Sankhoff (slow, rigorous), r=Romero-Severson (quick, less rigorous with >2 patients).")
   arg_parser$add_argument("-b", "--blacklist", action="store", help="A .csv file listing tips to ignore. Alternatively, a base name that identifies blacklist files. Blacklist files are assumed to end in .csv.")
   arg_parser$add_argument("-k", "--kParam", action="store", default=0, help="The k parameter in the cost matrix for Sankhoff reconstruction (see documentation)")
+  arg_parser$add_argument("-p", "--pParam", action="store", default=0)
   arg_parser$add_argument("-t", "--tiesRule", action="store", default="c", help="Sankhoff reconstruction only - determines whether ties of zero cost in the parsimony reconstruction will be reconstructed as a continued lineage in a single patient or a transition to the unsampled state. Options: u=always unsampled, c=always continue, b=branch-length based (see documentation)")
   arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, short branches in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. If a number, this number will be used as the threshold. If 'g', it will be guessed from the branch lengths (use this only if you've checked by eye that the tree does indeed have multifurcations).")
   arg_parser$add_argument("-n", "--branchLengthNormalisation", action="store", help="If present and a number, a normalising constant for all branch lengths in the tree or trees. If present and a file, the path to a .csv file with two columns: tree file name and normalising constant")
@@ -47,6 +48,7 @@ if(command.line){
   tree.file.name <- args$inputFile
   
   sankhoff.k <- as.numeric(args$kParam)
+  sankhoff.p <- as.numeric(args$pParam)
   output.file.ID <- args$outputFileID
   blacklist.file.name <- args$blacklist
   root.name <- args$outgroupName
@@ -147,7 +149,7 @@ if(command.line){
 #
 #	define internal functions
 #
-split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 1, mode, blacklist.file, root.name, tip.regex, sankhoff.k, ties.rule, useff){
+split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 1, mode, blacklist.file, root.name, tip.regex, sankhoff.k, sankhoff.p, ties.rule, useff){
   cat("SplitPatientsToSubgraphs.R run on: ", tree.file.name,", rules = ",mode,"\n", sep="")
   
   # Read, root and multifurcate the tree
@@ -223,7 +225,7 @@ split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 
   
   # Do the main function
   
-  results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, ties.rule, useff = useff)
+  results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, sankhoff.p, ties.rule, useff = useff)
   
   # Where to put the node shapes that display subgraph MRCAs
   
@@ -344,9 +346,9 @@ if(file.exists(tree.file.name)){
   }
   
   
-  fn.df <- data.frame(row.names = suffixes, input.tree = tree.file.names, output.ID = output.file.IDs, normalisation.constant = normalisation.constants, stringsAsFactors = F)
+  fn.df <- data.frame(row.names = suffixes, tree.input = tree.file.names, output.ID = output.file.IDs, normalisation.constant = normalisation.constants, stringsAsFactors = F)
   if(!is.null(blacklist.file.name)){
-    fn.df$input.blacklist = blacklist.file.names
+    fn.df$blacklist.inpit = blacklist.file.names
   }
   file.details <- split(fn.df, rownames(fn.df))
   
@@ -354,15 +356,15 @@ if(file.exists(tree.file.name)){
 
 for(i in file.details){
   #	if 'tree.file.names' is tree, process just one tree
-  tree.file.name		<- i$input.tree	
+  tree.file.name		<- i$tree.input	
   if(!is.null(blacklist.file.name)){
-    blacklist.file	<- i$input.blacklist
+    blacklist.file	<- i$blacklist.input
   } else {
     blacklist.file <- NULL
   }
   output.string <- i$output.ID 
   
-  tmp					<- split.patients.to.subgraphs(tree.file.name, i$normalisation.constant, mode, blacklist.file, root.name, tip.regex, sankhoff.k, ties.rule, useff)
+  tmp					<- split.patients.to.subgraphs(tree.file.name, i$normalisation.constant, mode, blacklist.file, root.name, tip.regex, sankhoff.k, sankhoff.p, ties.rule, useff)
   tree				<- tmp[['tree']]	
   rs.subgraphs			<- tmp[['rs.subgraphs']]
   #
