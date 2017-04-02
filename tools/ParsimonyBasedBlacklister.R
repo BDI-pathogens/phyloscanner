@@ -139,7 +139,6 @@ if(command.line){
             cat(paste("WARNING: No normalisation constant for tree file ",x," found in file, ",normalisation.argument,"; this tree will not have branch lengths normalised.\n", sep=""))
             return(1)
           }
-          
         })  
         
       } else {
