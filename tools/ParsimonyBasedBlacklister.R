@@ -90,10 +90,10 @@ if(command.line){
         if(nrow(norm.table[which(norm.table[,1]==basename(input.name)),])==1){
           file.name.list$normalisation.constant <- as.numeric(norm.table[which(norm.table[,1]==basename(input.name)),2])
         } else if (nrow(norm.table[which(norm.table[,1]==basename(input.name)),])==0){
-          warning(paste("No normalisation constant given for tree file name ", basename(input.name), " in file ",normalisation.argument,"; normalised distances will not be given", sep=""))
+          cat(paste("WARNING: No normalisation constant given for tree file name ", basename(input.name), " in file ",normalisation.argument,"; normalised distances will not be given", sep=""))
           file.name.list$normalisation.constant <- 1
         } else {
-          warning(paste("Two or more entries for normalisation constant for tree file name ",basename(input.name)," in file ",normalisation.argument,"; taking the first", sep=""))
+          cat(paste("Two or more entries for normalisation constant for tree file name ",basename(input.name)," in file ",normalisation.argument,"; taking the first", sep=""))
           file.name.list$normalisation.constant <- as.numeric(norm.table[which(norm.table[,1]==basename(input.name))[1],2])
         }
       } else {
@@ -132,11 +132,11 @@ if(command.line){
         normalisation.constants <- sapply(basename(tree.input.names), function(x){
           if(x %in% norm.table[,1]){
             if(length(which(norm.table[,1]==x))>1){
-              warning(paste("Two or more entries for normalisation constant for tree file name ",x, " in file ",normalisation.argument,"; taking the first", sep=""))
+              cat(paste("WARNING: Two or more entries for normalisation constant for tree file name ",x, " in file ",normalisation.argument,"; taking the first\n", sep=""))
             }
             return(norm.table[which(norm.table[,1]==x)[1],2])
           } else {
-            warning(paste("No normalisation constant for tree file ",x," found in file, ",normalisation.argument,"; this tree will not have branch lengths normalised.", sep=""))
+            cat(paste("WARNING: No normalisation constant for tree file ",x," found in file, ",normalisation.argument,"; this tree will not have branch lengths normalised.\n", sep=""))
             return(1)
           }
           
@@ -407,7 +407,7 @@ for(i in file.details){
         blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
       }
     } else {
-      warning(paste("File ",i$blacklist.input," does not exist; skipping.",paste=""))
+      cat(paste("WARNING: File ",i$blacklist.input," does not exist; skipping.\n",sep=""))
     }
   } 
   
