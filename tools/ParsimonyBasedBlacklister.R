@@ -69,44 +69,59 @@ if(command.line){
     cat("No outgroup name given; will assume the tree is rooted and use a random other tip as an outgroup for each patient\n")
   }
   
+  file.details <- list()
+  
   if(file.exists(input.name)){
-    input.names <- input.name
-    d.output.names <- d.output.name
-    b.output.names <- b.output.name
+    
+    file.name.list <- list()
+    file.name.list$tree.input <- input.name
+    file.name.list$blacklist.input <- blacklist.file.name
+    file.name.list$duals.output <- d.output.name
+    file.name.list$blacklist.output <- b.output.name
+    file.name.list$blacklist.input <- blacklist.file.name
+    
     if(!has.normalisation){
-      normalisation.constants <- 1
+      file.name.list$normalisation.constant <- 1
     } else {
-      normalisation.constants <- suppressWarnings(as.numeric(normalisation.argument))
+      normalisation.constant <- suppressWarnings(as.numeric(normalisation.argument))
       
       if(is.na(normalisation.constant)){
         norm.table <- read.csv(normalisation.argument, stringsAsFactors = F, header = F)
         if(nrow(norm.table[which(norm.table[,1]==basename(input.name)),])==1){
-          normalisation.constants <- as.numeric(norm.table[which(norm.table[,1]==basename(input.name)),2])
+          file.name.list$normalisation.constant <- as.numeric(norm.table[which(norm.table[,1]==basename(input.name)),2])
         } else if (nrow(norm.table[which(norm.table[,1]==basename(input.name)),])==0){
           warning(paste("No normalisation constant given for tree file name ", basename(input.name), " in file ",normalisation.argument,"; normalised distances will not be given", sep=""))
-          normalisation.constants <- 1
+          file.name.list$normalisation.constant <- 1
         } else {
           warning(paste("Two or more entries for normalisation constant for tree file name ",basename(input.name)," in file ",normalisation.argument,"; taking the first", sep=""))
-          normalisation.constants <- as.numeric(norm.table[which(norm.table[,1]==basename(input.name))[1],2])
+          file.name.list$normalisation.constant <- as.numeric(norm.table[which(norm.table[,1]==basename(input.name))[1],2])
         }
+      } else {
+        file.name.list$normalisation.constant <- normalisation.constant
       }
     }
+
+    file.details[[input.name]] <- file.name.list
+
   } else {
     # Assume we are dealing with a group of files
     
-    input.names	<- sort(list.files.mod(dirname(input.name), pattern=paste(basename(input.name),'.*\\',tree.fe,'$',sep=''), full.names=TRUE))
-    
-    if(length(input.names)==0){
-      cat("No input trees found,\n")
-      quit()
+    tree.input.names <- list.files.mod(dirname(input.name), pattern=paste(basename(input.name),'.*\\',tree.fe,'$',sep=''), full.names=TRUE)
+
+    if(length(tree.input.names)==0){
+      cat("No tree files found.\nQuitting.\n",)
+      quit(save="no")
     }
     
-    suffixes <- substr(input.names, nchar(input.name) + 1, nchar(input.names))
+    suffixes <- substr(tree.input.names, nchar(input.name) + 1, nchar(tree.input.names))
     suffixes <- gsub(paste('\\', tree.fe, sep="") , csv.fe ,suffixes)
     
     b.output.names <- paste(b.output.name, suffixes, sep="")
     if(!is.null(d.output.name)){
       d.output.names <- paste(d.output.name, suffixes, sep="")
+    }
+    if(!is.null(blacklist.file.name)){
+      b.input.names <- paste(blacklist.file.name, suffixes, sep="")
     }
     
     if(has.normalisation){
@@ -114,7 +129,7 @@ if(command.line){
       
       if(is.na(normalisation.constant)){
         norm.table <- read.csv(normalisation.argument, stringsAsFactors = F, header = F)
-        normalisation.constants <- sapply(basename(input.names), function(x){
+        normalisation.constants <- sapply(basename(tree.input.names), function(x){
           if(x %in% norm.table[,1]){
             if(length(which(norm.table[,1]==x))>1){
               warning(paste("Two or more entries for normalisation constant for tree file name ",x, " in file ",normalisation.argument,"; taking the first", sep=""))
@@ -129,21 +144,32 @@ if(command.line){
         
       } else {
         # it's a number to be used in every tree
-        normalisation.constants <- rep(normalisation.constant, length(input.names))
+        normalisation.constants <- rep(normalisation.constant, length(tree.input.names))
       }
     } else {
-      normalisation.constants <- rep(1, length(input.names))
+      normalisation.constants <- rep(1, length(tree.input.names))
     }
+    
+    fn.df <- data.frame(row.names = suffixes, tree.input = tree.input.names, blacklist.output = b.output.names, normalisation.constant = normalisation.constants, stringsAsFactors = F)
+    if(!is.null(d.output.name)){
+      fn.df$duals.output <- d.output.names
+    }
+    if(!is.null(blacklist.file.name)){
+      fn.df$blacklist.input <- b.input.names
+    }
+    
+    file.details <- split(fn.df, rownames(fn.df))
+    
   }
   
 } else {
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/")
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
   
-  input.names <- "AllTrees/RAxML_bestTree.InWindow_2300_to_2650.tree"
+  input.name <- "AllTrees/RAxML_bestTree.InWindow_"
   
   #anything already blacklisted
-  blacklist.file.name <- "Blacklists/Amplicon blacklists/AmpliconBlacklist_InWindow_2300_to_2650.csv"
+  blacklist.file.name <- "Blacklists/Amplicon blacklists/AmpliconBlacklist_test_InWindow_"
   
   root.name <- "C.BW.00.00BW07621.AF443088"
   tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
@@ -167,7 +193,7 @@ if(command.line){
 # The main function for getting splits for a given patient ID
 
 get.splits.for.patient <- function(patient, tip.patients, tree, root.name, raw.threshold, ratio.threshold, d.output.name, verbose){
-  cat("Identifying splits for patient ", patient, "\n")
+  cat("Identifying splits for patient ", patient, "\n", sep="")
   
   blacklist.items <- vector()
   
@@ -346,12 +372,17 @@ check.read.count.for.split <- function(split, tips.for.splits, raw.threshold, ra
 }
 
 
-for(i in 1:length(input.names)){
-  cat(paste("Reading tree (",input.names[i],")...\n",sep=""))
+for(i in file.details){
   
-  tree <- read.tree(input.names[i])
+  cat(paste("Reading tree (",i$tree.input,")...\n",sep=""))
+
+  tree <- read.tree(i$tree.input)
   
-  tree$edge.length <- tree$edge.length/normalisation.constants[i]
+  if(i$normalisation.constant!=1){
+    cat("Normalising tree branch length (nc = ",i$normalisation.constant,")\n", sep="")
+  }
+  
+  tree$edge.length <- tree$edge.length/i$normalisation.constant
   
   # Re-root the tree
   
@@ -361,7 +392,7 @@ for(i in 1:length(input.names)){
     outgroup.no <- which(tree$tip.label==root.name)
     tree <- root(tree, outgroup = outgroup.no, resolve.root = T)
   }
-  
+
   tip.labels <- tree$tip.label
   
   # Import existing blacklist
@@ -369,14 +400,14 @@ for(i in 1:length(input.names)){
   blacklist <- vector()
   
   if(!is.null(blacklist.file.name)){
-    if(file.exists(blacklist.file.name)){
-      cat("Reading blacklist file",blacklist.file.name,'\n')
-      blacklisted.tips <- read.table(blacklist.file.name, sep=",", header=F, stringsAsFactors = F, col.names="read")
+    if(file.exists(i$blacklist.input)){
+      cat("Reading blacklist file",i$blacklist.input,'\n')
+      blacklisted.tips <- read.table(i$blacklist.input, sep=",", header=F, stringsAsFactors = F, col.names="read")
       if(nrow(blacklisted.tips)>0){
         blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
       }
     } else {
-      warning(paste("File ",blacklist.file.name," does not exist; skipping.",paste=""))
+      warning(paste("File ",i$blacklist.input," does not exist; skipping.",paste=""))
     }
   } 
   
@@ -393,7 +424,7 @@ for(i in 1:length(input.names)){
   
   patients <- patients[order(patients)]
   
-  results <- lapply(patients, function(x) get.splits.for.patient(x, tip.patients, tree, root.name, raw.threshold, ratio.threshold, d.output.names[i], verbose))
+  results <- lapply(patients, function(x) get.splits.for.patient(x, tip.patients, tree, root.name, raw.threshold, ratio.threshold, i$duals.output, verbose))
   
   cat("Finished\n")
   
@@ -401,9 +432,9 @@ for(i in 1:length(input.names)){
   
   # Write the output
   
-  write.table(new.blacklist, b.output.names[i], sep=",", row.names=FALSE, col.names=FALSE, quote=F)
+  write.table(new.blacklist, i$blacklist.output, sep=",", row.names=FALSE, col.names=FALSE, quote=F)
   
-  if(!is.null(d.output.names[i])){
+  if(!is.null(i$duals.output)){
     
     which.are.duals <- which(unlist(lapply(results, "[[", 6)))
     
@@ -414,12 +445,12 @@ for(i in 1:length(input.names)){
                           tips.in.subtree = unlist(lapply(results[which.are.duals], "[[", 5))
       )
       
-      write.csv(mi.df, d.output.names[i], row.names = F)
+      write.csv(mi.df, i$duals.output, row.names = F)
     } else {
       # Other scripts behave better when these files exist even if they are empty
       
       cat("No multiple infections detected; writing empty file.\n")
-      file.create(d.output.name)
+      file.create(i$duals.output)
     }
   }
 }
