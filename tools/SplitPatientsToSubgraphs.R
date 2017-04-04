@@ -136,8 +136,8 @@ if(command.line){
   tree.file.names <- "RAxML_bipartitions.ST239_no_bootstraps_T056corr.tree"
   blacklist.file.name <- NULL
   output.file.IDs <- "mrsa_k10_bp_test"
-  root.name <- "TW20"
   tip.regex <- "^([ST][0-9][0-9][0-9])_[A-Z0-9]*_[A-Z][0-9][0-9]$"
+  root.name <- "TW20"
   mode <- "s"
   sankhoff.k <- 10
   ties.rule <- "b"
