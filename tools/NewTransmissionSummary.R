@@ -46,7 +46,7 @@ if(command.line){
   input.file.name <- args$inputFiles
   
   
-  input.files <- sort(list.files(dirname(input.file.name), pattern=paste(basename(input.file.name)), full.names=TRUE))
+  input.files <- list.files(dirname(input.file.name), pattern=paste(basename(input.file.name)), full.names=TRUE)
   
 } else {
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/")

@@ -76,12 +76,21 @@ if (command.line) {
   
   # Find the input files
   
-  tree.files <- sort(list.files.mod(dirname(tree.file.root), pattern=paste('^',basename(tree.file.root),".*",tree.fe,sep=""), full.names=TRUE))
+  tree.files <- list.files.mod(dirname(tree.file.root), pattern=paste('^',basename(tree.file.root),".*",tree.fe,sep=""), full.names=TRUE)
   
-  splits.files <- sort(list.files.mod(dirname(splits.file.root), pattern=paste('^',basename(splits.file.root),".*",csv.fe,sep=""), full.names=TRUE))	  
+  splits.files <- list.files.mod(dirname(splits.file.root), pattern=paste('^',basename(splits.file.root),".*",csv.fe,sep=""), full.names=TRUE)	  
   blacklist.files <- NULL
   if(!is.null(blacklist.file.root)){
-    blacklist.files <- sort(list.files.mod(dirname(blacklist.file.root), pattern=paste('^',basename(blacklist.file.root),".*\\.csv",sep=""), full.names=TRUE))
+    blacklist.files <- list.files.mod(dirname(blacklist.file.root), pattern=paste('^',basename(blacklist.file.root),".*\\.csv",sep=""), full.names=TRUE)
+  }
+  
+  if(length(tree.files)==0){
+    cat("No tree files found. \n Quitting. \n")
+    quit(save="n")
+  }
+  if(length(splits.files)==0){
+    cat("No subgraph files found. \n Quitting. \n")
+    quit(save="n")
   }
   
   # Get the suffixes
@@ -139,6 +148,7 @@ if (command.line) {
   # From now on we work with suffixes only
   
   suffixes <- ts.both.present
+  suffixes <- suffixes[order(suffixes)]
   
   if(!is.null(window.coords.file)){
     cat("Reading genome coordinates from file ", window.coords.file, "\n", sep="")

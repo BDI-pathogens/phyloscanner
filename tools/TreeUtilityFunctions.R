@@ -5,14 +5,8 @@ list.files.mod <- function(path = ".", pattern = NULL, all.files = FALSE,
                           ignore.case = FALSE, include.dirs = FALSE, no.. = FALSE){
   
   original <- list.files(path, pattern, all.files, full.names, recursive, ignore.case, include.dirs, no..)
-  if (length(original) == 0) {
-    cat(paste0("Error: found no files matching the regex ", pattern,
-    ". Quitting.\n"))
-    quit(save="no")
-  }
   return(sapply(original, function(x) if(substr(x, 1, 2)=="./") {substr(x, 3, nchar(x))} else {x}))
 }
-
 
 # Get the tip number of this label
 
