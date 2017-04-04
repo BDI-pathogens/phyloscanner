@@ -63,13 +63,13 @@ if(command.line){
   if(0)
   {
     script.dir					<- "/Users/Oliver/git/phylotypes/tools"
-    summary.file				<- "/Users/Oliver/duke/tmp/pty_17-04-04-15-31-01/ptyr22_patStatsFull.csv"
-    id.file 					<- "/Users/Oliver/duke/tmp/pty_17-04-04-15-31-01/ptyr22_patient.txt"
-	input.file.name				<- "/Users/Oliver/duke/tmp/pty_17-04-04-15-31-01/ptyr22_classification_InWindow_"
+    summary.file				<- "/Users/Oliver/duke/tmp/pty_17-04-04-16-26-50/ptyr22_patStatsFull.csv"
+    id.file 					<- "/Users/Oliver/duke/tmp/pty_17-04-04-16-26-50/ptyr22_patient.txt"
+	input.file.name				<- "/Users/Oliver/duke/tmp/pty_17-04-04-16-26-50/ptyr22_classification_InWindow_"
     min.threshold				<- 1
     allow.splits 				<- TRUE
-    output.file 				<- "/Users/Oliver/duke/tmp/pty_17-04-04-15-31-01/ptyr22_trmStats.csv"
-	detailed.output				<- "/Users/Oliver/duke/tmp/pty_17-04-04-15-31-01/ptyr22_patStatsPerWindow.csv"
+    output.file 				<- "/Users/Oliver/duke/tmp/pty_17-04-04-16-26-50/ptyr22_trmStats.csv"
+	detailed.output				<- "/Users/Oliver/duke/tmp/pty_17-04-04-16-26-50/ptyr22_patStatsPerWindow.csv"
     input.files 				<- sort(list.files(dirname(input.file.name), pattern=basename(input.file.name), full.names=TRUE))
   }
 }
@@ -84,7 +84,7 @@ suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
 #
 reads.table	<- NULL		# can replace prev give.denom by is.null(reads.table)
 if(!is.null(summary.file)){
- 	cat("Getting window counts per patient...\n")
+ 	cat("Getting window counts per patient from ",summary.file,"...\n")
 	reads.table 	<- as.data.table(read.csv(summary.file, stringsAsFactors = F)[,c("file.suffix", "id", "reads", "tips")])
 	setnames(reads.table, c("file.suffix"), c("SUFFIX"))
 	reads.table$SUFFIX <- as.character(reads.table$SUFFIX)
@@ -175,9 +175,7 @@ dp <- merge(dp, tmp, by=c('SUFFIX','pat.2'))
 #
 #	merge reads/leaves with tt
 #
-stopifnot(nrow(dp)==nrow(tt))
 tt			<- merge(tt, dp, by=c('pat.1','pat.2','SUFFIX'))
-stopifnot(nrow(dp)==nrow(tt))
 #	rename TYPE
 set(tt, tt[,which(TYPE=='anc')], 'TYPE','anc_12')
 set(tt, tt[,which(TYPE=='desc')], 'TYPE','anc_21')
