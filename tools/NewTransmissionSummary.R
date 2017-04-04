@@ -63,14 +63,14 @@ if(command.line){
   if(0)
   {
     script.dir					<- "/Users/Oliver/git/phylotypes/tools"
-    summary.file				<- "/Users/Oliver/duke/tmp/pty_17-01-02-20-41-36/ptyr110_patStatsFull.csv"
-    id.file 					<- "/Users/Oliver/duke/tmp/pty_17-01-02-20-41-36/ptyr110_patients.txt"
-	input.files.name			<- "/Users/Oliver/duke/tmp/pty_17-01-02-20-41-36/ProcessedTree_r_ptyr110_"
+    summary.file				<- "/Users/Oliver/duke/tmp/pty_17-04-04-15-31-01/ptyr22_patStatsFull.csv"
+    id.file 					<- "/Users/Oliver/duke/tmp/pty_17-04-04-15-31-01/ptyr22_patient.txt"
+	input.file.name				<- "/Users/Oliver/duke/tmp/pty_17-04-04-15-31-01/ptyr22_classification_InWindow_"
     min.threshold				<- 1
     allow.splits 				<- TRUE
-    output.file 				<- "/Users/Oliver/duke/tmp/pty_17-01-02-20-41-36/ptyr110_trmStats.csv"
-	detailed.output				<- "/Users/Oliver/duke/tmp/pty_17-01-02-20-41-36/ptyr110_patStatsPerWindow.csv"
-    input.files 				<- sort(list.files(dirname(input.files.name), pattern=paste(basename(input.files.name),".*LikelyTransmissions.csv$",sep=''), full.names=TRUE))
+    output.file 				<- "/Users/Oliver/duke/tmp/pty_17-04-04-15-31-01/ptyr22_trmStats.csv"
+	detailed.output				<- "/Users/Oliver/duke/tmp/pty_17-04-04-15-31-01/ptyr22_patStatsPerWindow.csv"
+    input.files 				<- sort(list.files(dirname(input.file.name), pattern=basename(input.file.name), full.names=TRUE))
   }
 }
 #
@@ -189,11 +189,11 @@ setkey(tt, SUFFIX, pat.1, pat.2)
 tt			<- subset(tt, select=c('SUFFIX','pat.1','pat.2','TYPE','PATRISTIC_DISTANCE','ADJACENT','PATHS.12','PATHS.21','pat.1_tips','pat.1_reads','pat.2_tips','pat.2_reads'))
 setnames(tt, colnames(tt),toupper(colnames(tt)))
 #	write to file
-# if(!is.null(detailed.output))
-# {	
-# 	cat("Save detailed per window table:",detailed.output)
-# 	save(tt, file=gsub('\\.csv','\\.rda',detailed.output))
-# }
+if(!is.null(detailed.output))
+{	
+ 	cat("Save detailed per window table:",detailed.output)
+ 	save(tt, file=gsub('\\.csv','\\.rda',detailed.output))
+}
 
 cat("Making summary output table...\n")
 set(tt, NULL, c('PAT.1_TIPS','PAT.1_READS','PAT.2_TIPS','PAT.2_READS','PATHS.12','PATHS.21'),NULL)
