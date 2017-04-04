@@ -220,8 +220,6 @@ output <- sapply(pat.vector, blacklist.reads.for.patient)
 
 fully.blacklisted <- pat.vector[which(output)]
 
-print(fully.blacklisted)
-
 if(length(fully.blacklisted)>0){
   cat("Blacklisting excluded patients from all tree files...\n")
   for(suffix in suffixes){
