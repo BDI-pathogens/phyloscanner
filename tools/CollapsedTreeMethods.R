@@ -163,9 +163,9 @@ output.trans.tree <- function(tree, assocs, file.name = NULL, prune.unsampled.ti
       while(!first.of.split[current.node.no]){
         current.node.no <- Ancestors(tree, current.node.no, type="parent")
       }
-	  if(!grepl("^unsampled_region", splits.vec[current.node.no])){      
+      if(!grepl("^unsampled_region", splits.vec[current.node.no])){      
         print(node.no)
-        stop("Uh-oh")
+        stop("Parent of unsampled node is not one of the unsampled subgraph roots")
       }
       splits.vec[node.no] <- splits.vec[current.node.no]
     }
@@ -212,16 +212,19 @@ output.trans.tree <- function(tree, assocs, file.name = NULL, prune.unsampled.ti
     
     for(x in 1:length(unsampled.rows)) {
       old.label <- unsampled.labels[x]
-      new.label <- paste("unsampled_region-S",x,sep="")
+      new.label <- paste("UnsampledRegion-S",x,sep="")
       for.output$unique.splits[unsampled.rows[x]] <- new.label
       for.output$parent.splits[which(for.output$parent.splits==old.label)] <- new.label
     } 
+    
+    for.output$patients[which(grepl("^unsampled_region",for.output$patients))] <- "UnsampledRegion"
+    for.output$parent.patients[which(grepl("^unsampled_region",for.output$parent.patients))] <- "UnsampledRegion"
   }
   
   if(!is.null(file.name)){
     write.csv(for.output[,1:6], file.name, row.names = F, quote=F)
   }
-  return(for.output)
+  return(tt.table)
 }
 
 check.contiguous <- function(tt, patients, splits.for.patients, patients.for.splits){
@@ -278,7 +281,7 @@ check.uninterrupted <- function(tt, patients, splits.for.patients, patients.for.
   for(node.1 in nodes.1){
     current.node <- get.tt.parent(tt, node.1)
     while(current.node!="root" & (grepl("^unsampled_region",current.node) | (if(is.null(patients.for.splits[[current.node]])) {T} else {patients.for.splits[[current.node]]==pat.1.id}))){
-
+      
       current.node <- get.tt.parent(tt, current.node)
     }
     if(current.node != "root"){
