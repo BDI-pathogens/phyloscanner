@@ -634,7 +634,7 @@ pat.stats.summary <- as.data.table(pat.stats.temp)[, lapply(.SD, mean.na.rm), by
 tmp <- file.path(paste(output.root,"_patStatsSummary.csv",sep=""))
 cat("Writing output to file ",tmp,"...\n",sep="")
 write.csv(pat.stats.summary, tmp, quote = F, row.names = F)
-
+ 
 # Draw the graphs
 
 tmp <- paste(output.root,"_patStats.pdf",sep="")
