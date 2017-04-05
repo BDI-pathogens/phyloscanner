@@ -24,7 +24,7 @@ if(command.line){
   arg_parser = ArgumentParser(description=tmp)
   arg_parser$add_argument("-s", "--summaryFile", action="store", help="The full output file from SummaryStatistics.R; necessary only to identify windows in which no reads are present from each patient. If absent, window counts will be given without denominators.")
   arg_parser$add_argument("-m", "--minThreshold", action="store", default=1, type="integer", help="Relationships between two patients will only appear in output if a transmission chain between them appears in at least these many windows (default 1). High numbers are useful for drawing figures in e.g. Cytoscape with few enough arrows to be comprehensible. The script is extremely slow if this is set to 0.")
-  arg_parser$add_argument("-c", "--distanceThreshold", action="store", default=NA, help="Minimum distance threshold on a window for a relationship to be reconstructed between two patients on that window.")
+  arg_parser$add_argument("-c", "--distanceThreshold", action="store", default=-1, help="Minimum distance threshold on a window for a relationship to be reconstructed between two patients on that window.")
   arg_parser$add_argument("-p", "--allowSplits", action="store_true", default=FALSE, help="If absent, directionality is only inferred between pairs of patients whose reads are not split; this is more conservative.")
   arg_parser$add_argument("-d", "--detailedOutput", action="store", help="If present, a file describing the relationships between each pair of patients on each window will be written to the specified path in .rda format")
   arg_parser$add_argument("idFile", action="store", help="A file containing a list of the IDs of all the patients to calculate and display statistics for.")
@@ -38,7 +38,7 @@ if(command.line){
   script.dir <- args$scriptdir  
   min.threshold <- args$minThreshold
   dist.threshold <- args$distanceThreshold
-  if(is.na(dist.threshold)){
+  if(dist.threshold==-1){
     dist.threshold <- Inf
   }
   detailed.output <- args$detailed
@@ -95,6 +95,7 @@ suppressMessages(library(reshape2, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(gdata, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(ggplot2, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
+print("here")
 #
 # Get the denominators
 #
