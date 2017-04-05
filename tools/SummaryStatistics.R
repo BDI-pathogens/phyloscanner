@@ -224,6 +224,17 @@ if (command.line) {
   no.read.counts <- T
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
   
+  setwd("/Users/Oliver/duke/tmp/pty_17-04-04-17-20-21")
+  id.file <- "ptyr1_patient.txt"
+  tree.file.root <- "ProcessedTree_s_ptyr1_InWindow_"
+  splits.file.root <- "subgraphs_s_ptyr1_InWindow_"
+  blacklist.file.root <- 'ptyr1_blacklistdwns_InWindow_'
+  #window.coords.file <- "samplecoords.csv"
+  tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
+  no.read.counts <- F
+  script.dir <- "/Users/Oliver/git/phylotypes/tools"
+  
+  
   setwd("/Users/twoseventwo/Downloads/bams/")
   id.file <- "PatientIDfile.txt"
   tree.file.root <- "ProcessedTree_s_SimulatedDataRefs_InWindow_"
@@ -618,11 +629,7 @@ mean.na.rm <- function(x) mean(x, na.rm = T)
 
 pat.stats.temp <- pat.stats[which(pat.stats$reads>0), c("id", "tips", "reads", "subgraphs", "clades", "overall.rtt", "largest.rtt", "max.pat.distance",
                                                         "prop.reads.largest.subtree", "max.branch.length", "mean.pat.distance", "branch.to.pat.ratio")] 
-
-
-by.patient <- pat.stats.temp %>% group_by(id)
-pat.stats.summary <-
-  as.data.frame(by.patient %>% summarise_each(funs(mean.na.rm)))
+pat.stats.summary <- as.data.table(pat.stats.temp)[, lapply(.SD, mean.na.rm), by='id']
 
 tmp <- file.path(paste(output.root,"_patStatsSummary.csv",sep=""))
 cat("Writing output to file ",tmp,"...\n",sep="")
