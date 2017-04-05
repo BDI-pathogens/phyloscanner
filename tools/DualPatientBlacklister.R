@@ -19,7 +19,6 @@ if(command.line){
   arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what I'm doing.")
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.")
   arg_parser$add_argument("-b", "--existingBlacklistsPrefix", action="store", help="A file path and initial string identifying existing (.csv) blacklists whose output is to be appended to. Only such files whose suffix (the string after the prefix, without the file extension) matches a suffix from the dual reports will be appended to.")
-  arg_parser$add_argument("-w", "--windowCount", action="store", help="The total number of windows in the analysis (will default to the total number of dual infection files if absent.)")
   arg_parser$add_argument("-s", "--summaryFile", action="store", help="A file to write a summary of the results to, detailing window counts for all patients")
   arg_parser$add_argument("threshold", action="store", help="The proportion of windows that a dual infection needs to appear in to be considered genuine. Those patients whose dual infections are considered genuine are blacklisted entirely. Those who are not are reduced to their largest subtrees only.")
   arg_parser$add_argument("treePrefix", action="store", help="A file path and initial string identifying read trees of all analyzed windows.")
@@ -42,17 +41,10 @@ if(command.line){
   summary.file <- args$summaryFile
   verbose <- args$verbose
   tip.regex <- args$tipRegex
-  total.windows	<- NULL
+
   
   dual.files <- list.files.mod(dirname(duals.prefix), pattern=paste('^',basename(duals.prefix),sep=""), full.names=TRUE)
   
-  if(!is.null(args$windowCount)) {
-    total.windows	<- as.numeric(args$windowCount)
-  } else {
-    total.windows <- length(dual.files)
-  }
-  
-  tree.files	<- data.table(F=rep(NA_character_,0))	
   if(!is.null(tree.prefix)){
     tree.files	<- list.files.mod(dirname(tree.prefix), pattern=paste0('^',basename(tree.prefix)), full.names=TRUE)
     cat('Found tree files to determine total windows present per patient, n=', nrow(tree.files), "\n", sep="")
@@ -86,7 +78,15 @@ if(command.line){
   file.details <- split(fn.df, rownames(fn.df))
   
 } else {
-  
+  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/")
+  script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
+  tree.prefix <- "AllTrees/RAxML_bestTree.InWindow_"
+  duals.prefix <- "Blacklists/Multiple infection files/MultipleInfections.InWindow_"
+  existing.bl.prefix <- "Blacklists/Rogue blacklists/RogueBlacklist.InWindow_"
+  tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
+  summary.file <- "summarytest.csv"
+  output.prefix <- "blacklist_test2_"
+  threshold <- 0.25
 }
 
 #	read dual files output by ParsimonyBasedBlacklister
@@ -121,7 +121,7 @@ if(length(suffixes)>0){
 
 #	Count number of potential dual windows by patient
 
-tmp								<- dd[, list(N= length(unique(W_INFO))), by='PATIENT']
+tmp								<- dd[, list(N = length(unique(W_INFO))), by = 'PATIENT']
 window.count.by.patient 		<- as.list(tmp$N)
 names(window.count.by.patient)	<- tmp$PATIENT
 
@@ -137,51 +137,40 @@ if(!is.null(existing.bl.prefix)){
   }
 }
 
-#	If window total in input args, convert window total to named numeric 
-
-if(!is.null(total.windows)) {
-  total.windows			<- rep(total.windows, length(unique(dd$PATIENT)))
-  names(total.windows)	<- unique(dd$PATIENT)
-}
+#	
+#		total.windows = #windows an individual is present
 #
-#	determine window total if no input arg and tree files: 
-#		total.windows= #windows an individual is present
-#
-if(length(tree.files)>0 & is.null(total.windows)){
-  #	count number of unique reads in each tree file for every dual candidate patient
-  tmp						<- tree.files[, {
-    tmp		<- data.table(TAXA=read.tree(F)$tip.label)
-    tmp2	<- labels(window.count.by.patient)
-    tmp		<- sapply(tmp2, function(patient)	nrow(subset(tmp, regexpr(patient, TAXA)>0))	)
-    list(POT_DUAL_ID= tmp2, UNIQUE_READS=tmp)
-  }, by='F']						
-  #	count number of windows in which dual candidate patient is present
-  tmp						<- tmp[, list( WIN_N= length(which(UNIQUE_READS>0)) ), by='POT_DUAL_ID']
-  #	convert to named numeric
-  total.windows			<- tmp$WIN_N
-  names(total.windows)	<- tmp$POT_DUAL_ID
-}
 
-#	Determine window total if no input arg and no tree files: 
-#	by default length of dual files
+#	count number of unique reads in each tree file for every dual candidate patient
 
-if(length(tree.files)==0 & is.null(total.windows)){
-  total.windows	<- rep(length(suffixes), length(unique(dd$PATIENT)))
-  names(total.windows) <- unique(dd$PATIENT)
-}
+pat.vector <- labels(window.count.by.patient)[order(labels(window.count.by.patient))]
+
+tree.tips <- lapply(file.details, function(x){
+  read.tree(x$tree.input)$tip.label
+})
+
+
+total.windows <- lapply(pat.vector, function(x){
+  windows.present <- sapply(tree.tips, function(y){
+    any(patient.from.label(y, tip.regex)==x)
+  })
+  sum(as.numeric(windows.present))
+})
+names(total.windows) <- pat.vector
+
 
 # Output function
 
 blacklist.reads.for.patient <- function(patient){
-  if(window.count.by.patient[[patient]]/total.windows[patient] > threshold){
+  if(window.count.by.patient[[patient]]/total.windows[[patient]] > threshold){
     if(verbose){
-      cat("Patient ",patient," meets the threshold for dual infection (",window.count.by.patient[[patient]]," out of ",total.windows[patient],") and will be blacklisted entirely.\n", sep="")
+      cat("Patient ",patient," meets the threshold for dual infection (",window.count.by.patient[[patient]]," out of ",total.windows[[patient]],") and will be blacklisted entirely.\n", sep="")
     }	
     # this is a dual infection and we want it removed in its entirety
     return(TRUE)
   } else {
     if(verbose){
-      cat("Patient ",patient," does not meet the threshold for dual infection (",window.count.by.patient[[patient]]," out of ",total.windows[patient],") and smaller subtrees are being blacklisted.\n", sep="")
+      cat("Patient ",patient," does not meet the threshold for dual infection (",window.count.by.patient[[patient]]," out of ",total.windows[[patient]],") and smaller subtrees are being blacklisted.\n", sep="")
     }
     # this is to have smaller subtrees blacklisted away on windows where they occur
     for(suffix in suffixes){
@@ -214,8 +203,6 @@ blacklist.reads.for.patient <- function(patient){
   }
 }
 
-pat.vector <- labels(window.count.by.patient)[order(labels(window.count.by.patient))]
-
 output <- sapply(pat.vector, blacklist.reads.for.patient)
 
 fully.blacklisted <- pat.vector[which(output)]
@@ -223,9 +210,7 @@ fully.blacklisted <- pat.vector[which(output)]
 if(length(fully.blacklisted)>0){
   cat("Blacklisting excluded patients from all tree files...\n")
   for(suffix in suffixes){
-
-    tree <- read.tree(file.details[[suffix]]$tree.input)
-    tip.names <- tree$tip.label
+    tip.names <- tree.tips[[suffix]]
     tip.patients <- sapply(tip.names, function(x) patient.from.label(x, tip.regex))
     if(length(intersect(tip.patients, fully.blacklisted))>0){
       if(!file.exists(file.details[[suffix]]$blacklist.output)){
@@ -250,7 +235,7 @@ if(length(fully.blacklisted)>0){
 
 if(!is.null(summary.file)) {
   
-  output <- lapply(pat.vector, function(x) c(window.count.by.patient[[x]]/total.windows[x], window.count.by.patient[[x]]))
+  output <- lapply(pat.vector, function(x) c(window.count.by.patient[[x]]/total.windows[[x]], window.count.by.patient[[x]]))
   
   proportions <- unlist(lapply(output, "[[", 1))
   counts <- unlist(lapply(output, "[[", 2))
