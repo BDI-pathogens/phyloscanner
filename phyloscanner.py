@@ -176,27 +176,6 @@ low-level contamination. Retaining fewer reads will also speed up all
 subsequent processing and analysis of the reads.''')
 
 OtherArgs = parser.add_argument_group('Other assorted options')
-OtherArgs.add_argument('-AR', '--allow-read-repeats', action='store_true',
-help='''Some background first: by default, if a read with the same name is found
-to span each of a series of consecutive, overlapping windows, it is only used in
-the first window. 'Consecutive' means next to each other in the order you
-specified. For example, if you specified windows 10-20, 15-25, 20-30 and 31-40,
-and there was a read that spanned all four windows (i.e. it started at or before
-position 10 and ended at or after position 40), it would be used in window
-10-20, not used in 15-25 because it spanned the last window, not used in 20-30
-because it spanned the last window (even though it was skipped there), and used
-in 31-40 because this window does not overlap with the last one. This default
-behaviour allows windows to overlap yet contain independent read data, which is
-good because overlapping windows means more windows can be fit into the same
-space. With paired read data, mates in a pair have the same name; the default
-behaviour without the --merge-paired-reads option is to use at most one of the
-two mates (in consecutive overlapping windows and in the same window), and the
-default behaviour with the --merge-paired-reads option is to merge mates into a
-single read, using this merged read only the first time it is encountered in
-consecutive overlapping windows. Using this option, --allow-read-repeats, when
-reads are encountered again in overlapping windows they will be used again, not
-skipped. This means neighbouring overlapping windows can no longer be considered
-independent.''')
 OtherArgs.add_argument('-C', '--contaminant-count-ratio', type=float,
 help='''Used to specify a numerical value which is interpreted in the following
 'way: if a sequence is found exactly duplicated between any two bam files,
@@ -216,6 +195,22 @@ from outside that subset.''')
 OtherArgs.add_argument('-F', '--renaming-file', type=File, help='Specify a file '
 'with one line per bam file, showing how reads from that bam file should be '
 "named in the output files. (By default, each bam file's basename is used.)")
+OtherArgs.add_argument('-FR', '--forbid-read-repeats', action='store_true',
+help='''Using this option, if a read with the same name is found
+to span each of a series of consecutive, overlapping windows, it is only used in
+the first window. 'Consecutive' means next to each other in the order you
+specified. For example, if you specified windows 10-20, 15-25, 20-30 and 31-40,
+and there was a read that spanned all four windows (i.e. it started at or before
+position 10 and ended at or after position 40), it would be used in window
+10-20, not used in 15-25 because it spanned the last window, not used in 20-30
+because it spanned the last window (even though it was skipped there), and used
+in 31-40 because this window does not overlap with the last one.
+NB with paired read data, mates in a pair have the same name; using this option
+without the --merge-paired-reads option will mean at most one of the
+two mates will be used (in a given window and consecutive overlapping windows),
+and with the --merge-paired-reads option mates will be merged into a
+single read, which is used only the first time it is encountered in
+consecutive overlapping windows.''')
 OtherArgs.add_argument('-MT', '--merging-threshold', type=int, default=0, help=\
 'Reads that differ by a number of bases equal to or less than this are merged'
 ', those with higher counts effectively absorbing those with lower counts. '
@@ -1315,7 +1310,7 @@ for window in range(NumCoords / 2):
         # because it was in the last window. Otherwise, if a read was in three
         # consecutive windows, we'd skip it in the second and think we were OK
         # to use it again in the third.
-        if not args.allow_read_repeats:
+        if args.forbid_read_repeats:
           if read.query_name in AllPatientsReadNamesInThisWindow[BamFileName]:
             continue
           AllPatientsReadNamesInThisWindow[BamFileName].add(read.query_name)
@@ -1363,7 +1358,7 @@ for window in range(NumCoords / 2):
           continue
 
         # Check if we've seen this merged read pair in the last window.
-        if not args.allow_read_repeats:
+        if args.forbid_read_repeats:
           AllPatientsReadNamesInThisWindow[BamFileName].add(ReadName)
           if OverlapsLastWindow and \
           ReadName in AllPatientsReadNamesInLastWindow[BamFileName]:

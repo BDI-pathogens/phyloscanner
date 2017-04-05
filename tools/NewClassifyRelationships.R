@@ -384,7 +384,7 @@ if(file.exists(tree.file.name)){
   suffixes <- substr(tree.file.names, nchar(tree.file.name) + 1, nchar(tree.file.names) - nchar(tree.fe))
   suffixes <- suffixes[order(suffixes)]
   
-  tree.file.names <- tree.file.name[order(suffixes)]
+  tree.file.names <- tree.file.names[order(suffixes)]
   splits.file.names <- splits.file.names[order(suffixes)]
   
   output.file.names <- paste(output.root, "_classification_", suffixes, csv.fe, sep="")
@@ -420,8 +420,7 @@ if(file.exists(tree.file.name)){
 }
 
 
-for(i in 1:length(tree.file.names)){
-
+for(i in 1:length(tree.file.names)){	
   if(do.collapsed){
     dddf <- classify(tree.file.names[i], splits.file.names[i], normalisation.constants[i], collapsed.file.names[i])
   } else {
