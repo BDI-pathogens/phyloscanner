@@ -362,7 +362,7 @@ if(file.exists(tree.file.name)){
   
   fn.df <- data.frame(row.names = suffixes, tree.input = tree.file.names, output.ID = output.file.IDs, normalisation.constant = normalisation.constants, stringsAsFactors = F)
   if(!is.null(blacklist.file.name)){
-    fn.df$blacklist.inpit = blacklist.file.names
+    fn.df$blacklist.input = blacklist.file.names
   }
   file.details <- split(fn.df, rownames(fn.df))
   
