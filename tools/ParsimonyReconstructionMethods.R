@@ -1,5 +1,5 @@
-split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, method="r", k=NA, nonancestry.penalty = 0, ties.rule = "c", sankhoff.mode = "total.lengths", useff=F, verbose=F){
-  
+split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, method="r", k=NA, nonancestry.penalty = 0, ties.rule = "c", useff=F, verbose=F){
+
   if (method == "r") {
     
     cat("Applying the Romero-Severson parsimony classification to internal nodes...\n")
@@ -107,6 +107,8 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     
   } else if (method=="s") {
     
+    sankhoff.mode <- "total.lengths"
+    
     if(is.na(k)){
       stop("k must be specified for Sankhoff reconstruction")
     }
@@ -201,7 +203,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
         }
       }
       
-      penalties <- !finite.cost*nonancestry.penalty
+      penalties <- as.numeric(!finite.cost)*nonancestry.penalty
       penalties[,which(patients=="unsampled")] <- nonancestry.penalty
       
       # Then traverse
@@ -227,6 +229,8 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     } else {
       cost.matrix <- matrix(NA, nrow=length(tree$tip.label) + tree$Nnode, ncol=length(patients))
     }
+    
+
     
     cost.matrix <- make.cost.matrix(getRoot(tree), tree, patients, tip.assocs, individual.costs, penalties, cost.matrix, k)
     
@@ -571,6 +575,7 @@ reconstruct <- function(tree, node, node.state, node.assocs, tip.assocs, patient
           }
         } else if(ties.rule == "c")  {
           if(node.state %in% patients[which(costs == min.cost)]){
+            cat("HOI\n")
             if(verbose){
               cat("broken in favour of",node.state,"\n")
             }
