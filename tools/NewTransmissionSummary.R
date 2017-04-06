@@ -49,6 +49,7 @@ if(command.line){
   input.file.name <- args$inputFiles
   
   source(file.path(script.dir, "TreeUtilityFunctions.R"))
+  source(file.path(script.dir, "GeneralFunctions.R"))
   
   input.files <- list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name)), full.names=TRUE)
 

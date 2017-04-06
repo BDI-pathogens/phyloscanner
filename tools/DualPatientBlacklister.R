@@ -32,6 +32,7 @@ if(command.line){
   script.dir <- args$scriptdir
   
   source(file.path(script.dir, "TreeUtilityFunctions.R"))
+  source(file.path(script.dir, "GeneralFunctions.R"))
   
   tree.prefix <- args$treePrefix
   existing.bl.prefix <- args$existingBlacklistsPrefix

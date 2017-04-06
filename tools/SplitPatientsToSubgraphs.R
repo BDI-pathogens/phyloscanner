@@ -44,8 +44,10 @@ if(command.line){
   source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
   source(file.path(script.dir, "CollapsedTreeMethods.R"))
   source(file.path(script.dir, "WriteAnnotatedTrees.R"))
-
+  source(file.path(script.dir, "GeneralFunctions.R"))
+  
   tree.file.name <- args$inputFile
+
   
   sankhoff.k <- as.numeric(args$kParam)
   sankhoff.p <- as.numeric(args$nonancestryPenalty)
@@ -143,6 +145,18 @@ if(command.line){
   ties.rule <- "b"
   useff  <- F
   
+  setwd("/Users/twoseventwo/Documents/Croucher alignments/")
+  output.dir <- "/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/refinement"
+  tree.file.names <- "MBconsensus.tre"
+  blacklist.file.name <- NULL
+  output.file.IDs <- "test"
+  tip.regex <- "^(ARI-[0-9][0-9][0-9][0-9]_[A-Z]*)_[0-9][0-9][0-9][0-9]_[0-9]_[0-9][0-9]?$"
+  root.name <- NULL
+  mode <- "s"
+  sankhoff.k <- 10
+  ties.rule <- "c"
+  useff  <- F
+  
 }
 
 
@@ -225,7 +239,7 @@ split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 
   
   # Do the main function
   
-  results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, sankhoff.p, ties.rule, useff = useff)
+  results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, sankhoff.p, ties.rule, useff = useff, T)
   
   # Where to put the node shapes that display subgraph MRCAs
   
