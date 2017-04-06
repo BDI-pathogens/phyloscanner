@@ -285,5 +285,5 @@ tt.close <- tt.close[!duplicated(tt.close),]
 setkey(tt.close, PAT.1, PAT.2, TYPE)
 #
 cat('Write summary to file',output.file,'\n')
-write.csv(subset(tt.close, ns.windows>=min.threshold), file=output.file, row.names=FALSE, quote=FALSE)
+write.csv(subset(tt.close, all.windows>=min.threshold), file=output.file, row.names=FALSE, quote=FALSE)
 
