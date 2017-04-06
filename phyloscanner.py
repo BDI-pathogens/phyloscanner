@@ -102,8 +102,8 @@ WindowArgs = parser.add_argument_group('Window options - you must choose'
 ' exactly one of -W, -AW or -E')
 WindowArgs.add_argument('-W', '--windows', type=CommaSeparatedInts,
 help='''A comma-separated series of paired coordinates defining the boundaries
-of the windows. e.g. 1,300,11,310,21,320 would define windows 1-300, 11-310,
-21-320.''')
+of the windows. e.g. 1,300,301,600,601,900 would define windows 1-300, 301-600,
+601-900.''')
 WindowArgs.add_argument('-AW', '--auto-window-params',
 type=CommaSeparatedInts, help='''Used to specify 2, 3 or 4 comma-separated
 integers controlling the automatic creation of regular windows. The first
