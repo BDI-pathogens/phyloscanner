@@ -27,7 +27,7 @@ if(grepl('rda$',norm.file.name))
 	if(length(tmp)!=1)	stop("Expected one R data.table in file",norm.file.name)
 	eval(parse(text=paste("norm.table<- ",tmp,sep='')))
 	stopifnot( c('W_FROM','W_TO',norm.var)%in%colnames(norm.table) )
-}
+} 
 
 setnames(norm.table, norm.var, 'NORM_CONST')
 norm.table[, W_MID:= (W_FROM+W_TO)/2]
