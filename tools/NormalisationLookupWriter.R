@@ -20,7 +20,7 @@ list.files.mod <- function(path = ".", pattern = NULL, all.files = FALSE,
 
 cat('\nload normalising constants reference file', norm.file.name)
 if(grepl('csv$',norm.file.name))
-	norm.table	<- as.data.table(read.csv(norm.file.name, stringsAsFactors = F))
+	norm.table	<- as.data.table(read.csv(norm.file.name, stringsAsFactors=FALSE))
 if(grepl('rda$',norm.file.name))
 {
 	tmp			<- load(norm.file.name)
@@ -33,7 +33,7 @@ setnames(norm.table, norm.var, 'NORM_CONST')
 norm.table[, W_MID:= (W_FROM+W_TO)/2]
 norm.table	<- subset(norm.table, select=c(W_MID, NORM_CONST))
 
-wdf		<- data.table(F=sort(list.files.mod(dirname(tree.file.root), pattern=paste('^',basename(tree.file.root),'.*\\.tree$',sep=''), full.names=TRUE)))
+wdf		<- data.table(F=sort(list.files.mod(dirname(tree.file.root), pattern=paste('^',basename(tree.file.root),'.*\\.tree$',sep=''), full.names=FALSE)))
 wdf[, SUFFIX:= gsub('\\.tree','',substring(F, nchar(tree.file.root) + 1L))]
 wdf[, W_FROM:= as.integer(gsub(w.regex, '\\1', SUFFIX))]
 wdf[, W_TO:= as.integer(gsub(w.regex, '\\2', SUFFIX))]
@@ -42,7 +42,6 @@ tmp		<- wdf[, {
 			list( NORM_CONST=subset(norm.table, W_MID>=W_FROM & W_MID<=W_TO)[, mean(NORM_CONST)]	)
 		}, by=c('W_FROM','W_TO')]
 wdf		<- merge(wdf, tmp, by=c('W_FROM','W_TO'))
-wdf		<- subset(wdf, select=c('F','SUFFIX','NORM_CONST'))
-
+wdf		<- subset(wdf, select=c('F','NORM_CONST'))
 cat('\nwrite normalising constants to file', output.file.name)
-write.table(window.df[,c(1,4)], output.file.name, quote=F, col.names = F, row.names = F, sep=",")
+write.table(wdf, output.file.name, quote=FALSE, col.names=FALSE, row.names=FALSE, sep=",")
