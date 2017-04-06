@@ -24,7 +24,7 @@ if(command.line){
   arg_parser = ArgumentParser(description=tmp)
   arg_parser$add_argument("-s", "--summaryFile", action="store", help="The full output file from SummaryStatistics.R; necessary only to identify windows in which no reads are present from each patient. If absent, window counts will be given without denominators.")
   arg_parser$add_argument("-m", "--minThreshold", action="store", default=1, type="integer", help="Relationships between two patients will only appear in output if a transmission chain between them appears in at least these many windows (default 1). High numbers are useful for drawing figures in e.g. Cytoscape with few enough arrows to be comprehensible. The script is extremely slow if this is set to 0.")
-  arg_parser$add_argument("-c", "--distanceThreshold", action="store", default=-1, help="Minimum distance threshold on a window for a relationship to be reconstructed between two patients on that window.")
+  arg_parser$add_argument("-c", "--distanceThreshold", action="store", default=-1, help="Maximum distance threshold on a window for a relationship to be reconstructed between two patients on that window.")
   arg_parser$add_argument("-p", "--allowSplits", action="store_true", default=FALSE, help="If absent, directionality is only inferred between pairs of patients whose reads are not split; this is more conservative.")
   arg_parser$add_argument("-d", "--detailedOutput", action="store", help="If present, a file describing the relationships between each pair of patients on each window will be written to the specified path in .rda format")
   arg_parser$add_argument("idFile", action="store", help="A file containing a list of the IDs of all the patients to calculate and display statistics for.")
@@ -49,6 +49,7 @@ if(command.line){
   input.file.name <- args$inputFiles
   
   source(file.path(script.dir, "TreeUtilityFunctions.R"))
+  source(file.path(script.dir, "GeneralFunctions.R"))
   
   input.files <- list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name)), full.names=TRUE)
 
@@ -62,24 +63,29 @@ if(command.line){
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
   summary.file	<- "ss_s_patStatsFull.csv"
   id.file 					<- "patientIDList.txt"
-  input.files.name			<- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/Classifications_s/Classification_s_run20161013_inWindow_"
+  input.file.name			<- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/Classifications_s/Classification_s_run20161013_inWindow_"
   min.threshold				<- 0
   dist.threshold <- 0.02
   allow.splits 				<- TRUE
   output.file 				<- "yep.csv"
   detailed.output				<- NULL
-  input.files 				<- sort(list.files.mpd(dirname(input.files.name), pattern=paste(basename(input.files.name)), full.names=TRUE))
+  input.files 				<- sort(list.files.mod(dirname(input.file.name), pattern=paste(basename(input.files.name)), full.names=TRUE))
   
   setwd("/Users/twoseventwo/Documents/Croucher alignments")
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
   summary.file <- "stats_patStatsFull.csv"
   id.file <- "patients.txt"
-  input.files.name <- "pneumo_classification_"
-  dist.threshold <- Inf
-  min.threshold <- 75
+  input.file.name <- "pneumo_classification_"
+  dist.threshold <- 0.001
+  min.threshold <- 50
   allow.splits <- T
-  output.file <- "cyto.csv"
-  detailed.output <- "cyto2.csv"
+  output.file <- "test_0.001.csv"
+  detailed.output <- "test2.csv"
+  
+  
+  input.files <- list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name)), full.names=TRUE)
+  
+  input.files <- input.files[! grepl('collapsedTree', input.files)]
   
   if(0)
   {
@@ -100,13 +106,13 @@ suppressMessages(library(reshape2, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(gdata, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(ggplot2, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
-print("here")
+
 #
 # Get the denominators
 #
 reads.table	<- NULL		# can replace prev give.denom by is.null(reads.table)
 if(!is.null(summary.file)){
- 	cat("Getting window counts per patient from ",summary.file,"...\n")
+ 	cat("Getting window counts per patient from ",summary.file,"...\n", sep="")
 	reads.table 	<- read.csv(summary.file, stringsAsFactors = F)
   required.columns <- c("file.suffix", "id", "reads", "tips")
   missing.columns <-
@@ -131,7 +137,7 @@ if(!length(patient.ids))
 # Read classification files
 #
 tt	<-	lapply(input.files, function(x){
-      cat("Reading window input file ",x,"\n")
+      cat("Reading window input file ",x,"\n", sep="")
 			tt <- as.data.table(read.table(x, sep=",", header=TRUE, stringsAsFactors=FALSE))
 			tt[, SUFFIX:=get.suffix(x, input.file.name, csv.fe)]			
 			tt
@@ -208,6 +214,12 @@ dp <- merge(dp, tmp, by=c('SUFFIX','pat.2'))
 #	merge reads/leaves with tt
 #
 tt			<- merge(tt, dp, by=c('pat.1','pat.2','SUFFIX'))
+
+if(nrow(tt)==0){
+  cat("Failed to merge tables; e.g. file suffix",tt$SUFFIX[1]," not found in ",summary.file,"\n",sep="")
+  quit(save="\n")
+}
+
 #	rename TYPE
 set(tt, tt[,which(TYPE=='anc')], 'TYPE','anc_12')
 set(tt, tt[,which(TYPE=='desc')], 'TYPE','anc_21')

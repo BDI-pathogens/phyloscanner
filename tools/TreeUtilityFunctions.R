@@ -1,12 +1,4 @@
-# list.files seems to behave differently on different systems
 
-list.files.mod <- function(path = ".", pattern = NULL, all.files = FALSE,
-                          full.names = FALSE, recursive = FALSE,
-                          ignore.case = FALSE, include.dirs = FALSE, no.. = FALSE){
-  
-  original <- list.files(path, pattern, all.files, full.names, recursive, ignore.case, include.dirs, no..)
-  return(sapply(original, function(x) if(substr(x, 1, 2)=="./") {substr(x, 3, nchar(x))} else {x}))
-}
 
 # Get the tip number of this label
 

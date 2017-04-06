@@ -64,6 +64,7 @@ if(command.line){
   
   source(file.path(script.dir, "TreeUtilityFunctions.R"))
   source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
+  source(file.path(script.dir, "GeneralFunctions.R"))
   
   if(is.null(root.name)){
     cat("No outgroup name given; will assume the tree is rooted and use a random other tip as an outgroup for each patient\n")

@@ -24,16 +24,6 @@ suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
 tree.fe <- ".tree" 
 csv.fe <- ".csv"
 
-# This function grabs the suffix which is used to uniquely identify each window through all input files
-
-get.suffix <- function(file.name, prefix, extension){
-
-  file.name <- basename(file.name)
-  prefix <- basename(prefix)
-
-  substr(file.name, nchar(prefix)+1, nchar(file.name)-nchar(extension))
-}
-
 command.line <- T
 
 if (command.line) {
@@ -64,6 +54,7 @@ if (command.line) {
   source(file.path(script.dir, "TreeUtilityFunctions.R"))
   source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
   source(file.path(script.dir, "SummariseTrees_funcs.R"))
+  source(file.path(script.dir, "GeneralFunctions.R"))
   
   tip.regex <- args$tipRegex
   tree.file.root <- args$treeFiles
@@ -224,24 +215,17 @@ if (command.line) {
   no.read.counts <- T
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
   
-  setwd("/Users/Oliver/duke/tmp/pty_17-04-04-17-20-21")
-  id.file <- "ptyr1_patient.txt"
-  tree.file.root <- "ProcessedTree_s_ptyr1_InWindow_"
-  splits.file.root <- "subgraphs_s_ptyr1_InWindow_"
-  blacklist.file.root <- 'ptyr1_blacklistdwns_InWindow_'
-  #window.coords.file <- "samplecoords.csv"
+  setwd("/Users/twoseventwo/Downloads/pty_17-04-06-11-39-28/")
+  id.file <- "ptyr19_patients.txt"
+  tree.file.root <- "ProcessedTree_s_ptyr19_InWindow_"
+  splits.file.root <- "subgraphs_s_ptyr19_InWindow_"
+  blacklist.file.root <- 'ptyr19_blacklistdwns_InWindow_'
   tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
   no.read.counts <- F
-  script.dir <- "/Users/Oliver/git/phylotypes/tools"
+  script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
+  window.coords.file <- NULL
   
-  
-  setwd("/Users/twoseventwo/Downloads/bams/")
-  id.file <- "PatientIDfile.txt"
-  tree.file.root <- "ProcessedTree_s_SimulatedDataRefs_InWindow_"
-  splits.file.root <- "subgraphs_s_SimulatedDataRefs_InWindow_"
-  blacklist.file.root <- "FinalBlacklist.InWindow_"
-  no.read.counts <- F
-  tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
+
 }
 
 # Align the graph output
@@ -366,6 +350,11 @@ calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table
       reads.per.split <- sapply(splits, function(x) sum(splits.table$reads[which(splits.table$subgraph==x)] ) )
       
       winner <- splits[which(reads.per.split==max(reads.per.split))]
+      
+      if(length(winner)>1){
+        #Rare but possible. Pick an arbitrary winner
+        winner <- winner[1]
+      }
 
       winner.tips <- relevant.reads$tip[which(relevant.reads$subgraph==winner)]
       if(length(winner.tips)==1){
@@ -626,15 +615,12 @@ pat.stats$prop.reads.largest.subtree <- pat.stats$prop.gp.1
 mean.na.rm <- function(x) mean(x, na.rm = T)
 
 # Output a summary of the pat.stats table to file
-
-pat.stats.temp <- pat.stats[which(pat.stats$reads>0), c("id", "tips", "reads", "subgraphs", "clades", "overall.rtt", "largest.rtt", "max.pat.distance",
-                                                        "prop.reads.largest.subtree", "max.branch.length", "mean.pat.distance", "branch.to.pat.ratio")] 
-pat.stats.summary <- as.data.table(pat.stats.temp)[, lapply(.SD, mean.na.rm), by='id']
-
+tmp <- subset(as.data.table(pat.stats), reads>0, c(id, tips, reads, subgraphs, clades, overall.rtt, largest.rtt, max.pat.distance, prop.reads.largest.subtree, max.branch.length, mean.pat.distance, branch.to.pat.ratio))
+pat.stats.summary <- tmp[, lapply(.SD, mean.na.rm), by='id']
 tmp <- file.path(paste(output.root,"_patStatsSummary.csv",sep=""))
 cat("Writing output to file ",tmp,"...\n",sep="")
 write.csv(pat.stats.summary, tmp, quote = F, row.names = F)
- 
+  
 # Draw the graphs
 
 tmp <- paste(output.root,"_patStats.pdf",sep="")

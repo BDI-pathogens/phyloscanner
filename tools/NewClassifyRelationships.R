@@ -92,7 +92,8 @@ suppressMessages(library(ggtree, quietly=TRUE, warn.conflicts=FALSE))
 source(file.path(script.dir, "TreeUtilityFunctions.R"))
 source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
 source(file.path(script.dir, "CollapsedTreeMethods.R"))
-#
+source(file.path(script.dir, "GeneralFunctions.R"))
+
 #	define internal functions
 #
 classify <- function(tree.file.name, splits.file.name, normalisation.constant = 1, tt.file.name = NULL) {	
