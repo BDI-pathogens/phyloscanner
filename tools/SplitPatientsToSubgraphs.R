@@ -215,7 +215,7 @@ split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 
         blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
       }
     } else {
-      cat(paste("WARNING: File ",blacklist.file," does not exist; skipping.",sep=""))
+      cat("WARNING: File ",blacklist.file," does not exist; skipping.",sep="")
     }
   } 
   
