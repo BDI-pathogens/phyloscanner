@@ -157,6 +157,18 @@ if(command.line){
   ties.rule <- "c"
   useff  <- F
   
+  setwd("/Users/twoseventwo/Documents/Croucher alignments/")
+  output.dir <- "/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/refinement"
+  tree.file.names <- "MBconsensus.tre"
+  blacklist.file.name <- NULL
+  output.file.IDs <- "test"
+  tip.regex <- "^(ARI-[0-9][0-9][0-9][0-9]_[A-Z]*)_[0-9][0-9][0-9][0-9]_[0-9]_[0-9][0-9]?$"
+  root.name <- NULL
+  mode <- "s"
+  sankhoff.k <- 10
+  ties.rule <- "c"
+  useff  <- F
+  
 }
 
 
@@ -203,7 +215,7 @@ split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 
         blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
       }
     } else {
-      warning(paste("File ",blacklist.file," does not exist; skipping.",paste=""))
+      cat(paste("WARNING: File ",blacklist.file," does not exist; skipping.",sep=""))
     }
   } 
   
@@ -329,7 +341,7 @@ if(file.exists(tree.file.name)){
   
   suffixes <- substr(tree.file.names, nchar(tree.file.name) + 1, nchar(tree.file.names)-nchar(tree.fe))
   if(!is.null(blacklist.file.name)){  
-    blacklist.file.names <- paste(blacklist.file.name, suffixes, sep="")
+    blacklist.file.names <- paste(blacklist.file.name, suffixes, csv.fe, sep="")
   }
   output.file.IDs <- paste(output.file.ID, suffixes, sep="")
   
@@ -359,10 +371,9 @@ if(file.exists(tree.file.name)){
     normalisation.constants <- rep(1, length(tree.file.names))
   }
   
-  
   fn.df <- data.frame(row.names = suffixes, tree.input = tree.file.names, output.ID = output.file.IDs, normalisation.constant = normalisation.constants, stringsAsFactors = F)
   if(!is.null(blacklist.file.name)){
-    fn.df$blacklist.input = blacklist.file.names
+    fn.df$blacklist.input <- blacklist.file.names
   }
   file.details <- split(fn.df, rownames(fn.df))
   
