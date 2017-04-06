@@ -1,5 +1,4 @@
 split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, method="r", k=NA, nonancestry.penalty = 0, ties.rule = "c", useff=F, verbose=F){
-
   if (method == "r") {
     
     cat("Applying the Romero-Severson parsimony classification to internal nodes...\n")
@@ -107,8 +106,6 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     
   } else if (method=="s") {
     
-    sankhoff.mode <- "total.lengths"
-    
     if(is.na(k)){
       stop("k must be specified for Sankhoff reconstruction")
     }
@@ -144,81 +141,54 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     }
     
     
-    if(sankhoff.mode == "close.tip"){
-      for(tip in seq(1, length(tree$tip.label))){
-        pat <- tip.assocs[[tip]]
-        individual.costs[tip, which(patients==pat)] <- 0
-        current.distance <- 0
-        current.node <- tip
-        repeat{
-          # The cost if other children of the current node are ignored...
-          
-          current.distance <- current.distance + get.edge.length(tree, current.node)
-          
-          current.node <- Ancestors(tree, current.node, type="parent")
-          
-          if(individual.costs[current.node, which(patients==pat)] <= current.distance){
-            # already looked at a closer tip
-            break
-          }
-          individual.costs[current.node, which(patients==pat)] <- current.distance
-          if(is.root(tree, current.node)){
-            break
-          }
-        }
-      }
-    } else if(sankhoff.mode=="total.lengths"){
-      
-      # First, go up the tree and flag which nodes have finite costs for which patients (i.e. those
-      # that are ancestral to a tip _from_ that patient)
-      
-      # Handily those which have an infinite costs as a recipient are those which have a nonancestry penalty
-      # as a donor
-      
-      if(useff){
-        finite.cost <- ff(FALSE, dim=c(length(tree$tip.label) + tree$Nnode, length(patients)))
-      } else {
-        finite.cost <- matrix(FALSE, ncol=length(patients), nrow=length(tree$tip.label) + tree$Nnode) 
-      }
-      
-      
-      for(tip in seq(1, length(tree$tip.label))){
-        pat <- tip.assocs[[tip]]
-        
-        finite.cost[tip, which(patients==pat)] <- TRUE
-        current.node <- tip
-        repeat{
-          # The cost if other children of the current node are ignored...
-          
-          current.node <- Ancestors(tree, current.node, type="parent")
-          
-          if(finite.cost[current.node, which(patients==pat)]){
-            # already been here
-            break
-          }
-          finite.cost[current.node, which(patients==pat)] <- TRUE
-          if(is.root(tree, current.node)){
-            break
-          }
-        }
-      }
-      
-      num.fc <- 1*!finite.cost
-      penalties <- num.fc*nonancestry.penalty
-      penalties[,which(patients=="unsampled")] <- nonancestry.penalty
-      
-      # Then traverse
-      
-      for(pat.no in 1:length(patients)){
-        start.col <- sapply(finite.cost[,pat.no], function(x) if(x) 0 else Inf)
-        
-        individual.costs[,pat.no] <- cost.of.subtree(tree, getRoot(tree), patients[pat.no], tip.assocs, finite.cost[,pat.no], start.col)
-        
-      }
-      
+    # First, go up the tree and flag which nodes have finite costs for which patients (i.e. those
+    # that are ancestral to a tip _from_ that patient)
+    
+    # Handily those which have an infinite costs as a recipient are those which have a nonancestry penalty
+    # as a donor
+    
+    if(useff){
+      finite.cost <- ff(FALSE, dim=c(length(tree$tip.label) + tree$Nnode, length(patients)))
     } else {
-      stop("Unsupported Sankhoff cost function")
+      finite.cost <- matrix(FALSE, ncol=length(patients), nrow=length(tree$tip.label) + tree$Nnode) 
     }
+    
+    
+    for(tip in seq(1, length(tree$tip.label))){
+      pat <- tip.assocs[[tip]]
+      
+      finite.cost[tip, which(patients==pat)] <- TRUE
+      current.node <- tip
+      repeat{
+        # The cost if other children of the current node are ignored...
+        
+        current.node <- Ancestors(tree, current.node, type="parent")
+        
+        if(finite.cost[current.node, which(patients==pat)]){
+          # already been here
+          break
+        }
+        finite.cost[current.node, which(patients==pat)] <- TRUE
+        if(is.root(tree, current.node)){
+          break
+        }
+      }
+    }
+    
+    num.fc <- 1*!finite.cost
+    penalties <- num.fc*nonancestry.penalty
+    penalties[,which(patients=="unsampled")] <- nonancestry.penalty
+    
+    # Then traverse
+    
+    for(pat.no in 1:length(patients)){
+      start.col <- sapply(finite.cost[,pat.no], function(x) if(x) 0 else Inf)
+      
+      individual.costs[,pat.no] <- cost.of.subtree(tree, getRoot(tree), patients[pat.no], tip.assocs, finite.cost[,pat.no], start.col)
+      
+    }
+    
+    
     
     # The rows of the cost matrix are nodes. The columns are patients; the last column is the unsampled
     # state
