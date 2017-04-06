@@ -24,7 +24,7 @@ suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
 tree.fe <- ".tree" 
 csv.fe <- ".csv"
 
-command.line <- F
+command.line <- T
 
 if (command.line) {
   require(argparse, quietly=TRUE, warn.conflicts=FALSE)
