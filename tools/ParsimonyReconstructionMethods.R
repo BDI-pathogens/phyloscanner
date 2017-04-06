@@ -203,7 +203,8 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
         }
       }
       
-      penalties <- as.numeric(!finite.cost)*nonancestry.penalty
+      num.fc <- 1*!finite.cost
+      penalties <- num.fc*nonancestry.penalty
       penalties[,which(patients=="unsampled")] <- nonancestry.penalty
       
       # Then traverse
