@@ -51,6 +51,11 @@ if(command.line){
   source(file.path(script.dir, "TreeUtilityFunctions.R"))
   
   input.files <- list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name)), full.names=TRUE)
+
+  # We only want the *classification*.csv files produced by
+  # ClassifyRelationships.R, not the collapsedTree files if present.
+  # NB this regex needs to match the hard-coded file naming for collapsed trees.
+  input.files <- input.files[! grepl('collapsedTree', input.files)]
   
 } else {
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/")
