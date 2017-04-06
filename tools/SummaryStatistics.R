@@ -626,11 +626,8 @@ pat.stats$prop.reads.largest.subtree <- pat.stats$prop.gp.1
 mean.na.rm <- function(x) mean(x, na.rm = T)
 
 # Output a summary of the pat.stats table to file
-
-pat.stats.temp <- pat.stats[which(pat.stats$reads>0), c("id", "tips", "reads", "subgraphs", "clades", "overall.rtt", "largest.rtt", "max.pat.distance",
-                                                        "prop.reads.largest.subtree", "max.branch.length", "mean.pat.distance", "branch.to.pat.ratio")] 
-pat.stats.summary <- as.data.table(pat.stats.temp)[, lapply(.SD, mean.na.rm), by='id']
-
+tmp <- subset(as.data.table(pat.stats), reads>0, c(id, tips, reads, subgraphs, clades, overall.rtt, largest.rtt, max.pat.distance, prop.reads.largest.subtree, max.branch.length, mean.pat.distance, branch.to.pat.ratio))
+pat.stats.summary <- tmp[, lapply(.SD, mean.na.rm), by='id']
 tmp <- file.path(paste(output.root,"_patStatsSummary.csv",sep=""))
 cat("Writing output to file ",tmp,"...\n",sep="")
 write.csv(pat.stats.summary, tmp, quote = F, row.names = F)
