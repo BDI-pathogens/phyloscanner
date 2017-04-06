@@ -102,7 +102,16 @@ print("here")
 reads.table	<- NULL		# can replace prev give.denom by is.null(reads.table)
 if(!is.null(summary.file)){
  	cat("Getting window counts per patient from ",summary.file,"...\n")
-	reads.table 	<- as.data.table(read.csv(summary.file, stringsAsFactors = F)[,c("file.suffix", "id", "reads", "tips")])
+	reads.table 	<- read.csv(summary.file, stringsAsFactors = F)
+  required.columns <- c("file.suffix", "id", "reads", "tips")
+  missing.columns <-
+  required.columns[! required.columns %in% colnames(reads.table)]
+  if (length(missing.columns) > 0) {
+    stop(paste0("The following required columns are missing from the summary",
+    " csv file: ", paste(missing.columns, collapse=', '), ". Quitting."))
+  }
+	reads.table 	<- reads.table[,c("file.suffix", "id", "reads", "tips")]
+	reads.table 	<- as.data.table(reads.table)
 	setnames(reads.table, c("file.suffix"), c("SUFFIX"))
 	reads.table$SUFFIX <- as.character(reads.table$SUFFIX)
 	reads.table[, present:= reads>0]  
