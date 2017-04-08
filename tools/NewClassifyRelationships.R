@@ -317,7 +317,7 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
   
   if(normalisation.constant!=1){
     nddf <- as.data.frame(normalised.distance.table)
-    nddf <- mddf[keep,]
+    nddf <- nddf[keep,]
   }
   
   adf <- cbind(adf, d12df[,3], d21df[,3], n1df[,3], n2df[,3], pdf[,3], mddf[,3])
