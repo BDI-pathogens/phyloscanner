@@ -341,7 +341,7 @@ if(file.exists(tree.file.name)){
   }
   output.file.IDs <- paste(output.file.ID, suffixes, sep="")
   
-
+  
   normalisation.constant <- suppressWarnings(as.numeric(normalisation.argument))
   
   if(is.na(normalisation.constant)){
