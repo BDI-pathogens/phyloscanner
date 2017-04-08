@@ -326,7 +326,7 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
   
   if(normalisation.constant!=1){
     adf <- cbind(adf, nddf[,3])
-    column.names <- c(column.names, "normalised.mean.distance.between.subtrees")
+    column.names <- c(column.names, "normalised.min.distance.between.subtrees")
   }
   
   colnames(adf) <- column.names
