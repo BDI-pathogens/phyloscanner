@@ -317,7 +317,7 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
   
   if(normalisation.constant!=1){
     nddf <- as.data.frame(normalised.distance.table)
-    nddf <- mddf[keep,]
+    nddf <- nddf[keep,]
   }
   
   adf <- cbind(adf, d12df[,3], d21df[,3], n1df[,3], n2df[,3], pdf[,3], mddf[,3])
@@ -326,7 +326,7 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
   
   if(normalisation.constant!=1){
     adf <- cbind(adf, nddf[,3])
-    column.names <- c(column.names, "normalised.mean.distance.between.subtrees")
+    column.names <- c(column.names, "normalised.min.distance.between.subtrees")
   }
   
   colnames(adf) <- column.names

@@ -7,15 +7,6 @@ if(length(new.packages)) install.packages(new.packages, dependencies = TRUE, rep
 tree.fe <- ".tree"
 csv.fe <- ".csv"
 
-get.suffix <- function(file.name, prefix, extension){
-  
-  file.name <- basename(file.name)
-  prefix <- basename(prefix)
-  
-  substr(file.name, nchar(prefix)+1, nchar(file.name)-nchar(extension))
-}
-
-
 command.line <- T
 if(command.line){
   suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
@@ -76,10 +67,10 @@ if(command.line){
   summary.file <- "stats_patStatsFull.csv"
   id.file <- "patients.txt"
   input.file.name <- "pneumo_classification_"
-  dist.threshold <- 0.001
+  dist.threshold <- 0.005
   min.threshold <- 50
   allow.splits <- T
-  output.file <- "test_0.001.csv"
+  output.file <- "testn_0.005.csv"
   detailed.output <- "test2.csv"
   
   

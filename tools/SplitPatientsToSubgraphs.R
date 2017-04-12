@@ -251,7 +251,7 @@ split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 
   
   # Do the main function
   
-  results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, sankhoff.p, ties.rule, useff = useff, T)
+  results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, sankhoff.p, ties.rule, useff = useff, verbose=FALSE)
   
   # Where to put the node shapes that display subgraph MRCAs
   
@@ -341,7 +341,7 @@ if(file.exists(tree.file.name)){
   }
   output.file.IDs <- paste(output.file.ID, suffixes, sep="")
   
-
+  
   normalisation.constant <- suppressWarnings(as.numeric(normalisation.argument))
   
   if(is.na(normalisation.constant)){
