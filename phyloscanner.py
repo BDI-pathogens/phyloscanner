@@ -31,6 +31,7 @@ FileForDuplicateReadCountsRaw_basename = 'DuplicateReadCountsRaw_'
 FileForDuplicateReadCountsProcessed_basename = 'DuplicateReadCountsProcessed_'
 FileForDuplicateSeqs_basename = 'DuplicateReads_contaminants_'
 FileForReadNames_basename = 'ReadNames_'
+FileForBamIDs = 'BamIDs.txt'
 
 # Some temporary working files we'll create
 FileForRefs = 'temp_refs.fasta'
@@ -721,6 +722,9 @@ if args.renaming_file != None:
   BamAliases = pf.ReadNamesFromFile(args.renaming_file, False)
 else:
   BamAliases = BamFileBasenames
+with open(FileForBamIDs, 'w') as f:
+  f.write('\n'.join(BamAliases))
+
 
 # Check that there are the same number of bam and reference files
 NumberOfBams = len(BamFiles)
