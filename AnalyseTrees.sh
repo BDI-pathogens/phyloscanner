@@ -59,32 +59,38 @@ TransmissionSummary='TransmissionSummary.csv'
 if [[ "$ExcludeDuals" == "true" ]]; then
   Rscript "$ToolsDir"/ParsimonyBasedBlacklister.R "$SubgraphMinCount" \
   "$SubgraphMinRatio" "$SankoffK" "$TreeDir"/'RAxML_bestTree.' "$RoguesPrefix" -x "$regex" -D \
-  "$ToolsDir" -r "$root" -d "$DualsPrefix"
+  "$ToolsDir" -r "$root" -d "$DualsPrefix" || { echo \
+  'Problem running ParsimonyBasedBlacklister.R. Quitting.' ; exit 1 ; }
 else
   Rscript "$ToolsDir"/ParsimonyBasedBlacklister.R "$SubgraphMinCount" \
   "$SubgraphMinRatio" "$SankoffK" "$TreeDir"/'RAxML_bestTree.' "$FinalBlacklistPrefix" -x "$regex" -D \
-  "$ToolsDir" -r "$root"
+  "$ToolsDir" -r "$root" || { echo \
+  'Problem running ParsimonyBasedBlacklister.R. Quitting.' ; exit 1 ; }
 fi
 
 # Find patients who look dual in enough windows, and add all of their reads from
 # all windows to the blacklists, IF we're removing duals.
 if [[ "$ExcludeDuals" == "true" ]]; then
   Rscript "$ToolsDir"/DualPatientBlacklister.R $FractionOfWindowsToCallDual \
-  "$TreeDir"/'RAxML_bestTree.' "$DualsPrefix" "$FinalBlacklistPrefix" -b "$RoguesPrefix" -D \
-  "$ToolsDir"
+  "$TreeDir"/'RAxML_bestTree.' "$DualsPrefix" "$FinalBlacklistPrefix" -b "$RoguesPrefix" -D "$ToolsDir" || { echo \
+  'Problem running DualPatientBlacklister.R. Quitting.' ; exit 1 ; }
 fi
 
 # Split patients into their subgraphs
-Rscript "$ToolsDir"/SplitPatientsToSubgraphs.R "$TreeDir"/'RAxML_bestTree.' "$RunLabel" -r "$root" -b "$FinalBlacklistPrefix" -x "$regex" -s "$SplitsRule" -k "$SankoffK" -D "$ToolsDir" -pw 20 -ph 0.5
+Rscript "$ToolsDir"/SplitPatientsToSubgraphs.R "$TreeDir"/'RAxML_bestTree.' "$RunLabel" -r "$root" -b "$FinalBlacklistPrefix" -x "$regex" -s "$SplitsRule" -k "$SankoffK" -D "$ToolsDir" -pw 20 -ph 0.5 || { echo \
+  'Problem running SplitPatientsToSubgraphs.R. Quitting.' ; exit 1 ; }
 
 # Generate summary stats over all windows
 Rscript "$ToolsDir"/SummaryStatistics.R "$PatientIDfile" 'ProcessedTree_'"$SplitsRule"'_'"$RunLabel" "$SubgraphsPrefix$SplitsRule"'_'"$RunLabel" \
-"$SummaryPrefix" -b "$FinalBlacklistPrefix" -x "$regex" -D "$ToolsDir"
+"$SummaryPrefix" -b "$FinalBlacklistPrefix" -x "$regex" -D "$ToolsDir" || { echo \
+  'Problem running SummaryStatistics.R. Quitting.' ; exit 1 ; }
 
 # Classify relationships between patients in each window
-Rscript "$ToolsDir"/NewClassifyRelationships.R 'ProcessedTree_'"$SplitsRule"'_'"$RunLabel" "$SubgraphsPrefix$SplitsRule"'_'"$RunLabel" "$ClassPrefix$SplitsRule" -c -D "$ToolsDir"
+Rscript "$ToolsDir"/NewClassifyRelationships.R 'ProcessedTree_'"$SplitsRule"'_'"$RunLabel" "$SubgraphsPrefix$SplitsRule"'_'"$RunLabel" "$ClassPrefix$SplitsRule" -c -D "$ToolsDir" || { echo \
+  'Problem running NewClassifyRelationships.R. Quitting.' ; exit 1 ; }
 
 # Summarise relationships across all windows
-Rscript "$ToolsDir"/NewTransmissionSummary.R "$PatientIDfile" "$ClassPrefix$SplitsRule"'_classification_' "$TransmissionSummary" -D "$ToolsDir" -s "$SummaryPrefix"'_patStatsFull.csv' -m "$MinWindowsForTransmissionLink" -c "$MaxDistanceForTransmissionLink"
+Rscript "$ToolsDir"/NewTransmissionSummary.R "$PatientIDfile" "$ClassPrefix$SplitsRule"'_classification_' "$TransmissionSummary" -D "$ToolsDir" -s "$SummaryPrefix"'_patStatsFull.csv' -m "$MinWindowsForTransmissionLink" -c "$MaxDistanceForTransmissionLink" || { echo \
+  'Problem running NewTransmissionSummary.R. Quitting.' ; exit 1 ; }
 
 
