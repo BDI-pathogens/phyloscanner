@@ -1,7 +1,9 @@
 INSTALLING DEPENDENCIES OF PHYLOSCANNER
 
-(The R packages that phyloscanner needs should be installed automatically the
-first time the R part of the code is run.) 
+Note that the python part of phyloscanner is written in python 2 (not 3), so biopython and pysam need to be installed as part of your python 2 installation. If successful, you should be able to (1) run 'python' from the command line to start an interactive python session which says 'Python 2.x.y' at the top (x and y replaced by numbers), then (2) run 'import Bio, pysam' without error.
+
+The R packages that phyloscanner needs should be installed automatically the
+first time the R part of the code is run.
 
 ################################################################################
 # ON LINUX:
