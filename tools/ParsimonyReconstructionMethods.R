@@ -153,7 +153,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
       finite.cost <- matrix(FALSE, ncol=length(patients), nrow=length(tree$tip.label) + tree$Nnode) 
     }
     
-    finite.cost[,which(patients=="unsampled")] <- TRUE
+#    finite.cost[,which(patients=="unsampled")] <- TRUE
     
     for(tip in seq(1, length(tree$tip.label))){
       pat <- tip.assocs[[tip]]
@@ -673,7 +673,6 @@ reconstruct <- function(tree, node, node.state, node.assocs, tip.assocs, patient
           }
         } else if(ties.rule == "c")  {
           if(node.state %in% patients[which(costs == min.cost)]){
-            cat("HOI\n")
             if(verbose){
               cat("broken in favour of",node.state,"\n")
             }
