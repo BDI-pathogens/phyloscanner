@@ -92,7 +92,7 @@ if(command.line){
   
   ties.rule <- args$tiesRule
   
-  if(!(mode %in% c("r", "s"))){
+  if(!(mode %in% c("r", "s", "f"))){
     stop(paste("Unknown split classifier: ", mode, "\n", sep=""))
   }
   if(!(ties.rule %in% c("u", "c", "b"))){
@@ -137,12 +137,12 @@ if(command.line){
   output.dir <- "/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/refinement"
   tree.file.names <- "RAxML_bipartitions.ST239_no_bootstraps_T056corr.tree"
   blacklist.file.name <- NULL
-  output.file.IDs <- "mrsa_k10_bp_test"
+  output.file.IDs <- "mrsa_k10_bp_test_finaliteration"
   tip.regex <- "^([ST][0-9][0-9][0-9])_[A-Z0-9]*_[A-Z][0-9][0-9]$"
   root.name <- "TW20"
-  mode <- "s"
+  mode <- "f"
   sankhoff.k <- 10
-  ties.rule <- "b"
+  sankhoff.p <- 0.1
   useff  <- F
   
   setwd("/Users/twoseventwo/Documents/Croucher alignments/")
@@ -181,7 +181,6 @@ split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 
   # Read, root and multifurcate the tree
 
   tree <- read.tree(tree.file.name)
-  
   tree <- unroot(tree)
   
   if(use.m.thresh){
@@ -251,7 +250,7 @@ split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 
   
   # Do the main function
   
-  results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, sankhoff.p, ties.rule, useff = useff, verbose=FALSE)
+  results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, sankhoff.p, root.name, ties.rule, useff = useff, verbose=FALSE)
   
   # Where to put the node shapes that display subgraph MRCAs
   
@@ -264,7 +263,7 @@ split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 
   
   for(item in seq(1, length(results$assocs))){
     if(!is.null(results$assocs[[item]])){
-      if(!(results$assocs[[item]] %in% c("*", "unsampled"))) {
+      if(!(results$assocs[[item]] %in% c("*", "unsampled", "unsampled.rt", "unsampled.int"))) {
         split.annotation[item] <- results$assocs[[item]]
       }
     }
@@ -294,6 +293,7 @@ split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 
 #
 
 if(file.exists(tree.file.name)){
+
   file.details <- list()
   
   file.name.list <- list()
@@ -306,7 +306,6 @@ if(file.exists(tree.file.name)){
   
   file.name.list$output.ID <- output.file.ID
   
-
   normalisation.constant <- suppressWarnings(as.numeric(normalisation.argument))
   
   if(is.na(normalisation.constant)){
@@ -327,11 +326,12 @@ if(file.exists(tree.file.name)){
   file.details[[tree.file.name]] <- file.name.list
 } else {
   # Assume we are dealing with a group of files
-  
   tree.file.names	<- list.files.mod(dirname(tree.file.name), pattern=paste(basename(tree.file.name),'.*\\',tree.fe,'$',sep=''), full.names=TRUE)
   
+  
+  
   if(length(tree.file.names)==0){
-    cat("No input trees found,\n")
+    cat("No input trees found.\n")
     quit(save="no")
   }
   
@@ -362,7 +362,6 @@ if(file.exists(tree.file.name)){
     normalisation.constants <- rep(normalisation.constant, length(tree.file.names))
   }
 
-  
   fn.df <- data.frame(row.names = suffixes, tree.input = tree.file.names, output.ID = output.file.IDs, normalisation.constant = normalisation.constants, stringsAsFactors = F)
   if(!is.null(blacklist.file.name)){
     fn.df$blacklist.input <- blacklist.file.names
