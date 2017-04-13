@@ -1,6 +1,7 @@
 # phyloscanner
 Analysing phylogenetic diversity and relationships between and within hosts at once, in windows along the genome.  
-Dependencies: [samtools](http://www.htslib.org/), [pysam](https://github.com/pysam-developers/pysam), [biopython](http://biopython.org/wiki/Download), [mafft](http://mafft.cbrc.jp/alignment/software/) and [RAxML](http://sco.h-its.org/exelixis/web/software/raxml/index.html).  
+Dependencies: [samtools](http://www.htslib.org/), [pysam](https://github.com/pysam-developers/pysam), [biopython](http://biopython.org/wiki/Download), [mafft](http://mafft.cbrc.jp/alignment/software/) and [RAxML](http://sco.h-its.org/exelixis/web/software/raxml/index.html).
+Notes on installing these are [here](InfoAndInputs/DependencyInstallationNotes.txt).
 
 <p align="center"><img src="InfoAndInputs/PhyloscannerDiagram_big2_ShiverNotNamed.jpg" alt="Phyloscanner" width="820", height="315"/></p>
 

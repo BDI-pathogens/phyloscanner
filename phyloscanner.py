@@ -31,6 +31,7 @@ FileForDuplicateReadCountsRaw_basename = 'DuplicateReadCountsRaw_'
 FileForDuplicateReadCountsProcessed_basename = 'DuplicateReadCountsProcessed_'
 FileForDuplicateSeqs_basename = 'DuplicateReads_contaminants_'
 FileForReadNames_basename = 'ReadNames_'
+FileForBamIDs = 'BamIDs.txt'
 
 # Some temporary working files we'll create
 FileForRefs = 'temp_refs.fasta'
@@ -102,8 +103,8 @@ WindowArgs = parser.add_argument_group('Window options - you must choose'
 ' exactly one of -W, -AW or -E')
 WindowArgs.add_argument('-W', '--windows', type=CommaSeparatedInts,
 help='''A comma-separated series of paired coordinates defining the boundaries
-of the windows. e.g. 1,300,11,310,21,320 would define windows 1-300, 11-310,
-21-320.''')
+of the windows. e.g. 1,300,301,600,601,900 would define windows 1-300, 301-600,
+601-900.''')
 WindowArgs.add_argument('-AW', '--auto-window-params',
 type=CommaSeparatedInts, help='''Used to specify 2, 3 or 4 comma-separated
 integers controlling the automatic creation of regular windows. The first
@@ -721,6 +722,9 @@ if args.renaming_file != None:
   BamAliases = pf.ReadNamesFromFile(args.renaming_file, False)
 else:
   BamAliases = BamFileBasenames
+with open(FileForBamIDs, 'w') as f:
+  f.write('\n'.join(BamAliases))
+
 
 # Check that there are the same number of bam and reference files
 NumberOfBams = len(BamFiles)

@@ -1,0 +1,66 @@
+INSTALLING DEPENDENCIES OF PHYLOSCANNER
+
+Note that the python part of phyloscanner is written in python 2 (not 3), so biopython and pysam
+need to be installed as part of your python 2 installation. If successful, you should be able to
+(1) run 'python' from the command line to start an interactive python session which says 'Python
+2.x.y' at the top (x and y replaced by numbers), then (2) run 'import Bio, pysam' without error.
+
+The R packages that phyloscanner needs should be installed automatically the
+first time the R part of the code is run.
+
+################################################################################
+# ON LINUX:
+
+# Install RAxML from https://github.com/stamatak/standard-RAxML
+# Install MAFFT from http://mafft.cbrc.jp/alignment/software/macstandard.html
+
+# Subsequently, command-line based installation (you may need to run the command
+# 'su' first, or prepend 'sudo ' to each command below, in order to have
+# permission to install things in the normal places on your system).
+
+# samtools
+apt-get install samtools
+# Test it works by running the command 'samtools'
+
+# biopython
+pip install biopython
+# Test it works by running the command 'python' to start an interactive python
+# session, then typing 'import Bio'.
+
+# pysam
+pip install pysam
+# Test it works by running the command 'python' to start an interactive python
+# session, then typing 'import pysam'.
+################################################################################
+
+################################################################################
+# ON MACS:
+
+# Install RAxML from https://github.com/stamatak/standard-RAxML
+# Install MAFFT from http://mafft.cbrc.jp/alignment/software/macstandard.html
+
+# Subsequently, command-line based installation:
+
+# xcode
+xcode-select --install
+
+# home brew: 
+/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+
+# samtools
+brew install samtools
+# Test it works by running the command 'samtools'
+
+# python (for pip)
+brew install python
+
+# biopython
+pip install biopython
+# Test it works by running the command 'python' to start an interactive python
+# session, then typing 'import Bio'.
+
+# pysam
+pip install pysam
+# Test it works by running the command 'python' to start an interactive python
+# session, then typing 'import pysam'.
+################################################################################
