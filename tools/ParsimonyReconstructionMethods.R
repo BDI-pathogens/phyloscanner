@@ -175,8 +175,8 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     }
     
     num.fc <- 1*!finite.cost
-    penalties <- num.fc*nonancestry.penalty
-    penalties[,which(patients=="unsampled")] <- nonancestry.penalty
+    penalties <- num.fc*penalty
+    penalties[,which(patients=="unsampled")] <- penalty
     
     # Then traverse
     
@@ -904,6 +904,7 @@ reconstruct.fi <- function(tree, node, node.state, node.assocs, tip.assocs, pati
           cat("Single minimum cost belongs to ", decision, "\n", sep="")
         }
       } else {
+        print(tree$tip.label[unlist(Descendants(tree, node, type="tips"))])
         cat("Tie at node",child,"between",patients[which(costs == min.cost)],", broken randomly\n", sep=" ")
         choices <- which(costs == min.cost)
         choice <- choices[sample.int(length(choices), 1)]
