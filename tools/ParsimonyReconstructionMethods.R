@@ -317,8 +317,9 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
       }
     }
     
-    finite.cost[,which(patients=="unsampled.int")] <- TRUE
-    finite.cost[,which(patients=="unsampled.rt")] <- TRUE
+    # finite.cost[,which(patients=="unsampled.int")] <- TRUE
+    # finite.cost[,which(patients=="unsampled.rt")] <- TRUE
+    finite.cost[,which(patients=="unsampled")] <- TRUE
     
     cat("Building full cost matrix...\n")
     
@@ -339,7 +340,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     
     for(item in seq(1, length(full.assocs))){
       if(!is.null(full.assocs[[item]])){
-        if(!(full.assocs[[item]] %in% c("unsampled.int", "unsampled.rt"))){
+        if(!(full.assocs[[item]] %in% c("unsampled.int", "unsampled.rt", "unsampled"))){
           temp.ca[item] <- full.assocs[[item]]
         }
       }
@@ -817,7 +818,7 @@ child.min.cost.fi <- function(tree, child.index, top.patient.no, patients, curre
   
   scores <- rep(Inf, length(patients))
   
-  finite.scores <- c(top.patient.no, which(patients=="unsampled.int"), which(finite.costs[child.index,]))
+  finite.scores <- c(top.patient.no, which(patients=="unsampled"), which(finite.costs[child.index,]))
   finite.scores <- finite.scores[order(finite.scores)]
   
   scores[finite.scores] <- vapply(finite.scores, function(x) child.cost.fi(tree, child.index, patients, top.patient.no, x, current.matrix, k, us.penalty), 0)
@@ -833,17 +834,17 @@ child.cost.fi <- function(tree, child.index, patients, top.patient.no, bottom.pa
 
   if(patients[top.patient.no] == "unsampled"){
     if(patients[bottom.patient.no] == "unsampled"){
-      out <- out + k*us.penalty
+      out <- out + log(us.penalty)
     } else {
-      out <- out + 1
+      out <- out + log(k)
     }
   } else {
     if(patients[bottom.patient.no] == "unsampled"){
-      out <- out + k*us.penalty
+      out <- out + log(us.penalty)
     } else if(top.patient.no == bottom.patient.no){
-      out <- out + k*bl
+      out <- out + log(bl)
     } else {
-      out <- out + 1
+      out <- out + log(k)
     }
   }
 
@@ -922,17 +923,17 @@ calc.costs.fi <- function(patient.no, patients, node.state, child.node, bl, full
   
   if(node.state=="unsampled"){
     if(patient=="unsampled"){
-      out <- out + k*penalty
+      out <- out + log(penalty)
     } else {
-      out <- out + 1
+      out <- out + log(k)
     }
   } else {
     if(patient=="unsampled"){
-      out <- out + k*penalty
+      out <- out + log(penalty)
     } else if(patient == node.state){
-      out <- out + k*bl
+      out <- out + log(bl)
     } else {
-      out <- out + 1
+      out <- out + log(k)
     }
   }
   
