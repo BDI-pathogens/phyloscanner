@@ -1,5 +1,6 @@
 list.of.packages <- c("argparse", "ggplot2", "ff", "ggtree", "phangorn", "ape")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+
 if(length(new.packages)){
   cat("Please run PackageInstall.R to continue\n")
   quit(save='no')
@@ -327,9 +328,7 @@ if(file.exists(tree.file.name)){
 } else {
   # Assume we are dealing with a group of files
   tree.file.names	<- list.files.mod(dirname(tree.file.name), pattern=paste(basename(tree.file.name),'.*\\',tree.fe,'$',sep=''), full.names=TRUE)
-  
-  
-  
+
   if(length(tree.file.names)==0){
     cat("No input trees found.\n")
     quit(save="no")

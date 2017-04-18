@@ -53,6 +53,9 @@ ClassPrefix='Classification_'
 TransmissionSummary='TransmissionSummary.csv'
 ################################################################################
 
+# Install any missing packages
+
+Rscript "$ToolsDir"/PackageInstall.R
 
 # Find rogue reads and, if desired, reads that look like they're part of a dual
 # infection.
