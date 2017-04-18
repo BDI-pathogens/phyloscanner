@@ -52,15 +52,15 @@ if(command.line){
 } else {
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/")
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
-  summary.file	<- "ss_s_patStatsFull.csv"
+  summary.file	<- NULL
   id.file 					<- "patientIDList.txt"
-  input.file.name			<- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/Classifications_s/Classification_s_run20161013_inWindow_"
-  min.threshold				<- 0
-  dist.threshold <- 0.02
+  input.file.name			<- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/Classifications_s/Classification_s_run20161013D_inWindow_"
+  min.threshold				<- 16.5
+  dist.threshold <- 0.05183
   allow.splits 				<- TRUE
-  output.file 				<- "yep.csv"
+  output.file 				<- "run20161013D.csv"
   detailed.output				<- NULL
-  input.files 				<- sort(list.files.mod(dirname(input.file.name), pattern=paste(basename(input.files.name)), full.names=TRUE))
+  input.files 				<- sort(list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name)), full.names=TRUE))
   
   setwd("/Users/twoseventwo/Documents/Croucher alignments")
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
@@ -89,6 +89,7 @@ if(command.line){
   input.files <- list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name)), full.names=TRUE)
   
   input.files <- input.files[! grepl('collapsedTree', input.files)]
+  input.files <- input.files[! grepl('_classification\\.', input.files)]
   
   if(0)
   {
@@ -168,10 +169,10 @@ tt	<- lapply(tt, function(x){
 #
 tt	<- do.call('rbind',tt)
 # reset names depending on which Classify script was used
-if(any('mean.distance.between.subtrees'==colnames(tt)))
-	setnames(tt, 'mean.distance.between.subtrees', 'PATRISTIC_DISTANCE')
-if(any('min.distance.between.subtrees'==colnames(tt)))
-	setnames(tt, 'min.distance.between.subtrees', 'PATRISTIC_DISTANCE')
+if(any('normalised.min.distance.between.subtrees'==colnames(tt))){
+  setnames(tt, 'normalised.min.distance.between.subtrees', 'PATRISTIC_DISTANCE')
+} else if(any('min.distance.between.subtrees'==colnames(tt)))
+	{setnames(tt, 'min.distance.between.subtrees', 'PATRISTIC_DISTANCE')}
 if(any('adjacent'==colnames(tt)))
 	setnames(tt, 'adjacent', 'ADJACENT')
 if(!any('uninterrupted'==colnames(tt)))
@@ -182,6 +183,7 @@ if(!allow.splits){
 	set(tt, tt[, which(TYPE%in%c("multiAnc", "multiDesc") & ADJACENT)], 'TYPE', 'conflict')
 	set(tt, tt[, which(TYPE%in%c("multiAnc", "multiDesc") & !ADJACENT)], 'TYPE', 'none')
 }
+
 #	check we have patristic distances, paths
 stopifnot( !nrow(subset(tt, is.na(PATRISTIC_DISTANCE))) )
 stopifnot( !nrow(subset(tt, is.na(PATHS.12))) )
@@ -232,6 +234,7 @@ set(tt, tt[,which(TYPE=='multiDesc')], 'TYPE','multi_anc_21')
 #	reorder
 setkey(tt, SUFFIX, pat.1, pat.2)
 tt			<- subset(tt, select=c('SUFFIX','pat.1','pat.2','TYPE','PATRISTIC_DISTANCE','ADJACENT','PATHS.12','PATHS.21','pat.1_tips','pat.1_reads','pat.2_tips','pat.2_reads'))
+#tt			<- subset(tt, select=c('SUFFIX','pat.1','pat.2','TYPE','PATRISTIC_DISTANCE','ADJACENT','PATHS.12','PATHS.21'))
 setnames(tt, colnames(tt),toupper(colnames(tt)))
 #	write to file
 if(!is.null(detailed.output))
@@ -242,6 +245,7 @@ if(!is.null(detailed.output))
 
 cat("Making summary output table...\n")
 set(tt, NULL, c('PAT.1_TIPS','PAT.1_READS','PAT.2_TIPS','PAT.2_READS','PATHS.12','PATHS.21'),NULL)
+#set(tt, NULL, c('PATHS.12','PATHS.21'),NULL)
 
 existence.counts <- tt[, list(both.exist=length(SUFFIX)), by=c('PAT.1','PAT.2')]
 tt <- merge(tt, existence.counts, by=c('PAT.1', 'PAT.2'))

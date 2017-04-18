@@ -42,6 +42,8 @@ if(command.line){
   output.name <- "outTest.csv"
   collapsed.file.names <- "outCollapsed.csv"
   
+  has.normalisation <- F
+  
   # Rakai example
   
   # setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_161007_couples_w270_rerun/")
@@ -67,7 +69,7 @@ if(command.line){
   splits.file.names <- "Subtrees_s_mrsa_k10_bp_yetanother.csv"
   output.name <- "LT_s_mrsa_k10_yetanother.csv"
   collapsed.file.names <- "collapsed_s_mrsa_k10_yetanother.csv"
-  
+  has.normalisation <- F
   
   if(0)
   {
@@ -76,7 +78,7 @@ if(command.line){
     tree.file.names			<- '/Users/twoseventwo/Library/Containers/com.apple.mail/Data/Library/Mail Downloads/8D40D980-06B2-46EE-9BA2-789D541F19E2/pty_17-03-22-16-12-38/ProcessedTree_s_ptyr22_InWindow_'
     splits.file.names		<- '/Users/twoseventwo/Library/Containers/com.apple.mail/Data/Library/Mail Downloads/8D40D980-06B2-46EE-9BA2-789D541F19E2/pty_17-03-22-16-12-38/subgraphs_s_ptyr22_InWindow_'
     output.name 			<- 'testpit'
-    has.normalisation <- F
+    
   }
 }
 
@@ -101,7 +103,7 @@ likely.transmissions<- function(tree.file.name, splits.file.name, normalisation.
   cat("Reading splits file",splits.file.name,"...\n")
   
   splits <- read.csv(splits.file.name, stringsAsFactors = F)
-  
+  colnames(splits) <- c("patient", "subgraph", "tip")
   cat("Collecting tips for each patient...\n")
   
   patients <- unique(splits$patient)

@@ -248,8 +248,7 @@ get.splits.for.patient <- function(patient, tip.patients, tree, root.name, raw.t
     
     # Perform split.and.annotate; get a list of splits
     
-    split.results <- split.and.annotate(subtree, patient, patient.tips, NULL, NULL, tip.regex, "s", sankhoff.k, 0, "u", useff = F)
-    
+    split.results <- split.and.annotate(subtree, patient, patient.tips, NULL, NULL, tip.regex, "s", sankhoff.k, 0, root.name, "u", useff = F)
     # vector of of split IDs
     
     patient.split.ids <- split.results$split.patients

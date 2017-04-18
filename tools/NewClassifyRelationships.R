@@ -392,7 +392,7 @@ if(file.exists(tree.file.name)){
   if(do.collapsed){
     collapsed.file.names <- paste(output.root, "_collapsedTree_",suffixes, csv.fe, sep="")
   }
-  
+
   if(has.normalisation){
     normalisation.constant <- suppressWarnings(as.numeric(normalisation.argument))
     
