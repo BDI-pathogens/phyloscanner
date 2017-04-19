@@ -89,11 +89,11 @@ Rscript "$ToolsDir"/SummaryStatistics.R "$PatientIDfile" 'ProcessedTree_'"$Split
   'Problem running SummaryStatistics.R. Quitting.' ; exit 1 ; }
 
 # Classify relationships between patients in each window
-Rscript "$ToolsDir"/NewClassifyRelationships.R 'ProcessedTree_'"$SplitsRule"'_'"$RunLabel" "$SubgraphsPrefix$SplitsRule"'_'"$RunLabel" "$ClassPrefix$SplitsRule" -c -D "$ToolsDir" || { echo \
-  'Problem running NewClassifyRelationships.R. Quitting.' ; exit 1 ; }
+Rscript "$ToolsDir"/ClassifyRelationships.R 'ProcessedTree_'"$SplitsRule"'_'"$RunLabel" "$SubgraphsPrefix$SplitsRule"'_'"$RunLabel" "$ClassPrefix$SplitsRule" -c -D "$ToolsDir" || { echo \
+  'Problem running ClassifyRelationships.R. Quitting.' ; exit 1 ; }
 
 # Summarise relationships across all windows
-Rscript "$ToolsDir"/NewTransmissionSummary.R "$PatientIDfile" "$ClassPrefix$SplitsRule"'_classification_' "$TransmissionSummary" -D "$ToolsDir" -s "$SummaryPrefix"'_patStatsFull.csv' -m "$MinWindowsForTransmissionLink" -c "$MaxDistanceForTransmissionLink" || { echo \
-  'Problem running NewTransmissionSummary.R. Quitting.' ; exit 1 ; }
+Rscript "$ToolsDir"/TransmissionSummary.R "$PatientIDfile" "$ClassPrefix$SplitsRule"'_classification_' "$TransmissionSummary" -D "$ToolsDir" -s "$SummaryPrefix"'_patStatsFull.csv' -m "$MinWindowsForTransmissionLink" -c "$MaxDistanceForTransmissionLink" || { echo \
+  'Problem running TransmissionSummary.R. Quitting.' ; exit 1 ; }
 
 
