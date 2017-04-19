@@ -990,7 +990,15 @@ for i,BamFileName in enumerate(BamFiles):
   BamAlias = BamAliases[i]
 
   # Prep for pysam
-  BamFile = pysam.AlignmentFile(BamFileName, "rb")
+  try:
+    BamFile = pysam.AlignmentFile(BamFileName, "rb")
+  except AttributeError:
+    print('Error calling "pysam.AlignmentFile". The AlignmentFile attribute',
+    'was introduced in pysam version 0.8.1; are you using an older version',
+    'than that? You might be able to update by running\npip install pysam',
+    '--upgrade\nfrom the command line. Quitting.', file=sys.stderr)
+    exit(1)
+
 
   # Find the reference in the bam file; there should only be one.
   AllReferences = BamFile.references
