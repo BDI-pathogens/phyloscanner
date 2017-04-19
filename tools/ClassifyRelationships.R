@@ -164,6 +164,7 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
   
   count <- 0
   adjacency.matrix <- matrix(NA, length(patients.included), length(patients.included))
+  contiguity.matrix <- matrix(NA, length(patients.included), length(patients.included))
   path.matrix <- matrix(NA, length(patients.included), length(patients.included))
   nodes.1.matrix <- matrix(NA, length(patients.included), length(patients.included))
   nodes.2.matrix <- matrix(NA, length(patients.included), length(patients.included))
@@ -185,9 +186,8 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
         
         all.nodes <-  c(nodes.1, nodes.2)
         
-        OK <- check.adjacency(tt, c(pat.1.id, pat.2.id), splits.for.patients)		
-        
-        adjacency.matrix[pat.1, pat.2] <- OK
+        adjacency.matrix[pat.1, pat.2] <- check.adjacency(tt, c(pat.1.id, pat.2.id), splits.for.patients)		
+        contiguity.matrix[pat.1, pat.2] <- check.contiguous(tt, c(pat.1.id, pat.2.id), splits.for.patients, patients.for.splits)		
 
         count.12 <- 0
         count.21 <- 0
@@ -257,6 +257,7 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
   normalised.distance.matrix<- min.distance.matrix/normalisation.constant
   
   adjacency.table <- as.table(adjacency.matrix)
+  contiguity.table <- as.table(contiguity.matrix)
   dir.12.table <- as.table(dir.12.matrix)
   dir.21.table <- as.table(dir.21.matrix)
   nodes.1.table <- as.table(nodes.1.matrix)
@@ -270,6 +271,9 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
   
   colnames(adjacency.table) <- patients.included
   rownames(adjacency.table) <- patients.included
+  
+  colnames(contiguity.table) <- patients.included
+  rownames(contiguity.table) <- patients.included
   
   colnames(path.table) <- patients.included
   rownames(path.table) <- patients.included
@@ -293,10 +297,12 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
   rownames(normalised.distance.table) <- patients.included
   
   adf <- as.data.frame(adjacency.table)
-  
   keep <- complete.cases(adf)
-  
   adf <- adf[keep,]
+  
+  cdf <- as.data.frame(contiguity.table)
+  keep <- complete.cases(cdf)
+  cdf <- cdf[keep,]
   
   pdf <- as.data.frame(path.table)
   pdf <- pdf[keep,]
@@ -319,9 +325,9 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
     nddf <- nddf[keep,]
   }
   
-  adf <- cbind(adf, d12df[,3], d21df[,3], n1df[,3], n2df[,3], pdf[,3], mddf[,3])
+  adf <- cbind(adf, cdf[,3], d12df[,3], d21df[,3], n1df[,3], n2df[,3], pdf[,3], mddf[,3])
   
-  column.names <- c("Patient_1", "Patient_2", "adjacent", "paths12", "paths21", "nodes1", "nodes2", "path.classification", "min.distance.between.subtrees")
+  column.names <- c("Patient_1", "Patient_2", "adjacent", "contiguous", "paths12", "paths21", "nodes1", "nodes2", "path.classification", "min.distance.between.subtrees")
   
   if(normalisation.constant!=1){
     adf <- cbind(adf, nddf[,3])
