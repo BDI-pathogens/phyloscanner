@@ -402,20 +402,22 @@ if(file.exists(tree.file.name)){
     normalisation.constant <- suppressWarnings(as.numeric(normalisation.argument))
     
     if(is.na(normalisation.constant)){
-      norm.table <- read.csv(normalisation.argument, stringsAsFactors = F, header = F)
-      normalisation.constants <- sapply(basename(tree.file.names), function(x){
-        if(x %in% norm.table[,1]){
-          if(length(which(norm.table[,1]==x))>1){
+      norm.table <- read.csv(normalisation.argument, stringsAsFactors = F, header = F)	  
+	  normalisation.constants <- sapply(basename(tree.file.names), function(x){				  
+		tmp <- 	which(norm.table[,1]==x)
+		if(length(tmp)==0)
+			tmp	<- which(norm.table[,1]==gsub('ProcessedTree_[a-z]_','',x))	  
+        if(length(tmp)>=1){
+          if(length(tmp)>1){
             warning(paste("Two or more entries for normalisation constant for tree file name ",x, " in file ",normalisation.argument,"; taking the first", sep=""))
           }
-          return(norm.table[which(norm.table[,1]==x)[1],2])
+          return(norm.table[tmp[1],2])
         } else {
           warning(paste("No normalisation constant for tree file ",x," found in file, ",normalisation.argument,"; this tree will not have branch lengths normalised.", sep=""))
           return(1)
         }
         
-      })  
-      
+      })        
     } else {
       # it's a number to be used in every tree
       normalisation.constants <- rep(normalisation.constant, length(tree.file.names))
