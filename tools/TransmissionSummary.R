@@ -16,7 +16,7 @@ if(command.line){
   arg_parser$add_argument("-s", "--summaryFile", action="store", help="The full output file from SummaryStatistics.R; necessary only to identify windows in which no reads are present from each patient. If absent, window counts will be given without denominators.")
   arg_parser$add_argument("-m", "--minThreshold", action="store", default=1, type="integer", help="Relationships between two patients will only appear in output if a transmission chain between them appears in at least these many windows (default 1). High numbers are useful for drawing figures in e.g. Cytoscape with few enough arrows to be comprehensible. The script is extremely slow if this is set to 0.")
   arg_parser$add_argument("-c", "--distanceThreshold", action="store", default=-1, help="Maximum distance threshold on a window for a relationship to be reconstructed between two patients on that window.")
-  arg_parser$add_argument("-p", "--allowSplits", action="store_true", default=FALSE, help="If absent, directionality is only inferred between pairs of patients whose reads are not split; this is more conservative.")
+  arg_parser$add_argument("-p", "--allowMultiTrans", action="store_true", default=FALSE, help="If absent, directionality is only inferred between pairs of patients where a single clade from one patient is nested in one from the other; this is more conservative")
   arg_parser$add_argument("-d", "--detailedOutput", action="store", help="If present, a file describing the relationships between each pair of patients on each window will be written to the specified path in .rda format")
   arg_parser$add_argument("idFile", action="store", help="A file containing a list of the IDs of all the patients to calculate and display statistics for.")
   arg_parser$add_argument("inputFiles", action="store", help="Either (if -l is present) a list of all input files (output from ClassifyRelationships.R), separated by colons, or (if not) a single string that begins every input file name.")
@@ -36,7 +36,7 @@ if(command.line){
   if(is.null(min.threshold)){
     split.threshold <- 1L
   }
-  allow.splits <- args$allowSplits
+  allow.mt <- args$allowMultiTrans
   input.file.name <- args$inputFiles
   
   source(file.path(script.dir, "TreeUtilityFunctions.R"))
@@ -57,7 +57,7 @@ if(command.line){
   input.file.name			<- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/Classifications_s/Classification_s_run20161013D_inWindow_"
   min.threshold				<- 16.5
   dist.threshold <- 0.05183
-  allow.splits 				<- TRUE
+  allow.mt 				<- TRUE
   output.file 				<- "run20161013D.csv"
   detailed.output				<- NULL
   input.files 				<- sort(list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name)), full.names=TRUE))
@@ -69,7 +69,7 @@ if(command.line){
   input.file.name <- "pneumo_classification_"
   dist.threshold <- 0.005
   min.threshold <- 50
-  allow.splits <- T
+  allow.mt <- T
   output.file <- "testn_0.005.csv"
   detailed.output <- "test2.csv"
   
@@ -81,7 +81,7 @@ if(command.line){
   input.file.name <- "Classification_s_classification_InWindow_"
   dist.threshold <- 1
   min.threshold <- 0
-  allow.splits <- T
+  allow.mt <- T
   output.file <- "test1.csv"
   detailed.output <- "test2.csv"
   
@@ -98,7 +98,7 @@ if(command.line){
     id.file 					<- "/Users/Oliver/duke/tmp/pty_17-04-04-16-26-50/ptyr22_patient.txt"
 	input.file.name				<- "/Users/Oliver/duke/tmp/pty_17-04-04-16-26-50/ptyr22_classification_InWindow_"
     min.threshold				<- 1
-    allow.splits 				<- TRUE
+    allow.mt 				<- TRUE
     output.file 				<- "/Users/Oliver/duke/tmp/pty_17-04-04-16-26-50/ptyr22_trmStats.csv"
 	detailed.output				<- "/Users/Oliver/duke/tmp/pty_17-04-04-16-26-50/ptyr22_patStatsPerWindow.csv"
     input.files 				<- sort(list.files(dirname(input.file.name), pattern=basename(input.file.name), full.names=TRUE))
@@ -178,8 +178,8 @@ if(any('adjacent'==colnames(tt)))
 if(!any('uninterrupted'==colnames(tt)))
 	tt[, uninterrupted:=FALSE]
 setnames(tt, c('Patient_1','Patient_2','path.classification','paths21','paths12'), c('pat.1','pat.2','TYPE','PATHS.21','PATHS.12'))
-# change type name depending on allow.splits
-if(!allow.splits){
+# change type name depending on allow.mt
+if(!allow.mt){
 	set(tt, tt[, which(TYPE%in%c("multiAnc", "multiDesc"))], 'TYPE', 'conflict')
 }
 
