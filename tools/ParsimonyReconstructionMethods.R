@@ -852,12 +852,12 @@ child.cost.fi <- function(tree, child.index, patients, top.patient.no, bottom.pa
     } else {
       if(!is.na(zero.threshold) & is.tip(tree,child.index)){
         if(bl < zero.threshold){
-          out <- out + (k-us.penalty)*read.count.from.label(tree$tip.label[child.index], tip.regex)
+          out <- out + ((1/k)-us.penalty)*read.count.from.label(tree$tip.label[child.index], tip.regex)
         } else {
-          out <- out + (k-us.penalty)
+          out <- out + ((1/k)-us.penalty)
         }
       } else {
-        out <- out + (k-us.penalty)
+        out <- out + ((1/k)-us.penalty)
       }
     }
   } else {
@@ -871,17 +871,17 @@ child.cost.fi <- function(tree, child.index, patients, top.patient.no, bottom.pa
           out <- out + bl
         }
       } else {
-        out <- out + log(bl)
+        out <- out + bl
       }
     } else {
       if(!is.na(zero.threshold) & is.tip(tree,child.index)){
         if(bl < zero.threshold){
-          out <- out + log(k)*read.count.from.label(tree$tip.label[child.index], tip.regex)
+          out <- out + (1/k)*read.count.from.label(tree$tip.label[child.index], tip.regex)
         } else {
-          out <- out + log(k)
+          out <- out + (1/k)
         }
       } else {
-        out <- out + log(k)
+        out <- out + (1/k)
       }
     }
   }
@@ -966,12 +966,12 @@ calc.costs.fi <- function(patient.no, patients, node.state, child.node, bl, full
     } else {
       if(!is.na(tip.label) & !is.na(zero.threshold)){
         if(bl<zero.threshold){
-          out <- out + (k-penalty) * read.count.from.label(tip.label, tip.regex)
+          out <- out + ((1/k)-penalty) * read.count.from.label(tip.label, tip.regex)
         } else {
-          out <- out + (k-penalty)
+          out <- out + ((1/k)-penalty)
         }
       } else {
-        out <- out + (k-penalty)
+        out <- out + ((1/k)-penalty)
       }
     }
   } else {
@@ -990,12 +990,12 @@ calc.costs.fi <- function(patient.no, patients, node.state, child.node, bl, full
     } else {
       if(!is.na(tip.label) & !is.na(zero.threshold)){
         if(bl<zero.threshold){
-          out <- out + (k-penalty) * read.count.from.label(tip.label, tip.regex)
+          out <- out + ((1/k)-penalty) * read.count.from.label(tip.label, tip.regex)
         } else {
-          out <- out + (k-penalty)
+          out <- out + ((1/k)-penalty)
         }
       } else {
-        out <- out + (k-penalty)
+        out <- out + ((1/k)-penalty)
       }
     }
   }
