@@ -399,8 +399,7 @@ if(file.exists(tree.file.name)){
   }
 
   if(has.normalisation){
-    normalisation.constant <- suppressWarnings(as.numeric(normalisation.argument))
-    
+    normalisation.constant <- suppressWarnings(as.numeric(normalisation.argument))    
     if(is.na(normalisation.constant)){
       norm.table <- read.csv(normalisation.argument, stringsAsFactors = F, header = F)	  
 	  normalisation.constants <- sapply(basename(tree.file.names), function(x){				  
