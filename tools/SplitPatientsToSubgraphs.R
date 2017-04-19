@@ -366,13 +366,11 @@ if(file.exists(tree.file.name)){
     # it's a number to be used in every tree
     normalisation.constants <- rep(normalisation.constant, length(tree.file.names))
   }
-
   fn.df <- data.frame(row.names = suffixes, tree.input = tree.file.names, output.ID = output.file.IDs, normalisation.constant = normalisation.constants, stringsAsFactors = F)
   if(!is.null(blacklist.file.name)){
     fn.df$blacklist.input <- blacklist.file.names
   }
   file.details <- split(fn.df, rownames(fn.df))
-  
 }
 
 for(i in file.details){
