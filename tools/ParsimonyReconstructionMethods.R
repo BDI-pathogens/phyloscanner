@@ -848,7 +848,7 @@ child.cost.fi <- function(tree, child.index, patients, top.patient.no, bottom.pa
 
   if(patients[top.patient.no] == "unsampled"){
     if(patients[bottom.patient.no] == "unsampled"){
-      out <- out + log(us.penalty)
+      out <- out + us.penalty
     } else {
       if(!is.na(zero.threshold) & is.tip(tree,child.index)){
         if(bl < zero.threshold){
@@ -876,12 +876,12 @@ child.cost.fi <- function(tree, child.index, patients, top.patient.no, bottom.pa
     } else {
       if(!is.na(zero.threshold) & is.tip(tree,child.index)){
         if(bl < zero.threshold){
-          out <- out + (1/k)*read.count.from.label(tree$tip.label[child.index], tip.regex)
+          out <- out + ((1/k)-us.penalty)*read.count.from.label(tree$tip.label[child.index], tip.regex)
         } else {
-          out <- out + (1/k)
+          out <- out + ((1/k)-us.penalty)
         }
       } else {
-        out <- out + (1/k)
+        out <- out + ((1/k)-us.penalty)
       }
     }
   }
@@ -976,7 +976,7 @@ calc.costs.fi <- function(patient.no, patients, node.state, child.node, bl, full
     }
   } else {
     if(patient=="unsampled"){
-      out <- out + log(penalty)
+      out <- out + penalty
     } else if(patient == node.state){
       if(!is.na(tip.label) & !is.na(zero.threshold)){
         if(bl<zero.threshold){
