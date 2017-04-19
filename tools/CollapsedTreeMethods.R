@@ -517,9 +517,6 @@ check.adjacency <- function(tt, patients, splits.for.patients){
   nodes.1 <- splits.for.patients[[pat.1.id]]
   nodes.2 <- splits.for.patients[[pat.2.id]]
   
-  any.contiguity <- F
-  any.interruption <- F
-  
   for(node.1 in nodes.1){
     for(node.2 in nodes.2){
       if(check.tt.node.adjacency(tt, node.1, node.2, T)){

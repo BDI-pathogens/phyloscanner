@@ -35,7 +35,7 @@ if(command.line){
   normalisation.argument <- args$branchLengthNormalisation
   
 } else {
-  script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
+  script.dir <- "/Users/mdhall/phylotypes/tools"
   
   # BEEHIVE example
   setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/")
@@ -65,7 +65,7 @@ if(command.line){
   
   # MRSA example
   
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/refinement")
+  setwd("/Users/mdhall/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/refinement")
   tree.file.names <- "ProcessedTree_s_mrsa_k10_bp_yetanother.tree"
   splits.file.names <- "Subtrees_s_mrsa_k10_bp_yetanother.csv"
   output.file.ID <- "LT_s_mrsa_k10_yetanother.csv"
@@ -149,7 +149,7 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
   
   cat("Identifying pairs of unblocked splits...\n")
   
-  adjacent <- subtrees.unblocked(tt, all.splits)
+  collapsed.adjacent <- subtrees.unblocked(tt, all.splits)
   
   cat("Calculating pairwise distances between splits...\n")
   
@@ -185,7 +185,6 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
         
         all.nodes <-  c(nodes.1, nodes.2)
         
-        # we want that they form a perfect blob with no intervening nodes for any other patients
         OK <- check.adjacency(tt, c(pat.1.id, pat.2.id), splits.for.patients)		
         
         adjacency.matrix[pat.1, pat.2] <- OK
@@ -238,7 +237,7 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
         
         for(node.1 in nodes.1){
           for(node.2 in nodes.2){
-            if(adjacent[node.1, node.2]){
+            if(collapsed.adjacent[node.1, node.2]){
               pairwise.distances <- c(pairwise.distances, split.distances[node.1, node.2])
             }
           }

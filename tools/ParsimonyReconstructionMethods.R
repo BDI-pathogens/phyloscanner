@@ -1,4 +1,4 @@
-split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, method="r", k=NA, penalty = 0, outgroup.name = NULL, ties.rule = "c", zero.threshold = NA, useff=F, verbose=F){
+split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, method="r", k=NA, penalty = 0, outgroup.name = NULL, ties.rule = "c", zero.threshold = NA, useff=F, count.reads = F, verbose=F){
   if (method == "r") {
     
     cat("Applying the Romero-Severson parsimony classification to internal nodes...\n")
@@ -329,12 +329,22 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
       cost.matrix <- matrix(NA, nrow=length(tree$tip.label) + tree$Nnode, ncol=length(patients))
     }
     
-    cost.matrix <- make.cost.matrix.fi(getRoot(tree), tree, patients, tip.assocs, cost.matrix, k, penalty, finite.cost, tip.regex, zero.threshold, verbose)
+    if(count.reads){
+      cost.matrix <- make.cost.matrix.fi(getRoot(tree), tree, patients, tip.assocs, cost.matrix, k, penalty, finite.cost, tip.regex, zero.threshold, verbose)
+    } else {
+      cost.matrix <- make.cost.matrix.fi(getRoot(tree), tree, patients, tip.assocs, cost.matrix, k, penalty, finite.cost, NA, NA, verbose)
+    }
+    
     
     cat("Reconstructing...\n")
     
 #    full.assocs <- reconstruct.fi(tree, getRoot(tree), "unsampled.rt", list(), tip.assocs, patients, cost.matrix, k, penalty, verbose)
-    full.assocs <- reconstruct.fi(tree, getRoot(tree), "unsampled", list(), tip.assocs, patients, cost.matrix, k, penalty, verbose)
+    
+    if(count.reads){
+      full.assocs <- reconstruct.fi(tree, getRoot(tree), "unsampled", list(), tip.assocs, patients, cost.matrix, k, penalty, tip.regex, zero.threshold, verbose)
+    } else {
+      full.assocs <- reconstruct.fi(tree, getRoot(tree), "unsampled", list(), tip.assocs, patients, cost.matrix, k, penalty, NA, NA, verbose)
+    }
     
     temp.ca <- rep(NA, length(tree$tip.label) + tree$Nnode)
     
@@ -842,23 +852,23 @@ child.cost.fi <- function(tree, child.index, patients, top.patient.no, bottom.pa
     } else {
       if(!is.na(zero.threshold) & is.tip(tree,child.index)){
         if(bl < zero.threshold){
-          out <- out + log(k)*read.count.from.label(tree$tip.label[child.index], tip.regex)
+          out <- out + (k-us.penalty)*read.count.from.label(tree$tip.label[child.index], tip.regex)
         } else {
-          out <- out + log(k)
+          out <- out + (k-us.penalty)
         }
       } else {
-        out <- out + log(k)
+        out <- out + (k-us.penalty)
       }
     }
   } else {
     if(patients[bottom.patient.no] == "unsampled"){
-      out <- out + log(us.penalty)
+      out <- out + us.penalty
     } else if(top.patient.no == bottom.patient.no){
       if(!is.na(zero.threshold) & is.tip(tree,child.index)){
         if(bl < zero.threshold){
-          out <- out + log(bl)*read.count.from.label(tree$tip.label[child.index], tip.regex)
+          out <- out + bl*read.count.from.label(tree$tip.label[child.index], tip.regex)
         } else {
-          out <- out + log(bl)
+          out <- out + bl
         }
       } else {
         out <- out + log(bl)
@@ -952,16 +962,16 @@ calc.costs.fi <- function(patient.no, patients, node.state, child.node, bl, full
   
   if(node.state=="unsampled"){
     if(patient=="unsampled"){
-      out <- out + log(penalty)
+      out <- out + penalty
     } else {
       if(!is.na(tip.label) & !is.na(zero.threshold)){
         if(bl<zero.threshold){
-          out <- out + log(k) * read.count.from.label(tip.label, tip.regex)
+          out <- out + (k-penalty) * read.count.from.label(tip.label, tip.regex)
         } else {
-          out <- out + log(k)
+          out <- out + (k-penalty)
         }
       } else {
-        out <- out + log(k)
+        out <- out + (k-penalty)
       }
     }
   } else {
@@ -970,22 +980,22 @@ calc.costs.fi <- function(patient.no, patients, node.state, child.node, bl, full
     } else if(patient == node.state){
       if(!is.na(tip.label) & !is.na(zero.threshold)){
         if(bl<zero.threshold){
-          out <- out + log(bl) * read.count.from.label(tip.label, tip.regex)
+          out <- out + bl * read.count.from.label(tip.label, tip.regex)
         } else {
-          out <- out + log(bl)
+          out <- out + bl
         }
       } else {
-        out <- out + log(bl)
+        out <- out + bl
       }
     } else {
       if(!is.na(tip.label) & !is.na(zero.threshold)){
         if(bl<zero.threshold){
-          out <- out + log(k) * read.count.from.label(tip.label, tip.regex)
+          out <- out + (k-penalty) * read.count.from.label(tip.label, tip.regex)
         } else {
-          out <- out + log(k)
+          out <- out + (k-penalty)
         }
       } else {
-        out <- out + log(k)
+        out <- out + (k-penalty)
       }
     }
   }

@@ -26,6 +26,7 @@ if(command.line){
   arg_parser$add_argument("-b", "--blacklist", action="store", help="A .csv file listing tips to ignore. Alternatively, a base name that identifies blacklist files. Blacklist files are assumed to end in .csv.")
   arg_parser$add_argument("-k", "--kParam", action="store", default=0, help="The k parameter in the cost matrix for Sankhoff reconstruction (see documentation)")
   arg_parser$add_argument("-p", "--nonancestryPenalty", action="store", default=0)
+  arg_parser$add_argument("-R", "--readCountsMatterOnZeroBranches", default = FALSE, action="store_true")
   arg_parser$add_argument("-t", "--tiesRule", action="store", default="c", help="Sankhoff reconstruction only - determines whether ties of zero cost in the parsimony reconstruction will be reconstructed as a continued lineage in a single patient or a transition to the unsampled state. Options: u=always unsampled, c=always continue, b=branch-length based (see documentation)")
   arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, short branches in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. If a number, this number will be used as the threshold. If 'g', it will be guessed from the branch lengths (use this only if you've checked by eye that the tree does indeed have multifurcations).")
   arg_parser$add_argument("-n", "--branchLengthNormalisation", default = 1, action="store", help="If present and a number, a normalising constant for all branch lengths in the tree or trees. If present and a file, the path to a .csv file with two columns: tree file name and normalising constant")
@@ -55,6 +56,7 @@ if(command.line){
   output.file.ID <- args$outputFileID
   blacklist.file.name <- args$blacklist
   root.name <- args$outgroupName
+  read.counts.matter <- args$readCountsMatterOnZeroBranches
   if(!is.null(args$outputDir)){
     output.dir <- args$outputDir
   } else {
@@ -73,6 +75,10 @@ if(command.line){
     }
   }
   
+  if(!use.m.thresh & read.counts.matter){
+    cat("Please specify a multifurcation collapse threshold with -m to count reads on zero length branches in the reconstruction")
+    quit(save="no")
+  }
   
   if(is.null(root.name)){
     cat("No outgroup name given; will assume the tree is already rooted\n")
@@ -176,7 +182,7 @@ if(command.line){
 #
 #	define internal functions
 #
-split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 1, mode, blacklist.file, root.name, tip.regex, sankhoff.k, sankhoff.p, ties.rule, useff){
+split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 1, mode, blacklist.file, root.name, tip.regex, sankhoff.k, sankhoff.p, ties.rule, useff, count.reads){
   cat("SplitPatientsToSubgraphs.R run on: ", tree.file.name,", rules = ",mode,"\n", sep="")
   
   # Read, root and multifurcate the tree
@@ -251,7 +257,7 @@ split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 
   
   # Do the main function
   
-  results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, sankhoff.p, root.name, ties.rule, useff = useff, verbose=FALSE)
+  results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, sankhoff.p, root.name, ties.rule, m.thresh, useff = useff, count.reads, verbose=FALSE)
   
   # Where to put the node shapes that display subgraph MRCAs
   
@@ -379,7 +385,7 @@ for(i in file.details){
   }
   output.string <- i$output.ID 
   
-  tmp					<- split.patients.to.subgraphs(tree.file.name, i$normalisation.constant, mode, blacklist.file, root.name, tip.regex, sankhoff.k, sankhoff.p, ties.rule, useff)
+  tmp					<- split.patients.to.subgraphs(tree.file.name, i$normalisation.constant, mode, blacklist.file, root.name, tip.regex, sankhoff.k, sankhoff.p, ties.rule, useff, read.counts.matter)
   tree				<- tmp[['tree']]	
   rs.subgraphs			<- tmp[['rs.subgraphs']]
   #
