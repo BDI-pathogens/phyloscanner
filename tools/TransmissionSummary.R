@@ -180,8 +180,7 @@ if(!any('uninterrupted'==colnames(tt)))
 setnames(tt, c('Patient_1','Patient_2','path.classification','paths21','paths12'), c('pat.1','pat.2','TYPE','PATHS.21','PATHS.12'))
 # change type name depending on allow.splits
 if(!allow.splits){
-	set(tt, tt[, which(TYPE%in%c("multiAnc", "multiDesc") & ADJACENT)], 'TYPE', 'conflict')
-	set(tt, tt[, which(TYPE%in%c("multiAnc", "multiDesc") & !ADJACENT)], 'TYPE', 'none')
+	set(tt, tt[, which(TYPE%in%c("multiAnc", "multiDesc"))], 'TYPE', 'conflict')
 }
 
 #	check we have patristic distances, paths
