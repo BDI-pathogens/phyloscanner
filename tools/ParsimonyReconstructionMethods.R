@@ -876,12 +876,12 @@ child.cost.fi <- function(tree, child.index, patients, top.patient.no, bottom.pa
     } else {
       if(!is.na(zero.threshold) & is.tip(tree,child.index)){
         if(bl < zero.threshold){
-          out <- out + (1/k)*read.count.from.label(tree$tip.label[child.index], tip.regex)
+          out <- out + ((1/k)-us.penalty)*read.count.from.label(tree$tip.label[child.index], tip.regex)
         } else {
-          out <- out + (1/k)
+          out <- out + ((1/k)-us.penalty)
         }
       } else {
-        out <- out + (1/k)
+        out <- out + ((1/k)-us.penalty)
       }
     }
   }
