@@ -85,7 +85,7 @@ if [[ "$ExcludeDuals" == "true" ]]; then
 fi
 
 # Split patients into their subgraphs
-Rscript "$ToolsDir"/SplitPatientsToSubgraphs.R "$TreeDir"/'RAxML_bestTree.' "$RunLabel" -R -r "$root" -b "$FinalBlacklistPrefix" -x "$regex" -s "$SplitsRule" -t "$TiesRule" -k "$SankhoffK" -m "$MultifurcationThreshold" -D "$ToolsDir" -n "$RawNormalisationLookup" -pw 20 -ph 0.5 || { echo \
+Rscript "$ToolsDir"/SplitPatientsToSubgraphs.R "$TreeDir"/'RAxML_bestTree.' "$RunLabel" -R -r "$root" -b "$FinalBlacklistPrefix" -x "$regex" -s "$SplitsRule" -t "$TiesRule" -k "$SankhoffK" -p "$SankhoffP" -m "$MultifurcationThreshold" -D "$ToolsDir" -n "$RawNormalisationLookup" -pw 20 -ph 0.5 || { echo \
   'Problem running SplitPatientsToSubgraphs.R. Quitting.' ; exit 1 ; }
 
 Rscript "$ToolsDir"/NormalisationLookupWriter.R "$TreeDir"/'ProcessedTree_' "$NormalisationReference" "$ProcessedNormalisationLookup" "MEDIAN_PWD" -D "$ToolsDir" --standardize

@@ -12,6 +12,7 @@ MaxDistanceForTransmissionLink=0.05
 SubgraphMinCount=3
 SubgraphMinRatio=0.005
 SankhoffK=20
+SankhoffP=0
 FractionOfWindowsToCallDual=0.15
 MultifurcationThreshold=1E-5
 #s=Sankhoff (slow, rigorous), r=Romero-Severson (quick, less rigorous with >2
