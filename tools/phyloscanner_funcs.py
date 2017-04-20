@@ -553,3 +553,145 @@ def GenerateRandomSequence(length, bases='ACGT'):
   characters (ACGT by default).'''
   return ''.join(random.choice(bases) for _ in range(length))
 
+
+def CalculateRecombinationMetric(SeqAlignment):
+  '''Considers all triplets of seqs and finds the maximum recombination signal.
+  
+  For each possible set of three seqs in the alignment, one seq is considered
+  the putative recombinant and the other two the parents. For each possible 
+  'break point' (the point at which recombination occurred), we calculate d_L
+  as the difference between the Hamming distance from the recombinant to one
+  parent and the Hamming distance from the recombinant to the other parent,
+  looking to the left of the break point only; similarly we calculate d_R
+  looking to the right of the break point only. d_L and d_R are signed integers,
+  such that their differing in sign indicates that the left and right sides of
+  the recombinant look like different parents. We maximise the difference
+  between d_L and d_R (over all possible sets of three sequences and all
+  possible break points), take the smaller of the two absolute values, and
+  normalise it by half the alignment length (ignoring sites that are wholly
+  gaps). This means that the maximum possible score of 1 is obtained if and only
+  if the two parents disagree at every site, the break point is exactly in the
+  middle, and either side of the break point the recombinant agrees perfectly
+  with one of the parents e.g.
+  AAAAAAA
+  AAAACCC
+  CCCCCCC
+  NOTE: comparison of 'bases' in the sequences is a (biologically unaware) check
+  for exact equality of characters. This means that e.g. the gap character is
+  considered to be a base in its own right, with (dis)agreements in gaps
+  counting towards Hamming distance in exactly the same way as point mutations.
+  
+  For speed, Hamming distances are only calculated indirectly - looking only at
+  informative sites, and considering only changes in distance each time the
+  break point is slid through the next site. However runtime unavoidably scales
+  as N^3, where N is the number of sequences.
+
+  The function returns a tuple of length four: (metric, ID of parent 1, ID of
+  parent 2, ID of recombinant). If the metric is exactly zero, i.e. no
+  recombination at all, the three sequence IDs will all be the 'None' value.
+  '''
+
+  MaxScoreAndSeqs = (0, None, None, None)
+
+  # Recombination requires at least three sequences
+  NumSeqs = len(SeqAlignment)
+  if NumSeqs < 3:
+    return MaxScoreAndSeqs
+
+  # Strip alignment positions where every sequence has the same thing.
+  # Also calculate the number of positions at which at least one sequence does
+  # not have a gap.
+  AlignmentLength = SeqAlignment.get_alignment_length()
+  NumPureGapCols = 0
+  for column in reversed(xrange(AlignmentLength)):
+    RemoveThisCol = True
+    FirstBaseSeen = None
+    for base in SeqAlignment[:, column]:
+      if FirstBaseSeen == None:
+        FirstBaseSeen = base
+      elif base != FirstBaseSeen:
+        RemoveThisCol = False
+        break
+    if RemoveThisCol:
+      SeqAlignment = SeqAlignment[:, :column] + SeqAlignment[:, column + 1:]
+      if FirstBaseSeen == '-':
+        NumPureGapCols += 1
+  NumColsWithABase = AlignmentLength - NumPureGapCols
+
+  # Recombination requires sequences at least 2bp long
+  ReducedAlignmentLength = SeqAlignment.get_alignment_length()
+  if ReducedAlignmentLength < 2:
+    return MaxScoreAndSeqs
+
+  # Convert all the seqs to strings
+  SeqsAsStrings = [str(seq.seq) for seq in SeqAlignment]
+
+  # Calculate the score for sequences i and j being the two original seqs, and
+  # k the recombinant between them.
+  for i in range(NumSeqs):
+    for j in range(i+1, NumSeqs):
+      iSeq = SeqsAsStrings[i]
+      jSeq = SeqsAsStrings[j]
+      DisagreeingPositions = []
+      for pos in range(ReducedAlignmentLength):
+        if iSeq[pos] != jSeq[pos]:
+          DisagreeingPositions.append(pos)
+      NumDisagreeingPositions = len(DisagreeingPositions)
+      if NumDisagreeingPositions == 0:
+        continue
+      for k in range(NumSeqs):
+        if k == i or k == j:
+          continue
+        kSeq = SeqsAsStrings[k]
+
+        # At each position where i and j disagree, record the 'loyalty' value 1
+        # if k agrees with i, -1 if k agrees with j, and 0 otherwise.
+        loyalties = []
+        for pos in DisagreeingPositions:
+          if kSeq[pos] == iSeq[pos]:
+            loyalties.append(1)
+          elif kSeq[pos] == jSeq[pos]:
+            loyalties.append(-1)
+          else:
+            loyalties.append(0)
+
+        # We consider all possible 'break points' for the list of loyalties,
+        # i.e. points at which we split it into a left part and a right part.
+        # The sum of the loyalties to the left or to the right equals (the
+        # Hamming distance of i to k) minus (the Hamming distance of i to j) for
+        # that part of the sequence (i.e. for the left or for the right).
+        # We choose the break point that maximises the difference (between left
+        # and right) of these two Hamming distance differences, i.e. the
+        # difference between the sum of the loyalties to the left and the sum of
+        # the loyalties to the right. For this break point we record the smaller
+        # absolute value of the two loyalty sums.
+        MaxLoyalty = 0
+        MaxLoyaltyDiff = 0
+        LoyaltyLeftOfBreakPoint = 0
+        LoyaltyRightOfBreakPoint = sum(loyalties)
+        for BreakPointPos in range(1, NumDisagreeingPositions):
+          LoyaltyLeftOfBreakPoint  += loyalties[BreakPointPos - 1]
+          LoyaltyRightOfBreakPoint -= loyalties[BreakPointPos - 1]
+          #MeanLoyaltyLeft  = LoyaltyLeftOfBreakPoint / BreakPointPos
+          #MeanLoyaltyRight = LoyaltyRightOfBreakPoint / \
+          #(NumDisagreeingPositions - BreakPointPos)
+          #LoyaltyDiff = abs(MeanLoyaltyLeft - MeanLoyaltyRight)
+          LoyaltyDiff = abs(LoyaltyLeftOfBreakPoint - LoyaltyRightOfBreakPoint)
+          if LoyaltyDiff > MaxLoyaltyDiff:
+            MaxLoyaltyDiff = LoyaltyDiff
+            MaxLoyalty = min(abs(LoyaltyLeftOfBreakPoint),
+            abs(LoyaltyRightOfBreakPoint))
+        if MaxLoyalty > MaxScoreAndSeqs[0]:
+          MaxScoreAndSeqs = (MaxLoyalty, i, j, k)
+
+  MaxScore = MaxScoreAndSeqs[0]
+  if MaxScore == 0:
+    return MaxScoreAndSeqs
+  denominator = NumColsWithABase / 2
+  return (float(MaxScore) / denominator, ) + \
+  tuple([SeqAlignment[i].id for i in MaxScoreAndSeqs[1:]])
+
+
+
+
+
