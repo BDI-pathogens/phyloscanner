@@ -29,7 +29,7 @@ w.regex	<- "^\\D*([0-9]+)_to_([0-9]+).*$"
 #	load reference table
 #	and define normalising constant
 #	then define midpoints of windows
-cat('\Loading normalising constants reference file ', norm.file.name)
+cat('\nLoading normalising constants reference file ', norm.file.name)
 if(grepl('csv$',norm.file.name))
 	norm.table	<- as.data.table(read.csv(norm.file.name, stringsAsFactors=FALSE))
 if(grepl('rda$',norm.file.name))
