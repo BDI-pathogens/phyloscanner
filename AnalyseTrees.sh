@@ -97,10 +97,10 @@ Rscript "$ToolsDir"/SummaryStatistics.R "$PatientIDfile" 'ProcessedTree_'"$Split
 
 # Classify relationships between patients in each window
 Rscript "$ToolsDir"/ClassifyRelationships.R 'ProcessedTree_'"$SplitsRule"'_'"$RunLabel" "$SubgraphsPrefix$SplitsRule"'_'"$RunLabel" "$ClassPrefix$SplitsRule" -c -D "$ToolsDir" || { echo \
-  'Problem running NewClassifyRelationships.R. Quitting.' ; exit 1 ; }
+  'Problem running ClassifyRelationships.R. Quitting.' ; exit 1 ; }
 
 # Summarise relationships across all windows
 Rscript "$ToolsDir"/TransmissionSummary.R "$PatientIDfile" "$ClassPrefix$SplitsRule"'_classification_' "$TransmissionSummary" -D "$ToolsDir" -s "$SummaryPrefix"'_patStatsFull.csv' -m "$MinWindowsForTransmissionLink" -c "$MaxDistanceForTransmissionLink" || { echo \
-  'Problem running NewTransmissionSummary.R. Quitting.' ; exit 1 ; }
+  'Problem running TransmissionSummary.R. Quitting.' ; exit 1 ; }
 
 
