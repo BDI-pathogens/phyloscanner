@@ -32,6 +32,7 @@ FileForDuplicateReadCountsProcessed_basename = 'DuplicateReadCountsProcessed_'
 FileForDuplicateSeqs_basename = 'DuplicateReads_contaminants_'
 FileForReadNames_basename = 'ReadNames_'
 FileForBamIDs = 'BamIDs.txt'
+RecombinantReads_basename = 'RecombinantReads_'
 
 # Some temporary working files we'll create
 FileForRefs = 'temp_refs.fasta'
@@ -243,6 +244,14 @@ interpreted with respect to this alignment, i.e. they are in the alignment
 coordinates. With this option (--ref-for-coords), the multiple sequence
 alignment is still created but window coordinates are interpreted with respect
 to a named reference, which must be one of those included with -A.''')
+OtherArgs.add_argument('-RG', '--recombination-gap-aware', action='store_true',
+help='''By default, when calculating Hamming distances for the recombination
+metric, positions with gaps are ignored. This means that e.g. the following
+three sequences would have a metric of zero: A-AAAA, A-AAA-A, AAAA-A. With this
+option, the gap character counts as a fifth base and so (dis)agreement in gaps
+contributes to Hamming distance. This increases sensitivity of the metric to
+cases where indels are genuine signals of recombination, but decreases
+specificity, since misalignment may falsely suggest recombination.''')
 OtherArgs.add_argument('-XC', '--excision-coords', type=CommaSeparatedInts,
 help='Used to specify a comma-separated set of integer coordinates that will '
 'be excised from the aligned reads. Useful for sites of non-neutral '
@@ -361,6 +370,9 @@ help='Process and align the reads from each window, then quit without making '
 StopEarlyArgs.add_argument('-D', '--dont-check-duplicates', action='store_true',
 help="Don't compare reads between samples to find duplicates - a possible "+\
 "indication of contamination. (By default this check is done.)")
+StopEarlyArgs.add_argument('-DR', '--dont-check-recombination',
+action='store_true', help='''Skip the calculation for finding the read that
+looks most like a recombinant for each bam file in each window.''')
 
 args = parser.parse_args()
 
@@ -1788,8 +1800,43 @@ for window in range(NumCoords / 2):
   if args.time:
     times.append(time.time())
     LastStepTime = times[-1] - times[-2]
-    print('Final read processing in window', UserLeftWindowEdge, '-',
-    UserRightWindowEdge, 'finished. Number of seconds taken: ', LastStepTime)
+    print('All read processing except the recombination calculation in window',
+          UserLeftWindowEdge, '-', UserRightWindowEdge,
+          'finished. Number of seconds taken: ', LastStepTime)
+
+  # Find the read that looks most like a recombinant for each patient.
+  if not args.dont_check_recombination:
+    SamplesToAlnPosDict = {}
+    for i, seq in enumerate(SeqAlignmentHere):
+      RegexMatch = SampleRegex.search(seq.id)
+      if RegexMatch and seq.id[:RegexMatch.start()] in BamAliases:
+        SampleName = seq.id[:RegexMatch.start()]
+        if SampleName in SamplesToAlnPosDict:
+          SamplesToAlnPosDict[SampleName].append(i)
+        else:
+          SamplesToAlnPosDict[SampleName] = [i]
+    RecombinationResults = []
+    for alias, ListOfReadPosInAln in SamplesToAlnPosDict.items():
+      ThisAliasAln = Align.MultipleSeqAlignment(SeqAlignmentHere[i] for i in \
+      ListOfReadPosInAln)
+      #(metric, ParentSeq1, ParentSeq2, RecombinantSeq) = \
+      result = (alias, ) + pf.CalculateRecombinationMetric(ThisAliasAln,
+      args.recombination_gap_aware)
+      RecombinationResults.append(result)
+    RecombinantReadsFile = RecombinantReads_basename + ThisWindowSuffix + '.csv'
+    with open(RecombinantReadsFile, 'w') as f:
+      f.write('Bam file,Recombination metric,Parent seq 1,Parent seq 2,' + \
+      'Recombinant seq')
+      for result in sorted(RecombinationResults, key=lambda x: x[1],
+      reverse=True):
+        f.write('\n' + ','.join(map(str, result)) )
+
+    # Update on time taken if desired
+    if args.time:
+      times.append(time.time())
+      LastStepTime = times[-1] - times[-2]
+      print('Recombination calculation in window', UserLeftWindowEdge, '-',
+      UserRightWindowEdge, 'finished. Number of seconds taken: ', LastStepTime)
 
   if args.no_trees:
     continue
