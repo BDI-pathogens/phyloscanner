@@ -579,11 +579,15 @@ def CalculateRecombinationMetric(SeqAlignment, IncludeGaps=False):
   
   With the default value of False for the IncludeGaps argument, any position
   where any of the three sequences has the gap character '-' will be ignored.
-  Setting IncludeGaps=True, the gap character will be treated the same as
-  any other character, so that (dis)agreements in gaps count towards Hamming
-  distance in exactly the same way as point mutations. 
+  This means that e.g. the following three sequences would have a metric of
+  zero: A-AAAA, A-AAA-A, AAAA-A. Setting IncludeGaps=True, the gap character
+  will be treated the same as any other character, so that (dis)agreements in
+  gaps count towards Hamming distance in exactly the same way as point
+  mutations. This increases sensitivity of the metric to cases where indels are
+  genuine signals of recombination, but decreases specificity, since
+  misalignment may falsely suggest recombination.
   
-  For speed, Hamming distances are only calculated indirectly - looking only at
+  For speed, Hamming distances are calculated indirectly - looking only at
   informative sites, and considering only changes in distance each time the
   break point is slid through the next such site. However, runtime necessarily
   scales as N^3, where N is the number of sequences.
