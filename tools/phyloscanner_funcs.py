@@ -554,7 +554,7 @@ def GenerateRandomSequence(length, bases='ACGT'):
   return ''.join(random.choice(bases) for _ in range(length))
 
 
-def CalculateRecombinationMetric(SeqAlignment):
+def CalculateRecombinationMetric(SeqAlignment, IncludeGaps=False):
   '''Considers all triplets of seqs and finds the maximum recombination signal.
   
   For each possible set of three seqs in the alignment, one seq is considered
@@ -576,15 +576,17 @@ def CalculateRecombinationMetric(SeqAlignment):
   AAAAAAA
   AAAACCC
   CCCCCCC
-  NOTE: comparison of 'bases' in the sequences is a (biologically unaware) check
-  for exact equality of characters. This means that e.g. the gap character is
-  considered to be a base in its own right, with (dis)agreements in gaps
-  counting towards Hamming distance in exactly the same way as point mutations.
+  
+  With the default value of False for the IncludeGaps argument, any position
+  where any of the three sequences has the gap character '-' will be ignored.
+  Setting IncludeGaps=True, the gap character will be treated the same as
+  any other character, so that (dis)agreements in gaps count towards Hamming
+  distance in exactly the same way as point mutations. 
   
   For speed, Hamming distances are only calculated indirectly - looking only at
   informative sites, and considering only changes in distance each time the
-  break point is slid through the next site. However runtime unavoidably scales
-  as N^3, where N is the number of sequences.
+  break point is slid through the next such site. However, runtime necessarily
+  scales as N^3, where N is the number of sequences.
 
   The function returns a tuple of length four: (metric, ID of parent 1, ID of
   parent 2, ID of recombinant). If the metric is exactly zero, i.e. no
@@ -634,8 +636,10 @@ def CalculateRecombinationMetric(SeqAlignment):
       jSeq = SeqsAsStrings[j]
       DisagreeingPositions = []
       for pos in range(ReducedAlignmentLength):
-        if iSeq[pos] != jSeq[pos]:
+        if iSeq[pos] != jSeq[pos] and (IncludeGaps or
+        (iSeq[pos] != '-' and jSeq[pos] != '-')):
           DisagreeingPositions.append(pos)
+
       NumDisagreeingPositions = len(DisagreeingPositions)
       if NumDisagreeingPositions == 0:
         continue
