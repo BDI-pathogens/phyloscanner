@@ -66,13 +66,13 @@ Rscript "$ToolsDir"/NormalisationLookupWriter.R "$TreeDir"/'RAxML_bestTree.' "$N
 # infection.
 if [[ "$ExcludeDuals" == "true" ]]; then
   Rscript "$ToolsDir"/ParsimonyBasedBlacklister.R "$SubgraphMinCount" \
-  "$SubgraphMinRatio" "$SankoffK" "$TreeDir"/'RAxML_bestTree.' "$RoguesPrefix" -x "$regex" -D \
-  "$ToolsDir" -r "$root" -d "$DualsPrefix" || { echo \
+  "$SubgraphMinRatio" "$SankhoffK" "$TreeDir"/'RAxML_bestTree.' "$RoguesPrefix" -x "$regex" -D \
+  "$ToolsDir" -r "$root" -d "$DualsPrefix" -n "$RawNormalisationLookup" || { echo \
   'Problem running ParsimonyBasedBlacklister.R. Quitting.' ; exit 1 ; }
 else
   Rscript "$ToolsDir"/ParsimonyBasedBlacklister.R "$SubgraphMinCount" \
-  "$SubgraphMinRatio" "$SankoffK" "$TreeDir"/'RAxML_bestTree.' "$FinalBlacklistPrefix" -x "$regex" -D \
-  "$ToolsDir" -r "$root" || { echo \
+  "$SubgraphMinRatio" "$SankhoffK" "$TreeDir"/'RAxML_bestTree.' "$FinalBlacklistPrefix" -x "$regex" -D \
+  "$ToolsDir" -r "$root" -n "$RawNormalisationLookup" || { echo \
   'Problem running ParsimonyBasedBlacklister.R. Quitting.' ; exit 1 ; }
 fi
 
@@ -85,10 +85,10 @@ if [[ "$ExcludeDuals" == "true" ]]; then
 fi
 
 # Split patients into their subgraphs
-Rscript "$ToolsDir"/SplitPatientsToSubgraphs.R "$TreeDir"/'RAxML_bestTree.' "$RunLabel" -r "$root" -b "$FinalBlacklistPrefix" -x "$regex" -s "$SplitsRule" -t "$TiesRule" -k "$SankoffK" -m "$MultifurcationThreshold" -D "$ToolsDir" -pw 20 -ph 0.5 || { echo \
+Rscript "$ToolsDir"/SplitPatientsToSubgraphs.R "$TreeDir"/'RAxML_bestTree.' "$RunLabel" -R -r "$root" -b "$FinalBlacklistPrefix" -x "$regex" -s "$SplitsRule" -t "$TiesRule" -k "$SankhoffK" -m "$MultifurcationThreshold" -D "$ToolsDir" -n "$RawNormalisationLookup" -pw 20 -ph 0.5 || { echo \
   'Problem running SplitPatientsToSubgraphs.R. Quitting.' ; exit 1 ; }
 
-Rscript "$ToolsDir"/NormalisationLookupWriter.R "$TreeDir"/'ProcessedTree_' "$NormalisationReference" "$ProcessedTreeNormalisationLookup" "MEDIAN_PWD" -D "$ToolsDir" --standardize
+Rscript "$ToolsDir"/NormalisationLookupWriter.R "$TreeDir"/'ProcessedTree_' "$NormalisationReference" "$ProcessedNormalisationLookup" "MEDIAN_PWD" -D "$ToolsDir" --standardize
 
 # Generate summary stats over all windows
 Rscript "$ToolsDir"/SummaryStatistics.R "$PatientIDfile" 'ProcessedTree_'"$SplitsRule"'_'"$RunLabel" "$SubgraphsPrefix$SplitsRule"'_'"$RunLabel" \
@@ -96,7 +96,7 @@ Rscript "$ToolsDir"/SummaryStatistics.R "$PatientIDfile" 'ProcessedTree_'"$Split
   'Problem running SummaryStatistics.R. Quitting.' ; exit 1 ; }
 
 # Classify relationships between patients in each window
-Rscript "$ToolsDir"/ClassifyRelationships.R 'ProcessedTree_'"$SplitsRule"'_'"$RunLabel" "$SubgraphsPrefix$SplitsRule"'_'"$RunLabel" "$ClassPrefix$SplitsRule" -c -D "$ToolsDir" || { echo \
+Rscript "$ToolsDir"/ClassifyRelationships.R 'ProcessedTree_'"$SplitsRule"'_'"$RunLabel" "$SubgraphsPrefix$SplitsRule"'_'"$RunLabel" "$ClassPrefix$SplitsRule" -c -D "$ToolsDir" -n "$ProcessedNormalisationLookup" || { echo \
   'Problem running ClassifyRelationships.R. Quitting.' ; exit 1 ; }
 
 # Summarise relationships across all windows
