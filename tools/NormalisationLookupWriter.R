@@ -7,8 +7,14 @@ arg_parser$add_argument("norm.file.name", action="store", type="character", help
 arg_parser$add_argument("output.file.name", action="store", type="character", help="Output file name of csv file that has two columns, the base tree file name and the corresponding normalising constant.")
 arg_parser$add_argument("norm.var", action="store", type="character", help="Column name in reference table that is to be used as normalising constant.")
 arg_parser$add_argument("--standardize", action="store_true", default=FALSE, help="If true, the normalising constants are standardized so that the average on gag+pol equals 1. This way the normalised branch lengths are interpretable as typical distances on gag+pol")
+arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.")
+
 # 	Parse arguments
 args 			<- arg_parser$parse_args()
+script.dir <- args$scriptdir
+
+source(file.path(script.dir, "GeneralFunctions.R"))
+
 tree.file.root 	<- args$tree.file.root
 norm.file.name 	<- args$norm.file.name
 output.file.name<- args$output.file.name
@@ -18,20 +24,12 @@ norm.standardize<- args$standardize
 #	norm.file.name <- '/Users/Oliver/git/phyloscan/data/hiv.hxb2.norm.constants.rda'
 #	norm.var		<- "MEDIAN_PWD"
 
-#	OR: not sure what this might be good for?
-list.files.mod <- function(path = ".", pattern = NULL, all.files = FALSE,
-                           full.names = FALSE, recursive = FALSE,
-                           ignore.case = FALSE, include.dirs = FALSE, no.. = FALSE){
-  
-  original <- list.files(path, pattern, all.files, full.names, recursive, ignore.case, include.dirs, no..)
-  return(sapply(original, function(x) if(substr(x, 1, 2)=="./") {substr(x, 3, nchar(x))} else {x}))
-}
 #	start script
 w.regex	<- "^\\D*([0-9]+)_to_([0-9]+).*$"
 #	load reference table
 #	and define normalising constant
 #	then define midpoints of windows
-cat('\nload normalising constants reference file', norm.file.name)
+cat('\Loading normalising constants reference file ', norm.file.name)
 if(grepl('csv$',norm.file.name))
 	norm.table	<- as.data.table(read.csv(norm.file.name, stringsAsFactors=FALSE))
 if(grepl('rda$',norm.file.name))
