@@ -13,7 +13,9 @@ SubgraphMinCount=3
 SubgraphMinRatio=0.005
 SankoffK=20
 FractionOfWindowsToCallDual=0.15
+MultifurcationThreshold=1E-5
 #s=Sankhoff (slow, rigorous), r=Romero-Severson (quick, less rigorous with >2
 # patients):
 SplitsRule='s'   
+TiesRule='b'
 regex="^(.*)_read_([0-9]+)_count_([0-9]+)$" # use this unless you need to merge different bams into one
