@@ -88,7 +88,7 @@ fi
 Rscript "$ToolsDir"/SplitPatientsToSubgraphs.R "$TreeDir"/'RAxML_bestTree.' "$RunLabel" -R -r "$root" -b "$FinalBlacklistPrefix" -x "$regex" -s "$SplitsRule" -t "$TiesRule" -k "$SankhoffK" -p "$SankhoffP" -m "$MultifurcationThreshold" -D "$ToolsDir" -n "$RawNormalisationLookup" -pw 20 -ph 0.5 || { echo \
   'Problem running SplitPatientsToSubgraphs.R. Quitting.' ; exit 1 ; }
 
-Rscript "$ToolsDir"/NormalisationLookupWriter.R "$TreeDir"/'ProcessedTree_' "$NormalisationReference" "$ProcessedNormalisationLookup" "MEDIAN_PWD" -D "$ToolsDir" --standardize
+Rscript "$ToolsDir"/NormalisationLookupWriter.R "$TreeDir"/'ProcessedTree_'"$SplitsRule"_"$RunLabel"InWindow "$NormalisationReference" "$ProcessedNormalisationLookup" "MEDIAN_PWD" -D "$ToolsDir" --standardize
 
 # Generate summary stats over all windows
 Rscript "$ToolsDir"/SummaryStatistics.R "$PatientIDfile" 'ProcessedTree_'"$SplitsRule"'_'"$RunLabel" "$SubgraphsPrefix$SplitsRule"'_'"$RunLabel" \
