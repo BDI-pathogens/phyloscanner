@@ -855,7 +855,6 @@ child.cost.fi <- function(tree, child.index, patients, top.patient.no, bottom.pa
           # references etc will have no read count
           if(is.na(read.count)) read.count <- 1
           out <- out + ((1/k)-us.penalty)*read.count
-          cat(out,"\n")
         } else {
           out <- out + ((1/k)-us.penalty)
         }
