@@ -4,14 +4,6 @@ if(length(new.packages)) install.packages(new.packages, dependencies = T, repos=
 
 suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
 
-get.count <- function(string){
-  if(length(grep(regexp, string)>0)) {
-    return(as.numeric(sub(regexp, "\\3", string)))
-  } else {
-    return(NA)
-  }
-}
-
 arg_parser = ArgumentParser(description="Identify phylogeny tips for blacklisting as representing suspected contaminants, based on being exact duplicates of more numerous reads from other patients")
 
 arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", 
@@ -20,10 +12,15 @@ arg_parser$add_argument("rawThreshold", action="store", type="double", help="Raw
 arg_parser$add_argument("ratioThreshold", action="store", type="double", help="Ratio threshold; tips will be blacklisted if the ratio of their tip count to that of of another, identical tip from another patient is less than this value.")
 arg_parser$add_argument("inputFileName", action="store", help="A CSV file outlining groups of tips that have identical sequences, each forming a single line.")
 arg_parser$add_argument("outputFileName", action="store", help="The file to write the output to, a list of tips to be blacklisted.")
+arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
 
 # Parse arguments
 
 args <- arg_parser$parse_args()
+
+script.dir <- args$scriptDir
+
+source(file.path(script.dir, "TreeUtilityFunctions.R"))
 
 raw.threshold <- args$rawThreshold
 ratio.threshold <- args$ratioThreshold
@@ -42,7 +39,7 @@ pairs.table	<- data.frame(V1=character(0), V2=character(0))
 for(entry in entries)
 {
   # get rid of anything that doesn't match the regexp (outgroup etc)
-  tmp <-  entry[!is.na(get.count(entry))]
+  tmp <-  entry[!is.na(read.count.from.label(entry, regexp))]
   if(length(tmp)>0)
   {
 	  tmp <- t(combn(tmp,2))
@@ -53,12 +50,12 @@ for(entry in entries)
 pairs.table$V1 <- as.character(pairs.table$V1)
 pairs.table$V2 <- as.character(pairs.table$V2)
 #	OR suggest: make get.count return integer(0) to avoid issues when V1 is character(0)
-tmp <- unlist(sapply(pairs.table$V1, get.count))
+tmp <- unlist(sapply(pairs.table$V1, function(x) read.count.from.label(x, regexp)))
 if(!is.null(tmp))
 	pairs.table$reads.1 <- tmp
 if(is.null(tmp))
 	pairs.table$reads.1 <- integer(0)
-tmp <- unlist(sapply(pairs.table$V2, get.count))
+tmp <- unlist(sapply(pairs.table$V2, function(x) read.count.from.label(x, regexp)))
 if(!is.null(tmp))
 	pairs.table$reads.2 <- tmp
 if(is.null(tmp))
