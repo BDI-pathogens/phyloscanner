@@ -12,6 +12,7 @@ arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_
 arg_parser$add_argument("-r", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
 arg_parser$add_argument("-b", "--blacklist", action="store", help="A blacklist to be applied before this script is run.")
 arg_parser$add_argument("-p", "--patients", action="store", help="A file listing which patients to downsample (on separate lines, with no header). If absent, then downsample every one present.")
+arg_parser$add_argument("-s", "--seed", action="store", help="Random number seed (integer value). Can be ommitted.")
 arg_parser$add_argument("maxReadsPerPatient", type="double", action="store", help="The upper limit for the number of reads to be included from each patient")
 arg_parser$add_argument("inputFile", metavar="inputTreeFileName", help="Tree file name. Alternatively, a base name that identifies a group of tree file names can be specified. Tree files are assumed to end in .tree.")  
 arg_parser$add_argument("outputFile", metavar="outputFileName", help="The file to write the output to, a list of tips to be blacklisted.")  
@@ -25,6 +26,7 @@ output.file.name <- args$outputFile
 blacklist.file.name <- args$blacklist
 root.name <- args$outgroupName
 max.reads <- args$maxReadsPerPatient
+seed <- ifelse(is.null(args$seed), NA_real_,args$seed)  
 patients.file.name <- args$patients
 
 source(file.path(script.dir, "TreeUtilityFunctions.R"))
@@ -57,8 +59,10 @@ downsample.patient <- function(patient, tree, number, tip.regex, patient.ids){
 }
 
 # This returns the ones to get rid of (i.e. blacklist) for a given tree
-downsample.tree<- function(input.file.name, blacklist.file.name, output.file.name, patients.file.name, root.name, tip.regex, max.reads)
+downsample.tree<- function(input.file.name, blacklist.file.name, output.file.name, patients.file.name, root.name, tip.regex, max.reads, seed=NA)
 {
+	if(!is.na(seed))
+		set.seed(seed)
 	tree <- read.tree(input.file.name)
 	tree <- unroot(tree)
 	tree <- di2multi(tree, tol = 1E-5)
@@ -114,7 +118,7 @@ downsample.tree<- function(input.file.name, blacklist.file.name, output.file.nam
 #	option 1: input.file.name specifies a single input file
 if(file.exists(input.file.name))
 {
-	downsample.tree(input.file.name, blacklist.file.name, output.file.name, patients.file.name, root.name, tip.regex, max.reads)
+	downsample.tree(input.file.name, blacklist.file.name, output.file.name, patients.file.name, root.name, tip.regex, max.reads, seed=seed)
 }
 #	option 2: input.file.name specifies a regular expression of several input files
 if(!file.exists(input.file.name))
@@ -129,6 +133,6 @@ if(!file.exists(input.file.name))
 		input.file.name		<- input.file.names[tree.i]
 		blacklist.file.name	<- blacklist.file.names[tree.i]		
 		tmp					<- paste(output.file.name, gsub('tree$','csv',regmatches(input.file.name,regexpr('InWindow.*',input.file.name))),sep='')		
-		downsample.tree(input.file.name, blacklist.file.name, tmp, patients.file.name, root.name, tip.regex, max.reads)		
+		downsample.tree(input.file.name, blacklist.file.name, tmp, patients.file.name, root.name, tip.regex, max.reads, seed=seed)		
 	}
 }

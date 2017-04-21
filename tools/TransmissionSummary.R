@@ -173,11 +173,7 @@ if(any('normalised.min.distance.between.subtrees'==colnames(tt))){
   setnames(tt, 'normalised.min.distance.between.subtrees', 'PATRISTIC_DISTANCE')
 } else if(any('min.distance.between.subtrees'==colnames(tt)))
 	{setnames(tt, 'min.distance.between.subtrees', 'PATRISTIC_DISTANCE')}
-if(any('adjacent'==colnames(tt)))
-	setnames(tt, 'adjacent', 'ADJACENT')
-if(!any('uninterrupted'==colnames(tt)))
-	tt[, uninterrupted:=FALSE]
-setnames(tt, c('Patient_1','Patient_2','path.classification','paths21','paths12'), c('pat.1','pat.2','TYPE','PATHS.21','PATHS.12'))
+setnames(tt, c('Patient_1','Patient_2','path.classification','paths21','paths12','adjacent','contiguous'), c('pat.1','pat.2','TYPE','PATHS.21','PATHS.12','ADJACENT','CONTIGUOUS'))
 # change type name depending on allow.mt
 if(!allow.mt){
 	set(tt, tt[, which(TYPE%in%c("multiAnc", "multiDesc"))], 'TYPE', 'conflict')
@@ -232,8 +228,8 @@ set(tt, tt[,which(TYPE=='multiDesc')], 'TYPE','multi_anc_21')
 
 #	reorder
 setkey(tt, SUFFIX, pat.1, pat.2)
-tt			<- subset(tt, select=c('SUFFIX','pat.1','pat.2','TYPE','PATRISTIC_DISTANCE','ADJACENT','PATHS.12','PATHS.21','pat.1_tips','pat.1_reads','pat.2_tips','pat.2_reads'))
-#tt			<- subset(tt, select=c('SUFFIX','pat.1','pat.2','TYPE','PATRISTIC_DISTANCE','ADJACENT','PATHS.12','PATHS.21'))
+tt			<- subset(tt, select=c('SUFFIX','pat.1','pat.2','TYPE','PATRISTIC_DISTANCE','ADJACENT','CONTIGUOUS','PATHS.12','PATHS.21','pat.1_tips','pat.1_reads','pat.2_tips','pat.2_reads'))
+#tt			<- subset(tt, select=c('SUFFIX','pat.1','pat.2','TYPE','PATRISTIC_DISTANCE','ADJACENT','CONTIGUOUS','PATHS.12','PATHS.21'))
 setnames(tt, colnames(tt),toupper(colnames(tt)))
 #	write to file
 if(!is.null(detailed.output))
@@ -284,7 +280,7 @@ set(tt.close, tmp, 'TYPE', "multi_trans")
 
 tt.close[, DUMMY:=NULL]
 
-set(tt.close, NULL, c('SUFFIX', 'ADJACENT','PATRISTIC_DISTANCE'), NULL)
+set(tt.close, NULL, c('SUFFIX', 'ADJACENT','CONTIGUOUS','PATRISTIC_DISTANCE'), NULL)
 tt.close <- tt.close[!duplicated(tt.close),]
 
 #	write to file
