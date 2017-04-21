@@ -41,6 +41,7 @@ if (command.line) {
   arg_parser$add_argument("splitsFiles", action="store",help="A file path and initial string identifying all splits files (file extension must be .csv).")
   arg_parser$add_argument("outputBaseName", action="store", help="A path and string to begin the names of all output files.")
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.")
+  arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what I'm doing.")
   
   # Read in the arguments
   
@@ -48,6 +49,7 @@ if (command.line) {
   
   id.file <- args$idFile
   script.dir <- args$scriptdir
+  verbose <- args$verbose
 
   # The scripts are necessary here
   
@@ -142,7 +144,7 @@ if (command.line) {
   suffixes <- suffixes[order(suffixes)]
   
   if(!is.null(window.coords.file)){
-    cat("Reading genome coordinates from file ", window.coords.file, "\n", sep="")
+    if (verbose) cat("Reading genome coordinates from file ", window.coords.file, "\n", sep="")
     trees.to.be.worked.with <- paste(basename(tree.file.root), ts.both.present, tree.fe, sep="")
     
     
@@ -172,7 +174,7 @@ if (command.line) {
     
     
   } else {
-    cat("Attempting to read genome coordinates from file names...", sep="")
+    if (verbose) cat("Attempting to read genome coordinates from file names...", sep="")
     
     regex <- "^\\D*([0-9]+)_to_([0-9]+).*$"
     
@@ -184,7 +186,7 @@ if (command.line) {
       quit(save="no")
     }
     
-    cat(" OK.\n")
+    if (verbose) cat(" OK.\n")
     
     ews <- min(starts)
     lwe <- max(ends)
@@ -428,7 +430,7 @@ calc.all.stats.in.window <- function(suffix, verbose = F){
   pseudo.beast.import <- read.beast(tree.file.name)
   tree <- attr(pseudo.beast.import, "phylo")
   
-  cat('Read tree file ',tree.file.name,'\n', sep="")
+  if (verbose) cat('Read tree file ',tree.file.name,'\n', sep="")
   
   # Load the blacklist if it exists
   
@@ -440,7 +442,7 @@ calc.all.stats.in.window <- function(suffix, verbose = F){
       
       blacklisted.tips <- read.table(blacklist.file.name, sep=",", stringsAsFactors = F, col.names="read")
       
-      cat('Read blacklist file ',blacklist.file.name,'\n', sep="")
+      if (verbose) cat('Read blacklist file ',blacklist.file.name,'\n', sep="")
       
       if(nrow(blacklisted.tips)>0){
         blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
@@ -547,7 +549,7 @@ all.splits.table <- lapply(setNames(suffixes, suffixes), function(x){
   # todo get rid of this
   colnames(splits.table) <- c("patient", "subgraph", "tip")
   
-  cat('Read subgraph file ',splits.file.name,'\n', sep="")
+  if (verbose) cat('Read subgraph file ',splits.file.name,'\n', sep="")
   
   if(!no.read.counts){
     splits.table$reads <- sapply(splits.table$tip, function(x) as.numeric(read.count.from.label(x, tip.regex)))
@@ -607,7 +609,7 @@ pat.stats <- cbind(pat.stats, read.prop.columns)
 # Output the pat.stats table to file
 
 tmp	<- file.path(paste(output.root,"_patStatsFull.csv",sep=""))
-cat("Writing output to file ",tmp,"...\n",sep="")
+if (verbose) cat("Writing output to file ",tmp,"...\n",sep="")
 write.csv(pat.stats, tmp, quote = F, row.names = F)
 
 pat.stats$prop.reads.largest.subtree <- pat.stats$prop.gp.1
@@ -618,13 +620,13 @@ mean.na.rm <- function(x) mean(x, na.rm = T)
 tmp <- subset(as.data.table(pat.stats), reads>0, c(id, tips, reads, subgraphs, clades, overall.rtt, largest.rtt, max.pat.distance, prop.reads.largest.subtree, max.branch.length, mean.pat.distance, branch.to.pat.ratio))
 pat.stats.summary <- tmp[, lapply(.SD, mean.na.rm), by='id']
 tmp <- file.path(paste(output.root,"_patStatsSummary.csv",sep=""))
-cat("Writing output to file ",tmp,"...\n",sep="")
+if (verbose) cat("Writing output to file ",tmp,"...\n",sep="")
 write.csv(pat.stats.summary, tmp, quote = F, row.names = F)
   
 # Draw the graphs
 
 tmp <- paste(output.root,"_patStats.pdf",sep="")
-cat("Plotting to file ",tmp,"...\n",sep="")
+if (verbose) cat("Plotting to file ",tmp,"...\n",sep="")
 
 # Set up the boundaries of each window's region on the x-axis
 
@@ -671,7 +673,7 @@ for (i in seq(1, num.ids)) {
   
   this.pat.stats.temp <- this.pat.stats[which(this.pat.stats$reads>0),]
   if(nrow(this.pat.stats.temp)>0){
-    cat("Drawing graphs for patient ",patient,"\n", sep="")
+    if (verbose) cat("Drawing graphs for patient ",patient,"\n", sep="")
     
     #Get the zero runs for the grey rectangles
     
@@ -847,7 +849,7 @@ for (i in seq(1, num.ids)) {
     }
   
   } else {
-    cat("Skipping graphs for patient ",patient," as no reads are present and not blacklisted\n", sep="")
+    if (verbose) cat("Skipping graphs for patient ",patient," as no reads are present and not blacklisted\n", sep="")
   }
 }
 

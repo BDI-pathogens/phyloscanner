@@ -193,7 +193,7 @@ if(command.line){
 # The main function for getting splits for a given patient ID
 
 get.splits.for.patient <- function(patient, tip.patients, tree, root.name, raw.threshold, ratio.threshold, d.output.name, verbose){
-  cat("Identifying splits for patient ", patient, "\n", sep="")
+  if (verbose) cat("Identifying splits for patient ", patient, "\n", sep="")
   
   blacklist.items <- vector()
   
@@ -288,7 +288,7 @@ get.splits.for.patient <- function(patient, tip.patients, tree, root.name, raw.t
       
       # at least two subgraphs
       
-      cat(length(patient.split.ids), " splits for patient ", patient, "\n", sep="")
+      if (verbose) cat(length(patient.split.ids), " splits for patient ", patient, "\n", sep="")
       
       props <- vector()
       too.small <- vector()
@@ -373,12 +373,12 @@ check.read.count.for.split <- function(split, tips.for.splits, raw.threshold, ra
 
 for(i in file.details){
   
-  cat(paste("Reading tree (",i$tree.input,")...\n",sep=""))
+  if (verbose) cat(paste("Reading tree (",i$tree.input,")...\n",sep=""))
 
   tree <- read.tree(i$tree.input)
   
   if(i$normalisation.constant!=1){
-    cat("Normalising tree branch length (nc = ",i$normalisation.constant,")\n", sep="")
+    if (verbose) cat("Normalising tree branch length (nc = ",i$normalisation.constant,")\n", sep="")
   }
   
   tree$edge.length <- tree$edge.length/i$normalisation.constant
@@ -400,7 +400,7 @@ for(i in file.details){
   
   if(!is.null(blacklist.file.name)){
     if(file.exists(i$blacklist.input)){
-      cat("Reading blacklist file",i$blacklist.input,'\n')
+      if (verbose) cat("Reading blacklist file",i$blacklist.input,'\n')
       blacklisted.tips <- read.table(i$blacklist.input, sep=",", header=F, stringsAsFactors = F, col.names="read")
       if(nrow(blacklisted.tips)>0){
         blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
@@ -410,7 +410,7 @@ for(i in file.details){
     }
   } 
   
-  cat("Collecting tips for each patient...\n")
+  if (verbose) cat("Collecting tips for each patient...\n")
   
   tip.patients <- sapply(tip.labels, function(x) patient.from.label(x, tip.regex))
   tip.patients[blacklist] <- NA
@@ -425,7 +425,7 @@ for(i in file.details){
   
   results <- lapply(patients, function(x) get.splits.for.patient(x, tip.patients, tree, root.name, raw.threshold, ratio.threshold, i$duals.output, verbose))
   
-  cat("Finished\n")
+  if (verbose) cat("Finished\n")
   
   new.blacklist <- c(new.blacklist, unlist(lapply(results, "[[", 2)))
   

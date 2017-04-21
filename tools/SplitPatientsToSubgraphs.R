@@ -35,6 +35,7 @@ if(command.line){
   arg_parser$add_argument("-pw", "--pdfwidth", action="store", default=100, help="Width of tree pdf in inches.")
   arg_parser$add_argument("-ph", "--pdfrelheight", action="store", default=0.15, help="Relative height of tree pdf.")
   arg_parser$add_argument("-ff", "--useff", action="store_true", default=FALSE, help="Use ff to store parsimony reconstruction matrices. Use if you run out of memory.")
+  arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what I'm doing.")
   arg_parser$add_argument("inputFileName", action="store", help="The file or file root for the input tree in Newick format")
   arg_parser$add_argument("outputFileID", action="store", help="A string shared by all output file names.")
 
@@ -57,6 +58,7 @@ if(command.line){
   blacklist.file.name <- args$blacklist
   root.name <- args$outgroupName
   read.counts.matter <- args$readCountsMatterOnZeroBranches
+  verbose <- args$verbose
   if(!is.null(args$outputDir)){
     output.dir <- args$outputDir
   } else {
@@ -183,7 +185,7 @@ if(command.line){
 #	define internal functions
 #
 split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 1, mode, blacklist.file, root.name, tip.regex, sankhoff.k, sankhoff.p, ties.rule, useff, count.reads){
-  cat("SplitPatientsToSubgraphs.R run on: ", tree.file.name,", rules = ",mode,"\n", sep="")
+  if (verbose) cat("SplitPatientsToSubgraphs.R run on: ", tree.file.name,", rules = ",mode,"\n", sep="")
   
   # Read, root and multifurcate the tree
 
@@ -214,7 +216,7 @@ split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 
   
   if(!is.null(blacklist.file)){
     if(file.exists(blacklist.file)){
-      cat("Reading blacklist file",blacklist.file,'\n')
+      if (verbose) cat("Reading blacklist file",blacklist.file,'\n')
       blacklisted.tips <- read.table(blacklist.file, sep=",", header=F, stringsAsFactors = F, col.names="read")
       if(nrow(blacklisted.tips)>0){
         blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
@@ -224,7 +226,7 @@ split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 
     }
   } 
   
-  cat("Identifying tips with patients...\n")
+  if (verbose) cat("Identifying tips with patients...\n")
   
   # Find patient IDs from each tip
   
@@ -389,12 +391,12 @@ for(i in file.details){
   #	write rda file (potentially before plotting fails so we can recover)
   #
   tmp 				<- file.path(output.dir,paste('subgraphs_',mode,'_',output.string,'.rda',sep='')) 
-  cat("Writing output to file",tmp,"...\n")
+  if (verbose) cat("Writing output to file",tmp,"...\n")
   save(rs.subgraphs, tree, file=tmp)		
   #
   #	plot tree
   #
-  cat("Drawing tree...\n")
+  if (verbose) cat("Drawing tree...\n")
   tree.display 		<- ggtree(tree, aes(color=INDIVIDUAL)) +
     geom_point2(shape = 16, size=3, aes(subset=NODE_SHAPES)) +
     scale_fill_hue(na.value = "black") +
@@ -409,11 +411,11 @@ for(i in file.details){
   tree.display	
 
   tmp	<- file.path(output.dir,paste('Tree_',output.string,'.pdf',sep=''))
-  cat("Plot to file",tmp,"...\n")
+  if (verbose) cat("Plot to file",tmp,"...\n")
   ggsave(tmp, device="pdf", height = pdf.hm*length(tree$tip.label), width = pdf.w, limitsize = F)
   
   tmp <- file.path(output.dir, paste('ProcessedTree_',mode,'_',output.string, tree.fe,sep=''))
-  cat("Writing rerooted, multifurcating, annotated tree to file",tmp,"...\n")	
+  if (verbose) cat("Writing rerooted, multifurcating, annotated tree to file",tmp,"...\n")	
   write.ann.nexus(tree, file=tmp, annotations = c("INDIVIDUAL", "SPLIT"))
   
   #
@@ -421,7 +423,7 @@ for(i in file.details){
   #
   
   tmp 				<- file.path(output.dir, paste('subgraphs_',mode,'_',output.string,csv.fe,sep=''))
-  cat("Writing output to file",tmp,"...\n")	
+  if (verbose) cat("Writing output to file",tmp,"...\n")	
   write.csv(rs.subgraphs, file=tmp, row.names = F, quote=F)	
   
 }
