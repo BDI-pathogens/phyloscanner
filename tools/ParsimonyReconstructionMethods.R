@@ -609,7 +609,7 @@ child.min.cost <- function(child.index, patients, top.patient.no, current.matrix
   
   scores <- rep(Inf, length(patients))
   
-  finite.scores <- c(top.patient.no, which(patients=="unsampled"), which(is.finite(individual.costs[child.index,])))
+  finite.scores <- unique(c(top.patient.no, which(patients=="unsampled"), which(is.finite(individual.costs[child.index,]))))
   finite.scores <- finite.scores[order(finite.scores)]
   
   scores[finite.scores] <- vapply(finite.scores, function(x) child.cost(child.index, patients, top.patient.no, x, current.matrix, individual.costs, penalty, k), 0)
