@@ -303,7 +303,6 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
       finite.cost[tip, which(patients==pat)] <- TRUE
       current.node <- tip
       repeat{
-        
         current.node <- Ancestors(tree, current.node, type="parent")
         
         if(finite.cost[current.node, which(patients==pat)]){
@@ -341,9 +340,9 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
 #    full.assocs <- reconstruct.fi(tree, getRoot(tree), "unsampled.rt", list(), tip.assocs, patients, cost.matrix, k, penalty, verbose)
     
     if(count.reads){
-      full.assocs <- reconstruct.fi(tree, getRoot(tree), "unsampled", list(), tip.assocs, patients, cost.matrix, k, penalty, tip.regex, zero.threshold, verbose)
+      full.assocs <- reconstruct.fi(tree, getRoot(tree), "unsampled", list(), tip.assocs, patients, cost.matrix, finite.cost, k, penalty, tip.regex, zero.threshold, verbose)
     } else {
-      full.assocs <- reconstruct.fi(tree, getRoot(tree), "unsampled", list(), tip.assocs, patients, cost.matrix, k, penalty, NA, NA, verbose)
+      full.assocs <- reconstruct.fi(tree, getRoot(tree), "unsampled", list(), tip.assocs, patients, cost.matrix, finite.cost, k, penalty, NA, NA, verbose)
     }
     
     temp.ca <- rep(NA, length(tree$tip.label) + tree$Nnode)
@@ -832,7 +831,7 @@ child.min.cost.fi <- function(tree, child.index, top.patient.no, patients, curre
   
   scores <- rep(Inf, length(patients))
   
-  finite.scores <- c(top.patient.no, which(patients=="unsampled"), which(finite.costs[child.index,]))
+  finite.scores <- unique(c(top.patient.no, which(patients=="unsampled"), which(finite.costs[child.index,])))
   finite.scores <- finite.scores[order(finite.scores)]
   
   scores[finite.scores] <- vapply(finite.scores, function(x) child.cost.fi(tree, child.index, patients, top.patient.no, x, current.matrix, k, us.penalty, tip.regex, zero.threshold), 0)
@@ -920,7 +919,7 @@ child.cost.fi <- function(tree, child.index, patients, top.patient.no, bottom.pa
   return(out)
 }
 
-reconstruct.fi <- function(tree, node, node.state, node.assocs, tip.assocs, patients, full.cost.matrix, k, penalty, tip.regex = NA, zero.threshold = NA, verbose=F){
+reconstruct.fi <- function(tree, node, node.state, node.assocs, tip.assocs, patients, full.cost.matrix, finite.costs, k, penalty, tip.regex = NA, zero.threshold = NA, verbose=F){
   node.assocs[[node]] <- node.state
   if(verbose){
     cat("Node ",node," reconstructed as ",node.state,"\n", sep="")
@@ -934,23 +933,25 @@ reconstruct.fi <- function(tree, node, node.state, node.assocs, tip.assocs, pati
     for(child in Children(tree, node)){
       bl <- get.edge.length(tree, child)
       if(is.tip(tree, child)) tip.label <- tree$tip.label[child] else tip.label <- NA
-      costs <- vapply(seq(1, length(patients)), function(x) calc.costs.fi(x, patients, node.state, child, bl, full.cost.matrix, k, penalty, tip.label, tip.regex, zero.threshold), 0)
-      min.cost <- min(costs)
+      costs <- rep(Inf, length(patients))
+      costs.that.are.finite <- unique(c(which(patients=="unsampled"), node.state, which(finite.costs[child,])))
       
+      costs[costs.that.are.finite] <- vapply(costs.that.are.finite, function(x) calc.costs.fi(x, patients, node.state, child, bl, full.cost.matrix, k, penalty, tip.label, tip.regex, zero.threshold), 0)
+      min.cost <- min(costs)
       if(length(which(costs == min.cost))==1){
         decision <- patients[which(costs == min.cost)]
         if(verbose){
           cat("Single minimum cost belongs to ", decision, "\n", sep="")
         }
       } else {
-        cat("Tie at node",child,"between",patients[which(costs == min.cost)],", broken randomly\n", sep=" ")
+        cat("Tie at node",child,"between",cat(patients[which(costs == min.cost)],sep=" "),", broken randomly\n", sep=" ")
         choices <- which(costs == min.cost)
         choice <- choices[sample.int(length(choices), 1)]
         
         decision <- patients[choice]
         
       }
-      node.assocs <- reconstruct.fi(tree, child, decision, node.assocs, tip.assocs, patients, full.cost.matrix, k, penalty, tip.regex, zero.threshold, verbose)
+      node.assocs <- reconstruct.fi(tree, child, decision, node.assocs, tip.assocs, patients, full.cost.matrix, finite.costs, k, penalty, tip.regex, zero.threshold, verbose)
     }
   }
   return(node.assocs)
