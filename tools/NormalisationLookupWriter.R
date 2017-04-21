@@ -29,7 +29,7 @@ w.regex	<- "^\\D*([0-9]+)_to_([0-9]+).*$"
 #	load reference table
 #	and define normalising constant
 #	then define midpoints of windows
-cat('\Loading normalising constants reference file ', norm.file.name)
+cat('Loading normalising constants reference file ', norm.file.name, "\n")
 if(grepl('csv$',norm.file.name))
 	norm.table	<- as.data.table(read.csv(norm.file.name, stringsAsFactors=FALSE))
 if(grepl('rda$',norm.file.name))
@@ -45,7 +45,7 @@ norm.table[, W_MID:= (W_FROM+W_TO)/2]
 if(norm.standardize)
 {
 	#790 - 3385
-	cat('\nstandardise normalising constants to 1 on the gag+pol ( prot + first part of RT in total 1300bp pol ) region')
+	cat('Standardising normalising constants to 1 on the gag+pol (prot + first part of RT in total 1300bp pol) region\n')
 	tmp		<- subset(norm.table, W_MID>=790L & W_MID<=3385L)
 	stopifnot( nrow(tmp)>0 )	# norm.table must contain gag+pol region	
 	tmp		<- tmp[, mean(NORM_CONST)]
@@ -54,7 +54,7 @@ if(norm.standardize)
 }
 norm.table	<- subset(norm.table, select=c(W_MID, NORM_CONST))
 #	guess window coordinates of tree files from file name
-cat('\nread tree files starting with', tree.file.root)
+cat('Reading tree files starting with ', tree.file.root, "\n")
 wdf		<- list.files.mod(dirname(tree.file.root), pattern=paste('^',basename(tree.file.root),'.*\\.tree$',sep=''), full.names=FALSE)
 stopifnot( length(wdf)>0 )	# expect some tree files
 wdf		<- data.table(F=sort(wdf))
@@ -71,5 +71,5 @@ tmp		<- wdf[, {
 wdf		<- merge(wdf, tmp, by=c('W_FROM','W_TO'))
 wdf		<- subset(wdf, select=c('F','NORM_CONST'))
 #	write to file
-cat('\nwrite normalising constants to file', output.file.name,'\n')
+cat('Writing normalising constants to file ', output.file.name,'\n')
 write.table(wdf, output.file.name, quote=FALSE, col.names=FALSE, row.names=FALSE, sep=",")
