@@ -934,7 +934,7 @@ reconstruct.fi <- function(tree, node, node.state, node.assocs, tip.assocs, pati
       bl <- get.edge.length(tree, child)
       if(is.tip(tree, child)) tip.label <- tree$tip.label[child] else tip.label <- NA
       costs <- rep(Inf, length(patients))
-      costs.that.are.finite <- unique(c(which(patients=="unsampled"), node.state, which(finite.costs[child,])))
+      costs.that.are.finite <- unique(c(which(patients=="unsampled"), which(patients==node.state), which(finite.costs[child,])))
       
       costs[costs.that.are.finite] <- vapply(costs.that.are.finite, function(x) calc.costs.fi(x, patients, node.state, child, bl, full.cost.matrix, k, penalty, tip.label, tip.regex, zero.threshold), 0)
       min.cost <- min(costs)
