@@ -851,7 +851,11 @@ child.cost.fi <- function(tree, child.index, patients, top.patient.no, bottom.pa
     } else {
       if(!is.na(zero.threshold) & is.tip(tree,child.index)){
         if(bl < zero.threshold){
-          out <- out + ((1/k)-us.penalty)*read.count.from.label(tree$tip.label[child.index], tip.regex)
+          read.count <- read.count.from.label(tree$tip.label[child.index], tip.regex)
+          # references etc will have no read count
+          if(is.na(read.count)) read.count <- 1
+          out <- out + ((1/k)-us.penalty)*read.count
+          cat(out,"\n")
         } else {
           out <- out + ((1/k)-us.penalty)
         }
@@ -865,7 +869,10 @@ child.cost.fi <- function(tree, child.index, patients, top.patient.no, bottom.pa
     } else if(top.patient.no == bottom.patient.no){
       if(!is.na(zero.threshold) & is.tip(tree,child.index)){
         if(bl < zero.threshold){
-          out <- out + bl*read.count.from.label(tree$tip.label[child.index], tip.regex)
+          read.count <- read.count.from.label(tree$tip.label[child.index], tip.regex)
+          # references etc will have no read count
+          if(is.na(read.count)) read.count <- 1
+          out <- out + bl*read.count
         } else {
           out <- out + bl
         }
@@ -875,7 +882,10 @@ child.cost.fi <- function(tree, child.index, patients, top.patient.no, bottom.pa
     } else {
       if(!is.na(zero.threshold) & is.tip(tree,child.index)){
         if(bl < zero.threshold){
-          out <- out + ((1/k)-us.penalty)*read.count.from.label(tree$tip.label[child.index], tip.regex)
+          read.count <- read.count.from.label(tree$tip.label[child.index], tip.regex)
+          # references etc will have no read count
+          if(is.na(read.count)) read.count <- 1
+          out <- out + ((1/k)-us.penalty)*read.count
         } else {
           out <- out + ((1/k)-us.penalty)
         }
@@ -967,7 +977,10 @@ calc.costs.fi <- function(patient.no, patients, node.state, child.node, bl, full
     } else {
       if(!is.na(tip.label) & !is.na(zero.threshold)){
         if(bl<zero.threshold){
-          out <- out + ((1/k)-penalty) * read.count.from.label(tip.label, tip.regex)
+          read.count <- read.count.from.label(tip.label, tip.regex)
+          # references etc will have no read count
+          if(is.na(read.count)) read.count <- 1
+          out <- out + ((1/k)-penalty) * read.count
         } else {
           out <- out + ((1/k)-penalty)
         }
@@ -981,7 +994,10 @@ calc.costs.fi <- function(patient.no, patients, node.state, child.node, bl, full
     } else if(patient == node.state){
       if(!is.na(tip.label) & !is.na(zero.threshold)){
         if(bl<zero.threshold){
-          out <- out + bl * read.count.from.label(tip.label, tip.regex)
+          read.count <- read.count.from.label(tip.label, tip.regex)
+          # references etc will have no read count
+          if(is.na(read.count)) read.count <- 1
+          out <- out + bl * read.count
         } else {
           out <- out + bl
         }
@@ -991,7 +1007,10 @@ calc.costs.fi <- function(patient.no, patients, node.state, child.node, bl, full
     } else {
       if(!is.na(tip.label) & !is.na(zero.threshold)){
         if(bl<zero.threshold){
-          out <- out + ((1/k)-penalty) * read.count.from.label(tip.label, tip.regex)
+          read.count <- read.count.from.label(tip.label, tip.regex)
+          # references etc will have no read count
+          if(is.na(read.count)) read.count <- 1
+          out <- out + ((1/k)-penalty) * read.count
         } else {
           out <- out + ((1/k)-penalty)
         }

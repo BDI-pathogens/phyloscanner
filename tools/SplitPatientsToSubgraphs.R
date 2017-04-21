@@ -193,10 +193,9 @@ split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 
   if(use.m.thresh){
     if(is.na(m.thresh)){
       min.bl <- min(tree$edge.length)
-      tree <- di2multi(tree, tol = min.bl*1.001)
-    } else {
-      tree <- di2multi(tree, tol = m.thresh)
-    }
+      m.thresh <- min.bl*1.001
+    } 
+    tree <- di2multi(tree, tol = m.thresh)
   }
   
   if(!is.null(root.name)){
@@ -257,7 +256,7 @@ split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 
   
   # Do the main function
   
-  results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, sankhoff.p, root.name, ties.rule, m.thresh, useff = useff, count.reads, verbose=FALSE)
+  results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, sankhoff.p, root.name, ties.rule, m.thresh, useff = useff, count.reads, verbose=F)
   
   # Where to put the node shapes that display subgraph MRCAs
   
