@@ -48,7 +48,7 @@ if(command.line){
   
   if(!is.null(tree.prefix)){
     tree.files	<- list.files.mod(dirname(tree.prefix), pattern=paste0('^',basename(tree.prefix)), full.names=TRUE)
-    cat('Found tree files to determine total windows present per patient, n=', nrow(tree.files), "\n", sep="")
+    if (verbose) cat('Found tree files to determine total windows present per patient, n=', nrow(tree.files), "\n", sep="")
   }  
   
   suffixes	<- substr(dual.files, nchar(duals.prefix)+1, nchar(dual.files))
@@ -98,7 +98,7 @@ if(length(suffixes)>0){
     file.name <- file.details[[suffix]]$dual.input
     
     if(file.size(file.name) == 0){
-      cat('Skipping file ',file.name,' as it is empty\n', sep="")
+      if (verbose) cat('Skipping file ',file.name,' as it is empty\n', sep="")
     } else {
       if(verbose) cat('Reading file',file.name,'\n')
       dual.file <- as.data.table(read.csv(file.name, stringsAsFactors = FALSE))	
@@ -132,7 +132,7 @@ if(!is.null(existing.bl.prefix)){
   for(suffix in suffixes){
     tmp	<- file.details[[suffix]]$blacklist.input
     if(file.exists(tmp) & file.size(tmp)>0){
-      cat('Copying existing blacklist to ',file.details[[suffix]]$blacklist.output,"\n",sep="")
+      if (verbose) cat('Copying existing blacklist to ',file.details[[suffix]]$blacklist.output,"\n",sep="")
       file.copy(tmp, file.details[[suffix]]$blacklist.output )
     }
   }
@@ -209,7 +209,7 @@ output <- sapply(pat.vector, blacklist.reads.for.patient)
 fully.blacklisted <- pat.vector[which(output)]
 
 if(length(fully.blacklisted)>0){
-  cat("Blacklisting excluded patients from all tree files...\n")
+  if (verbose) cat("Blacklisting excluded patients from all tree files...\n")
   for(suffix in suffixes){
     tip.names <- tree.tips[[suffix]]
     tip.patients <- sapply(tip.names, function(x) patient.from.label(x, tip.regex))

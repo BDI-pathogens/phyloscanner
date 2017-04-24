@@ -1,7 +1,7 @@
 split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, method="r", k=NA, penalty = 0, outgroup.name = NULL, ties.rule = "c", zero.threshold = NA, useff=F, count.reads = F, verbose=F){
   if (method == "r") {
     
-    cat("Applying the Romero-Severson parsimony classification to internal nodes...\n")
+    if (verbose) cat("Applying the Romero-Severson parsimony classification to internal nodes...\n")
     
     tip.assocs <- annotate.tips(tree, patients, patient.tips)
     
@@ -13,7 +13,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     
     new.assocs <- classify.down(getRoot(tree), tree, tip.assocs, list(), patient.mrcas)
     
-    cat("Filling in stars...\n")
+    if (verbose) cat("Filling in stars...\n")
     
     star.runs <- get.star.runs(tree, new.assocs)
     
@@ -41,7 +41,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     
     # Now the splits. A new split is where you encounter a node with a different association to its parent
     
-    cat("Identifying split patients...\n")
+    if (verbose) cat("Identifying split patients...\n")
     
     splits.count <- rep(0, length(patients))
     first.nodes <- list()
@@ -110,7 +110,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
       stop("k must be specified for Sankhoff reconstruction")
     }
     
-    cat("Reconstructing internal node hosts with the Sankhoff algorithm...\n")
+    if (verbose) cat("Reconstructing internal node hosts with the Sankhoff algorithm...\n")
     
     non.patient.tips <- which(is.na(sapply(tree$tip.label, function(name) patient.from.label(name, tip.regex))))
     patient.ids <- sapply(tree$tip.label, function(x) patient.from.label(x, tip.regex))
@@ -128,7 +128,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     
     tip.assocs <- annotate.tips(tree, patients, patient.tips)
     
-    cat("Calculating node costs...\n")
+    if (verbose) cat("Calculating node costs...\n")
     
     # This matrix is the cost of an infection for a given patient along the branch ENDING in a given
     # node. This is the distance from the START of the branch (could make it halfway at a later point) 
@@ -192,7 +192,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     # The rows of the cost matrix are nodes. The columns are patients; the last column is the unsampled
     # state
     
-    cat("Building full cost matrix...\n")
+    if (verbose) cat("Building full cost matrix...\n")
     
     if(useff){
       cost.matrix <- ff(NA, dim=c(length(tree$tip.label) + tree$Nnode, length(patients)), vmode = "single")
@@ -202,7 +202,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     
     cost.matrix <- make.cost.matrix(getRoot(tree), tree, patients, tip.assocs, individual.costs, penalties, cost.matrix, k)
     
-    cat("Reconstructing...\n")
+    if (verbose) cat("Reconstructing...\n")
     
     full.assocs <- reconstruct(tree, getRoot(tree), "unsampled", list(), tip.assocs, patients, cost.matrix, individual.costs, k, ties.rule, verbose)
     
@@ -220,7 +220,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     
     actual.patients <- patients[which(patients!="unsampled")]
     
-    cat("Identifying split patients...\n")
+    if (verbose) cat("Identifying split patients...\n")
     
     splits.count <- rep(0, length(actual.patients))
     first.nodes <- list()
@@ -320,7 +320,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     # finite.cost[,which(patients=="unsampled.rt")] <- TRUE
     finite.cost[,which(patients=="unsampled")] <- TRUE
     
-    cat("Building full cost matrix...\n")
+    if (verbose) cat("Building full cost matrix...\n")
     
     if(useff){
       cost.matrix <- ff(NA, dim=c(length(tree$tip.label) + tree$Nnode, length(patients)), vmode = "single")
@@ -335,7 +335,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     }
     
     
-    cat("Reconstructing...\n")
+    if (verbose) cat("Reconstructing...\n")
     
 #    full.assocs <- reconstruct.fi(tree, getRoot(tree), "unsampled.rt", list(), tip.assocs, patients, cost.matrix, k, penalty, verbose)
     
@@ -360,7 +360,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
 #    actual.patients <- patients[which(!(patients %in% c("unsampled.rt", "unsampled.int")))]
     actual.patients <- patients[which(!(patients %in% c("unsampled")))]
     
-    cat("Identifying split patients...\n")
+    if (verbose) cat("Identifying split patients...\n")
     
     splits.count <- rep(0, length(actual.patients))
     first.nodes <- list()
@@ -592,7 +592,7 @@ make.cost.matrix <- function(node, tree, patients, tip.assocs, individual.costs,
     cat("\n")  
   }
   if(length(which(!is.na(current.matrix[,1]))) %% 100 == 0){
-    cat(length(which(!is.na(current.matrix[,1]))), " of ", nrow(current.matrix), " matrix rows calculated.\n", sep="")
+    if (verbose) cat(length(which(!is.na(current.matrix[,1]))), " of ", nrow(current.matrix), " matrix rows calculated.\n", sep="")
   }
   
   return(current.matrix)
@@ -810,7 +810,7 @@ make.cost.matrix.fi <- function(node, tree, patients, tip.assocs, current.matrix
     cat("\n")  
   }
   if(length(which(!is.na(current.matrix[,1]))) %% 100 == 0){
-    cat(length(which(!is.na(current.matrix[,1]))), " of ", nrow(current.matrix), " matrix rows calculated.\n", sep="")
+    if (verbose) cat(length(which(!is.na(current.matrix[,1]))), " of ", nrow(current.matrix), " matrix rows calculated.\n", sep="")
   }
   
   return(current.matrix)

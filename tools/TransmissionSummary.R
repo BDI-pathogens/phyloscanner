@@ -22,11 +22,13 @@ if(command.line){
   arg_parser$add_argument("inputFiles", action="store", help="Either (if -l is present) a list of all input files (output from ClassifyRelationships.R), separated by colons, or (if not) a single string that begins every input file name.")
   arg_parser$add_argument("outputFile", action="store", help="A .csv file to write the output to.")
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
+  arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what I'm doing.")
   args <- arg_parser$parse_args()
   summary.file <- args$summaryFile
   id.file <- args$idFile
   output.file <- args$outputFile
   script.dir <- args$scriptdir  
+  verbose <- args$verbose
   min.threshold <- as.numeric(args$minThreshold)
   dist.threshold <- as.numeric(args$distanceThreshold)
   if(dist.threshold==-1){
@@ -116,7 +118,7 @@ suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
 #
 reads.table	<- NULL		# can replace prev give.denom by is.null(reads.table)
 if(!is.null(summary.file)){
- 	cat("Getting window counts per patient from ",summary.file,"...\n", sep="")
+ 	if (verbose) cat("Getting window counts per patient from ",summary.file,"...\n", sep="")
 	reads.table 	<- read.csv(summary.file, stringsAsFactors = F)
   required.columns <- c("file.suffix", "id", "reads", "tips")
   missing.columns <-
@@ -141,7 +143,7 @@ if(!length(patient.ids))
 # Read classification files
 #
 tt	<-	lapply(input.files, function(x){
-      cat("Reading window input file ",x,"\n", sep="")
+      if (verbose) cat("Reading window input file ",x,"\n", sep="")
 			tt <- as.data.table(read.table(x, sep=",", header=TRUE, stringsAsFactors=FALSE))
 			tt[, SUFFIX:=get.suffix(x, input.file.name, csv.fe)]			
 			tt
@@ -234,11 +236,11 @@ setnames(tt, colnames(tt),toupper(colnames(tt)))
 #	write to file
 if(!is.null(detailed.output))
 {	
- 	cat("Save detailed per window table:",detailed.output)
+ 	if (verbose) cat("Save detailed per window table:",detailed.output)
  	save(tt, file=gsub('\\.csv','\\.rda',detailed.output))
 }
 
-cat("Making summary output table...\n")
+if (verbose) cat("Making summary output table...\n")
 set(tt, NULL, c('PAT.1_TIPS','PAT.1_READS','PAT.2_TIPS','PAT.2_READS','PATHS.12','PATHS.21'),NULL)
 #set(tt, NULL, c('PATHS.12','PATHS.21'),NULL)
 
@@ -286,6 +288,6 @@ tt.close <- tt.close[!duplicated(tt.close),]
 #	write to file
 setkey(tt.close, PAT.1, PAT.2, TYPE)
 #
-cat('Writing summary to file',output.file,'\n')
+if (verbose) cat('Writing summary to file',output.file,'\n')
 write.csv(subset(tt.close, all.windows>=min.threshold), file=output.file, row.names=FALSE, quote=FALSE)
 

@@ -24,6 +24,7 @@ if(command.line){
   arg_parser$add_argument("splitsFileName", action="store", help="Splits file name. Alternatively, a base name that identifies a group of split file.")
   arg_parser$add_argument("outputFileName", action="store", help="A path and root character string identifiying all output files.")
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
+  arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what I'm doing.")
   args <- arg_parser$parse_args()
   
   tree.file.name<- args$treeFileName
@@ -33,6 +34,7 @@ if(command.line){
   output.root <- args$outputFileName
   has.normalisation <- !is.null(args$branchLengthNormalisation)
   normalisation.argument <- args$branchLengthNormalisation
+  verbose <- args$verbose
   
 } else {
   script.dir <- "/Users/mdhall/phylotypes/tools"
@@ -97,22 +99,26 @@ source(file.path(script.dir, "GeneralFunctions.R"))
 #	define internal functions
 #
 classify <- function(tree.file.name, splits.file.name, normalisation.constant = 1, tt.file.name = NULL) {	
-  cat("Reading tree file ", tree.file.name, "...\n", sep = "")
+  if (verbose) cat("Reading tree file ", tree.file.name, "...\n", sep = "")
   
   pseudo.beast.import <- read.beast(tree.file.name)
   tree <- attr(pseudo.beast.import, "phylo")
   
-  cat("Reading splits file",splits.file.name,"...\n")
+  if (verbose) cat("Reading splits file",splits.file.name,"...\n")
   
   splits <- read.csv(splits.file.name, stringsAsFactors = F)
 
-  cat("Collecting tips for each patient...\n")
+  # this should go eventually
+  
+  colnames(splits) <- c("patient", "subgraph", "split")
+  
+  if (verbose) cat("Collecting tips for each patient...\n")
   
   patients <- unique(splits$patient)
 
   all.splits <- unique(splits$subgraph)
   
-  cat("Reading annotations...\n")
+  if (verbose) cat("Reading annotations...\n")
   
   annotations <- attr(pseudo.beast.import, "stats")
   annotations$INDIVIDUAL <- sapply(as.character(annotations$INDIVIDUAL), function(x) substr(x, 2, nchar(x)-1))
@@ -133,15 +139,15 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
   
   total.pairs <- (length(patients.included) ^ 2 - length(patients.included))/2
   
-  cat("Collapsing subtrees...\n")
+  if (verbose) cat("Collapsing subtrees...\n")
   
   tt <- output.trans.tree(tree, assocs, tt.file.name)
   
-  cat("Identifying pairs of unblocked splits...\n")
+  if (verbose) cat("Identifying pairs of unblocked splits...\n")
   
   collapsed.adjacent <- subtrees.unblocked(tt, all.splits)
   
-  cat("Calculating pairwise distances between splits...\n")
+  if (verbose) cat("Calculating pairwise distances between splits...\n")
   
   split.distances <- tryCatch(
     all.subtree.distances(tree, tt, all.splits, assocs), warning=function(w){return(NULL)}, error=function(e){return(NULL)})
@@ -150,7 +156,7 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
     split.distances <- all.subtree.distances(tree, tt, all.splits, assocs, TRUE)
   }
 
-  cat("Testing pairs...\n")
+  if (verbose) cat("Testing pairs...\n")
   
   count <- 0
   adjacency.matrix <- matrix(NA, length(patients.included), length(patients.included))
@@ -237,7 +243,7 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
         
         
         if (count %% 100 == 0) {
-          cat(paste("Done ",format(count, scientific = F)," of ",format(total.pairs, scientific = F)," pairwise calculations\n", sep = ""))
+          if (verbose) cat(paste("Done ",format(count, scientific = F)," of ",format(total.pairs, scientific = F)," pairwise calculations\n", sep = ""))
         }
       }
     }
@@ -423,6 +429,6 @@ for(i in 1:length(tree.file.names)){
   } else {
     dddf <- classify(tree.file.names[i], splits.file.names[i], normalisation.constants[i])
   }
-  cat("Writing to file",output.file.names[i],"...\n")
+  if (verbose) cat("Writing to file",output.file.names[i],"...\n")
   write.table(dddf, file = output.file.names[i], sep = ",", row.names = FALSE, col.names = TRUE, quote=F)	
 } 
