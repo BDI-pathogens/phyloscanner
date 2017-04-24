@@ -426,7 +426,7 @@ calc.all.stats.in.window <- function(suffix, verbose = F){
   }
   
   # Read the tree
-  
+
   pseudo.beast.import <- read.beast(tree.file.name)
   tree <- attr(pseudo.beast.import, "phylo")
   
