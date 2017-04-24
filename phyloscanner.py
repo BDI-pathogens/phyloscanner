@@ -113,10 +113,12 @@ integer is the width you want windows to be, weighting each column in the
 alignment of bam file references (plus any extra references included) by its
 non-gap fraction (so that windows become wider to accommodate insertions). The
 second is the overlap between the end of one window and the start of the next
-(which can be negative, implying unused space in between windows). The optional
-third integer is the start position for the first window (by default, 1). The
-optional fourth integer is the end position for the last window (by default,
-windows will continue up to the end of the alignment of references).''')
+(which can be negative, implying unused space in between windows; the
+recommended value of 0 means each window starts right after the previous one
+ends). The optional third integer is the start position for the first window
+(by default, 1). The optional fourth integer is the end position for the last
+window (by default, windows will continue up to the end of the alignment of
+references).''')
 WindowArgs.add_argument('-E', '--explore-window-widths',
 type=CommaSeparatedInts, help='''Use this option to explore how the number of
 unique reads found in each bam file in each window, all along the genome,
