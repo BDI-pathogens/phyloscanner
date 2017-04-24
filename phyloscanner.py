@@ -122,16 +122,11 @@ type=CommaSeparatedInts, help='''Use this option to explore how the number of
 unique reads found in each bam file in each window, all along the genome,
 depends on the window width. After this option specify a comma-separated list of
 integers. The first integer is the starting point for stepping along the genome,
-in case you're not interested in the very beginning. The second integer is the
-width spanned by two neighbouring windows; this sets the overlap for each window
-width though the equation (width of two windows) = 2x(window width) - (overlap
-between windows), with negative overlap understood to mean space between the end
-of one window and the start of the next. Subsequent integers are window widths
-to try. For example, if you specified 1000,301,101,151,201 we would count the
-number of unique reads in windows 1000-1100, 1200-1300, 1400-1500, ... and in
-1000-1150, 1150-1300, 1300-1450 ... and in 1000-1200, 1100-1300, 1200-1400, ...
-where the dots denote continuation to the end of the genome. (Note that both end
-coordinates of the window are included, hence why 1000-1100 has width 101.)
+in case you're not interested in the very beginning. Subsequent integers are
+window widths to try. For example, if you specified 1000,100,150,200 we would
+count the number of unique reads in windows 1000-1099, 1100-1199, 1200-1299, ...
+and in 1000-1149, 1150-1299, 1300-1449 ... and in 1000-1199, 1200-1399,
+1400-1599, ... where the dots denote continuation to the end of the genome.
 Output is written to the file specified with the --explore-window-width-file
 option.''')
 WindowArgs.add_argument('-EF', '--explore-window-width-file', help='Used to '
@@ -589,13 +584,13 @@ if ExploreWindowWidths:
     "it a file inside a directory that doesn't exist?). Quitting.",
     file=sys.stderr)
     raise
-  if len(args.explore_window_widths) < 3:
+  if len(args.explore_window_widths) < 2:
     print('The --explore-window-widths option should be used to specify at',
-    'least three parameters; use the --help option for more information.',
+    'least two parameters; use the --help option for more information.',
     'Quitting.', file=sys.stderr)
     exit(1)
-  ExploreStart, ExploreTwoWindowWidth = args.explore_window_widths[:2]
-  ExploreWidths = args.explore_window_widths[2:]
+  ExploreStart = args.explore_window_widths[0]
+  ExploreWidths = args.explore_window_widths[1:]
   if ExploreStart < 1:
     print('The start point for windows when exploring window widths (the '+\
     'first integer specified with --explore-window-widths) cannot be less '+\
@@ -608,16 +603,12 @@ if ExploreWindowWidths:
     'should be greater than 1. Quitting.', file=sys.stderr)
     exit(1)
   MaxExploreWidth = ExploreWidths[-1]
-  if ExploreTwoWindowWidth <= MaxExploreWidth:
-    print('The two-window width specified with --explore-window-widths should'+\
-    ' be greater than any of the window widths. Quitting.', file=sys.stderr)
-    exit(1)
   WindowWidthExplorationData = []
   CheckDuplicates = False
 
 def FindExploratoryWindows(EndPoint):
   '''Returns the set of coordinates needed to step across the genome with the
-  desired start, end, window width and window overlap.'''
+  desired start, end and window width.'''
   # The EndPoint argument should be:
   # * the ref length if --ref-for-coords or --pairwise-align-to is used
   # * the length of the mapping ref if there's only one bam and no extra refs
@@ -637,8 +628,8 @@ def FindExploratoryWindows(EndPoint):
     NextEnd = ExploreStart + width - 1
     while NextEnd <= EndPoint:
       ExploratoryCoords += [NextStart, NextEnd]
-      NextStart += ExploreTwoWindowWidth - width
-      NextEnd = NextStart + width - 1
+      NextStart += width
+      NextEnd += width
   return ExploratoryCoords
 
 # Record the names of any external refs being included.
