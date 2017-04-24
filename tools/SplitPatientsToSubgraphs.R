@@ -25,6 +25,7 @@ if(command.line){
   arg_parser$add_argument("-s", "--splitsRule", action="store", default="r", help="The rules by which the sets of patients are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. Currently available: s=Sankhoff (slow, rigorous), r=Romero-Severson (quick, less rigorous with >2 patients).")
   arg_parser$add_argument("-b", "--blacklist", action="store", help="A .csv file listing tips to ignore. Alternatively, a base name that identifies blacklist files. Blacklist files are assumed to end in .csv.")
   arg_parser$add_argument("-k", "--kParam", action="store", default=0, help="The k parameter in the cost matrix for Sankhoff reconstruction (see documentation)")
+  arg_parser$add_argument("-P", "--pruneBlacklist", action="store_true", help="If present, all blacklisted and references tips (except the outgroup) are pruned away before starting.")
   arg_parser$add_argument("-p", "--nonancestryPenalty", action="store", default=0)
   arg_parser$add_argument("-R", "--readCountsMatterOnZeroBranches", default = FALSE, action="store_true")
   arg_parser$add_argument("-t", "--tiesRule", action="store", default="c", help="Sankhoff reconstruction only - determines whether ties of zero cost in the parsimony reconstruction will be reconstructed as a continued lineage in a single patient or a transition to the unsampled state. Options: u=always unsampled, c=always continue, b=branch-length based (see documentation)")
@@ -51,7 +52,6 @@ if(command.line){
   
   tree.file.name <- args$inputFile
 
-  
   sankhoff.k <- as.numeric(args$kParam)
   sankhoff.p <- as.numeric(args$nonancestryPenalty)
   output.file.ID <- args$outputFileID
@@ -64,6 +64,8 @@ if(command.line){
   } else {
     output.dir <- getwd()
   }
+  
+  prune.blacklist <- args$pruneBlacklist
   
   use.m.thresh <- !is.null(args$multifurcationThreshold)
   if(use.m.thresh){
@@ -184,7 +186,10 @@ if(command.line){
 #
 #	define internal functions
 #
-split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 1, mode, blacklist.file, root.name, tip.regex, sankhoff.k, sankhoff.p, ties.rule, useff, count.reads){
+split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 1, mode, 
+                                       blacklist.file, root.name, tip.regex, sankhoff.k, 
+                                       sankhoff.p, useff, count.reads){
+  
   if (verbose) cat("SplitPatientsToSubgraphs.R run on: ", tree.file.name,", rules = ",mode,"\n", sep="")
   
   # Read, root and multifurcate the tree
@@ -204,12 +209,6 @@ split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 
     tree <- root(tree, outgroup = which(tree$tip.label==root.name), resolve.root = T)
   }
   
-  orig.tree <- tree
-  
-  tree$edge.length <- tree$edge.length/normalisation.constant
-  
-  tip.labels <- tree$tip.label
-  
   # Load the blacklist if it exists
   
   blacklist <- vector()
@@ -225,6 +224,25 @@ split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 
       cat("WARNING: File ",blacklist.file," does not exist; skipping.",sep="")
     }
   } 
+  
+  if(prune.blacklist){
+    non.patient.tips <- which(is.na(sapply(tree$tip.label, function(name) patient.from.label(name, tip.regex))))
+    outgroup <- which(tree$tip.label==root.name)
+    tips.to.go <- c(non.patient.tips, blacklist)
+    tips.to.go <- setdiff(tips.to.go, outgroup)
+    
+    tree <- drop.tip(tree, tips.to.go)
+    
+    # clear the blacklist
+    
+    blacklist <- vector()
+  }
+  
+  orig.tree <- tree
+  
+  tree$edge.length <- tree$edge.length/normalisation.constant
+  
+  tip.labels <- tree$tip.label
   
   if (verbose) cat("Identifying tips with patients...\n")
   
@@ -249,7 +267,7 @@ split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 
   
   # patient.tips is a list of tips that belong to each patient
   
-  patient.tips <- lapply(patients, function(x)  setdiff(which(patient.ids==x), blacklist))
+  patient.tips <- lapply(patients, function(x) setdiff(which(patient.ids==x), blacklist))
   names(patient.tips) <- patients
   
   # patient.mrcas is a list of MRCA nodes for each patient
@@ -258,7 +276,7 @@ split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 
   
   # Do the main function
   
-  results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, sankhoff.p, root.name, ties.rule, m.thresh, useff = useff, count.reads, verbose=F)
+  results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, sankhoff.p, root.name, ties.rule, m.thresh, useff = useff, count.reads, verbose)
   
   # Where to put the node shapes that display subgraph MRCAs
   
@@ -384,7 +402,7 @@ for(i in file.details){
   }
   output.string <- i$output.ID 
   
-  tmp					<- split.patients.to.subgraphs(tree.file.name, i$normalisation.constant, mode, blacklist.file, root.name, tip.regex, sankhoff.k, sankhoff.p, ties.rule, useff, read.counts.matter)
+  tmp					<- split.patients.to.subgraphs(tree.file.name, i$normalisation.constant, mode, blacklist.file, root.name, tip.regex, sankhoff.k, sankhoff.p, useff, read.counts.matter)
   tree				<- tmp[['tree']]	
   rs.subgraphs			<- tmp[['rs.subgraphs']]
   #
