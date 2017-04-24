@@ -38,9 +38,9 @@ if(command.line){
   script.dir <- "/Users/mdhall/phylotypes/tools"
   
   # BEEHIVE example
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/")
-  tree.file.names <- "ProcessedTrees_r/ProcessedTree_r_run20161013_RS_inWindow_6050_to_6400.tree"
-  splits.file.names <- "SubtreeFiles_r/Subtrees_r_run20161013_RS_inWindow_6050_to_6400.csv"
+  setwd("/Users/mdhall/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/")
+  tree.file.names <- "ProcessedTrees_s/ProcessedTree_s_run20161013D_inWindow_800_to_1150.tree"
+  splits.file.names <- "SubtreeFiles_s/Subtrees_s_run20161013D_inWindow_800_to_1150.csv"
   
   output.name <- "outTest.csv"
   collapsed.file.names <- "outCollapsed.csv"
@@ -105,16 +105,11 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
   cat("Reading splits file",splits.file.name,"...\n")
   
   splits <- read.csv(splits.file.name, stringsAsFactors = F)
-  
-  # this should go eventually
-  
-  colnames(splits) <- c("patient", "subgraph", "split")
-  
+
   cat("Collecting tips for each patient...\n")
   
   patients <- unique(splits$patient)
-  patient.tips <- lapply(patients, function(x) which(tree$tip.label %in% splits[which(splits$patient==x), "tip.names"]))
-  names(patient.tips) <- patients
+
   all.splits <- unique(splits$subgraph)
   
   cat("Reading annotations...\n")
@@ -123,16 +118,11 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
   annotations$INDIVIDUAL <- sapply(as.character(annotations$INDIVIDUAL), function(x) substr(x, 2, nchar(x)-1))
   annotations$SPLIT <- sapply(as.character(annotations$SPLIT), function(x) substr(x, 2, nchar(x)-1))
   
-  was.split <- unique(annotations$INDIVIDUAL[which(annotations$SPLIT!=annotations$INDIVIDUAL)])
-  
   in.order <- match(seq(1, length(tree$tip.label) + tree$Nnode), annotations$node)
   
   assocs <- annotations$SPLIT[in.order]
-  assocs.ind <- annotations$INDIVIDUAL[in.order]
-  
   assocs <- lapply(assocs, function(x) replace(x,is.na(x),"none"))
-  assocs.ind <- lapply(assocs.ind, function(x) replace(x,is.na(x),"none"))
-  
+
   splits.for.patients <- lapply(patients, function(x) unique(splits$subgraph[which(splits$patient==x)] ))
   names(splits.for.patients) <- patients
   
@@ -433,6 +423,6 @@ for(i in 1:length(tree.file.names)){
   } else {
     dddf <- classify(tree.file.names[i], splits.file.names[i], normalisation.constants[i])
   }
-  cat("Write to file",output.file.names[i],"...\n")
+  cat("Writing to file",output.file.names[i],"...\n")
   write.table(dddf, file = output.file.names[i], sep = ",", row.names = FALSE, col.names = TRUE, quote=F)	
 } 
