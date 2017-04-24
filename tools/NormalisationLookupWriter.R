@@ -71,5 +71,5 @@ tmp		<- wdf[, {
 wdf		<- merge(wdf, tmp, by=c('W_FROM','W_TO'))
 wdf		<- subset(wdf, select=c('F','NORM_CONST'))
 #	write to file
-cat('Writing normalising constants to file ', output.file.name,'\n')
+cat('Writing normalising constants to file', output.file.name,'\n')
 write.table(wdf, output.file.name, quote=FALSE, col.names=FALSE, row.names=FALSE, sep=",")

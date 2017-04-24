@@ -163,13 +163,13 @@ if(command.line){
   }
   
 } else {
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/")
-  script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
+  setwd("/Users/mdhall/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/Final6MiseqForPaper/trees/")
+  script.dir <- "/Users/mdhall/phylotypes/tools/"
   
-  input.name <- "AllTrees/RAxML_bestTree.InWindow_"
+  input.name <- "RAxML_bestTree.InWindow_4200_to_4519.tree"
   
   #anything already blacklisted
-  blacklist.file.name <- "Blacklists/Amplicon blacklists/AmpliconBlacklist_test_InWindow_"
+  blacklist.file.name <- NULL
   
   root.name <- "C.BW.00.00BW07621.AF443088"
   tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
