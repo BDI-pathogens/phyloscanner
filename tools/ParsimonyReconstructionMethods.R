@@ -140,7 +140,6 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
       individual.costs <- matrix(Inf, ncol=length(patients), nrow=length(tree$tip.label) + tree$Nnode) 
     }
     
-    
     # First, go up the tree and flag which nodes have finite costs for which patients (i.e. those
     # that are ancestral to a tip _from_ that patient)
     
@@ -267,26 +266,20 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     return(list(assocs = split.assocs, split.patients = patients.copy, split.tips = patient.tips.copy, 
                 first.nodes = first.nodes.by.patients))
     
-    
-    
   } else if(method=="f"){
 
     non.patient.tips <- which(is.na(sapply(tree$tip.label, function(name) patient.from.label(name, tip.regex))))
     outgroup <- which(tree$tip.label==outgroup.name)
     patient.ids <- sapply(tree$tip.label, function(x) patient.from.label(x, tip.regex))
     patient.ids[c(non.patient.tips, blacklist)] <- "unsampled"
-    # patient.ids[c(non.patient.tips, blacklist)] <- "unsampled.int"
-    # patient.ids[outgroup] <- "unsampled.rt"
     
     patients <- unique(patient.ids)
-    # patients <- patients[order(patients)]
     
     patient.tips <- lapply(patients, function(x)  which(patient.ids==x))
     names(patient.tips) <- patients
     
     patients <- c(patients, "unsampled")
-    # patients <- c(patients, "unsampled.int")
-    # patients <- c(patients, "unsampled.rt")
+    
     patients <- unique(patients)
     
     tip.assocs <- annotate.tips(tree, patients, patient.tips)
@@ -316,8 +309,6 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
       }
     }
     
-    # finite.cost[,which(patients=="unsampled.int")] <- TRUE
-    # finite.cost[,which(patients=="unsampled.rt")] <- TRUE
     finite.cost[,which(patients=="unsampled")] <- TRUE
     
     if (verbose) cat("Building full cost matrix...\n")
@@ -334,11 +325,8 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
       cost.matrix <- make.cost.matrix.fi(getRoot(tree), tree, patients, tip.assocs, cost.matrix, k, penalty, finite.cost, NA, NA, verbose)
     }
     
-    
     if (verbose) cat("Reconstructing...\n")
-    
-#    full.assocs <- reconstruct.fi(tree, getRoot(tree), "unsampled.rt", list(), tip.assocs, patients, cost.matrix, k, penalty, verbose)
-    
+  
     if(count.reads){
       full.assocs <- reconstruct.fi(tree, getRoot(tree), "unsampled", list(), tip.assocs, patients, cost.matrix, finite.cost, k, penalty, tip.regex, zero.threshold, verbose)
     } else {
@@ -357,7 +345,6 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     
     # Now the splits. A new split is where you encounter a node with a different association to its parent
     
-#    actual.patients <- patients[which(!(patients %in% c("unsampled.rt", "unsampled.int")))]
     actual.patients <- patients[which(!(patients %in% c("unsampled")))]
     
     if (verbose) cat("Identifying split patients...\n")
@@ -1018,34 +1005,6 @@ calc.costs.fi <- function(patient.no, patients, node.state, child.node, bl, full
       }
     }
   }
-  
-  # if(node.state=="unsampled.rt"){
-  #   if(patient=="unsampled.int"){
-  #     out <- Inf
-  #   } else if(patient=="unsampled.rt"){
-  #     out <- out
-  #   } else {
-  #     out <- out + 1
-  #   }
-  # } else if(node.state=="unsampled.int"){
-  #   if(patient=="unsampled.int"){
-  #     out <- out + k*penalty
-  #   } else if(patient=="unsampled.rt"){
-  #     out <- Inf
-  #   } else {
-  #     out <- out + 1
-  #   }
-  # } else {
-  #   if(patient=="unsampled.int"){
-  #     out <- out + k*penalty
-  #   } else if(patient=="unsampled.rt"){
-  #     out <- Inf
-  #   } else if(patient == node.state){
-  #     out <- out + k*bl
-  #   } else {
-  #     out <- out + 1
-  #   }
-  # }
   
   return(out)
 }
