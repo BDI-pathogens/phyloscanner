@@ -26,9 +26,8 @@ if(command.line){
   arg_parser$add_argument("-b", "--blacklist", action="store", help="A .csv file listing tips to ignore. Alternatively, a base name that identifies blacklist files. Blacklist files are assumed to end in .csv.")
   arg_parser$add_argument("-k", "--kParam", action="store", default=0, help="The k parameter in the cost matrix for Sankhoff reconstruction (see documentation)")
   arg_parser$add_argument("-P", "--pruneBlacklist", action="store_true", help="If present, all blacklisted and references tips (except the outgroup) are pruned away before starting.")
-  arg_parser$add_argument("-p", "--nonancestryPenalty", action="store", default=0)
+  arg_parser$add_argument("-p", "--proximityThreshold", action="store", default=0)
   arg_parser$add_argument("-R", "--readCountsMatterOnZeroBranches", default = FALSE, action="store_true")
-  arg_parser$add_argument("-t", "--tiesRule", action="store", default="c", help="Sankhoff reconstruction only - determines whether ties of zero cost in the parsimony reconstruction will be reconstructed as a continued lineage in a single patient or a transition to the unsampled state. Options: u=always unsampled, c=always continue, b=branch-length based (see documentation)")
   arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, short branches in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. If a number, this number will be used as the threshold. If 'g', it will be guessed from the branch lengths (use this only if you've checked by eye that the tree does indeed have multifurcations).")
   arg_parser$add_argument("-n", "--branchLengthNormalisation", default = 1, action="store", help="If present and a number, a normalising constant for all branch lengths in the tree or trees. If present and a file, the path to a .csv file with two columns: tree file name and normalising constant")
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
@@ -53,7 +52,7 @@ if(command.line){
   tree.file.name <- args$inputFile
 
   sankhoff.k <- as.numeric(args$kParam)
-  sankhoff.p <- as.numeric(args$nonancestryPenalty)
+  sankhoff.p <- as.numeric(args$proximityThreshold)
   output.file.ID <- args$outputFileID
   blacklist.file.name <- args$blacklist
   root.name <- args$outgroupName
@@ -101,14 +100,11 @@ if(command.line){
     suppressMessages(library(ff, quietly=TRUE, warn.conflicts=FALSE))
   }
   
-  ties.rule <- args$tiesRule
-  
+
   if(!(mode %in% c("r", "s", "f"))){
     stop(paste("Unknown split classifier: ", mode, "\n", sep=""))
   }
-  if(!(ties.rule %in% c("u", "c", "b"))){
-    stop("Unknown tie-breaking rule")
-  }
+
 
 } else {
   script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
@@ -165,7 +161,6 @@ if(command.line){
   root.name <- NULL
   mode <- "s"
   sankhoff.k <- 10
-  ties.rule <- "c"
   useff  <- F
   
   setwd("/Users/twoseventwo/Documents/Croucher alignments/")
@@ -177,7 +172,6 @@ if(command.line){
   root.name <- NULL
   mode <- "s"
   sankhoff.k <- 10
-  ties.rule <- "c"
   useff  <- F
   
 }
@@ -221,7 +215,7 @@ split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 
         blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
       }
     } else {
-      cat("WARNING: File ",blacklist.file," does not exist; skipping.",sep="")
+      cat("WARNING: File ",blacklist.file," does not exist; skipping.\n",sep="")
     }
   } 
   
@@ -276,7 +270,7 @@ split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 
   
   # Do the main function
   
-  results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, sankhoff.p, root.name, ties.rule, m.thresh, useff = useff, count.reads, verbose)
+  results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, sankhoff.p, root.name, m.thresh, useff = useff, count.reads, verbose)
   
   # Where to put the node shapes that display subgraph MRCAs
   
