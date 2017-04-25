@@ -3,6 +3,11 @@
 set -u
 set -o pipefail
 
+# Temporary workaround: need these two files to exist (including path, i.e.
+# present in the working directory if there is no path)
+NormalisationReference='groupM_reference_trees_grubbs1_stats.csv'
+RawNormalisationLookup='raw_normalisations.csv'
+
 ExpectedNumArgs=2
 if [ "$#" -ne "$ExpectedNumArgs" ]; then
     echo "This script should be run from the command line with"\
@@ -52,20 +57,25 @@ SubgraphsPrefix='subgraphs_'
 SummaryPrefix='summary'
 ClassPrefix='Classification_'
 TransmissionSummary='TransmissionSummary.csv'
-NormalisationReference='groupM_reference_trees_grubbs1_stats.csv'
-RawNormalisationLookup='raw_normalisations.csv'
 ProcessedNormalisationLookup='processed_normalisations.csv'
 ################################################################################
 
-# Install any missing packages
+if [[ ! -f "$NormalisationReference" ]] || [[ ! -f "$RawNormalisationLookup" ]];
+then
+  echo "Error: this script temporarily needs the files $NormalisationReference"\
+  "and $RawNormalisationLookup. Speak to Matthew or Chris if you see this" \
+  "error. Quitting"
+  exit 1
+fi
 
+# Install any missing packages
 Rscript "$ToolsDir"/PackageInstall.R ||
 { echo 'Problem running PackageInstall.R. Quitting.' ; exit 1 ; }
 
 Rscript "$ToolsDir"/NormalisationLookupWriter.R "$TreeDir"/'RAxML_bestTree.' "$NormalisationReference" "$RawNormalisationLookup" "MEDIAN_PWD" -D "$ToolsDir" --standardize ||
 { echo 'Problem running NormalisationLookupWriter.R. Quitting.' ; exit 1 ; }
 
-Rscript "$ToolsDir"/DuplicateBlacklister.R -D "$ToolsDir" -x "$regex" 0 15 DuplicationData/DuplicateReadCountsProcessed_InWindow_ "$DuplicatesPrefix""$RunLabel" ||
+Rscript "$ToolsDir"/DuplicateBlacklister.R -D "$ToolsDir" -x "$regex" 0 15 "$TreeDir"/'DuplicateReadCountsProcessed_InWindow_' "$DuplicatesPrefix""$RunLabel" ||
 { echo 'Problem running DuplicateBlacklister.R. Quitting.' ; exit 1 ; }
 
 # Find rogue reads and, if desired, reads that look like they're part of a dual
