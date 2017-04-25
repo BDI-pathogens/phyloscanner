@@ -13,12 +13,15 @@ arg_parser$add_argument("ratioThreshold", action="store", type="double", help="R
 arg_parser$add_argument("inputFileName", action="store", help="A CSV file outlining groups of tips that have identical sequences, each forming a single line.")
 arg_parser$add_argument("outputFileName", action="store", help="The file to write the output to, a list of tips to be blacklisted.")
 arg_parser$add_argument("-D", "--scriptDir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
+arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what I'm doing.")
+
 
 # Parse arguments
 
 
 args <- arg_parser$parse_args()
 script.dir <- args$scriptDir
+verbose <- args$verbose
 
 source(file.path(script.dir, "TreeUtilityFunctions.R"))
 source(file.path(script.dir, "GeneralFunctions.R"))
@@ -44,9 +47,8 @@ if(file.exists(input.name)){
 
 
 for(file.no in 1:length(file.names)){
-  cat(file.names, "\n")
   file.name <- file.names[file.no]
-  cat("DuplicateBlacklister.R run on: ", file.name, "\n", sep="")
+  if (verbose)  cat("DuplicateBlacklister.R run on: ", file.name, "\n", sep="")
   entries <- strsplit(readLines(file.name, warn=F),",")
   # The input file has variable row lengths - sometimes three or more patients have
   # identical reads. We build a data frame for each pairwise combination of reads in each
@@ -81,11 +83,11 @@ for(file.no in 1:length(file.names)){
   # calculate the counts
   pairs.table$sharedCount <- pairs.table$reads.2 + pairs.table$reads.1
   pairs.table$seqOverShared <- pairs.table$reads.2/pairs.table$sharedCount
-  cat("Making blacklist with a ratio threshold of ",ratio.threshold," and a raw threshold of ",raw.threshold,"\n",sep="")
+  if (verbose) cat("Making blacklist with a ratio threshold of ",ratio.threshold," and a raw threshold of ",raw.threshold,"\n",sep="")
   
   blacklisted <- pairs.table[which(pairs.table$seqOverShared<ratio.threshold | (pairs.table$reads.2<raw.threshold)),2]
   
-  cat("Blacklist length: ",length(blacklisted),"\n",sep="")
+  if (verbose) cat("Blacklist length: ",length(blacklisted),"\n",sep="")
   
   write.table(blacklisted,output.names[file.no], sep=",", row.names=FALSE, col.names=FALSE, quote=F)
   
