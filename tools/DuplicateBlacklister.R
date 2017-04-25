@@ -45,7 +45,7 @@ if(file.exists(input.name)){
 
 for(file.no in 1:length(file.names)){
   file.name <- file.names[file.no]
-  cat("MakeReadBlacklist.R run on: ", file.name, "\n", sep="")
+  cat("DuplicateBlacklister.R run on: ", file.name, "\n", sep="")
   entries <- strsplit(readLines(file.name, warn=F),",")
   # The input file has variable row lengths - sometimes three or more patients have
   # identical reads. We build a data frame for each pairwise combination of reads in each
