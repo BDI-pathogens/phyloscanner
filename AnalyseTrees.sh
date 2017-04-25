@@ -65,7 +65,7 @@ Rscript "$ToolsDir"/PackageInstall.R ||
 Rscript "$ToolsDir"/NormalisationLookupWriter.R "$TreeDir"/'RAxML_bestTree.' "$NormalisationReference" "$RawNormalisationLookup" "MEDIAN_PWD" -D "$ToolsDir" --standardize ||
 { echo 'Problem running NormalisationLookupWriter.R. Quitting.' ; exit 1 ; }
 
-Rscript "$ToolsDir"/DuplicateBlacklister.R -D "$ToolsDir" -x "$regex" 0 15 DuplicationData/DuplicateReadCountsProcessed_InWindow_ "$DuplicatesPrefix""$RunLabel" ||
+Rscript "$ToolsDir"/DuplicateBlacklister.R -D "$ToolsDir" -x "$regex" 0 15 DuplicationData/DuplicateReadCountsProcessed_ "$DuplicatesPrefix""$RunLabel" ||
 { echo 'Problem running DuplicateBlacklister.R. Quitting.' ; exit 1 ; }
 
 # Find rogue reads and, if desired, reads that look like they're part of a dual
