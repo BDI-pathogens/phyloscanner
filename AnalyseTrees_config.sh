@@ -9,7 +9,8 @@ ExcludeDuals=false # Exclude patients who seem to be dually infected?
 
 MinWindowsForTransmissionLink=5
 MaxDistanceForTransmissionLink=0.05
-IdenticalDupluicateThreshold=15
+IdenticalDuplicateRawThreshold=5
+IdenticalDuplicateRatioThreshold=0.1
 SubgraphMinCount=3
 SubgraphMinRatio=0.005
 SankhoffK_bl=20
