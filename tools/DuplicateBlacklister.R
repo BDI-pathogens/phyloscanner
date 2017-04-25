@@ -17,7 +17,6 @@ arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, h
 
 # Parse arguments
 
-
 args <- arg_parser$parse_args()
 script.dir <- args$scriptDir
 verbose <- args$verbose
