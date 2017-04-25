@@ -78,12 +78,9 @@ for(file.no in 1:length(file.names)){
   # reverse the order so the read with the greater count is in the first column
   pairs.table[pairs.table$reads.2 > pairs.table$reads.1, c("V1", "V2", "reads.1", "reads.2")] <- pairs.table[pairs.table$reads.2 > pairs.table$reads.1, c("V2", "V1", "reads.2", "reads.1")] 
   # calculate the counts
-  pairs.table$sharedCount <- pairs.table$reads.2 + pairs.table$reads.1
-  pairs.table$seqOverShared <- pairs.table$reads.2/pairs.table$sharedCount
+  pairs.table$ratio <- pairs.table$reads.2 / pairs.table$reads.1
   if (verbose) cat("Making blacklist with a ratio threshold of ",ratio.threshold," and a raw threshold of ",raw.threshold,"\n",sep="")
-  
-  blacklisted <- pairs.table[which(pairs.table$seqOverShared<ratio.threshold | (pairs.table$reads.2<raw.threshold)),2]
-  
+  blacklisted <- pairs.table[which(pairs.table$ratio<ratio.threshold | (pairs.table$reads.2<raw.threshold)),2]
   if (verbose) cat("Blacklist length: ",length(blacklisted),"\n",sep="")
   
   write.table(blacklisted,output.names[file.no], sep=",", row.names=FALSE, col.names=FALSE, quote=F)
