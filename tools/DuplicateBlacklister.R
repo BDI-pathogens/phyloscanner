@@ -44,7 +44,7 @@ if(file.exists(input.name)){
 
 
 for(file.no in 1:length(file.names)){
-  cat(file.name, "\n")
+  cat(file.names, "\n")
   file.name <- file.names[file.no]
   cat("DuplicateBlacklister.R run on: ", file.name, "\n", sep="")
   entries <- strsplit(readLines(file.name, warn=F),",")
