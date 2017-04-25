@@ -608,7 +608,7 @@ pat.stats <- cbind(pat.stats, read.prop.columns)
 
 # Output the pat.stats table to file
 
-tmp	<- file.path(paste(output.root,"_patStatsFull.csv",sep=""))
+tmp	<- file.path(paste(output.root,"patStatsFull.csv",sep=""))
 if (verbose) cat("Writing output to file ",tmp,"...\n",sep="")
 write.csv(pat.stats, tmp, quote = F, row.names = F)
 
@@ -619,13 +619,13 @@ mean.na.rm <- function(x) mean(x, na.rm = T)
 # Output a summary of the pat.stats table to file
 tmp <- subset(as.data.table(pat.stats), reads>0, c(id, tips, reads, subgraphs, clades, overall.rtt, largest.rtt, max.pat.distance, prop.reads.largest.subtree, max.branch.length, mean.pat.distance, branch.to.pat.ratio))
 pat.stats.summary <- tmp[, lapply(.SD, mean.na.rm), by='id']
-tmp <- file.path(paste(output.root,"_patStatsSummary.csv",sep=""))
+tmp <- file.path(paste(output.root,"patStatsSummary.csv",sep=""))
 if (verbose) cat("Writing output to file ",tmp,"...\n",sep="")
 write.csv(pat.stats.summary, tmp, quote = F, row.names = F)
   
 # Draw the graphs
 
-tmp <- paste(output.root,"_patStats.pdf",sep="")
+tmp <- paste(output.root,"patStats.pdf",sep="")
 if (verbose) cat("Plotting to file ",tmp,"...\n",sep="")
 
 # Set up the boundaries of each window's region on the x-axis

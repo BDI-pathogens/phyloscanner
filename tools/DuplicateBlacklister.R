@@ -15,7 +15,6 @@ arg_parser$add_argument("outputFileName", action="store", help="The file to writ
 arg_parser$add_argument("-D", "--scriptDir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
 arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what I'm doing.")
 
-
 # Parse arguments
 
 
@@ -40,7 +39,6 @@ if(file.exists(input.name)){
   output.names <- output.name
 } else {
   file.names	<- list.files.mod(dirname(input.name), pattern=paste(basename(input.name),'.*\\.csv$',sep=''), full.names=TRUE)
-  getwd()
   suffixes <- substr(file.names, nchar(input.name) + 1, nchar(file.names)-nchar(".csv"))
   output.names <- paste(output.name, suffixes, ".csv", sep="")
 }
