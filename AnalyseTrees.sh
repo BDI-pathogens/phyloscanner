@@ -65,7 +65,7 @@ Rscript "$ToolsDir"/PackageInstall.R ||
 Rscript "$ToolsDir"/NormalisationLookupWriter.R "$TreeDir"/'RAxML_bestTree.' "$NormalisationReference" "$RawNormalisationLookup" "MEDIAN_PWD" -D "$ToolsDir" --standardize ||
 { echo 'Problem running NormalisationLookupWriter.R. Quitting.' ; exit 1 ; }
 
-Rscript "$ToolsDir"/DuplicateBlacklister.R -D "$ToolsDir" -x "$regex" 0 15 DuplicationData/DuplicateReadCountsProcessed_ "$DuplicatesPrefix""$RunLabel" ||
+Rscript "$ToolsDir"/DuplicateBlacklister.R -D "$ToolsDir" -x "$regex" 0 15 trees/DuplicateReadCountsProcessed_ "$DuplicatesPrefix""$RunLabel" ||
 { echo 'Problem running DuplicateBlacklister.R. Quitting.' ; exit 1 ; }
 
 # Find rogue reads and, if desired, reads that look like they're part of a dual
@@ -106,7 +106,7 @@ Rscript "$ToolsDir"/ClassifyRelationships.R 'ProcessedTree_'"$SplitsRule"'_'"$Ru
   'Problem running ClassifyRelationships.R. Quitting.' ; exit 1 ; }
 
 # Summarise relationships across all windows
-Rscript "$ToolsDir"/TransmissionSummary.R "$PatientIDfile" "$ClassPrefix$SplitsRule"'_classification_' "$TransmissionSummary" -D "$ToolsDir" -s "$SummaryPrefix"'_patStatsFull.csv' -m "$MinWindowsForTransmissionLink" -c "$MaxDistanceForTransmissionLink" || { echo \
+Rscript "$ToolsDir"/TransmissionSummary.R "$PatientIDfile" "$ClassPrefix$SplitsRule"'_classification_' "$TransmissionSummary" -D "$ToolsDir" -s "$SummaryPrefix"_"$RunLabel"'patStatsFull.csv' -m "$MinWindowsForTransmissionLink" -c "$MaxDistanceForTransmissionLink" || { echo \
   'Problem running TransmissionSummary.R. Quitting.' ; exit 1 ; }
 
 

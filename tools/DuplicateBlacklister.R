@@ -15,7 +15,6 @@ arg_parser$add_argument("outputFileName", action="store", help="The file to writ
 arg_parser$add_argument("-D", "--scriptDir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
 arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what I'm doing.")
 
-
 # Parse arguments
 
 
