@@ -39,11 +39,12 @@ if(file.exists(input.name)){
   file.names	<- list.files.mod(dirname(input.name), pattern=paste(basename(input.name),'.*\\.csv$',sep=''), full.names=TRUE)
   getwd()
   suffixes <- substr(file.names, nchar(input.name) + 1, nchar(file.names)-nchar(".csv"))
-  output.names <- paste(output.name, suffixes, sep="")
+  output.names <- paste(output.name, suffixes, ".csv", sep="")
 }
 
 
 for(file.no in 1:length(file.names)){
+  cat(file.name, "\n")
   file.name <- file.names[file.no]
   cat("DuplicateBlacklister.R run on: ", file.name, "\n", sep="")
   entries <- strsplit(readLines(file.name, warn=F),",")
