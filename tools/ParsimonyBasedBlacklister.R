@@ -387,10 +387,8 @@ for(i in file.details){
   
   tree <- unroot(tree)
   
-  cat("outgroup is ",root.name,"\n")
   if(!is.null(root.name)){
     outgroup.no <- which(tree$tip.label==root.name)
-    cat("outgroup no is ",outgroup.no,"\n")
     tree <- root(tree, outgroup = outgroup.no, resolve.root = T)
   }
   
