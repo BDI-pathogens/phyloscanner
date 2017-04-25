@@ -1,7 +1,7 @@
 #!/bin/bash
 
 root='C.BW.00.00BW07621.AF443088' # The name of the reference seq used for rooting
-RunLabel='MyRun' # a label for this particular phyloscanner run
+RunLabel='f_run_' # a label for this particular phyloscanner run
 ExcludeDuals=false # Exclude patients who seem to be dually infected?
 
 
@@ -11,8 +11,9 @@ MinWindowsForTransmissionLink=5
 MaxDistanceForTransmissionLink=0.05
 SubgraphMinCount=3
 SubgraphMinRatio=0.005
-SankhoffK=25
-SankhoffP=0.0025
+SankhoffK_bl=20
+SankhoffK=30
+SankhoffP=0.005
 FractionOfWindowsToCallDual=0.15
 MultifurcationThreshold=1E-5
 #s=Sankhoff (slow, rigorous), r=Romero-Severson (quick, less rigorous with >2

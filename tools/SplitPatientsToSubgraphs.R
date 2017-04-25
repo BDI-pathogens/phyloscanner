@@ -258,6 +258,7 @@ split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 
     cat("No patient IDs detected, nothing to do.\n")
     quit(save="no")
   } 
+
   
   # patient.tips is a list of tips that belong to each patient
   

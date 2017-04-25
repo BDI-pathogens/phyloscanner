@@ -44,6 +44,7 @@ fi
 
 ################################################################################
 # Files we'll produce
+DuplicatesPrefix='DuplicateBlacklist_'
 RoguesPrefix='RogueBlacklist_'
 DualsPrefix='MultipleInfections_'
 FinalBlacklistPrefix='FinalBlacklist_'
@@ -62,17 +63,19 @@ Rscript "$ToolsDir"/PackageInstall.R
 
 Rscript "$ToolsDir"/NormalisationLookupWriter.R "$TreeDir"/'RAxML_bestTree.' "$NormalisationReference" "$RawNormalisationLookup" "MEDIAN_PWD" -D "$ToolsDir" --standardize
 
+Rscript "$ToolsDir"/DuplicateBlacklister.R -D "$ToolsDir" -x "$regex" 0 15 DuplicationData/DuplicateReadCountsProcessed_InWindow_ "$DuplicatesPrefix""$RunLabel"
+
 # Find rogue reads and, if desired, reads that look like they're part of a dual
 # infection.
 if [[ "$ExcludeDuals" == "true" ]]; then
   Rscript "$ToolsDir"/ParsimonyBasedBlacklister.R "$SubgraphMinCount" \
-  "$SubgraphMinRatio" "$SankhoffK" "$TreeDir"/'RAxML_bestTree.' "$RoguesPrefix" -x "$regex" -D \
-  "$ToolsDir" -r "$root" -d "$DualsPrefix" -n "$RawNormalisationLookup" || { echo \
+  "$SubgraphMinRatio" "$Sankhoff_bl" "$TreeDir"/'RAxML_bestTree.' "$RoguesPrefix""$RunLabel" -x "$regex" -D \
+  "$ToolsDir" -r "$root" -d "$DualsPrefix" -n "$RawNormalisationLookup" -b "$DuplicatesPrefix""$RunLabel" || { echo \
   'Problem running ParsimonyBasedBlacklister.R. Quitting.' ; exit 1 ; }
 else
   Rscript "$ToolsDir"/ParsimonyBasedBlacklister.R "$SubgraphMinCount" \
-  "$SubgraphMinRatio" "$SankhoffK" "$TreeDir"/'RAxML_bestTree.' "$FinalBlacklistPrefix" -x "$regex" -D \
-  "$ToolsDir" -r "$root" -n "$RawNormalisationLookup" || { echo \
+  "$SubgraphMinRatio" "$SankhoffK_bl" "$TreeDir"/'RAxML_bestTree.' "$FinalBlacklistPrefix""$RunLabel" -x "$regex" -D \
+  "$ToolsDir" -r "$root" -n "$RawNormalisationLookup" -b "$DuplicatesPrefix""$RunLabel" || { echo \
   'Problem running ParsimonyBasedBlacklister.R. Quitting.' ; exit 1 ; }
 fi
 
@@ -80,19 +83,19 @@ fi
 # all windows to the blacklists, IF we're removing duals.
 if [[ "$ExcludeDuals" == "true" ]]; then
   Rscript "$ToolsDir"/DualPatientBlacklister.R $FractionOfWindowsToCallDual \
-  "$TreeDir"/'RAxML_bestTree.' "$DualsPrefix" "$FinalBlacklistPrefix" -b "$RoguesPrefix" -D "$ToolsDir" || { echo \
+  "$TreeDir"/'RAxML_bestTree.' "$DualsPrefix" "$FinalBlacklistPrefix""$RunLabel" -b "$RoguesPrefix" -D "$ToolsDir" || { echo \
   'Problem running DualPatientBlacklister.R. Quitting.' ; exit 1 ; }
 fi
 
 # Split patients into their subgraphs
-Rscript "$ToolsDir"/SplitPatientsToSubgraphs.R "$TreeDir"/'RAxML_bestTree.' "$RunLabel" -R -r "$root" -b "$FinalBlacklistPrefix" -x "$regex" -s "$SplitsRule" -t "$TiesRule" -k "$SankhoffK" -p "$SankhoffP" -m "$MultifurcationThreshold" -D "$ToolsDir" -n "$RawNormalisationLookup" -pw 20 -ph 0.5 || { echo \
+Rscript "$ToolsDir"/SplitPatientsToSubgraphs.R "$TreeDir"/'RAxML_bestTree.' "$RunLabel" -R -r "$root" -b "$FinalBlacklistPrefix""$RunLabel" -x "$regex" -s "$SplitsRule" -k "$SankhoffK" -p "$SankhoffP" -m "$MultifurcationThreshold" -D "$ToolsDir" -n "$RawNormalisationLookup" -pw 20 -ph 0.5 || { echo \
   'Problem running SplitPatientsToSubgraphs.R. Quitting.' ; exit 1 ; }
 
-Rscript "$ToolsDir"/NormalisationLookupWriter.R "$TreeDir"/'ProcessedTree_'"$SplitsRule"_"$RunLabel"InWindow "$NormalisationReference" "$ProcessedNormalisationLookup" "MEDIAN_PWD" -D "$ToolsDir" --standardize
+Rscript "$ToolsDir"/NormalisationLookupWriter.R 'ProcessedTree_'"$SplitsRule"_"$RunLabel"InWindow "$NormalisationReference" "$ProcessedNormalisationLookup" "MEDIAN_PWD" -D "$ToolsDir" --standardize
 
 # Generate summary stats over all windows
 Rscript "$ToolsDir"/SummaryStatistics.R "$PatientIDfile" 'ProcessedTree_'"$SplitsRule"'_'"$RunLabel" "$SubgraphsPrefix$SplitsRule"'_'"$RunLabel" \
-"$SummaryPrefix" -b "$FinalBlacklistPrefix" -x "$regex" -D "$ToolsDir" || { echo \
+"$SummaryPrefix"_"$RunLabel" -b "$FinalBlacklistPrefix""$RunLabel" -x "$regex" -D "$ToolsDir" || { echo \
   'Problem running SummaryStatistics.R. Quitting.' ; exit 1 ; }
 
 # Classify relationships between patients in each window
