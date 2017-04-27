@@ -72,12 +72,12 @@ if (command.line) {
   
   # Find the input files
   
-  tree.files <- list.files.mod(dirname(tree.file.root), pattern=paste('^',basename(tree.file.root),".*",tree.fe,sep=""), full.names=TRUE)
+  tree.files <- list.files.mod(dirname(tree.file.root), pattern=paste('^',basename(tree.file.root),".*",tree.fe,'$',sep=""), full.names=TRUE)
   
-  splits.files <- list.files.mod(dirname(splits.file.root), pattern=paste('^',basename(splits.file.root),".*",csv.fe,sep=""), full.names=TRUE)	  
+  splits.files <- list.files.mod(dirname(splits.file.root), pattern=paste('^',basename(splits.file.root),".*",csv.fe,'$',sep=""), full.names=TRUE)	  
   blacklist.files <- NULL
   if(!is.null(blacklist.file.root)){
-    blacklist.files <- list.files.mod(dirname(blacklist.file.root), pattern=paste('^',basename(blacklist.file.root),".*\\.csv",sep=""), full.names=TRUE)
+    blacklist.files <- list.files.mod(dirname(blacklist.file.root), pattern=paste('^',basename(blacklist.file.root),".*\\.csv$",sep=""), full.names=TRUE)
   }
 
   if (recomb.files.exist) { 
