@@ -1003,6 +1003,10 @@ for i,BamFileName in enumerate(BamFiles):
     'than that? You might be able to update by running\npip install pysam',
     '--upgrade\nfrom the command line. Quitting.', file=sys.stderr)
     exit(1)
+  except ValueError:
+    print('Error trying to read', BamFileName, 'as a bam file with pysam.',
+    'Quitting.', file=sys.stderr)
+    raise
 
 
   # Find the reference in the bam file; there should only be one.
