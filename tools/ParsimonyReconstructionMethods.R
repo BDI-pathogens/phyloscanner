@@ -205,7 +205,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     
     if (verbose) cat("Reconstructing...\n")
     
-    full.assocs <- reconstruct(tree, getRoot(tree), "unsampled", list(), tip.assocs, patients, cost.matrix, individual.costs, k, ties.rule, verbose)
+    full.assocs <- reconstruct(tree, getRoot(tree), "unsampled", list(), tip.assocs, patients, cost.matrix, individual.costs, k, p, verbose)
     
     temp.ca <- rep(NA, length(tree$tip.label) + tree$Nnode)
     
@@ -653,7 +653,7 @@ reconstruct <- function(tree, node, node.state, node.assocs, tip.assocs, patient
         }
       } else {
         if(verbose){
-          cat("Tie at node ",node," between ",cat(patients[which(costs == min.cost)], sep-" "),"...", sep="")
+          cat("Tie at node ",node," between ",cat(patients[which(costs == min.cost)], sep=" "),"...", sep="")
         }
         if("unsampled" %in% patients[which(costs == min.cost)] & node.state %in% patients[which(costs == min.cost)]){
           child.branch.length <- get.edge.length(tree, child)
@@ -676,7 +676,7 @@ reconstruct <- function(tree, node, node.state, node.assocs, tip.assocs, patient
           cat("WARNING: some ties broken at random\n", sep="")
         }
       }
-      node.assocs <- reconstruct(tree, child, decision, node.assocs, tip.assocs, patients, full.cost.matrix, node.cost.matrix, k, verbose)
+      node.assocs <- reconstruct(tree, child, decision, node.assocs, tip.assocs, patients, full.cost.matrix, node.cost.matrix, k, p, verbose)
     }
   }
   return(node.assocs)
