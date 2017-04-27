@@ -41,6 +41,7 @@ if (command.line) {
   arg_parser$add_argument("splitsFiles", action="store",help="A file path and initial string identifying all splits files (file extension must be .csv).")
   arg_parser$add_argument("outputBaseName", action="store", help="A path and string to begin the names of all output files.")
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.")
+  arg_parser$add_argument("-R", "--recombinationFiles", action="store", help="A file path and initial string identifying all recombination data files.")
   arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what I'm doing.")
   
   # Read in the arguments
@@ -64,6 +65,8 @@ if (command.line) {
   blacklist.file.root <- args$blacklists  
   output.root <- args$outputBaseName
   window.coords.file <- args$windowCoords
+  recomb.file.root <- args$recombinationFiles
+  recomb.files.exist <- ! is.null(recomb.file.root)
 
   no.read.counts <- args$noReadCounts
   
@@ -76,6 +79,10 @@ if (command.line) {
   if(!is.null(blacklist.file.root)){
     blacklist.files <- list.files.mod(dirname(blacklist.file.root), pattern=paste('^',basename(blacklist.file.root),".*\\.csv",sep=""), full.names=TRUE)
   }
+
+  if (recomb.files.exist) { 
+    recomb.files <- list.files.mod(dirname(recomb.file.root), pattern=paste('^',basename(recomb.file.root),".*",csv.fe,'$',sep=""), full.names=TRUE)
+  }
   
   if(length(tree.files)==0){
     cat("No tree files found. \n Quitting. \n")
@@ -85,6 +92,8 @@ if (command.line) {
     cat("No subgraph files found. \n Quitting. \n")
     quit(save="n")
   }
+
+
   
   # Get the suffixes
   
@@ -137,7 +146,27 @@ if (command.line) {
       }
     } 
   }
-  
+
+  # Check there's a one-to-one correspondence between tree files and
+  # recomb files.
+  if (recomb.files.exist) { 
+    recomb.suffixes	<- sapply(recomb.files, function(x) get.suffix(x, recomb.file.root, csv.fe))
+    recomb.but.no.tree.suffixes <- setdiff(recomb.suffixes, ts.both.present)
+    tree.but.no.recomb.suffixes <- setdiff(ts.both.present, recomb.suffixes)
+    if (length(recomb.but.no.tree.suffixes) > 0) {
+      missing.files <- paste(recomb.file.root, recomb.but.no.tree.suffixes, csv.fe, sep="")
+      cat("Error: no tree file found for the following recomb files:", paste(missing.files, collapse=' '), "\nQuitting.\n")
+      quit(save="no")
+    }
+    if (length(tree.but.no.recomb.suffixes) > 0) {
+      missing.files <- paste(tree.file.root, tree.but.no.recomb.suffixes, csv.fe, sep="")
+      cat("Error: no recomb file found for the following tree files:", paste(missing.files, collapse=' '), "\nQuitting.\n")
+      quit(save="no")
+    }
+
+    # Read in the recomb files.
+  }
+      
   # From now on we work with suffixes only
   
   suffixes <- ts.both.present
@@ -411,6 +440,9 @@ calc.all.stats.in.window <- function(suffix, verbose = F){
   # Make the file names anew from the suffixes (probably the cleanest way to do this)
   
   tree.file.name <- paste(tree.file.root, suffix, tree.fe, sep="")
+  if (recomb.files.exist) {
+    recomb.file.name <- paste(recomb.file.root, suffix, csv.fe, sep="")
+  }
   
   if(!is.null(blacklist.file.root)){
     blacklist.file.name <- paste(blacklist.file.root, suffix, csv.fe, sep="")
@@ -422,6 +454,10 @@ calc.all.stats.in.window <- function(suffix, verbose = F){
   
   if(!file.exists(tree.file.name)){
     cat("Tree file ",tree.file.name," does not exist.\n", sep="")
+    quit(save="no")
+  }
+  if(recomb.files.exist && !file.exists(recomb.file.name)){
+    cat("Recombination file ",recomb.file.name," does not exist.\n", sep="")
     quit(save="no")
   }
   
@@ -500,6 +536,30 @@ calc.all.stats.in.window <- function(suffix, verbose = F){
   new.cols <- as.data.table(t(new.cols))
   new.cols <- sapply(new.cols, as.numeric)
   window.table <- cbind(window.table, new.cols) 
+
+  if (recomb.files.exist) {
+    recomb.df <- read.csv(recomb.file.name, stringsAsFactors = F)
+    col.names <- colnames(recomb.df)
+    for (expected.col.name in c("Bam.file","Recombination.metric")) {
+      if (! expected.col.name %in% col.names) {
+        stop("Expected column name ", expected.col.name, " missing from ",
+             recomb.file.name, ". Quitting.")
+      }
+    }
+    missing.IDs <- setdiff(ids, recomb.df$Bam.file)
+    extra.IDs <- setdiff(recomb.df$Bam.file, ids)
+    if (length(missing.IDs) > 0) {
+      stop(paste0("Error: the following bam file IDs are missing from ",
+      recomb.file.name, ": ", paste(missing.IDs, collapse = " "), "\nQuitting."))
+    }
+    if (length(extra.IDs) > 0) {
+      stop(paste0("Error: the following bam file IDs were unexpected in ",
+      recomb.file.name, ": ", paste(extra.IDs, collapse = " "), "\nQuitting."))
+    }
+    recomb.df <- recomb.df[c("Bam.file","Recombination.metric")]
+    colnames(recomb.df)[colnames(recomb.df) == "Bam.file"] <- "id"
+    window.table <- merge(window.table, recomb.df, by="id", all=F)
+  }
   
   window.table
 }
@@ -617,7 +677,11 @@ pat.stats$prop.reads.largest.subtree <- pat.stats$prop.gp.1
 mean.na.rm <- function(x) mean(x, na.rm = T)
 
 # Output a summary of the pat.stats table to file
-tmp <- subset(as.data.table(pat.stats), reads>0, c(id, tips, reads, subgraphs, clades, overall.rtt, largest.rtt, max.pat.distance, prop.reads.largest.subtree, max.branch.length, mean.pat.distance, branch.to.pat.ratio))
+if (recomb.files.exist) { 
+  tmp <- subset(as.data.table(pat.stats), reads>0, c(id, tips, reads, subgraphs, clades, overall.rtt, largest.rtt, max.pat.distance, prop.reads.largest.subtree, max.branch.length, mean.pat.distance, branch.to.pat.ratio, Recombination.metric))
+} else {
+  tmp <- subset(as.data.table(pat.stats), reads>0, c(id, tips, reads, subgraphs, clades, overall.rtt, largest.rtt, max.pat.distance, prop.reads.largest.subtree, max.branch.length, mean.pat.distance, branch.to.pat.ratio))
+}
 pat.stats.summary <- tmp[, lapply(.SD, mean.na.rm), by='id']
 tmp <- file.path(paste(output.root,"patStatsSummary.csv",sep=""))
 if (verbose) cat("Writing output to file ",tmp,"...\n",sep="")
@@ -817,13 +881,19 @@ for (i in seq(1, num.ids)) {
     }
     
     # graph 6: longest branch to largest patristic distance ratios
-    
-    graph.6 <- ggplot(this.pat.stats.temp, aes(x=xcoord, y=branch.to.pat.ratio))
+
+    if (recomb.files.exist) {     
+      graph.6 <- ggplot(this.pat.stats.temp, aes(x=xcoord, y=Recombination.metric))
+      y.label <- "Recombination metric (%)"
+    } else {
+      graph.6 <- ggplot(this.pat.stats.temp, aes(x=xcoord, y=branch.to.pat.ratio))
+      y.label <- "Ratio of longest branch to greatest\n patristic distance between tips"
+    }
     
     graph.6 <- graph.6 +
       geom_point(alpha = 0.5, na.rm=TRUE) +
       theme_bw() + 
-      ylab("Ratio of longest branch to greatest\n patristic distance between tips") +
+      ylab(y.label) +
       xlab("Window centre") +
       scale_x_continuous(limits=c(ews, lwe)) +
       expand_limits(y=0) +
