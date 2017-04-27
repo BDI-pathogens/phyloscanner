@@ -2,7 +2,7 @@ list.of.packages <- c("argparse","phytools", "dplyr", "ggplot2", "ggtree", "resh
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)){
   cat("Please run PackageInstall.R to continue\n")
-  quit(save='no')
+  quit(save="no", status=1)
 }
 
 suppressMessages(require(ape, quietly=TRUE, warn.conflicts=FALSE))
@@ -86,11 +86,11 @@ if (command.line) {
   
   if(length(tree.files)==0){
     cat("No tree files found. \n Quitting. \n")
-    quit(save="n")
+    quit(save="no", status=1)
   }
   if(length(splits.files)==0){
     cat("No subgraph files found. \n Quitting. \n")
-    quit(save="n")
+    quit(save="no", status=1)
   }
 
 
@@ -156,12 +156,12 @@ if (command.line) {
     if (length(recomb.but.no.tree.suffixes) > 0) {
       missing.files <- paste(recomb.file.root, recomb.but.no.tree.suffixes, csv.fe, sep="")
       cat("Error: no tree file found for the following recomb files:", paste(missing.files, collapse=' '), "\nQuitting.\n")
-      quit(save="no")
+      quit(save="no", status=1)
     }
     if (length(tree.but.no.recomb.suffixes) > 0) {
       missing.files <- paste(tree.file.root, tree.but.no.recomb.suffixes, csv.fe, sep="")
       cat("Error: no recomb file found for the following tree files:", paste(missing.files, collapse=' '), "\nQuitting.\n")
-      quit(save="no")
+      quit(save="no", status=1)
     }
 
     # Read in the recomb files.
@@ -185,7 +185,7 @@ if (command.line) {
       for(missing in setdiff(trees.to.be.worked.with, files.expected)){
         cat("No genome position information found in file ", args$windowCoords, " for tree file ", missing, "\n", sep="")
       }
-      quit(save="no")
+      quit(save="no", status=1)
     }
     
     # Try to find sensible start and end x-axis values.
@@ -212,7 +212,7 @@ if (command.line) {
   
     if(any(is.na(starts)) | any(is.na(ends)) | length(starts)==0 | length(ends)==0){
       cat("Cannot obtain window coordinates from some file names\n")
-      quit(save="no")
+      quit(save="no", status=1)
     }
     
     if (verbose) cat(" OK.\n")
@@ -312,7 +312,7 @@ form.rectangles <- function(missing.coords, all.coords, colour = "grey"){
     gap <-  unique(all.coords[2:length(all.coords)] - all.coords[1:length(all.coords)-1])
     if(length(gap)>1){
       cat("Fatal error drawing rectangles for missing data")
-      quit(save="no")
+      quit(save="no", status=1)
     }
     temp.starts <- missing.coords - gap/2
     temp.ends <- missing.coords + gap/2
@@ -454,11 +454,11 @@ calc.all.stats.in.window <- function(suffix, verbose = F){
   
   if(!file.exists(tree.file.name)){
     cat("Tree file ",tree.file.name," does not exist.\n", sep="")
-    quit(save="no")
+    quit(save="no", status=1)
   }
   if(recomb.files.exist && !file.exists(recomb.file.name)){
     cat("Recombination file ",recomb.file.name," does not exist.\n", sep="")
-    quit(save="no")
+    quit(save="no", status=1)
   }
   
   # Read the tree
@@ -591,7 +591,7 @@ num.ids <- length(ids)
 
 if (num.ids == 0) {
   cat(paste("No IDs found in ", id.file, ". Quitting.\n", sep=""))
-  quit("no", 1)
+  quit(save="no", status=1)
 }
 
 # Load the splits first, since these tables get reused
@@ -601,7 +601,7 @@ all.splits.table <- lapply(setNames(suffixes, suffixes), function(x){
   
   if(!file.exists(splits.file.name)){
     cat("Subgraph file ",splits.file.name," does not exist.\n", sep="")
-    quit(save="no")
+    quit(save="no", status=1)
   }
   
   splits.table <- fread(splits.file.name)
@@ -629,7 +629,7 @@ pat.stats <- rbindlist(pat.stats)
 
 if(length(which(pat.stats$tips > 0))==0){
   cat("No patients from ID file ",id.file," present in any tree; stopping. Is your regex correct?\n", sep="")
-  quit(save="no")
+  quit(save="no", status=1)
 }
 
 # The proportions of reads in each patient subgraph in each window

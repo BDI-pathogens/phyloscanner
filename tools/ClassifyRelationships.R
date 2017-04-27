@@ -375,12 +375,12 @@ if(file.exists(tree.file.name)){
   
   if(length(tree.file.names)!=length(splits.file.names)){
     cat("Numbers of tree files and subgraph files differ\n")
-    quit(save="no")
+    quit(save="no", status=1)
   }
   
   if(length(tree.file.names)==0){
     cat("No input trees found.\n Quitting.\n")
-    quit(save="no")
+    quit(save="no", status=1)
   }
   
   suffixes <- substr(tree.file.names, nchar(tree.file.name) + 1, nchar(tree.file.names) - nchar(tree.fe))

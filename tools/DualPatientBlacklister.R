@@ -2,7 +2,7 @@ list.of.packages <- c("argparse", "ape", "data.table")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)){
   cat("Please run PackageInstall.R to continue\n")
-  quit(save='no')
+  quit(save="no", status=1)
 }
 
 command.line <- T

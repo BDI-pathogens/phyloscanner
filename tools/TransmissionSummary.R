@@ -219,7 +219,7 @@ tt			<- merge(tt, dp, by=c('pat.1','pat.2','SUFFIX'))
 
 if(nrow(tt)==0){
   cat("Failed to merge tables; e.g. file suffix",tt$SUFFIX[1]," not found in ",summary.file,"\n",sep="")
-  quit(save="\n")
+  quit(save="no", status=1)
 }
 
 #	rename TYPE

@@ -2,7 +2,7 @@ list.of.packages <- c("argparse", "ape", "phangorn")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)){
   cat("Please run PackageInstall.R to continue\n")
-  quit(save='no')
+  quit(save="no", status=1)
 }
 
 suppressMessages(library(ape, quietly=TRUE, warn.conflicts=FALSE))
@@ -56,7 +56,7 @@ if(command.line){
       m.thresh <- as.numeric(args$multifurcationThreshold)
     } else {
       cat("Unknown argument for -m specified\n")
-      quit(save="no")
+      quit(save="no", status=1)
     }
   }
   has.normalisation <- !is.null(args$branchLengthNormalisation)
@@ -111,7 +111,7 @@ if(command.line){
 
     if(length(tree.input.names)==0){
       cat("No tree files found.\nQuitting.\n",)
-      quit(save="no")
+      quit(save="no", status=1)
     }
     
     suffixes <- substr(tree.input.names, nchar(input.name) + 1, nchar(tree.input.names))
@@ -209,7 +209,7 @@ get.splits.for.patient <- function(patient, tip.patients, tree, root.name, raw.t
       patient.mrca <- mrca.phylo(tree, which(tip.patients==patient))
       if(patient.mrca == getRoot(tree)){
         message("No suitable outgroup found for patient ",patient,"; try adding one and specifying its tip name with --outgroupName", sep="")
-        quit(save = F)
+        quit(save="no", status=1)
       }
       
       outgroup.no <- sample(1:length(tree$tip.label), 1)

@@ -120,7 +120,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     
     if(length(which(patient.ids!="unsampled"))<=1){
       cat("ERROR: one or fewer tips of the tree are associated with a patient. Quitting.\n")
-      quit(save="no")
+      quit(save="no", status=1)
     } 
     
     patients <- unique(patient.ids)
@@ -277,7 +277,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     
     if(length(which(patient.ids!="unsampled"))<=1){
       cat("ERROR: one or fewer tips of the tree are associated with a patient. Quitting.\n")
-      quit(save="no")
+      quit(save="no", status=1)
     } 
     
     patients <- unique(patient.ids)
@@ -772,7 +772,7 @@ make.cost.matrix.fi <- function(node, tree, patients, tip.assocs, current.matrix
 node.cost.fi <- function(tree, child.nos, patient.index, patients, current.matrix, k, us.penalty, finite.costs, tip.regex=NA, zero.threshold = NA){
   if(is.na(tip.regex) & !is.na(zero.threshold)){
     cat("ERROR: must specify a regex if read counts are to matter for parsimony")
-    quit(save="no")
+    quit(save="no", status=1)
   }
   return(sum(vapply(child.nos, function (x) child.min.cost.fi(tree, x, patient.index, patients, current.matrix, k, us.penalty, finite.costs, tip.regex, zero.threshold), 0)))
 }

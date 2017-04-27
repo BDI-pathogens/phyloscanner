@@ -8,7 +8,7 @@ checkArgs <- function(args) {
 						"-1 to turn off shuffle;\n* the directory where output tree pdfs",
 						"will be produced;\n* finally, any number of tree",
             "files.\nQuitting.\n"))
-		quit("no", 1)
+		quit(save="no", status=1)
 	}
 }
 
@@ -18,7 +18,7 @@ checkArgs2 <- function(args) {
 		cat(paste("At least 2 arguments must be specified:\n* a file containing",
 						"the IDs to be coloured, one per line; and any number of tree",
             "files.\nQuitting.\n"))
-		quit("no", 1)
+		quit(save="no", status=1)
 	}
 }
 
@@ -27,7 +27,7 @@ checkTreeFiles <- function(tree.files) {
 	for (tree.file in tree.files) {
 		if (! file.exists(tree.file)) {
 			print(paste(tree.file, "does not exist. Quitting."))
-			quit("no", 1)
+			quit(save="no", status=1)
 		}
 	}
 }
@@ -40,7 +40,7 @@ checkTreeFileNames <- function(tree.files.basenames, tree.file.regex) {
       cat(paste("Unexpected name format for tree file ", tree.file.basename,
       '. Quitting.\n',
       sep=''))
-      quit("no", 1)
+      quit(save="no", status=1)
     }
   }
 }

@@ -3,7 +3,7 @@ new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"
 
 if(length(new.packages)){
   cat("Please run PackageInstall.R to continue\n")
-  quit(save='no')
+  quit(save="no", status=1)
 }
 
 command.line <- T
@@ -74,13 +74,13 @@ if(command.line){
       m.thresh <- as.numeric(args$multifurcationThreshold)
     } else {
       cat("Unknown argument for -m specified\n")
-      quit(save="no")
+      quit(save="no", status=1)
     }
   }
   
   if(!use.m.thresh & read.counts.matter){
     cat("Please specify a multifurcation collapse threshold with -m to count reads on zero length branches in the reconstruction")
-    quit(save="no")
+    quit(save="no", status=1)
   }
   
   if(is.null(root.name)){
@@ -256,7 +256,7 @@ split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 
   
   if(length(patients)==0){
     cat("No patient IDs detected, nothing to do.\n")
-    quit(save="no")
+    quit(save="no", status=1)
   } 
 
   
@@ -351,7 +351,7 @@ if(file.exists(tree.file.name)){
 
   if(length(tree.file.names)==0){
     cat("No input trees found.\n")
-    quit(save="no")
+    quit(save="no", status=1)
   }
   
   suffixes <- substr(tree.file.names, nchar(tree.file.name) + 1, nchar(tree.file.names)-nchar(tree.fe))
