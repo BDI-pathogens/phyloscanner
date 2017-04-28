@@ -27,7 +27,7 @@ if(command.line){
   arg_parser$add_argument("-k", "--kParam", action="store", default=0, help="The k parameter in the cost matrix for Sankhoff reconstruction (see documentation)")
   arg_parser$add_argument("-P", "--pruneBlacklist", action="store_true", help="If present, all blacklisted and references tips (except the outgroup) are pruned away before starting.")
   arg_parser$add_argument("-p", "--proximityThreshold", action="store", default=0)
-  arg_parser$add_argument("-R", "--readCountsMatterOnZeroBranches", default = FALSE, action="store_true")
+  arg_parser$add_argument("-R", "--readCountsMatterOnZeroBranches", help="If present, read counts will be taken into account in parsimony reconstructions at the parents of zero-length branches. Not applicable for the Romero-Severson-like reconstruction method.", default = FALSE, action="store_true")
   arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, short branches in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. If a number, this number will be used as the threshold. If 'g', it will be guessed from the branch lengths (use this only if you've checked by eye that the tree does indeed have multifurcations).")
   arg_parser$add_argument("-n", "--branchLengthNormalisation", default = 1, action="store", help="If present and a number, a normalising constant for all branch lengths in the tree or trees. If present and a file, the path to a .csv file with two columns: tree file name and normalising constant")
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
@@ -180,7 +180,7 @@ if(command.line){
 #
 #	define internal functions
 #
-split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 1, mode, 
+split.patients.to.subgraphs<- function(tree.file.name, m.thresh, normalisation.constant = 1, mode, 
                                        blacklist.file, root.name, tip.regex, sankhoff.k, 
                                        sankhoff.p, useff, count.reads){
   
@@ -202,7 +202,7 @@ split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 
   if(!is.null(root.name)){
     tree <- root(tree, outgroup = which(tree$tip.label==root.name), resolve.root = T)
   }
-  
+
   # Load the blacklist if it exists
   
   blacklist <- vector()
@@ -230,6 +230,17 @@ split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 
     # clear the blacklist
     
     blacklist <- vector()
+  }
+  
+  if(count.reads){
+    tip.read.counts <- sapply(tree$tip.label, function(x) read.count.from.label(x, tip.regex))
+    tip.read.counts[is.na(tip.read.counts)] <- 1
+    tip.read.counts[blacklist] <- 1
+    terminal.bls <- sapply(1:length(tree$tip.lable), function(x) get.edge.length(tree, x))
+    # read counts are only relevant for branches of "zero" (less than m.thresh) length
+    tip.read.counts[which(terminal.bls > m.thresh)] <- 1
+  } else {
+    tip.read.counts <- rep(1, length(tree$tip.label))
   }
   
   orig.tree <- tree
@@ -271,7 +282,7 @@ split.patients.to.subgraphs<- function(tree.file.name, normalisation.constant = 
   
   # Do the main function
   
-  results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, sankhoff.k, sankhoff.p, root.name, m.thresh, useff = useff, count.reads, verbose)
+  results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, tip.read.counts, sankhoff.k, sankhoff.p, useff = useff, verbose)
   
   # Where to put the node shapes that display subgraph MRCAs
   
@@ -397,15 +408,15 @@ for(i in file.details){
   }
   output.string <- i$output.ID 
   
-  tmp					<- split.patients.to.subgraphs(tree.file.name, i$normalisation.constant, mode, blacklist.file, root.name, tip.regex, sankhoff.k, sankhoff.p, useff, read.counts.matter)
+  tmp					<- split.patients.to.subgraphs(tree.file.name, m.thresh, i$normalisation.constant, mode, blacklist.file, root.name, tip.regex, sankhoff.k, sankhoff.p, useff, read.counts.matter)
   tree				<- tmp[['tree']]	
   rs.subgraphs			<- tmp[['rs.subgraphs']]
   #
   #	write rda file (potentially before plotting fails so we can recover)
   #
-  tmp 				<- file.path(output.dir,paste('subgraphs_',mode,'_',output.string,'.rda',sep='')) 
-  if (verbose) cat("Writing output to file",tmp,"...\n")
-  save(rs.subgraphs, tree, file=tmp)		
+#  tmp 				<- file.path(output.dir,paste('subgraphs_',mode,'_',output.string,'.rda',sep='')) 
+#  if (verbose) cat("Writing output to file",tmp,"...\n")
+#  save(rs.subgraphs, tree, file=tmp)		
   #
   #	plot tree
   #
