@@ -37,7 +37,12 @@ if(file.exists(input.name)){
   file.names <- input.name
   output.names <- output.name
 } else {
-  file.names	<- list.files.mod(dirname(input.name), pattern=paste(basename(input.name),'.*\\.csv$',sep=''), full.names=TRUE)
+  file.regex <- paste0(basename(input.name), '.*\\.csv$')
+  file.names	<- list.files.mod(dirname(input.name), pattern=file.regex, full.names=TRUE)
+  if (length(file.names) == 0) {
+    cat(paste0("Error: failed to find read duplication data. Searched for file names matching the regex ", file.regex, " in the directory ", dirname(input.name), ". Quitting.\n"))
+    quit("no", status=1)
+  }
   suffixes <- substr(file.names, nchar(input.name) + 1, nchar(file.names)-nchar(".csv"))
   output.names <- paste(output.name, suffixes, ".csv", sep="")
 }
