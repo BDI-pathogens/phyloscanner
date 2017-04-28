@@ -71,14 +71,17 @@ fi
 Rscript "$ToolsDir"/PackageInstall.R ||
 { echo 'Problem running PackageInstall.R. Quitting.' ; exit 1 ; }
 
+echo 'Now running NormalisationLookupWriter.R'
 Rscript "$ToolsDir"/NormalisationLookupWriter.R "$TreeDir"/'RAxML_bestTree.' "$NormalisationReference" "$RawNormalisationLookup" "MEDIAN_PWD" -D "$ToolsDir" --standardize ||
 { echo 'Problem running NormalisationLookupWriter.R. Quitting.' ; exit 1 ; }
 
+echo 'Now running DuplicateBlacklister.R'
 Rscript "$ToolsDir"/DuplicateBlacklister.R -D "$ToolsDir" -x "$regex" "$IdenticalDuplicateRawThreshold" "$IdenticalDuplicateRatioThreshold" "$TreeDir"/'DuplicateReadCountsProcessed_' "$DuplicatesPrefix""$RunLabel" ||
 { echo 'Problem running DuplicateBlacklister.R. Quitting.' ; exit 1 ; }
 
 # Find rogue reads and, if desired, reads that look like they're part of a dual
 # infection.
+echo 'Now running ParsimonyBasedBlacklister.R'
 if [[ "$ExcludeDuals" == "true" ]]; then
   Rscript "$ToolsDir"/ParsimonyBasedBlacklister.R "$SubgraphMinCount" \
   "$SubgraphMinRatio" "$Sankhoff_bl" "$TreeDir"/'RAxML_bestTree.' "$RoguesPrefix""$RunLabel" -x "$regex" -D \
@@ -93,6 +96,7 @@ fi
 
 # Find patients who look dual in enough windows, and add all of their reads from
 # all windows to the blacklists, IF we're removing duals.
+echo 'Now running DualPatientBlacklister.R'
 if [[ "$ExcludeDuals" == "true" ]]; then
   Rscript "$ToolsDir"/DualPatientBlacklister.R $FractionOfWindowsToCallDual \
   "$TreeDir"/'RAxML_bestTree.' "$DualsPrefix" "$FinalBlacklistPrefix""$RunLabel" -b "$RoguesPrefix" -D "$ToolsDir" || { echo \
@@ -100,21 +104,26 @@ if [[ "$ExcludeDuals" == "true" ]]; then
 fi
 
 # Split patients into their subgraphs
+echo 'Now running SplitPatientsToSubgraphs.R'
 Rscript "$ToolsDir"/SplitPatientsToSubgraphs.R "$TreeDir"/'RAxML_bestTree.' "$RunLabel" -R -r "$root" -b "$FinalBlacklistPrefix""$RunLabel" -x "$regex" -s "$SplitsRule" -k "$SankhoffK" -p "$SankhoffP" -m "$MultifurcationThreshold" -D "$ToolsDir" -n "$RawNormalisationLookup" -pw 20 -ph 0.5 || { echo \
   'Problem running SplitPatientsToSubgraphs.R. Quitting.' ; exit 1 ; }
 
+echo 'Now running NormalisationLookupWriter.R'
 Rscript "$ToolsDir"/NormalisationLookupWriter.R 'ProcessedTree_'"$SplitsRule"_"$RunLabel"InWindow "$NormalisationReference" "$ProcessedNormalisationLookup" "MEDIAN_PWD" -D "$ToolsDir" --standardize
 
 # Generate summary stats over all windows
+echo 'Now running SummaryStatistics.R'
 Rscript "$ToolsDir"/SummaryStatistics.R "$PatientIDfile" 'ProcessedTree_'"$SplitsRule"'_'"$RunLabel" "$SubgraphsPrefix$SplitsRule"'_'"$RunLabel" \
 "$SummaryPrefix"_"$RunLabel" -b "$FinalBlacklistPrefix""$RunLabel" -x "$regex" -D "$ToolsDir" || { echo \
   'Problem running SummaryStatistics.R. Quitting.' ; exit 1 ; }
 
 # Classify relationships between patients in each window
+echo 'Now running ClassifyRelationships.R'
 Rscript "$ToolsDir"/ClassifyRelationships.R 'ProcessedTree_'"$SplitsRule"'_'"$RunLabel" "$SubgraphsPrefix$SplitsRule"'_'"$RunLabel" "$ClassPrefix$SplitsRule" -c -D "$ToolsDir" -n "$ProcessedNormalisationLookup" || { echo \
   'Problem running ClassifyRelationships.R. Quitting.' ; exit 1 ; }
 
 # Summarise relationships across all windows
+echo 'Now running TransmissionSummary.R'
 Rscript "$ToolsDir"/TransmissionSummary.R "$PatientIDfile" "$ClassPrefix$SplitsRule"'_classification_' "$TransmissionSummary" -D "$ToolsDir" -s "$SummaryPrefix"_"$RunLabel"'patStatsFull.csv' -m "$MinWindowsForTransmissionLink" -c "$MaxDistanceForTransmissionLink" || { echo \
   'Problem running TransmissionSummary.R. Quitting.' ; exit 1 ; }
 
