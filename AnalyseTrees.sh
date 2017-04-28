@@ -111,11 +111,17 @@ Rscript "$ToolsDir"/SplitPatientsToSubgraphs.R "$TreeDir"/'RAxML_bestTree.' "$Ru
 echo 'Now running NormalisationLookupWriter.R'
 Rscript "$ToolsDir"/NormalisationLookupWriter.R 'ProcessedTree_'"$SplitsRule"_"$RunLabel"InWindow "$NormalisationReference" "$ProcessedNormalisationLookup" "MEDIAN_PWD" -D "$ToolsDir" --standardize
 
-# Generate summary stats over all windows
+# Generate summary stats over all windows. Use recombination files if there.
 echo 'Now running SummaryStatistics.R'
-Rscript "$ToolsDir"/SummaryStatistics.R "$PatientIDfile" 'ProcessedTree_'"$SplitsRule"'_'"$RunLabel" "$SubgraphsPrefix$SplitsRule"'_'"$RunLabel" \
+if ls "$TreeDir"/RecombinantReads_InWindow_*.csv &> /dev/null; then
+  Rscript "$ToolsDir"/SummaryStatistics.R "$PatientIDfile" 'ProcessedTree_'"$SplitsRule"'_'"$RunLabel" "$SubgraphsPrefix$SplitsRule"'_'"$RunLabel" \
+"$SummaryPrefix"_"$RunLabel" -b "$FinalBlacklistPrefix""$RunLabel" -x "$regex" -D "$ToolsDir" -R "$TreeDir"/'RecombinantReads_' || { echo \
+  'Problem running SummaryStatistics.R. Quitting.' ; exit 1 ; }
+else
+  Rscript "$ToolsDir"/SummaryStatistics.R "$PatientIDfile" 'ProcessedTree_'"$SplitsRule"'_'"$RunLabel" "$SubgraphsPrefix$SplitsRule"'_'"$RunLabel" \
 "$SummaryPrefix"_"$RunLabel" -b "$FinalBlacklistPrefix""$RunLabel" -x "$regex" -D "$ToolsDir" || { echo \
   'Problem running SummaryStatistics.R. Quitting.' ; exit 1 ; }
+fi
 
 # Classify relationships between patients in each window
 echo 'Now running ClassifyRelationships.R'
