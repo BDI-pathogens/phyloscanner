@@ -590,8 +590,7 @@ child.min.cost <- function(tree, child.index, patients, top.patient.no, current.
   } else {
     multiplier <- 1
   }
-  print(multiplier)
-  
+
   scores <- rep(Inf, length(patients))
   
   finite.scores <- unique(c(top.patient.no, which(patients=="unsampled"), which(is.finite(individual.costs[child.index,]))))
