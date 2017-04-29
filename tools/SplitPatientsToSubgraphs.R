@@ -236,7 +236,7 @@ split.patients.to.subgraphs<- function(tree.file.name, m.thresh, normalisation.c
     tip.read.counts <- sapply(tree$tip.label, function(x) read.count.from.label(x, tip.regex))
     tip.read.counts[is.na(tip.read.counts)] <- 1
     tip.read.counts[blacklist] <- 1
-    terminal.bls <- sapply(1:length(tree$tip.lable), function(x) get.edge.length(tree, x))
+    terminal.bls <- sapply(1:length(tree$tip.label), function(x) get.edge.length(tree, x))
     # read counts are only relevant for branches of "zero" (less than m.thresh) length
     tip.read.counts[which(terminal.bls > m.thresh)] <- 1
   } else {
