@@ -202,7 +202,6 @@ get.splits.for.patient <- function(patient, tip.patients, tree, root.name, raw.t
   if(length(which(tip.patients==patient))>1){
     
     # Keep only the tips from this patient and the outgroup
-    
     if(!is.null(root.name)){
       outgroup.no <- which(tree$tip.label==root.name)
     } else {
@@ -211,7 +210,6 @@ get.splits.for.patient <- function(patient, tip.patients, tree, root.name, raw.t
         message("No suitable outgroup found for patient ",patient,"; try adding one and specifying its tip name with --outgroupName", sep="")
         quit(save="no", status=1)
       }
-      
       outgroup.no <- sample(1:length(tree$tip.label), 1)
       while(patient.mrca %in% Ancestors(tree, a.random.tip)){
         outgroup.no <- sample(1:length(tree$tip.label), 1)
@@ -248,7 +246,7 @@ get.splits.for.patient <- function(patient, tip.patients, tree, root.name, raw.t
     
     # Perform split.and.annotate; get a list of splits
     
-    split.results <- split.and.annotate(subtree, patient, patient.tips, NULL, NULL, tip.regex, "s", sankhoff.k, 0, rep(1, length(subtree$tip.label)), useff = F)
+    split.results <- split.and.annotate(subtree, patient, patient.tips, NULL, NULL, tip.regex, "s", rep(1, length(subtree$tip.label)), sankhoff.k, 0, useff = F)
     # vector of of split IDs
     
     patient.split.ids <- split.results$split.patients
