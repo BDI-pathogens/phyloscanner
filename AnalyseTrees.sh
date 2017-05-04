@@ -96,8 +96,9 @@ fi
 
 # Find patients who look dual in enough windows, and add all of their reads from
 # all windows to the blacklists, IF we're removing duals.
-echo 'Now running DualPatientBlacklister.R'
+
 if [[ "$ExcludeDuals" == "true" ]]; then
+  echo 'Now running DualPatientBlacklister.R'
   Rscript "$ToolsDir"/DualPatientBlacklister.R $FractionOfWindowsToCallDual \
   "$TreeDir"/'RAxML_bestTree.' "$DualsPrefix" "$FinalBlacklistPrefix""$RunLabel" -b "$RoguesPrefix" -D "$ToolsDir" || { echo \
   'Problem running DualPatientBlacklister.R. Quitting.' ; exit 1 ; }
