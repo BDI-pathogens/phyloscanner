@@ -85,12 +85,12 @@ echo 'Now running ParsimonyBasedBlacklister.R'
 if [[ "$ExcludeDuals" == "true" ]]; then
   Rscript "$ToolsDir"/ParsimonyBasedBlacklister.R "$SubgraphMinCount" \
   "$SubgraphMinRatio" "$Sankhoff_bl" "$TreeDir"/'RAxML_bestTree.' "$RoguesPrefix""$RunLabel" -x "$regex" -D \
-  "$ToolsDir" -r "$root" -d "$DualsPrefix" -n "$RawNormalisationLookup" -b "$DuplicatesPrefix""$RunLabel" || { echo \
+  "$ToolsDir" -r "$root" -d "$DualsPrefix" -n "$RawNormalisationLookup" -b "$DuplicatesPrefix""$RunLabel" -m "$MultifurcationThreshold" || { echo \
   'Problem running ParsimonyBasedBlacklister.R. Quitting.' ; exit 1 ; }
 else
   Rscript "$ToolsDir"/ParsimonyBasedBlacklister.R "$SubgraphMinCount" \
   "$SubgraphMinRatio" "$SankhoffK_bl" "$TreeDir"/'RAxML_bestTree.' "$FinalBlacklistPrefix""$RunLabel" -x "$regex" -D \
-  "$ToolsDir" -r "$root" -n "$RawNormalisationLookup" -b "$DuplicatesPrefix""$RunLabel" || { echo \
+  "$ToolsDir" -r "$root" -n "$RawNormalisationLookup" -b "$DuplicatesPrefix""$RunLabel" -m "$MultifurcationThreshold" || { echo \
   'Problem running ParsimonyBasedBlacklister.R. Quitting.' ; exit 1 ; }
 fi
 
@@ -130,7 +130,7 @@ Rscript "$ToolsDir"/ClassifyRelationships.R 'ProcessedTree_'"$SplitsRule"'_'"$Ru
 
 # Summarise relationships across all windows
 echo 'Now running TransmissionSummary.R'
-Rscript "$ToolsDir"/TransmissionSummary.R "$PatientIDfile" "$ClassPrefix$SplitsRule"'_classification_' "$TransmissionSummary" -D "$ToolsDir" -s "$SummaryPrefix"_"$RunLabel"'patStatsFull.csv' -m "$MinWindowsForTransmissionLink" -c "$MaxDistanceForTransmissionLink" || { echo \
+Rscript "$ToolsDir"/TransmissionSummary.R "$PatientIDfile" "$ClassPrefix$SplitsRule"'_classification_' "$TransmissionSummary" -D "$ToolsDir" -s "$SummaryPrefix"_"$RunLabel"'patStatsFull.csv' -m "$MinWindowsForTransmissionLink" -c "$MaxDistanceForTransmissionLink" -p || { echo \
   'Problem running TransmissionSummary.R. Quitting.' ; exit 1 ; }
 
 

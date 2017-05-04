@@ -638,6 +638,7 @@ reconstruct <- function(tree, node, node.state, node.assocs, tip.assocs, patient
         multiplier <- 1
       }
       
+      
       costs <- vapply(seq(1, length(patients)), function(x) calc.costs(x, patients, node.state, child, node.cost.matrix, full.cost.matrix, k, multiplier), 0)
       
       min.cost <- min(costs)
