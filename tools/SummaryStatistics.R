@@ -366,8 +366,10 @@ calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table
     
     branch.to.pat.ratio <- max.branch.length/max.pat.distance
     
+    global.mean.pat.distance <- mean(pat.distances[upper.tri(pat.distances)])
+    
     if(subgraphs==1){
-      mean.pat.distance <- mean(pat.distances[upper.tri(pat.distances)])
+      subgraph.mean.pat.distance <- global.mean.pat.distance
       largest.rtt <- overall.rtt
     } else {
       relevant.reads <- splits.table[which(splits.table$patient==id),]
@@ -384,7 +386,7 @@ calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table
       winner.tips <- relevant.reads$tip[which(relevant.reads$subgraph==winner)]
       if(length(winner.tips)==1){
         largest.rtt <- 0
-        mean.pat.distance <- NA
+        subgraph.mean.pat.distance <- NA
       } else {
         subtree <- drop.tip(tree, tip=tree$tip.label[!(tree$tip.label %in% winner.tips)])
         
@@ -400,7 +402,7 @@ calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table
         
         largest.rtt <- calcMeanRootToTip(subtree, reads.per.tip)
         pat.distances <- cophenetic(subtree)
-        mean.pat.distance <- mean(pat.distances[upper.tri(pat.distances)])
+        subgraph.mean.pat.distance <- mean(pat.distances[upper.tri(pat.distances)])
       }
     }
     
@@ -411,7 +413,8 @@ calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table
     max.branch.length <- NA
     max.pat.distance <- NA
     branch.to.pat.ratio <- NA
-    mean.pat.distance <- NA
+    global.mean.pat.distance <- NA
+    subgraph.mean.pat.distance <- NA
     
     if(length(all.tips)==1){
       # A patient with one tip does have a root
@@ -424,7 +427,7 @@ calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table
     }
   }
   return(list(overall.rtt = overall.rtt, largest.rtt = largest.rtt, max.branch.length = max.branch.length, max.pat.distance = max.pat.distance,
-              branch.to.pat.ratio  = branch.to.pat.ratio, mean.pat.distance = mean.pat.distance))
+              branch.to.pat.ratio  = branch.to.pat.ratio, global.mean.pat.distance=global.mean.pat.distance, subgraph.mean.pat.distance = subgraph.mean.pat.distance))
 }
 
 # Calculates all statistics (apart from read proportions) for all patients in a given window
@@ -672,9 +675,9 @@ mean.na.rm <- function(x) mean(x, na.rm = T)
 
 # Output a summary of the pat.stats table to file
 if (recomb.files.exist) { 
-  tmp <- subset(as.data.table(pat.stats), reads>0, c(id, tips, reads, subgraphs, clades, overall.rtt, largest.rtt, max.pat.distance, prop.reads.largest.subtree, max.branch.length, mean.pat.distance, branch.to.pat.ratio, Recombination.metric))
+  tmp <- subset(as.data.table(pat.stats), reads>0, c(id, tips, reads, subgraphs, clades, overall.rtt, largest.rtt, max.pat.distance, prop.reads.largest.subtree, max.branch.length, subgraph.mean.pat.distance, branch.to.pat.ratio, Recombination.metric))
 } else {
-  tmp <- subset(as.data.table(pat.stats), reads>0, c(id, tips, reads, subgraphs, clades, overall.rtt, largest.rtt, max.pat.distance, prop.reads.largest.subtree, max.branch.length, mean.pat.distance, branch.to.pat.ratio))
+  tmp <- subset(as.data.table(pat.stats), reads>0, c(id, tips, reads, subgraphs, clades, overall.rtt, largest.rtt, max.pat.distance, prop.reads.largest.subtree, max.branch.length, subgraph.mean.pat.distance, branch.to.pat.ratio))
 }
 pat.stats.summary <- tmp[, lapply(.SD, mean.na.rm), by='id']
 tmp <- file.path(paste(output.root,"patStatsSummary.csv",sep=""))
@@ -819,15 +822,21 @@ for (i in seq(1, num.ids)) {
     
     # graph 4: largest patristic distance in largest subgraph
     
-    graph.4 <- ggplot(this.pat.stats.temp, aes(x=xcoord, y=max.pat.distance))
+    this.pat.stats.1col <- melt(this.pat.stats.temp[,c("xcoord","id","global.mean.pat.distance","subgraph.mean.pat.distance")], id.vars=c("id", "xcoord"))
+    
+    graph.4 <- ggplot(this.pat.stats.1col, aes(x=xcoord, y=value))
     
     graph.4 <- graph.4 +
-      geom_point(alpha=0.5, na.rm=TRUE) +
+      geom_point(aes(shape=variable, size=variable), na.rm=TRUE) +
+      aes(col = variable) +
       theme_bw() + 
-      ylab("Largest patristic distance in\nlargest connected subgraph") +
+      ylab("Mean pairwise patristic distance \n(read-weighted)") +
       xlab("Window centre") +
       scale_x_continuous(limits=c(ews, lwe)) +
-      expand_limits(y=0) +
+      expand_limits(y=0) + 
+      scale_color_discrete(name="Tip set", labels=c("All", "Largest subgraph")) + 
+      scale_shape_manual(values=c(1,19), name="Tip set", labels=c("All", "Largest subgraph")) +
+      scale_size_manual(values=c(2,1), name="Tip set", labels=c("All", "Largest subgraph")) +
       theme(text = element_text(size=7))
     
     if(regular.gaps & !is.null(missing.rects)){
@@ -837,7 +846,6 @@ for (i in seq(1, num.ids)) {
 
     proportion.column.names <- colnames(pat.stats)[which(substr(colnames(pat.stats), 1, 8)=="prop.gp.")]
     
-  
     # only columns with nonzero entries should be kept
     proportion.columns <- pat.stats[which(pat.stats$id==patient), proportion.column.names, with=F]
     
