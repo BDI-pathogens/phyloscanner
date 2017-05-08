@@ -325,12 +325,6 @@ form.rectangles <- function(missing.coords, all.coords, colour = "grey"){
   stop("No missing coordinates given")
 }
 
-unfactorDataFrame <- function(x) {
-  x <- data.frame(lapply(x, as.character), stringsAsFactors = F)
-  x <- data.frame(lapply(x, function(y) type.convert(y, as.is=T)),
-                  stringsAsFactors = F)
-}
-
 # Collects a variety of statistics about a single patient in a single tree
 
 calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table, no.read.counts, verbose = F){
