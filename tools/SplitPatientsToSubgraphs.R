@@ -58,8 +58,8 @@ if(command.line){
   root.name <- args$outgroupName
   read.counts.matter <- args$readCountsMatterOnZeroBranches
   verbose <- args$verbose
-  if(!is.null(args$outputDir)){
-    output.dir <- args$outputDir
+  if(!is.null(args$outputdir)){
+    output.dir <- args$outputdir
   } else {
     output.dir <- getwd()
   }
