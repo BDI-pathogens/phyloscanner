@@ -5,12 +5,12 @@ from __future__ import print_function
 ## Acknowledgement: I wrote this while funded by ERC Advanced Grant PBDR-339251
 ##
 ## Overview:
-ExplanatoryMessage = '''phyloscanner analyses the phylogenetic relationships
-between and within samples of mapped reads. The user specifies one or more
+ExplanatoryMessage = '''phyloscanner analyses the genetic diversity and
+relationships between and within samples of mapped reads, in windows along the
+genome. The user specifies one or more
 windows of the genome in which this done. For each window: for each sample, all
-reads mapped to that window are found, identical reads are collected together
-with an associated count, similar reads are merged together based on the counts,
-then a minimum count is imposed. Then all reads from all samples in this window 
+reads mapped to that window are found, and identical reads are collected together
+with an associated count. Then all reads from all samples in this window 
 are aligned using mafft and a phylogeny is constructed using RAxML. All
 phylogenies are then analysed. Temporary files and output files are written to
 the current working directory; to avoid overwriting existing files, you might to
