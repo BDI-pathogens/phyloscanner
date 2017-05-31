@@ -3,6 +3,7 @@ import os
 import sys
 import subprocess
 import itertools
+import csv
 
 GapChar = '-'
 
@@ -74,6 +75,79 @@ def ReadNamesFromFile(TheFile, IsFile=True):
     return files, NamesChecked
   else:
     return NamesChecked
+
+
+def ReadInputCSVfile(TheFile):
+  '''Reads in a csv file listing the bams, refs and optionally aliases.
+  
+  Bam and ref files are checked to exist; bam file base names (i.e. the file
+  name after stripping the path), and aliases if present, are required to be
+  unique.'''
+
+  assert os.path.isfile(TheFile), TheFile + \
+  ' does not exist or is not a file. Quitting.'
+
+  with open(TheFile, 'r') as f:
+    reader = csv.reader(f, delimiter=',', quotechar='"')
+    BamFiles = []
+    RefFiles = []
+    aliases = []
+    BamBaseNames = []
+    for LineNumberMin1, fields in enumerate(reader):
+
+      # Check for the correct number of fields
+      if LineNumberMin1 == 0:
+        NumFields = len(fields)
+        if NumFields != 2 and NumFields != 3:
+          print(TheFile, 'should contain either 2 or 3 comma-separated fields;',
+          'found', NumFields, 'on the first line. Quitting.')
+          exit(1)
+        RenamingColPresent = NumFields == 3
+      elif len(fields) != NumFields:
+        print('Line', LineNumberMin1 + 1, 'of', TheFile, 'contains',
+        len(fields), 'fields, but the first line contains', str(NumFields) +
+        '. All lines should have the same number of fields. Quitting.')
+        exit(1)
+
+      # Check the bam and ref files exist, and don't contain whitespace.
+      BamFile = fields[0]
+      RefFile = fields[1]
+      for FileToCheck in (BamFile, RefFile):
+        if len(FileToCheck.split(None, 1)) > 1:
+          print('File', FileToCheck, 'in', TheFile, 'contains whitespace.',
+          'Rename to avoid this and try again. Quitting.',
+          file=sys.stderr)
+          exit(1)
+        assert os.path.isfile(FileToCheck), FileToCheck + ', specified in ' + TheFile + \
+        ', does not exist or is not a file. Quitting.'
+
+
+
+      # Check the bam basename, and alias if present, is unique.
+      BamBaseName = os.path.basename(BamFile)
+      if BamBaseName in BamBaseNames:
+        print('A bam file with base name', BamBaseName, 'was multiply specified in', TheFile + \
+        '. Bam file base names should be unique. Quitting.')
+        exit(1)
+      BamBaseNames.append(BamBaseName)
+      if RenamingColPresent:
+        alias = fields[2]
+        if alias in aliases:
+          print('The alias', alias, 'was found a second time on line',
+          LineNumberMin1 + 1, 'in', TheFile +
+          '. Aliases should be unique. Quitting.')
+          exit(1)
+        aliases.append(alias)
+
+      BamFiles.append(BamFile)
+      RefFiles.append(RefFile)
+
+  if not RenamingColPresent:
+    aliases = BamBaseNames
+
+  return BamFiles, RefFiles, aliases, BamBaseNames
+
+
 
 
 def TranslateSeqCoordsToAlnCoords(seq, coords):

@@ -86,19 +86,37 @@ def CommaSeparatedInts(MyCommaSeparatedInts):
   else:
     return ListOfInts
 
+# A class to have new lines in argument help text
+class SmartFormatter(argparse.HelpFormatter):
+  def _split_lines(self, text, width):
+    if text.startswith('R|'):
+      return text[2:].splitlines()
+    return argparse.HelpFormatter._split_lines(self, text, width)
+
 # Set up the arguments for this script
-parser = argparse.ArgumentParser(description=ExplanatoryMessage)
+parser = argparse.ArgumentParser(description=ExplanatoryMessage,
+formatter_class=SmartFormatter)
 
 # Positional args
-parser.add_argument('ListOfBamFiles', type=File, help='''A file containing the
-names (and paths) of the bam files to be included, one per line. The file
-basenames (i.e. the filename minus the directory) should be unique and free
-of whitespace.''')
-parser.add_argument('ListOfRefFiles', type=File, help='''A file containing the
-names (and paths) of the reference fasta files for the bam files, one per
-line. The file basenames (i.e. the filename minus the directory) should be
-unique and free of whitespace. The order in which the references appear in this
-file should match the order of bams specified in the ListOfBamFiles file.''')
+parser.add_argument('BamAndRefList', type=File,
+help='''R|A file listing the bam and reference files (i.e. the
+fasta-format file containing the sequence to which the
+reads were mapped). The first column should be the bam
+file, the second column the corresponding reference
+file, with a comma separating the two. For example,
+PatientA.bam,PatientA_ref.fasta
+PatientB.bam,PatientB_ref.fasta
+If file names contain commas, speech marks can be
+used to wrap/protect each field, e.g.
+"Patient,A.bam",PatientA_ref.fasta
+"Patient,B.bam",PatientB_ref.fasta
+An optional third column, if present, will be used to
+rename the bam files in all output (otherwise the
+base name of the bam, i.e. the file name not including
+the directory path, will be used). Bam file base names
+must be unique, as must entries in the third column if
+present. Bam and reference file names must not contain
+whitespace.''')
 
 WindowArgs = parser.add_argument_group('Window options - you must choose'
 ' exactly one of -W, -AW or -E')
@@ -191,9 +209,6 @@ every bam file you have in which there could conceivably be cross-contamination,
 using the -C flag (and possibly -CO to save time), and then in subsequent runs
 focussing on subsets of bam files you will be able to identify contamination
 from outside that subset.''')
-OtherArgs.add_argument('-F', '--renaming-file', type=File, help='Specify a file '
-'with one line per bam file, showing how reads from that bam file should be '
-"named in the output files. (By default, each bam file's basename is used.)")
 OtherArgs.add_argument('-FR', '--forbid-read-repeats', action='store_true',
 help='''Using this option, if a read with the same name is found
 to span each of a series of consecutive, overlapping windows, it is only used in
@@ -720,27 +735,15 @@ if args.time:
   times = []
   times.append(time.time())
 
-# Read in lists of bam and reference files
-BamFiles, BamFileBasenames = pf.ReadNamesFromFile(args.ListOfBamFiles)
-RefFiles, RefFileBasenames = pf.ReadNamesFromFile(args.ListOfRefFiles)
-if args.renaming_file != None:
-  BamAliases = pf.ReadNamesFromFile(args.renaming_file, False)
-else:
-  BamAliases = BamFileBasenames
+# Read in the input bam and ref files
+BamFiles, RefFiles, BamAliases, BamFileBasenames = \
+pf.ReadInputCSVfile(args.BamAndRefList)
+NumberOfBams = len(BamFiles)
+
 with open(FileForBamIDs, 'w') as f:
   f.write('\n'.join(BamAliases))
 
 
-# Check that there are the same number of bam and reference files
-NumberOfBams = len(BamFiles)
-if NumberOfBams != len(RefFiles):
-  print('Different numbers of files are listed in', args.ListOfBamFiles, 'and',
-  args.ListOfRefFiles+'.\nQuitting.', file=sys.stderr)
-  exit(1)
-if args.renaming_file != None and len(BamAliases) != NumberOfBams:
-  print('Different numbers of files are listed in', args.ListOfBamFiles, 'and',
-  args.renaming_file+'.\nQuitting.', file=sys.stderr)
-  exit(1)
 
 # Read in all the reference sequences. Set each seq name to be the corresponding
 # alias.
