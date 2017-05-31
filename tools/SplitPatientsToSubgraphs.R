@@ -440,8 +440,8 @@ for(i in file.details){
   if (verbose) cat("Drawing tree...\n")
   tree.display 		<- ggtree(tree, aes(color=BRANCH_COLOURS)) +
     geom_point2(shape = 16, size=1, aes(color=INDIVIDUAL)) +
-    scale_fill_hue(na.value = "black") +
-    scale_color_hue(na.value = "black") +
+    scale_fill_hue(na.value = "black", drop=F) +
+    scale_color_hue(na.value = "black", drop=F) +
     theme(legend.position="none") +
     geom_tiplab(aes(col=INDIVIDUAL)) + 
     geom_treescale(width=0.01, y=-5, offset=1.5)
