@@ -274,7 +274,7 @@ split.patients.to.subgraphs<- function(tree.file.name, m.thresh, normalisation.c
   
   if(length(patients)==0){
     cat("No patient IDs detected, nothing to do.\n")
-    quit(save="no", status=1)
+	return(list(tree=orig.tree, rs.subgraphs=NULL))    
   } 
 
   
@@ -375,7 +375,7 @@ if(file.exists(tree.file.name)){
   file.details[[tree.file.name]] <- file.name.list
 } else {
   # Assume we are dealing with a group of files
-  tree.file.names	<- list.files.mod(dirname(tree.file.name), pattern=paste(basename(tree.file.name),'.*\\',tree.fe,'$',sep=''), full.names=TRUE)
+  tree.file.names	<- list.files.mod(dirname(tree.file.name), pattern=paste('^',basename(tree.file.name),'.*\\',tree.fe,'$',sep=''), full.names=TRUE)
 
   if(length(tree.file.names)==0){
     cat("No input trees found.\n")
@@ -414,10 +414,11 @@ if(file.exists(tree.file.name)){
   }
   file.details <- split(fn.df, rownames(fn.df))
 }
-
+#print(file.details); stop()
 for(i in file.details){
-  #	if 'tree.file.names' is tree, process just one tree
-  tree.file.name		<- i$tree.input	
+  #	if 'tree.file.names' is tree, process just one tree  
+  tree.file.name		<- i$tree.input
+  if (verbose) cat("Process file",tree.file.name,"...\n")
   if(!is.null(blacklist.file.name)){
     blacklist.file	<- i$blacklist.input
   } else {
@@ -426,7 +427,7 @@ for(i in file.details){
   output.string <- i$output.ID 
   
   tmp					<- split.patients.to.subgraphs(tree.file.name, m.thresh, i$normalisation.constant, mode, blacklist.file, root.name, tip.regex, sankoff.k, sankoff.p, useff, read.counts.matter, colour.standardise)
-  tree				<- tmp[['tree']]	
+  tree					<- tmp[['tree']]	
   rs.subgraphs			<- tmp[['rs.subgraphs']]
   #
   #	write rda file (potentially before plotting fails so we can recover)
@@ -437,34 +438,39 @@ for(i in file.details){
   #
   #	plot tree
   #
-  if (verbose) cat("Drawing tree...\n")
-  tree.display 		<- ggtree(tree, aes(color=BRANCH_COLOURS)) +
-    geom_point2(shape = 16, size=1, aes(color=INDIVIDUAL)) +
-    scale_fill_hue(na.value = "black", drop=F) +
-    scale_color_hue(na.value = "black", drop=F) +
-    theme(legend.position="none") +
-    geom_tiplab(aes(col=INDIVIDUAL)) + 
-    geom_treescale(width=0.01, y=-5, offset=1.5)
-  
-  x.max <- ggplot_build(tree.display)$layout$panel_ranges[[1]]$x.range[2]
-  
-  tree.display <- tree.display + ggplot2::xlim(0, 1.1*x.max)
-  tree.display	
-
-  tmp	<- file.path(output.dir,paste('Tree_',output.string,'.pdf',sep=''))
-  if (verbose) cat("Plot to file",tmp,"...\n")
-  ggsave(tmp, device="pdf", height = pdf.hm*length(tree$tip.label), width = pdf.w, limitsize = F)
-  
-  tmp <- file.path(output.dir, paste('ProcessedTree_',mode,'_',output.string, tree.fe,sep=''))
-  if (verbose) cat("Writing rerooted, multifurcating, annotated tree to file",tmp,"...\n")	
-  write.ann.nexus(tree, file=tmp, annotations = c("INDIVIDUAL", "SPLIT"))
-  
+  if(!is.null(rs.subgraphs))
+  {		
+	  if (verbose) cat("Drawing tree...\n")
+	  tree.display 		<- ggtree(tree, aes(color=BRANCH_COLOURS)) +
+							    geom_point2(shape = 16, size=1, aes(color=INDIVIDUAL)) +
+							    scale_fill_hue(na.value = "black", drop=F) +
+							    scale_color_hue(na.value = "black", drop=F) +
+							    theme(legend.position="none") +
+							    geom_tiplab(aes(col=INDIVIDUAL)) + 
+							    geom_treescale(width=0.01, y=-5, offset=1.5)	  
+	  x.max <- ggplot_build(tree.display)$layout$panel_ranges[[1]]$x.range[2]	  
+	  tree.display <- tree.display + ggplot2::xlim(0, 1.1*x.max)
+	  tree.display		
+	  tmp	<- file.path(output.dir,paste('Tree_',output.string,'.pdf',sep=''))
+	  if (verbose) cat("Plot to file",tmp,"...\n")
+	  ggsave(tmp, device="pdf", height = pdf.hm*length(tree$tip.label), width = pdf.w, limitsize = F)
+  }
+  #
+  # write nexus file
+  #
+  if(!is.null(rs.subgraphs))
+  {
+	  tmp <- file.path(output.dir, paste('ProcessedTree_',mode,'_',output.string, tree.fe,sep=''))
+	  if (verbose) cat("Writing rerooted, multifurcating, annotated tree to file",tmp,"...\n")	
+	  write.ann.nexus(tree, file=tmp, annotations = c("INDIVIDUAL", "SPLIT"))
+  }
   #
   #	write csv file
   #
-  
-  tmp 				<- file.path(output.dir, paste('subgraphs_',mode,'_',output.string,csv.fe,sep=''))
-  if (verbose) cat("Writing output to file",tmp,"...\n")	
-  write.csv(rs.subgraphs, file=tmp, row.names = F, quote=F)	
-  
+  if(!is.null(rs.subgraphs))
+  {
+	  tmp 				<- file.path(output.dir, paste('subgraphs_',mode,'_',output.string,csv.fe,sep=''))
+	  if (verbose) cat("Writing output to file",tmp,"...\n")	
+	  write.csv(rs.subgraphs, file=tmp, row.names = F, quote=F)		  
+  }
 }
