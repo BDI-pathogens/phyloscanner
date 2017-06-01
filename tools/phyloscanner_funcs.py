@@ -113,11 +113,6 @@ def ReadInputCSVfile(TheFile):
       BamFile = fields[0]
       RefFile = fields[1]
       for FileToCheck in (BamFile, RefFile):
-        if len(FileToCheck.split(None, 1)) > 1:
-          print('File', FileToCheck, 'in', TheFile, 'contains whitespace.',
-          'Rename to avoid this and try again. Quitting.',
-          file=sys.stderr)
-          exit(1)
         assert os.path.isfile(FileToCheck), FileToCheck + ', specified in ' + TheFile + \
         ', does not exist or is not a file. Quitting.'
 
@@ -125,6 +120,11 @@ def ReadInputCSVfile(TheFile):
 
       # Check the bam basename, and alias if present, is unique.
       BamBaseName = os.path.basename(BamFile)
+      if len(BamBaseName.split(None, 1)) > 1:
+        print(BamBaseName, 'named in', TheFile, 'contains whitespace.',
+        'Rename to avoid this and try again. Quitting.',
+        file=sys.stderr)
+        exit(1)
       if BamBaseName in BamBaseNames:
         print('A bam file with base name', BamBaseName, 'was multiply specified in', TheFile + \
         '. Bam file base names should be unique. Quitting.')
