@@ -161,6 +161,18 @@ However using this option, the mapping references used to create the bam files
 are each separately pairwise aligned to one of the extra references included
 with -A, and window coordinates are interpreted with respect to this
 reference.''')
+RecommendedArgs.add_argument('-CR', '--check-recombination',
+action='store_true', help='''Calculates a metric of recombination for each
+sample's set of reads in each window. (Recommended only if you're interested, of
+course.) The metric considers all possible sets of three sequences and possible
+crossover points; it measures the extent to which Hamming distance indicates
+that the putative recombinant looks more like one parent on one side of the
+crossover and more like the other parent on the other side. Calculation time
+scales cubically with the number of unique sequences each sample has per window,
+and so is turned off by default. You can save time by only turning this on after
+you've played with other parameters that affect the number of unique sequences
+per window (notably window width, a merging threshold and a minimum read
+count).''')
 
 QualityArgs = parser.add_argument_group('Options intended to minimise the '
 'impact of poor quality reads')
@@ -377,9 +389,6 @@ help='Process and align the reads from each window, then quit without making '
 StopEarlyArgs.add_argument('-D', '--dont-check-duplicates', action='store_true',
 help="Don't compare reads between samples to find duplicates - a possible "+\
 "indication of contamination. (By default this check is done.)")
-StopEarlyArgs.add_argument('-DR', '--dont-check-recombination',
-action='store_true', help='''Skip the calculation for finding the read that
-looks most like a recombinant for each bam file in each window.''')
 
 args = parser.parse_args()
 
@@ -1863,12 +1872,17 @@ for window in range(NumCoords / 2):
   if args.time:
     times.append(time.time())
     LastStepTime = times[-1] - times[-2]
-    print('All read processing except the recombination calculation in window',
-          UserLeftWindowEdge, '-', UserRightWindowEdge,
-          'finished. Number of seconds taken: ', LastStepTime)
+    if args.check_recombination:
+      print('All read processing except the recombination calculation in window',
+            UserLeftWindowEdge, '-', UserRightWindowEdge,
+            'finished. Number of seconds taken: ', LastStepTime)
+    else:
+      print('All read processing in window',
+            UserLeftWindowEdge, '-', UserRightWindowEdge,
+            'finished. Number of seconds taken: ', LastStepTime)
 
   # Find the read that looks most like a recombinant for each patient.
-  if not args.dont_check_recombination:
+  if args.check_recombination:
     SamplesToAlnPosDict = {}
     for i, seq in enumerate(SeqAlignmentHere):
       RegexMatch = SampleRegex.search(seq.id)
