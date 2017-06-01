@@ -23,12 +23,12 @@ FileForBamIDs = 'BamIDs.txt'
 FileForAlignedRefs = 'RefsAln.fasta'
 
 # Some temporary working files we'll create
-FileForRefs = 'temp_refs.fasta'
-FileForPairwiseUnalignedRefs = 'temp_2Refs.fasta'
-FileForPairwiseAlignedRefs = 'temp_2RefsAln.fasta'
-FileForReads_basename = 'temp_UnalignedReads'
-FileForOtherRefs_basename = 'temp_OtherRefs'
-FileForAllBootstrappedTrees_basename = 'temp_AllBootstrappedTrees'
+TempFileForRefs = 'temp_refs.fasta'
+TempFileForPairwiseUnalignedRefs = 'temp_2Refs.fasta'
+TempFileForPairwiseAlignedRefs = 'temp_2RefsAln.fasta'
+TempFileForReads_basename = 'temp_UnalignedReads'
+TempFileForOtherRefs_basename = 'temp_OtherRefs'
+TempFileForAllBootstrappedTrees_basename = 'temp_AllBootstrappedTrees'
 ################################################################################
 GapChar = '-'
 
@@ -218,6 +218,8 @@ OtherArgs.add_argument('-KO', '--keep-output-together', action='store_true',
 help='''By default, subdirectories are made for different kinds of phyloscanner
 output. With this option, all output files will be in the same directory (either
 the working directory, or whatever you specify with --output-dir).''')
+OtherArgs.add_argument('-KT', '--keep-temp-files', action='store_true', help='''
+Keep temporary files we create on the way (these are deleted by default).''')
 OtherArgs.add_argument('-MT', '--merging-threshold', type=int, default=0, help=\
 'Reads that differ by a number of bases equal to or less than this are merged'
 ', those with higher counts effectively absorbing those with lower counts. '
@@ -404,6 +406,8 @@ if glob.glob('RAxML*'):
   print('Warning: RAxML files are present in the working directory. If their',
   'names clash with those that phyloscanner will try to create, RAxML will',
   'fail to run. Continuing.', file=sys.stderr)
+
+TempFiles = set([])
 
 # Try to make the output dir, if desired.
 HaveMadeOutputDir = False
@@ -866,21 +870,23 @@ else:
     for BamRefSeq in RefSeqs:
 
       # Align
-      SeqIO.write([RefForPairwiseAlns,BamRefSeq], FileForPairwiseUnalignedRefs,
+      SeqIO.write([RefForPairwiseAlns,BamRefSeq], TempFileForPairwiseUnalignedRefs,
       "fasta")
-      with open(FileForPairwiseAlignedRefs, 'w') as f:
+      TempFiles.add(TempFileForPairwiseUnalignedRefs)
+      with open(TempFileForPairwiseAlignedRefs, 'w') as f:
         try:
           ExitStatus = subprocess.call([args.x_mafft, '--quiet',
-          '--preservecase', FileForPairwiseUnalignedRefs], stdout=f)
+          '--preservecase', TempFileForPairwiseUnalignedRefs], stdout=f)
           assert ExitStatus == 0
         except:
           print('Problem calling mafft. Quitting.', file=sys.stderr)
           raise
+      TempFiles.add(TempFileForPairwiseAlignedRefs)
 
       # Translate.
       # The index names in the PairwiseCoordsDict, labelling the coords found by
       # coord translation, should coincide with the two seqs we're considering.
-      PairwiseCoordsDict = TranslateCoords([FileForPairwiseAlignedRefs,
+      PairwiseCoordsDict = TranslateCoords([TempFileForPairwiseAlignedRefs,
       args.pairwise_align_to] + [str(coord) for coord in WindowCoords])
       if set(PairwiseCoordsDict.keys()) != \
       set([BamRefSeq.id,args.pairwise_align_to]):
@@ -897,11 +903,12 @@ else:
     # Put all the mapping reference sequences into one file. If an alignment of 
     # other references was supplied, add the mapping references to that 
     # alignment; if not, align the mapping references to each other.
-    SeqIO.write(RefSeqs, FileForRefs, "fasta")
+    SeqIO.write(RefSeqs, TempFileForRefs, "fasta")
+    TempFiles.add(TempFileForRefs)
     if IncludeOtherRefs:
-      FinalMafftOptions = ['--add', FileForRefs, args.alignment_of_other_refs]
+      FinalMafftOptions = ['--add', TempFileForRefs, args.alignment_of_other_refs]
     else:
-      FinalMafftOptions = [FileForRefs]
+      FinalMafftOptions = [TempFileForRefs]
     with open(FileForAlignedRefs, 'w') as f:
       try:
         ExitStatus = subprocess.call([args.x_mafft, '--quiet',
@@ -1581,7 +1588,7 @@ for window in range(NumCoords / 2):
 
   # Create a fasta file with all reads in this window, ready for aligning.
   # If there's only one, we don't need to align (or make trees!).
-  FileForReadsHere = FileForReads_basename + ThisWindowSuffix+\
+  TempFileForReadsHere = TempFileForReads_basename + ThisWindowSuffix+\
   '.fasta'
   FileForAlnReadsHere = FileForAlignedReads_basename + \
   ThisWindowSuffix +'.fasta'
@@ -1611,7 +1618,8 @@ for window in range(NumCoords / 2):
       print('There is only one read in this window, written to ' +\
       FileForAlnReadsHere +'. Skipping to the next window.')
     continue
-  SeqIO.write(AllReadsInThisWindow, FileForReadsHere, "fasta")
+  SeqIO.write(AllReadsInThisWindow, TempFileForReadsHere, "fasta")
+  TempFiles.add(TempFileForReadsHere)
   OutputFilesByDestinationDir['AlignedReads'].append(FileForAlnReadsHere)
   FileForTrees = FileForAlnReadsHere
 
@@ -1621,7 +1629,7 @@ for window in range(NumCoords / 2):
   # ExternalRefAlignment object. If we did a global alignment, we slice the
   # desired window out of that alignment.
   if IncludeOtherRefs:
-    FileForOtherRefsHere = FileForOtherRefs_basename + \
+    TempFileForOtherRefsHere = TempFileForOtherRefs_basename + \
     ThisWindowSuffix +'.fasta'
     if PairwiseAlign:
       ExternalRefLeftWindowEdge  = ExternalRefWindowCoords[window*2]
@@ -1637,9 +1645,10 @@ for window in range(NumCoords / 2):
         'skipping to the next window.', file=sys.stderr)
         continue
       AlignIO.write(Align.MultipleSeqAlignment(RefsThatAreNotPureGap),
-      FileForOtherRefsHere, 'fasta')
+      TempFileForOtherRefsHere, 'fasta')
+      TempFiles.add(TempFileForOtherRefsHere)
     else:
-      with open(FileForOtherRefsHere, 'w') as f:
+      with open(TempFileForOtherRefsHere, 'w') as f:
         try:
           ExitStatus = subprocess.call([FindSeqsInFastaCode,
           FileForAlignedRefs, '-B', '-W', str(LeftWindowEdge) + ',' + \
@@ -1661,12 +1670,13 @@ for window in range(NumCoords / 2):
   # aligning.
   if MergeReads:
     FileForReads = 'temp_' + FileForAlnReadsHere
+    TempFiles.add(FileForReads)
   else:
     FileForReads = FileForAlnReadsHere
   if IncludeOtherRefs:
-    FinalMafftOptions = ['--add', FileForReadsHere, FileForOtherRefsHere]
+    FinalMafftOptions = ['--add', TempFileForReadsHere, TempFileForOtherRefsHere]
   else:
-    FinalMafftOptions = [FileForReadsHere]
+    FinalMafftOptions = [TempFileForReadsHere]
   with open(FileForReads, 'w') as f:
     try:
       ExitStatus = subprocess.call([args.x_mafft, '--quiet', '--preservecase']+\
@@ -1964,18 +1974,19 @@ for window in range(NumCoords / 2):
       continue
 
     # Collect the trees from all bootstraps into one file
-    AllBootstrappedTreesFile = FileForAllBootstrappedTrees_basename +\
+    TempAllBootstrappedTreesFile = TempFileForAllBootstrappedTrees_basename +\
     ThisWindowSuffix+'.tree'
-    with open(AllBootstrappedTreesFile, 'w') as outfile:
+    with open(TempAllBootstrappedTreesFile, 'w') as outfile:
       for BootstrappedTree in BootstrappedTrees:
         with open(BootstrappedTree, 'r') as infile:
           outfile.write(infile.read())
+    TempFiles.add(TempAllBootstrappedTreesFile)
 
     # Collect the trees from all bootstraps onto the ML tree
     MainTreeFile = 'MLtreeWbootstraps' +ThisWindowSuffix +'.tree'
     try:
       ExitStatus = subprocess.call(RAxMLargList + ['-f', 'b', '-t', MLtreeFile,
-       '-z', AllBootstrappedTreesFile, '-n', MainTreeFile])
+       '-z', TempAllBootstrappedTreesFile, '-n', MainTreeFile])
       assert ExitStatus == 0
     except:
       print('Problem collecting all the bootstrapped trees onto the ML tree',
@@ -2141,6 +2152,14 @@ if HaveMadeOutputDir:
     for File in itertools.chain.from_iterable(
     OutputFilesByDestinationDir.values()):
       shutil.move(File, os.path.join(args.output_dir, File))
+
+# Delete temporary files we've made
+if not args.keep_temp_files:
+  for TempFile in TempFiles:
+    try:
+      os.remove(TempFile)
+    except:
+      print('Failed to delete temporary file', TempFile + '. Leaving it.')
 
 # Some code not being used at the moment:
 '''DuplicateReadRatios.append(float(ReadDict1[read])/ReadDict2[read])
