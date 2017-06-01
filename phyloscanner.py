@@ -18,21 +18,9 @@ want to call this code from an empty directory.
 '''
 
 ################################################################################
-# USER INPUT
-
-# Some output files
-FileForAlignedReads_basename = 'AlignedReads'
-FileForAlignedReads_PositionsExcised_basename = 'AlignedReads_PositionsExcised_'
-FileForConsensuses_basename = 'Consensuses_'
-FileForConsensuses_PositionsExcised_basename = 'Consensuses_PositionsExcised_'
-FileForAlignedRefs = 'RefsAln.fasta'
-FileForDiscardedReadPairs_basename = 'DiscardedReads_'
-FileForDuplicateReadCountsRaw_basename = 'DuplicateReadCountsRaw_'
-FileForDuplicateReadCountsProcessed_basename = 'DuplicateReadCountsProcessed_'
-FileForDuplicateSeqs_basename = 'DuplicateReads_contaminants_'
-FileForReadNames_basename = 'ReadNames_'
+# The names of some files we'll create.
 FileForBamIDs = 'BamIDs.txt'
-RecombinantReads_basename = 'RecombinantReads_'
+FileForAlignedRefs = 'RefsAln.fasta'
 
 # Some temporary working files we'll create
 FileForRefs = 'temp_refs.fasta'
@@ -51,6 +39,7 @@ import subprocess
 import sys
 import re
 import copy
+import shutil
 import glob
 import time
 from shutil import copy2
@@ -225,6 +214,10 @@ two mates will be used (in a given window and consecutive overlapping windows),
 and with the --merge-paired-reads option mates will be merged into a
 single read, which is used only the first time it is encountered in
 consecutive overlapping windows.''')
+OtherArgs.add_argument('-KO', '--keep-output-together', action='store_true',
+help='''By default, subdirectories are made for different kinds of phyloscanner
+output. With this option, all output files will be in the same directory (either
+the working directory, or whatever you specify with --output-dir).''')
 OtherArgs.add_argument('-MT', '--merging-threshold', type=int, default=0, help=\
 'Reads that differ by a number of bases equal to or less than this are merged'
 ', those with higher counts effectively absorbing those with lower counts. '
@@ -273,7 +266,7 @@ of a reference (which must be present in the file you specify with -A) with
 respect to which the coordinates specified with -XC are interpreted. If you are
 also using the --pairwise-align-to option, you must use the same reference there
 and here.''')
-OtherArgs.add_argument('--output-dir', help='Used to specify the name of a '
+OtherArgs.add_argument('-OD', '--output-dir', help='Used to specify the name of a '
 'directory (which should not exist already) in which all intermediate and '
 'output files will be created.')
 OtherArgs.add_argument('--time', action='store_true',
@@ -406,18 +399,27 @@ MergeReads = args.merging_threshold > 0
 # Print how this script was called, for logging purposes.
 print('phyloscanner was called thus:\n' + ' '.join(sys.argv))
 
-# Make and change into the output directory if desired.
+# Warn if RAxML files exist already.
+if glob.glob('RAxML*'):
+  print('Warning: RAxML files are present in the working directory. If their',
+  'names clash with those that phyloscanner will try to create, RAxML will',
+  'fail to run. Continuing.', file=sys.stderr)
+
+# Try to make the output dir, if desired.
+HaveMadeOutputDir = False
 if args.output_dir != None:
-  try:
-    os.mkdir(args.output_dir)
-    os.chdir(args.output_dir)
-  except:
-    print('Problem creating, or changing into, the directory', args.output_dir+\
-    '. The python commands for doing this report that they only work in Unix '+\
-    'and Windows; are you on a Mac? If so, you may not be able to use the '+\
-    '--output-dir option, sorry. Quitting.', file=sys.stderr)
-    raise
-  
+  if os.path.isdir(args.output_dir):
+    HaveMadeOutputDir = True
+  else:
+    try:
+      os.mkdir(args.output_dir)
+    except:
+      print('Problem creating the directory', args.output_dir+\
+      ". Is this a subdirectory inside a directory that doesn't exist? (We can",
+      "only create one new directory at a time - not a new directory inside",
+      "another new one.) Continuing.", file=sys.stderr)
+    else:
+      HaveMadeOutputDir = True
 
 # Check that window coords have been specified either manually or automatically,
 # or we're exploring window widths
@@ -1194,6 +1196,42 @@ if args.time:
 AllPatientsReadNamesInThisWindow = {BamFile:set() for BamFile in BamFiles}
 ThisWindow = (float('-Inf'), float('-Inf'))
 
+# Subdirectories for output files.
+OutputDirs = {}
+OutputFilesByDestinationDir = {}
+OutputDirs['raxml'] = 'RAxMLfiles'
+
+FileForAlignedReads_basename = 'AlignedReads'
+FileForAlignedReads_PositionsExcised_basename = FileForAlignedReads_basename + \
+'_PositionsExcised_'
+OutputDirs['AlignedReads'] = 'AlignedReads'
+OutputFilesByDestinationDir['AlignedReads'] = []
+
+FileForConsensuses_basename = 'Consensuses_'
+FileForConsensuses_PositionsExcised_basename = FileForConsensuses_basename + \
+'PositionsExcised_'
+OutputDirs['Consensuses'] = 'Consensuses'
+OutputFilesByDestinationDir['Consensuses'] = []
+
+FileForDiscardedReadPairs_basename = 'DiscardedReads_'
+OutputDirs['DiscardedReads'] = 'DiscardedReads'
+OutputFilesByDestinationDir['DiscardedReads'] = []
+
+FileForDuplicateReadCountsRaw_basename = 'DuplicateReadCountsRaw_'
+FileForDuplicateReadCountsProcessed_basename = 'DuplicateReadCountsProcessed_'
+FileForDuplicateSeqs_basename = 'DuplicateReads_contaminants_'
+OutputDirs['DupData'] = 'DuplicationData'
+OutputFilesByDestinationDir['DupData'] = []
+
+FileForReadNames1_basename = 'ReadNames1_'
+FileForReadNames2_basename = 'ReadNames2_'
+OutputDirs['ReadNames'] = 'ReadNames'
+OutputFilesByDestinationDir['ReadNames'] = []
+
+FileForRecombinantReads_basename = 'RecombinantReads_'
+OutputDirs['RecombFiles'] = 'RecombinationData'
+OutputFilesByDestinationDir['RecombFiles'] = []
+
 # Iterate through the windows
 for window in range(NumCoords / 2):
 
@@ -1255,8 +1293,10 @@ for window in range(NumCoords / 2):
     RightWindowEdge = ThisBamCoords[window*2 +1]
 
     # For labelling read name files
-    FileForReadNames_basename2 = FileForReadNames_basename + ThisWindowSuffix \
-    + '_InBam_'
+    FileForReadNames1_basename_ThisBam = FileForReadNames1_basename + \
+    ThisWindowSuffix + '_InBam_'
+    FileForReadNames2_basename_ThisBam = FileForReadNames2_basename + \
+    ThisWindowSuffix + '_InBam_'
 
     # Pysam uses zero-based coordinates for positions w.r.t the reference.
     # If we want all reads that start exactly at the window start and end
@@ -1434,14 +1474,16 @@ for window in range(NumCoords / 2):
 
     # Write recorded read names to file if desired.
     if args.read_names_1:
-      FileForReadNames1 = FileForReadNames_basename2 + BamAlias + '.txt'
+      FileForReadNames1 = FileForReadNames1_basename_ThisBam + BamAlias + '.txt'
       with open(FileForReadNames1, 'w') as f:
         f.write('\n'.join(ReadNames))
+      OutputFilesByDestinationDir['ReadNames'].append(FileForReadNames1)
     if args.read_names_2:
-      FileForReadNames2 = FileForReadNames_basename2 + BamAlias + '.csv'
+      FileForReadNames2 = FileForReadNames2_basename_ThisBam + BamAlias + '.csv'
       with open(FileForReadNames2, 'w') as f:
         for seq, ReadNamesForThatSeq in ReadNameDict.items():
           f.write(seq + ',' + ' '.join(ReadNamesForThatSeq) + '\n')
+      OutputFilesByDestinationDir['ReadNames'].append(FileForReadNames2)
   if args.read_names_only:
     continue
 
@@ -1489,6 +1531,7 @@ for window in range(NumCoords / 2):
       with open(FileForDuplicateReadCountsRaw, 'w') as f:
         f.write('"Alias1","Alias2","Count1","Count2"\n')
         f.write('\n'.join(','.join(map(str,data)) for data in DuplicateDetails))
+      OutputFilesByDestinationDir['DupData'].append(FileForDuplicateReadCountsRaw)
 
     # If contaminants are diagnosed, print them and remove them from their
     # ReadDict.
@@ -1501,6 +1544,7 @@ for window in range(NumCoords / 2):
           AllContaminants.append(SeqIO.SeqRecord(Seq.Seq(read), id=alias,
           description=''))
       SeqIO.write(AllContaminants, FileForDuplicateSeqs, "fasta")
+      OutputFilesByDestinationDir['DupData'].append(FileForDuplicateSeqs)
       for i, (BamAlias, ReadDict, LeftWindowEdge, RightWindowEdge) \
       in enumerate(AllReadDictsInThisWindow):
         if BamAlias in ContaminantReadsFound:
@@ -1543,6 +1587,7 @@ for window in range(NumCoords / 2):
   ThisWindowSuffix +'.fasta'
   if len(AllReadsInThisWindow) == 1 and not IncludeOtherRefs:
     SeqIO.write(AllReadsInThisWindow, FileForAlnReadsHere, "fasta")
+    OutputFilesByDestinationDir['AlignedReads'].append(FileForAlnReadsHere)
     # If we're exploring window widths, record that all bams but one have no
     # reads.
     if ExploreWindowWidths:
@@ -1567,6 +1612,7 @@ for window in range(NumCoords / 2):
       FileForAlnReadsHere +'. Skipping to the next window.')
     continue
   SeqIO.write(AllReadsInThisWindow, FileForReadsHere, "fasta")
+  OutputFilesByDestinationDir['AlignedReads'].append(FileForAlnReadsHere)
   FileForTrees = FileForAlnReadsHere
 
   # If external refs are included, find the part of each one's seq corresponding
@@ -1666,6 +1712,7 @@ for window in range(NumCoords / 2):
   ConsensusAlignment = FindPatientsConsensuses(SeqAlignmentHere)
   FileForConsensuses = FileForConsensuses_basename + ThisWindowSuffix +'.fasta'
   AlignIO.write(ConsensusAlignment, FileForConsensuses, 'fasta')
+  OutputFilesByDestinationDir['Consensuses'].append(FileForConsensuses)
 
   # See if there are positions to excise in this window.
   if ExcisePositions:
@@ -1733,6 +1780,8 @@ for window in range(NumCoords / 2):
         raise
       AlignIO.write(SeqAlignmentHere, FileForAlignedReads_PositionsExcised,
       'fasta')
+      OutputFilesByDestinationDir['AlignedReads'].append(
+      FileForAlignedReads_PositionsExcised)
       FileForTrees = FileForAlignedReads_PositionsExcised
 
       # Find consensuses again after excising positions:
@@ -1741,6 +1790,8 @@ for window in range(NumCoords / 2):
       FileForConsensuses_PositionsExcised_basename + ThisWindowSuffix +'.fasta'
       AlignIO.write(ConsensusAlignment, FileForConsensuses_PositionsExcised,
       'fasta')
+      OutputFilesByDestinationDir['Consensuses'].append(
+      FileForConsensuses_PositionsExcised)
 
   # If we're exploring window widths, we just care how many unique reads
   # were found here. Record & move on.
@@ -1795,6 +1846,8 @@ for window in range(NumCoords / 2):
       with open(FileForDuplicateReadCountsProcessed, 'w') as f:
         f.write('\n'.join(','.join(SeqNames) for SeqNames in \
         DuplicatesDict.values()))
+      OutputFilesByDestinationDir['DupData'].append(
+      FileForDuplicateReadCountsProcessed)
 
   # Update on time taken if desired
   if args.time:
@@ -1823,13 +1876,15 @@ for window in range(NumCoords / 2):
       result = (alias, ) + pf.CalculateRecombinationMetric(ThisAliasAln,
       args.recombination_gap_aware)
       RecombinationResults.append(result)
-    RecombinantReadsFile = RecombinantReads_basename + ThisWindowSuffix + '.csv'
-    with open(RecombinantReadsFile, 'w') as f:
+    FileForRecombinantReads = FileForRecombinantReads_basename + \
+    ThisWindowSuffix + '.csv'
+    with open(FileForRecombinantReads, 'w') as f:
       f.write('Bam file,Recombination metric,Parent seq 1,Parent seq 2,' + \
       'Recombinant seq')
       for result in sorted(RecombinationResults, key=lambda x: x[1],
       reverse=True):
         f.write('\n' + ','.join(map(str, result)) )
+    OutputFilesByDestinationDir['RecombFiles'].append(FileForRecombinantReads)
 
     # Update on time taken if desired
     if args.time:
@@ -2024,12 +2079,17 @@ if ExploreWindowWidths:
 
 # Make a bam file of discarded read pairs for each input bam file.
 if args.inspect_disagreeing_overlaps:
-  DiscardedReadPairsFiles = []
   for BamFileBasename, DiscardedReadPairs in DiscardedReadPairsDict.items():
     if DiscardedReadPairs != []:
       WhichBamFile = BamFileBasenames.index(BamFileBasename)
       RefFile = RefFiles[WhichBamFile]
-      LocalRefFileName = BamFileBasename+'_ref.fasta'
+      if len(BamFileBasename) >= 4 and (BamFileBasename[-4:] == '.bam' or
+        BamFileBasename[-4:] == '.BAM' or BamFileBasename[-4:] == '.Bam'):
+        BamNameForRef = BamFileBasename[:-4]
+      else:
+        BamNameForRef = BamFileBasename
+      LocalRefFileName = FileForDiscardedReadPairs_basename + \
+      BamNameForRef + '_ref.fasta'
       # Copy the relevant reference file to the working directory, so that it's
       # together with the discarded reads file. This might fail e.g. if the same
       # file exists already - then do nothing.
@@ -2037,19 +2097,50 @@ if args.inspect_disagreeing_overlaps:
         copy2(RefFile, LocalRefFileName)
       except:
         pass
-      if len(BamFileBasename) >= 4 and BamFileBasename[-4:] == '.bam':
-        OutFile = FileForDiscardedReadPairs_basename +BamFileBasename
       else:
-        OutFile = FileForDiscardedReadPairs_basename +BamFileBasename +'.bam'
+        OutputFilesByDestinationDir['DiscardedReads'].append(LocalRefFileName)
+      OutFile = FileForDiscardedReadPairs_basename +BamFileBasename
       DiscardedReadPairsOut = pysam.AlignmentFile(OutFile, "wb", template=BamFile)
       for read in DiscardedReadPairs:
         DiscardedReadPairsOut.write(read)
       DiscardedReadPairsOut.close()
-      DiscardedReadPairsFiles.append(OutFile)
-  if DiscardedReadPairsFiles != []:
-    print('Info: read pairs that overlapped but disagreed on the overlap were',
-    'found. These have been written to', ' '.join(DiscardedReadPairsFiles) +'.')
+      OutputFilesByDestinationDir['DiscardedReads'].append(OutFile)
 
+
+OutputFilesByDestinationDir['raxml'] = glob.glob('RAxML*')
+
+# Try to create different directories for each kind of output file we've made.
+# Move files if desired.
+if not args.keep_output_together:
+  for DirKey, files in OutputFilesByDestinationDir.items():
+    if len(files) > 0:
+      if HaveMadeOutputDir:
+        OutputDirs[DirKey] = os.path.join(args.output_dir, OutputDirs[DirKey])
+      Dir = OutputDirs[DirKey]
+      if not os.path.isdir(Dir):
+        try:
+          os.mkdir(Dir)
+        except:
+          print('Problem creating the directory', Dir + \
+          ". phyloscanner will create all output files in",
+          "the working directory, instead of in file-type-specific",
+          "subdirectories.", file=sys.stderr)
+          args.keep_output_together = True
+          break
+if not args.keep_output_together:
+  for DirKey, files in OutputFilesByDestinationDir.items():
+    Dir = OutputDirs[DirKey]
+    for File in files:
+      shutil.move(File, os.path.join(Dir, File))
+if HaveMadeOutputDir:
+  shutil.move(FileForBamIDs, os.path.join(args.output_dir, FileForBamIDs))
+  if os.path.isfile(FileForAlignedRefs):
+    shutil.move(FileForAlignedRefs, os.path.join(args.output_dir,
+    FileForAlignedRefs))
+  if args.keep_output_together:
+    for File in itertools.chain.from_iterable(
+    OutputFilesByDestinationDir.values()):
+      shutil.move(File, os.path.join(args.output_dir, File))
 
 # Some code not being used at the moment:
 '''DuplicateReadRatios.append(float(ReadDict1[read])/ReadDict2[read])
