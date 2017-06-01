@@ -22,11 +22,12 @@ if(command.line){
   arg_parser = ArgumentParser(description="Annotate the internal nodes of the phylogeny, by an ancestral state reconstruction scheme, such that the tree can subsequently be partitioned into connected subgraphs, one per split. Input and output file name arguments are either a single file, or the root name for a group of files, in which case all files matching that root will be processed, and matching output files generated.")  
   arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. Three groups: patient ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name.")
   arg_parser$add_argument("-r", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
-  arg_parser$add_argument("-s", "--splitsRule", action="store", default="r", help="The rules by which the sets of patients are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. Currently available: s=Sankhoff (slow, rigorous), r=Romero-Severson (quick, less rigorous with >2 patients).")
+  arg_parser$add_argument("-s", "--splitsRule", action="store", default="r", help="The rules by which the sets of patients are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. Currently available: s=Sankoff (slow, rigorous), r=Romero-Severson (quick, less rigorous with >2 patients).")
   arg_parser$add_argument("-b", "--blacklist", action="store", help="A .csv file listing tips to ignore. Alternatively, a base name that identifies blacklist files. Blacklist files are assumed to end in .csv.")
-  arg_parser$add_argument("-k", "--kParam", action="store", default=0, help="The k parameter in the cost matrix for Sankhoff reconstruction (see documentation)")
+  arg_parser$add_argument("-k", "--kParam", action="store", default=0, help="The k parameter in the cost matrix for Sankoff reconstruction (see documentation)")
   arg_parser$add_argument("-P", "--pruneBlacklist", action="store_true", help="If present, all blacklisted and references tips (except the outgroup) are pruned away before starting.")
   arg_parser$add_argument("-p", "--proximityThreshold", action="store", default=0)
+  arg_parser$add_argument("-i", "--idFile", action="store", help="Optionally, a full list of patients; this will be used to standardise colours in PDF output across multiple runs for the same data")
   arg_parser$add_argument("-R", "--readCountsMatterOnZeroBranches", help="If present, read counts will be taken into account in parsimony reconstructions at the parents of zero-length branches. Not applicable for the Romero-Severson-like reconstruction method.", default = FALSE, action="store_true")
   arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, short branches in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. If a number, this number will be used as the threshold. If 'g', it will be guessed from the branch lengths (use this only if you've checked by eye that the tree does indeed have multifurcations).")
   arg_parser$add_argument("-n", "--branchLengthNormalisation", default = 1, action="store", help="If present and a number, a normalising constant for all branch lengths in the tree or trees. If present and a file, the path to a .csv file with two columns: tree file name and normalising constant")
@@ -36,6 +37,7 @@ if(command.line){
   arg_parser$add_argument("-ph", "--pdfrelheight", action="store", default=0.15, help="Relative height of tree pdf.")
   arg_parser$add_argument("-ff", "--useff", action="store_true", default=FALSE, help="Use ff to store parsimony reconstruction matrices. Use if you run out of memory.")
   arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what I'm doing.")
+  arg_parser$add_argument("-ORDA", "--outputAsRDA", action="store_true", default=FALSE, help="Store output optionally also in rda format. Default is False.")
   arg_parser$add_argument("inputFileName", action="store", help="The file or file root for the input tree in Newick format")
   arg_parser$add_argument("outputFileID", action="store", help="A string shared by all output file names.")
 
@@ -51,15 +53,16 @@ if(command.line){
   
   tree.file.name <- args$inputFile
 
-  sankhoff.k <- as.numeric(args$kParam)
-  sankhoff.p <- as.numeric(args$proximityThreshold)
+  sankoff.k <- as.numeric(args$kParam)
+  sankoff.p <- as.numeric(args$proximityThreshold)
   output.file.ID <- args$outputFileID
   blacklist.file.name <- args$blacklist
   root.name <- args$outgroupName
   read.counts.matter <- args$readCountsMatterOnZeroBranches
   verbose <- args$verbose
-  if(!is.null(args$outputDir)){
-    output.dir <- args$outputDir
+  outputAsRDA	<- args$outputAsRDA
+  if(!is.null(args$outputdir)){
+    output.dir <- args$outputdir
   } else {
     output.dir <- getwd()
   }
@@ -105,9 +108,15 @@ if(command.line){
     stop(paste("Unknown split classifier: ", mode, "\n", sep=""))
   }
 
-
+  colour.standardise <- F
+  
+  if(!is.null(args$idFile)){
+    colour.standardise <- T
+    patient.master.list <- read.csv("patients.txt", header = F)[,1]
+  }
+  
 } else {
-  script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools/"
+  script.dir <- "/Users/mdhall/phylotypes/tools"
   pdf.w = 10
   pdf.hm = 0.2
   
@@ -121,7 +130,7 @@ if(command.line){
   # mode <- "s"
   # root.name <- "C.BW.00.00BW07621.AF443088"
   # tip.regex <- "^(.*)-[0-9].*_read_([0-9]+)_count_([0-9]+)$"
-  # sankhoff.k <- 25
+  # sankoff.k <- 25
   # break.ties.unsampled <- TRUE
   # 
   # Rakai example
@@ -135,44 +144,44 @@ if(command.line){
   #   tip.regex <- "^(.*)_read_([0-9]+)_count_([0-9]+)$"
   #   mode <- "s"
   #   zero.length.tips.count <- F
-  #   sankhoff.k <- 20
+  #   sankoff.k <- 20
   #   break.ties.unsampled <- F
   #  
   # MRSA example
   
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/")
-  output.dir <- "/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/refinement"
-  tree.file.names <- "RAxML_bipartitions.ST239_no_bootstraps_T056corr.tree"
+  setwd("/Users/mdhall/Dropbox (Personal)/Transference/Croucher alignments/rerun/")
+  output.dir <- "/Users/mdhall/Dropbox (Personal)/Transference/Croucher alignments/rerun/"
+  tree.file.name <- "pneumo_sample_"
   blacklist.file.name <- NULL
-  output.file.IDs <- "mrsa_k10_bp_test_finaliteration"
-  tip.regex <- "^([ST][0-9][0-9][0-9])_[A-Z0-9]*_[A-Z][0-9][0-9]$"
-  root.name <- "TW20"
+  output.file.ID <- "pneumo_result_"
+  tip.regex <- "^(ARI-[0-9][0-9][0-9][0-9]_[A-Z]*)_[0-9][0-9][0-9][0-9]_[0-9]_[0-9][0-9]?$"
+  root.name <- NULL
   mode <- "f"
-  sankhoff.k <- 10
-  sankhoff.p <- 0.1
+  sankoff.k <- 10
+  sankoff.p <- 0.1
   useff  <- F
   
-  setwd("/Users/twoseventwo/Documents/Croucher alignments/")
-  output.dir <- "/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/refinement"
-  tree.file.names <- "MBconsensus.tre"
-  blacklist.file.name <- NULL
-  output.file.IDs <- "test"
-  tip.regex <- "^(ARI-[0-9][0-9][0-9][0-9]_[A-Z]*)_[0-9][0-9][0-9][0-9]_[0-9]_[0-9][0-9]?$"
-  root.name <- NULL
-  mode <- "s"
-  sankhoff.k <- 10
-  useff  <- F
-  
-  setwd("/Users/twoseventwo/Documents/Croucher alignments/")
-  output.dir <- "/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/refinement"
-  tree.file.names <- "MBconsensus.tre"
-  blacklist.file.name <- NULL
-  output.file.IDs <- "test"
-  tip.regex <- "^(ARI-[0-9][0-9][0-9][0-9]_[A-Z]*)_[0-9][0-9][0-9][0-9]_[0-9]_[0-9][0-9]?$"
-  root.name <- NULL
-  mode <- "s"
-  sankhoff.k <- 10
-  useff  <- F
+  # setwd("/Users/twoseventwo/Documents/Croucher alignments/")
+  # output.dir <- "/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/refinement"
+  # tree.file.names <- "MBconsensus.tre"
+  # blacklist.file.name <- NULL
+  # output.file.IDs <- "test"
+  # 
+  # root.name <- NULL
+  # mode <- "s"
+  # sankoff.k <- 10
+  # useff  <- F
+  # 
+  # setwd("/Users/twoseventwo/Documents/Croucher alignments/")
+  # output.dir <- "/Users/twoseventwo/Dropbox (Infectious Disease)/Thai MRSA 6/Matthew/refinement"
+  # tree.file.names <- "MBconsensus.tre"
+  # blacklist.file.name <- NULL
+  # output.file.IDs <- "test"
+  # tip.regex <- "^(ARI-[0-9][0-9][0-9][0-9]_[A-Z]*)_[0-9][0-9][0-9][0-9]_[0-9]_[0-9][0-9]?$"
+  # root.name <- NULL
+  # mode <- "s"
+  # sankoff.k <- 10
+  # useff  <- F
   
 }
 
@@ -181,8 +190,8 @@ if(command.line){
 #	define internal functions
 #
 split.patients.to.subgraphs<- function(tree.file.name, m.thresh, normalisation.constant = 1, mode, 
-                                       blacklist.file, root.name, tip.regex, sankhoff.k, 
-                                       sankhoff.p, useff, count.reads){
+                                       blacklist.file, root.name, tip.regex, sankoff.k, 
+                                       sankoff.p, useff, count.reads, colour.standardise = F){
   
   if (verbose) cat("SplitPatientsToSubgraphs.R run on: ", tree.file.name,", rules = ",mode,"\n", sep="")
   
@@ -266,8 +275,13 @@ split.patients.to.subgraphs<- function(tree.file.name, m.thresh, normalisation.c
   patients <- patients[order(patients)]
   
   if(length(patients)==0){
-    cat("No patient IDs detected, nothing to do.\n")
-    quit(save="no", status=1)
+    cat("No patient IDs detected after blacklisting for tree ",tree.file.name," nothing to do.\n")
+	  return(list(tree=orig.tree, rs.subgraphs=NULL))    
+  } 
+  
+  if(length(setdiff(which(!is.na(patient.ids)), blacklist)) <= 1){
+    cat("One or fewer tips of the tree are associated with a patient after blacklisting for tree ",tree.file.name," nothing to do.\n")
+    return(list(tree=orig.tree, rs.subgraphs=NULL))    
   } 
 
   
@@ -282,12 +296,12 @@ split.patients.to.subgraphs<- function(tree.file.name, m.thresh, normalisation.c
   
   # Do the main function
   
-  results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, tip.read.counts, sankhoff.k, sankhoff.p, useff = useff, verbose)
+  results <- split.and.annotate(tree, patients, patient.tips, patient.mrcas, blacklist, tip.regex, mode, tip.read.counts, sankoff.k, sankoff.p, useff = useff, verbose)
   
   # Where to put the node shapes that display subgraph MRCAs
   
-  node.shapes <- rep(FALSE, length(tree$tip.label) + tree$Nnode)
-  node.shapes[unlist(results$first.nodes)] <- TRUE
+  first.nodes <- rep(FALSE, length(tree$tip.label) + tree$Nnode)
+  first.nodes[unlist(results$first.nodes)] <- TRUE
 
   # For display purposes. "unsampled" nodes should have NA as annotations
   
@@ -301,18 +315,28 @@ split.patients.to.subgraphs<- function(tree.file.name, m.thresh, normalisation.c
     }
   }
   
+  
+  
   # This is the annotation for each node by patient
   
   patient.annotation <- sapply(split.annotation, function(x) unlist(strsplit(x, "-S"))[1] )
   names(patient.annotation) <- NULL
-  patient.annotation <- factor(patient.annotation, levels = sample(levels(as.factor(patient.annotation))))
+
+  if(!colour.standardise){
+    patient.annotation <- factor(patient.annotation, levels = sample(levels(as.factor(patient.annotation))))
+  } else {
+    patient.annotation <- factor(patient.annotation, levels = levels(patient.master.list))
+  }
+
+  branch.colours <- patient.annotation
+  branch.colours[first.nodes] <- NA
   
   # For annotation
   # We will return the original tree with the original branch lengths
   
   attr(orig.tree, 'SPLIT') <- factor(split.annotation)
   attr(orig.tree, 'INDIVIDUAL') <- patient.annotation
-  attr(orig.tree, 'NODE_SHAPES') <- node.shapes
+  attr(orig.tree, 'BRANCH_COLOURS') <- branch.colours
   
   rs.subgraphs <- data.table(subgraph=results$split.patients)
   rs.subgraphs <- rs.subgraphs[, list(patient= unlist(strsplit(subgraph, "-S"))[1], tip= tree$tip.label[ results$split.tips[[subgraph]] ]	), by='subgraph']
@@ -358,7 +382,7 @@ if(file.exists(tree.file.name)){
   file.details[[tree.file.name]] <- file.name.list
 } else {
   # Assume we are dealing with a group of files
-  tree.file.names	<- list.files.mod(dirname(tree.file.name), pattern=paste(basename(tree.file.name),'.*\\',tree.fe,'$',sep=''), full.names=TRUE)
+  tree.file.names	<- list.files.mod(dirname(tree.file.name), pattern=paste('^',basename(tree.file.name),'.*\\',tree.fe,'$',sep=''), full.names=TRUE)
 
   if(length(tree.file.names)==0){
     cat("No input trees found.\n")
@@ -397,10 +421,11 @@ if(file.exists(tree.file.name)){
   }
   file.details <- split(fn.df, rownames(fn.df))
 }
-
+#print(file.details); stop()
 for(i in file.details){
-  #	if 'tree.file.names' is tree, process just one tree
-  tree.file.name		<- i$tree.input	
+  #	if 'tree.file.names' is tree, process just one tree  
+  tree.file.name		<- i$tree.input
+  if (verbose) cat("Processing file",tree.file.name,"...\n")
   if(!is.null(blacklist.file.name)){
     blacklist.file	<- i$blacklist.input
   } else {
@@ -408,46 +433,54 @@ for(i in file.details){
   }
   output.string <- i$output.ID 
   
-  tmp					<- split.patients.to.subgraphs(tree.file.name, m.thresh, i$normalisation.constant, mode, blacklist.file, root.name, tip.regex, sankhoff.k, sankhoff.p, useff, read.counts.matter)
-  tree				<- tmp[['tree']]	
+  tmp					<- split.patients.to.subgraphs(tree.file.name, m.thresh, i$normalisation.constant, mode, blacklist.file, root.name, tip.regex, sankoff.k, sankoff.p, useff, read.counts.matter, colour.standardise)
+  tree					<- tmp[['tree']]	
   rs.subgraphs			<- tmp[['rs.subgraphs']]
   #
   #	write rda file (potentially before plotting fails so we can recover)
   #
-#  tmp 				<- file.path(output.dir,paste('subgraphs_',mode,'_',output.string,'.rda',sep='')) 
-#  if (verbose) cat("Writing output to file",tmp,"...\n")
-#  save(rs.subgraphs, tree, file=tmp)		
+  if(outputAsRDA)
+  {
+	tmp 				<- file.path(output.dir,paste('subgraphs_',mode,'_',output.string,'.rda',sep='')) 
+	if (verbose) cat("Writing output to file",tmp,"...\n")
+	save(rs.subgraphs, tree, file=tmp)  
+  }	
   #
   #	plot tree
   #
-  if (verbose) cat("Drawing tree...\n")
-  tree.display 		<- ggtree(tree, aes(color=INDIVIDUAL)) +
-    geom_point2(shape = 16, size=3, aes(subset=NODE_SHAPES)) +
-    scale_fill_hue(na.value = "black") +
-    scale_color_hue(na.value = "black") +
-    theme(legend.position="none") +
-    geom_tiplab(aes(col=INDIVIDUAL)) + 
-    geom_treescale(width=0.01, y=-5, offset=1.5)
-  
-  x.max <- ggplot_build(tree.display)$layout$panel_ranges[[1]]$x.range[2]
-  
-  tree.display <- tree.display + ggplot2::xlim(0, 1.1*x.max)
-  tree.display	
-
-  tmp	<- file.path(output.dir,paste('Tree_',output.string,'.pdf',sep=''))
-  if (verbose) cat("Plot to file",tmp,"...\n")
-  ggsave(tmp, device="pdf", height = pdf.hm*length(tree$tip.label), width = pdf.w, limitsize = F)
-  
-  tmp <- file.path(output.dir, paste('ProcessedTree_',mode,'_',output.string, tree.fe,sep=''))
-  if (verbose) cat("Writing rerooted, multifurcating, annotated tree to file",tmp,"...\n")	
-  write.ann.nexus(tree, file=tmp, annotations = c("INDIVIDUAL", "SPLIT"))
-  
+  if(!is.null(rs.subgraphs))
+  {		
+	  if (verbose) cat("Drawing tree...\n")
+	  tree.display 		<- ggtree(tree, aes(color=BRANCH_COLOURS)) +
+							    geom_point2(shape = 16, size=1, aes(color=INDIVIDUAL)) +
+							    scale_fill_hue(na.value = "black", drop=F) +
+							    scale_color_hue(na.value = "black", drop=F) +
+							    theme(legend.position="none") +
+							    geom_tiplab(aes(col=INDIVIDUAL)) + 
+							    geom_treescale(width=0.01, y=-5, offset=1.5)	  
+	  x.max <- ggplot_build(tree.display)$layout$panel_ranges[[1]]$x.range[2]	  
+	  tree.display <- tree.display + ggplot2::xlim(0, 1.1*x.max)
+	  tree.display		
+	  tmp	<- file.path(output.dir,paste('Tree_',output.string,'.pdf',sep=''))
+	  if (verbose) cat("Plot to file",tmp,"...\n")
+	  ggsave(tmp, device="pdf", height = pdf.hm*length(tree$tip.label), width = pdf.w, limitsize = F)
+  }
+  #
+  # write nexus file
+  #
+  if(!is.null(rs.subgraphs))
+  {
+	  tmp <- file.path(output.dir, paste('ProcessedTree_',mode,'_',output.string, tree.fe,sep=''))
+	  if (verbose) cat("Writing rerooted, multifurcating, annotated tree to file",tmp,"...\n")	
+	  write.ann.nexus(tree, file=tmp, annotations = c("INDIVIDUAL", "SPLIT"))
+  }
   #
   #	write csv file
   #
-  
-  tmp 				<- file.path(output.dir, paste('subgraphs_',mode,'_',output.string,csv.fe,sep=''))
-  if (verbose) cat("Writing output to file",tmp,"...\n")	
-  write.csv(rs.subgraphs, file=tmp, row.names = F, quote=F)	
-  
+  if(!is.null(rs.subgraphs))
+  {
+	  tmp 				<- file.path(output.dir, paste('subgraphs_',mode,'_',output.string,csv.fe,sep=''))
+	  if (verbose) cat("Writing output to file",tmp,"...\n")	
+	  write.csv(rs.subgraphs, file=tmp, row.names = F, quote=F)		  
+  }
 }
