@@ -10,11 +10,10 @@ csv.fe <- ".csv"
 command.line <- T
 if(command.line){
   suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
-  #	OR line breaks result in error "rjson::fromJSON(output) : unexpected character 'F'"
   tmp	<- "Summarise topological relationships suggesting direction of transmission across windows. Outputs a .csv file of relationships between patient IDs. Relationship types: 'anc' indicates a topology that suggests the patient in column 1 infected the patient in column 2, 'cher' where there is only one subtree per patient and the MRCAs of both have the same parent in the phylogeny, 'unint' where cher is not present reads from the patients form sibling clades from an unsampled common ancestor patient (and that neither has any sampled ancestors occuring later in the transmission chain than that common ancestor), 'int' one where reads from both patients are intermingled and the direction of transmission cannot be established. (More documentation to follow.)"
   arg_parser = ArgumentParser(description=tmp)
   arg_parser$add_argument("-s", "--summaryFile", action="store", help="The full output file from SummaryStatistics.R; necessary only to identify windows in which no reads are present from each patient. If absent, window counts will be given without denominators.")
-  arg_parser$add_argument("-m", "--minThreshold", action="store", default=1, type="integer", help="Relationships between two patients will only appear in output if a transmission chain between them appears in at least these many windows (default 1). High numbers are useful for drawing figures in e.g. Cytoscape with few enough arrows to be comprehensible. The script is extremely slow if this is set to 0.")
+  arg_parser$add_argument("-m", "--minThreshold", action="store", default=1, type="integer", help="Relationships between two patients will only appear in output if they are within the distance threshold and ajacent to each other least these many windows (default 1). High numbers are useful for drawing figures in e.g. Cytoscape with few enough arrows to be comprehensible. The script is extremely slow if this is set to 0.")
   arg_parser$add_argument("-c", "--distanceThreshold", action="store", default=-1, help="Maximum distance threshold on a window for a relationship to be reconstructed between two patients on that window.")
   arg_parser$add_argument("-p", "--allowMultiTrans", action="store_true", default=FALSE, help="If absent, directionality is only inferred between pairs of patients where a single clade from one patient is nested in one from the other; this is more conservative")
   arg_parser$add_argument("-d", "--detailedOutput", action="store", help="If present, a file describing the relationships between each pair of patients on each window will be written to the specified path in .rda format")
@@ -52,46 +51,46 @@ if(command.line){
   input.files <- input.files[! grepl('collapsedTree', input.files)]
   
 } else {
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/")
-  script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
+  setwd("/Users/mdhall/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/")
+  script.dir <- "/Users/mdhall/phylotypes/tools"
   summary.file	<- NULL
   id.file 					<- "patientIDList.txt"
-  input.file.name			<- "/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/Classifications_s/Classification_s_run20161013D_inWindow_"
+  input.file.name			<- "/Users/mdhall/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/Classifications_s/Classification_s_classification_run20161013D_inWindow_"
   min.threshold				<- 16.5
   dist.threshold <- 0.05183
   allow.mt 				<- TRUE
-  output.file 				<- "run20161013D.csv"
+  output.file 				<- "run20161013D_huhh.csv"
   detailed.output				<- NULL
   input.files 				<- sort(list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name)), full.names=TRUE))
   
-  setwd("/Users/twoseventwo/Documents/Croucher alignments")
-  script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
-  summary.file <- "stats_patStatsFull.csv"
-  id.file <- "patients.txt"
-  input.file.name <- "pneumo_classification_"
-  dist.threshold <- 0.005
-  min.threshold <- 50
-  allow.mt <- T
-  output.file <- "testn_0.005.csv"
-  detailed.output <- "test2.csv"
-  
-  
-  setwd("/Users/twoseventwo/Downloads/PossibleDuals/")
-  script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
-  summary.file <- "summary_patStatsFull.csv"
-  id.file <- "PossibleDualsForPaper.txt"
-  input.file.name <- "Classification_s_classification_InWindow_"
-  dist.threshold <- 1
-  min.threshold <- 0
-  allow.mt <- T
-  output.file <- "test1.csv"
-  detailed.output <- "test2.csv"
-  
-  
-  input.files <- list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name)), full.names=TRUE)
-  
-  input.files <- input.files[! grepl('collapsedTree', input.files)]
-  input.files <- input.files[! grepl('_classification\\.', input.files)]
+  # setwd("/Users/twoseventwo/Documents/Croucher alignments")
+  # script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
+  # summary.file <- "stats_patStatsFull.csv"
+  # id.file <- "patients.txt"
+  # input.file.name <- "pneumo_classification_"
+  # dist.threshold <- 0.005
+  # min.threshold <- 50
+  # allow.mt <- T
+  # output.file <- "testn_0.005.csv"
+  # detailed.output <- "test2.csv"
+  # 
+  # 
+  # setwd("/Users/twoseventwo/Downloads/PossibleDuals/")
+  # script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
+  # summary.file <- "summary_patStatsFull.csv"
+  # id.file <- "PossibleDualsForPaper.txt"
+  # input.file.name <- "Classification_s_classification_InWindow_"
+  # dist.threshold <- 1
+  # min.threshold <- 0
+  # allow.mt <- T
+  # output.file <- "test1.csv"
+  # detailed.output <- "test2.csv"
+  # 
+  # 
+  # input.files <- list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name)), full.names=TRUE)
+  # 
+  # input.files <- input.files[! grepl('collapsedTree', input.files)]
+  # input.files <- input.files[! grepl('_classification\\.', input.files)]
   
   if(0)
   {
@@ -136,6 +135,8 @@ if(!is.null(summary.file)){
 #
 # Read in the IDs. Remove duplicates. Shuffle their order if desired.
 #
+if(verbose) cat("Reading patient IDs...\n")
+
 patient.ids	<- unique(scan(id.file, what="", sep="\n", quiet=TRUE))
 if(!length(patient.ids))
   stop(paste("No IDs found in ", id.file, ". Quitting.\n", sep=""))  
@@ -152,6 +153,9 @@ tt	<-	lapply(input.files, function(x){
 # need to worry about transmissions listed in the wrong direction in the input file
 # to avoid very large memory, consolidate by FILE
 #
+
+if(verbose) cat("Rearranging patient pairs...\n")
+
 tt	<- lapply(tt, function(x){
 			#x	<- tt[[1]]
 			tmp	<- copy(x)
@@ -169,28 +173,42 @@ tt	<- lapply(tt, function(x){
 #
 # rbind consolidated files
 #
+
+if(verbose) cat("Consolidating file contents...\n")
+
 tt	<- do.call('rbind',tt)
+
+if(verbose) cat("Finding patristic distance columns...\n")
+
 # reset names depending on which Classify script was used
 if(any('normalised.min.distance.between.subtrees'==colnames(tt))){
   setnames(tt, 'normalised.min.distance.between.subtrees', 'PATRISTIC_DISTANCE')
-} else if(any('min.distance.between.subtrees'==colnames(tt)))
-	{setnames(tt, 'min.distance.between.subtrees', 'PATRISTIC_DISTANCE')}
-setnames(tt, c('Patient_1','Patient_2','path.classification','paths21','paths12','adjacent','contiguous'), c('pat.1','pat.2','TYPE','PATHS.21','PATHS.12','ADJACENT','CONTIGUOUS'))
+} else if(any('min.distance.between.subtrees'==colnames(tt))){
+  setnames(tt, 'min.distance.between.subtrees', 'PATRISTIC_DISTANCE')
+}
+
+setnames(tt, c('Patient_1','Patient_2','path.classification','paths21','paths12','adjacent'), c('pat.1','pat.2','TYPE','PATHS.21','PATHS.12','ADJACENT'))
 # change type name depending on allow.mt
 if(!allow.mt){
+  if(verbose) cat("Allowing only single lineage transmission...\n")
 	set(tt, tt[, which(TYPE%in%c("multiAnc", "multiDesc"))], 'TYPE', 'conflict')
 }
 
 #	check we have patristic distances, paths
+
 stopifnot( !nrow(subset(tt, is.na(PATRISTIC_DISTANCE))) )
 stopifnot( !nrow(subset(tt, is.na(PATHS.12))) )
 stopifnot( !nrow(subset(tt, is.na(PATHS.21))) )
+
 #	set to numeric
 set(tt, NULL, 'PATRISTIC_DISTANCE', tt[, as.numeric(PATRISTIC_DISTANCE)])
 # 	add window coordinates
 
 #	calculate #unique reads and #reads for each window
 #
+
+if(verbose) cat("Combining window data...\n")
+
 dp	<-  reads.table[,{
 			#	combine by window only for present patients to avoid large mem
 			dp			<- data.table(pat.1=NA_character_, pat.2=NA_character_)
@@ -209,16 +227,19 @@ dp	<-  reads.table[,{
 dp <- subset(dp, !is.na(pat.1) & !is.na(pat.2))
 tmp	<- subset(reads.table, present, c(SUFFIX, id, reads, tips))
 setnames(tmp, c("id","reads","tips"), c("pat.1","pat.1_reads","pat.1_tips"))
+
+
 dp <- merge(dp, tmp, by=c('SUFFIX','pat.1'))
 setnames(tmp, c("pat.1","pat.1_tips","pat.1_reads"), c("pat.2","pat.2_tips","pat.2_reads"))
 dp <- merge(dp, tmp, by=c('SUFFIX','pat.2'))
+
 #
 #	merge reads/leaves with tt
 #
 tt			<- merge(tt, dp, by=c('pat.1','pat.2','SUFFIX'))
 
 if(nrow(tt)==0){
-  cat("Failed to merge tables; e.g. file suffix",tt$SUFFIX[1]," not found in ",summary.file,"\n",sep="")
+  cat("Failed to merge tables; e.g. file suffix ",tt$SUFFIX[1]," not found in ",summary.file,"\n",sep="")
   quit(save="no", status=1)
 }
 
@@ -228,15 +249,17 @@ set(tt, tt[,which(TYPE=='desc')], 'TYPE','anc_21')
 set(tt, tt[,which(TYPE=='multiAnc')], 'TYPE','multi_anc_12')
 set(tt, tt[,which(TYPE=='multiDesc')], 'TYPE','multi_anc_21')
 
+if(verbose) cat("Reordering...\n")
+
 #	reorder
 setkey(tt, SUFFIX, pat.1, pat.2)
-tt			<- subset(tt, select=c('SUFFIX','pat.1','pat.2','TYPE','PATRISTIC_DISTANCE','ADJACENT','CONTIGUOUS','PATHS.12','PATHS.21','pat.1_tips','pat.1_reads','pat.2_tips','pat.2_reads'))
+tt			<- subset(tt, select=c('SUFFIX','pat.1','pat.2','TYPE','PATRISTIC_DISTANCE','ADJACENT','PATHS.12','PATHS.21','pat.1_tips','pat.1_reads','pat.2_tips','pat.2_reads'))
 #tt			<- subset(tt, select=c('SUFFIX','pat.1','pat.2','TYPE','PATRISTIC_DISTANCE','ADJACENT','CONTIGUOUS','PATHS.12','PATHS.21'))
 setnames(tt, colnames(tt),toupper(colnames(tt)))
 #	write to file
 if(!is.null(detailed.output))
 {	
- 	if (verbose) cat("Save detailed per window table:",detailed.output)
+ 	if (verbose) cat("Saving detailed per window table to",detailed.output)
  	save(tt, file=gsub('\\.csv','\\.rda',detailed.output))
 }
 
@@ -282,7 +305,7 @@ set(tt.close, tmp, 'TYPE', "multi_trans")
 
 tt.close[, DUMMY:=NULL]
 
-set(tt.close, NULL, c('SUFFIX', 'ADJACENT','CONTIGUOUS','PATRISTIC_DISTANCE'), NULL)
+set(tt.close, NULL, c('SUFFIX', 'ADJACENT','PATRISTIC_DISTANCE'), NULL)
 tt.close <- tt.close[!duplicated(tt.close),]
 
 #	write to file

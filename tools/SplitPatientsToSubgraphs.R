@@ -273,8 +273,13 @@ split.patients.to.subgraphs<- function(tree.file.name, m.thresh, normalisation.c
   patients <- patients[order(patients)]
   
   if(length(patients)==0){
-    cat("No patient IDs detected, nothing to do.\n")
-	return(list(tree=orig.tree, rs.subgraphs=NULL))    
+    cat("No patient IDs detected after blacklisting for tree ",tree.file.name," nothing to do.\n")
+	  return(list(tree=orig.tree, rs.subgraphs=NULL))    
+  } 
+  
+  if(length(setdiff(which(!is.na(patient.ids)), blacklist)) <= 1){
+    cat("One or fewer tips of the tree are associated with a patient after blacklisting for tree ",tree.file.name," nothing to do.\n")
+    return(list(tree=orig.tree, rs.subgraphs=NULL))    
   } 
 
   
@@ -418,7 +423,7 @@ if(file.exists(tree.file.name)){
 for(i in file.details){
   #	if 'tree.file.names' is tree, process just one tree  
   tree.file.name		<- i$tree.input
-  if (verbose) cat("Process file",tree.file.name,"...\n")
+  if (verbose) cat("Processing file",tree.file.name,"...\n")
   if(!is.null(blacklist.file.name)){
     blacklist.file	<- i$blacklist.input
   } else {
