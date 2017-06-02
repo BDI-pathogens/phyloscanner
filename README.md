@@ -12,14 +12,13 @@ The phyloscanner manual is [here](PhyloscannerManual.pdf).
 ### Basic usage:
 With the initial `$` traditionally indicating that we're on the command line, the basic command looks like
 ```bash
-$ phyloscanner.py bams.txt refs.txt --windows 1,300,301,600,...
+$ phyloscanner.py ListOfMyInputFiles.csv --windows 1,300,301,600,...
 ```
 where  
-1. `bams.txt` is a plain text file listing the desired bam files, one per line;  
-2. `refs.txt` is a plain text file listing the files containing the sequences to which the reads were mapped in order to create the bam files (the *references*), one per bam file, in the same order as in `bams.txt`;  
-3. the `--windows` option is used to specify an even number of comma-separated positive integers: these are the coordinates of the windows to analyse, interpreted pairwise, i.e. the first two are the left and right edges of the first window, the third and fourth are the left and right edges of the second window, ... i.e. in the above example we have windows 1-300, 301-600, ...  
+1.  `ListOfMyInputFiles.csv` is a plain-text, comma-separated-variable (csv) format file in which the first column is your bam files, the second column is the corresponding reference files, and an optional third column is used for renaming each bam file in phyloscanner output.
+2. the `--windows` option is used to specify an even number of comma-separated positive integers: these are the coordinates of the windows to analyse, interpreted pairwise, i.e. the first two are the left and right edges of the first window, the third and fourth are the left and right edges of the second window, ... i.e. in the above example we have windows 1-300, 301-600, ...  
 
-Details of optional arguments of phyloscanner can be seen by using the `--help` option, or seeing the section *Phyloscanner options* below.
+Optional arguments of phyloscanner can be seen by running it using the `--help` option, or seeing the section *Phyloscanner options* below.
 
 ### An Example
 
