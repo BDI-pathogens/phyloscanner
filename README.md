@@ -6,7 +6,8 @@ Notes on installing these are [here](InfoAndInputs/DependencyInstallationNotes.t
 <p align="center"><img src="InfoAndInputs/PhyloscannerDiagram_big4.jpg" alt="Phyloscanner" width="820", height="314"/></p>
 
 phyloscanner's input is bam files: reads (fragments of nucleotide sequence) that have been mapped (aligned) to the correct part of some reference genome.
-We wrote phyloscanner to analyse bam files that each represent a pathogen population (HIV specifically) in one host, exhibiting within-host and between-host diversity; in general use each bam file should be a sample representing some subpopulation, and we analyse within- and between-sample diversity.
+We wrote phyloscanner to analyse bam files that each represent a pathogen population (HIV specifically) in one host, exhibiting within-host and between-host diversity; in general use each bam file should be a sample representing some subpopulation, and we analyse within- and between-sample diversity.  
+The phyloscanner manual is [here](PhyloscannerManual.pdf).
 
 ### Basic usage:
 With the initial `$` traditionally indicating that we're on the command line, the basic command looks like
