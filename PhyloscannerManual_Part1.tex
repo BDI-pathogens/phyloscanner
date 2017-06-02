@@ -1,5 +1,17 @@
 \part{Generating within- and between-host phylogenies in windows along the genome, using mapped reads}
 
+Basic usage.\\
+With the initial \c{\$} traditionally indicating that we're on the command line, the basic command looks like
+
+\begin{verbatim}
+ $ phyloscanner.py ListOfMyInputFiles.csv --windows 1,300,301,600,...
+\end{verbatim}
+where
+\begin{itemize}
+\item \c{ListOfMyInputFiles.csv} is a plain-text, comma-separated-variable (csv) format file in which the first column is the bam files, the second column is the corresponding reference files, and an optional third column is {\it aliases} -- things to rename each bam file to in \p output.
+\item the \c{--windows} option is used to specify an even number of comma-separated positive integers: these are the coordinates of the windows to analyse, interpreted pairwise, i.e. the first two are the left and right edges of the first window, the third and fourth are the left and right edges of the second window, ... i.e. in the above example we have windows 1-300, 301-600, ...
+\end{itemize}
+
 \subsection*{What windows should I choose for my own data?}
 I'm glad you asked.
 It's important.
