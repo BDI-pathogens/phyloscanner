@@ -26,7 +26,7 @@ The simulated bam files in [ExampleInputData](ExampleInputData) illustrate inter
 Try running this command from the directory where your local copy of this code repostory lives, or adjusting paths appropriately if run from another directory:
 ```bash
 $ cd ExampleInputData
-$ ./phyloscanner.py InputFileList.csv --windows 1000,1300,2000,2300,3000,3300,4000,4300,5000,5300,6000,6300,7000,7300,8000,8300 -A ../InfoAndInputs/2refs_HXB2_C.BW.fasta --pairwise-align-to B.FR.83.HXB2_LAI_IIIB_BRU.K03455 
+$ ../phyloscanner.py InputFileList.csv --windows 1000,1300,2000,2300,3000,3300,4000,4300,5000,5300,6000,6300,7000,7300,8000,8300 -A ../InfoAndInputs/2refs_HXB2_C.BW.fasta --pairwise-align-to B.FR.83.HXB2_LAI_IIIB_BRU.K03455 
 ```
 (Those windows make best use of this simulated data, the `-A` option includes an alignment of extra reference sequences along with the reads, and the `--pairwise-align-to` option is explained later on.)
 In the output you'll see trees and summary information indicating that these samples constitute:
