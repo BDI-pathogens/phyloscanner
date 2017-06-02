@@ -37,6 +37,7 @@ if(command.line){
   arg_parser$add_argument("-ph", "--pdfrelheight", action="store", default=0.15, help="Relative height of tree pdf.")
   arg_parser$add_argument("-ff", "--useff", action="store_true", default=FALSE, help="Use ff to store parsimony reconstruction matrices. Use if you run out of memory.")
   arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what I'm doing.")
+  arg_parser$add_argument("-ORDA", "--outputAsRDA", action="store_true", default=FALSE, help="Store output optionally also in rda format. Default is False.")
   arg_parser$add_argument("inputFileName", action="store", help="The file or file root for the input tree in Newick format")
   arg_parser$add_argument("outputFileID", action="store", help="A string shared by all output file names.")
 
@@ -59,6 +60,7 @@ if(command.line){
   root.name <- args$outgroupName
   read.counts.matter <- args$readCountsMatterOnZeroBranches
   verbose <- args$verbose
+  outputAsRDA	<- args$outputAsRDA
   if(!is.null(args$outputdir)){
     output.dir <- args$outputdir
   } else {
@@ -431,9 +433,12 @@ for(i in file.details){
   #
   #	write rda file (potentially before plotting fails so we can recover)
   #
-#  tmp 				<- file.path(output.dir,paste('subgraphs_',mode,'_',output.string,'.rda',sep='')) 
-#  if (verbose) cat("Writing output to file",tmp,"...\n")
-#  save(rs.subgraphs, tree, file=tmp)		
+  if(outputAsRDA)
+  {
+	tmp 				<- file.path(output.dir,paste('subgraphs_',mode,'_',output.string,'.rda',sep='')) 
+	if (verbose) cat("Writing output to file",tmp,"...\n")
+	save(rs.subgraphs, tree, file=tmp)  
+  }	
   #
   #	plot tree
   #

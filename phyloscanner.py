@@ -5,12 +5,12 @@ from __future__ import print_function
 ## Acknowledgement: I wrote this while funded by ERC Advanced Grant PBDR-339251
 ##
 ## Overview:
-ExplanatoryMessage = '''phyloscanner analyses the phylogenetic relationships
-between and within samples of mapped reads. The user specifies one or more
+ExplanatoryMessage = '''phyloscanner analyses the genetic diversity and
+relationships between and within samples of mapped reads, in windows along the
+genome. The user specifies one or more
 windows of the genome in which this done. For each window: for each sample, all
-reads mapped to that window are found, identical reads are collected together
-with an associated count, similar reads are merged together based on the counts,
-then a minimum count is imposed. Then all reads from all samples in this window 
+reads mapped to that window are found, and identical reads are collected together
+with an associated count. Then all reads from all samples in this window 
 are aligned using mafft and a phylogeny is constructed using RAxML. All
 phylogenies are then analysed. Temporary files and output files are written to
 the current working directory; to avoid overwriting existing files, you might to
@@ -18,29 +18,17 @@ want to call this code from an empty directory.
 '''
 
 ################################################################################
-# USER INPUT
-
-# Some output files
-FileForAlignedReads_basename = 'AlignedReads'
-FileForAlignedReads_PositionsExcised_basename = 'AlignedReads_PositionsExcised_'
-FileForConsensuses_basename = 'Consensuses_'
-FileForConsensuses_PositionsExcised_basename = 'Consensuses_PositionsExcised_'
-FileForAlignedRefs = 'RefsAln.fasta'
-FileForDiscardedReadPairs_basename = 'DiscardedReads_'
-FileForDuplicateReadCountsRaw_basename = 'DuplicateReadCountsRaw_'
-FileForDuplicateReadCountsProcessed_basename = 'DuplicateReadCountsProcessed_'
-FileForDuplicateSeqs_basename = 'DuplicateReads_contaminants_'
-FileForReadNames_basename = 'ReadNames_'
+# The names of some files we'll create.
 FileForBamIDs = 'BamIDs.txt'
-RecombinantReads_basename = 'RecombinantReads_'
+FileForAlignedRefs = 'RefsAln.fasta'
 
 # Some temporary working files we'll create
-FileForRefs = 'temp_refs.fasta'
-FileForPairwiseUnalignedRefs = 'temp_2Refs.fasta'
-FileForPairwiseAlignedRefs = 'temp_2RefsAln.fasta'
-FileForReads_basename = 'temp_UnalignedReads'
-FileForOtherRefs_basename = 'temp_OtherRefs'
-FileForAllBootstrappedTrees_basename = 'temp_AllBootstrappedTrees'
+TempFileForRefs = 'temp_refs.fasta'
+TempFileForPairwiseUnalignedRefs = 'temp_2Refs.fasta'
+TempFileForPairwiseAlignedRefs = 'temp_2RefsAln.fasta'
+TempFileForReads_basename = 'temp_UnalignedReads'
+TempFileForOtherRefs_basename = 'temp_OtherRefs'
+TempFileForAllBootstrappedTrees_basename = 'temp_AllBootstrappedTrees'
 ################################################################################
 GapChar = '-'
 
@@ -51,6 +39,7 @@ import subprocess
 import sys
 import re
 import copy
+import shutil
 import glob
 import time
 from shutil import copy2
@@ -86,19 +75,37 @@ def CommaSeparatedInts(MyCommaSeparatedInts):
   else:
     return ListOfInts
 
+# A class to have new lines in argument help text
+class SmartFormatter(argparse.HelpFormatter):
+  def _split_lines(self, text, width):
+    if text.startswith('R|'):
+      return text[2:].splitlines()
+    return argparse.HelpFormatter._split_lines(self, text, width)
+
 # Set up the arguments for this script
-parser = argparse.ArgumentParser(description=ExplanatoryMessage)
+parser = argparse.ArgumentParser(description=ExplanatoryMessage,
+formatter_class=SmartFormatter)
 
 # Positional args
-parser.add_argument('ListOfBamFiles', type=File, help='''A file containing the
-names (and paths) of the bam files to be included, one per line. The file
-basenames (i.e. the filename minus the directory) should be unique and free
-of whitespace.''')
-parser.add_argument('ListOfRefFiles', type=File, help='''A file containing the
-names (and paths) of the reference fasta files for the bam files, one per
-line. The file basenames (i.e. the filename minus the directory) should be
-unique and free of whitespace. The order in which the references appear in this
-file should match the order of bams specified in the ListOfBamFiles file.''')
+parser.add_argument('BamAndRefList', type=File,
+help='''R|A file listing the bam and reference files (i.e. the
+fasta-format file containing the sequence to which the
+reads were mapped). The first column should be the bam
+file, the second column the corresponding reference
+file, with a comma separating the two. For example,
+PatientA.bam,PatientA_ref.fasta
+PatientB.bam,PatientB_ref.fasta
+If file names contain commas, speech marks can be
+used to wrap/protect each field, e.g.
+"Patient,A.bam",PatientA_ref.fasta
+"Patient,B.bam",PatientB_ref.fasta
+An optional third column, if present, will be used to
+rename the bam files in all output (otherwise the
+base name of the bam, i.e. the file name not including
+the directory path, will be used). Bam file base names
+must be unique, as must entries in the third column if
+present. Bam and reference file names must not contain
+whitespace.''')
 
 WindowArgs = parser.add_argument_group('Window options - you must choose'
 ' exactly one of -W, -AW or -E')
@@ -154,6 +161,18 @@ However using this option, the mapping references used to create the bam files
 are each separately pairwise aligned to one of the extra references included
 with -A, and window coordinates are interpreted with respect to this
 reference.''')
+RecommendedArgs.add_argument('-CR', '--check-recombination',
+action='store_true', help='''Calculates a metric of recombination for each
+sample's set of reads in each window. (Recommended only if you're interested, of
+course.) The metric considers all possible sets of three sequences and possible
+crossover points; it measures the extent to which Hamming distance indicates
+that the putative recombinant looks more like one parent on one side of the
+crossover and more like the other parent on the other side. Calculation time
+scales cubically with the number of unique sequences each sample has per window,
+and so is turned off by default. You can save time by only turning this on after
+you've played with other parameters that affect the number of unique sequences
+per window (notably window width, a merging threshold and a minimum read
+count).''')
 
 QualityArgs = parser.add_argument_group('Options intended to minimise the '
 'impact of poor quality reads')
@@ -191,9 +210,6 @@ every bam file you have in which there could conceivably be cross-contamination,
 using the -C flag (and possibly -CO to save time), and then in subsequent runs
 focussing on subsets of bam files you will be able to identify contamination
 from outside that subset.''')
-OtherArgs.add_argument('-F', '--renaming-file', type=File, help='Specify a file '
-'with one line per bam file, showing how reads from that bam file should be '
-"named in the output files. (By default, each bam file's basename is used.)")
 OtherArgs.add_argument('-FR', '--forbid-read-repeats', action='store_true',
 help='''Using this option, if a read with the same name is found
 to span each of a series of consecutive, overlapping windows, it is only used in
@@ -210,6 +226,12 @@ two mates will be used (in a given window and consecutive overlapping windows),
 and with the --merge-paired-reads option mates will be merged into a
 single read, which is used only the first time it is encountered in
 consecutive overlapping windows.''')
+OtherArgs.add_argument('-KO', '--keep-output-together', action='store_true',
+help='''By default, subdirectories are made for different kinds of phyloscanner
+output. With this option, all output files will be in the same directory (either
+the working directory, or whatever you specify with --output-dir).''')
+OtherArgs.add_argument('-KT', '--keep-temp-files', action='store_true', help='''
+Keep temporary files we create on the way (these are deleted by default).''')
 OtherArgs.add_argument('-MT', '--merging-threshold', type=int, default=0, help=\
 'Reads that differ by a number of bases equal to or less than this are merged'
 ', those with higher counts effectively absorbing those with lower counts. '
@@ -258,7 +280,7 @@ of a reference (which must be present in the file you specify with -A) with
 respect to which the coordinates specified with -XC are interpreted. If you are
 also using the --pairwise-align-to option, you must use the same reference there
 and here.''')
-OtherArgs.add_argument('--output-dir', help='Used to specify the name of a '
+OtherArgs.add_argument('-OD', '--output-dir', help='Used to specify the name of a '
 'directory (which should not exist already) in which all intermediate and '
 'output files will be created.')
 OtherArgs.add_argument('--time', action='store_true',
@@ -367,9 +389,6 @@ help='Process and align the reads from each window, then quit without making '
 StopEarlyArgs.add_argument('-D', '--dont-check-duplicates', action='store_true',
 help="Don't compare reads between samples to find duplicates - a possible "+\
 "indication of contamination. (By default this check is done.)")
-StopEarlyArgs.add_argument('-DR', '--dont-check-recombination',
-action='store_true', help='''Skip the calculation for finding the read that
-looks most like a recombinant for each bam file in each window.''')
 
 args = parser.parse_args()
 
@@ -391,18 +410,29 @@ MergeReads = args.merging_threshold > 0
 # Print how this script was called, for logging purposes.
 print('phyloscanner was called thus:\n' + ' '.join(sys.argv))
 
-# Make and change into the output directory if desired.
+# Warn if RAxML files exist already.
+if glob.glob('RAxML*'):
+  print('Warning: RAxML files are present in the working directory. If their',
+  'names clash with those that phyloscanner will try to create, RAxML will',
+  'fail to run. Continuing.', file=sys.stderr)
+
+TempFiles = set([])
+
+# Try to make the output dir, if desired.
+HaveMadeOutputDir = False
 if args.output_dir != None:
-  try:
-    os.mkdir(args.output_dir)
-    os.chdir(args.output_dir)
-  except:
-    print('Problem creating, or changing into, the directory', args.output_dir+\
-    '. The python commands for doing this report that they only work in Unix '+\
-    'and Windows; are you on a Mac? If so, you may not be able to use the '+\
-    '--output-dir option, sorry. Quitting.', file=sys.stderr)
-    raise
-  
+  if os.path.isdir(args.output_dir):
+    HaveMadeOutputDir = True
+  else:
+    try:
+      os.mkdir(args.output_dir)
+    except:
+      print('Problem creating the directory', args.output_dir+\
+      ". Is this a subdirectory inside a directory that doesn't exist? (We can",
+      "only create one new directory at a time - not a new directory inside",
+      "another new one.) Continuing.", file=sys.stderr)
+    else:
+      HaveMadeOutputDir = True
 
 # Check that window coords have been specified either manually or automatically,
 # or we're exploring window widths
@@ -720,27 +750,15 @@ if args.time:
   times = []
   times.append(time.time())
 
-# Read in lists of bam and reference files
-BamFiles, BamFileBasenames = pf.ReadNamesFromFile(args.ListOfBamFiles)
-RefFiles, RefFileBasenames = pf.ReadNamesFromFile(args.ListOfRefFiles)
-if args.renaming_file != None:
-  BamAliases = pf.ReadNamesFromFile(args.renaming_file, False)
-else:
-  BamAliases = BamFileBasenames
+# Read in the input bam and ref files
+BamFiles, RefFiles, BamAliases, BamFileBasenames = \
+pf.ReadInputCSVfile(args.BamAndRefList)
+NumberOfBams = len(BamFiles)
+
 with open(FileForBamIDs, 'w') as f:
   f.write('\n'.join(BamAliases))
 
 
-# Check that there are the same number of bam and reference files
-NumberOfBams = len(BamFiles)
-if NumberOfBams != len(RefFiles):
-  print('Different numbers of files are listed in', args.ListOfBamFiles, 'and',
-  args.ListOfRefFiles+'.\nQuitting.', file=sys.stderr)
-  exit(1)
-if args.renaming_file != None and len(BamAliases) != NumberOfBams:
-  print('Different numbers of files are listed in', args.ListOfBamFiles, 'and',
-  args.renaming_file+'.\nQuitting.', file=sys.stderr)
-  exit(1)
 
 # Read in all the reference sequences. Set each seq name to be the corresponding
 # alias.
@@ -861,21 +879,23 @@ else:
     for BamRefSeq in RefSeqs:
 
       # Align
-      SeqIO.write([RefForPairwiseAlns,BamRefSeq], FileForPairwiseUnalignedRefs,
+      SeqIO.write([RefForPairwiseAlns,BamRefSeq], TempFileForPairwiseUnalignedRefs,
       "fasta")
-      with open(FileForPairwiseAlignedRefs, 'w') as f:
+      TempFiles.add(TempFileForPairwiseUnalignedRefs)
+      with open(TempFileForPairwiseAlignedRefs, 'w') as f:
         try:
           ExitStatus = subprocess.call([args.x_mafft, '--quiet',
-          '--preservecase', FileForPairwiseUnalignedRefs], stdout=f)
+          '--preservecase', TempFileForPairwiseUnalignedRefs], stdout=f)
           assert ExitStatus == 0
         except:
           print('Problem calling mafft. Quitting.', file=sys.stderr)
           raise
+      TempFiles.add(TempFileForPairwiseAlignedRefs)
 
       # Translate.
       # The index names in the PairwiseCoordsDict, labelling the coords found by
       # coord translation, should coincide with the two seqs we're considering.
-      PairwiseCoordsDict = TranslateCoords([FileForPairwiseAlignedRefs,
+      PairwiseCoordsDict = TranslateCoords([TempFileForPairwiseAlignedRefs,
       args.pairwise_align_to] + [str(coord) for coord in WindowCoords])
       if set(PairwiseCoordsDict.keys()) != \
       set([BamRefSeq.id,args.pairwise_align_to]):
@@ -892,11 +912,12 @@ else:
     # Put all the mapping reference sequences into one file. If an alignment of 
     # other references was supplied, add the mapping references to that 
     # alignment; if not, align the mapping references to each other.
-    SeqIO.write(RefSeqs, FileForRefs, "fasta")
+    SeqIO.write(RefSeqs, TempFileForRefs, "fasta")
+    TempFiles.add(TempFileForRefs)
     if IncludeOtherRefs:
-      FinalMafftOptions = ['--add', FileForRefs, args.alignment_of_other_refs]
+      FinalMafftOptions = ['--add', TempFileForRefs, args.alignment_of_other_refs]
     else:
-      FinalMafftOptions = [FileForRefs]
+      FinalMafftOptions = [TempFileForRefs]
     with open(FileForAlignedRefs, 'w') as f:
       try:
         ExitStatus = subprocess.call([args.x_mafft, '--quiet',
@@ -1191,6 +1212,42 @@ if args.time:
 AllPatientsReadNamesInThisWindow = {BamFile:set() for BamFile in BamFiles}
 ThisWindow = (float('-Inf'), float('-Inf'))
 
+# Subdirectories for output files.
+OutputDirs = {}
+OutputFilesByDestinationDir = {}
+OutputDirs['raxml'] = 'RAxMLfiles'
+
+FileForAlignedReads_basename = 'AlignedReads'
+FileForAlignedReads_PositionsExcised_basename = FileForAlignedReads_basename + \
+'_PositionsExcised_'
+OutputDirs['AlignedReads'] = 'AlignedReads'
+OutputFilesByDestinationDir['AlignedReads'] = []
+
+FileForConsensuses_basename = 'Consensuses_'
+FileForConsensuses_PositionsExcised_basename = FileForConsensuses_basename + \
+'PositionsExcised_'
+OutputDirs['Consensuses'] = 'Consensuses'
+OutputFilesByDestinationDir['Consensuses'] = []
+
+FileForDiscardedReadPairs_basename = 'DiscardedReads_'
+OutputDirs['DiscardedReads'] = 'DiscardedReads'
+OutputFilesByDestinationDir['DiscardedReads'] = []
+
+FileForDuplicateReadCountsRaw_basename = 'DuplicateReadCountsRaw_'
+FileForDuplicateReadCountsProcessed_basename = 'DuplicateReadCountsProcessed_'
+FileForDuplicateSeqs_basename = 'DuplicateReads_contaminants_'
+OutputDirs['DupData'] = 'DuplicationData'
+OutputFilesByDestinationDir['DupData'] = []
+
+FileForReadNames1_basename = 'ReadNames1_'
+FileForReadNames2_basename = 'ReadNames2_'
+OutputDirs['ReadNames'] = 'ReadNames'
+OutputFilesByDestinationDir['ReadNames'] = []
+
+FileForRecombinantReads_basename = 'RecombinantReads_'
+OutputDirs['RecombFiles'] = 'RecombinationData'
+OutputFilesByDestinationDir['RecombFiles'] = []
+
 # Iterate through the windows
 for window in range(NumCoords / 2):
 
@@ -1252,8 +1309,10 @@ for window in range(NumCoords / 2):
     RightWindowEdge = ThisBamCoords[window*2 +1]
 
     # For labelling read name files
-    FileForReadNames_basename2 = FileForReadNames_basename + ThisWindowSuffix \
-    + '_InBam_'
+    FileForReadNames1_basename_ThisBam = FileForReadNames1_basename + \
+    ThisWindowSuffix + '_InBam_'
+    FileForReadNames2_basename_ThisBam = FileForReadNames2_basename + \
+    ThisWindowSuffix + '_InBam_'
 
     # Pysam uses zero-based coordinates for positions w.r.t the reference.
     # If we want all reads that start exactly at the window start and end
@@ -1431,14 +1490,16 @@ for window in range(NumCoords / 2):
 
     # Write recorded read names to file if desired.
     if args.read_names_1:
-      FileForReadNames1 = FileForReadNames_basename2 + BamAlias + '.txt'
+      FileForReadNames1 = FileForReadNames1_basename_ThisBam + BamAlias + '.txt'
       with open(FileForReadNames1, 'w') as f:
         f.write('\n'.join(ReadNames))
+      OutputFilesByDestinationDir['ReadNames'].append(FileForReadNames1)
     if args.read_names_2:
-      FileForReadNames2 = FileForReadNames_basename2 + BamAlias + '.csv'
+      FileForReadNames2 = FileForReadNames2_basename_ThisBam + BamAlias + '.csv'
       with open(FileForReadNames2, 'w') as f:
         for seq, ReadNamesForThatSeq in ReadNameDict.items():
           f.write(seq + ',' + ' '.join(ReadNamesForThatSeq) + '\n')
+      OutputFilesByDestinationDir['ReadNames'].append(FileForReadNames2)
   if args.read_names_only:
     continue
 
@@ -1486,6 +1547,7 @@ for window in range(NumCoords / 2):
       with open(FileForDuplicateReadCountsRaw, 'w') as f:
         f.write('"Alias1","Alias2","Count1","Count2"\n')
         f.write('\n'.join(','.join(map(str,data)) for data in DuplicateDetails))
+      OutputFilesByDestinationDir['DupData'].append(FileForDuplicateReadCountsRaw)
 
     # If contaminants are diagnosed, print them and remove them from their
     # ReadDict.
@@ -1498,6 +1560,7 @@ for window in range(NumCoords / 2):
           AllContaminants.append(SeqIO.SeqRecord(Seq.Seq(read), id=alias,
           description=''))
       SeqIO.write(AllContaminants, FileForDuplicateSeqs, "fasta")
+      OutputFilesByDestinationDir['DupData'].append(FileForDuplicateSeqs)
       for i, (BamAlias, ReadDict, LeftWindowEdge, RightWindowEdge) \
       in enumerate(AllReadDictsInThisWindow):
         if BamAlias in ContaminantReadsFound:
@@ -1534,12 +1597,13 @@ for window in range(NumCoords / 2):
 
   # Create a fasta file with all reads in this window, ready for aligning.
   # If there's only one, we don't need to align (or make trees!).
-  FileForReadsHere = FileForReads_basename + ThisWindowSuffix+\
+  TempFileForReadsHere = TempFileForReads_basename + ThisWindowSuffix+\
   '.fasta'
   FileForAlnReadsHere = FileForAlignedReads_basename + \
   ThisWindowSuffix +'.fasta'
   if len(AllReadsInThisWindow) == 1 and not IncludeOtherRefs:
     SeqIO.write(AllReadsInThisWindow, FileForAlnReadsHere, "fasta")
+    OutputFilesByDestinationDir['AlignedReads'].append(FileForAlnReadsHere)
     # If we're exploring window widths, record that all bams but one have no
     # reads.
     if ExploreWindowWidths:
@@ -1563,7 +1627,9 @@ for window in range(NumCoords / 2):
       print('There is only one read in this window, written to ' +\
       FileForAlnReadsHere +'. Skipping to the next window.')
     continue
-  SeqIO.write(AllReadsInThisWindow, FileForReadsHere, "fasta")
+  SeqIO.write(AllReadsInThisWindow, TempFileForReadsHere, "fasta")
+  TempFiles.add(TempFileForReadsHere)
+  OutputFilesByDestinationDir['AlignedReads'].append(FileForAlnReadsHere)
   FileForTrees = FileForAlnReadsHere
 
   # If external refs are included, find the part of each one's seq corresponding
@@ -1572,7 +1638,7 @@ for window in range(NumCoords / 2):
   # ExternalRefAlignment object. If we did a global alignment, we slice the
   # desired window out of that alignment.
   if IncludeOtherRefs:
-    FileForOtherRefsHere = FileForOtherRefs_basename + \
+    TempFileForOtherRefsHere = TempFileForOtherRefs_basename + \
     ThisWindowSuffix +'.fasta'
     if PairwiseAlign:
       ExternalRefLeftWindowEdge  = ExternalRefWindowCoords[window*2]
@@ -1588,9 +1654,10 @@ for window in range(NumCoords / 2):
         'skipping to the next window.', file=sys.stderr)
         continue
       AlignIO.write(Align.MultipleSeqAlignment(RefsThatAreNotPureGap),
-      FileForOtherRefsHere, 'fasta')
+      TempFileForOtherRefsHere, 'fasta')
+      TempFiles.add(TempFileForOtherRefsHere)
     else:
-      with open(FileForOtherRefsHere, 'w') as f:
+      with open(TempFileForOtherRefsHere, 'w') as f:
         try:
           ExitStatus = subprocess.call([FindSeqsInFastaCode,
           FileForAlignedRefs, '-B', '-W', str(LeftWindowEdge) + ',' + \
@@ -1612,12 +1679,13 @@ for window in range(NumCoords / 2):
   # aligning.
   if MergeReads:
     FileForReads = 'temp_' + FileForAlnReadsHere
+    TempFiles.add(FileForReads)
   else:
     FileForReads = FileForAlnReadsHere
   if IncludeOtherRefs:
-    FinalMafftOptions = ['--add', FileForReadsHere, FileForOtherRefsHere]
+    FinalMafftOptions = ['--add', TempFileForReadsHere, TempFileForOtherRefsHere]
   else:
-    FinalMafftOptions = [FileForReadsHere]
+    FinalMafftOptions = [TempFileForReadsHere]
   with open(FileForReads, 'w') as f:
     try:
       ExitStatus = subprocess.call([args.x_mafft, '--quiet', '--preservecase']+\
@@ -1663,6 +1731,7 @@ for window in range(NumCoords / 2):
   ConsensusAlignment = FindPatientsConsensuses(SeqAlignmentHere)
   FileForConsensuses = FileForConsensuses_basename + ThisWindowSuffix +'.fasta'
   AlignIO.write(ConsensusAlignment, FileForConsensuses, 'fasta')
+  OutputFilesByDestinationDir['Consensuses'].append(FileForConsensuses)
 
   # See if there are positions to excise in this window.
   if ExcisePositions:
@@ -1730,6 +1799,8 @@ for window in range(NumCoords / 2):
         raise
       AlignIO.write(SeqAlignmentHere, FileForAlignedReads_PositionsExcised,
       'fasta')
+      OutputFilesByDestinationDir['AlignedReads'].append(
+      FileForAlignedReads_PositionsExcised)
       FileForTrees = FileForAlignedReads_PositionsExcised
 
       # Find consensuses again after excising positions:
@@ -1738,6 +1809,8 @@ for window in range(NumCoords / 2):
       FileForConsensuses_PositionsExcised_basename + ThisWindowSuffix +'.fasta'
       AlignIO.write(ConsensusAlignment, FileForConsensuses_PositionsExcised,
       'fasta')
+      OutputFilesByDestinationDir['Consensuses'].append(
+      FileForConsensuses_PositionsExcised)
 
   # If we're exploring window widths, we just care how many unique reads
   # were found here. Record & move on.
@@ -1792,17 +1865,24 @@ for window in range(NumCoords / 2):
       with open(FileForDuplicateReadCountsProcessed, 'w') as f:
         f.write('\n'.join(','.join(SeqNames) for SeqNames in \
         DuplicatesDict.values()))
+      OutputFilesByDestinationDir['DupData'].append(
+      FileForDuplicateReadCountsProcessed)
 
   # Update on time taken if desired
   if args.time:
     times.append(time.time())
     LastStepTime = times[-1] - times[-2]
-    print('All read processing except the recombination calculation in window',
-          UserLeftWindowEdge, '-', UserRightWindowEdge,
-          'finished. Number of seconds taken: ', LastStepTime)
+    if args.check_recombination:
+      print('All read processing except the recombination calculation in window',
+            UserLeftWindowEdge, '-', UserRightWindowEdge,
+            'finished. Number of seconds taken: ', LastStepTime)
+    else:
+      print('All read processing in window',
+            UserLeftWindowEdge, '-', UserRightWindowEdge,
+            'finished. Number of seconds taken: ', LastStepTime)
 
   # Find the read that looks most like a recombinant for each patient.
-  if not args.dont_check_recombination:
+  if args.check_recombination:
     SamplesToAlnPosDict = {}
     for i, seq in enumerate(SeqAlignmentHere):
       RegexMatch = SampleRegex.search(seq.id)
@@ -1820,13 +1900,15 @@ for window in range(NumCoords / 2):
       result = (alias, ) + pf.CalculateRecombinationMetric(ThisAliasAln,
       args.recombination_gap_aware)
       RecombinationResults.append(result)
-    RecombinantReadsFile = RecombinantReads_basename + ThisWindowSuffix + '.csv'
-    with open(RecombinantReadsFile, 'w') as f:
+    FileForRecombinantReads = FileForRecombinantReads_basename + \
+    ThisWindowSuffix + '.csv'
+    with open(FileForRecombinantReads, 'w') as f:
       f.write('Bam file,Recombination metric,Parent seq 1,Parent seq 2,' + \
       'Recombinant seq')
       for result in sorted(RecombinationResults, key=lambda x: x[1],
       reverse=True):
         f.write('\n' + ','.join(map(str, result)) )
+    OutputFilesByDestinationDir['RecombFiles'].append(FileForRecombinantReads)
 
     # Update on time taken if desired
     if args.time:
@@ -1906,18 +1988,19 @@ for window in range(NumCoords / 2):
       continue
 
     # Collect the trees from all bootstraps into one file
-    AllBootstrappedTreesFile = FileForAllBootstrappedTrees_basename +\
+    TempAllBootstrappedTreesFile = TempFileForAllBootstrappedTrees_basename +\
     ThisWindowSuffix+'.tree'
-    with open(AllBootstrappedTreesFile, 'w') as outfile:
+    with open(TempAllBootstrappedTreesFile, 'w') as outfile:
       for BootstrappedTree in BootstrappedTrees:
         with open(BootstrappedTree, 'r') as infile:
           outfile.write(infile.read())
+    TempFiles.add(TempAllBootstrappedTreesFile)
 
     # Collect the trees from all bootstraps onto the ML tree
     MainTreeFile = 'MLtreeWbootstraps' +ThisWindowSuffix +'.tree'
     try:
       ExitStatus = subprocess.call(RAxMLargList + ['-f', 'b', '-t', MLtreeFile,
-       '-z', AllBootstrappedTreesFile, '-n', MainTreeFile])
+       '-z', TempAllBootstrappedTreesFile, '-n', MainTreeFile])
       assert ExitStatus == 0
     except:
       print('Problem collecting all the bootstrapped trees onto the ML tree',
@@ -2021,12 +2104,17 @@ if ExploreWindowWidths:
 
 # Make a bam file of discarded read pairs for each input bam file.
 if args.inspect_disagreeing_overlaps:
-  DiscardedReadPairsFiles = []
   for BamFileBasename, DiscardedReadPairs in DiscardedReadPairsDict.items():
     if DiscardedReadPairs != []:
       WhichBamFile = BamFileBasenames.index(BamFileBasename)
       RefFile = RefFiles[WhichBamFile]
-      LocalRefFileName = BamFileBasename+'_ref.fasta'
+      if len(BamFileBasename) >= 4 and (BamFileBasename[-4:] == '.bam' or
+        BamFileBasename[-4:] == '.BAM' or BamFileBasename[-4:] == '.Bam'):
+        BamNameForRef = BamFileBasename[:-4]
+      else:
+        BamNameForRef = BamFileBasename
+      LocalRefFileName = FileForDiscardedReadPairs_basename + \
+      BamNameForRef + '_ref.fasta'
       # Copy the relevant reference file to the working directory, so that it's
       # together with the discarded reads file. This might fail e.g. if the same
       # file exists already - then do nothing.
@@ -2034,19 +2122,58 @@ if args.inspect_disagreeing_overlaps:
         copy2(RefFile, LocalRefFileName)
       except:
         pass
-      if len(BamFileBasename) >= 4 and BamFileBasename[-4:] == '.bam':
-        OutFile = FileForDiscardedReadPairs_basename +BamFileBasename
       else:
-        OutFile = FileForDiscardedReadPairs_basename +BamFileBasename +'.bam'
+        OutputFilesByDestinationDir['DiscardedReads'].append(LocalRefFileName)
+      OutFile = FileForDiscardedReadPairs_basename +BamFileBasename
       DiscardedReadPairsOut = pysam.AlignmentFile(OutFile, "wb", template=BamFile)
       for read in DiscardedReadPairs:
         DiscardedReadPairsOut.write(read)
       DiscardedReadPairsOut.close()
-      DiscardedReadPairsFiles.append(OutFile)
-  if DiscardedReadPairsFiles != []:
-    print('Info: read pairs that overlapped but disagreed on the overlap were',
-    'found. These have been written to', ' '.join(DiscardedReadPairsFiles) +'.')
+      OutputFilesByDestinationDir['DiscardedReads'].append(OutFile)
 
+
+OutputFilesByDestinationDir['raxml'] = glob.glob('RAxML*')
+
+# Try to create different directories for each kind of output file we've made.
+# Move files if desired.
+if not args.keep_output_together:
+  for DirKey, files in OutputFilesByDestinationDir.items():
+    if len(files) > 0:
+      if HaveMadeOutputDir:
+        OutputDirs[DirKey] = os.path.join(args.output_dir, OutputDirs[DirKey])
+      Dir = OutputDirs[DirKey]
+      if not os.path.isdir(Dir):
+        try:
+          os.mkdir(Dir)
+        except:
+          print('Problem creating the directory', Dir + \
+          ". phyloscanner will create all output files in",
+          "the working directory, instead of in file-type-specific",
+          "subdirectories.", file=sys.stderr)
+          args.keep_output_together = True
+          break
+if not args.keep_output_together:
+  for DirKey, files in OutputFilesByDestinationDir.items():
+    Dir = OutputDirs[DirKey]
+    for File in files:
+      shutil.move(File, os.path.join(Dir, File))
+if HaveMadeOutputDir:
+  shutil.move(FileForBamIDs, os.path.join(args.output_dir, FileForBamIDs))
+  if os.path.isfile(FileForAlignedRefs):
+    shutil.move(FileForAlignedRefs, os.path.join(args.output_dir,
+    FileForAlignedRefs))
+  if args.keep_output_together:
+    for File in itertools.chain.from_iterable(
+    OutputFilesByDestinationDir.values()):
+      shutil.move(File, os.path.join(args.output_dir, File))
+
+# Delete temporary files we've made
+if not args.keep_temp_files:
+  for TempFile in TempFiles:
+    try:
+      os.remove(TempFile)
+    except:
+      print('Failed to delete temporary file', TempFile + '. Leaving it.')
 
 # Some code not being used at the moment:
 '''DuplicateReadRatios.append(float(ReadDict1[read])/ReadDict2[read])
