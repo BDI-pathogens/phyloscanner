@@ -1,5 +1,9 @@
-\part{Generating within- and between-host phylogenies in windows along the genome, using mapped reads}
+\part{Generating within- and between-host phylogenies in windows along the genome, using mapped reads (Chris)}
 
+\section{The basic command}
+
+As input to \p, you need to have generated files of mapped reads in bam format -- bam files henceforth.
+The bam format does not include the sequence to which the reads were mapped -- the {\it reference} -- which we also need.
 With the initial \c{\$} traditionally indicating that what follows is a command to be run on the command line / in a terminal, the basic \p command looks like
 
 \begin{verbatim}
@@ -7,12 +11,38 @@ With the initial \c{\$} traditionally indicating that what follows is a command 
 \end{verbatim}
 where
 \begin{itemize}
-\item \c{ListOfMyInputFiles.csv} is a plain-text, comma-separated-variable (csv) format file in which the first column is the bam files, the second column is the corresponding reference files, and an optional third column is {\it aliases} -- things to rename each bam file to in \p output.
-\item the \c{--windows} option is used to specify an even number of comma-separated positive integers: these are the coordinates of the windows to analyse, interpreted pairwise, i.e. the first two are the left and right edges of the first window, the third and fourth are the left and right edges of the second window, $\ldots$ i.e. in the above example we have windows 1-300, 301-600, $\ldots$
+\item \c{ListOfMyInputFiles.csv} is a plain-text, comma-separated-variable (csv) format file in which the first column contains the bam files, the second column contains the corresponding reference files.
+An optional third column, if present, contains {\it aliases} -- things to rename each bam file to in \p output; if not present the base name of the bam, i.e. the file name not including the directory path, will be used.
+e.g. This input file list might look like\\
+\c{PatientA.bam,PatientA\_ref.fasta,A\\
+PatientB.bam,PatientB\_ref.fasta,B}\\
+Bam file base names, and aliases if present, must be unique and free of whitespace.
+Quotation marks are interpreted as wrapping/protecting fields, allowing them to contain commas that are not field separators.
+You can generate this input file list however you like, including manually.
+The following block of code illustrates how you might generate it automatically from the command line.
+It also checks that your files exist, which \p does anyway, but errors are best caught soonest.
+\begin{verbatim}
+ $ for ID in PatientA PatientB PatientC; do
+ $   bam=MyBamsDir/"$ID".bam
+ $   ref=MyRefsDir/"$ID".fasta
+ $   if [[ ! -f "$bam" ]]; then
+ $     echo "$bam does not exist" >&2
+ $     break
+ $   elif [[ ! -f "$ref" ]]; then
+ $     echo "$ref does not exist" >&2
+ $     break
+ $   fi
+ $   echo "$bam","$ref","$ID"
+ $ done > MyPhyloscannerInputFile.csv
+\end{verbatim}
+If those IDs were stored in a plain-text file \c{MyIDs.txt} separated by whitespace, you could replace the first line of that loop with\\
+\c{for ID in \$(cat MyIDs.txt); do}
+\item The \c{--windows} (or \c{-W}) option is used to specify an even number of comma-separated positive integers: these are the coordinates of the windows to analyse, interpreted pairwise, i.e. the first two are the left and right edges of the first window, the third and fourth are the left and right edges of the second window, $\ldots$ i.e. in the above example we have windows 1-300, 301-600, $\ldots$
 \end{itemize}
+Note that to run the \c{phyloscanner.py} binary file, like running any other binary file, you must either prepend to it the directory in which it lives (e.g. \c{/path/to/my/phyloscanner/code/phyloscanner.py}) or add that directory to the \c{\$PATH} environment variable associated with your terminal (google this if needed). 
 
 \section{What do the window coordinates mean exactly?}
-By default the references used for mapping (to produce the bam files), together with an extra set of references if specified with \c{--alignment-of-other-refs}, are all aligned together and window coordinates are interpreted with respect to the alignment (i.e. position $n$ refers to the $n$th column of that alignment, which could be a gap for some of the sequences).
+By default the references used for mapping, together with any extra references if included using the \c{--alignment-of-other-refs} option, are all aligned together and window coordinates are interpreted with respect to the alignment (i.e. position $n$ refers to the $n$th column of that alignment, which could be a gap for some of the sequences).
 This alignment can be found in the file \c{RefsAln.fasta} after running \p, should you want to inspect it and possibly run again.
 You can manually specify window coordinates with respect to this alignment, using the \c{--windows} option, or have windows automatically chosen using \c{--auto-window-params}, which attempts to minimise the affect of insertions and deletions in the references on your window width and overlap preferences.
 Alternatively, if you are using the \c{--alignment-of-other-refs} option to include extra references, you can use \c{--pairwise-align-to} to name one of these references to be a kind of {\it reference reference}: instead of aligning of all the bam file references to each other, they will be sequentially and separately pairwise-aligned to your named reference, and window coordinates are interpreted with respect to that named reference.
@@ -23,18 +53,28 @@ It also has the advantage that when running \p more than once with different bam
 I'm glad you asked.
 It's important.
 
-\subsection{Start \& End}
+\subsection{Start \& end}
+
 You might as well fully cover the genomic region you're interested in.
 That requires choosing where to start and where to end.
-If you're interested in the whole genome, the start is 1 and the end is the genome length, or more precisely the length of an alignment of the references in the bam files (this alignment is generated by \p, and it is with respect to this alignment that coordinates are interpreted by default; more on this later).
+If you're interested in the whole genome, the start is 1 and the end is the genome length, or more precisely the length of the alignment of all references together (or the length of your named reference if you used the \c{--pairwise-align-to} option.)
 You may know that your reads don't start right at the beginning of the genome.
 If this is the case, a good place to start your first window would be the genome position at which you start having reads.
 
-If your reads were generated by amplifying the sample using primers, the primers should have been trimmed from the reads as part of whatever bioinformatic pipeline produced your input bam files.
-(This can be done for example using \href{https://github.com/sanger-pathogens/Fastaq}{\c{fastaq}}, which is called as part of the \href{https://github.com/ChrisHIV/shiver}{\c{shiver}} pipeline.)
-Then a sensible choice for the start of the first window would be the first position {\it after} the first primer, and a sensible choice for the end of the last window would be the last position {\it before} the last primer.
+If your reads were generated by amplifying the sample using primers, the primers ought to have been trimmed from the reads as part of whatever bioinformatic pipeline produced your input bam files.
+(This can be done for example using \href{https://github.com/sanger-pathogens/Fastaq}{\color{blue} \underline{\c{fastaq}}}, which is called as part of the \href{https://github.com/ChrisHIV/shiver}{\c{\color{blue} \underline{shiver}}} pipeline.)
+Then a sensible choice for the start of the first window would be the first position after the first primer, and a sensible choice for the end of the last window would be the last position before the last primer.
 
-\subsection{Window Width}
+{\it You might as well fully cover the genomic region you're interested in.}
+Let's revisit that.
+In what part of the genome would you like to do phylogenetics?
+Perhaps all of it.
+Then again, remember that phylogenetics assumes neutral evolution at every included site.
+Though \p allows individual specified sites to be excised after alignment of all the reads from all the bam files, there may be regions of the genome where selected sites are so dense that it's simpler to skip the region altogether.
+There may also be regions of the genome where there are so many insertions and deletions (indels) that you're skeptical that the reads will align correctly in the first place.
+You can choose to specify no windows covering such regions. 
+
+\subsection{Window width}
 As well as choosing where your first window should start and where your last one should end, you need to choose how wide each single window is.
 If a window is very small, so little diversity is contained inside it (within or between samples) that the number of {\it unique} reads overlapping the window is small, hindering meaningful phylogenetics.
 If window width exceeds read length, then you will have no reads in the window, since we keep only reads fully overlapping the window.
@@ -68,10 +108,13 @@ Then you can have single reads contribute in addition to merged overlapping read
 But perhaps that window is too short; see the discussion on window width above.
 \end{enumerate}
 
-\subsection{Window Overlap}
+\subsection{Window overlap}
 How much should neighbouring windows overlap?
 A simple answer to this is zero, i.e. each window starts right after the previous one ends.
-e.g. 1-99, 100-199, 200-299, $\ldots$
+e.g. 1-99, 100-199, 200-299, $\ldots$\\
+{\bf TODO: discuss positive overlap.}
+
+\section{Optional arguments}
 
 
 
