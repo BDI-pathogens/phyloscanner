@@ -1,0 +1,6 @@
+contaminator.bam,contaminator_ref.fasta,contaminator
+contaminee.bam,contaminee_ref.fasta,contaminee
+donor.bam,donor_ref.fasta,donor
+dual.bam,dual_ref.fasta,dual
+recipient.bam,recipient_ref.fasta,recipient
+single.bam,single_ref.fasta,single
