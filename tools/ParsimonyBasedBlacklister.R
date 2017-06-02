@@ -79,7 +79,6 @@ if(command.line){
     file.name.list$blacklist.input <- blacklist.file.name
     file.name.list$duals.output <- d.output.name
     file.name.list$blacklist.output <- b.output.name
-    file.name.list$blacklist.input <- blacklist.file.name
     
     if(!has.normalisation){
       file.name.list$normalisation.constant <- 1
@@ -110,7 +109,7 @@ if(command.line){
     tree.input.names <- list.files.mod(dirname(input.name), pattern=paste(basename(input.name),'.*\\',tree.fe,'$',sep=''), full.names=TRUE)
 
     if(length(tree.input.names)==0){
-      cat("No tree files found.\nQuitting.\n",)
+      cat("No tree files found.\nQuitting.\n")
       quit(save="no", status=1)
     }
     
