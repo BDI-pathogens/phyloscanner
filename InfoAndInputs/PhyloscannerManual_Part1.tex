@@ -1,4 +1,4 @@
-\part{Generating within- and between-host phylogenies in windows along the genome, using mapped reads (Chris)}
+\part{Inferring within- and between-host phylogenies in windows along the genome, using mapped reads (Chris)}
 
 \section{The basic command}
 
@@ -7,7 +7,7 @@ The bam format does not include the sequence to which the reads were mapped -- t
 With the initial \c{\$} traditionally indicating that what follows is a command to be run on the command line / in a terminal, the basic \p command looks like
 
 \begin{verbatim}
- $ phyloscanner.py ListOfMyInputFiles.csv --windows 1,300,301,600,...
+$ phyloscanner.py ListOfMyInputFiles.csv --windows 1,300,301,600,...
 \end{verbatim}
 where
 \begin{itemize}
@@ -22,18 +22,18 @@ You can generate this input file list however you like, including manually.
 The following block of code illustrates how you might generate it automatically from the command line.
 It also checks that your files exist, which \p does anyway, but errors are best caught soonest.
 \begin{verbatim}
- $ for ID in PatientA PatientB PatientC; do
- $   bam=MyBamsDir/"$ID".bam
- $   ref=MyRefsDir/"$ID".fasta
- $   if [[ ! -f "$bam" ]]; then
- $     echo "$bam does not exist" >&2
- $     break
- $   elif [[ ! -f "$ref" ]]; then
- $     echo "$ref does not exist" >&2
- $     break
- $   fi
- $   echo "$bam","$ref","$ID"
- $ done > MyPhyloscannerInputFile.csv
+$ for ID in PatientA PatientB PatientC; do
+$   bam=MyBamsDir/"$ID".bam
+$   ref=MyRefsDir/"$ID".fasta
+$   if [[ ! -f "$bam" ]]; then
+$     echo "$bam does not exist" >&2
+$     break
+$   elif [[ ! -f "$ref" ]]; then
+$     echo "$ref does not exist" >&2
+$     break
+$   fi
+$   echo "$bam","$ref","$ID"
+$ done > MyPhyloscannerInputFile.csv
 \end{verbatim}
 If those IDs were stored in a plain-text file \c{MyIDs.txt} separated by whitespace, you could replace the first line of that loop with\\
 \c{for ID in \$(cat MyIDs.txt); do}
@@ -96,7 +96,7 @@ A complication with this is that whereas read length is typically fixed within a
 A window which is wider than twice the read length can never get any reads, because the reads in a pair need to overlap in order to be merged.
 So you have two choices.
 \begin{enumerate}
- \item Choose\\  
+\item Choose\\  
 (read length) $<$ (window width) $<$ (twice the read length)\\  
 Then you're restricted to the subset of read pairs that satisfy  
 (window width) $\leq$ (insert size) $<$ (twice the read length)  
@@ -116,6 +116,81 @@ e.g. 1-99, 100-199, 200-299, $\ldots$\\
 
 \section{Optional arguments}
 
+Information about all optional arguments and what they do can also be seen by running \p with the \c{--help} option.
+That will give information guaranteed to be synchronised to your current version of the code, as well as showing all option shorthands (e.g. \c{--help} = \c{-h}); however we go into slightly more detail here.
+
+\subsection{Window options}
+You must choose exactly one of these: \c{--windows}, \c{--auto-window-params}, \c{--explore-window-widths}.
+\begin{itemize}
+\item \c{--windows}: a comma-separated series of paired coordinates defining the boundaries of the windows.
+e.g. specifying \c{1,300,301,600,601,900} would define windows 1-300, 301-600, 601-900.
+\item \c{--auto-window-params}: used to specify 2, 3 or 4 comma-separated integers controlling the automatic creation of regular windows.
+The first integer is the width you want windows to be, weighting each column in the alignment of bam file references (plus any extra references included with \c{--alignment-of-other-refs}) by its non-gap fraction, so that windows with rows or columns containing many gaps become correspondindly wider.
+The second is the overlap between the end of one window and the start of the next (which can be negative, implying unused space in between windows; the recommended value of 0 means each window starts right after the previous one ends).
+The optional third integer is the start position for the first window (by default, 1).
+The optional fourth integer is the end position for the last window (by default, windows will continue up to the end of the alignment of references).
+This option cannot be used with \c{--pairwise-align-to}.
+\item \c{--explore-window-widths}: use this option to explore how the number of unique reads found in each bam file in each window, all along the genome, depends on the window width.
+After this option specify a comma-separated list of integers.
+The first integer is the starting position for stepping along the genome, in case you're not interested in the very beginning.
+Subsequent integers are window widths to try.
+For example, if you specified 1000,100,150,200 we would count the number of unique reads in windows 1000-1099, 1100-1199, 1200-1299, ... and in 1000-1149, 1150-1299, 1300-1449 ... and in 1000-1199, 1200-1399, 1400-1599, ... where the dots denote continuation to the end of the genome.
+Output is written to the file specified with the \c{--explore-window-width-file} option.
+\item \c{--explore-window-width-file}: used to specify an output file for window width data, when the \c{--explore-window-widths} option is used.
+Output is in in csv format.
+\end{itemize}
+
+\subsection{Recommended options}
+%Options we think are particularly worth your while understanding and using.
+\begin{itemize}
+\item \c{--alignment-of-other-refs}: used to specify an alignment of reference sequences for inclusion with the reads, for comparison.
+These references need not be those used to produce the bam files.
+This option is required if phyloscanner is to analyse the trees it produces.
+\item \c{--pairwise-align-to}: by default, \p figures out where corresponding windows are in different bam files by creating a multiple sequence alignment containing all of the mapping references used to create the bam files (plus any extra references included with \c{--alignment-of-other-refs}), and window coordinates are intepreted with respect to this alignment.
+However using this option, the mapping references used to create the bam files are each separately pairwise aligned to one of the extra references included with \c{--alignment-of-other-refs}, and window coordinates are interpreted with respect to this reference.
+\item \c{--x-raxml}: use this option to tell phyloscanner how to run \c{RAxML}; by default, \c{'raxmlHPC-AVX -m GTRCAT -p 1'}.
+You will need to change the first part if your \r binary is not called \c{raxmlHPC-AVX}, or if the binary's location is not contained in your \c{\$PATH} environment variable (i.e. if you need to specify the path to the binary in order to run it).
+\c{-m} tells \R which evolutionary model to use, and \c{-p} specifies a random number seed for the parsimony inferences; both are compulsory.
+You may include any other \R options in this command.
+The set of things you specify with \c{--x-raxml} need to be surrounded with one pair of quotation marks (so that they're kept together as one option for \p and only split up for \R).
+If you include a path to your \R binary, it may not include whitespace, since whitespace is interpreted as separating \R options.
+Do not include options relating to bootstraps: use \p's \c{--num-bootstraps} and \c{--bootstrap-seed} options instead.
+Do not include options relating to the naming of files.
+\item \c{--check-recombination}: calculates a metric of recombination for each
+sample's set of reads in each window.
+(Recommended only if you're interested, of course.)
+How the metric is calculated: for each possible set of three sequences, one is considered the putative recombinant and the other two the parents.
+For each possible crossover point (the point at which recombination occurred), we calculate $d_L$ as the difference between the Hamming distance from the recombinant to one parent and the Hamming distance from the recombinant to the other parent, looking to the left of the crossover point only; similarly we calculate $d_R$ looking to the right of the crossover point only.
+$d_L$ and $d_R$ are signed integers, such that their differing in sign indicates that the left and right sides of the recombinant look like different parents.
+We maximise the difference between $d_L$ and $d_R$ (over all possible sets of three sequences and all possible crossover points), take the smaller of the two absolute values, and normalise it by half the length of the alignment of sequences.
+This means that the maximum possible score of 1 is obtained if and only if the two parents disagree at every site, the crossover point is exactly in the middle, and either side of the crossover point the recombinant agrees perfectly with one of the parents e.g.\\
+AAAAAAA\\
+AAAACCC\\
+CCCCCCC\\
+Calculation time scales cubically with the number of unique sequences each sample has per window, and so the option is turned off by default.
+You can save time by only turning it on only after you've settled on the values of other parameters that affect the number of unique sequences per window (notably window width, a merging threshold and a minimum
+read count).
+\end{itemize}
+
+\subsection{Read quality options}
+\begin{itemize}
+\item \c{--discard-improper-pairs}: discard all reads that are were flagged, at the time of mapping, as improperly paired: in the wrong orientation, or one mate unmapped, or too far apart.
+For paired-read data.
+\item \c{--quality-trim-ends}: each end of the read is trimmed inwards until a base of this quality is met.
+\item \c{--min-internal-quality}: discard reads containing more than one base of a quality below this
+parameter.
+(If used in conjuction with the \c{--quality-trim-ends option}, the trimming of the ends is done first.)
+\item \c{--min-read-count}: reads with a count (i.e. the number of times that sequence was observed,
+after merging if merging is being done) less than this value are discarded.
+The default value of 1 means all reads are kept.
+You might want to discard rare reads to protect against sequencing error.
+Retaining fewer reads will also speed up all subsequent processing and analysis of the reads.
+\end{itemize}
+
+\subsection{Other assorted options}
+\begin{itemize}
+ \item 
+\end{itemize}
 
 
 
