@@ -116,13 +116,6 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     patient.ids <- sapply(tree$tip.label, function(x) patient.from.label(x, tip.regex))
     patient.ids[c(non.patient.tips, blacklist)] <- "unsampled"
     
-    # This causes problems later on with read.beast, but is anyway absurd.
-    
-    if(length(which(patient.ids!="unsampled"))<=1){
-      cat("ERROR: one or fewer tips of the tree are associated with a patient. Quitting.\n")
-      quit(save="no", status=1)
-    } 
-    
     patients <- unique(patient.ids)
     # patients <- patients[order(patients)]
     
@@ -270,12 +263,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
     non.patient.tips <- which(is.na(sapply(tree$tip.label, function(name) patient.from.label(name, tip.regex))))
     patient.ids <- sapply(tree$tip.label, function(x) patient.from.label(x, tip.regex))
     patient.ids[c(non.patient.tips, blacklist)] <- "unsampled"
-    
-    if(length(which(patient.ids!="unsampled"))<=1){
-      cat("ERROR: one or fewer tips of the tree are associated with a patient. Quitting.\n")
-      quit(save="no", status=1)
-    } 
-    
+
     patients <- unique(patient.ids)
     
     patient.tips <- lapply(patients, function(x)  which(patient.ids==x))
