@@ -112,7 +112,7 @@ if(command.line){
   
   if(!is.null(args$idFile)){
     colour.standardise <- T
-    patient.master.list <- read.csv("patients.txt", header = F)[,1]
+    patient.master.list <- read.csv(args$idFile, header = F)[,1]
   }
   
 } else {
