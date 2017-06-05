@@ -44,7 +44,7 @@ if(command.line){
   source(file.path(script.dir, "GeneralFunctions.R"))
   
   input.files <- list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name)), full.names=TRUE)
-
+  
   # We only want the *classification*.csv files produced by
   # ClassifyRelationships.R, not the collapsedTree files if present.
   # NB this regex needs to match the hard-coded file naming for collapsed trees.
@@ -53,7 +53,7 @@ if(command.line){
 } else {
   setwd("/Users/mdhall/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/")
   script.dir <- "/Users/mdhall/phylotypes/tools"
-  summary.file	<- NULL
+  summary.file	<- "/Users/mdhall/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/SumStats/run20161013D_patStatsFull.csv"
   id.file 					<- "patientIDList.txt"
   input.file.name			<- "/Users/mdhall/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/Classifications_s/Classification_s_classification_run20161013D_inWindow_"
   min.threshold				<- 16.5
@@ -63,9 +63,9 @@ if(command.line){
   detailed.output				<- NULL
   input.files 				<- sort(list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name)), full.names=TRUE))
   
-  # setwd("/Users/twoseventwo/Documents/Croucher alignments")
-  # script.dir <- "/Users/twoseventwo/Documents/phylotypes/tools"
-  # summary.file <- "stats_patStatsFull.csv"
+  # setwd("/Users/mdhall/Documents/Pneumo/rerun/")
+  # script.dir <- "/Users/mdhall/phylotypes/tools"
+  # summary.file <- "statspatStatsFull.csv"
   # id.file <- "patients.txt"
   # input.file.name <- "pneumo_classification_"
   # dist.threshold <- 0.005
@@ -73,6 +73,17 @@ if(command.line){
   # allow.mt <- T
   # output.file <- "testn_0.005.csv"
   # detailed.output <- "test2.csv"
+  # verbose <- T
+  
+  source(file.path(script.dir, "TreeUtilityFunctions.R"))
+  source(file.path(script.dir, "GeneralFunctions.R"))
+  
+  input.files <- list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name)), full.names=TRUE)
+  
+  # We only want the *classification*.csv files produced by
+  # ClassifyRelationships.R, not the collapsedTree files if present.
+  # NB this regex needs to match the hard-coded file naming for collapsed trees.
+  input.files <- input.files[! grepl('collapsedTree', input.files)]
   # 
   # 
   # setwd("/Users/twoseventwo/Downloads/PossibleDuals/")
@@ -97,11 +108,11 @@ if(command.line){
     script.dir					<- "/Users/Oliver/git/phylotypes/tools"
     summary.file				<- "/Users/Oliver/duke/tmp/pty_17-04-04-16-26-50/ptyr22_patStatsFull.csv"
     id.file 					<- "/Users/Oliver/duke/tmp/pty_17-04-04-16-26-50/ptyr22_patient.txt"
-	input.file.name				<- "/Users/Oliver/duke/tmp/pty_17-04-04-16-26-50/ptyr22_classification_InWindow_"
+    input.file.name				<- "/Users/Oliver/duke/tmp/pty_17-04-04-16-26-50/ptyr22_classification_InWindow_"
     min.threshold				<- 1
     allow.mt 				<- TRUE
     output.file 				<- "/Users/Oliver/duke/tmp/pty_17-04-04-16-26-50/ptyr22_trmStats.csv"
-	detailed.output				<- "/Users/Oliver/duke/tmp/pty_17-04-04-16-26-50/ptyr22_patStatsPerWindow.csv"
+    detailed.output				<- "/Users/Oliver/duke/tmp/pty_17-04-04-16-26-50/ptyr22_patStatsPerWindow.csv"
     input.files 				<- sort(list.files(dirname(input.file.name), pattern=basename(input.file.name), full.names=TRUE))
   }
 }
@@ -117,20 +128,20 @@ suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
 #
 reads.table	<- NULL		# can replace prev give.denom by is.null(reads.table)
 if(!is.null(summary.file)){
- 	if (verbose) cat("Getting window counts per patient from ",summary.file,"...\n", sep="")
-	reads.table 	<- read.csv(summary.file, stringsAsFactors = F)
+  if (verbose) cat("Getting window counts per patient from ",summary.file,"...\n", sep="")
+  reads.table 	<- read.csv(summary.file, stringsAsFactors = F)
   required.columns <- c("file.suffix", "id", "reads", "tips")
   missing.columns <-
-  required.columns[! required.columns %in% colnames(reads.table)]
+    required.columns[! required.columns %in% colnames(reads.table)]
   if (length(missing.columns) > 0) {
     stop(paste0("The following required columns are missing from the summary",
-    " csv file: ", paste(missing.columns, collapse=', '), ". Quitting."))
+                " csv file: ", paste(missing.columns, collapse=', '), ". Quitting."))
   }
-	reads.table 	<- reads.table[,c("file.suffix", "id", "reads", "tips")]
-	reads.table 	<- as.data.table(reads.table)
-	setnames(reads.table, c("file.suffix"), c("SUFFIX"))
-	reads.table$SUFFIX <- as.character(reads.table$SUFFIX)
-	reads.table[, present:= reads>0]  
+  reads.table 	<- reads.table[,c("file.suffix", "id", "reads", "tips")]
+  reads.table 	<- as.data.table(reads.table)
+  setnames(reads.table, c("file.suffix"), c("SUFFIX"))
+  reads.table$SUFFIX <- as.character(reads.table$SUFFIX)
+  reads.table[, present:= reads>0]  
 } 
 #
 # Read in the IDs. Remove duplicates. Shuffle their order if desired.
@@ -144,11 +155,11 @@ if(!length(patient.ids))
 # Read classification files
 #
 tt	<-	lapply(input.files, function(x){
-      if (verbose) cat("Reading window input file ",x,"\n", sep="")
-			tt <- as.data.table(read.table(x, sep=",", header=TRUE, stringsAsFactors=FALSE))
-			tt[, SUFFIX:=get.suffix(x, input.file.name, csv.fe)]			
-			tt
-		})	
+  if (verbose) cat("Reading window input file ",x,"\n", sep="")
+  tt <- as.data.table(read.table(x, sep=",", header=TRUE, stringsAsFactors=FALSE))
+  tt[, SUFFIX:=get.suffix(x, input.file.name, csv.fe)]			
+  tt
+})	
 #
 # need to worry about transmissions listed in the wrong direction in the input file
 # to avoid very large memory, consolidate by FILE
@@ -157,19 +168,19 @@ tt	<-	lapply(input.files, function(x){
 if(verbose) cat("Rearranging patient pairs...\n")
 
 tt	<- lapply(tt, function(x){
-			#x	<- tt[[1]]
-			tmp	<- copy(x)
-			setnames(tmp, c('Patient_1','Patient_2','paths12','paths21'), c('Patient_2','Patient_1','paths21','paths12'))
-			set(tmp, tmp[, which(path.classification=="anc")], 'path.classification', 'TMP')
-			set(tmp, tmp[, which(path.classification=="desc")], 'path.classification', 'anc')
-			set(tmp, tmp[, which(path.classification=="TMP")], 'path.classification', 'desc')
-			set(tmp, tmp[, which(path.classification=="multiAnc")], 'path.classification', 'TMP')
-			set(tmp, tmp[, which(path.classification=="multiDesc")], 'path.classification', 'multiAnc')
-			set(tmp, tmp[, which(path.classification=="TMP")], 'path.classification', 'multiDesc')
-			x	<- rbind(x, tmp)
-			setkey(x, Patient_1, Patient_2)
-			subset(x, Patient_1 < Patient_2)
-		})
+  #x	<- tt[[1]]
+  tmp	<- copy(x)
+  setnames(tmp, c('Patient_1','Patient_2','paths12','paths21'), c('Patient_2','Patient_1','paths21','paths12'))
+  set(tmp, tmp[, which(path.classification=="anc")], 'path.classification', 'TMP')
+  set(tmp, tmp[, which(path.classification=="desc")], 'path.classification', 'anc')
+  set(tmp, tmp[, which(path.classification=="TMP")], 'path.classification', 'desc')
+  set(tmp, tmp[, which(path.classification=="multiAnc")], 'path.classification', 'TMP')
+  set(tmp, tmp[, which(path.classification=="multiDesc")], 'path.classification', 'multiAnc')
+  set(tmp, tmp[, which(path.classification=="TMP")], 'path.classification', 'multiDesc')
+  x	<- rbind(x, tmp)
+  setkey(x, Patient_1, Patient_2)
+  subset(x, Patient_1 < Patient_2)
+})
 #
 # rbind consolidated files
 #
@@ -191,7 +202,7 @@ setnames(tt, c('Patient_1','Patient_2','path.classification','paths21','paths12'
 # change type name depending on allow.mt
 if(!allow.mt){
   if(verbose) cat("Allowing only single lineage transmission...\n")
-	set(tt, tt[, which(TYPE%in%c("multiAnc", "multiDesc"))], 'TYPE', 'conflict')
+  set(tt, tt[, which(TYPE%in%c("multiAnc", "multiDesc"))], 'TYPE', 'conflict')
 }
 
 #	check we have patristic distances, paths
@@ -207,36 +218,38 @@ set(tt, NULL, 'PATRISTIC_DISTANCE', tt[, as.numeric(PATRISTIC_DISTANCE)])
 #	calculate #unique reads and #reads for each window
 #
 
-if(verbose) cat("Combining window data...\n")
-
-dp	<-  reads.table[,{
-			#	combine by window only for present patients to avoid large mem
-			dp			<- data.table(pat.1=NA_character_, pat.2=NA_character_)
-			if(length(which(present))>1){
-				dp			<- t( combn( id[present], 2 ) )
-				colnames(dp)<- c('pat.1','pat.2')
-				dp			<- as.data.table(dp)	
-				# make sure combinations are in the direction as in 'tt'
-				tmp			<- copy(dp)
-				setnames(tmp, c('pat.1','pat.2'), c('pat.2','pat.1'))
-				dp			<- rbind(dp, tmp)				
-				dp			<- subset(dp, pat.1<pat.2)
-			}
-			dp						
-		}, by=c('SUFFIX')]
-dp <- subset(dp, !is.na(pat.1) & !is.na(pat.2))
-tmp	<- subset(reads.table, present, c(SUFFIX, id, reads, tips))
-setnames(tmp, c("id","reads","tips"), c("pat.1","pat.1_reads","pat.1_tips"))
-
-
-dp <- merge(dp, tmp, by=c('SUFFIX','pat.1'))
-setnames(tmp, c("pat.1","pat.1_tips","pat.1_reads"), c("pat.2","pat.2_tips","pat.2_reads"))
-dp <- merge(dp, tmp, by=c('SUFFIX','pat.2'))
-
-#
-#	merge reads/leaves with tt
-#
-tt			<- merge(tt, dp, by=c('pat.1','pat.2','SUFFIX'))
+if(!is.null(summary.file)){
+  if(verbose) cat("Combining window data...\n")
+  
+  dp	<-  reads.table[,{
+    #	combine by window only for present patients to avoid large mem
+    dp			<- data.table(pat.1=NA_character_, pat.2=NA_character_)
+    if(length(which(present))>1){
+      dp			<- t( combn( id[present], 2 ) )
+      colnames(dp)<- c('pat.1','pat.2')
+      dp			<- as.data.table(dp)	
+      # make sure combinations are in the direction as in 'tt'
+      tmp			<- copy(dp)
+      setnames(tmp, c('pat.1','pat.2'), c('pat.2','pat.1'))
+      dp			<- rbind(dp, tmp)				
+      dp			<- subset(dp, pat.1<pat.2)
+    }
+    dp						
+  }, by=c('SUFFIX')]
+  dp <- subset(dp, !is.na(pat.1) & !is.na(pat.2))
+  tmp	<- subset(reads.table, present, c(SUFFIX, id, reads, tips))
+  setnames(tmp, c("id","reads","tips"), c("pat.1","pat.1_reads","pat.1_tips"))
+  
+  
+  dp <- merge(dp, tmp, by=c('SUFFIX','pat.1'))
+  setnames(tmp, c("pat.1","pat.1_tips","pat.1_reads"), c("pat.2","pat.2_tips","pat.2_reads"))
+  dp <- merge(dp, tmp, by=c('SUFFIX','pat.2'))
+  
+  #
+  #	merge reads/leaves with tt
+  #
+  tt			<- merge(tt, dp, by=c('pat.1','pat.2','SUFFIX'))
+}
 
 if(nrow(tt)==0){
   cat("Failed to merge tables; e.g. file suffix ",tt$SUFFIX[1]," not found in ",summary.file,"\n",sep="")
@@ -253,22 +266,28 @@ if(verbose) cat("Reordering...\n")
 
 #	reorder
 setkey(tt, SUFFIX, pat.1, pat.2)
-tt			<- subset(tt, select=c('SUFFIX','pat.1','pat.2','TYPE','PATRISTIC_DISTANCE','ADJACENT','PATHS.12','PATHS.21','pat.1_tips','pat.1_reads','pat.2_tips','pat.2_reads'))
-#tt			<- subset(tt, select=c('SUFFIX','pat.1','pat.2','TYPE','PATRISTIC_DISTANCE','ADJACENT','CONTIGUOUS','PATHS.12','PATHS.21'))
-setnames(tt, colnames(tt),toupper(colnames(tt)))
-#	write to file
-if(!is.null(detailed.output))
-{	
- 	if (verbose) cat("Saving detailed per window table to",detailed.output)
- 	save(tt, file=gsub('\\.csv','\\.rda',detailed.output))
+
+if(!is.null(detailed.output)){	
+  if(!is.null(summary.file)){
+    tt			<- subset(tt, select=c('SUFFIX','pat.1','pat.2','TYPE','PATRISTIC_DISTANCE','ADJACENT','PATHS.12','PATHS.21','pat.1_tips','pat.1_reads','pat.2_tips','pat.2_reads'))
+  } else {
+    tt			<- subset(tt, select=c('SUFFIX','pat.1','pat.2','TYPE','PATRISTIC_DISTANCE','ADJACENT','PATHS.12','PATHS.21'))
+  }
+  setnames(tt, colnames(tt),toupper(colnames(tt)))
+  #	write to file
+  if (verbose) cat("Saving detailed per window table to",detailed.output)
+  save(tt, file=gsub('\\.csv','\\.rda',detailed.output))
 }
 
 if (verbose) cat("Making summary output table...\n")
-set(tt, NULL, c('PAT.1_TIPS','PAT.1_READS','PAT.2_TIPS','PAT.2_READS','PATHS.12','PATHS.21'),NULL)
-#set(tt, NULL, c('PATHS.12','PATHS.21'),NULL)
+if(!is.null(summary.file)){
+  set(tt, NULL, c('PAT.1_TIPS','PAT.1_READS','PAT.2_TIPS','PAT.2_READS','PATHS.12','PATHS.21'),NULL)
+} else {
+  set(tt, NULL, c('PATHS.12','PATHS.21'),NULL)
+}
 
-existence.counts <- tt[, list(both.exist=length(SUFFIX)), by=c('PAT.1','PAT.2')]
-tt <- merge(tt, existence.counts, by=c('PAT.1', 'PAT.2'))
+existence.counts <- tt[, list(both.exist=length(SUFFIX)), by=c('pat.1','pat.2')]
+tt <- merge(tt, existence.counts, by=c('pat.1', 'pat.2'))
 
 tt.close <- tt[which(tt$ADJACENT & tt$PATRISTIC_DISTANCE < dist.threshold ),]
 tt.close$NOT.SIBLINGS <- tt.close$ADJACENT & (tt.close$PATRISTIC_DISTANCE < dist.threshold) & tt.close$TYPE!="none"
