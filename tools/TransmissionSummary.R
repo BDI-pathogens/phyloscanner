@@ -286,8 +286,8 @@ if(!is.null(summary.file)){
   set(tt, NULL, c('PATHS.12','PATHS.21'),NULL)
 }
 
-existence.counts <- tt[, list(both.exist=length(SUFFIX)), by=c('pat.1','pat.2')]
-tt <- merge(tt, existence.counts, by=c('pat.1', 'pat.2'))
+existence.counts <- tt[, list(both.exist=length(SUFFIX)), by=c('PAT.1','PAT.2')]
+tt <- merge(tt, existence.counts, by=c('PAT.1', 'PAT.2'))
 
 tt.close <- tt[which(tt$ADJACENT & tt$PATRISTIC_DISTANCE < dist.threshold ),]
 tt.close$NOT.SIBLINGS <- tt.close$ADJACENT & (tt.close$PATRISTIC_DISTANCE < dist.threshold) & tt.close$TYPE!="none"
