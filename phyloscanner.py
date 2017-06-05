@@ -161,18 +161,34 @@ However using this option, the mapping references used to create the bam files
 are each separately pairwise aligned to one of the extra references included
 with -A, and window coordinates are interpreted with respect to this
 reference.''')
+RaxmlHelp ='''Use this option to tell phyloscanner how to run RAxML; by default,
+'raxmlHPC-AVX -m GTRCAT -p 1'. You will need to change the first part if your
+RAxML binary is not called raxmlHPC-AVX, or if the binary's location is not in
+your $PATH variable (i.e. if you need to specify the path to the binary in order
+to run it). -m tells RAxML which evolutionary model to use, and -p specifies a
+random number seed for the parsimony inferences; both are compulsory. You may
+include any other RAxML options in this command. The set of things you specify
+with --x-raxml need to be surrounded with one pair of quotation marks (so that
+they're kept together as one option for phyloscanner and only split up for
+raxml). If you include a path to your raxml binary, it may not include
+whitespace, since whitespace is interpreted as separating raxml options. Do not
+include options relating to bootstraps: use phyloscanner's --num-bootstraps and
+--bootstrap-seed options instead. Do not include options relating to the naming
+of files.'''
+RecommendedArgs.add_argument('--x-raxml', default='raxmlHPC-AVX -m GTRCAT -p 1',
+help=RaxmlHelp)
 RecommendedArgs.add_argument('-CR', '--check-recombination',
 action='store_true', help='''Calculates a metric of recombination for each
 sample's set of reads in each window. (Recommended only if you're interested, of
-course.) The metric considers all possible sets of three sequences and possible
-crossover points; it measures the extent to which Hamming distance indicates
-that the putative recombinant looks more like one parent on one side of the
-crossover and more like the other parent on the other side. Calculation time
-scales cubically with the number of unique sequences each sample has per window,
-and so is turned off by default. You can save time by only turning this on after
-you've played with other parameters that affect the number of unique sequences
-per window (notably window width, a merging threshold and a minimum read
-count).''')
+course.) The metric considers all possible sets of three sequences and all
+possible crossover points; it measures the extent to which Hamming distance
+indicates that the putative recombinant looks more like one parent on one side
+of the crossover and more like the other parent on the other side. Calculation
+time scales cubically with the number of unique sequences each sample has per
+window, and so is turned off by default. You can save time by only turning this
+on after you've played with other parameters that affect the number of unique
+sequences per window (notably window width, a merging threshold and a minimum
+read count).''')
 
 QualityArgs = parser.add_argument_group('Options intended to minimise the '
 'impact of poor quality reads')
@@ -194,83 +210,6 @@ low-level contamination. Retaining fewer reads will also speed up all
 subsequent processing and analysis of the reads.''')
 
 OtherArgs = parser.add_argument_group('Other assorted options')
-OtherArgs.add_argument('-C', '--contaminant-count-ratio', type=float,
-help='''Used to specify a numerical value which is interpreted in the following
-'way: if a sequence is found exactly duplicated between any two bam files,
-'and is more common in one than the other by a factor at least equal to this
-'value, the rarer sequence is diagnosed as contamination. It does not go into
-' the tree, and instead goes into a contaminant read fasta file.''')
-OtherArgs.add_argument('-CD', '--contaminant-read-dir', type=Dir,
-help='A directory containing the contaminant read fasta files produced by a '
-'previous run of ' + os.path.basename(__file__) + ''' using the the -C flag:
-reads flagged as contaminants there will be considered contaminants in this run
-too. The windows must exactly match up between these two runs, most easily
-achieved with the -2 option. The point of this option is to first do a run with
-every bam file you have in which there could conceivably be cross-contamination,
-using the -C flag (and possibly -CO to save time), and then in subsequent runs
-focussing on subsets of bam files you will be able to identify contamination
-from outside that subset.''')
-OtherArgs.add_argument('-FR', '--forbid-read-repeats', action='store_true',
-help='''Using this option, if a read with the same name is found
-to span each of a series of consecutive, overlapping windows, it is only used in
-the first window. 'Consecutive' means next to each other in the order you
-specified. For example, if you specified windows 10-20, 15-25, 20-30 and 31-40,
-and there was a read that spanned all four windows (i.e. it started at or before
-position 10 and ended at or after position 40), it would be used in window
-10-20, not used in 15-25 because it spanned the last window, not used in 20-30
-because it spanned the last window (even though it was skipped there), and used
-in 31-40 because this window does not overlap with the last one.
-NB with paired read data, mates in a pair have the same name; using this option
-without the --merge-paired-reads option will mean at most one of the
-two mates will be used (in a given window and consecutive overlapping windows),
-and with the --merge-paired-reads option mates will be merged into a
-single read, which is used only the first time it is encountered in
-consecutive overlapping windows.''')
-OtherArgs.add_argument('-KO', '--keep-output-together', action='store_true',
-help='''By default, subdirectories are made for different kinds of phyloscanner
-output. With this option, all output files will be in the same directory (either
-the working directory, or whatever you specify with --output-dir).''')
-OtherArgs.add_argument('-KT', '--keep-temp-files', action='store_true', help='''
-Keep temporary files we create on the way (these are deleted by default).''')
-OtherArgs.add_argument('-MT', '--merging-threshold', type=int, default=0, help=\
-'Reads that differ by a number of bases equal to or less than this are merged'
-', those with higher counts effectively absorbing those with lower counts. '
-'The default value of 0 means there is no merging.')
-OtherArgs.add_argument('-N', '--num-bootstraps', type=int,
-help='The number of bootstraps to be calculated for RAxML trees (by default, '
-'none i.e. only the ML tree is calculated).')
-OtherArgs.add_argument('-Ns', '--bootstrap-seed', type=int, default=1, help='The'
-' random-number seed for running RAxML with bootstraps. The default is 1.')
-OtherArgs.add_argument('-O', '--keep-overhangs', action='store_true',
-help='''Keep the part of the read that overhangs the edge of the window. (By
-default this is trimmed, i.e. only the part of the read inside the window is
-kept.) Keeping overhangs means that, within each bam file, reads that are
-identical inside the window but have different overhangs will not be merged into
-a single sequence (with a count greater than 1). Differences in overhangs may be
-SNPs, or simply because the overhangs start or end at different points; this
-option is therefore a bit weird, because it's nice to merge all reads that are
-identical inside the window of interest.''')
-OtherArgs.add_argument('-P', '--merge-paired-reads', action='store_true',
-help='For paired-read data for which the reads in a pair (sometimes) overlap '
-'with each other: merge overlapping paired reads into a single read. Allows '
-'wider windows to be used.')
-OtherArgs.add_argument('-RC', '--ref-for-coords', help='''(Deprecated; the
---pairwise-align-to option is expected to perform better.) If the
---pairwise-align-to option is not used, then a multiple sequence alignment is
-created with all the mapping references used to create the bam files (plus any
-extra references included with -A). By default, window coordinates are
-interpreted with respect to this alignment, i.e. they are in the alignment
-coordinates. With this option (--ref-for-coords), the multiple sequence
-alignment is still created but window coordinates are interpreted with respect
-to a named reference, which must be one of those included with -A.''')
-OtherArgs.add_argument('-RG', '--recombination-gap-aware', action='store_true',
-help='''By default, when calculating Hamming distances for the recombination
-metric, positions with gaps are ignored. This means that e.g. the following
-three sequences would have a metric of zero: A-AAAA, A-AAA-A, AAAA-A. With this
-option, the gap character counts as a fifth base and so (dis)agreement in gaps
-contributes to Hamming distance. This increases sensitivity of the metric to
-cases where indels are genuine signals of recombination, but decreases
-specificity, since misalignment may falsely suggest recombination.''')
 OtherArgs.add_argument('-XC', '--excision-coords', type=CommaSeparatedInts,
 help='Used to specify a comma-separated set of integer coordinates that will '
 'be excised from the aligned reads. Useful for sites of non-neutral '
@@ -280,28 +219,33 @@ of a reference (which must be present in the file you specify with -A) with
 respect to which the coordinates specified with -XC are interpreted. If you are
 also using the --pairwise-align-to option, you must use the same reference there
 and here.''')
-OtherArgs.add_argument('-OD', '--output-dir', help='Used to specify the name of a '
-'directory (which should not exist already) in which all intermediate and '
-'output files will be created.')
+OtherArgs.add_argument('-P', '--merge-paired-reads', action='store_true',
+help='For paired-read data for which the reads in a pair (sometimes) overlap '
+'with each other: merge overlapping paired reads into a single read. Allows '
+'wider windows to be used.')
+OtherArgs.add_argument('-MT', '--merging-threshold', type=int, default=0, help=\
+'Reads that differ by a number of bases equal to or less than this are merged'
+', those with higher counts effectively absorbing those with lower counts. '
+'The default value of 0 means there is no merging.')
+OtherArgs.add_argument('-N', '--num-bootstraps', type=int,
+help='The number of bootstraps to be calculated for RAxML trees (by default, '
+'none i.e. only the ML tree is calculated).')
+OtherArgs.add_argument('-Ns', '--bootstrap-seed', type=int, default=1, help='The'
+' random-number seed for running RAxML with bootstraps. The default is 1.')
+OtherArgs.add_argument('-OD', '--output-dir', help='Used to specify the name of'
+' a directory for output files.')
 OtherArgs.add_argument('--time', action='store_true',
 help='Prints the times taken by different steps.')
-OtherArgs.add_argument('--x-raxml', default='raxmlHPC-AVX -m GTRCAT -p 1',
-help='''The command required to invoke RAxML. You may include RAxML options in
-this command, which need to separated by white space as usual and then the whole
-thing needs to be surrounded with one pair of quotation marks (so that the raxml
-command and its options are kept together as one option for phyloscanner). If
-you include a path to your raxml binary (necessary if it is not in the $PATH
-variable of your terminal), it may not include whitespace, since whitespace is
-interpreted as separating raxml options. The default is 'raxmlHPC-AVX -m GTRCAT
--p 1', where -m specifies an evolutionary model and -p specifies a random number
-seed for the parsimony inferences. If changing from the default, note that the
--m and -p options are compulsory. Do not include in this command options
-relating to bootstraps: use phyloscanner's --num-bootstraps and --bootstrap-seed
-options instead. Do not include options relating to the naming of files.''')
 OtherArgs.add_argument('--x-mafft', default='mafft', help=\
 'The command required to invoke mafft (by default: mafft).')
 OtherArgs.add_argument('--x-samtools', default='samtools', help=\
 'The command required to invoke samtools, if needed (by default: samtools).')
+OtherArgs.add_argument('-KO', '--keep-output-together', action='store_true',
+help='''By default, subdirectories are made for different kinds of phyloscanner
+output. With this option, all output files will be in the same directory (either
+the working directory, or whatever you specify with --output-dir).''')
+OtherArgs.add_argument('-KT', '--keep-temp-files', action='store_true', help='''
+Keep temporary files we create on the way (these are deleted by default).''')
 
 BioinformaticsArgs = parser.add_argument_group('Options for detailed'
 ' bioinformatic interrogation of the input bam files (not intended for normal'
@@ -367,8 +311,7 @@ very different, increases the chance of misalignment. You should inspect the
 aligned reads manually before doing anything else (and hopefully get some
 insight into how the reference in this window should be changed in order to have
 subsequent remapping get the local alignment right, in particular by contrasting
-the reference with the consensus of the aligned reads).
-''')
+the reference with the consensus of the aligned reads).''')
 
 StopEarlyArgs = parser.add_argument_group('Options to only partially run '
 'phyloscanner, stopping early or skipping steps')
@@ -389,6 +332,69 @@ help='Process and align the reads from each window, then quit without making '
 StopEarlyArgs.add_argument('-D', '--dont-check-duplicates', action='store_true',
 help="Don't compare reads between samples to find duplicates - a possible "+\
 "indication of contamination. (By default this check is done.)")
+
+
+DeprecatedArgs = parser.add_argument_group('''Deprecated options, left here for
+backward compatability or interest.''')
+DeprecatedArgs.add_argument('-C', '--contaminant-count-ratio', type=float,
+help='''Used to specify a numerical value which is interpreted in the following
+'way: if a sequence is found exactly duplicated between any two bam files,
+'and is more common in one than the other by a factor at least equal to this
+'value, the rarer sequence is diagnosed as contamination. It does not go into
+' the tree, and instead goes into a contaminant read fasta file.''')
+DeprecatedArgs.add_argument('-CD', '--contaminant-read-dir', type=Dir,
+help='A directory containing the contaminant read fasta files produced by a '
+'previous run of ' + os.path.basename(__file__) + ''' using the the -C flag:
+reads flagged as contaminants there will be considered contaminants in this run
+too. The windows must exactly match up between these two runs, most easily
+achieved with the -2 option. The point of this option is to first do a run with
+every bam file you have in which there could conceivably be cross-contamination,
+using the -C flag (and possibly -CO to save time), and then in subsequent runs
+focussing on subsets of bam files you will be able to identify contamination
+from outside that subset.''')
+DeprecatedArgs.add_argument('-FR', '--forbid-read-repeats', action='store_true',
+help='''Using this option, if a read with the same name is found
+to span each of a series of consecutive, overlapping windows, it is only used in
+the first window. 'Consecutive' means next to each other in the order you
+specified. For example, if you specified windows 10-20, 15-25, 20-30 and 31-40,
+and there was a read that spanned all four windows (i.e. it started at or before
+position 10 and ended at or after position 40), it would be used in window
+10-20, not used in 15-25 because it spanned the last window, not used in 20-30
+because it spanned the last window (even though it was skipped there), and used
+in 31-40 because this window does not overlap with the last one.
+NB with paired read data, mates in a pair have the same name; using this option
+without the --merge-paired-reads option will mean at most one of the
+two mates will be used (in a given window and consecutive overlapping windows),
+and with the --merge-paired-reads option mates will be merged into a
+single read, which is used only the first time it is encountered in
+consecutive overlapping windows.''')
+DeprecatedArgs.add_argument('-O', '--keep-overhangs', action='store_true',
+help='''Keep the part of the read that overhangs the edge of the window. (By
+default this is trimmed, i.e. only the part of the read inside the window is
+kept.) Keeping overhangs means that, within each bam file, reads that are
+identical inside the window but have different overhangs will not be merged into
+a single sequence (with a count greater than 1). Differences in overhangs may be
+SNPs, or simply because the overhangs start or end at different points; this
+option is therefore a bit weird, because it's nice to merge all reads that are
+identical inside the window of interest.''')
+DeprecatedArgs.add_argument('-RC', '--ref-for-coords', help='''(Deprecated; the
+--pairwise-align-to option is expected to perform better.) If the
+--pairwise-align-to option is not used, then a multiple sequence alignment is
+created with all the mapping references used to create the bam files (plus any
+extra references included with -A). By default, window coordinates are
+interpreted with respect to this alignment, i.e. they are in the alignment
+coordinates. With this option (--ref-for-coords), the multiple sequence
+alignment is still created but window coordinates are interpreted with respect
+to a named reference, which must be one of those included with -A.''')
+DeprecatedArgs.add_argument('-RG', '--recombination-gap-aware',
+action='store_true',
+help='''By default, when calculating Hamming distances for the recombination
+metric, positions with gaps are ignored. This means that e.g. the following
+three sequences would have a metric of zero: A-AAAA, A-AAA-A, AAAA-A. With this
+option, the gap character counts as a fifth base and so (dis)agreement in gaps
+contributes to Hamming distance. This increases sensitivity of the metric to
+cases where indels are genuine signals of recombination, but decreases
+specificity, since misalignment may falsely suggest recombination.''')
 
 args = parser.parse_args()
 
@@ -743,7 +749,9 @@ if not args.no_trees:
     stderr=subprocess.STDOUT)
     assert ExitStatus == 0
   except:
-    print('Problem running', args.x_raxml, '. Quitting.', file=sys.stderr)
+    print('Error: could not run the command "', args.x_raxml, ' -h". If you ',
+    'have installed RAxML, try rerunning phyloscanner using the --x-raxml ',
+    'option:\n', RaxmlHelp, '\nQuitting.', sep='', file=sys.stderr)
     raise
 
 if args.time:

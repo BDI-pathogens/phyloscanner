@@ -110,15 +110,16 @@ def ReadInputCSVfile(TheFile):
         exit(1)
 
       # Check the bam and ref files exist, and don't contain whitespace.
-      BamFile = fields[0]
-      RefFile = fields[1]
+      BamFile = fields[0].strip()
+      RefFile = fields[1].strip()
       for FileToCheck in (BamFile, RefFile):
         assert os.path.isfile(FileToCheck), FileToCheck + ', specified in ' + TheFile + \
         ', does not exist or is not a file. Quitting.'
 
 
 
-      # Check the bam basename, and alias if present, is unique.
+      # Check the bam basename, and alias if present, is unique and
+      # whitespace-free.
       BamBaseName = os.path.basename(BamFile)
       if len(BamBaseName.split(None, 1)) > 1:
         print(BamBaseName, 'named in', TheFile, 'contains whitespace.',
@@ -131,7 +132,12 @@ def ReadInputCSVfile(TheFile):
         exit(1)
       BamBaseNames.append(BamBaseName)
       if RenamingColPresent:
-        alias = fields[2]
+        alias = fields[2].strip()
+        if len(alias.split(None, 1)) > 1:
+          print(alias, 'named in', TheFile, 'contains whitespace.',
+          'Rename to avoid this and try again. Quitting.',
+          file=sys.stderr)
+          exit(1)
         if alias in aliases:
           print('The alias', alias, 'was found a second time on line',
           LineNumberMin1 + 1, 'in', TheFile +
