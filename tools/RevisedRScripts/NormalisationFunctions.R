@@ -2,17 +2,17 @@
 
 lookup.normalisation.for.tree <- function(tree.info, lookup.df, lookup.column = "NORM_CONST"){
   if(is.null(tree.info$window.coords)){
-    stop(paste0("ERROR: tree ",tree.info$name, "has no window coordinates" ))
+    stop(paste0("Tree ",tree.info$name, "has no window coordinates" ))
   }
   if(length(tree.info$window.coords)!=2){
-    stop(paste0("ERROR: tree ",tree.info$name, "has malformed window coordinates" ))
+    stop(paste0("Tree ",tree.info$name, "has malformed window coordinates" ))
   }
   return(.lookup.normalisation.for.coords(tree.info$window.coords$start, tree.info$window.coords$end, lookup.df, lookup.column))
 }
 
 .lookup.normalisation.for.coords <- function(start, end, lookup.df, lookup.column = "NORM_CONST"){
   if(!(lookup.column %in% colnames(lookup.df))){
-    stop(paste0("ERROR: no column called ",lookup.column," in lookup data frame."))
+    stop(paste0("No column called ",lookup.column," in lookup data frame."))
   }
   middle <- (end + start)/2
   

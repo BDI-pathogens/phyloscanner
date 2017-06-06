@@ -3,6 +3,7 @@ suppressMessages(library(data.table, quietly=TRUE, warn.conflicts=FALSE))
 
 
 # 	Define arguments
+
 arg_parser		<- ArgumentParser(description="Calculate normalising constants for each tree file from reference table.")
 arg_parser$add_argument("tree.file.root", action="store", type="character", help="Start of tree file names.")
 arg_parser$add_argument("norm.file.name", action="store", type="character", help="File name of reference table.")
@@ -15,6 +16,7 @@ arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default="
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="csv", help="The file extension for table files (default .csv).")
 
 # Parse arguments
+
 args              <- arg_parser$parse_args()
 script.dir        <- args$scriptdir
 tree.file.root 	  <- args$tree.file.root
@@ -42,7 +44,7 @@ if(grepl(paste0(csv.fe, "$"), norm.file.name)){
 	if(length(tmp)!=1)	stop("Expected one R data.table in file ",norm.file.name)
 	eval(parse(text=paste("norm.table<- ",tmp,sep='')))
 } else {
-  stop(paste0("ERROR: unknown input file format.\n"))
+  stop(paste0("Unknown input file format.\n"))
 }
 
 if(any(!(c('W_FROM','W_TO',norm.var) %in% colnames(norm.table)))){
@@ -61,12 +63,12 @@ if(norm.standardise){
 	tmp		<- subset(norm.table, W_MID>=790L & W_MID<=3385L)
 	
 	if(nrow(tmp)<=0){
-	  stop(paste0("ERROR: no positions from gag+pol present in file ",norm.file.name,"; unable to standardise"))
+	  stop(paste0("No positions from gag+pol present in file ",norm.file.name,"; unable to standardise"))
 	}
 	
 	tmp		<- tmp[, mean(NORM_CONST)]
 	if(!is.finite(tmp)){
-	  stop(paste0("ERROR: standardising constant is not finite"))
+	  stop(paste0("Standardising constant is not finite"))
 	}
 
 	set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
@@ -80,7 +82,7 @@ if (verbose) cat('Reading tree files starting with ', tree.file.root, "\n")
 wdf		<- list.files.mod(dirname(tree.file.root), pattern=paste('^',basename(tree.file.root),'.*\\.tree$',sep=''), full.names=FALSE)
 
 if(length(wdf)==0){
-  stop("No tree files found. Quitting.\n")
+  stop("ERROR: No tree files found.\n")
 }
 
 tree.info <- lapply(wdf, function(x){
@@ -99,7 +101,9 @@ nc.lookup <- function(name) {
 }
 
 wdf		<- data.table(FILE_NAME=sort(wdf))
+
 wdf[, NORM.CONST := nc.lookup(FILE_NAME) ]
+
 
 #	write to file
 
