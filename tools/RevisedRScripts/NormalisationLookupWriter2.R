@@ -8,11 +8,11 @@ arg_parser$add_argument("tree.file.root", action="store", type="character", help
 arg_parser$add_argument("norm.file.name", action="store", type="character", help="File name of reference table.")
 arg_parser$add_argument("output.file.name", action="store", type="character", help="Output file name of csv file that has two columns, the base tree file name and the corresponding normalising constant.")
 arg_parser$add_argument("norm.var", action="store", type="character", help="Column name in reference table that is to be used as normalising constant.")
-arg_parser$add_argument("--standardize", action="store_true", default=FALSE, help="If true, the normalising constants are standardized so that the average on gag+pol equals 1. This way the normalised branch lengths are interpretable as typical distances on gag+pol")
+arg_parser$add_argument("-s", "--standardise", action="store_true", default=FALSE, help="If true, the normalising constants are standardized so that the average on gag+pol equals 1. This way the normalised branch lengths are interpretable as typical distances on gag+pol")
 arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.")
 arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what the script is doing.")
-arg_parser$add_argument("-tfe", "--treeFileExtentsion", action="store", default="tree", help="The file extension for tree files (default .tree).")
-arg_parser$add_argument("-cfe", "--csvFileExtentsion", action="store", default="csv", help="The file extension for table files (default .csv).")
+arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default="tree", help="The file extension for tree files (default .tree).")
+arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="csv", help="The file extension for table files (default .csv).")
 
 # Parse arguments
 args              <- arg_parser$parse_args()
@@ -21,7 +21,7 @@ tree.file.root 	  <- args$tree.file.root
 norm.file.name 	  <- args$norm.file.name
 output.file.name  <- args$output.file.name
 norm.var 		      <- args$norm.var
-norm.standardize  <- args$standardize
+norm.standardise  <- args$standardise
 verbose           <- args$verbose
 tree.fe           <- args$treeFileExtension
 csv.fe            <- args$csvFileExtension
@@ -35,7 +35,7 @@ source(file.path(script.dir, "RevisedRScripts/NormalisationFunctions.R"))
 
 if (verbose) cat('Loading normalising constants reference file ', norm.file.name, "\n", sep="")
 
-if(grepl(paste(csv.fe, "$"), norm.file.name)){
+if(grepl(paste0(csv.fe, "$"), norm.file.name)){
 	norm.table	<- as.data.table(read.csv(norm.file.name, stringsAsFactors=FALSE))
 } else if(grepl('rda$', norm.file.name)){
 	tmp			<- load(norm.file.name)
@@ -51,7 +51,8 @@ if(any(!(c('W_FROM','W_TO',norm.var) %in% colnames(norm.table)))){
 
 setnames(norm.table, norm.var, 'NORM_CONST')
 
-#	standardize to 1 on gag+pol ( prot + first part of RT in total 1300bp )
+#	Standardize to mean of 1 on gag+pol ( prot + first part of RT in total 1300bp )
+
 if(norm.standardise){
   norm.table[, W_MID:= (W_FROM+W_TO)/2]
 	#790 - 3385
