@@ -40,3 +40,180 @@ blacklist.exact.duplicates <- function(entries, raw.threshold, ratio.threshold, 
   
   return(blacklisted)
 }
+
+
+# Strip the tree down to just reads from one host and an outgroup. Do a parsimony reconstruction on that tree and return the subgraphs.
+
+get.splits.for.host <- function(host, tip.hosts, tree, m.thresh, root.name, raw.threshold, ratio.threshold, check.duals, verbose=F){
+  if (verbose) cat("Identifying splits for host ", host, "\n", sep="")
+  
+  blacklist.items <- vector()
+  
+  dual <- F
+  
+  if(length(which(tip.hosts==host))>1){
+    
+    # Keep only the tips from this host and the outgroup
+    if(!is.null(root.name)){
+      outgroup.no <- which(tree$tip.label==root.name)
+    } else {
+      # Find a random outgroup if you can
+      
+      host.mrca <- mrca.phylo(tree, which(tip.hosts==host))
+      if(host.mrca == getRoot(tree)){
+        stop(paste0("No suitable outgroup found for host ",host,"; try adding one and specifying its tip name with --outgroupName"))
+      }
+      outgroup.no <- sample(1:length(tree$tip.label), 1)
+      while(host.mrca %in% Ancestors(tree, outgroup.no)){
+        outgroup.no <- sample(1:length(tree$tip.label), 1)
+      }
+      root.name <- tree$tip.label[outgroup.no]
+    }
+    
+    tip.nos <- c(outgroup.no, which(tip.hosts==host))
+    
+    subtree <- drop.tip(tree, setdiff(1:length(tree$tip.label), tip.nos))
+    
+    # Collapse multifurcations
+    
+    if(!is.null(m.thresh)){
+      if(is.na(m.thresh)){
+        min.bl <- min(tree$edge.length)
+        subtree <- di2multi(subtree, tol = min.bl*1.001)
+      } else {
+        subtree <- di2multi(subtree, tol = m.thresh)
+      }
+    }
+    
+    # Re-find the root
+    
+    st.outgroup.no <- which(subtree$tip.label==root.name)
+    
+    # di2multi actually unroots the tree!
+    
+    subtree <- root(subtree, st.outgroup.no, resolve.root = T)
+    
+    # Set up split.and.annotate (which takes a list)
+    
+    host.tips <- list()
+    host.tips[[host]] <- setdiff(1:length(subtree$tip.label), st.outgroup.no)
+    
+    # Perform split.and.annotate; get a list of splits
+    
+    split.results <- split.and.annotate(subtree, host, host.tips, NULL, NULL, tip.regex, "s", rep(1, length(subtree$tip.label)), sankhoff.k, 0, useff = F)
+    
+    # vector of of split IDs
+    
+    host.split.ids <- split.results$split.hosts
+    
+    # list of tips that belong to each split ID
+    
+    tips.for.splits <- split.results$split.tips
+    
+    # The total number of reads is either got from the tips or assumed to be one per tip
+    
+    if(!no.read.counts){
+      reads.per.tip <- sapply(subtree$tip.label, function(x) read.count.from.label(x, tip.regex))
+    } else {
+      reads.per.tip <- rep(1, length(subtree$tip.label))
+      reads.per.tip[root.no] <- NA
+    }
+    
+    total.reads <- sum(reads.per.tip[!is.na(reads.per.tip)])
+    
+    if(length(host.split.ids)==1){
+      
+      # if the algorithm didn't split the tips
+      if(verbose){
+        cat("No splits for host ", host, "\n", sep="")
+      }
+      if(total.reads < raw.threshold){
+        # blacklist the whole host if the read count from its only subgraph is below the raw threshold
+        
+        if(verbose){
+          cat("Blacklisting ",host,"; not enough reads in total.\n", sep="")
+        }
+        blacklist.items <- subtree$tip.label[which(subtree$tip.label!=root.name)]
+      }
+      
+    } else {
+      
+      # at least two subgraphs
+      
+      if (verbose) cat(length(host.split.ids), " splits for host ", host, "\n", sep="")
+      
+      props <- vector()
+      too.small <- vector()
+      
+      tips.vector <- vector()
+      read.count.vector <- vector()
+      tip.count.vector <- vector()
+      
+      too.small <- sapply(host.split.ids, function(x) check.read.count.for.split(x, tips.for.splits, raw.threshold, ratio.threshold, reads.per.tip, total.reads))
+      
+      if(length(which(!too.small))>1 & check.duals){
+        # there are at least two subgraphs which are too big to be contaminants
+        
+        if(verbose){
+          cat(host, " looks like a dual infection\n", sep="")
+        }
+        
+        dual <- T
+      }
+      
+      # blacklist the tips from small subgraphs
+      
+      if(length(which(too.small))>0){
+        blacklist.items <- subtree$tip.label[unlist(tips.for.splits[host.split.ids[which(too.small)]])]
+      }
+      
+    }
+    
+    tips.vector <- subtree$tip.label[unlist(tips.for.splits[host.split.ids])]
+    read.count.vector <- unlist(lapply(host.split.ids, function(x){
+      rep(sum(read.count.from.label(subtree$tip.label[tips.for.splits[[x]]], tip.regex)), length(tips.for.splits[[x]]))
+    }))
+    tip.count.vector <- unlist(lapply(host.split.ids, function(x){
+      rep(length(tips.for.splits[[x]]), length(tips.for.splits[[x]]))
+    }))
+    
+  } else {
+    
+    # this covers the situation where there is only one host tip (because ape has trouble with two-tip trees)
+    tip.no <- which(tip.hosts==host)
+    
+    reads <- read.count.from.label(tree$tip.label[tip.no], tip.regex)
+    
+    if(reads < raw.threshold){
+      if(verbose){
+        cat("Blacklisting ",host,"; not enough reads in total.\n", sep="")
+      }
+      blacklist.items <- tree$tip.label[tip.no]
+    } else {
+      if(verbose){
+        cat("Blacklisting ",host,"; has a single tip with sufficient reads.\n", sep="")
+      }
+    }
+    
+    tips.vector <- tree$tip.label[tip.no]
+    read.count.vector <- reads
+    tip.count.vector <- 1
+  }
+  
+  
+  list(id = host, blacklist.items = blacklist.items, tip.names = tips.vector, read.counts = read.count.vector, tip.counts = tip.count.vector, dual=dual)
+}
+
+
+# Return whether the number of reads in this split is below one of the thresholds
+
+check.read.count.for.split <- function(split, tips.for.splits, raw.threshold, ratio.threshold, reads.per.tip, total.reads){
+  # get the read counts
+  
+  count.in.split <- sum(reads.per.tip[tips.for.splits[[split]]])
+  
+  # find what proportion of all reads from this host are in this subgraph and check against the thresholds
+  
+  prop.in.split <- count.in.split/total.reads
+  return (count.in.split < raw.threshold | prop.in.split < ratio.threshold)
+}
