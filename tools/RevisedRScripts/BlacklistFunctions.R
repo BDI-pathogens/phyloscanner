@@ -191,7 +191,7 @@ get.splits.for.host <- function(host, tip.hosts, tree, m.thresh, root.name, raw.
       blacklist.items <- tree$tip.label[tip.no]
     } else {
       if(verbose){
-        cat("Blacklisting ",host,"; has a single tip with sufficient reads.\n", sep="")
+        cat("Keeping ",host,"; host has one tip a single tip with sufficient reads.\n", sep="")
       }
     }
     
