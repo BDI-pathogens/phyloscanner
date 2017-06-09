@@ -58,9 +58,10 @@ for(file.no in 1:length(file.names)){
   pairs.table	<- data.frame(V1=character(0), V2=character(0))
   for(entry in entries)
   {
+    
     # get rid of anything that doesn't match the regexp (outgroup etc)
     tmp <-  entry[!is.na(read.count.from.label(entry, regexp))]
-    if(length(tmp)>0)
+    if(length(tmp)>1)
     {
       tmp <- t(combn(tmp,2))
       colnames(tmp) <- c('V1','V2')
