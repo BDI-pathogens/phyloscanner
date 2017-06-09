@@ -147,8 +147,9 @@ if(!is.null(existing.bl.prefix)){
 pat.vector <- labels(window.count.by.patient)[order(labels(window.count.by.patient))]
 
 tree.tips <- lapply(file.details, function(x){
-  read.tree(x$tree.input)$tip.label
-})
+  all.tips <- read.tree(x$tree.input)$tip.label
+  setdiff(all.tips, read.csv(x$blacklist.input, header = F)[1] )
+}
 
 
 total.windows <- lapply(pat.vector, function(x){
