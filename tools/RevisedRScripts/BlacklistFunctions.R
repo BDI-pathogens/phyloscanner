@@ -1,7 +1,7 @@
 # Blacklister for exact duplicates. The entries argument is a list, the entries of each being groups of tips whose reads are identical.
 
 blacklist.exact.duplicates <- function(entries, raw.threshold, ratio.threshold, regexp, verbose = F){
-
+  
   pairs.table	<- data.frame(V1=character(0), V2=character(0))
   
   for(entry in entries){
@@ -217,3 +217,100 @@ check.read.count.for.split <- function(split, tips.for.splits, raw.threshold, ra
   prop.in.split <- count.in.split/total.reads
   return (count.in.split < raw.threshold | prop.in.split < ratio.threshold)
 }
+
+
+# This 
+
+blacklist.all.reads.for.dual.patient <- function(patient, tree.info){
+  for(info in tree.info){
+    labels <- info$tree$tip.label
+    patients <- sapply(labels, function(x) patient.from.label(x, tip.regex))
+    labels.to.go <- labels[patients==patient]
+    info$blacklist <- c(info$blacklist, labels.to.go)
+  }
+}
+
+blacklist.small.subgraphs.for.dual.patient <- function(patient, tree.info, max.reads){
+  for(info in tree.info){
+    labels <- info$tree$tip.label
+    duals.table <- info$duals.info
+    pat.rows <- duals.table[duals.table$patient==patient,]
+    
+    if(nrow(pat.rows)>0){
+      max.reads <- max(pat.rows$reads.in.subtree)
+      smaller.tips <- pat.rows$tip.name[pat.rows$reads.in.subtree!=max.reads]
+      info$blacklist <- c(info$blacklist, smaller.tips)
+    }
+  }
+}
+
+
+# This takes a tree, a blacklist, and a string, appends that string to the blacklisted tips of the tree
+
+blacklist.tip.rename <- function(tree, blacklist, reason){
+  tree$tip.label[blacklist] <- paste0(tree$tip.label[blacklist], "_", reason)
+  
+  return(tree)
+}
+
+blacklist.duals <- function(tree.info, hosts, summary.file=NULL){
+
+  #	Count number of potential dual windows by patient
+  
+  fractions <- lapply(hosts, function(x){
+    rowSums(sapply(tree.info, function(y){
+      num <- x %in% y$duals.info$host
+      denom <- x %in% y$patients.by.tips
+      c(num, denom)
+    }))
+  })
+  
+  names(fractions) <- hosts
+  
+  blacklists <- list()
+  
+  for(info in tree.info){
+    new.bl <- vector()
+    
+    tip.names <- info$tree$tip.label
+    tip.hosts <- sapply(tip.names, function(x) patient.from.label(x, tip.regex))
+    
+    for(a.host in hosts){
+      if(fractions[[a.host]][1]/fractions[[a.host]][2] > threshold){
+        # blacklist everything from this host
+        
+        new.bl <- unique(c(new.bl, na.omit(tip.names[tip.hosts==a.host])))
+                                      
+      } else {
+        # blacklist smaller subgraphs
+        
+        duals.table <- info$duals.info
+        pat.rows <- duals.table[host == a.host]
+        
+        if(nrow(pat.rows)>0){
+          max.reads <- max(pat.rows$reads.in.subtree)
+          smaller.tips <- pat.rows$tip.name[pat.rows$reads.in.subtree!=max.reads]
+          
+          new.bl <- unique(c(new.bl, na.omit(smaller.tips)))
+        }
+        
+      }
+    }
+    blacklists[[info$name]] <- new.bl
+  }
+  
+  if(!is.null(summary.file)) {
+    
+    output <- lapply(hosts, function(x) c(fractions[[x]][1]/fractions[[a.host]][2], fractions[[x]][1]))
+    
+    proportions <- unlist(lapply(output, "[[", 1))
+    counts <- unlist(lapply(output, "[[", 2))
+    
+    out.df <- data.frame(patient = hosts, count = counts, proportion = proportions, stringsAsFactors = F)
+#    if(verbose) cat("\nWriting dual summary file to ", summary.file, "\n", sep="")
+    write.csv(out.df, file=summary.file, row.names=FALSE, quote=FALSE)
+  }
+  
+  return(blacklists)
+}
+
