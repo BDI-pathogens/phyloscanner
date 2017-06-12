@@ -253,8 +253,10 @@ blacklist.tip.rename <- function(tree, blacklist, reason){
   return(tree)
 }
 
-blacklist.duals <- function(tree.info, hosts, summary.file=NULL){
+blacklist.duals <- function(tree.info, hosts, summary.file=NULL, verbose=F){
 
+  if(verbose) cat("Calculating dual window fractions...\n")
+  
   #	Count number of potential dual windows by patient
   
   fractions <- lapply(hosts, function(x){
@@ -270,6 +272,8 @@ blacklist.duals <- function(tree.info, hosts, summary.file=NULL){
   blacklists <- list()
   
   for(info in tree.info){
+    if(verbose) cat("Making new blacklists for tree ID ",info$name,"\n",sep="")
+    
     new.bl <- vector()
     
     tip.names <- info$tree$tip.label
@@ -278,11 +282,13 @@ blacklist.duals <- function(tree.info, hosts, summary.file=NULL){
     for(a.host in hosts){
       if(fractions[[a.host]][1]/fractions[[a.host]][2] > threshold){
         # blacklist everything from this host
+        if(verbose) cat("All tips from host ",a.host," blacklisted\n", sep="")
         
         new.bl <- unique(c(new.bl, na.omit(tip.names[tip.hosts==a.host])))
                                       
       } else {
         # blacklist smaller subgraphs
+        if(verbose) cat("Tips from smaller subgraphs for host ",a.host," blacklisted\n", sep="")
         
         duals.table <- info$duals.info
         pat.rows <- duals.table[host == a.host]
@@ -300,6 +306,7 @@ blacklist.duals <- function(tree.info, hosts, summary.file=NULL){
   }
   
   if(!is.null(summary.file)) {
+    if(verbose) cat("Writing summary file to ",summary.file,"...\n")
     
     output <- lapply(hosts, function(x) c(fractions[[x]][1]/fractions[[a.host]][2], fractions[[x]][1]))
     

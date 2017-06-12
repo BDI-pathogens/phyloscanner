@@ -69,8 +69,9 @@ tree.info <- list()
 
 hosts <- vector()
 
+if(verbose) cat("Collecting window data...\n")
+
 for(suffix.index in 1:length(suffixes)){
-  
   suffix               <- suffixes[suffix.index]
   out                  <- list()
   out$name             <- suffix
@@ -94,18 +95,13 @@ hosts <- hosts[order(hosts)]
 
 #	Count number of potential dual windows by patient
 
-fractions <- lapply(hosts, function(x){
-  rowSums(sapply(tree.info, function(y){
-    num <- x %in% y$duals.info$host
-    denom <- x %in% y$patients.by.tips
-    c(num, denom)
-  }))
-})
+if(verbose) cat("Making new blacklists...\n")
 
-results <- blacklist.duals(tree.info, hosts, summary.file)
+results <- blacklist.duals(tree.info, hosts, summary.file, verbose)
 
 for(info in tree.info){
+  if(verbose) cat("Writing new blacklist file ", info$bl.output.name, "...\n")
   info$blacklist <- results[info$name]
-  write.csv(info$blacklist, info$bl.output.name, quote=F, row.names = F, col.names = F)
+  write.table(info$blacklist, info$bl.output.name, sep=",", row.names=FALSE, col.names=FALSE, quote=F)
 }
 
