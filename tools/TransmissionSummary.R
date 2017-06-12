@@ -49,6 +49,10 @@ if(command.line){
   # ClassifyRelationships.R, not the collapsedTree files if present.
   # NB this regex needs to match the hard-coded file naming for collapsed trees.
   input.files <- input.files[! grepl('collapsedTree', input.files)]
+
+  if(length(input.files)==0){
+    stop("No input files found.")
+  }
   
 } else {
   setwd("/Users/mdhall/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/")
@@ -143,6 +147,7 @@ if(!is.null(summary.file)){
   reads.table$SUFFIX <- as.character(reads.table$SUFFIX)
   reads.table[, present:= reads>0]  
 } 
+
 #
 # Read in the IDs. Remove duplicates. Shuffle their order if desired.
 #
@@ -154,12 +159,14 @@ if(!length(patient.ids))
 #
 # Read classification files
 #
+
 tt	<-	lapply(input.files, function(x){
   if (verbose) cat("Reading window input file ",x,"\n", sep="")
   tt <- as.data.table(read.table(x, sep=",", header=TRUE, stringsAsFactors=FALSE))
   tt[, SUFFIX:=get.suffix(x, input.file.name, csv.fe)]			
   tt
 })	
+
 #
 # need to worry about transmissions listed in the wrong direction in the input file
 # to avoid very large memory, consolidate by FILE
@@ -218,6 +225,8 @@ set(tt, NULL, 'PATRISTIC_DISTANCE', tt[, as.numeric(PATRISTIC_DISTANCE)])
 #	calculate #unique reads and #reads for each window
 #
 
+
+
 if(!is.null(summary.file)){
   if(verbose) cat("Combining window data...\n")
   
@@ -244,12 +253,14 @@ if(!is.null(summary.file)){
   dp <- merge(dp, tmp, by=c('SUFFIX','pat.1'))
   setnames(tmp, c("pat.1","pat.1_tips","pat.1_reads"), c("pat.2","pat.2_tips","pat.2_reads"))
   dp <- merge(dp, tmp, by=c('SUFFIX','pat.2'))
-  
+
   #
   #	merge reads/leaves with tt
   #
   tt			<- merge(tt, dp, by=c('pat.1','pat.2','SUFFIX'))
 }
+
+
 
 if(nrow(tt)==0){
   cat("Failed to merge tables; e.g. file suffix ",tt$SUFFIX[1]," not found in ",summary.file,"\n",sep="")
@@ -275,7 +286,7 @@ if(!is.null(detailed.output)){
   }
   setnames(tt, colnames(tt),toupper(colnames(tt)))
   #	write to file
-  if (verbose) cat("Saving detailed per window table to",detailed.output)
+  if (verbose) cat("Saving RDA file to ",detailed.output,"\n",sep="")
   save(tt, file=gsub('\\.csv','\\.rda',detailed.output))
 }
 
