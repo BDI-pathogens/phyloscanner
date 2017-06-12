@@ -675,9 +675,9 @@ mean.na.rm <- function(x) mean(x, na.rm = T)
 
 # Output a summary of the pat.stats table to file
 if (recomb.files.exist) { 
-  tmp <- subset(as.data.table(pat.stats), reads>0, c(id, tips, reads, subgraphs, clades, overall.rtt, largest.rtt, max.pat.distance, prop.reads.largest.subtree, max.branch.length, subgraph.mean.pat.distance, branch.to.pat.ratio, Recombination.metric))
+  tmp <- subset(as.data.table(pat.stats), reads>0, c(id, tips, reads, subgraphs, clades, overall.rtt, largest.rtt, max.pat.distance, prop.reads.largest.subtree, max.branch.length, subgraph.mean.pat.distance, global.mean.pat.distance, branch.to.pat.ratio, Recombination.metric))
 } else {
-  tmp <- subset(as.data.table(pat.stats), reads>0, c(id, tips, reads, subgraphs, clades, overall.rtt, largest.rtt, max.pat.distance, prop.reads.largest.subtree, max.branch.length, subgraph.mean.pat.distance, branch.to.pat.ratio))
+  tmp <- subset(as.data.table(pat.stats), reads>0, c(id, tips, reads, subgraphs, clades, overall.rtt, largest.rtt, max.pat.distance, prop.reads.largest.subtree, max.branch.length, subgraph.mean.pat.distance, global.mean.pat.distance, branch.to.pat.ratio))
 }
 pat.stats.summary <- tmp[, lapply(.SD, mean.na.rm), by='id']
 tmp <- file.path(paste(output.root,"patStatsSummary.csv",sep=""))
@@ -717,8 +717,14 @@ if(length(unique(gaps))==1){
   }
 }
 
-range <- max(xcoords.reg) - min(xcoords.reg)
-bar.width.5 <- range/(1.5*(length(xcoords.reg)+1))
+if(regular.gaps){
+  range <- max(xcoords.reg) - min(xcoords.reg)
+  bar.width.5 <- range/(1.5*(length(xcoords.reg)+1))
+} else {
+  range <- max(xcoords) - min(xcoords)
+  bar.width.5 <- range/(1.5*(length(xcoords)+1))
+}
+
 
 pdf(file=tmp, width=8.26772, height=11.6929)
 
@@ -926,3 +932,5 @@ for (i in seq(1, num.ids)) {
 }
 
 dev.off()
+
+
