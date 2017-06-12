@@ -121,8 +121,10 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
   if (verbose) cat("Reading annotations...\n")
   
   annotations <- attr(pseudo.beast.import, "stats")
-  annotations$INDIVIDUAL <- sapply(as.character(annotations$INDIVIDUAL), function(x) substr(x, 2, nchar(x)-1))
-  annotations$SPLIT <- sapply(as.character(annotations$SPLIT), function(x) substr(x, 2, nchar(x)-1))
+
+  annotations$INDIVIDUAL <- as.character(annotations$INDIVIDUAL)
+  annotations$SPLIT <- as.character(annotations$SPLIT)
+
   
   in.order <- match(seq(1, length(tree$tip.label) + tree$Nnode), annotations$node)
   
