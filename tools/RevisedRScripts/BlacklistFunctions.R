@@ -17,7 +17,6 @@ blacklist.exact.duplicates <- function(entries, raw.threshold, ratio.threshold, 
   pairs.table$V1 <- as.character(pairs.table$V1)
   pairs.table$V2 <- as.character(pairs.table$V2)
   
-  #	OR suggest: make get.count return integer(0) to avoid issues when V1 is character(0)
   tmp <- unlist(sapply(pairs.table$V1, function(x) read.count.from.label(x, regexp)))
   if(!is.null(tmp))
     pairs.table$reads.1 <- tmp
@@ -29,6 +28,22 @@ blacklist.exact.duplicates <- function(entries, raw.threshold, ratio.threshold, 
     pairs.table$reads.2 <- tmp
   if(is.null(tmp))
     pairs.table$reads.2 <- integer(0)
+  
+  tmp <- unlist(sapply(pairs.table$V1, function(x) patient.from.label(x, regexp)))
+  if(!is.null(tmp))
+    pairs.table$host.1 <- tmp
+  if(is.null(tmp))
+    pairs.table$host.1 <- character(0)
+  
+  tmp <- unlist(sapply(pairs.table$V2, function(x) patient.from.label(x, regexp)))
+  if(!is.null(tmp))
+    pairs.table$host.2 <- tmp
+  if(is.null(tmp))
+    pairs.table$host.2 <- character(0)
+  
+  # pairs from the same patient aren't under consideration
+  
+  pairs.table <- pairs.table[which(pairs.table$host.1 != pairs.table$host.1),]
   
   # reverse the order so the read with the greater count is in the first column
   pairs.table[pairs.table$reads.2 > pairs.table$reads.1, c("V1", "V2", "reads.1", "reads.2")] <- pairs.table[pairs.table$reads.2 > pairs.table$reads.1, c("V2", "V1", "reads.2", "reads.1")] 

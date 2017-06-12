@@ -60,10 +60,7 @@ if(file.exists(input.file.name)){
   if(!is.null(blacklist.file.name)){
     blacklist.file.names <- paste0(blacklist.file.name, suffixes, csv.fe)
   }
-  
 }
-
-
 
 for(file.no in 1:length(input.file.names)){
   input.file.name <- input.file.names[file.no]
