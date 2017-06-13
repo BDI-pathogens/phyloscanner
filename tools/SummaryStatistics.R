@@ -21,8 +21,8 @@ suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
 
 #	constants
 
-tree.fe <- ".tree" 
-csv.fe <- ".csv"
+tree.fe <- "tree" 
+csv.fe <- "csv"
 
 command.line <- T
 
@@ -77,7 +77,7 @@ if (command.line) {
   splits.files <- list.files.mod(dirname(splits.file.root), pattern=paste('^',basename(splits.file.root),".*",csv.fe,'$',sep=""), full.names=TRUE)	  
   blacklist.files <- NULL
   if(!is.null(blacklist.file.root)){
-    blacklist.files <- list.files.mod(dirname(blacklist.file.root), pattern=paste('^',basename(blacklist.file.root),".*\\.csv$",sep=""), full.names=TRUE)
+    blacklist.files <- list.files.mod(dirname(blacklist.file.root), pattern=paste('^',basename(blacklist.file.root),".*",csv.fe,"$",sep=""), full.names=TRUE)
   }
 
   if (recomb.files.exist) { 
@@ -176,7 +176,6 @@ if (command.line) {
     if (verbose) cat("Reading genome coordinates from file ", window.coords.file, "\n", sep="")
     trees.to.be.worked.with <- paste(basename(tree.file.root), ts.both.present, tree.fe, sep="")
     
-    
     window.coords <- read.csv(window.coords.file, header = F, stringsAsFactors = F)
     window.coords[,2] <- as.numeric(window.coords[,2])
     files.expected <- window.coords[,1]
@@ -257,6 +256,9 @@ if (command.line) {
   window.coords.file <- NULL
   
 
+  setwd("/Users/mdhall/Documents/run-2/")
+  id.file <- "BamIDs.txt"
+  
 }
 
 # Align the graph output
