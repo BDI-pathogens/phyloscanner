@@ -102,8 +102,6 @@ if (command.line) {
   
   splits.suffixes	<- sapply(splits.files, function(x) get.suffix(x, splits.file.root, csv.fe))
   
-  print(splits.suffixes)
-
   # Only take suffixes that have both a tree file and a subgraph file
   ts.both.present <- intersect(tree.suffixes, splits.suffixes)
   ts.both.present <- ts.both.present[order(ts.both.present)]
