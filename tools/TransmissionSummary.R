@@ -4,8 +4,7 @@ list.of.packages <- c("prodlim","reshape2")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = TRUE, repos="http://cran.ma.imperial.ac.uk/")
 
-tree.fe <- ".tree"
-csv.fe <- ".csv"
+csv.fe <- "csv"
 
 command.line <- T
 if(command.line){
