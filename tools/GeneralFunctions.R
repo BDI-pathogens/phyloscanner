@@ -14,7 +14,7 @@ get.suffix <- function(file.name, prefix, extension){
   file.name <- basename(file.name)
   prefix <- basename(prefix)
 
-  substr(file.name, nchar(prefix)+1, nchar(file.name)-nchar(extension))
+  substr(file.name, nchar(prefix)+1, nchar(file.name)-nchar(extension)-1)
 }
 
 prepare.tree <- function(file.name, root.name = NULL, multi.threshold = NULL, normalisation.constant = 1){
