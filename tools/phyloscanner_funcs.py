@@ -779,7 +779,16 @@ def CalculateRecombinationMetric(SeqAlignment, IncludeGaps=False):
   return (float(MaxScore) / denominator, ) + \
   tuple([SeqAlignment[i].id for i in MaxScoreAndSeqs[1:]])
 
-
+def MakeBamIndices(BamFiles, SamtoolsCommand):
+  '''Tries to run samtools index on bam files that don't have a .bai file.'''
+  for BamFileName in BamFiles:
+    if not os.path.isfile(BamFileName+'.bai'):
+      try:
+        ExitStatus = subprocess.call([SamtoolsCommand, 'index', BamFileName])
+        assert ExitStatus == 0
+      except:
+        print('Problem running samtools index. Quitting.', file=sys.stderr)
+        raise
 
 
 

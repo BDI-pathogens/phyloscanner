@@ -930,14 +930,7 @@ else:
       exit(1)
 
 # Make index files for the bam files if needed.
-for BamFileName in BamFiles:
-  if not os.path.isfile(BamFileName+'.bai'):
-    try:
-      ExitStatus = subprocess.call([args.x_samtools, 'index', BamFileName])
-      assert ExitStatus == 0
-    except:
-      print('Problem running samtools index.\nQuitting.', file=sys.stderr)
-      raise
+pf.MakeBamIndices(BamFiles, args.x_samtools)
 
 # Gather some data from each bam file
 BamFileRefSeqNames = {}
