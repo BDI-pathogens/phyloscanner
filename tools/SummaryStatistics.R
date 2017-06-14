@@ -21,8 +21,8 @@ suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
 
 #	constants
 
-tree.fe <- ".tree" 
-csv.fe <- ".csv"
+tree.fe <- "tree" 
+csv.fe <- "csv"
 
 command.line <- T
 
@@ -71,16 +71,17 @@ if (command.line) {
   no.read.counts <- args$noReadCounts
   
   # Find the input files
-  
+
   tree.files <- list.files.mod(dirname(tree.file.root), pattern=paste('^',basename(tree.file.root),".*",tree.fe,'$',sep=""), full.names=TRUE)
   
   splits.files <- list.files.mod(dirname(splits.file.root), pattern=paste('^',basename(splits.file.root),".*",csv.fe,'$',sep=""), full.names=TRUE)	  
+  
   blacklist.files <- NULL
   if(!is.null(blacklist.file.root)){
-    blacklist.files <- list.files.mod(dirname(blacklist.file.root), pattern=paste('^',basename(blacklist.file.root),".*\\.csv$",sep=""), full.names=TRUE)
+    blacklist.files <- list.files.mod(dirname(blacklist.file.root), pattern=paste('^',basename(blacklist.file.root),".*",csv.fe,"$",sep=""), full.names=TRUE)
   }
 
-  if (recomb.files.exist) { 
+  if(recomb.files.exist) { 
     recomb.files <- list.files.mod(dirname(recomb.file.root), pattern=paste('^',basename(recomb.file.root),".*",csv.fe,'$',sep=""), full.names=TRUE)
   }
   
@@ -100,7 +101,7 @@ if (command.line) {
   tree.suffixes	<- sapply(tree.files, function(x) get.suffix(x, tree.file.root, tree.fe))
   
   splits.suffixes	<- sapply(splits.files, function(x) get.suffix(x, splits.file.root, csv.fe))
-
+  
   # Only take suffixes that have both a tree file and a subgraph file
   ts.both.present <- intersect(tree.suffixes, splits.suffixes)
   ts.both.present <- ts.both.present[order(ts.both.present)]
@@ -175,7 +176,6 @@ if (command.line) {
   if(!is.null(window.coords.file)){
     if (verbose) cat("Reading genome coordinates from file ", window.coords.file, "\n", sep="")
     trees.to.be.worked.with <- paste(basename(tree.file.root), ts.both.present, tree.fe, sep="")
-    
     
     window.coords <- read.csv(window.coords.file, header = F, stringsAsFactors = F)
     window.coords[,2] <- as.numeric(window.coords[,2])
@@ -257,6 +257,9 @@ if (command.line) {
   window.coords.file <- NULL
   
 
+  setwd("/Users/mdhall/Documents/run-2/")
+  id.file <- "BamIDs.txt"
+  
 }
 
 # Align the graph output
@@ -436,13 +439,13 @@ calc.all.stats.in.window <- function(suffix, verbose = F){
   
   # Make the file names anew from the suffixes (probably the cleanest way to do this)
   
-  tree.file.name <- paste(tree.file.root, suffix, tree.fe, sep="")
+  tree.file.name <- paste(tree.file.root, suffix, ".", tree.fe, sep="")
   if (recomb.files.exist) {
-    recomb.file.name <- paste(recomb.file.root, suffix, csv.fe, sep="")
+    recomb.file.name <- paste(recomb.file.root, suffix, ".", csv.fe, sep="")
   }
   
   if(!is.null(blacklist.file.root)){
-    blacklist.file.name <- paste(blacklist.file.root, suffix, csv.fe, sep="")
+    blacklist.file.name <- paste(blacklist.file.root, suffix, ".", csv.fe, sep="")
   } else {
     blacklist.file.name = NULL
   }
@@ -529,6 +532,8 @@ calc.all.stats.in.window <- function(suffix, verbose = F){
   window.table <- window.table[, subgraphs :=  sapply(ids, function(x) length(unique(splits.table[which(splits.table$patient==x),]$subgraph)))]
   window.table <- window.table[, clades := sapply(ids, function(x) length(all.clades.by.patient[[x]]))  ]
   
+  
+  
   new.cols <- sapply(ids, function(x) calc.subtree.stats(x, suffix, tree, tips.for.patients, splits.table, no.read.counts, verbose))
   new.cols <- as.data.table(t(new.cols))
   new.cols <- sapply(new.cols, as.numeric)
@@ -594,7 +599,7 @@ if (num.ids == 0) {
 # Load the splits first, since these tables get reused
 
 all.splits.table <- lapply(setNames(suffixes, suffixes), function(x){
-  splits.file.name <- paste(splits.file.root, x, csv.fe, sep="")
+  splits.file.name <- paste(splits.file.root, x, ".", csv.fe, sep="")
   
   if(!file.exists(splits.file.name)){
     cat("Subgraph file ",splits.file.name," does not exist.\n", sep="")
