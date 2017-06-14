@@ -2058,7 +2058,7 @@ if args.inspect_disagreeing_overlaps:
       OutputFilesByDestinationDir['DiscardedReads'].append(OutFile)
 
 
-OutputFilesByDestinationDir['raxml'] = glob.glob('RAxML*')
+OutputFilesByDestinationDir['raxml'] = glob.glob('RAxML_*')
 
 # Try to create different directories for each kind of output file we've made.
 # Move files if desired.
