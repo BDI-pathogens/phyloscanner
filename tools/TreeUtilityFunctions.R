@@ -447,3 +447,29 @@ prop.internal.longer.than.root <- function(tree, split, splits){
   
   return(sum(edges > dist.to.root)/length(edges))
 }
+
+# 
+
+process.tree <- function(tree, root.name=NULL, multifurcation.threshold=-1, blacklist.for.pruning = vector(), normalisation.constant = 1) {
+  
+  tree <- unroot(tree)
+  
+  if(multifurcation.threshold != -1){
+    tree <- di2multi(tree, tol = multifurcation.threshold)
+  }
+  
+  if(!is.null(root.name)){
+    tree <- root(tree, outgroup = which(tree$tip.label==root.name), resolve.root = T)
+  }
+  
+  if(length(blacklist.for.pruning) > 0){
+    tree <- drop.tip(tree, blacklist.for.pruning)
+  }
+  
+  tree$edge.length <- tree$edge.length/normalisation.constant
+  
+  return(tree)
+  
+}
+
+

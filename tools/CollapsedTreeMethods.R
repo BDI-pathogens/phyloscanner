@@ -547,4 +547,3 @@ check.tt.node.adjacency <- function(tt, label1, label2, allow.unsampled = F){
   return(substr(path[2], 1, 16) =="unsampled_region")
   
 }
-

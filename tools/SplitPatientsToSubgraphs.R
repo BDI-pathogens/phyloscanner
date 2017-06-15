@@ -309,8 +309,6 @@ split.patients.to.subgraphs<- function(tree.file.name, m.thresh, normalisation.c
     }
   }
   
-  
-  
   # This is the annotation for each node by patient
   
   patient.annotation <- sapply(split.annotation, function(x) unlist(strsplit(x, "-S"))[1] )

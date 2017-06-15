@@ -34,8 +34,7 @@ w.regex	<- "^\\D*([0-9]+)_to_([0-9]+).*$"
 if (verbose) cat('Loading normalising constants reference file ', norm.file.name, "\n")
 if(grepl('csv$',norm.file.name))
 	norm.table	<- as.data.table(read.csv(norm.file.name, stringsAsFactors=FALSE))
-if(grepl('rda$',norm.file.name))
-{
+if(grepl('rda$',norm.file.name)){
 	tmp			<- load(norm.file.name)
 	if(length(tmp)!=1)	stop("Expected one R data.table in file",norm.file.name)
 	eval(parse(text=paste("norm.table<- ",tmp,sep='')))
@@ -44,8 +43,7 @@ if(grepl('rda$',norm.file.name))
 setnames(norm.table, norm.var, 'NORM_CONST')
 norm.table[, W_MID:= (W_FROM+W_TO)/2]
 #	standardize to 1 on gag+pol ( prot + first part of RT in total 1300bp )
-if(norm.standardize)
-{
+if(norm.standardize){
 	#790 - 3385
 	if (verbose) cat('Standardising normalising constants to 1 on the gag+pol (prot + first part of RT in total 1300bp pol) region\n')
 	tmp		<- subset(norm.table, W_MID>=790L & W_MID<=3385L)

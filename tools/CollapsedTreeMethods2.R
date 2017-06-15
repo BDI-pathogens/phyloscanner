@@ -738,3 +738,151 @@ convert.to.columns <- function(matrix, names){
 }
 
 
+summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.threshold, allow.mt = T, csv.fe = "csv", verbose = F){
+  #
+  # Read classification files
+  #
+
+  
+  tt	<-	lapply(all.tree.info, function(x){
+    
+    if(is.null(x$classification.table) & is.null(x$classification.file.name)){
+      NULL
+    }
+    
+    if(!is.null(x$classification.table)){
+      as.data.table(x$classification)
+    } else {
+      if (verbose) cat("Reading window input file ",x$classification.file.name,"\n", sep="")
+      tt <- as.data.table(read.table(x$classification.file.name, sep=",", header=TRUE, stringsAsFactors=FALSE))
+      
+      
+      tt[, SUFFIX:=x$suffix]			
+      tt
+    }
+  })	
+  
+  if(length(tt)==0){
+    stop("No classification results present in any window; cannot continue.\n")
+  }
+  
+  # need to worry about transmissions listed in the wrong direction in the input file
+  # to avoid very large memory, consolidate by FILE
+  
+  if(verbose) cat("Rearranging patient pairs...\n")
+  
+  tt	<- lapply(tt, function(x){
+    #x	<- tt[[1]]
+    tmp	<- copy(x)
+    setnames(tmp, c('Patient_1','Patient_2','paths12','paths21'), c('Patient_2','Patient_1','paths21','paths12'))
+    set(tmp, tmp[, which(path.classification=="anc")], 'path.classification', 'TMP')
+    set(tmp, tmp[, which(path.classification=="desc")], 'path.classification', 'anc')
+    set(tmp, tmp[, which(path.classification=="TMP")], 'path.classification', 'desc')
+    set(tmp, tmp[, which(path.classification=="multiAnc")], 'path.classification', 'TMP')
+    set(tmp, tmp[, which(path.classification=="multiDesc")], 'path.classification', 'multiAnc')
+    set(tmp, tmp[, which(path.classification=="TMP")], 'path.classification', 'multiDesc')
+    x	<- rbind(x, tmp)
+    setkey(x, Patient_1, Patient_2)
+    subset(x, Patient_1 < Patient_2)
+  })
+  #
+  # rbind consolidated files
+  #
+  
+  if(verbose) cat("Consolidating file contents...\n")
+  
+  tt	<- do.call('rbind',tt)
+  
+  if(verbose) cat("Finding patristic distance columns...\n")
+  
+  # reset names depending on which Classify script was used
+  if(any('normalised.min.distance.between.subtrees'==colnames(tt))){
+    setnames(tt, 'normalised.min.distance.between.subtrees', 'PATRISTIC_DISTANCE')
+  } else if(any('min.distance.between.subtrees'==colnames(tt))){
+    setnames(tt, 'min.distance.between.subtrees', 'PATRISTIC_DISTANCE')
+  }
+  
+  setnames(tt, c('Patient_1','Patient_2','path.classification','paths21','paths12','adjacent'), c('PAT.1','PAT.2','TYPE','PATHS.21','PATHS.12','ADJACENT'))
+  
+  # change type name depending on allow.mt
+  if(!allow.mt){
+    if(verbose) cat("Allowing only single lineage transmission...\n")
+    set(tt, tt[, which(TYPE%in%c("multiAnc", "multiDesc"))], 'TYPE', 'conflict')
+  }
+  
+  #	check we have patristic distances, paths
+  
+  stopifnot( !nrow(subset(tt, is.na(PATRISTIC_DISTANCE))) )
+  stopifnot( !nrow(subset(tt, is.na(PATHS.12))) )
+  stopifnot( !nrow(subset(tt, is.na(PATHS.21))) )
+  
+  #	set to numeric
+  set(tt, NULL, 'PATRISTIC_DISTANCE', tt[, as.numeric(PATRISTIC_DISTANCE)])
+  # 	add window coordinates
+  
+  #	rename TYPE
+  set(tt, tt[,which(TYPE=='anc')], 'TYPE', 'anc_12')
+  set(tt, tt[,which(TYPE=='desc')], 'TYPE', 'anc_21')
+  set(tt, tt[,which(TYPE=='multiAnc')], 'TYPE', 'multi_anc_12')
+  set(tt, tt[,which(TYPE=='multiDesc')], 'TYPE', 'multi_anc_21')
+  
+  if(verbose) cat("Reordering...\n")
+  
+  #	reorder
+  setkey(tt, SUFFIX, PAT.1, PAT.2)
+  
+  if (verbose) cat("Making summary output table...\n")
+
+  set(tt, NULL, c('PATHS.12','PATHS.21'),NULL)
+  
+  
+  existence.counts <- tt[, list(both.exist=length(SUFFIX)), by=c('PAT.1','PAT.2')]
+
+  tt <- merge(tt, existence.counts, by=c('PAT.1', 'PAT.2'))
+  
+  tt.close <- tt[which(tt$ADJACENT & tt$PATRISTIC_DISTANCE < dist.threshold ),]
+   
+  tt.close$NOT.SIBLINGS <- tt.close$ADJACENT & (tt.close$PATRISTIC_DISTANCE < dist.threshold) & tt.close$TYPE!="none"
+  
+  # How many windows have this relationship, ADJACENT and PATRISTIC_DISTANCE below the threshold?
+  type.counts	<- tt.close[, list(windows=length(SUFFIX)), by=c('PAT.1','PAT.2','TYPE')]
+  # How many windows have ADJACENT and PATRISTIC_DISTANCE below the threshold?
+  any.counts <- tt.close[, list(all.windows=length(SUFFIX)), by=c('PAT.1','PAT.2')]
+  # How many windows have a relationship other than "none", ADJACENT and PATRISTIC_DISTANCE below the threshold?
+  ns.counts <- tt.close[, list(ns.windows=length(which(NOT.SIBLINGS))), by=c('PAT.1','PAT.2')]
+  
+  tt.close		<- merge(tt.close, type.counts, by=c('PAT.1','PAT.2','TYPE'))
+  tt.close		<- merge(tt.close, any.counts, by=c('PAT.1','PAT.2'))
+  tt.close		<- merge(tt.close, ns.counts, by=c('PAT.1','PAT.2'))
+  
+  tt.close[, fraction:=paste(windows,'/',both.exist,sep='')]
+  #	convert "anc_12" and "ans_21" to "anc" depending on direction
+  tt.close[, DUMMY:=NA_character_]
+  tmp			<- tt.close[, which(TYPE=="anc_12")]
+  set(tt.close, tmp, 'TYPE', "trans")
+  tmp			<- tt.close[, which(TYPE=="anc_21")]
+  set(tt.close, tmp, 'DUMMY', tt.close[tmp, PAT.1])
+  set(tt.close, tmp, 'PAT.1', tt.close[tmp, PAT.2])
+  set(tt.close, tmp, 'PAT.2', tt.close[tmp, DUMMY])
+  set(tt.close, tmp, 'TYPE', "trans")
+  
+  tmp			<- tt.close[, which(TYPE=="multi_anc_12")]
+  set(tt.close, tmp, 'TYPE', "multi_trans")
+  tmp			<- tt.close[, which(TYPE=="multi_anc_21")]
+  set(tt.close, tmp, 'DUMMY', tt.close[tmp, PAT.1])
+  set(tt.close, tmp, 'PAT.1', tt.close[tmp, PAT.2])
+  set(tt.close, tmp, 'PAT.2', tt.close[tmp, DUMMY])
+  set(tt.close, tmp, 'TYPE', "multi_trans")
+  
+  tt.close[, DUMMY:=NULL]
+  
+  set(tt.close, NULL, c('SUFFIX', 'ADJACENT','PATRISTIC_DISTANCE'), NULL)
+  tt.close <- tt.close[!duplicated(tt.close),]
+  
+  #	write to file
+  setkey(tt.close, PAT.1, PAT.2, TYPE)
+  #
+  
+  return(subset(tt.close, all.windows>=min.threshold))
+}
+

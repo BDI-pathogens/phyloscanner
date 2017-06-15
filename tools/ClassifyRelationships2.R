@@ -37,7 +37,6 @@ tree.fe                  <- args$treeFileExtension
 csv.fe                   <- args$csvFileExtension
 verbose                  <- args$verbose
 
-
 #	load external functions
 
 source(file.path(script.dir, "TreeUtilityFunctions.R"))

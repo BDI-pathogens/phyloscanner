@@ -165,7 +165,6 @@ if (command.line) {
       quit(save="no", status=1)
     }
 
-    # Read in the recomb files.
   }
       
   # From now on we work with suffixes only
