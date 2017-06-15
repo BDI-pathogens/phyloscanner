@@ -164,7 +164,6 @@ output.trans.tree <- function(tree, assocs, file.name = NULL, prune.unsampled.ti
         current.node.no <- Ancestors(tree, current.node.no, type="parent")
       }
       if(!grepl("^unsampled_region", splits.vec[current.node.no])){      
-        print(node.no)
         stop("Parent of unsampled node is not one of the unsampled subgraph roots")
       }
       splits.vec[node.no] <- splits.vec[current.node.no]
