@@ -5,8 +5,6 @@ if(length(new.packages)){
   quit(save="no", status=1)
 }
 
-options('warn'=1)
-
 suppressMessages(require(ape, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(phytools, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(ggplot2, quietly=TRUE, warn.conflicts=FALSE))
