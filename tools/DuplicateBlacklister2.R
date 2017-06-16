@@ -36,7 +36,7 @@ blacklist.file.name  <- args$blacklist
 
 source(file.path(script.dir, "TreeUtilityFunctions.R"))
 source(file.path(script.dir, "GeneralFunctions.R"))
-source(file.path(script.dir, "RevisedRScripts/BlacklistFunctions.R"))
+source(file.path(script.dir, "BlacklistFunctions.R"))
 
 # Decide if we're in single or batch mode
 

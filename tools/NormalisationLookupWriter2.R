@@ -38,7 +38,7 @@ csv.fe            <- args$csvFileExtension
 # Load necessary functions
 
 source(file.path(script.dir, "GeneralFunctions.R"))
-source(file.path(script.dir, "RevisedRScripts/NormalisationFunctions.R"))
+source(file.path(script.dir, "NormalisationFunctions.R"))
 
 #	Load reference table, define normalising constant
 

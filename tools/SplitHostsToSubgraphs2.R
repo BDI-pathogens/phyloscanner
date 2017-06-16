@@ -85,7 +85,7 @@ if(is.null(root.name)){
 }
 
 source(file.path(script.dir, "TreeUtilityFunctions.R"))
-source(file.path(script.dir, "RevisedRScripts/ParsimonyReconstructionMethods2.R"))
+source(file.path(script.dir, "ParsimonyReconstructionMethods2.R"))
 source(file.path(script.dir, "CollapsedTreeMethods.R"))
 source(file.path(script.dir, "WriteAnnotatedTrees.R"))
 source(file.path(script.dir, "GeneralFunctions.R"))

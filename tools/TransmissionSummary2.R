@@ -41,7 +41,7 @@ input.file.name          <- args$inputFiles
 
 source(file.path(script.dir, "TreeUtilityFunctions.R"))
 source(file.path(script.dir, "GeneralFunctions.R"))
-source(file.path(script.dir, "RevisedRScripts/CollapsedTreeMethods2.R"))
+source(file.path(script.dir, "CollapsedTreeMethods2.R"))
 
 suppressMessages(library(prodlim, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(reshape2, quietly=TRUE, warn.conflicts=FALSE))

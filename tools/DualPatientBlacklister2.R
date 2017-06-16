@@ -40,7 +40,7 @@ csv.fe                 <- args$csvFileExtension
 
 source(file.path(script.dir, "TreeUtilityFunctions.R"))
 source(file.path(script.dir, "GeneralFunctions.R"))
-source(file.path(script.dir, "RevisedRScripts/BlacklistFunctions.R"))
+source(file.path(script.dir, "BlacklistFunctions.R"))
 
 dual.files  <- list.files.mod(dirname(duals.prefix), pattern=paste('^',basename(duals.prefix),sep=""), full.names=TRUE)
 tree.files	<- list.files.mod(dirname(tree.prefix), pattern=paste0('^',basename(tree.prefix)), full.names=TRUE)

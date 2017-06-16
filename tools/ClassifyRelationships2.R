@@ -40,8 +40,8 @@ verbose                  <- args$verbose
 #	load external functions
 
 source(file.path(script.dir, "TreeUtilityFunctions.R"))
-source(file.path(script.dir, "RevisedRScripts/ParsimonyReconstructionMethods2.R"))
-source(file.path(script.dir, "RevisedRScripts/CollapsedTreeMethods2.R"))
+source(file.path(script.dir, "ParsimonyReconstructionMethods2.R"))
+source(file.path(script.dir, "CollapsedTreeMethods2.R"))
 source(file.path(script.dir, "GeneralFunctions.R"))
 
 all.tree.info                        <- list()
