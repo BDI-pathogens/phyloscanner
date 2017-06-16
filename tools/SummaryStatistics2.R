@@ -59,8 +59,8 @@ no.read.counts           <- args$noReadCounts
 source(file.path(script.dir, "TreeUtilityFunctions.R"))
 source(file.path(script.dir, "SummariseTrees_funcs.R"))
 source(file.path(script.dir, "GeneralFunctions.R"))
-source(file.path(script.dir, "RevisedRScripts/SummaryStatsFunctions.R"))
-source(file.path(script.dir, "RevisedRScripts/PlottingFunctions.R"))
+source(file.path(script.dir, "SummaryStatsFunctions.R"))
+source(file.path(script.dir, "PlottingFunctions.R"))
 
 # Find the input files
 
