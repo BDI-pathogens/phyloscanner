@@ -13,7 +13,7 @@ suppressMessages(library(ggplot2, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(ggtree, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(data.table, quietly=TRUE, warn.conflicts=FALSE))
 
-tree.fe <- ".tree"
+tree.fe <- ".newick"
 csv.fe <- ".csv"
 
 if(command.line){
@@ -149,15 +149,15 @@ if(command.line){
   #  
   # MRSA example
   
-  setwd("/Users/mdhall/Dropbox (Personal)/Transference/Croucher alignments/rerun/")
-  output.dir <- "/Users/mdhall/Dropbox (Personal)/Transference/Croucher alignments/rerun/"
+  setwd("/Users/mdhall/Documents/Pneumo/rerun/")
+  output.dir <- "/Users/mdhall/Documents/Pneumo/rerun/"
   tree.file.name <- "pneumo_sample_"
   blacklist.file.name <- NULL
-  output.file.ID <- "pneumo_result_"
+  output.file.ID <- "pneumo_result_2_"
   tip.regex <- "^(ARI-[0-9][0-9][0-9][0-9]_[A-Z]*)_[0-9][0-9][0-9][0-9]_[0-9]_[0-9][0-9]?$"
   root.name <- NULL
-  mode <- "f"
-  sankoff.k <- 10
+  mode <- "s"
+  sankoff.k <- 60
   sankoff.p <- 0.1
   useff  <- F
   

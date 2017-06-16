@@ -116,7 +116,7 @@ if(file.exists(input.name)){
   
   # batch mode
   
-  tree.input.names <- list.files.mod(dirname(input.name), pattern=paste(basename(input.name),'.*\\.',tree.fe,'$',sep=''), full.names=TRUE)
+  tree.input.names <- list.files.mod(dirname(input.name), pattern=paste(basename(input.name),'.*',tree.fe,'$',sep=''), full.names=TRUE)
   
   if(length(tree.input.names)==0){
     stop("No tree files found.")
