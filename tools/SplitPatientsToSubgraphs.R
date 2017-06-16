@@ -13,7 +13,7 @@ suppressMessages(library(ggplot2, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(ggtree, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(data.table, quietly=TRUE, warn.conflicts=FALSE))
 
-tree.fe <- ".newick"
+tree.fe <- ".tree"
 csv.fe <- ".csv"
 
 if(command.line){
@@ -157,7 +157,7 @@ if(command.line){
   tip.regex <- "^(ARI-[0-9][0-9][0-9][0-9]_[A-Z]*)_[0-9][0-9][0-9][0-9]_[0-9]_[0-9][0-9]?$"
   root.name <- NULL
   mode <- "s"
-  sankoff.k <- 60
+  sankoff.k <- 75
   sankoff.p <- 0.1
   useff  <- F
   
