@@ -76,8 +76,6 @@ for(file in input.files){
   tree.info$suffix <- suffix
   
   all.tree.info[[file]] <- tree.info
-  
-  
 }
 
 

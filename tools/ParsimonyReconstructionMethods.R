@@ -191,6 +191,7 @@ split.and.annotate <- function(tree, patients, patient.tips, patient.mrcas, blac
       cost.matrix <- matrix(NA, nrow=length(tree$tip.label) + tree$Nnode, ncol=length(patients))
     }
     
+
     cost.matrix <- make.cost.matrix(getRoot(tree), tree, patients, tip.assocs, individual.costs, cost.matrix, k, tip.read.counts, verbose)
     
     if (verbose) cat("Reconstructing...\n")

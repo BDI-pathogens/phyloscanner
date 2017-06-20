@@ -36,12 +36,10 @@ prepare.tree <- function(file.name, root.name = NULL, multi.threshold = NULL, no
 }
 
 
-get.window.coords <- function(string){
+get.window.coords <- function(string, regex = "^\\D*([0-9]+)_to_([0-9]+).*$"){
 
-  regex <- "^\\D*([0-9]+)_to_([0-9]+).*$"
-  
   start <- if(length(grep(regex, string))>0) as.numeric(sub(regex, "\\1", string)) else NA
-  end <- if(length(grep(regex, string))>0) as.numeric(sub(regex, "\\2", string)) else NA
+  end   <- if(length(grep(regex, string))>0) as.numeric(sub(regex, "\\2", string)) else NA
   
   if(any(is.na(start)) | any(is.na(end))) {
     stop(paste0("ERROR: cannot determine window coordinates"))

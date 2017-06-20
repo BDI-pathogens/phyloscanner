@@ -89,7 +89,7 @@ if(length(splits.files)==0){
 
 # Get the suffixes
 
-tree.suffixes	<- sapply(tree.files, function(x) get.suffix(x, tree.file.root, tree.fe))
+tree.suffixes	  <- sapply(tree.files, function(x) get.suffix(x, tree.file.root, tree.fe))
 
 splits.suffixes	<- sapply(splits.files, function(x) get.suffix(x, splits.file.root, csv.fe))
 
@@ -317,7 +317,7 @@ for(suffix in suffixes){
 
 # Calculate all the statistics apart from the subgraph proportions
 
-pat.stats <- lapply(all.tree.info, function(x) calc.all.stats.in.window(x, hosts, tip.regex, T))
+pat.stats <- lapply(all.tree.info, function(x) calc.all.stats.in.window(x, hosts, tip.regex, verbose))
 pat.stats <- rbindlist(pat.stats)
 
 # If you're looking at absolutely nothing, I'm not drawing you any graphs
@@ -359,10 +359,10 @@ read.prop.columns <- lapply(setNames(suffixes, suffixes), function(x){
 
 read.prop.columns <- rbindlist(read.prop.columns)
   
-pat.stats <- cbind(pat.stats, read.prop.columns)
+pat.stats         <- cbind(pat.stats, read.prop.columns)
 
-pat.stats$reads <- as.numeric(pat.stats$reads)
-pat.stats$tips <- as.numeric(pat.stats$tips)
+pat.stats$reads   <- as.numeric(pat.stats$reads)
+pat.stats$tips    <- as.numeric(pat.stats$tips)
 
 # Output the pat.stats table to file
 

@@ -20,8 +20,7 @@ split.patients.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff
   # Find patient IDs from each tip
   
   tip.hosts <- sapply(tip.labels, function(x) patient.from.label(x, tip.regex))
-  
-  
+
   non.host.tips <- which(is.na(sapply(tree$tip.label, function(name) patient.from.label(name, tip.regex))))
   tip.hosts[c(non.host.tips, blacklist)] <- "unsampled"
   
@@ -100,7 +99,7 @@ split.patients.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff
   if(is.null(patient.master.list)){
     patient.annotation <- factor(patient.annotation, levels = sample(levels(as.factor(patient.annotation))))
   } else {
-    patient.annotation <- factor(patient.annotation, levels = levels(patient.master.list))
+    patient.annotation <- factor(patient.annotation, levels = patient.master.list)
   }
   
   branch.colours <- patient.annotation
@@ -164,7 +163,7 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
     
     # Now the splits. A new split is where you encounter a node with a different association to its parent
     
-    if (verbose) cat("Identifying split patients...\n")
+    if (verbose) cat("Identifying split hosts...\n")
     
     splits.count <- rep(0, length(patients))
     first.nodes <- list()
@@ -258,7 +257,6 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
     
     for(tip in seq(1, length(tree$tip.label))){
       pat <- tip.patients[tip]
-      
       finite.cost[tip, which(patients==pat)] <- TRUE
       current.node <- tip
       repeat{
@@ -317,7 +315,7 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
     
     actual.patients <- patients[which(patients!="unsampled")]
     
-    if (verbose) cat("Identifying split patients...\n")
+    if (verbose) cat("Identifying split hosts...\n")
     
     splits.count <- rep(0, length(actual.patients))
     first.nodes <- list()
@@ -436,7 +434,7 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
     
     actual.patients <- patients[which(!(patients %in% c("unsampled")))]
     
-    if (verbose) cat("Identifying split patients...\n")
+    if (verbose) cat("Identifying split hosts...\n")
     
     splits.count <- rep(0, length(actual.patients))
     first.nodes <- list()

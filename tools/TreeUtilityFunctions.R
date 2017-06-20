@@ -451,7 +451,6 @@ prop.internal.longer.than.root <- function(tree, split, splits){
 # 
 
 process.tree <- function(tree, root.name=NULL, multifurcation.threshold=-1, blacklist.for.pruning = vector(), normalisation.constant = 1) {
-  
   tree <- unroot(tree)
   
   if(multifurcation.threshold != -1){
@@ -469,7 +468,6 @@ process.tree <- function(tree, root.name=NULL, multifurcation.threshold=-1, blac
   tree$edge.length <- tree$edge.length/normalisation.constant
   
   return(tree)
-  
 }
 
 

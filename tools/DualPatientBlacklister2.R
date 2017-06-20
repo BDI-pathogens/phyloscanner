@@ -65,7 +65,7 @@ if(!is.null(existing.bl.prefix)){
   }
 }
 
-tree.info <- list()
+all.tree.info <- list()
 
 hosts <- vector()
 
@@ -74,9 +74,9 @@ if(verbose) cat("Collecting window data...\n")
 for(suffix.index in 1:length(suffixes)){
   suffix               <- suffixes[suffix.index]
   out                  <- list()
-  out$name             <- suffix
+  out$suffix           <- suffix
   out$tree             <- read.tree(tree.files[suffix.index])
-  out$patients.by.tips <- sapply(out$tree$tip.label, function(x) patient.from.label(x, tip.regex))
+  out$hosts.for.tips   <- sapply(out$tree$tip.label, function(x) host.from.label(x, tip.regex))
   duals.table          <- fread(dual.files[suffix.index], stringsAsFactors = F)
   out$duals.info       <- duals.table
   out$bl.output.name   <- output.bls[suffix.index]
@@ -88,20 +88,25 @@ for(suffix.index in 1:length(suffixes)){
       out$existing.blacklist <- vector()
     }
   }
-  tree.info[[suffix]]  <- out
+  all.tree.info[[suffix]]  <- out
 }
 
 hosts <- hosts[order(hosts)]
+
+for(suffix.index in 1:length(suffixes)){
+  all.tree.info[[suffix]]$dual.infection  <- sapply(hosts, function(x) x%in% duals.table$host, simplify = F, USE.NAMES = T)
+}
+
 
 #	Count number of potential dual windows by patient
 
 if(verbose) cat("Making new blacklists...\n")
 
-results <- blacklist.duals(tree.info, hosts, summary.file, verbose)
+results <- blacklist.duals(all.tree.info, hosts, threshold, summary.file, verbose)
 
-for(info in tree.info){
-  if(verbose) cat("Writing new blacklist file ", info$bl.output.name, "...\n")
-  info$blacklist <- results[info$name]
-  write.table(info$blacklist, info$bl.output.name, sep=",", row.names=FALSE, col.names=FALSE, quote=F)
+for(tree.info in all.tree.info){
+  if(verbose) cat("Writing new blacklist file ", tree.info$bl.output.name, "...\n")
+  tree.info$blacklist <- results[tree.info$name]
+  write.table(tree.info$blacklist, tree.info$bl.output.name, sep=",", row.names=FALSE, col.names=FALSE, quote=F)
 }
 

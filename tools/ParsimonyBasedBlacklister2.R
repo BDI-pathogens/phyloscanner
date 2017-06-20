@@ -218,8 +218,10 @@ for(i in file.details){
   # Re-order the hosts (mostly for the sake of getting a sense of progress in screen output)
   
   hosts <- hosts[order(hosts)]
+  
+  tree <- process.tree(tree, root.name, m.thresh)
 
-  results <- lapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, m.thresh, root.name, raw.threshold, ratio.threshold, !is.null(i$duals.output), verbose))
+  results <- lapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, root.name, raw.threshold, ratio.threshold, sankoff.k, !is.null(i$duals.output), verbose))
   
   if (verbose) cat("Finished\n")
   
