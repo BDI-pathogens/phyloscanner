@@ -77,6 +77,11 @@ if(command.line){
   arg_parser$add_argument("-ssf", "--makeSummaryStatisticsFile", action="store_true", help="Write summary statistic output to file.")
   arg_parser$add_argument("-R", "--recombinationFiles", action="store", help="An optional file path and initial string identifying all recombination data files.")
   
+  # Classification
+  
+  arg_parser$add_argument("-cd", "--allClassifications", action="store_true", default=T, help="If present, the per-window host relationships will be writted to a separate CSV file for each window.")
+  arg_parser$add_argument("-ct", "--collapsedTree", action="store_true", default=T, help="If present, the collapsed tree (in which all adjacent nodes with the same assignment are collapsed to one) is output as a CSV file or files.")
+  
   args                  <- arg_parser$parse_args()
   
   verbose               <- args$verbose
@@ -168,6 +173,9 @@ if(command.line){
   recomb.input          <- args$recobinationFiles
   do.recomb             <- !is.null(recomb.input)
   
+  do.collapsed          <- args$collapsedTree
+  do.class.detail       <- args$allClassifications
+  
   script.dir            <- args$scriptdir
   
   source(file.path(script.dir, "GeneralFunctions.R"))
@@ -184,6 +192,28 @@ if(command.line){
   
 } else {
   
+  setwd("/Users/mdhall/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/Phyloscanner2Test/")
+  script.dir <- ("/Users/mdhall/phylotypes/tools")
+  
+  tree.input          <- "RAxML_bestTree.InWindow_"
+  blacklist.input     <- "AmpliconBlacklist_InWindow_"
+  reconstruction.mode <- "r"
+  
+  root.name <- "C.BW.00.00BW07621.AF443088"
+  
+  do.par.blacklisting <- T
+  bl.raw.threshold <- 3
+  bl.ratio.threshold <- 0.005
+  
+  dup.input.file.name <- "DuplicateReadCountsProcessed_InWindow_"
+  
+  output.string <- "p2test"
+  sankoff.k <- 20
+  
+  output.pdf <- T
+  output.nexus <- T
+  output.dir <- getwd()
+  
   setwd("/Users/mdhall/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/PossibleTransmissionClusters/")
   script.dir <- ("/Users/mdhall/phylotypes/tools")
   
@@ -191,7 +221,20 @@ if(command.line){
   blacklist.input     <- NULL
   reconstruction.mode <- "r"
   
+  root.name <- "C.BW.00.00BW07621.AF443088"
+  
+  do.par.blacklisting <- F
+  bl.raw.threshold <- 3
+  bl.ratio.threshold <- 0.005
+  
+  dup.input.file.name <- "DuplicateReadCountsProcessed_InWindow_"
+  
   output.string <- "p2test"
+  sankoff.k <- 20
+  
+  output.pdf <- T
+  output.nexus <- T
+  output.dir <- getwd()
   
 }
 
@@ -369,6 +412,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
   }
   tree.info
 }, simplify = F, USE.NAMES = T)
+
 
 # 7. Get the normalisation constants
 
@@ -792,3 +836,20 @@ if(do.summary.statistics){
 }
 
 
+# 15. Individual window classifications
+
+all.tree.info <- sapply(all.tree.info, function(tree.info) {
+
+  tree.info$classification.results <- classify(tree.info, verbose)
+  
+  if(do.collapsed){
+    tree.info$collapsed.file.name <- file.path(output.dir, paste0("CollapsedTree_",tree.info$output.string,".","csv.fe"))
+    write.csv(tree.info$classification.results$collapsed, tree.info$collapsed.file.name, quote=F, row.names = F)
+  }
+  if(do.class.detail){
+    tree.info$classification.file.name <- file.path(output.dir, paste0("Classification_",tree.info$output.string,".","csv.fe"))
+    write.csv(tree.info$classification.results$classification, tree.info$classification.file.name, quote=F, row.names = F)
+  }
+  
+  tree.info
+}, simplify = F, USE.NAMES = T)

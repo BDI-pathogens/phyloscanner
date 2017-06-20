@@ -468,7 +468,6 @@ subtrees.adjacent <- function(tt, splits, none.matters = F){
 # are pairs of subtrees from two patients not separated by any other subtrees from either of those patients?
 
 subtrees.unblocked <- function(tt, splits){
-  
   out <- matrix(ncol = length(splits), nrow=length(splits))
   for(spt.1.no in 1:length(splits)){
     for(spt.2.no in 1:length(splits)){
@@ -547,36 +546,49 @@ check.tt.node.adjacency <- function(tt, label1, label2, allow.unsampled = F){
 }
 
 classify <- function(tree.info, verbose = F) {	
-  if (verbose) cat("Reading tree file ", tree.info$tree.file.name, "...\n", sep = "")
   
-  pseudo.beast.import <- read.beast(tree.info$tree.file.name)
-  tree <- attr(pseudo.beast.import, "phylo")
+  if(is.null(tree.info$tree)){
+    if (verbose) cat("Reading tree file ", tree.info$tree.file.name, "...\n", sep = "")
+    
+    pseudo.beast.import <- read.beast(tree.info$tree.file.name)
+    tree <- attr(pseudo.beast.import, "phylo")
+    
+    if (verbose) cat("Reading annotations...\n")
+    
+    annotations <- attr(pseudo.beast.import, "stats")
+    
+    annotations$INDIVIDUAL <- as.character(annotations$INDIVIDUAL)
+    annotations$SPLIT <- as.character(annotations$SPLIT)
+  } else {
+    tree <- tree.info$tree
+    
+    annotations <- data.frame(node = seq(1, length(tree$tip.label) + tree$Nnode), 
+                              INDIVIDUAL = as.character(attr(tree, "INDIVIDUAL")), 
+                              SPLIT = as.character(attr(tree, "SPLIT")), 
+                              stringsAsFactors = F)
+  }
   
-  if (verbose) cat("Reading splits file",splits.file.name,"...\n")
-  
-  splits <- read.csv(tree.info$splits.file.name, stringsAsFactors = F)
-  
-  # this should go eventually
-  
-  colnames(splits) <- c("patient", "subgraph", "split")
+  if(is.null(tree.info$splits.table)){
+    if (verbose) cat("Reading splits file",splits.file.name,"...\n")
+    
+    splits <- read.csv(tree.info$splits.file.name, stringsAsFactors = F)
+  } else {
+    splits <- tree.info$splits.table
+  }
   
   if (verbose) cat("Collecting tips for each patient...\n")
   
   patients <- unique(splits$patient)
+  patients <- patients[patients!="unsampled"]
   
   all.splits <- unique(splits$subgraph)
-  
-  if (verbose) cat("Reading annotations...\n")
-  
-  annotations <- attr(pseudo.beast.import, "stats")
-  
-  annotations$INDIVIDUAL <- as.character(annotations$INDIVIDUAL)
-  annotations$SPLIT <- as.character(annotations$SPLIT)
+  all.splits <- all.splits[all.splits!="unsampled"]
   
   in.order <- match(seq(1, length(tree$tip.label) + tree$Nnode), annotations$node)
   
   assocs <- annotations$SPLIT[in.order]
-  assocs <- lapply(assocs, function(x) replace(x,is.na(x),"none"))
+  assocs <- lapply(assocs, function(x) replace(x, is.na(x), "none"))
+  assocs <- lapply(assocs, function(x) replace(x, x=="unsampled", "none"))
   
   splits.for.patients <- lapply(patients, function(x) unique(splits$subgraph[which(splits$patient==x)] ))
   names(splits.for.patients) <- patients
