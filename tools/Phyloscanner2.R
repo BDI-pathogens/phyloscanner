@@ -1,4 +1,4 @@
-list.of.packages <- c("argparse","data.table","ape","ff")
+list.of.packages <- c("argparse", "data.table", "ape", "ff", "phangorn", "ggtree", "phytools", "scales", "RColorBrewer", "gtable", "grid", "gridExtra")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)){
   cat("Please run PackageInstall.R to continue\n")
