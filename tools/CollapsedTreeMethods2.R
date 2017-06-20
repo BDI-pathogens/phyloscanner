@@ -743,7 +743,7 @@ convert.to.columns <- function(matrix, names){
   a.table <- as.table(matrix)
   colnames(a.table) <- names
   rownames(a.table) <- names
-  a.df <- as.data.frame(a.table)
+  a.df <- as.data.frame(a.table, stringsAsFactors=F)
   keep <- complete.cases(a.df)
   a.df <- a.df[keep,]
   return(a.df)
@@ -755,23 +755,20 @@ summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.
   # Read classification files
   #
 
-  
-  tt	<-	lapply(all.tree.info, function(x){
+  tt	<-	lapply(all.tree.info, function(tree.info){
     
-    if(is.null(x$classification.table) & is.null(x$classification.file.name)){
+    if(is.null(tree.info$classification.results$classification) & is.null(tree.info$classification.file.name)){
       NULL
     }
     
-    if(!is.null(x$classification.table)){
-      as.data.table(x$classification)
+    if(!is.null(tree.info$classification.results$classification)){
+      tt <- as.data.table(tree.info$classification.results$classification)
     } else {
-      if (verbose) cat("Reading window input file ",x$classification.file.name,"\n", sep="")
-      tt <- as.data.table(read.table(x$classification.file.name, sep=",", header=TRUE, stringsAsFactors=FALSE))
-      
-      
-      tt[, SUFFIX:=x$suffix]			
-      tt
+      if (verbose) cat("Reading window input file ",tree.info$classification.file.name,"\n", sep="")
+      tt <- as.data.table(read.table(tree.info$classification.file.name, sep=",", header=TRUE, stringsAsFactors=FALSE))
     }
+    tt[, SUFFIX:=tree.info$suffix]			
+    tt
   })	
   
   if(length(tt)==0){

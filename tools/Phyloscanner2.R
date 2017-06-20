@@ -82,6 +82,13 @@ if(command.line){
   arg_parser$add_argument("-cd", "--allClassifications", action="store_true", default=T, help="If present, the per-window host relationships will be writted to a separate CSV file for each window.")
   arg_parser$add_argument("-ct", "--collapsedTree", action="store_true", default=T, help="If present, the collapsed tree (in which all adjacent nodes with the same assignment are collapsed to one) is output as a CSV file or files.")
   
+  # Classification summary
+  
+  arg_parser$add_argument("-swt", "--windowThreshold", action="store", default=0, type="integer", help="Relationships between two patients will only appear in output if they are within the distance threshold and ajacent to each other least this proportion of windows (default 0).")
+  arg_parser$add_argument("-sdt", "--distanceThreshold", action="store", default=-1, help="Maximum distance threshold on a window for a relationship to be reconstructed between two patients on that window.")
+  arg_parser$add_argument("-amt", "--allowMultiTrans", action="store_true", default=FALSE, help="If absent, directionality is only inferred between pairs of patients where a single clade from one patient is nested in one from the other; this is more conservative")
+  
+  
   args                  <- arg_parser$parse_args()
   
   verbose               <- args$verbose
@@ -175,6 +182,10 @@ if(command.line){
   
   do.collapsed          <- args$collapsedTree
   do.class.detail       <- args$allClassifications
+  
+  win.threshold         <- args$windowThreshold 
+  dist.threshold        <- args$distanceThreshold
+  allow.mt              <- args$allowMultiTrans
   
   script.dir            <- args$scriptdir
   
@@ -853,3 +864,11 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
   
   tree.info
 }, simplify = F, USE.NAMES = T)
+
+
+# 16. Transmission summary
+
+results <- summarise.classifications(all.tree.info, hosts, win.threshold*length(all.tree.info), dist.threshold, allow.mt, csv.fe, verbose)
+
+if (verbose) cat('Writing summary to file',output.file,'\n')
+write.csv(results, file=file.path(output.dir, paste0("TransmissionSummary_",output.string,".",csv.fe)), row.names=FALSE, quote=FALSE)
