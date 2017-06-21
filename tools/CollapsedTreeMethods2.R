@@ -357,6 +357,7 @@ all.subtree.distances <- function(tree, tt, splits, assocs, slow=F){
   }
   
   temp <- matrix(ncol = length(splits), nrow=length(splits))
+  
   for(spt.1.no in 1:length(splits)){
     for(spt.2.no in 1:length(splits)){
       if(spt.1.no==spt.2.no){
@@ -367,7 +368,7 @@ all.subtree.distances <- function(tree, tt, splits, assocs, slow=F){
         
         chain.1 <- get.tt.ancestors(tt, spt.1)
         chain.2 <- get.tt.ancestors(tt, spt.2)
-        
+
         if(spt.1 %in% chain.2){
           mrca.2 <- tt$root.nos[which(tt$unique.splits==spt.2)]
           current.node <- mrca.2
@@ -386,6 +387,7 @@ all.subtree.distances <- function(tree, tt, splits, assocs, slow=F){
           current.node <- mrca.1
           length <- 0
           while(assocs[[current.node]]!=spt.2){
+
             length <- length + get.edge.length(tree, current.node)
             current.node <- Ancestors(tree, current.node, type="parent")
             if(is.root(tree, current.node)){

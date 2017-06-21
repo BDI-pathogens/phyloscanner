@@ -20,12 +20,12 @@ suppressMessages(require(gridExtra, quietly=TRUE, warn.conflicts=FALSE))
 command.line <- T
 
 if(command.line){
-
+  
   arg_parser		     <- ArgumentParser()
-
+  
   arg_parser$add_argument("tree", action="store", help="A path and string that begins all the tree file names.")
-  arg_parser$add_argument("outputString", action="store", help="This string identifies all output files.")
-
+  arg_parser$add_argument("output.string", action="store", help="This string identifies all output files.")
+  
   arg_parser$add_argument("-r", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
   arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, short branches in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. If a number, this number will be used as the threshold. If 'g', it will be guessed from the branch lengths (use this only if you've checked by eye that the tree does indeed have multifurcations).")
   
@@ -36,12 +36,15 @@ if(command.line){
   arg_parser$add_argument("-od", "--outputDir", action="store", help="All output will be written to this directory. If absent, current working directory.")
   arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.")
   arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what the script is doing.")
-  arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. Three capture groups: patient ID, read ID, and read count; if the last is missing then read information will not be used. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name.")
-  arg_parser$add_argument("-y", "--fileNameRegex", action="store", default="^\\D*([0-9]+)_to_([0-9]+).*$", help="Regular expression identifying window coordinates. Two capture groups: start and end. If absent, input will be assumed to be from the phyloscanner pipeline.")
+  arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. Three capture groups: patient ID, read ID, and read count; if the latter two groups are missing then read information will not be used. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name.")
+  arg_parser$add_argument("-y", "--fileNameRegex", action="store", default="^\\D*([0-9]+)_to_([0-9]+).*$", help="Regular expression identifying window coordinates. Two capture groups: start and end; if the latter is missing then the first group is a single numerical identifier for the window. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name.")
   arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default="tree", help="The file extension for tree files (default tree).")
   arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="csv", help="The file extension for table files (default csv).")
   arg_parser$add_argument("-pw", "--pdfwidth", action="store", default=50, help="Width of tree pdf in inches.")
   arg_parser$add_argument("-ph", "--pdfrelheight", action="store", default=0.15, help="Relative height of tree pdf.")
+  arg_parser$add_argument("-rda", "--outputRDA", action="store_true", help="Write the final R workspace image to file.")
+  arg_parser$add_argument("-sd", "--seed", action="store_true", help="Random number seed; used by the downsampling process, and also ties in some parsimony reconstructions can be broken randomly.")
+  
   
   # Normalisation options
   
@@ -57,6 +60,11 @@ if(command.line){
   arg_parser$add_argument("-rwt", "--rawBlacklistThreshold", action="store", default=0, help="Raw threshold for blacklisting; subgraphs or exact duplicate tips with read counts less than this will be blacklisted, regardless of the count of any other subgraphs from the same host or identical tips from another host. Default 0; one or both of this and -rtt must be specified and >0 for -db or -pb to do anything.")
   arg_parser$add_argument("-rtt", "--ratioBlacklistThreshold", action="store", default=0, help="Ratio threshold for blacklisting; subgraphs or exact duplicate tips will be blacklisted if the ratio of their tip count to that of another subgraph from the same host or tip from another host is less than this. Default 0; one or both of this and -rwt must be specified and >0 for -db or -pb to do anything.")
   arg_parser$add_argument("-ub", "--dualBlacklist", action="store_true", default=F, help="Blacklist all reads from the minor subgraphs for all patients established as dual by parsimony blacklisting.")
+  
+  # Downsampling
+  
+  arg_parser$add_argument("-dsl", "--maxReadsPerHost", action="store", type="integer", help="If given, blacklist to downsample read counts from each host to this number.")
+  arg_parser$add_argument("-dsb", "--blacklistUnderrepresensted", action="store_true", help="If present and -dsl is given, blacklist hosts from trees where their total tip count does not reach the maximum.")
   
   # Parsimony reconstruction
   
@@ -79,8 +87,8 @@ if(command.line){
   
   # Classification
   
-  arg_parser$add_argument("-cd", "--allClassifications", action="store_true", default=T, help="If present, the per-window host relationships will be writted to a separate CSV file for each window.")
-  arg_parser$add_argument("-ct", "--collapsedTree", action="store_true", default=T, help="If present, the collapsed tree (in which all adjacent nodes with the same assignment are collapsed to one) is output as a CSV file or files.")
+  arg_parser$add_argument("-cd", "--allClassifications", action="store_true", help="If present, the per-window host relationships will be writted to a separate CSV file for each window.")
+  arg_parser$add_argument("-ct", "--collapsedTree", action="store_true", help="If present, the collapsed tree (in which all adjacent nodes with the same assignment are collapsed to one) is output as a CSV file or files.")
   
   # Classification summary
   
@@ -100,7 +108,7 @@ if(command.line){
   if(is.null(output.dir)){
     output.dir          <- getwd()
   }
-  output.string         <- args$outputString
+  output.string         <- args$output.string
   
   outgroup.name         <- args$outgroupName
   use.m.thresh          <- !is.null(args$multifurcationThreshold)
@@ -109,6 +117,10 @@ if(command.line){
   
   pdf.hm                <- as.numeric(args$pdfrelheight)
   pdf.w                 <- as.numeric(args$pdfwidth)
+  
+  seed                  <- args$seed
+  
+  output.rda            <- args$outputRDA
   
   if(use.m.thresh){
     if(args$multifurcationThreshold=="g"){
@@ -123,10 +135,10 @@ if(command.line){
   }
   
   norm.ref.file.name    <- args$normRefFileName
-  norm.column.name      <- args$normVar
+  norm.column.var       <- args$normVar
   norm.standardise      <- args$normStandardise
   norm.constants.input  <- args$normalisationConstants
-
+  
   
   tip.regex             <- args$tipRegex
   file.name.regex       <- args$fileNameRegex
@@ -158,6 +170,10 @@ if(command.line){
   if(!(reconstruction.mode %in% c("r", "s", "f"))){
     stop(paste("Unknown split classifier: ", mode, "\n", sep=""))
   }
+  
+  downsample            <- !is.null(args$maxReadsPerHost)
+  downsampling.limit    <- args$maxReadsPerHost
+  blacklist.ur          <- args$blacklistUnderrepresensted
   
   sankoff.k             <- as.numeric(args$sankoffK)
   
@@ -195,11 +211,12 @@ if(command.line){
   source(file.path(script.dir, "TreeUtilityFunctions2.R"))
   source(file.path(script.dir, "BlacklistFunctions.R"))
   source(file.path(script.dir, "ParsimonyReconstructionMethods2.R"))
-  source(file.path(script.dir, "CollapsedTreeMethods.R"))
+  source(file.path(script.dir, "CollapsedTreeMethods2.R"))
   source(file.path(script.dir, "WriteAnnotatedTrees.R"))
   source(file.path(script.dir, "SummariseTrees_funcs.R"))
   source(file.path(script.dir, "SummaryStatsFunctions.R"))
   source(file.path(script.dir, "PlottingFunctions.R"))
+  source(file.path(script.dir, "DownsamplingFunctions.R"))
   
 } else {
   
@@ -322,7 +339,9 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
   }
   
   tree                           <- read.tree(tree.info$tree.file.name)
+  
   tree.info$tree                 <- tree
+  
   tree.info
 }, simplify = F, USE.NAMES = T)
 
@@ -405,6 +424,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
 # 6. Rename tips from the prexisting blacklist
 
 all.tree.info <- sapply(all.tree.info, function(tree.info) {
+  
   tree <- tree.info$tree
   
   if(is.null(tree.info$tree)){
@@ -523,7 +543,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
 # 9. Duplicate blacklisting
 
 if(do.dup.blacklisting){
-
+  
   dup.file.names <- list.files.mod(dirname(dup.input.file.name), pattern=paste(basename(dup.input.file.name),'.*',csv.fe,'$',sep=''), full.names=TRUE)
   
   all.tree.info <- sapply(all.tree.info, function(tree.info) {
@@ -538,11 +558,11 @@ if(do.dup.blacklisting){
   all.tree.info <- sapply(all.tree.info, function(tree.info) {
     tree <- tree.info$tree
     
-
-    if(!is.null(tree.info$duplicate.tips)){
-
-      duplicated                                   <- blacklist.exact.duplicates(tree.info, bl.raw.threshold, bl.ratio.threshold, tip.regex, verbose)
     
+    if(!is.null(tree.info$duplicate.tips)){
+      
+      duplicated                                   <- blacklist.exact.duplicates(tree.info, bl.raw.threshold, bl.ratio.threshold, tip.regex, verbose)
+      
       duplicate.nos                                <- which(tree.info$original.tip.labels %in% duplicated)
       
       newly.blacklisted                            <- setdiff(duplicate.nos, tree.info$blacklist) 
@@ -618,6 +638,7 @@ if(do.par.blacklisting){
   }, simplify = F, USE.NAMES = T)
 }
 
+
 # 11. All IDs can be safely gathered and mapped now; dual blacklisting as performed by this script cannot eliminate patients entirely so we know who's in and who's out
 
 if(verbose) cat("Gathering patient IDs...\n")
@@ -636,6 +657,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info){
   tree.info$tips.for.hosts <- tips.for.hosts
   tree.info
 }, simplify = F, USE.NAMES = T)
+
 
 # 12. Dual blacklisting
 
@@ -676,7 +698,19 @@ if(do.dual.blacklisting){
 }
 
 
-# 13. Prune away the blacklist if so requested
+# 13. Downsampling
+
+if(downsample){
+  all.tree.info <- sapply(all.tree.info, function(tree.info){
+    tree.info <- downsample.tree(tree.info, NULL, downsampling.limit, T, blacklist.ur, seed, verbose)
+    tree.info$hosts.for.tips[tree.info$blacklist] <- NA 
+    
+    tree.info
+  }, simplify = F, USE.NAMES = T)
+  
+}
+
+# 14. Prune away the blacklist if so requested
 
 if(prune.blacklist){
   all.tree.info <- sapply(all.tree.info, function(tree.info) {
@@ -693,10 +727,12 @@ if(prune.blacklist){
 }
 
 
-# 14. Parsimony reconstruction
+# 15. Parsimony reconstruction
 
 all.tree.info <- sapply(all.tree.info, function(tree.info) {
   # Do the reconstruction
+  
+  if(verbose) cat("Reconstructing internal node hosts on tree suffix ",tree.info$suffix, "\n", sep="")
   
   tmp					     <- split.patients.to.subgraphs(tree.info$tree, tree.info$blacklist, reconstruction.mode, tip.regex, sankoff.k, sankoff.p, useff, read.counts.matter, hosts, verbose)
   tree					   <- tmp[['tree']]	
@@ -732,7 +768,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
     }
     
     # Write nexus output
-
+    
     if(output.nexus){
       tmp <- file.path(output.dir, paste0('ProcessedTree_', tree.info$output.string, ".", tree.fe))
       if (verbose) cat("Writing rerooted, multifurcating, annotated tree to file",tmp,"...\n")	
@@ -754,7 +790,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
 }, simplify = F, USE.NAMES = T)
 
 
-# 14. Summary statistics
+# 16. Summary statistics
 
 if(do.summary.statistics){
   
@@ -846,18 +882,20 @@ if(do.summary.statistics){
   }
 }
 
-# 15. Individual window classifications
+# 17. Individual window classifications
 
 all.tree.info <- sapply(all.tree.info, function(tree.info) {
-
+  
+  if(verbose) cat("Classifying pairwise patient relationships for tree suffix ",tree.info$suffix, "\n", sep="")
+  
   tree.info$classification.results <- classify(tree.info, verbose)
   
   if(do.collapsed){
-    tree.info$collapsed.file.name <- file.path(output.dir, paste0("CollapsedTree_",tree.info$output.string,".","csv.fe"))
+    tree.info$collapsed.file.name <- file.path(output.dir, paste0("CollapsedTree_",tree.info$output.string,".",csv.fe))
     write.csv(tree.info$classification.results$collapsed, tree.info$collapsed.file.name, quote=F, row.names = F)
   }
   if(do.class.detail){
-    tree.info$classification.file.name <- file.path(output.dir, paste0("Classification_",tree.info$output.string,".","csv.fe"))
+    tree.info$classification.file.name <- file.path(output.dir, paste0("Classification_",tree.info$output.string,".",csv.fe))
     write.csv(tree.info$classification.results$classification, tree.info$classification.file.name, quote=F, row.names = F)
   }
   
@@ -865,9 +903,17 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
 }, simplify = F, USE.NAMES = T)
 
 
-# 16. Transmission summary
+# 18. Transmission summary
 
 results <- summarise.classifications(all.tree.info, hosts, win.threshold*length(all.tree.info), dist.threshold, allow.mt, csv.fe, verbose)
 
-if (verbose) cat('Writing summary to file',output.file,'\n')
+if (verbose) cat('Writing summary to file', paste0("TransmissionSummary_",output.string,".",csv.fe),'\n')
 write.csv(results, file=file.path(output.dir, paste0("TransmissionSummary_",output.string,".",csv.fe)), row.names=FALSE, quote=FALSE)
+
+
+# 19. Workspace image
+if (verbose) cat('Saving R workspace image to file', paste0("workspace_",output.string,".rda"),'\n')
+
+if(output.rda){
+  save(all.tree.info, file=file.path(output.dir, paste0("workspace_",output.string,".rda")))
+}
