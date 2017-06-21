@@ -667,7 +667,7 @@ if(do.dual.blacklisting){
   })
   hosts.that.are.duals <- unique(unlist(hosts.that.are.duals))
   hosts.that.are.duals <- hosts.that.are.duals[order(hosts.that.are.duals)]
-  
+
   dual.results <- blacklist.duals(all.tree.info, hosts.that.are.duals, summary.file = NULL, verbose)
   
   all.tree.info <- sapply(all.tree.info, function(tree.info) {
