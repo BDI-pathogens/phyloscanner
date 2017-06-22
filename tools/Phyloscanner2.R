@@ -233,18 +233,19 @@ if(file.exists(tree.input)){
   if(do.recomb){
     warning("Only one window; recombination metric files will be ignored")
   }
-
+  
   tree.info$prexisting.blacklist.file.name   <- blacklist.input
   
   if(output.ssg | output.ssf){
-    warning("Only one tree provided; cannot output summary.statistics\n")
-    output.ssf <- F
-    output.ssf <- F
+    warning("Only one tree provided; cannot output summary statistics\n")
+    output.ssf            <- F
+    output.ssf            <- F
+    do.summary.statistics <- F
   }
   
   if(!do.collapsed | !do.class.detail){
-    do.collapsed <- T
-    do.class.detail <- T
+    do.collapsed          <- T
+    do.class.detail       <- T
   }
   
   all.tree.info[["only.tree"]] <- tree.info
@@ -888,11 +889,12 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
 
 # 18. Transmission summary
 
-results <- summarise.classifications(all.tree.info, hosts, win.threshold*length(all.tree.info), dist.threshold, allow.mt, csv.fe, verbose)
-
-if (verbose) cat('Writing summary to file', paste0("TransmissionSummary_",output.string,".",csv.fe),'\n')
-write.csv(results, file=file.path(output.dir, paste0("TransmissionSummary_",output.string,".",csv.fe)), row.names=FALSE, quote=FALSE)
-
+if(!single.file){
+  results <- summarise.classifications(all.tree.info, hosts, win.threshold*length(all.tree.info), dist.threshold, allow.mt, csv.fe, verbose)
+  
+  if (verbose) cat('Writing summary to file', paste0("TransmissionSummary_",output.string,".",csv.fe),'\n')
+  write.csv(results, file=file.path(output.dir, paste0("TransmissionSummary_",output.string,".",csv.fe)), row.names=FALSE, quote=FALSE)
+}
 
 # 19. Workspace image
 if (verbose) cat('Saving R workspace image to file', paste0("workspace_",output.string,".rda"),'\n')
