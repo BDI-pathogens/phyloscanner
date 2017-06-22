@@ -318,7 +318,7 @@ if(file.exists(tree.input)){
       expected.recomb.file.name  <- paste0(recomb.input, suffix , ".", csv.fe)
       
       if(file.exists(expected.recomb.file.name)){
-        tree.info$recomb.file.name <- expected.blacklist.file.name
+        tree.info$recombination.file.name <- expected.recomb.file.name
       } else {
         warning("Not all expected recombination files exist; will not report recombination metric")
         do.recomb <- F
