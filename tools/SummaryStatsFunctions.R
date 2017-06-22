@@ -1,7 +1,7 @@
 # Collects a variety of statistics about a single patient in a single tree
 
 calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table, no.read.counts, verbose = F){
-  if(verbose) cat("Calculating detailed statistics for patient ",id,".\n", sep="")
+  if(verbose) cat("Calculating detailed statistics for host ",id,".\n", sep="")
   
   subgraphs <- length(unique(splits.table$subgraph[which(splits.table$patient==id)]))
   

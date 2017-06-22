@@ -45,7 +45,6 @@ if(command.line){
   arg_parser$add_argument("-rda", "--outputRDA", action="store_true", help="Write the final R workspace image to file.")
   arg_parser$add_argument("-sd", "--seed", action="store_true", help="Random number seed; used by the downsampling process, and also ties in some parsimony reconstructions can be broken randomly.")
   
-  
   # Normalisation options
   
   arg_parser$add_argument("-nr", "--normRefFileName", action="store", help="File name of reference for window normalising constants. If absent, no normalisation will be performed.")
@@ -193,7 +192,7 @@ if(command.line){
   
   do.summary.statistics <- output.ssg | output.ssf
   
-  recomb.input          <- args$recobinationFiles
+  recomb.input          <- args$recombinationFiles
   do.recomb             <- !is.null(recomb.input)
   
   do.collapsed          <- args$collapsedTree
