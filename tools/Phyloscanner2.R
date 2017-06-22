@@ -388,6 +388,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
       if(any(is.na(blacklist))){
         warning("Some tips listed in blacklist file ",tree.info$prexisting.blacklist.file.name," are not tips of tree ",tree.info$tree.file.name, sep="")
       }
+      blacklist <- blacklist[!is.na(blacklist)]
       
       tree.info$hosts.for.tips[blacklist] <- NA 
       
