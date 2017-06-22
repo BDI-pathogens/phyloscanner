@@ -91,7 +91,7 @@ if(command.line){
   
   # Classification summary
   
-  arg_parser$add_argument("-swt", "--windowThreshold", action="store", default=0, type="integer", help="Relationships between two patients will only appear in output if they are within the distance threshold and ajacent to each other least this proportion of windows (default 0).")
+  arg_parser$add_argument("-swt", "--windowThreshold", action="store", default=0, type="double", help="Relationships between two patients will only appear in output if they are within the distance threshold and ajacent to each other least this proportion of windows (default 0).")
   arg_parser$add_argument("-sdt", "--distanceThreshold", action="store", default=-1, help="Maximum distance threshold on a window for a relationship to be reconstructed between two patients on that window.")
   arg_parser$add_argument("-amt", "--allowMultiTrans", action="store_true", default=FALSE, help="If absent, directionality is only inferred between pairs of patients where a single clade from one patient is nested in one from the other; this is more conservative")
   
