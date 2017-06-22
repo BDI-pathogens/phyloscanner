@@ -200,6 +200,9 @@ if(command.line){
   
   win.threshold         <- args$windowThreshold 
   dist.threshold        <- args$distanceThreshold
+  if(dist.threshold == -1){
+    dist.threshold      <- Inf
+  }
   allow.mt              <- args$allowMultiTrans
   
   script.dir            <- args$scriptdir
