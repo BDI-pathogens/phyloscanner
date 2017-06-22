@@ -233,9 +233,8 @@ if(file.exists(tree.input)){
   if(do.recomb){
     warning("Only one window; recombination metric files will be ignored")
   }
-  #todo check blacklist exists
-  
-  tree.info$blacklist.input   <- blacklist.input
+
+  tree.info$prexisting.blacklist.file.name   <- blacklist.input
   
   if(output.ssg | output.ssf){
     warning("Only one tree provided; cannot output summary.statistics\n")
@@ -386,6 +385,10 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
       if(nrow(blacklisted.tips)>0){
         blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree.info$tree))
       }
+      if(any(is.na(blacklist))){
+        warning("Some tips listed in blacklist file ",tree.info$prexisting.blacklist.file.name," are not tips of tree ",tree.info$tree.file.name, sep="")
+      }
+      
       tree.info$hosts.for.tips[blacklist] <- NA 
       
       tree.info$blacklist                 <- blacklist
