@@ -13,7 +13,7 @@ downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, e
   # if you have less reads than you are trying to sample, return them all
   
   if(total.reads <= number){
-    if(keep.underrepresented){
+    if(!exclude.underrepresented){
       warning("Insufficient reads for downsampling host ",host," at a count of ",number,", returning all.\n", sep="")
       return(list(blacklist=vector(), map=NULL))
     } else {
@@ -173,7 +173,7 @@ downsample.tree<- function(tree.info, hosts.to.include, max.reads, rename = F, e
   
   excluded.nos  <- which(tree$tip.label %in% excluded) 
   
-  new.blacklist <- c(tree$tip.label[blacklist], excluded.nos)
+  new.blacklist <- c(blacklist, excluded.nos)
   tree.info$blacklist <- new.blacklist
   
   tree.info

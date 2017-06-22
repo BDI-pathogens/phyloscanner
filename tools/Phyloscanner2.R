@@ -697,7 +697,6 @@ if(do.dual.blacklisting){
   }, simplify = F, USE.NAMES = T)
 }
 
-
 # 13. Downsampling
 
 if(downsample){
