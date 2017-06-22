@@ -204,7 +204,7 @@ if(any('normalised.min.distance.between.subtrees'==colnames(tt))){
   setnames(tt, 'min.distance.between.subtrees', 'PATRISTIC_DISTANCE')
 }
 
-setnames(tt, c('Patient_1','Patient_2','path.classification','paths21','paths12','adjacent'), c('pat.1','pat.2','TYPE','PATHS.21','PATHS.12','ADJACENT'))
+setnames(tt, c('Patient_1','Patient_2','path.classification','paths21','paths12','adjacent'), c('PAT.1','PAT.2','TYPE','PATHS.21','PATHS.12','ADJACENT'))
 # change type name depending on allow.mt
 if(!allow.mt){
   if(verbose) cat("Allowing only single lineage transmission...\n")
@@ -231,32 +231,32 @@ if(!is.null(summary.file)){
   
   dp	<-  reads.table[,{
     #	combine by window only for present patients to avoid large mem
-    dp			<- data.table(pat.1=NA_character_, pat.2=NA_character_)
+    dp			<- data.table(PAT.1=NA_character_, PAT.2=NA_character_)
     if(length(which(present))>1){
       dp			<- t( combn( id[present], 2 ) )
-      colnames(dp)<- c('pat.1','pat.2')
+      colnames(dp)<- c('PAT.1','PAT.2')
       dp			<- as.data.table(dp)	
       # make sure combinations are in the direction as in 'tt'
       tmp			<- copy(dp)
-      setnames(tmp, c('pat.1','pat.2'), c('pat.2','pat.1'))
+      setnames(tmp, c('PAT.1','PAT.2'), c('PAT.2','PAT.1'))
       dp			<- rbind(dp, tmp)				
-      dp			<- subset(dp, pat.1<pat.2)
+      dp			<- subset(dp, PAT.1<PAT.2)
     }
     dp						
   }, by=c('SUFFIX')]
-  dp <- subset(dp, !is.na(pat.1) & !is.na(pat.2))
+  dp <- subset(dp, !is.na(PAT.1) & !is.na(PAT.2))
   tmp	<- subset(reads.table, present, c(SUFFIX, id, reads, tips))
-  setnames(tmp, c("id","reads","tips"), c("pat.1","pat.1_reads","pat.1_tips"))
+  setnames(tmp, c("id","reads","tips"), c("PAT.1","PAT.1_reads","PAT.1_tips"))
   
   
-  dp <- merge(dp, tmp, by=c('SUFFIX','pat.1'))
-  setnames(tmp, c("pat.1","pat.1_tips","pat.1_reads"), c("pat.2","pat.2_tips","pat.2_reads"))
-  dp <- merge(dp, tmp, by=c('SUFFIX','pat.2'))
+  dp <- merge(dp, tmp, by=c('SUFFIX','PAT.1'))
+  setnames(tmp, c("PAT.1","PAT.1_tips","PAT.1_reads"), c("PAT.2","PAT.2_tips","PAT.2_reads"))
+  dp <- merge(dp, tmp, by=c('SUFFIX','PAT.2'))
 
   #
   #	merge reads/leaves with tt
   #
-  tt			<- merge(tt, dp, by=c('pat.1','pat.2','SUFFIX'))
+  tt			<- merge(tt, dp, by=c('PAT.1','PAT.2','SUFFIX'))
 }
 
 
@@ -275,13 +275,13 @@ set(tt, tt[,which(TYPE=='multiDesc')], 'TYPE','multi_anc_21')
 if(verbose) cat("Reordering...\n")
 
 #	reorder
-setkey(tt, SUFFIX, pat.1, pat.2)
+setkey(tt, SUFFIX, PAT.1, PAT.2)
 
 if(!is.null(detailed.output)){	
   if(!is.null(summary.file)){
-    tt			<- subset(tt, select=c('SUFFIX','pat.1','pat.2','TYPE','PATRISTIC_DISTANCE','ADJACENT','PATHS.12','PATHS.21','pat.1_tips','pat.1_reads','pat.2_tips','pat.2_reads'))
+    tt			<- subset(tt, select=c('SUFFIX','PAT.1','PAT.2','TYPE','PATRISTIC_DISTANCE','ADJACENT','PATHS.12','PATHS.21','PAT.1_tips','PAT.1_reads','PAT.2_tips','PAT.2_reads'))
   } else {
-    tt			<- subset(tt, select=c('SUFFIX','pat.1','pat.2','TYPE','PATRISTIC_DISTANCE','ADJACENT','PATHS.12','PATHS.21'))
+    tt			<- subset(tt, select=c('SUFFIX','PAT.1','PAT.2','TYPE','PATRISTIC_DISTANCE','ADJACENT','PATHS.12','PATHS.21'))
   }
   setnames(tt, colnames(tt),toupper(colnames(tt)))
   #	write to file

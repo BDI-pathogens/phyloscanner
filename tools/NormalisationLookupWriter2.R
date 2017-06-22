@@ -1,10 +1,17 @@
-suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
-suppressMessages(library(data.table, quietly=TRUE, warn.conflicts=FALSE))
+list.of.packages <- c("argparse","data.table")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)){
+  cat("Please run PackageInstall.R to continue\n")
+  quit(save="no", status=1)
+}
 
+suppressMessages(require(argparse, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
 
 # 	Define arguments
 
-arg_parser		<- ArgumentParser(description="Calculate normalising constants for each tree file from reference table.")
+arg_parser		     <- ArgumentParser(description="Calculate normalising constants for each tree file from reference table.")
+
 arg_parser$add_argument("tree.file.root", action="store", type="character", help="Start of tree file names.")
 arg_parser$add_argument("norm.file.name", action="store", type="character", help="File name of reference table.")
 arg_parser$add_argument("output.file.name", action="store", type="character", help="Output file name of csv file that has two columns, the base tree file name and the corresponding normalising constant.")
@@ -31,7 +38,7 @@ csv.fe            <- args$csvFileExtension
 # Load necessary functions
 
 source(file.path(script.dir, "GeneralFunctions.R"))
-source(file.path(script.dir, "RevisedRScripts/NormalisationFunctions.R"))
+source(file.path(script.dir, "NormalisationFunctions.R"))
 
 #	Load reference table, define normalising constant
 

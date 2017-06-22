@@ -112,11 +112,9 @@ get.tt.path <- function(tt, label1, label2){
   return(c(first.half, mrca, rev(second.half)))
 }
 
-# Output the collapsed tree from a phylogeny and its node assocs (write to CSV file if file.name!=NULL)
-# If prune.unsampled.tips = TRUE, the output collapsed tree will not have any "unsampled_region"s that have no children
-# (which usually come from blacklisted tips, and looks rather odd if e.g. read downsampling has taken place)
+# Output the collapsed tree from a phylogeny and its node associations
 
-output.trans.tree <- function(tree, assocs, file.name = NULL, prune.unsampled.tips = TRUE){
+output.trans.tree <- function(tree, assocs){
   # find the association of each node
   
   assocs.vec <- vector()
@@ -194,36 +192,36 @@ output.trans.tree <- function(tree, assocs, file.name = NULL, prune.unsampled.ti
   parent.patients <-  unlist(lapply(strsplit(parent.splits, "-S"), `[[`, 1)) 
   
   tt.table <- data.frame(unique.splits, parent.splits, patients, parent.patients, lengths, root.nos, stringsAsFactors = F)
+
+  return(tt.table)
+}
+
+prune.unsampled.tips <- function(tt.table){
   
   for.output <- tt.table[,1:6]
   
-  if(prune.unsampled.tips){
-    unsampled.tips <- which(grepl("unsampled",for.output$unique.splits) &
-                              !(for.output$unique.splits %in% for.output$parent.splits))
-    
-    if(length(unsampled.tips) > 0){
-      for.output <- for.output[-unsampled.tips,]
-    }
-    #renumber
-    unsampled.rows <- which(grepl("^unsampled_region",for.output$unique.splits))
-    
-    unsampled.labels <- for.output$unique.splits[which(grepl("^unsampled_region",for.output$unique.splits))]
-    
-    for(x in 1:length(unsampled.rows)) {
-      old.label <- unsampled.labels[x]
-      new.label <- paste("UnsampledRegion-S",x,sep="")
-      for.output$unique.splits[unsampled.rows[x]] <- new.label
-      for.output$parent.splits[which(for.output$parent.splits==old.label)] <- new.label
-    } 
-    
-    for.output$patients[which(grepl("^unsampled_region",for.output$patients))] <- "UnsampledRegion"
-    for.output$parent.patients[which(grepl("^unsampled_region",for.output$parent.patients))] <- "UnsampledRegion"
-  }
+  unsampled.tips <- which(grepl("unsampled",for.output$unique.splits) &
+                            !(for.output$unique.splits %in% for.output$parent.splits))
   
-  if(!is.null(file.name)){
-    write.csv(for.output[,1:6], file.name, row.names = F, quote=F)
+  if(length(unsampled.tips) > 0){
+    for.output <- for.output[-unsampled.tips,]
   }
-  return(tt.table)
+  #renumber
+  unsampled.rows <- which(grepl("^unsampled_region",for.output$unique.splits))
+  
+  unsampled.labels <- for.output$unique.splits[which(grepl("^unsampled_region",for.output$unique.splits))]
+  
+  for(x in 1:length(unsampled.rows)) {
+    old.label <- unsampled.labels[x]
+    new.label <- paste("UnsampledRegion-S",x,sep="")
+    for.output$unique.splits[unsampled.rows[x]] <- new.label
+    for.output$parent.splits[which(for.output$parent.splits==old.label)] <- new.label
+  } 
+  
+  for.output$patients[which(grepl("^unsampled_region",for.output$patients))] <- "UnsampledRegion"
+  for.output$parent.patients[which(grepl("^unsampled_region",for.output$parent.patients))] <- "UnsampledRegion"
+
+  return(for.output)
 }
 
 check.contiguous <- function(tt, patients, splits.for.patients, patients.for.splits){
@@ -378,7 +376,7 @@ all.subtree.distances <- function(tree, tt, splits, assocs, slow=F){
             length <- length + get.edge.length(tree, current.node)
             current.node <- Ancestors(tree, current.node, type="parent")
             if(is.root(tree, current.node)){
-              stop("Big problem here (1)")
+              stop("Reached the root?")
             }
           }
           temp[spt.1.no, spt.2.no] <- length
@@ -391,7 +389,7 @@ all.subtree.distances <- function(tree, tt, splits, assocs, slow=F){
             length <- length + get.edge.length(tree, current.node)
             current.node <- Ancestors(tree, current.node, type="parent")
             if(is.root(tree, current.node)){
-              stop("Big problem here (1)")
+              stop("Reached the root?")
             }
           }
           temp[spt.1.no, spt.2.no] <- length
@@ -470,7 +468,6 @@ subtrees.adjacent <- function(tt, splits, none.matters = F){
 # are pairs of subtrees from two patients not separated by any other subtrees from either of those patients?
 
 subtrees.unblocked <- function(tt, splits){
-  
   out <- matrix(ncol = length(splits), nrow=length(splits))
   for(spt.1.no in 1:length(splits)){
     for(spt.2.no in 1:length(splits)){
@@ -547,3 +544,354 @@ check.tt.node.adjacency <- function(tt, label1, label2, allow.unsampled = F){
   return(substr(path[2], 1, 16) =="unsampled_region")
   
 }
+
+classify <- function(tree.info, verbose = F) {	
+  
+  if(is.null(tree.info$tree)){
+    if (verbose) cat("Reading tree file ", tree.info$tree.file.name, "...\n", sep = "")
+    
+    pseudo.beast.import <- read.beast(tree.info$tree.file.name)
+    tree <- attr(pseudo.beast.import, "phylo")
+    
+    if (verbose) cat("Reading annotations...\n")
+    
+    annotations <- attr(pseudo.beast.import, "stats")
+    
+    annotations$INDIVIDUAL <- as.character(annotations$INDIVIDUAL)
+    annotations$SPLIT <- as.character(annotations$SPLIT)
+  } else {
+    tree <- tree.info$tree
+    
+    annotations <- data.frame(node = seq(1, length(tree$tip.label) + tree$Nnode), 
+                              INDIVIDUAL = as.character(attr(tree, "INDIVIDUAL")), 
+                              SPLIT = as.character(attr(tree, "SPLIT")), 
+                              stringsAsFactors = F)
+  }
+  
+  if(is.null(tree.info$splits.table)){
+    if (verbose) cat("Reading splits file",splits.file.name,"...\n")
+    
+    splits <- read.csv(tree.info$splits.file.name, stringsAsFactors = F)
+  } else {
+    splits <- tree.info$splits.table
+  }
+  
+  if (verbose) cat("Collecting tips for each patient...\n")
+  
+  patients <- unique(splits$patient)
+  patients <- patients[patients!="unsampled"]
+  
+  all.splits <- unique(splits$subgraph)
+  all.splits <- all.splits[all.splits!="unsampled"]
+  
+  in.order <- match(seq(1, length(tree$tip.label) + tree$Nnode), annotations$node)
+  
+  assocs <- annotations$SPLIT[in.order]
+  assocs <- lapply(assocs, function(x) replace(x, is.na(x), "none"))
+  assocs <- lapply(assocs, function(x) replace(x, x=="unsampled", "none"))
+  
+  splits.for.patients <- lapply(patients, function(x) unique(splits$subgraph[which(splits$patient==x)] ))
+  names(splits.for.patients) <- patients
+  
+  patients.for.splits <- lapply(all.splits, function(x) unique(splits$patient[which(splits$subgraph==x)] ))
+  names(patients.for.splits) <- all.splits
+  
+  patients.included <- patients
+  
+  total.pairs <- (length(patients.included) ^ 2 - length(patients.included))/2
+  
+  if (verbose) cat("Collapsing subtrees...\n")
+  
+  tt <- output.trans.tree(tree, assocs)
+  
+  if (verbose) cat("Identifying pairs of unblocked splits...\n")
+  
+  collapsed.adjacent <- subtrees.unblocked(tt, all.splits)
+  
+  if (verbose) cat("Calculating pairwise distances between splits...\n")
+  
+  split.distances <- tryCatch(
+    all.subtree.distances(tree, tt, all.splits, assocs), warning=function(w){return(NULL)}, error=function(e){return(NULL)})
+  
+  if(is.null(split.distances)){
+    split.distances <- all.subtree.distances(tree, tt, all.splits, assocs, TRUE)
+  }
+  
+  if (verbose) cat("Testing pairs...\n")
+  
+  count <- 0
+  adjacency.matrix <- matrix(NA, length(patients.included), length(patients.included))
+  contiguity.matrix <- matrix(NA, length(patients.included), length(patients.included))
+  path.matrix <- matrix(NA, length(patients.included), length(patients.included))
+  nodes.1.matrix <- matrix(NA, length(patients.included), length(patients.included))
+  nodes.2.matrix <- matrix(NA, length(patients.included), length(patients.included))
+  dir.12.matrix <- matrix(NA, length(patients.included), length(patients.included))
+  dir.21.matrix <- matrix(NA, length(patients.included), length(patients.included))
+  min.distance.matrix <- matrix(NA, length(patients.included), length(patients.included))
+  
+  for(pat.1 in seq(1, length(patients.included))){
+    for(pat.2 in  seq(1, length(patients.included))){
+      if (pat.1 < pat.2) {
+        
+        count <- count + 1
+        
+        pat.1.id <- patients.included[pat.1]
+        pat.2.id <- patients.included[pat.2]
+        
+        nodes.1 <- splits.for.patients[[pat.1.id]]
+        nodes.2 <- splits.for.patients[[pat.2.id]]
+        
+        all.nodes <-  c(nodes.1, nodes.2)
+        
+        adjacency.matrix[pat.1, pat.2] <- check.adjacency(tt, c(pat.1.id, pat.2.id), splits.for.patients)		
+        contiguity.matrix[pat.1, pat.2] <- check.contiguous(tt, c(pat.1.id, pat.2.id), splits.for.patients, patients.for.splits)		
+        
+        count.12 <- 0
+        count.21 <- 0
+        
+        for(node.2 in nodes.2){
+          ancestors <- get.tt.ancestors(tt, node.2)
+          if(length(intersect(ancestors, nodes.1)) > 0){
+            count.12 <- count.12 + 1
+          }
+        }
+        
+        for(node.1 in nodes.1){
+          ancestors <- get.tt.ancestors(tt, node.1)
+          if(length(intersect(ancestors, nodes.2)) > 0){
+            count.21 <- count.21 + 1
+          }
+        }
+        
+        prop.12 <- count.12/length(nodes.2)
+        prop.21 <- count.21/length(nodes.1)
+        
+        nodes.1.matrix[pat.1, pat.2] <- length(nodes.1)
+        nodes.2.matrix[pat.1, pat.2] <- length(nodes.2)
+        
+        dir.12.matrix[pat.1, pat.2] <- count.12
+        dir.21.matrix[pat.1, pat.2] <- count.21
+        
+        if(count.12 == 0 & count.21 == 0){
+          path.matrix[pat.1, pat.2] <- "none"
+        } else if(count.12 != 0 & count.21 == 0 & prop.12 == 1) {
+          if(count.12 == 1){
+            path.matrix[pat.1, pat.2] <- "anc"
+          } else {
+            path.matrix[pat.1, pat.2] <- "multiAnc"
+          }
+        } else if(count.21 != 0 & count.12 == 0 & prop.21 == 1) {
+          if(count.21 == 1){
+            path.matrix[pat.1, pat.2] <- "desc"
+          } else {
+            path.matrix[pat.1, pat.2] <- "multiDesc"
+          }
+        } else {
+          path.matrix[pat.1, pat.2] <- "conflict"
+        }
+        
+        pairwise.distances <- vector()
+        
+        for(node.1 in nodes.1){
+          for(node.2 in nodes.2){
+            if(collapsed.adjacent[node.1, node.2]){
+              pairwise.distances <- c(pairwise.distances, split.distances[node.1, node.2])
+            }
+          }
+        }
+        
+        min.distance.matrix[pat.1, pat.2] <- min(pairwise.distances)
+        
+        
+        if (count %% 100 == 0) {
+          if (verbose) cat(paste("Done ",format(count, scientific = F)," of ",format(total.pairs, scientific = F)," pairwise calculations\n", sep = ""))
+        }
+      }
+    }
+  }
+  
+  normalisation.constant <- tree.info$normalisation.constant
+  
+  normalised.distance.matrix<- min.distance.matrix/normalisation.constant
+  
+  adjacency.df <- convert.to.columns(adjacency.matrix, patients.included)
+  contiguity.df <- convert.to.columns(contiguity.matrix, patients.included)
+  dir.12.df <- convert.to.columns(dir.12.matrix, patients.included)
+  dir.21.df <- convert.to.columns(dir.21.matrix, patients.included)
+  nodes.1.df <- convert.to.columns(nodes.1.matrix, patients.included)
+  nodes.2.df <- convert.to.columns(nodes.2.matrix, patients.included)
+  path.df <- convert.to.columns(path.matrix, patients.included)
+  min.distance.df <- convert.to.columns(min.distance.matrix, patients.included)
+  if(normalisation.constant!=1){
+    normalised.distance.df <- convert.to.columns(normalised.distance.matrix, patients.included)
+  }
+  
+  classification <- cbind(adjacency.df, contiguity.df[,3], dir.12.df[,3], dir.21.df[,3], nodes.1.df[,3], nodes.2.df[,3], path.df[,3], min.distance.df[,3])
+  
+  column.names <- c("Patient_1", "Patient_2", "adjacent", "contiguous", "paths12", "paths21", "nodes1", "nodes2", "path.classification", "min.distance.between.subtrees")
+  
+  if(normalisation.constant!=1){
+    classification <- cbind(classification, normalised.distance.df[,3])
+    column.names <- c(column.names, "normalised.min.distance.between.subtrees")
+  }
+  
+  colnames(classification) <- column.names
+  return (list(classification = classification, collapsed=tt))
+}
+
+convert.to.columns <- function(matrix, names){
+  a.table <- as.table(matrix)
+  colnames(a.table) <- names
+  rownames(a.table) <- names
+  a.df <- as.data.frame(a.table, stringsAsFactors=F)
+  keep <- complete.cases(a.df)
+  a.df <- a.df[keep,]
+  return(a.df)
+}
+
+
+summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.threshold, allow.mt = T, csv.fe = "csv", verbose = F){
+  #
+  # Read classification files
+  #
+
+  tt	<-	lapply(all.tree.info, function(tree.info){
+    
+    if(is.null(tree.info$classification.results$classification) & is.null(tree.info$classification.file.name)){
+      NULL
+    }
+    
+    if(!is.null(tree.info$classification.results$classification)){
+      tt <- as.data.table(tree.info$classification.results$classification)
+    } else {
+      if (verbose) cat("Reading window input file ",tree.info$classification.file.name,"\n", sep="")
+      tt <- as.data.table(read.table(tree.info$classification.file.name, sep=",", header=TRUE, stringsAsFactors=FALSE))
+    }
+    tt[, SUFFIX:=tree.info$suffix]			
+    tt
+  })	
+  
+  if(length(tt)==0){
+    stop("No classification results present in any window; cannot continue.\n")
+  }
+  
+  # need to worry about transmissions listed in the wrong direction in the input file
+  # to avoid very large memory, consolidate by FILE
+  
+  if(verbose) cat("Rearranging patient pairs...\n")
+  
+  tt	<- lapply(tt, function(x){
+    #x	<- tt[[1]]
+    tmp	<- copy(x)
+    setnames(tmp, c('Patient_1','Patient_2','paths12','paths21'), c('Patient_2','Patient_1','paths21','paths12'))
+    set(tmp, tmp[, which(path.classification=="anc")], 'path.classification', 'TMP')
+    set(tmp, tmp[, which(path.classification=="desc")], 'path.classification', 'anc')
+    set(tmp, tmp[, which(path.classification=="TMP")], 'path.classification', 'desc')
+    set(tmp, tmp[, which(path.classification=="multiAnc")], 'path.classification', 'TMP')
+    set(tmp, tmp[, which(path.classification=="multiDesc")], 'path.classification', 'multiAnc')
+    set(tmp, tmp[, which(path.classification=="TMP")], 'path.classification', 'multiDesc')
+    x	<- rbind(x, tmp)
+    setkey(x, Patient_1, Patient_2)
+    subset(x, Patient_1 < Patient_2)
+  })
+  #
+  # rbind consolidated files
+  #
+  
+  if(verbose) cat("Consolidating file contents...\n")
+  
+  tt	<- do.call('rbind',tt)
+  
+  if(verbose) cat("Finding patristic distance columns...\n")
+  
+  # reset names depending on which Classify script was used
+  if(any('normalised.min.distance.between.subtrees'==colnames(tt))){
+    setnames(tt, 'normalised.min.distance.between.subtrees', 'PATRISTIC_DISTANCE')
+  } else if(any('min.distance.between.subtrees'==colnames(tt))){
+    setnames(tt, 'min.distance.between.subtrees', 'PATRISTIC_DISTANCE')
+  }
+  
+  setnames(tt, c('Patient_1','Patient_2','path.classification','paths21','paths12','adjacent'), c('PAT.1','PAT.2','TYPE','PATHS.21','PATHS.12','ADJACENT'))
+  
+  # change type name depending on allow.mt
+  if(!allow.mt){
+    if(verbose) cat("Allowing only single lineage transmission...\n")
+    set(tt, tt[, which(TYPE%in%c("multiAnc", "multiDesc"))], 'TYPE', 'conflict')
+  }
+  
+  #	check we have patristic distances, paths
+  
+  stopifnot( !nrow(subset(tt, is.na(PATRISTIC_DISTANCE))) )
+  stopifnot( !nrow(subset(tt, is.na(PATHS.12))) )
+  stopifnot( !nrow(subset(tt, is.na(PATHS.21))) )
+  
+  #	set to numeric
+  set(tt, NULL, 'PATRISTIC_DISTANCE', tt[, as.numeric(PATRISTIC_DISTANCE)])
+  # 	add window coordinates
+  
+  #	rename TYPE
+  set(tt, tt[,which(TYPE=='anc')], 'TYPE', 'anc_12')
+  set(tt, tt[,which(TYPE=='desc')], 'TYPE', 'anc_21')
+  set(tt, tt[,which(TYPE=='multiAnc')], 'TYPE', 'multi_anc_12')
+  set(tt, tt[,which(TYPE=='multiDesc')], 'TYPE', 'multi_anc_21')
+  
+  if(verbose) cat("Reordering...\n")
+  
+  #	reorder
+  setkey(tt, SUFFIX, PAT.1, PAT.2)
+  
+  if (verbose) cat("Making summary output table...\n")
+
+  set(tt, NULL, c('PATHS.12','PATHS.21'),NULL)
+  
+  
+  existence.counts <- tt[, list(both.exist=length(SUFFIX)), by=c('PAT.1','PAT.2')]
+
+  tt <- merge(tt, existence.counts, by=c('PAT.1', 'PAT.2'))
+  
+  tt.close <- tt[which(tt$ADJACENT & tt$PATRISTIC_DISTANCE < dist.threshold ),]
+   
+  tt.close$NOT.SIBLINGS <- tt.close$ADJACENT & (tt.close$PATRISTIC_DISTANCE < dist.threshold) & tt.close$TYPE!="none"
+  
+  # How many windows have this relationship, ADJACENT and PATRISTIC_DISTANCE below the threshold?
+  type.counts	<- tt.close[, list(windows=length(SUFFIX)), by=c('PAT.1','PAT.2','TYPE')]
+  # How many windows have ADJACENT and PATRISTIC_DISTANCE below the threshold?
+  any.counts <- tt.close[, list(all.windows=length(SUFFIX)), by=c('PAT.1','PAT.2')]
+  # How many windows have a relationship other than "none", ADJACENT and PATRISTIC_DISTANCE below the threshold?
+  ns.counts <- tt.close[, list(ns.windows=length(which(NOT.SIBLINGS))), by=c('PAT.1','PAT.2')]
+  
+  tt.close		<- merge(tt.close, type.counts, by=c('PAT.1','PAT.2','TYPE'))
+  tt.close		<- merge(tt.close, any.counts, by=c('PAT.1','PAT.2'))
+  tt.close		<- merge(tt.close, ns.counts, by=c('PAT.1','PAT.2'))
+  
+  tt.close[, fraction:=paste(windows,'/',both.exist,sep='')]
+  #	convert "anc_12" and "ans_21" to "anc" depending on direction
+  tt.close[, DUMMY:=NA_character_]
+  tmp			<- tt.close[, which(TYPE=="anc_12")]
+  set(tt.close, tmp, 'TYPE', "trans")
+  tmp			<- tt.close[, which(TYPE=="anc_21")]
+  set(tt.close, tmp, 'DUMMY', tt.close[tmp, PAT.1])
+  set(tt.close, tmp, 'PAT.1', tt.close[tmp, PAT.2])
+  set(tt.close, tmp, 'PAT.2', tt.close[tmp, DUMMY])
+  set(tt.close, tmp, 'TYPE', "trans")
+  
+  tmp			<- tt.close[, which(TYPE=="multi_anc_12")]
+  set(tt.close, tmp, 'TYPE', "multi_trans")
+  tmp			<- tt.close[, which(TYPE=="multi_anc_21")]
+  set(tt.close, tmp, 'DUMMY', tt.close[tmp, PAT.1])
+  set(tt.close, tmp, 'PAT.1', tt.close[tmp, PAT.2])
+  set(tt.close, tmp, 'PAT.2', tt.close[tmp, DUMMY])
+  set(tt.close, tmp, 'TYPE', "multi_trans")
+  
+  tt.close[, DUMMY:=NULL]
+  
+  set(tt.close, NULL, c('SUFFIX', 'ADJACENT','PATRISTIC_DISTANCE'), NULL)
+  tt.close <- tt.close[!duplicated(tt.close),]
+  
+  #	write to file
+  setkey(tt.close, PAT.1, PAT.2, TYPE)
+  #
+  
+  return(subset(tt.close, all.windows>=min.threshold))
+}
+

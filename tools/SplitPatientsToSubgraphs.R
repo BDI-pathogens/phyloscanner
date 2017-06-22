@@ -149,15 +149,15 @@ if(command.line){
   #  
   # MRSA example
   
-  setwd("/Users/mdhall/Dropbox (Personal)/Transference/Croucher alignments/rerun/")
-  output.dir <- "/Users/mdhall/Dropbox (Personal)/Transference/Croucher alignments/rerun/"
+  setwd("/Users/mdhall/Documents/Pneumo/rerun/")
+  output.dir <- "/Users/mdhall/Documents/Pneumo/rerun/"
   tree.file.name <- "pneumo_sample_"
   blacklist.file.name <- NULL
-  output.file.ID <- "pneumo_result_"
+  output.file.ID <- "pneumo_result_2_"
   tip.regex <- "^(ARI-[0-9][0-9][0-9][0-9]_[A-Z]*)_[0-9][0-9][0-9][0-9]_[0-9]_[0-9][0-9]?$"
   root.name <- NULL
-  mode <- "f"
-  sankoff.k <- 10
+  mode <- "s"
+  sankoff.k <- 75
   sankoff.p <- 0.1
   useff  <- F
   
@@ -308,8 +308,6 @@ split.patients.to.subgraphs<- function(tree.file.name, m.thresh, normalisation.c
       }
     }
   }
-  
-  
   
   # This is the annotation for each node by patient
   

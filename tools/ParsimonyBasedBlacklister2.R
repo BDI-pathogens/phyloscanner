@@ -68,10 +68,10 @@ if(!is.null(args$multifurcationThreshold)){
 
 
 
-source(file.path(script.dir, "RevisedRScripts/TreeUtilityFunctions2.R"))
-source(file.path(script.dir, "RevisedRScripts/ParsimonyReconstructionMethods2.R"))
+source(file.path(script.dir, "TreeUtilityFunctions2.R"))
+source(file.path(script.dir, "ParsimonyReconstructionMethods2.R"))
 source(file.path(script.dir, "GeneralFunctions.R"))
-source(file.path(script.dir, "RevisedRScripts/BlacklistFunctions.R"))
+source(file.path(script.dir, "BlacklistFunctions.R"))
 
 if(is.null(root.name)){
   cat("No outgroup name given; will assume the tree is rooted and use a random other tip as an outgroup for each host\n")
@@ -116,7 +116,7 @@ if(file.exists(input.name)){
   
   # batch mode
   
-  tree.input.names <- list.files.mod(dirname(input.name), pattern=paste(basename(input.name),'.*\\.',tree.fe,'$',sep=''), full.names=TRUE)
+  tree.input.names <- list.files.mod(dirname(input.name), pattern=paste(basename(input.name),'.*',tree.fe,'$',sep=''), full.names=TRUE)
   
   if(length(tree.input.names)==0){
     stop("No tree files found.")
@@ -218,8 +218,10 @@ for(i in file.details){
   # Re-order the hosts (mostly for the sake of getting a sense of progress in screen output)
   
   hosts <- hosts[order(hosts)]
+  
+  tree <- process.tree(tree, root.name, m.thresh)
 
-  results <- lapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, m.thresh, root.name, raw.threshold, ratio.threshold, !is.null(i$duals.output), verbose))
+  results <- lapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, root.name, raw.threshold, ratio.threshold, sankoff.k, !is.null(i$duals.output), verbose))
   
   if (verbose) cat("Finished\n")
   

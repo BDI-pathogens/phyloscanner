@@ -6,7 +6,7 @@ Analysing pathogen genetic diversity and relationships between and within hosts 
 phyloscanner's input is bam files: reads (fragments of nucleotide sequence) that have been mapped (aligned) to the correct part of some reference genome.
 We wrote phyloscanner to analyse bam files that each represent a pathogen population in one host, exhibiting within-host and between-host diversity; in general use each bam file should be a sample representing some subpopulation, and we analyse within- and between-sample diversity.  
 phyloscanner is freely available under the GNU General Public License version 3, described [here](LICENSE).  
-It requires [samtools](http://www.htslib.org/), [pysam](https://github.com/pysam-developers/pysam), [biopython](http://biopython.org/wiki/Download), [mafft](http://mafft.cbrc.jp/alignment/software/) and [RAxML](http://sco.h-its.org/exelixis/web/software/raxml/index.html).
+It requires [samtools](http://www.htslib.org/), [pysam](https://github.com/pysam-developers/pysam) (0.8.1 or later), [biopython](http://biopython.org/wiki/Download), [mafft](http://mafft.cbrc.jp/alignment/software/) and [RAxML](http://sco.h-its.org/exelixis/web/software/raxml/index.html).
 Notes on installing these are [here](InfoAndInputs/DependencyInstallationNotes.txt).  
 The phyloscanner manual is [here](InfoAndInputs/PhyloscannerManual.pdf).
 

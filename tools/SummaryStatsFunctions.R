@@ -109,7 +109,7 @@ calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table
 calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, verbose = F){
   
   
-  suffix <- tree.info$name
+  suffix <- tree.info$suffix
   
   tree <- tree.info$tree
   blacklist <- tree.info$blacklist
@@ -198,6 +198,7 @@ calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, verbose = F){
 # Get the proportion of reads from a given patient in each of its subgraphs in a single tree
 
 get.read.proportions <- function(id, suffix, splits.table){
+  
   this.pat.splits <- splits.table[which(splits.table$patient==id),]
   
   if(nrow(this.pat.splits)>0){

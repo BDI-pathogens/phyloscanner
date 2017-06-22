@@ -85,21 +85,18 @@ if(is.null(root.name)){
 }
 
 source(file.path(script.dir, "TreeUtilityFunctions.R"))
-source(file.path(script.dir, "RevisedRScripts/ParsimonyReconstructionMethods2.R"))
+source(file.path(script.dir, "ParsimonyReconstructionMethods2.R"))
 source(file.path(script.dir, "CollapsedTreeMethods.R"))
 source(file.path(script.dir, "WriteAnnotatedTrees.R"))
 source(file.path(script.dir, "GeneralFunctions.R"))
-
 
 if(useff){
   suppressMessages(library(ff, quietly=TRUE, warn.conflicts=FALSE))
 }
 
-
 if(!(mode %in% c("r", "s", "f"))){
   stop(paste("Unknown split classifier: ", mode, "\n", sep=""))
 }
-
 
 if(!is.null(args$idFile)){
   host.master.list <- read.csv(args$idFile, header = F)[,1]
