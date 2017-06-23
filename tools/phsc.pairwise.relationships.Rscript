@@ -11,9 +11,11 @@ arg_parser$add_argument("-r", "--trmw.min.reads", action="store", default=20, he
 arg_parser$add_argument("-t", "--trmw.min.tips", action="store", default=1, help="Minimum number of tips for both individuals in one window. Windows that do not satisfy this requirement will be ignored when determining phylogenetic relationships.")
 arg_parser$add_argument("-c", "--trmw.close.brl", action="store", default=0.035, help="Maximum patristic distance between any two read trees from both individuals in a window to classify the individuals as phylogenetically close.")
 arg_parser$add_argument("-d", "--trmw.distant.brl", action="store", default=0.08, help="Minimum patristic distance between any two read trees from both individuals in a window to classify the individuals as phylogenetically distant.")
-arg_parser$add_argument("-pk", "--prior.keff", action="store", default=2, help="Calibration parameter for the prior: minimum number of windows of state to select a pair of individuals with confidence of at least at least prior.calibrated.prob, if the total number of windows is prior.neff.")
-arg_parser$add_argument("-pn", "--prior.neff", action="store", default=3, help="Calibration parameter for the prior: total number of windows.")
-arg_parser$add_argument("-pp", "--prior.calibrated.prob", action="store", default=0.5, help="Calibration parameter for the prior: confidence cut off.")
+arg_parser$add_argument("-pk", "--prior.keff", action="store", default=NA_real_, help="Calibration parameter for the prior: minimum number of windows of state to select a pair of individuals with confidence of at least at least prior.calibrated.prob, if the total number of windows is prior.neff.")
+arg_parser$add_argument("-pn", "--prior.neff", action="store", default=NA_real_, help="Calibration parameter for the prior: total number of windows.")
+arg_parser$add_argument("-pkd", "--prior.keff.dir", action="store", default=NA_real_, help="Calibration parameter for the prior: minimum number of windows of state to select a pair of individuals with confidence of at least at least prior.calibrated.prob, if the total number of windows is prior.neff.")
+arg_parser$add_argument("-pnd", "--prior.neff.dir", action="store", default=NA_real_, help="Calibration parameter for the prior: total number of windows.")
+arg_parser$add_argument("-pp", "--prior.calibrated.prob", action="store", default=NA_real_, help="Calibration parameter for the prior: confidence cut off.")
 arg_parser$add_argument("-rc", "--rel.chain", action="store_true", default=FALSE, help="If TRUE, add pairwise phylogenetic relationships to determine likely transmission chains with potentially unsampled individuals.")
 arg_parser$add_argument("-rp", "--rel.likely.pair", action="store_true", default=FALSE, help="If TRUE, add pairwise phylogenetic relationships to determine likely transmission pairs with potentially unsampled individuals.")
 arg_parser$add_argument("-rpd", "--rel.likely.pair.by.distance.only", action="store_true", default=FALSE, help="If TRUE, add pairwise phylogenetic relationships similar to 'rel.likely.pair', but use ONLY phylogenetic distance.")
@@ -30,17 +32,19 @@ trmw.distant.brl		<- as.numeric(args$trmw.distant.brl)
 prior.keff				<- as.numeric(args$prior.keff)
 prior.neff				<- as.numeric(args$prior.neff)
 prior.calibrated.prob	<- as.numeric(args$prior.calibrated.prob)
+prior.keff.dir			<- as.numeric(args$prior.keff.dir)
+prior.neff.dir			<- as.numeric(args$prior.neff.dir)
 relationship.types		<- c()
 if(args$rel.likely.pair)
-	relationship.types	<- c(relationship.types,'TYPE_PAIR_TODI','TYPE_PAIRSCORE_TODI')	
+	relationship.types	<- c(relationship.types,'TYPE_PAIR_TODI2')	
 if(args$rel.likely.pair.by.distance.only)
-	relationship.types	<- c(relationship.types,'TYPE_PAIR_DI','TYPE_PAIRSCORE_DI')
+	relationship.types	<- c(relationship.types,'TYPE_PAIR_DI2')
 if(args$rel.likely.pair.by.topology.only)
 	relationship.types	<- c(relationship.types,'TYPE_PAIR_TO')
 if(args$rel.likely.pair.by.cross.table)
 	relationship.types	<- c(relationship.types,'TYPE_PAIR_TODI2x2')
 if(args$rel.direction)
-	relationship.types	<- c(relationship.types,'TYPE_DIR_TODI3','TYPE_DIRSCORE_TODI3')
+	relationship.types	<- c(relationship.types,'TYPE_DIR_TODI3','TYPE_DIRSCORE_TODI3','TYPE_DIR_TODI4')
 if(args$rel.chain)
 	relationship.types	<- c(relationship.types,'TYPE_CHAIN_TODI')
 ###############################################################################
@@ -59,72 +63,17 @@ if(0)
 }
 if(0)
 {
-	infile							<- '~/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/Rakai_ptoutput_170405_couples_w250_d50_st20_trB_rerun/ptyr1_trmStatsPerWindow.rda'
+	infile							<- '~/Dropbox (Infectious Disease)/2015_PANGEA_DualPairsFromFastQIVA/RakaiAll_output_170301_w250_s20_p35_stagetwo_rerun34/ptyr106_trmStatsPerWindow.rda'
 	trmw.min.reads					<- 20
 	trmw.min.tips					<- 1
 	trmw.close.brl 					<- 0.035
 	trmw.distant.brl				<- 0.08		
-	prior.keff						<- 2
-	prior.neff						<- 3
-	prior.calibrated.prob			<- 0.5
-	relationship.types				<- c('TYPE_PAIR_DI','TYPE_PAIR_TO','TYPE_PAIR_TODI2x2','TYPE_DIR_TODI3','TYPE_DIRSCORE_TODI3','TYPE_PAIR_TODI','TYPE_PAIRSCORE_TODI','TYPE_CHAIN_TODI')
-}
-###############################################################################
-#	basic function
-###############################################################################
-phsc.pairwise.relationships<- function(dwin, trmw.min.reads, trmw.min.tips, trmw.close.brl, trmw.distant.brl, prior.keff, prior.neff, prior.calibrated.prob, relationship.types)
-{
-	setnames(dwin, 	c('PAT.1','PAT.2','PAT.1_TIPS','PAT.2_TIPS','PAT.1_READS','PAT.2_READS','PATHS.12','PATHS.21'),
-			c('ID1','ID2','ID1_L','ID2_L','ID1_R','ID2_R','PATHS_12','PATHS_21'))
-	set(dwin, NULL, 'PATRISTIC_DISTANCE', dwin[, as.numeric(PATRISTIC_DISTANCE)])
-	#
-	#	selection windows
-	#	
-	cat('\nReducing transmission window stats to windows with at least',trmw.min.reads,'reads and at least',trmw.min.tips,'tips ...')
-	dwin	<- subset(dwin, ID1_R>=trmw.min.reads & ID2_R>=trmw.min.reads & ID1_L>=trmw.min.tips & ID2_L>=trmw.min.tips)
-	cat('\nTotal number of windows with trm assignments is',nrow(dwin),'...')		
-	#
-	#	define basic relationship types
-	#
-	setnames(dwin, 'TYPE', 'TYPE_RAW')
-	cat('\nCalculate basic pairwise relationships for windows n=',nrow(dwin),'...')
-	print(dwin)
-	dwin	<- phsc.get.basic.pairwise.relationships(dwin, trmw.close.brl, trmw.distant.brl)
-	#
-	#	derive other relationship types
-	#
-	cat('\nCalculate derived pairwise relationships for windows n=',nrow(dwin),'...')
-	setnames(dwin, 'TYPE_BASIC', 'TYPE_DIR_TODI7x3')	#for backwards compatibility
-	dwin	<- phsc.get.pairwise.relationships(dwin, get.groups=relationship.types, make.pretty.labels=FALSE)
-	setnames(dwin, 'TYPE_DIR_TODI7x3', 'TYPE_BASIC')
-	#
-	#	calculate effective K. 
-	#	this is based on windows and contiguous chunks of windows
-	#
-	#	guess W_FROM W_TO from SUFFIX
-	cat('\nCalculate KEFF and NEFF for windows n=',nrow(dwin),'...')
-	set(dwin, NULL, 'W_FROM', dwin[, as.integer(gsub('[^0-9]*([0-9]+)_to_([0-9]+).*','\\1', SUFFIX))])
-	set(dwin, NULL, 'W_TO', dwin[, as.integer(gsub('[^0-9]*([0-9]+)_to_([0-9]+).*','\\2', SUFFIX))])
-	rplkl	<- phsc.get.pairwise.relationships.keff.and.neff(dwin, relationship.types)
-	#
-	#	calculate marginal posterior for each pairwise relationship state 
-	#	this needs a prior which is calibrated as desired.   
-	#	the default calibration is KEFF=2 out of NEFF=3 windows are of type t so that the pair is selected to be of type t with posterior probability=50%
-	#
-	cat('\nCalculate posterior state probabilities for pairs and relationship groups n=',nrow(rplkl),'...')
-	rplkl	<- phsc.get.pairwise.relationships.posterior(rplkl, n.type=prior.keff, n.obs=prior.neff, confidence.cut=prior.calibrated.prob)
-	#
-	#	make TYBE_BASIC labels nice
-	#
-	tmp		<- rplkl[, which(GROUP=='TYPE_BASIC')]
-	set(rplkl, tmp, 'TYPE', rplkl[tmp, gsub('other_withintermediate_distant','other_distant',gsub('other_withintermediate_close','other_close',gsub('other_withintermediate$','other',gsub('other_nointermediate$','other',gsub('other_nointermediate_distant','other_distant',TYPE)))))])	
-	set(rplkl, tmp, 'TYPE', rplkl[tmp, gsub('other_no','other\nno',gsub('([ho])intermediate','\\1 intermediate',gsub('intermediate_','intermediate\n',gsub('intermingled_','intermingled\n',gsub('(chain_[fm][mf])_','\\1\n',gsub('(chain_[12][21])_','\\1\n',TYPE))))))])
-	set(rplkl, tmp, 'TYPE', rplkl[tmp, gsub('_',' ',TYPE)])
-	set(dwin, NULL, 'TYPE_BASIC', dwin[, gsub('other_withintermediate_distant','other_distant',gsub('other_withintermediate_close','other_close',gsub('other_withintermediate$','other',gsub('other_nointermediate$','other',gsub('other_nointermediate_distant','other_distant',TYPE_BASIC)))))])	
-	set(dwin, NULL, 'TYPE_BASIC', dwin[, gsub('other_no','other\nno',gsub('([ho])intermediate','\\1 intermediate',gsub('intermediate_','intermediate\n',gsub('intermingled_','intermingled\n',gsub('(chain_[fm][mf])_','\\1\n',gsub('(chain_[12][21])_','\\1\n',TYPE_BASIC))))))])
-	set(dwin, NULL, 'TYPE_BASIC', dwin[, gsub('_',' ',TYPE_BASIC)])
-	
-	list(dwin=dwin, rplkl=rplkl)
+	prior.keff						<- 3
+	prior.neff						<- 4
+	prior.keff.dir					<- 2
+	prior.neff.dir					<- 3
+	prior.calibrated.prob			<- 0.66
+	relationship.types				<- c('TYPE_BASIC','TYPE_DIR_TODI3','TYPE_DIRSCORE_TODI3','TYPE_DIR_TODI4','TYPE_PAIR_TODI2','TYPE_CHAIN_TODI','TYPE_PAIR_DI2','TYPE_PAIR_TO','TYPE_PAIR_TODI2x2')
 }
 ###############################################################################
 #	run script
@@ -135,7 +84,7 @@ tmp		<- load(infile)
 if(length(tmp)!=1)	stop("Unexpected length of loaded objects in infile")
 eval(parse(text=paste("dwin<- copy(",tmp,")",sep='')))		
 eval(parse(text=paste(tmp,"<- NULL",sep='')))
-tmp		<- phsc.pairwise.relationships(dwin, trmw.min.reads, trmw.min.tips, trmw.close.brl, trmw.distant.brl, prior.keff, prior.neff, prior.calibrated.prob, relationship.types)
+tmp		<- phsc.get.pairwise.relationships.likelihoods(dwin, relationship.types, trmw.min.reads, trmw.min.tips, trmw.close.brl, trmw.distant.brl, prior.keff, prior.neff, prior.calibrated.prob, prior.keff.dir=prior.keff.dir, prior.neff.dir=prior.neff.dir)
 dwin	<- copy(tmp$dwin)
 rplkl	<- copy(tmp$rplkl)
 cat('\nwrite to file', outfile,'...')

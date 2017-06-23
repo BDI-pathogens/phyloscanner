@@ -17,25 +17,6 @@ get.suffix <- function(file.name, prefix, extension){
   substr(file.name, nchar(prefix)+1, nchar(file.name)-nchar(extension)-1)
 }
 
-prepare.tree <- function(file.name, root.name = NULL, multi.threshold = NULL, normalisation.constant = 1){
-  tree <- read.tree(file.name)
-  tree <- unroot(tree)
-  if(!is.null(multi.threshold)){
-    if(is.na(multi.threshold)){
-      multi.threshold <- 1.0001*min(tree$edge.length)
-    }
-    tree <- di2multi(tree, tol = multi.threshold)
-  }
-  if(!is.null(root.name)){
-    tree <- root(tree, outgroup = which(tree$tip.label==root.name), resolve.root = T)
-  }
-  tree$edge.length <- tree$edge.length/normalisation.constant
-  
-  return(tree)
-  
-}
-
-
 get.window.coords <- function(string, regex = "^\\D*([0-9]+)_to_([0-9]+).*$"){
 
   start <- if(length(grep(regex, string))>0) as.numeric(sub(regex, "\\1", string)) else NA

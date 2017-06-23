@@ -151,7 +151,7 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
       
     } else {
       # at least two subgraphs
-
+      
       if (verbose) cat(length(host.split.ids), " splits for host ", host, "\n", sep="")
       
       props <- vector()
@@ -204,7 +204,7 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
       blacklist.items <- tree$tip.label[tip.no]
     } else {
       if(verbose){
-        cat("Keeping ",host,"; host has one tip a single tip with sufficient reads.\n", sep="")
+        cat("Keeping ",host,"; host has a single tip with sufficient reads.\n", sep="")
       }
     }
     
@@ -267,7 +267,7 @@ blacklist.tip.rename <- function(tree, blacklist, reason){
 }
 
 blacklist.duals <- function(all.tree.info, hosts, threshold = 1, summary.file=NULL, verbose=F){
-
+  
   if(verbose) cat("Calculating dual window fractions...\n")
   
   #	Count number of potential dual windows by patient
@@ -288,8 +288,8 @@ blacklist.duals <- function(all.tree.info, hosts, threshold = 1, summary.file=NU
     if(verbose) cat("Making new blacklists for tree suffix ",tree.info$suffix,"\n",sep="")
     
     new.bl <- vector()
-  
-    tip.names <- tree$tip.label
+    
+    tip.names <- tree.info$tree$tip.label
     
     hosts.for.tips <- tree.info$hosts.for.tips
     
@@ -299,21 +299,21 @@ blacklist.duals <- function(all.tree.info, hosts, threshold = 1, summary.file=NU
         if(verbose) cat("All tips from host ",a.host," blacklisted\n", sep="")
         
         new.bl <- unique(c(new.bl, na.omit(tip.names[hosts.for.tips==a.host])))
-                                      
+        
       } else {
         # blacklist smaller subgraphs
-#        if(verbose) cat("Tips from smaller subgraphs for host ",a.host," blacklisted\n", sep="")
+        if(verbose) cat("Tips from smaller subgraphs for host ",a.host," blacklisted\n", sep="")
         
         duals.table <- tree.info$duals.info
-        pat.rows <- duals.table[which(duals.table$host == a.host),]
-        
-        if(nrow(pat.rows)>0){
-          max.reads <- max(pat.rows$reads.in.subtree)
-          smaller.tips <- pat.rows$tip.name[pat.rows$reads.in.subtree!=max.reads]
-          
-          new.bl <- unique(c(new.bl, na.omit(smaller.tips)))
+        if(!is.null(duals.table)){
+          pat.rows <- duals.table[which(duals.table$host == a.host),]
+          if(nrow(pat.rows)>0){
+            max.reads <- max(pat.rows$reads.in.subtree)
+            smaller.tips <- pat.rows$tip.name[pat.rows$reads.in.subtree!=max.reads]
+            
+            new.bl <- unique(c(new.bl, na.omit(smaller.tips)))
+          }
         }
-        
       }
     }
     blacklists[[tree.info$suffix]] <- new.bl
@@ -328,7 +328,7 @@ blacklist.duals <- function(all.tree.info, hosts, threshold = 1, summary.file=NU
     counts <- unlist(lapply(output, "[[", 2))
     
     out.df <- data.frame(patient = hosts, count = counts, proportion = proportions, stringsAsFactors = F)
-#    if(verbose) cat("\nWriting dual summary file to ", summary.file, "\n", sep="")
+    if(verbose) cat("\nWriting dual summary file to ", summary.file, "\n", sep="")
     write.csv(out.df, file=summary.file, row.names=FALSE, quote=FALSE)
   }
   

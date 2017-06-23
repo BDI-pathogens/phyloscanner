@@ -1,7 +1,7 @@
 # Collects a variety of statistics about a single patient in a single tree
 
 calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table, no.read.counts, verbose = F){
-  if(verbose) cat("Calculating detailed statistics for patient ",id,".\n", sep="")
+  if(verbose) cat("Calculating detailed statistics for host ",id,".\n", sep="")
   
   subgraphs <- length(unique(splits.table$subgraph[which(splits.table$patient==id)]))
   
@@ -108,6 +108,7 @@ calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table
 
 calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, verbose = F){
   
+  if(verbose) cat("Calculating host statistics for tree suffix ",tree.info$suffix,"\n",sep="")
   
   suffix <- tree.info$suffix
   
@@ -144,7 +145,7 @@ calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, verbose = F){
   window.table <- data.table(id=hosts)
   window.table <- window.table[, file.suffix := suffix]
   window.table <- window.table[, xcoord := tree.info$xcoord]
-  window.table <- window.table[, tips :=  sapply(hosts, function(x) length(tips.for.hosts[[x]]))]
+  window.table <- window.table[, tips :=  sapply(hosts, function(x) as.numeric(length(tips.for.hosts[[x]])))]
   window.table <- window.table[, reads :=  sapply(hosts, function(x){
     if(length(tips.for.hosts[[x]])==0){
       return(0)
@@ -152,7 +153,7 @@ calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, verbose = F){
       if(!no.read.counts){
         return(sum(sapply(tips.for.hosts[[x]], function(y) as.numeric(read.count.from.label(y, tip.regex)))))
       } else {
-        return(length(tips.for.hosts[[x]]))
+        return(as.numeric(length(tips.for.hosts[[x]])))
       }
     }
   } 

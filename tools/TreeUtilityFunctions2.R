@@ -449,7 +449,7 @@ prop.internal.longer.than.root <- function(tree, split, splits){
 }
 
 process.tree <- function(tree, root.name=NULL, m.thresh=-1, blacklist.for.pruning = vector(), normalisation.constant = 1) {
-  tree <- unroot(tree)
+  
 
   if(m.thresh != -1){
     tree <- di2multi(tree, tol = m.thresh)
@@ -457,6 +457,16 @@ process.tree <- function(tree, root.name=NULL, m.thresh=-1, blacklist.for.prunin
 
   if(!is.null(root.name)){
     tree <- root(tree, outgroup = root.name, resolve.root = T)
+  } else {
+    # There are problems with a non-binary root.  Resolve it arbitrarily; most times a root should be specified.
+    if(length(Children(tree, getRoot(tree)))>2){
+      first.child <- Children(tree, getRoot(tree))[1]
+      if(first.child <= length(tree$tip.label)){
+        tree <- root(tree, outgroup=first.child, resolve.root = T)
+      } else {
+        tree <- root(tree, node=first.child, resolve.root = T)
+      }
+    }
   }
   
   if(length(blacklist.for.pruning) > 0){
