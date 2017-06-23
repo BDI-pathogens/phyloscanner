@@ -858,9 +858,9 @@ summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.
   # How many windows have this relationship, ADJACENT and PATRISTIC_DISTANCE below the threshold?
   type.counts	<- tt.close[, list(windows=length(SUFFIX)), by=c('PAT.1','PAT.2','TYPE')]
   # How many windows have ADJACENT and PATRISTIC_DISTANCE below the threshold?
-  any.counts <- tt.close[, list(all.windows=length(SUFFIX)), by=c('PAT.1','PAT.2')]
+  any.counts  <- tt.close[, list(all.windows=length(SUFFIX)), by=c('PAT.1','PAT.2')]
   # How many windows have a relationship other than "none", ADJACENT and PATRISTIC_DISTANCE below the threshold?
-  ns.counts <- tt.close[, list(ns.windows=length(which(NOT.SIBLINGS))), by=c('PAT.1','PAT.2')]
+  ns.counts  <- tt.close[, list(ns.windows=length(which(NOT.SIBLINGS))), by=c('PAT.1','PAT.2')]
   
   tt.close		<- merge(tt.close, type.counts, by=c('PAT.1','PAT.2','TYPE'))
   tt.close		<- merge(tt.close, any.counts, by=c('PAT.1','PAT.2'))
@@ -887,7 +887,7 @@ summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.
   
   tt.close[, DUMMY:=NULL]
   
-  set(tt.close, NULL, c('SUFFIX', 'ADJACENT','PATRISTIC_DISTANCE'), NULL)
+  set(tt.close, NULL, c('SUFFIX', 'ADJACENT','PATRISTIC_DISTANCE', "contiguous", "nodes1", "nodes2", "NOT.SIBLINGS"), NULL)
   tt.close <- tt.close[!duplicated(tt.close),]
   
   #	write to file
