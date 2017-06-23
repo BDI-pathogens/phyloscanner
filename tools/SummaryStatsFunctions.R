@@ -108,6 +108,8 @@ calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table
 
 calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, verbose = F){
   
+  if(verbose) cat("Calculating host statistics for tree suffix ",tree.info$suffix,"\n",sep="")
+  
   suffix <- tree.info$suffix
   
   tree <- tree.info$tree
