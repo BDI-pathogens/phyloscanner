@@ -147,7 +147,7 @@ are each separately pairwise aligned to one of the extra references included
 with -A, and window coordinates are interpreted with respect to this
 reference. Specify the name of the reference to use after this option.''')
 RaxmlHelp ='''Use this option to tell phyloscanner how to run RAxML; by default,
-'raxmlHPC-AVX -m GTRCAT -p 1'. You will need to change the first part if your
+'raxmlHPC-AVX -m GTRCAT -p 1 --no-seq-check'. You will need to change the first part if your
 RAxML binary is not called raxmlHPC-AVX, or if the binary's location is not in
 your $PATH variable (i.e. if you need to specify the path to the binary in order
 to run it). -m tells RAxML which evolutionary model to use, and -p specifies a
@@ -160,7 +160,7 @@ whitespace, since whitespace is interpreted as separating raxml options. Do not
 include options relating to bootstraps: use phyloscanner's --num-bootstraps and
 --bootstrap-seed options instead. Do not include options relating to the naming
 of files.'''
-RecommendedArgs.add_argument('--x-raxml', default='raxmlHPC-AVX -m GTRCAT -p 1',
+RecommendedArgs.add_argument('--x-raxml', default='raxmlHPC-AVX -m GTRCAT -p 1 --no-seq-check',
 help=RaxmlHelp)
 RecommendedArgs.add_argument('-P', '--merge-paired-reads', action='store_true',
 help='''Relevant only for paired-read data for which the mates in a pair
