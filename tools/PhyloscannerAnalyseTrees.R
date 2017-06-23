@@ -1,3 +1,5 @@
+#!/usr/bin/Rscript
+
 list.of.packages <- c("argparse", "data.table", "ape", "ff", "phangorn", "ggtree", "phytools", "scales", "RColorBrewer", "gtable", "grid", "gridExtra")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)){
@@ -26,7 +28,7 @@ arg_parser$add_argument("tree", action="store", help="A path and string that beg
 arg_parser$add_argument("output.string", action="store", help="This string identifies all output files.")
 
 arg_parser$add_argument("-r", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
-arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, short branches in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. If a number, this number will be used as the threshold. If 'g', it will be guessed from the branch lengths (use this only if you've checked by eye that the tree does indeed have multifurcations).")
+arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, short branches in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. If a number, this number will be used as the threshold, with all branches strictly smaller collapsed. If 'g', it will be guessed from the branch lengths (use this only if you have checked by eye that the tree does indeed have multifurcations).")
 
 arg_parser$add_argument("-b", "--blacklist", action="store", help="A path and string that begins all the file names for pre-existing blacklist files.")
 
@@ -199,6 +201,7 @@ do.class.detail       <- args$allClassifications
 
 win.threshold         <- args$windowThreshold 
 dist.threshold        <- args$distanceThreshold
+
 if(dist.threshold == -1){
   dist.threshold      <- Inf
 }
