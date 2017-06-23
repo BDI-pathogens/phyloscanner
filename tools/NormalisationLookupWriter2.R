@@ -54,8 +54,8 @@ if(grepl(paste0(csv.fe, "$"), norm.file.name)){
   stop(paste0("Unknown input file format.\n"))
 }
 
-if(any(!(c('position',norm.var) %in% colnames(norm.table)))){
-  stop(paste0("One or more of position and ",norm.var," columns not present in file ",norm.file.name))
+if(any(!(c('POSITION',norm.var) %in% colnames(norm.table)))){
+  stop(paste0("One or more of POSITION and ",norm.var," columns not present in file ",norm.file.name))
 }
 
 setnames(norm.table, norm.var, 'NORM_CONST')
@@ -66,7 +66,7 @@ if(norm.standardise){
 	#790 - 3385
 	if (verbose) cat('Standardising normalising constants to 1 on the gag+pol (prot + first part of RT in total 1300bp pol) region\n')
   
-	tmp		<- subset(norm.table, position>=790L & position<=3385L)
+	tmp		<- subset(norm.table, POSITION>=790L & POSITION<=3385L)
 	
 	if(nrow(tmp)<=0){
 	  stop(paste0("No positions from gag+pol present in file ",norm.file.name,"; unable to standardise"))
@@ -80,7 +80,7 @@ if(norm.standardise){
 	set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
 }
 
-norm.table	         <- subset(norm.table, select=c("position", "NORM_CONST"))
+norm.table	         <- subset(norm.table, select=c("POSITION", "NORM_CONST"))
 
 #	guess window coordinates of tree files from file name
 if (verbose) cat('Reading tree files starting with ', tree.file.root, "\n")
