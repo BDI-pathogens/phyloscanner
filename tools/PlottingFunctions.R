@@ -104,6 +104,7 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, missi
     
     host <- hosts[i]
     
+  
     this.host.statistics <- host.statistics[which(host.statistics$id==host),]
     this.host.statistics <- this.host.statistics[order(this.host.statistics$xcoord),]
 

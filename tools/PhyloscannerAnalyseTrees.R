@@ -5,6 +5,8 @@ if(length(new.packages)){
   quit(save="no", status=1)
 }
 
+options("warn"=1)
+
 suppressMessages(require(argparse, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(ape, quietly=TRUE, warn.conflicts=FALSE))
@@ -270,6 +272,10 @@ if(file.exists(tree.input)){
   
   suffixes <- sapply(tree.file.names, get.suffix, tree.input, tree.fe)
   
+  if(any(suffixes=="")){
+    stop("Some trees have identifying suffixes of length zero. The tree file argument should be a path and a string that begins every tree file, but there must be something after that string (excluding the file extension).")
+  }
+  
   for(suffix.no in 1:length(suffixes)){
     suffix                        <- suffixes[suffix.no] 
     
@@ -343,14 +349,15 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
     tree.info$xcoord        <- (coords$end + coords$start)/2
     tree.info
   }, error = function(e){
-    warning("Cannot obtain genome window coordinates from file names. Summary stats, if requested, will be plotted in file order.")
-    readable.coords <- F
+    readable.coords <<- F
     tree.info$xcoord        <- which(names(all.tree.info) == tree.info$suffix)
     tree.info
   })
 }, simplify = F, USE.NAMES = T)
 
-
+if(!readable.coords & output.ssg){
+  warning("Cannot obtain genome window coordinates from file names. Summary statistics will be plotted in alphabetical order of file names.")
+}
 
 # 4. Root tree, collapse multifurcations, get host for each tip
 
@@ -682,6 +689,7 @@ if(do.dual.blacklisting){
   }, simplify = F, USE.NAMES = T)
 }
 
+
 # 13. Downsampling
 
 if(downsample){
@@ -780,7 +788,9 @@ if(do.summary.statistics){
   
   coordinates <- lapply(all.tree.info, "[[" , "window.coords")
   
-  if(all(!is.null(coordinates))){
+  if(readable.coords){
+    coordinates <- lapply(all.tree.info, "[[" , "window.coords")
+    
     starts <- sapply(coordinates, "[[", "start")
     ends <- sapply(coordinates, "[[", "end")
     
@@ -814,8 +824,9 @@ if(do.summary.statistics){
   max.splits <- max(sapply(read.proportions, function(x) max(sapply(x, function(y) length(y)))))
   
   read.prop.columns <- lapply(all.tree.info, function(x){
+    window.props <- read.proportions[[x$suffix]]
     out <- lapply(hosts, function(y){
-      window.props <- read.proportions[[x$suffix]]
+
       result <- window.props[[y]]
       
       if(is.na(result[1])){
