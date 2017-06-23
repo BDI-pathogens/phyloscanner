@@ -808,7 +808,7 @@ if(do.summary.statistics){
   all.tree.info <- sapply(all.tree.info, function(tree.info) {
     clade.results                 <- resolveTreeIntoPatientClades(tree.info$tree, hosts, tip.regex, tree.info$blacklist, no.read.counts)
     
-    tree.info$clades.by.host      <- clade.results$clades.by.patients
+    tree.info$clades.by.host      <- clade.results$clades.by.patient
     tree.info$clade.mrcas.by.host <- clade.results$clade.mrcas.by.patient
     
     tree.info
@@ -908,8 +908,8 @@ if(!single.file){
 }
 
 # 19. Workspace image
-if (verbose) cat('Saving R workspace image to file', paste0("workspace_",output.string,".rda"),'\n')
 
 if(output.rda){
+  if (verbose) cat('Saving R workspace image to file', paste0("workspace_",output.string,".rda"),'\n')
   save(all.tree.info, file=file.path(output.dir, paste0("workspace_",output.string,".rda")))
 }
