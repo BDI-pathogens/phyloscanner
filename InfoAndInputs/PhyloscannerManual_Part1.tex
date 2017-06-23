@@ -1,6 +1,6 @@
 \part{Inferring within- and between-host phylogenies in windows along the genome, using mapped reads (Chris)}
 
-This part of phyloscanner is written in Python, and so we will refer to as the Python code.
+This part of \p is written in Python, and so we will refer to as the Python code.
 
 \section{The basic command}
 
@@ -152,11 +152,11 @@ Output is in in csv format.
 \begin{itemize}
 \item \c{--alignment-of-other-refs}: used to specify an alignment of reference sequences for inclusion with the reads, for comparison.
 These references need not be those used to produce the bam files.
-This option is required if phyloscanner is to analyse the trees it produces.
+This option is required if \p is to analyse the trees it produces.
 \item \c{--pairwise-align-to}: by default, \p figures out where corresponding windows are in different bam files by creating a multiple sequence alignment containing all of the mapping references used to create the bam files (plus any extra references included with \c{--alignment-of-other-refs}), and window coordinates are intepreted with respect to this alignment.
 However using this option, the mapping references used to create the bam files are each separately pairwise aligned to one of the extra references included with \c{--alignment-of-other-refs}, and window coordinates are interpreted with respect to this reference.
 The reference to use should be specified after this option.
-\item \c{--x-raxml}: use this option to tell phyloscanner how to run \c{RAxML}; by default, \c{`raxmlHPC-AVX -m GTRCAT -p 1'}.
+\item \c{--x-raxml}: use this option to tell \p how to run \c{RAxML}; by default, \c{`raxmlHPC-AVX -m GTRCAT -p 1'}.
 You will need to change the first part if your \r binary is not called \c{raxmlHPC-AVX}, or if the binary's location is not contained in your \c{\$PATH} environment variable (i.e. if you need to specify the path to the binary in order to run it).
 \c{-m} tells \R which evolutionary model to use, and \c{-p} specifies a random number seed for the parsimony inferences; both are compulsory.
 You may include any other \R options in this command.
@@ -219,7 +219,7 @@ Where there is a group of reads that differ from each other by this threshold or
 The default is 1.
 \item \c{--output-dir}: used to specify the name of a directory into which output files will be moved.
 If it does not exist, it will be created; however we cannot create a new directory inside a directory that does not yet exist.
-Temporary and output files are always created in the working directory, i.e. the directory in which the phyloscanner command was run, but with this option the output files are copied to the specified directory at the end.
+Temporary and output files are always created in the working directory, i.e. the directory in which the \p command was run, but with this option the output files are copied to the specified directory at the end.
 \item \c{--time}: print the times taken by different steps.
 \item \c{--x-mafft}: used to specify the command you need in order to run \c{mafft}.
 The default is simply \c{mafft}; if your \c{mafft} binary is not in the \c{\$PATH} environment variable for your terminal (google this if you don't know what it means) you will need to include the directory where this binary lives, e.g. \c{/path/to/where/I/installed/mafft/mafft}.
@@ -242,14 +242,14 @@ separately from the command line (run it initially with \c{--help} for more info
 \item \c{--read-names-2}: as \c{--read-names-1}, except the files will show the correspondence between
 read names and which unique sequence they correspond to.
 This option cannot be used with either of the \c{--merging-threshold} or \c{--excision-coords} options (because they change the correspondence initially established between unique sequences and reads).
-\item \c{--exact-window-start}: normally phyloscanner retrieves all reads that fully overlap a given window, i.e. starting at or anywhere before the window start, and ending at or anywhere after the window end.
+\item \c{--exact-window-start}: normally \p retrieves all reads that fully overlap a given window, i.e. starting at or anywhere before the window start, and ending at or anywhere after the window end.
 If this option is used {\it without} \c{--exact-window-end}, the reads that are retrieved are those that start at exactly the start of the window, and end anywhere (ignoring all the window end coordinates specified).
 If this option is used {\it with} \c{--exact-window-end}, for a read to be kept it must start at exactly the window start AND end at exactly the window end.
 If \c{--merge-paired-reads} is also used, this explanation applies to inserts (read pairs) instead of individual reads.
 \item \c{--exact-window-end}: with this option, the reads that are retrieved are those that end at
 exactly the end of the window.
 Read the \c{--exact-window-start} help.
-\item \c{--recover-clipped-ends}: the default behaviour of phyloscanner is to keep only reads that fully span the window in question.
+\item \c{--recover-clipped-ends}: the default behaviour of \p is to keep only reads that fully span the window in question.
 A read which is long enough in principle to reach the edge of the window but is not mapped at its end, i.e.
 the end is clipped, will therefore not be included.
 With this option, clipped ends are recovered by considering any bases at the ends of the read that are unmapped to be mapped instead to 1 more than the base to their left (at the right end) or 1 less than the base to their right (at the left end), iterating out from the centre.
@@ -257,14 +257,14 @@ e.g. a 9bp read mapped to positions None,None,10,11,13,14,None,None,None (i.e. c
 In this example, if the window left edge is 8 or 9 and the right edge is 15, 16 or 17, the read with its clipped ends recovered spans the window but the read without clipped ends does not.
 WARNING: mapping software clips the ends of reads for a reason, namely that that stretch of sequence does not look anything like the reference at that point.
 The clipped sequence could be just junk, or genuine sample from a distant part of the genome (i.e. the read is chimeric); in this case the clipped sequence should be discarded and not recovered.
-As such, this option should not be used as part of normal phyloscanner usage.
+As such, this option should not be used as part of normal \p usage.
 Its intended usage is specifically the following: you have identified a window in a bam file in which reads are clipped, but you believe the reads to be correct, i.e. the clipping is an artefact of the mapper being unable to find the correct local alignment.
 You should combine this option with \c{--no-trees} because the inclusion of clipped sequence, which by definition is very different, increases the chance of misalignment.
 You should inspect the aligned reads manually before doing anything else (and hopefully get some insight into how the reference in this window should be changed in order to have subsequent remapping get the local alignment right, in particular by contrasting the reference with the consensus of the aligned reads).
 \end{itemize}
 
 \subsection{Partial processing options}
-Options to only partially run phyloscanner, stopping early or skipping steps.
+Options to only partially run \p, stopping early or skipping steps.
 \begin{itemize}
  \item \c{--align-refs-only}: align the mapping references used to create the bam files (plus any extra reference sequences specified with \c{--alignment-of-other-refs}), then quit without doing anything
 else.
