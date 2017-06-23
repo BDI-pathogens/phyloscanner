@@ -28,7 +28,7 @@ pip install biopython
 # Test it works by running the command 'python' to start an interactive python
 # session, then typing 'import Bio'.
 
-# pysam
+# pysam (we need version 0.8.1 or later)
 pip install pysam --upgrade
 # Test it works by running the command 'python' to start an interactive python
 # session, then typing 'import pysam'.
@@ -60,7 +60,7 @@ pip install biopython
 # Test it works by running the command 'python' to start an interactive python
 # session, then typing 'import Bio'.
 
-# pysam
+# pysam (we need version 0.8.1 or later)
 pip install pysam --upgrade
 # Test it works by running the command 'python' to start an interactive python
 # session, then typing 'import pysam'.
