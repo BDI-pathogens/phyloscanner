@@ -1,3 +1,5 @@
+#!/usr/bin/Rscript
+
 list.of.packages <- c("argparse", "data.table", "ape", "ff", "phangorn", "ggtree", "phytools", "scales", "RColorBrewer", "gtable", "grid", "gridExtra")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)){
@@ -199,6 +201,7 @@ do.class.detail       <- args$allClassifications
 
 win.threshold         <- args$windowThreshold 
 dist.threshold        <- args$distanceThreshold
+
 if(dist.threshold == -1){
   dist.threshold      <- Inf
 }
