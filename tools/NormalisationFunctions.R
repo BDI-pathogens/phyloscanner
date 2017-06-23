@@ -1,6 +1,7 @@
 # This function returns a normalisation constant for a genome window bounded by start and end.
 
 lookup.normalisation.for.tree <- function(tree.info, lookup.df, lookup.column = "NORM_CONST"){
+
   if(is.null(tree.info$window.coords)){
     stop(paste0("Tree ",tree.info$name, "has no window coordinates" ))
   }
@@ -14,10 +15,8 @@ lookup.normalisation.for.tree <- function(tree.info, lookup.df, lookup.column = 
   if(!(lookup.column %in% colnames(lookup.df))){
     stop(paste0("No column called ",lookup.column," in lookup data frame."))
   }
-  middle <- (end + start)/2
-  
-  window.rows <- lookup.df[which(lookup.df$W_FROM<=middle & lookup.df$W_TO>=middle),]
+
+  window.rows <- lookup.df[which(lookup.df$position<=end & lookup.df$position>=end),]
 
   return(colMeans(window.rows)[lookup.column]) 
-  
 }

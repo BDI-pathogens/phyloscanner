@@ -480,9 +480,8 @@ if(!is.null(norm.constants.input)){
   
   if(grepl(paste0(csv.fe, "$"), norm.ref.file.name)){
     norm.table	<- as.data.table(read.csv(norm.ref.file.name, stringsAsFactors=FALSE))
-    
-    if(any(!(c('W_FROM','W_TO',norm.column.var) %in% colnames(norm.table)))){
-      warning(paste0("One or more of W_FROM, W_TO and ",norm.var," columns not present in file ",norm.ref.file.name," skipping normalisation.\n"))
+    if(any(!(c('position',norm.column.var) %in% colnames(norm.table)))){
+      warning(paste0("One or more of position and ",norm.var," columns not present in file ",norm.ref.file.name," skipping normalisation.\n"))
       all.tree.info <- sapply(all.tree.info, function(tree.info) {
         tree.info$normalisation.constant  <- 1
         tree.info
@@ -493,11 +492,10 @@ if(!is.null(norm.constants.input)){
       if(norm.standardise){
         #	Standardize to mean of 1 on gag+pol ( prot + first part of RT in total 1300bp )
         
-        norm.table[, W_MID := (W_FROM+W_TO)/2]
         #790 - 3385
         if (verbose) cat('Standardising normalising constants to 1 on the gag+pol (prot + first part of RT in total 1300bp pol) region\n')
         
-        tmp		<- subset(norm.table, W_MID>=790L & W_MID<=3385L)
+        tmp		<- subset(norm.table, position>=790L & position<=3385L)
         
         if(nrow(tmp)<=0){
           stop(paste0("No positions from gag+pol present in file ",norm.ref.file.name,"; unable to standardise"))
@@ -512,6 +510,7 @@ if(!is.null(norm.constants.input)){
       }
       all.tree.info <- sapply(all.tree.info, function(tree.info){
         tree.info$normalisation.constant <- lookup.normalisation.for.tree(tree.info, norm.table, lookup.column = "NORM_CONST")
+        print(tree.info$normalisation.constant)
         tree.info
       }, simplify = F, USE.NAMES = T)
     }
