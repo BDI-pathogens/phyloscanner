@@ -69,10 +69,8 @@ arg_parser$add_argument("-dsb", "--blacklistUnderrepresented", action="store_tru
 
 arg_parser$add_argument("-ff", "--useff", action="store_true", default=FALSE, help="Use ff to store parsimony reconstruction matrices. Use if you run out of memory.")
 arg_parser$add_argument("splitsRule", action="store", nargs="+", help="The rules by which the sets of patients are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. This takes a variable number of arguments. The first dictates the algorithm: s=Sankoff with optional within-host diversity penalty (slow, rigorous, default), r=Romero-Severson (quick, less rigorous with >2 patients), f=Sankoff with continuation costs (experimental). For 'r' no further arguments are expected. For 's' and 'f' the k parameter in the Sankoff reconstruction, which penalises within-host diversity, must also be given. There is an optional third argument for 's' and 'f'. For 's' this is the branch length threshold at which a lineage reconstructed as infecting a host will transition to the unsampled state. For 'f' this is the branch length at which an node is reconstructed as unsampled if all its neighbouring nodes are a greater distance away. Both defaults are 0.")
-
 arg_parser$add_argument("-P", "--pruneBlacklist", action="store_true", help="If present, all blacklisted and references tips (except the outgroup) are pruned away before starting parsimony-based reconstruction")
 arg_parser$add_argument("-rcm", "--readCountsMatterOnZeroBranches", default = FALSE, action="store_true", help="If present, read counts will be taken into account in parsimony reconstructions at the parents of zero-length branches. Not applicable for the Romero-Severson-like reconstruction method.")
-
 arg_parser$add_argument("-tn", "--outputNexusTree", action="store_true", help="Standard output of annotated trees are in PDF format. If this option is present, output them as NEXUS instead.")
 
 # Summary statistics
@@ -497,54 +495,66 @@ if(!is.null(norm.constants.input)){
     warning("Cannot parse -nc argument; tree branch lengths will not be normalised.\n")
   }
 } else if(!is.null(norm.ref.file.name)){
-  if (verbose) cat('Loading normalising constants reference file ', norm.ref.file.name, "\n", sep="")
+  if(readable.coords){
+    if (verbose) cat('Loading normalising constants reference file ', norm.ref.file.name, "\n", sep="")
+    
+    if(grepl(paste0(csv.fe, "$"), norm.ref.file.name)){
+      norm.table	<- as.data.table(read.csv(norm.ref.file.name, stringsAsFactors=FALSE))
   
-  if(grepl(paste0(csv.fe, "$"), norm.ref.file.name)){
-    norm.table	<- as.data.table(read.csv(norm.ref.file.name, stringsAsFactors=FALSE))
-
-    if(ncol(norm.table)!=2){
-      stop(paste0(norm.ref.file.name," is not formatted as expected for a normalisation lookup file; expecting two columns.\n"))
-    } else {
-      setnames(norm.table, 1, 'POSITION')
-      setnames(norm.table, 2, 'NORM_CONST')
-      
-      if(norm.standardise.gp){
-        #	Standardize to mean of 1 on gag+pol ( prot + first part of RT in total 1300bp )
-        
-        #790 - 3385
-        if (verbose) cat('Standardising normalising constants to 1 on the gag+pol (prot + first part of RT in total 1300bp pol) region\n')
-        
-        tmp		<- subset(norm.table, POSITION>=790L & POSITION<=3385L)
-        
-        if(nrow(tmp)<=0){
-          stop(paste0("No positions from gag+pol present in file ",norm.ref.file.name,"; unable to standardise"))
-        }
-        
-        tmp		<- tmp[, mean(NORM_CONST)]
-
-        if(!is.finite(tmp)){
-          stop(paste0("Standardising constant is not finite"))
-        }
-        
-        set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
+      if(ncol(norm.table)!=2){
+        stop(paste0(norm.ref.file.name," is not formatted as expected for a normalisation lookup file; expecting two columns.\n"))
       } else {
-        if (verbose) cat('Standardising normalising constants to 1 on the whole genome\n')
-
-        tmp		<- norm.table[, mean(NORM_CONST)]
-        if(!is.finite(tmp)){
-          stop(paste0("Standardising constant is not finite"))
+        setnames(norm.table, 1, 'POSITION')
+        setnames(norm.table, 2, 'NORM_CONST')
+        
+        if(norm.standardise.gp){
+          #	Standardize to mean of 1 on gag+pol ( prot + first part of RT in total 1300bp )
+          
+          #790 - 3385
+          if (verbose) cat('Standardising normalising constants to 1 on the gag+pol (prot + first part of RT in total 1300bp pol) region\n')
+          
+          tmp		<- subset(norm.table, POSITION>=790L & POSITION<=3385L)
+          
+          if(nrow(tmp)<=0){
+            stop(paste0("No positions from gag+pol present in file ",norm.ref.file.name,"; unable to standardise"))
+          }
+          
+          tmp		<- tmp[, mean(NORM_CONST)]
+  
+          if(!is.finite(tmp)){
+            stop(paste0("Standardising constant is not finite"))
+          }
+          
+          set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
+        } else {
+          if (verbose) cat('Standardising normalising constants to 1 on the whole genome\n')
+  
+          tmp		<- norm.table[, mean(NORM_CONST)]
+          if(!is.finite(tmp)){
+            stop(paste0("Standardising constant is not finite"))
+          }
+          
+          set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
         }
         
-        set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
+        all.tree.info <- sapply(all.tree.info, function(tree.info){
+          tree.info$normalisation.constant <- lookup.normalisation.for.tree(tree.info, norm.table, lookup.column = "NORM_CONST")
+          tree.info
+        }, simplify = F, USE.NAMES = T)
       }
-      
-      all.tree.info <- sapply(all.tree.info, function(tree.info){
-        tree.info$normalisation.constant <- lookup.normalisation.for.tree(tree.info, norm.table, lookup.column = "NORM_CONST")
+    } else {
+      warning(paste0("Unknown input file format for normalisation file; tree branch lengths will not be normalised.\n"))
+      all.tree.info <- sapply(all.tree.info, function(tree.info) {
+        tree.info$normalisation.constant  <- 1
         tree.info
       }, simplify = F, USE.NAMES = T)
     }
   } else {
-    warning(paste0("Unknown input file format for normalisation file; tree branch lengths will not be normalised.\n"))
+    warning(paste0("Cannot normalise branch lengths from file without window cooardinates in file suffixes; tree branch lengths will not be normalised.\n"))
+    all.tree.info <- sapply(all.tree.info, function(tree.info) {
+      tree.info$normalisation.constant  <- 1
+      tree.info
+    }, simplify = F, USE.NAMES = T)
   }
 } else {
   all.tree.info <- sapply(all.tree.info, function(tree.info) {
