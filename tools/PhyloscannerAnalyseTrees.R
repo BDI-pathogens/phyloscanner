@@ -49,14 +49,13 @@ arg_parser$add_argument("-sd", "--seed", action="store_true", help="Random numbe
 # Normalisation options
 
 arg_parser$add_argument("-nr", "--normRefFileName", action="store", help="File name of reference for window normalising constants. If absent, no normalisation will be performed.")
-arg_parser$add_argument("-nv", "--normVar", action="store", default="MEDIAN_PWD", help="Column name in reference table that is to be used as normalising constant.")
 arg_parser$add_argument("-ns", "--normStandardiseGagPol", action="store_true", default=FALSE, help="An HIV-specific option: if true, the normalising constants are standardised so that the average on gag+pol equals 1. Otherwise they are standardised so the average on the whole genome equals 1.")
 arg_parser$add_argument("-nc", "--normalisationConstants", action="store", help="Either a CSV file listing the file name for each tree (column 1) and the normalisation constant (column 2) or a single numerical normalisation constant to be applied to each window.")
 
 # Blacklisting
 
 arg_parser$add_argument("-db", "--duplicateBlacklist", action="store", help="Perform duplicate blacklisting for likely contaminants; argument here is input file produced by Python output.")
-arg_parser$add_argument("-pbk", "--parsimonyBlacklistK", action="store_true", type="double", help="If given, perform parsimony-based blacklisting for likely contaminants. The argument is the value of the within-host diversity penalty used.")
+arg_parser$add_argument("-pbk", "--parsimonyBlacklistK", action="store", type="double", help="If given, perform parsimony-based blacklisting for likely contaminants. The argument is the value of the within-host diversity penalty used.")
 arg_parser$add_argument("-rwt", "--rawBlacklistThreshold", action="store", default=0, help="Raw threshold for blacklisting; subgraphs or exact duplicate tips with read counts less than this will be blacklisted, regardless of the count of any other subgraphs from the same host or identical tips from another host. Default 0; one or both of this and -rtt must be specified and >0 for -db or -pb to do anything.")
 arg_parser$add_argument("-rtt", "--ratioBlacklistThreshold", action="store", default=0, help="Ratio threshold for blacklisting; subgraphs or exact duplicate tips will be blacklisted if the ratio of their tip count to that of another subgraph from the same host or tip from another host is less than this. Default 0; one or both of this and -rwt must be specified and >0 for -db or -pb to do anything.")
 arg_parser$add_argument("-ub", "--dualBlacklist", action="store_true", default=F, help="Blacklist all reads from the minor subgraphs for all patients established as dual by parsimony blacklisting.")
@@ -128,9 +127,7 @@ if(use.m.thresh){
 } else {
   m.thresh            <- -1       
 }
-
 norm.ref.file.name    <- args$normRefFileName
-norm.column.var       <- args$normVar
 norm.standardise.gp   <- args$normStandardiseGagPol
 norm.constants.input  <- args$normalisationConstants
 
@@ -143,7 +140,7 @@ if(!is.null(norm.ref.file.name) & !is.null(norm.constants.input)){
 
 do.dup.blacklisting   <- !is.null(args$duplicateBlacklist)
 dup.input.file.name   <- args$duplicateBlacklist
-do.par.blacklisting   <- is.null(args$parsimonyBlacklistK)
+do.par.blacklisting   <- !is.null(args$parsimonyBlacklistK)
 par.blacklisting.k    <- args$parsimonyBlacklistK
 do.dual.blacklisting  <- args$dualBlacklist
 
@@ -187,6 +184,9 @@ if(reconstruction.mode!="r"){
   if(is.na(sankoff.k) | is.na(sankoff.p)){
     stop("Expected numerical arguments for reconstruction algorithm parameters.")
   }
+} else {
+  sankoff.k <- NA
+  sankoff.p <- NA
 }
 
 downsample            <- !is.null(args$maxReadsPerHost)
@@ -501,14 +501,12 @@ if(!is.null(norm.constants.input)){
   
   if(grepl(paste0(csv.fe, "$"), norm.ref.file.name)){
     norm.table	<- as.data.table(read.csv(norm.ref.file.name, stringsAsFactors=FALSE))
-    if(any(!(c('POSITION',norm.column.var) %in% colnames(norm.table)))){
-      warning(paste0("One or more of POSITION and ",norm.column.var," columns not present in file ",norm.ref.file.name," skipping normalisation.\n"))
-      all.tree.info <- sapply(all.tree.info, function(tree.info) {
-        tree.info$normalisation.constant  <- 1
-        tree.info
-      }, simplify = F, USE.NAMES = T)
+
+    if(ncol(norm.table)!=2){
+      stop(paste0(norm.ref.file.name," is not formatted as expected for a normalisation lookup file; expecting two columns.\n"))
     } else {
-      setnames(norm.table, norm.column.var, 'NORM_CONST')
+      setnames(norm.table, 1, 'POSITION')
+      setnames(norm.table, 2, 'NORM_CONST')
       
       if(norm.standardise.gp){
         #	Standardize to mean of 1 on gag+pol ( prot + first part of RT in total 1300bp )
@@ -523,6 +521,7 @@ if(!is.null(norm.constants.input)){
         }
         
         tmp		<- tmp[, mean(NORM_CONST)]
+
         if(!is.finite(tmp)){
           stop(paste0("Standardising constant is not finite"))
         }
@@ -614,6 +613,7 @@ if(do.dup.blacklisting){
 # 10. Parsimony blacklisting
 
 if(do.par.blacklisting){
+
   all.tree.info <- sapply(all.tree.info, function(tree.info){
     
     tree <- tree.info$tree
@@ -757,7 +757,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
   # Do the reconstruction
   
   if(verbose) cat("Reconstructing internal node hosts on tree suffix ",tree.info$suffix, "\n", sep="")
-  
+
   tmp					     <- split.patients.to.subgraphs(tree.info$tree, tree.info$blacklist, reconstruction.mode, tip.regex, sankoff.k, sankoff.p, useff, read.counts.matter, hosts, verbose)
   tree					   <- tmp[['tree']]	
   
