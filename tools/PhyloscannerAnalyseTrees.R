@@ -45,6 +45,7 @@ arg_parser$add_argument("-pw", "--pdfwidth", action="store", default=50, help="W
 arg_parser$add_argument("-ph", "--pdfrelheight", action="store", default=0.15, help="Relative height of tree pdf.")
 arg_parser$add_argument("-rda", "--outputRDA", action="store_true", help="Write the final R workspace image to file.")
 arg_parser$add_argument("-sd", "--seed", action="store_true", help="Random number seed; used by the downsampling process, and also ties in some parsimony reconstructions can be broken randomly.")
+arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.")
 
 # Normalisation options
 
@@ -222,7 +223,14 @@ if(dist.threshold == -1){
 }
 allow.mt              <- args$allowMultiTrans
 
-script.dir            <- dirname(thisfile())
+if(!is.null(args$scriptDir)){
+  script.dir          <- args$scriptDir
+} else {
+  script.dir          <- dirname(thisfile())
+  if(!dir.exists(script.dir)){
+    stop("Cannot detect the location of the /phyloscanner/tools directory. Please specify it at the command line with -D.")
+  }
+}
 
 if(is.null(script.dir)){
   script.dir <- getwd()
