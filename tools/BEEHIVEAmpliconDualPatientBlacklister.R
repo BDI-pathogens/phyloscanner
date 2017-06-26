@@ -2,7 +2,7 @@
 
 suppressMessages(require(tools, quietly=TRUE, warn.conflicts=FALSE))
 
-command.line <- T
+command.line <- F
 
 if(command.line){
   require(argparse, quietly=TRUE, warn.conflicts=FALSE)
@@ -49,14 +49,14 @@ if(command.line){
 } else {
   # BEEHIVE
   
-  setwd("/Users/twoseventwo/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/Blacklists/")
+  setwd("/Users/mdhall/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/")
   
   existing.bl.prefix <- "RogueBlacklist_alt.InWindow"
   
-  duals.prefix <- "FullInfoRB_alt.InWindow" 
-  output.prefix <- "DualsBlacklist_alt.InWindow"
+  duals.prefix <- "NewGenDualsOutput_" 
+  output.prefix <- "NewGensDualsReport_"
   
-  threshold <- 0.75
+  threshold <- 0
   
   dual.files <- list.files(dirname(duals.prefix), pattern=paste('^',basename(duals.prefix),sep=""), full.names=TRUE)
   dual.files.sans.ext <- file_path_sans_ext(dual.files)
@@ -68,24 +68,18 @@ if(command.line){
   expected.but.not.seen <- setdiff(expected.blacklists, observed.bl.files)
   seen.but.not.expected <- setdiff(observed.bl.files, expected.blacklists)
   
-  summary.file <- "duals_summary_alt.csv"
+  summary.file <- "NewGenDualsSummary_0.001.csv"
   
 }
 
 numerators.by.patient <- list()
 denominators.by.patient <- list()
 
-for(patient.no in 1:length(dual.file$patient)){
-  patient <- dual.file$patient[patient.no]
-  numerators.by.patient[[patient]] <- rep(0,8)
-  denominators.by.patient[[patient]] <- rep(0,8)
-}
-
 amps <- data.frame(starts = c(480, 1485, 4783, 5967), ends = c(2407, 5058, 7848, 9517))
 
 for(suffix in suffixes){
-  start <- as.numeric(unlist(strsplit(suffix, '_'))[2])
-  end <- as.numeric(unlist(strsplit(suffix, '_'))[4])
+  start <- as.numeric(unlist(strsplit(suffix, '_'))[1])
+  end <- as.numeric(unlist(strsplit(suffix, '_'))[3])
   
   in.amp <- vector()
   
@@ -105,10 +99,18 @@ for(suffix in suffixes){
   dual.file <- read.csv(paste(duals.prefix, suffix, ".csv", sep=""), stringsAsFactors = F)
   for(patient.no in 1:length(dual.file$patient)){
     patient <- dual.file$patient[patient.no]
-    if(dual.file$status[patient.no] == "dual"){
+    if(patient %in% dual.file$patient){
+      if(!(patient) %in% names(numerators.by.patient)){
+        numerators.by.patient[[patient]] <- rep(0,8)
+      }
+      
       numerators.by.patient[[patient]] <- numerators.by.patient[[patient]] + as.numeric(in.amp)
     }
     if(dual.file$status[patient.no] %in% c("dual", "kept")){
+      if(!(patient) %in% names(denominators.by.patient)){
+        denominators.by.patient[[patient]] <- rep(0,8)
+      }
+      
       denominators.by.patient[[patient]] <- denominators.by.patient[[patient]] + as.numeric(in.amp)
     }
   }
