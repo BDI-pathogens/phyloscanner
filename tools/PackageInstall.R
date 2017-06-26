@@ -1,3 +1,5 @@
+#!/usr/bin/Rscript
+
 every.package <- c("argparse", 
                    "ape", 
                    "phangorn", 
