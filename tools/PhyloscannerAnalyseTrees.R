@@ -1,6 +1,6 @@
 #!/usr/bin/Rscript
 
-list.of.packages <- c("argparse", "data.table", "ape", "ff", "phangorn", "ggtree", "phytools", "scales", "RColorBrewer", "gtable", "grid", "gridExtra")
+list.of.packages <- c("argparse", "data.table", "ape", "ff", "phangorn", "phytools", "scales", "RColorBrewer", "gtable", "grid", "gridExtra", "devtools", "here")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)){
   cat("Please run PackageInstall.R to continue\n")
@@ -20,7 +20,8 @@ suppressMessages(require(RColorBrewer, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(gtable, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(grid, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(gridExtra, quietly=TRUE, warn.conflicts=FALSE))
-
+suppressMessages(require(devtools, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(here, quietly=TRUE, warn.conflicts=FALSE))
 
 arg_parser		     <- ArgumentParser()
 
@@ -196,6 +197,12 @@ prune.blacklist       <- args$pruneBlacklist
 
 output.nexus          <- args$outputNexusTree
 output.pdf            <- !output.nexus
+
+if(!("package:ggtree" %in% search())){
+  warning("ggtree is not installed; annotated trees will be output in NEXUS format")
+  output.nexus        <- T
+  output.pdf          <- F
+}
 
 output.ssg            <- args$makeSummaryStatisticsGraph
 output.ssf            <- T
