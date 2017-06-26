@@ -64,25 +64,21 @@ arg_parser$add_argument("-ub", "--dualBlacklist", action="store_true", default=F
 # Downsampling
 
 arg_parser$add_argument("-dsl", "--maxReadsPerHost", action="store", type="integer", help="If given, blacklist to downsample read counts from each host to this number.")
-arg_parser$add_argument("-dsb", "--blacklistUnderrepresensted", action="store_true", help="If present and -dsl is given, blacklist hosts from trees where their total tip count does not reach the maximum.")
+arg_parser$add_argument("-dsb", "--blacklistUnderrepresented", action="store_true", help="If present and -dsl is given, blacklist hosts from trees where their total tip count does not reach the maximum.")
 
 # Parsimony reconstruction
 
 arg_parser$add_argument("-ff", "--useff", action="store_true", default=FALSE, help="Use ff to store parsimony reconstruction matrices. Use if you run out of memory.")
-arg_parser$add_argument("-s", "--splitsRule", action="store", default="r", help="The rules by which the sets of patients are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. Currently available: s=Sankoff with optional within-host diversity penalty (slow, rigorous), r=Romero-Severson (quick, less rigorous with >2 patients), f=Sankoff with continuation costs (experimental).")
-arg_parser$add_argument("-k", "--sankoffK", action="store", default = 0, help="The k parameter in the cost matrix for Sankoff reconstruction (see documentation)")
-arg_parser$add_argument("-p", "--sankoffP", action="store", default = 0, help="For the Sankoff recontruction with within-host diversity penalty, this is the (normalised) branch length threshold at which lineages transfer back to the unsampled state rather than stay in their existing host. For the reconstruction with continuation costs, this is the (normalised) branch length threshold at which an internal node is sufficiently far from all its neighbours to be reconstructed as unsampled. See documentation for both.")
+arg_parser$add_argument("splitsRule", action="store", nargs="+", help="The rules by which the sets of patients are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. This takes a variable number of arguments. The first dictates the algorithm: s=Sankoff with optional within-host diversity penalty (slow, rigorous, default), r=Romero-Severson (quick, less rigorous with >2 patients), f=Sankoff with continuation costs (experimental). For 'r' no further arguments are expected. For 's' and 'f' the k parameter in the Sankoff reconstruction, which penalises within-host diversity, must also be given. There is an optional third argument for 's' and 'f'. For 's' this is the branch length threshold at which a lineage reconstructed as infecting a host will transition to the unsampled state. For 'f' this is the branch length at which an node is reconstructed as unsampled if all its neighbouring nodes are a greater distance away. Both defaults are 0.")
 
 arg_parser$add_argument("-P", "--pruneBlacklist", action="store_true", help="If present, all blacklisted and references tips (except the outgroup) are pruned away before starting parsimony-based reconstruction")
 arg_parser$add_argument("-rcm", "--readCountsMatterOnZeroBranches", default = FALSE, action="store_true", help="If present, read counts will be taken into account in parsimony reconstructions at the parents of zero-length branches. Not applicable for the Romero-Severson-like reconstruction method.")
 
-arg_parser$add_argument("-tp", "--outputPDFTree", action="store_true", help="Output annotated trees in PDF format, via ggtree.")
-arg_parser$add_argument("-tn", "--outputNexusTree", action="store_true", help="Output annotated trees in Nexus format.")
+arg_parser$add_argument("-tn", "--outputNexusTree", action="store_true", help="Standard output of annotated trees are in PDF format. If this option is present, output them as NEXUS instead.")
 
 # Summary statistics
 
 arg_parser$add_argument("-ssg", "--makeSummaryStatisticsGraph", action="store_true", help="Produce summary statistic graphs.")
-arg_parser$add_argument("-ssf", "--makeSummaryStatisticsFile", action="store_true", help="Write summary statistic output to file.")
 arg_parser$add_argument("-R", "--recombinationFiles", action="store", help="An optional file path and initial string identifying all recombination data files.")
 
 # Classification
@@ -139,7 +135,6 @@ norm.column.var       <- args$normVar
 norm.standardise      <- args$normStandardise
 norm.constants.input  <- args$normalisationConstants
 
-
 tip.regex             <- args$tipRegex
 file.name.regex       <- args$fileNameRegex
 
@@ -165,31 +160,45 @@ if(useff){
   suppressMessages(require(ff, quietly=TRUE, warn.conflicts=FALSE))
 }
 
-reconstruction.mode   <- args$splitsRule
+reconst.mode.arg      <- args$splitsRule
 
-if(!(reconstruction.mode %in% c("r", "s", "f"))){
+if(!(reconst.mode.arg[1] %in% c("r", "s", "f"))){
   stop(paste("Unknown split classifier: ", mode, "\n", sep=""))
+}
+
+reconstruction.mode   <- reconst.mode.arg[1]
+
+if(reconstruction.mode == "r" & length(reconst.mode.arg)>1){
+  warning("Romero-Severson reconstuction takes no additional arguments; ignoring everything after 'r'")
+}
+
+if(reconstruction.mode!="r" & length(reconst.mode.arg)==1){
+  stop("At least one additional argument is required for Sankoff reconstruction")
+}
+
+sankoff.k             <- as.numeric(reconst.mode.arg[2])
+if(length(reconst.mode.arg) > 2){
+  sankoff.p           <- as.numeric(reconst.mode.arg[3])
+} else {
+  sankoff.p           <- 0
+}
+
+if(is.na(sankoff.k) | is.na(sankoff.p)){
+  stop("Expected numerical arguments for reconstruction algorithm parameters.")
 }
 
 downsample            <- !is.null(args$maxReadsPerHost)
 downsampling.limit    <- args$maxReadsPerHost
 blacklist.ur          <- args$blacklistUnderrepresensted
 
-sankoff.k             <- as.numeric(args$sankoffK)
-
-if(sankoff.k == 0 & reconstruction.mode == "f"){
-  stop("k must be >0 for continuation cost reconstruction")
-}
-
-sankoff.p             <- as.numeric(args$sankoffP)
 read.counts.matter    <- args$readCountsMatterOnZeroBranches
 prune.blacklist       <- args$pruneBlacklist
 
-output.pdf            <- args$outputPDFTree
 output.nexus          <- args$outputNexusTree
+output.pdf            <- !output.nexus
 
 output.ssg            <- args$makeSummaryStatisticsGraph
-output.ssf            <- args$makeSummaryStatisticsFile
+output.ssf            <- T
 
 do.summary.statistics <- output.ssg | output.ssf
 
@@ -244,7 +253,7 @@ if(file.exists(tree.input)){
   if(output.ssg | output.ssf){
     warning("Only one tree provided; cannot output summary statistics\n")
     output.ssf            <- F
-    output.ssf            <- F
+    output.ssg            <- F
     do.summary.statistics <- F
   }
   
@@ -481,7 +490,7 @@ if(!is.null(norm.constants.input)){
   if(grepl(paste0(csv.fe, "$"), norm.ref.file.name)){
     norm.table	<- as.data.table(read.csv(norm.ref.file.name, stringsAsFactors=FALSE))
     if(any(!(c('position',norm.column.var) %in% colnames(norm.table)))){
-      warning(paste0("One or more of position and ",norm.var," columns not present in file ",norm.ref.file.name," skipping normalisation.\n"))
+      warning(paste0("One or more of position and ",norm.column.var," columns not present in file ",norm.ref.file.name," skipping normalisation.\n"))
       all.tree.info <- sapply(all.tree.info, function(tree.info) {
         tree.info$normalisation.constant  <- 1
         tree.info
@@ -507,7 +516,8 @@ if(!is.null(norm.constants.input)){
         }
         
         set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
-      }
+      }  
+      
       all.tree.info <- sapply(all.tree.info, function(tree.info){
         tree.info$normalisation.constant <- lookup.normalisation.for.tree(tree.info, norm.table, lookup.column = "NORM_CONST")
         print(tree.info$normalisation.constant)
