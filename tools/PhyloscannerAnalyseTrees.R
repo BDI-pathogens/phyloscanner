@@ -50,7 +50,7 @@ arg_parser$add_argument("-sd", "--seed", action="store_true", help="Random numbe
 
 arg_parser$add_argument("-nr", "--normRefFileName", action="store", help="File name of reference for window normalising constants. If absent, no normalisation will be performed.")
 arg_parser$add_argument("-nv", "--normVar", action="store", default="MEDIAN_PWD", help="Column name in reference table that is to be used as normalising constant.")
-arg_parser$add_argument("-ns", "--normStandardise", action="store_true", default=FALSE, help="If true, the normalising constants are standardized so that the average on gag+pol equals 1. This way the normalised branch lengths are interpretable as typical distances on gag+pol")
+arg_parser$add_argument("-ns", "--normStandardiseGagPol", action="store_true", default=FALSE, help="An HIV-specific option: if true, the normalising constants are standardised so that the average on gag+pol equals 1. Otherwise they are standardised so the average on the whole genome equals 1.")
 arg_parser$add_argument("-nc", "--normalisationConstants", action="store", help="Either a CSV file listing the file name for each tree (column 1) and the normalisation constant (column 2) or a single numerical normalisation constant to be applied to each window.")
 
 # Blacklisting
@@ -131,7 +131,7 @@ if(use.m.thresh){
 
 norm.ref.file.name    <- args$normRefFileName
 norm.column.var       <- args$normVar
-norm.standardise      <- args$normStandardise
+norm.standardise.gp   <- args$normStandardiseGagPol
 norm.constants.input  <- args$normalisationConstants
 
 tip.regex             <- args$tipRegex
@@ -175,15 +175,17 @@ if(reconstruction.mode!="r" & length(reconst.mode.arg)==1){
   stop("At least one additional argument is required for Sankoff reconstruction")
 }
 
-sankoff.k             <- as.numeric(reconst.mode.arg[2])
-if(length(reconst.mode.arg) > 2){
-  sankoff.p           <- as.numeric(reconst.mode.arg[3])
-} else {
-  sankoff.p           <- 0
-}
-
-if(is.na(sankoff.k) | is.na(sankoff.p)){
-  stop("Expected numerical arguments for reconstruction algorithm parameters.")
+if(reconstruction.mode!="r"){
+  sankoff.k             <- as.numeric(reconst.mode.arg[2])
+  if(length(reconst.mode.arg) > 2){
+    sankoff.p           <- as.numeric(reconst.mode.arg[3])
+  } else {
+    sankoff.p           <- 0
+  }
+  
+  if(is.na(sankoff.k) | is.na(sankoff.p)){
+    stop("Expected numerical arguments for reconstruction algorithm parameters.")
+  }
 }
 
 downsample            <- !is.null(args$maxReadsPerHost)
@@ -221,7 +223,6 @@ if(dist.threshold == -1){
 }
 allow.mt              <- args$allowMultiTrans
 
-print(here())
 script.dir            <- dirname(thisfile())
 
 if(is.null(script.dir)){
@@ -499,8 +500,8 @@ if(!is.null(norm.constants.input)){
   
   if(grepl(paste0(csv.fe, "$"), norm.ref.file.name)){
     norm.table	<- as.data.table(read.csv(norm.ref.file.name, stringsAsFactors=FALSE))
-    if(any(!(c('position',norm.column.var) %in% colnames(norm.table)))){
-      warning(paste0("One or more of position and ",norm.column.var," columns not present in file ",norm.ref.file.name," skipping normalisation.\n"))
+    if(any(!(c('POSITION',norm.column.var) %in% colnames(norm.table)))){
+      warning(paste0("One or more of POSITION and ",norm.column.var," columns not present in file ",norm.ref.file.name," skipping normalisation.\n"))
       all.tree.info <- sapply(all.tree.info, function(tree.info) {
         tree.info$normalisation.constant  <- 1
         tree.info
@@ -508,13 +509,13 @@ if(!is.null(norm.constants.input)){
     } else {
       setnames(norm.table, norm.column.var, 'NORM_CONST')
       
-      if(norm.standardise){
+      if(norm.standardise.gp){
         #	Standardize to mean of 1 on gag+pol ( prot + first part of RT in total 1300bp )
         
         #790 - 3385
         if (verbose) cat('Standardising normalising constants to 1 on the gag+pol (prot + first part of RT in total 1300bp pol) region\n')
         
-        tmp		<- subset(norm.table, position>=790L & position<=3385L)
+        tmp		<- subset(norm.table, POSITION>=790L & POSITION<=3385L)
         
         if(nrow(tmp)<=0){
           stop(paste0("No positions from gag+pol present in file ",norm.ref.file.name,"; unable to standardise"))
@@ -526,7 +527,16 @@ if(!is.null(norm.constants.input)){
         }
         
         set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
-      }  
+      } else {
+        if (verbose) cat('Standardising normalising constants to 1 on the whole genome\n')
+
+        tmp		<- norm.table[, mean(NORM_CONST)]
+        if(!is.finite(tmp)){
+          stop(paste0("Standardising constant is not finite"))
+        }
+        
+        set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
+      }
       
       all.tree.info <- sapply(all.tree.info, function(tree.info){
         tree.info$normalisation.constant <- lookup.normalisation.for.tree(tree.info, norm.table, lookup.column = "NORM_CONST")
