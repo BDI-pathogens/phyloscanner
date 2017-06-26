@@ -56,7 +56,7 @@ arg_parser$add_argument("-nc", "--normalisationConstants", action="store", help=
 # Blacklisting
 
 arg_parser$add_argument("-db", "--duplicateBlacklist", action="store", help="Perform duplicate blacklisting for likely contaminants; argument here is input file produced by Python output.")
-arg_parser$add_argument("-pb", "--parsimonyBlacklist", action="store_true", help="Perform parsimony-based blacklisting for likely contaminants.")
+arg_parser$add_argument("-pbk", "--parsimonyBlacklistK", action="store_true", type="double", help="If given, perform parsimony-based blacklisting for likely contaminants. The argument is the value of the within-host diversity penalty used.")
 arg_parser$add_argument("-rwt", "--rawBlacklistThreshold", action="store", default=0, help="Raw threshold for blacklisting; subgraphs or exact duplicate tips with read counts less than this will be blacklisted, regardless of the count of any other subgraphs from the same host or identical tips from another host. Default 0; one or both of this and -rtt must be specified and >0 for -db or -pb to do anything.")
 arg_parser$add_argument("-rtt", "--ratioBlacklistThreshold", action="store", default=0, help="Ratio threshold for blacklisting; subgraphs or exact duplicate tips will be blacklisted if the ratio of their tip count to that of another subgraph from the same host or tip from another host is less than this. Default 0; one or both of this and -rwt must be specified and >0 for -db or -pb to do anything.")
 arg_parser$add_argument("-ub", "--dualBlacklist", action="store_true", default=F, help="Blacklist all reads from the minor subgraphs for all patients established as dual by parsimony blacklisting.")
@@ -143,7 +143,8 @@ if(!is.null(norm.ref.file.name) & !is.null(norm.constants.input)){
 
 do.dup.blacklisting   <- !is.null(args$duplicateBlacklist)
 dup.input.file.name   <- args$duplicateBlacklist
-do.par.blacklisting   <- args$parsimonyBlacklist
+do.par.blacklisting   <- is.null(args$parsimonyBlacklistK)
+par.blacklisting.k    <- args$parsimonyBlacklistK
 do.dual.blacklisting  <- args$dualBlacklist
 
 if(do.dual.blacklisting & !do.par.blacklisting){
@@ -623,7 +624,7 @@ if(do.par.blacklisting){
     
     hosts <- hosts[order(hosts)]
     
-    results <- sapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, outgroup.name, bl.raw.threshold, bl.ratio.threshold, sankoff.k, T, no.read.counts, verbose), simplify = F, USE.NAMES = T)
+    results <- sapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, outgroup.name, bl.raw.threshold, bl.ratio.threshold, par.blacklisting.k, T, no.read.counts, verbose), simplify = F, USE.NAMES = T)
     
     contaminant                                 <- unlist(lapply(results, "[[", 2))
     contaminant.nos                             <- which(tree.info$tree$tip.label %in% contaminant)
