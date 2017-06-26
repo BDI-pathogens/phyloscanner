@@ -218,6 +218,10 @@ allow.mt              <- args$allowMultiTrans
 
 script.dir            <- args$scriptdir
 
+if(is.null(script.dir)){
+  script.dir <- getwd()
+}
+
 source(file.path(script.dir, "GeneralFunctions.R"))
 source(file.path(script.dir, "NormalisationFunctions.R"))
 source(file.path(script.dir, "TreeUtilityFunctions.R"))
