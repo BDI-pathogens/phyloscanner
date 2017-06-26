@@ -1,6 +1,6 @@
 #!/usr/bin/Rscript
 
-list.of.packages <- c("argparse", "data.table", "ape", "ff", "phangorn", "phytools", "scales", "RColorBrewer", "gtable", "grid", "gridExtra", "devtools", "here")
+list.of.packages <- c("argparse", "data.table", "ape", "ff", "phangorn", "phytools", "scales", "RColorBrewer", "gtable", "grid", "gridExtra", "kimisc")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)){
   cat("Please run PackageInstall.R to continue\n")
@@ -21,7 +21,7 @@ suppressMessages(require(gtable, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(grid, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(gridExtra, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(devtools, quietly=TRUE, warn.conflicts=FALSE))
-suppressMessages(require(here, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(kimisc, quietly=TRUE, warn.conflicts=FALSE))
 
 arg_parser		     <- ArgumentParser()
 
@@ -36,7 +36,6 @@ arg_parser$add_argument("-b", "--blacklist", action="store", help="A path and st
 # General, bland options
 
 arg_parser$add_argument("-od", "--outputDir", action="store", help="All output will be written to this directory. If absent, current working directory.")
-arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.")
 arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what the script is doing.")
 arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. Three capture groups: patient ID, read ID, and read count; if the latter two groups are missing then read information will not be used. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name.")
 arg_parser$add_argument("-y", "--fileNameRegex", action="store", default="^\\D*([0-9]+)_to_([0-9]+).*$", help="Regular expression identifying window coordinates. Two capture groups: start and end; if the latter is missing then the first group is a single numerical identifier for the window. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name.")
@@ -92,7 +91,6 @@ arg_parser$add_argument("-ct", "--collapsedTree", action="store_true", help="If 
 arg_parser$add_argument("-swt", "--windowThreshold", action="store", default=0, type="double", help="Relationships between two patients will only appear in output if they are within the distance threshold and ajacent to each other least this proportion of windows (default 0).")
 arg_parser$add_argument("-sdt", "--distanceThreshold", action="store", default=-1, type="double", help="Maximum distance threshold on a window for a relationship to be reconstructed between two patients on that window.")
 arg_parser$add_argument("-amt", "--allowMultiTrans", action="store_true", default=FALSE, help="If absent, directionality is only inferred between pairs of patients where a single clade from one patient is nested in one from the other; this is more conservative")
-
 
 args                  <- arg_parser$parse_args()
 
@@ -223,7 +221,8 @@ if(dist.threshold == -1){
 }
 allow.mt              <- args$allowMultiTrans
 
-script.dir            <- args$scriptdir
+print(here())
+script.dir            <- dirname(thisfile())
 
 if(is.null(script.dir)){
   script.dir <- getwd()
@@ -531,7 +530,6 @@ if(!is.null(norm.constants.input)){
       
       all.tree.info <- sapply(all.tree.info, function(tree.info){
         tree.info$normalisation.constant <- lookup.normalisation.for.tree(tree.info, norm.table, lookup.column = "NORM_CONST")
-        print(tree.info$normalisation.constant)
         tree.info
       }, simplify = F, USE.NAMES = T)
     }
