@@ -15,7 +15,9 @@ every.package <- c("argparse",
                    "scales", 
                    "pegas",
                    "prodlim",
-                   "reshape2")
+                   "reshape2",
+                   "here",
+                   "devtools")
 
 new.packages <- every.package[!(every.package %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
