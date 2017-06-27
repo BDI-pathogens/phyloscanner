@@ -133,29 +133,6 @@ the reads, for comparison. (which need not be
 those used to produce the bam files) that will be cut into the same windows as
 the bam files and included in the alignment of reads, for comparison. This is
 required if phyloscanner is to analyse the trees it produces.''')
-RecommendedArgs.add_argument('-RR', '--ref-for-rooting', help='''Used to name a
-reference sequence, which must be present in the file you specify with -A, to be
-an outgroup in each tree. This is required if phyloscanner is to analyse the
-trees it produces.''')
-RecommendedArgs.add_argument('-SR', '--splits-rule', help='''By default,
-phyloscanner creates phylogenies in each window then stops. With this option,
-phyloscanner will also analyse the phylogenies. Use this option to specify an
-algorithm for splitting the pathogen population from each input bam file into
-subgraphs, optionally followed by 1 or 2 more parameters (separated from each other and the algorithm choice by commas). The algorithm should be one of s, r
-or f: s=Sankoff with optional within-host diversity penalty (slow,
-rigorous), r=Romero-Severson (quick, less
-rigorous with >2 patients), f=Sankoff with
-continuation costs (experimental). For 'r' no further
-arguments are expected. For 's' and 'f' the k
-parameter in the Sankoff reconstruction, which
-penalises within-host diversity, must also be given.
-There is an optional third argument for 's' and 'f'.
-For 's' this is the branch length threshold at which a
-lineage reconstructed as infecting a host will
-transition to the unsampled state. For 'f' this is the
-branch length at which an node is reconstructed as
-unsampled if all its neighbouring nodes are a greater
-distance away. Both defaults are 0. ''')
 RecommendedArgs.add_argument('-2', '--pairwise-align-to', help='''By default,
 phyloscanner figures out where corresponding windows are in different bam files
 by creating a multiple sequence alignment containing all of the mapping
@@ -365,31 +342,6 @@ if glob.glob('RAxML*'):
   'fail to run. Continuing.', file=sys.stderr)
 
 TempFiles = set([])
-
-# Sanity checks on the splits rule.
-if args.splits_rule:
-  SplitsRuleArgs = args.splits_rule.split(',')
-  if len(SplitsRuleArgs) > 3:
-    print('Error: --splits-rule should be used to specify 3 or fewer things,',
-    'separated by commas. You specified', args.splits_rule + '. Quitting.',
-    file=sys.stderr)
-    exit(1)
-  SplitsAlgo = SplitsRuleArgs[0]
-  AvailableSplitsAlgos = ['r', 's', 'f']
-  if not SplitsAlgo in AvailableSplitsAlgos:
-    print('Error: the first argument specified with --splits-rule, i.e. the',
-    'desired algorithm for splitting pathogen populations into subgraphs, must',
-    'be one of r, s or f. Quitting.', file=sys.stderr)
-    exit(1)
-  for ExtraSplitsParam in SplitsRuleArgs[1:]:
-    try:
-      ExtraSplitsParam = float(ExtraSplitsParam)
-    except ValueError:
-      print("Couldn't understand parameter ", ExtraSplitsParam,
-      ', specified with --splits-rule, as a float. Quitting.', sep='',
-      file=sys.stderr)
-      exit(1)
-  
 
 # Try to make the output dir, if desired.
 HaveMadeOutputDir = False
@@ -677,8 +629,8 @@ if IncludeOtherRefs:
 # Consistency checks on flags that require a ref.
 for FlagName, FlagValue in (('--ref-for-coords',  args.ref_for_coords),
 ('--pairwise-align-to', args.pairwise_align_to),
-('--ref-for-rooting', args.ref_for_rooting),
 ('--excision-ref', args.excision_ref)):
+  #('--ref-for-rooting', args.ref_for_rooting),
   if FlagValue == None:
     continue
   if not IncludeOtherRefs:
@@ -706,7 +658,6 @@ if ExcisePositions:
 TranslateCoordsCode = pf.FindAndCheckCode('TranslateCoords.py')
 FindSeqsInFastaCode = pf.FindAndCheckCode('FindSeqsInFasta.py')
 FindWindowsCode     = pf.FindAndCheckCode('FindInformativeWindowsInFasta.py')
-AnalyseTreesCode    = pf.FindAndCheckCode('PhyloscannerAnalyseTrees.R')
 
 # Test RAxML works, if trees are to be made.
 RAxMLargList = args.x_raxml.split()
@@ -2144,13 +2095,7 @@ if not args.keep_temp_files:
     except:
       print('Failed to delete temporary file', TempFile + '. Leaving it.')
 
-# Quit if we're not analysing the trees.
-if not args.splits_rule:
-  print('--splits-rule was not specified, so we are not analysing the trees.',
-  'Quitting successfully.')
-  exit(0)
-
-# Find the RAxML best trees: there are 2x2 possibilities for what directory
+# Find the RAxML best trees: there are 3 possibilities for what directory
 # they're in now.
 if args.keep_output_together:
   if HaveMadeOutputDir:
@@ -2167,19 +2112,6 @@ if not trees:
   exit(1)
 
 
-# Analyse the trees!
-AnalyseTreesCommand = [AnalyseTreesCode, args.splits_rule] 
-
-
-proc = subprocess.Popen(AnalyseTreesCommand, stdout=subprocess.PIPE,
-stderr=subprocess.PIPE)
-out, err = proc.communicate()
-ExitStatus = proc.returncode
-if ExitStatus != 0:
-  print('Problem running the tree analysis code. It returned an exit code of',
-  ExitStatus, ' and printed this to stdout:\n', out, '\nand printed this to',
-  'stderr:\n', err, '\nQuitting.', file=sys.stderr)
-  exit(1)
 
 # Some code not being used at the moment:
 '''DuplicateReadRatios.append(float(ReadDict1[read])/ReadDict2[read])
