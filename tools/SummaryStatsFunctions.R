@@ -187,6 +187,7 @@ calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, verbose = F){
     }
     recomb.df <- recomb.df[c("Bam.file","Recombination.metric")]
     colnames(recomb.df)[colnames(recomb.df) == "Bam.file"] <- "id"
+    colnames(recomb.df)[colnames(recomb.df) == "Recombination.metric"] <- "recombination.metric"
     window.table <- merge(window.table, recomb.df, by="id", all=F)
   }
   
