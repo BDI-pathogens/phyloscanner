@@ -228,7 +228,7 @@ allow.mt              <- args$allowMultiTrans
 if(!is.null(args$scriptDir)){
   script.dir          <- args$scriptDir
 } else {
-  script.dir          <- dirname(thisfile())
+  script.dir          <- paste0(dirname(thisfile()),"/tools")
   if(!dir.exists(script.dir)){
     stop("Cannot detect the location of the /phyloscanner/tools directory. Please specify it at the command line with -D.")
   }
