@@ -69,7 +69,7 @@ arg_parser$add_argument("-dsb", "--blacklistUnderrepresented", action="store_tru
 # Parsimony reconstruction
 
 arg_parser$add_argument("-ff", "--useff", action="store_true", default=FALSE, help="Use ff to store parsimony reconstruction matrices. Use if you run out of memory.")
-arg_parser$add_argument("splitsRule", action="store", nargs="+", help="The rules by which the sets of patients are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. This takes a variable number of arguments. The first dictates the algorithm: s=Sankoff with optional within-host diversity penalty (slow, rigorous, default), r=Romero-Severson (quick, less rigorous with >2 patients), f=Sankoff with continuation costs (experimental). For 'r' no further arguments are expected. For 's' and 'f' the k parameter in the Sankoff reconstruction, which penalises within-host diversity, must also be given. There is an optional third argument for 's' and 'f'. For 's' this is the branch length threshold at which a lineage reconstructed as infecting a host will transition to the unsampled state. For 'f' this is the branch length at which an node is reconstructed as unsampled if all its neighbouring nodes are a greater distance away. Both defaults are 0.")
+arg_parser$add_argument("splitsRule", action="store", help="The rules by which the sets of patients are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. This takes a variable number of arguments. The first dictates the algorithm: s=Sankoff with optional within-host diversity penalty (slow, rigorous, default), r=Romero-Severson (quick, less rigorous with >2 patients), f=Sankoff with continuation costs (experimental). For 'r' no further arguments are expected. For 's' and 'f' the k parameter in the Sankoff reconstruction, which penalises within-host diversity, must also be given. There is an optional third argument for 's' and 'f'. For 's' this is the branch length threshold at which a lineage reconstructed as infecting a host will transition to the unsampled state. For 'f' this is the branch length at which an node is reconstructed as unsampled if all its neighbouring nodes are a greater distance away. Both defaults are 0.")
 arg_parser$add_argument("-P", "--pruneBlacklist", action="store_true", help="If present, all blacklisted and references tips (except the outgroup) are pruned away before starting parsimony-based reconstruction")
 arg_parser$add_argument("-rcm", "--readCountsMatterOnZeroBranches", default = FALSE, action="store_true", help="If present, read counts will be taken into account in parsimony reconstructions at the parents of zero-length branches. Not applicable for the Romero-Severson-like reconstruction method.")
 arg_parser$add_argument("-tn", "--outputNexusTree", action="store_true", help="Standard output of annotated trees are in PDF format. If this option is present, output them as NEXUS instead.")
@@ -158,6 +158,8 @@ if(useff){
 
 reconst.mode.arg      <- args$splitsRule
 
+reconst.mode.arg      <- unlist(strsplit(reconst.mode.arg, ","))
+
 if(!(reconst.mode.arg[1] %in% c("r", "s", "f"))){
   stop(paste("Unknown split classifier: ", mode, "\n", sep=""))
 }
@@ -177,7 +179,7 @@ if(reconstruction.mode!="r"){
   if(length(reconst.mode.arg) > 2){
     sankoff.p           <- as.numeric(reconst.mode.arg[3])
   } else {
-    sankoff.p           <- 0
+    sankoff.p           <- Inf
   }
   
   if(is.na(sankoff.k) | is.na(sankoff.p)){
