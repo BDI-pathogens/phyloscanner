@@ -730,7 +730,7 @@ classify <- function(tree.info, verbose = F) {
   
   classification <- cbind(adjacency.df, contiguity.df[,3], dir.12.df[,3], dir.21.df[,3], nodes.1.df[,3], nodes.2.df[,3], path.df[,3], min.distance.df[,3])
   
-  column.names <- c("Patient_1", "Patient_2", "adjacent", "contiguous", "paths12", "paths21", "nodes1", "nodes2", "path.classification", "min.distance.between.subtrees")
+  column.names <- c("Host_1", "Host_2", "adjacent", "contiguous", "paths12", "paths21", "nodes1", "nodes2", "path.classification", "min.distance.between.subtrees")
   
   if(normalisation.constant!=1){
     classification <- cbind(classification, normalised.distance.df[,3])
@@ -785,7 +785,7 @@ summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.
   tt	<- lapply(tt, function(x){
     #x	<- tt[[1]]
     tmp	<- copy(x)
-    setnames(tmp, c('Patient_1','Patient_2','paths12','paths21'), c('Patient_2','Patient_1','paths21','paths12'))
+    setnames(tmp, c('Host_1','Host_2','paths12','paths21'), c('Host_2','Host_1','paths21','paths12'))
     set(tmp, tmp[, which(path.classification=="anc")], 'path.classification', 'TMP')
     set(tmp, tmp[, which(path.classification=="desc")], 'path.classification', 'anc')
     set(tmp, tmp[, which(path.classification=="TMP")], 'path.classification', 'desc')
@@ -793,8 +793,8 @@ summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.
     set(tmp, tmp[, which(path.classification=="multiDesc")], 'path.classification', 'multiAnc')
     set(tmp, tmp[, which(path.classification=="TMP")], 'path.classification', 'multiDesc')
     x	<- rbind(x, tmp)
-    setkey(x, Patient_1, Patient_2)
-    subset(x, Patient_1 < Patient_2)
+    setkey(x, Host_1, Host_2)
+    subset(x, Host_1 < Host_2)
   })
   #
   # rbind consolidated files
@@ -813,7 +813,7 @@ summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.
     setnames(tt, 'min.distance.between.subtrees', 'PATRISTIC_DISTANCE')
   }
   
-  setnames(tt, c('Patient_1','Patient_2','path.classification','paths21','paths12','adjacent'), c('PAT.1','PAT.2','TYPE','PATHS.21','PATHS.12','ADJACENT'))
+  setnames(tt, c('Host_1','Host_2','path.classification','paths21','paths12','adjacent'), c('HOST.1','HOST.2','TYPE','PATHS.21','PATHS.12','ADJACENT'))
   
   # change type name depending on allow.mt
   if(!allow.mt){
@@ -840,31 +840,31 @@ summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.
   if(verbose) cat("Reordering...\n")
   
   #	reorder
-  setkey(tt, SUFFIX, PAT.1, PAT.2)
+  setkey(tt, SUFFIX, HOST.1, HOST.2)
   
   if (verbose) cat("Making summary output table...\n")
 
   set(tt, NULL, c('PATHS.12','PATHS.21'),NULL)
   
   
-  existence.counts <- tt[, list(both.exist=length(SUFFIX)), by=c('PAT.1','PAT.2')]
+  existence.counts <- tt[, list(both.exist=length(SUFFIX)), by=c('HOST.1','HOST.2')]
 
-  tt <- merge(tt, existence.counts, by=c('PAT.1', 'PAT.2'))
+  tt <- merge(tt, existence.counts, by=c('HOST.1', 'HOST.2'))
   
   tt.close <- tt[which(tt$ADJACENT & tt$PATRISTIC_DISTANCE < dist.threshold ),]
    
   tt.close$NOT.SIBLINGS <- tt.close$ADJACENT & (tt.close$PATRISTIC_DISTANCE < dist.threshold) & tt.close$TYPE!="none"
   
   # How many windows have this relationship, ADJACENT and PATRISTIC_DISTANCE below the threshold?
-  type.counts	<- tt.close[, list(windows=length(SUFFIX)), by=c('PAT.1','PAT.2','TYPE')]
+  type.counts	<- tt.close[, list(windows=length(SUFFIX)), by=c('HOST.1','HOST.2','TYPE')]
   # How many windows have ADJACENT and PATRISTIC_DISTANCE below the threshold?
-  any.counts  <- tt.close[, list(all.windows=length(SUFFIX)), by=c('PAT.1','PAT.2')]
+  any.counts  <- tt.close[, list(all.windows=length(SUFFIX)), by=c('HOST.1','HOST.2')]
   # How many windows have a relationship other than "none", ADJACENT and PATRISTIC_DISTANCE below the threshold?
-  ns.counts  <- tt.close[, list(ns.windows=length(which(NOT.SIBLINGS))), by=c('PAT.1','PAT.2')]
+  ns.counts  <- tt.close[, list(ns.windows=length(which(NOT.SIBLINGS))), by=c('HOST.1','HOST.2')]
   
-  tt.close		<- merge(tt.close, type.counts, by=c('PAT.1','PAT.2','TYPE'))
-  tt.close		<- merge(tt.close, any.counts, by=c('PAT.1','PAT.2'))
-  tt.close		<- merge(tt.close, ns.counts, by=c('PAT.1','PAT.2'))
+  tt.close		<- merge(tt.close, type.counts, by=c('HOST.1','HOST.2','TYPE'))
+  tt.close		<- merge(tt.close, any.counts, by=c('HOST.1','HOST.2'))
+  tt.close		<- merge(tt.close, ns.counts, by=c('HOST.1','HOST.2'))
   
   tt.close[, fraction:=paste(windows,'/',both.exist,sep='')]
   #	convert "anc_12" and "ans_21" to "anc" depending on direction
@@ -872,16 +872,16 @@ summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.
   tmp			<- tt.close[, which(TYPE=="anc_12")]
   set(tt.close, tmp, 'TYPE', "trans")
   tmp			<- tt.close[, which(TYPE=="anc_21")]
-  set(tt.close, tmp, 'DUMMY', tt.close[tmp, PAT.1])
-  set(tt.close, tmp, 'PAT.1', tt.close[tmp, PAT.2])
+  set(tt.close, tmp, 'DUMMY', tt.close[tmp, HOST.1])
+  set(tt.close, tmp, 'PAT.1', tt.close[tmp, HOST.2])
   set(tt.close, tmp, 'PAT.2', tt.close[tmp, DUMMY])
   set(tt.close, tmp, 'TYPE', "trans")
   
   tmp			<- tt.close[, which(TYPE=="multi_anc_12")]
   set(tt.close, tmp, 'TYPE', "multi_trans")
   tmp			<- tt.close[, which(TYPE=="multi_anc_21")]
-  set(tt.close, tmp, 'DUMMY', tt.close[tmp, PAT.1])
-  set(tt.close, tmp, 'PAT.1', tt.close[tmp, PAT.2])
+  set(tt.close, tmp, 'DUMMY', tt.close[tmp, HOST.1])
+  set(tt.close, tmp, 'PAT.1', tt.close[tmp, HOST.2])
   set(tt.close, tmp, 'PAT.2', tt.close[tmp, DUMMY])
   set(tt.close, tmp, 'TYPE', "multi_trans")
   
@@ -891,7 +891,7 @@ summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.
   tt.close <- tt.close[!duplicated(tt.close),]
   
   #	write to file
-  setkey(tt.close, PAT.1, PAT.2, TYPE)
+  setkey(tt.close, HOST.1, HOST.2, TYPE)
   #
   
   return(subset(tt.close, all.windows>=min.threshold))
