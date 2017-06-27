@@ -188,10 +188,10 @@ output.trans.tree <- function(tree, assocs){
     root.nos <- c(root.nos, root)
   }
   
-  patients <-  unlist(lapply(strsplit(unique.splits, "-S"), `[[`, 1)) 
-  parent.patients <-  unlist(lapply(strsplit(parent.splits, "-S"), `[[`, 1)) 
+  hosts <-  unlist(lapply(strsplit(unique.splits, "-S"), `[[`, 1)) 
+  parent.hosts <-  unlist(lapply(strsplit(parent.splits, "-S"), `[[`, 1)) 
   
-  tt.table <- data.frame(unique.splits, parent.splits, patients, parent.patients, lengths, root.nos, stringsAsFactors = F)
+  tt.table <- data.frame(unique.splits, parent.splits, hosts, parent.hosts, lengths, root.nos, stringsAsFactors = F)
 
   return(tt.table)
 }
@@ -219,7 +219,7 @@ prune.unsampled.tips <- function(tt.table){
   } 
   
   for.output$patients[which(grepl("^unsampled_region",for.output$patients))] <- "UnsampledRegion"
-  for.output$parent.patients[which(grepl("^unsampled_region",for.output$parent.patients))] <- "UnsampledRegion"
+  for.output$parent.hosts[which(grepl("^unsampled_region",for.output$parent.hosts))] <- "UnsampledRegion"
 
   return(for.output)
 }
