@@ -689,7 +689,7 @@ classify <- function(tree.info, verbose = F) {
             path.matrix[pat.1, pat.2] <- "multiDesc"
           }
         } else {
-          path.matrix[pat.1, pat.2] <- "conflict"
+          path.matrix[pat.1, pat.2] <- "complex"
         }
         
         pairwise.distances <- vector()
@@ -818,7 +818,7 @@ summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.
   # change type name depending on allow.mt
   if(!allow.mt){
     if(verbose) cat("Allowing only single lineage transmission...\n")
-    set(tt, tt[, which(TYPE%in%c("multiAnc", "multiDesc"))], 'TYPE', 'conflict')
+    set(tt, tt[, which(TYPE%in%c("multiAnc", "multiDesc"))], 'TYPE', 'complex')
   }
   
   #	check we have patristic distances, paths
