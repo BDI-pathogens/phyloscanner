@@ -319,7 +319,7 @@ check.uninterrupted <- function(tt, patients, splits.for.patients, patients.for.
   return(any.contiguity & !any.interruption)
 }
 
-extract.tt.subtree <- function(tt, patients, splits.for.patients, patients.for.splits){
+extract.tt.subgraph <- function(tt, patients, splits.for.patients, patients.for.splits){
   # for now, at least
   
   if(length(patients)!=2){
@@ -613,10 +613,10 @@ classify <- function(tree.info, verbose = F) {
   if (verbose) cat("Calculating pairwise distances between splits...\n")
   
   split.distances <- tryCatch(
-    all.subtree.distances(tree, tt, all.splits, assocs), warning=function(w){return(NULL)}, error=function(e){return(NULL)})
+    all.subgraph.distances(tree, tt, all.splits, assocs), warning=function(w){return(NULL)}, error=function(e){return(NULL)})
   
   if(is.null(split.distances)){
-    split.distances <- all.subtree.distances(tree, tt, all.splits, assocs, TRUE)
+    split.distances <- all.subgraph.distances(tree, tt, all.splits, assocs, TRUE)
   }
   
   if (verbose) cat("Testing pairs...\n")
