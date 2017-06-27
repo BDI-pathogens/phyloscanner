@@ -45,18 +45,18 @@ arg_parser$add_argument("-pw", "--pdfwidth", action="store", default=50, help="W
 arg_parser$add_argument("-ph", "--pdfrelheight", action="store", default=0.15, help="Relative height of tree pdf.")
 arg_parser$add_argument("-rda", "--outputRDA", action="store_true", help="Write the final R workspace image to file.")
 arg_parser$add_argument("-sd", "--seed", action="store_true", help="Random number seed; used by the downsampling process, and also ties in some parsimony reconstructions can be broken randomly.")
+arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.")
 
 # Normalisation options
 
 arg_parser$add_argument("-nr", "--normRefFileName", action="store", help="File name of reference for window normalising constants. If absent, no normalisation will be performed.")
-arg_parser$add_argument("-nv", "--normVar", action="store", default="MEDIAN_PWD", help="Column name in reference table that is to be used as normalising constant.")
 arg_parser$add_argument("-ns", "--normStandardiseGagPol", action="store_true", default=FALSE, help="An HIV-specific option: if true, the normalising constants are standardised so that the average on gag+pol equals 1. Otherwise they are standardised so the average on the whole genome equals 1.")
 arg_parser$add_argument("-nc", "--normalisationConstants", action="store", help="Either a CSV file listing the file name for each tree (column 1) and the normalisation constant (column 2) or a single numerical normalisation constant to be applied to each window.")
 
 # Blacklisting
 
 arg_parser$add_argument("-db", "--duplicateBlacklist", action="store", help="Perform duplicate blacklisting for likely contaminants; argument here is input file produced by Python output.")
-arg_parser$add_argument("-pb", "--parsimonyBlacklist", action="store_true", help="Perform parsimony-based blacklisting for likely contaminants.")
+arg_parser$add_argument("-pbk", "--parsimonyBlacklistK", action="store", type="double", help="If given, perform parsimony-based blacklisting for likely contaminants. The argument is the value of the within-host diversity penalty used.")
 arg_parser$add_argument("-rwt", "--rawBlacklistThreshold", action="store", default=0, help="Raw threshold for blacklisting; subgraphs or exact duplicate tips with read counts less than this will be blacklisted, regardless of the count of any other subgraphs from the same host or identical tips from another host. Default 0; one or both of this and -rtt must be specified and >0 for -db or -pb to do anything.")
 arg_parser$add_argument("-rtt", "--ratioBlacklistThreshold", action="store", default=0, help="Ratio threshold for blacklisting; subgraphs or exact duplicate tips will be blacklisted if the ratio of their tip count to that of another subgraph from the same host or tip from another host is less than this. Default 0; one or both of this and -rwt must be specified and >0 for -db or -pb to do anything.")
 arg_parser$add_argument("-ub", "--dualBlacklist", action="store_true", default=F, help="Blacklist all reads from the minor subgraphs for all patients established as dual by parsimony blacklisting.")
@@ -69,11 +69,9 @@ arg_parser$add_argument("-dsb", "--blacklistUnderrepresented", action="store_tru
 # Parsimony reconstruction
 
 arg_parser$add_argument("-ff", "--useff", action="store_true", default=FALSE, help="Use ff to store parsimony reconstruction matrices. Use if you run out of memory.")
-arg_parser$add_argument("splitsRule", action="store", nargs="+", help="The rules by which the sets of patients are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. This takes a variable number of arguments. The first dictates the algorithm: s=Sankoff with optional within-host diversity penalty (slow, rigorous, default), r=Romero-Severson (quick, less rigorous with >2 patients), f=Sankoff with continuation costs (experimental). For 'r' no further arguments are expected. For 's' and 'f' the k parameter in the Sankoff reconstruction, which penalises within-host diversity, must also be given. There is an optional third argument for 's' and 'f'. For 's' this is the branch length threshold at which a lineage reconstructed as infecting a host will transition to the unsampled state. For 'f' this is the branch length at which an node is reconstructed as unsampled if all its neighbouring nodes are a greater distance away. Both defaults are 0.")
-
+arg_parser$add_argument("splitsRule", action="store", help="The rules by which the sets of patients are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. This takes a variable number of arguments. The first dictates the algorithm: s=Sankoff with optional within-host diversity penalty (slow, rigorous, default), r=Romero-Severson (quick, less rigorous with >2 patients), f=Sankoff with continuation costs (experimental). For 'r' no further arguments are expected. For 's' and 'f' the k parameter in the Sankoff reconstruction, which penalises within-host diversity, must also be given. There is an optional third argument for 's' and 'f'. For 's' this is the branch length threshold at which a lineage reconstructed as infecting a host will transition to the unsampled state. For 'f' this is the branch length at which an node is reconstructed as unsampled if all its neighbouring nodes are a greater distance away. Both defaults are 0.")
 arg_parser$add_argument("-P", "--pruneBlacklist", action="store_true", help="If present, all blacklisted and references tips (except the outgroup) are pruned away before starting parsimony-based reconstruction")
 arg_parser$add_argument("-rcm", "--readCountsMatterOnZeroBranches", default = FALSE, action="store_true", help="If present, read counts will be taken into account in parsimony reconstructions at the parents of zero-length branches. Not applicable for the Romero-Severson-like reconstruction method.")
-
 arg_parser$add_argument("-tn", "--outputNexusTree", action="store_true", help="Standard output of annotated trees are in PDF format. If this option is present, output them as NEXUS instead.")
 
 # Summary statistics
@@ -128,9 +126,7 @@ if(use.m.thresh){
 } else {
   m.thresh            <- -1       
 }
-
 norm.ref.file.name    <- args$normRefFileName
-norm.column.var       <- args$normVar
 norm.standardise.gp   <- args$normStandardiseGagPol
 norm.constants.input  <- args$normalisationConstants
 
@@ -143,7 +139,8 @@ if(!is.null(norm.ref.file.name) & !is.null(norm.constants.input)){
 
 do.dup.blacklisting   <- !is.null(args$duplicateBlacklist)
 dup.input.file.name   <- args$duplicateBlacklist
-do.par.blacklisting   <- args$parsimonyBlacklist
+do.par.blacklisting   <- !is.null(args$parsimonyBlacklistK)
+par.blacklisting.k    <- args$parsimonyBlacklistK
 do.dual.blacklisting  <- args$dualBlacklist
 
 if(do.dual.blacklisting & !do.par.blacklisting){
@@ -160,6 +157,8 @@ if(useff){
 }
 
 reconst.mode.arg      <- args$splitsRule
+
+reconst.mode.arg      <- unlist(strsplit(reconst.mode.arg, ","))
 
 if(!(reconst.mode.arg[1] %in% c("r", "s", "f"))){
   stop(paste("Unknown split classifier: ", mode, "\n", sep=""))
@@ -180,12 +179,15 @@ if(reconstruction.mode!="r"){
   if(length(reconst.mode.arg) > 2){
     sankoff.p           <- as.numeric(reconst.mode.arg[3])
   } else {
-    sankoff.p           <- 0
+    sankoff.p           <- Inf
   }
   
   if(is.na(sankoff.k) | is.na(sankoff.p)){
     stop("Expected numerical arguments for reconstruction algorithm parameters.")
   }
+} else {
+  sankoff.k <- NA
+  sankoff.p <- NA
 }
 
 downsample            <- !is.null(args$maxReadsPerHost)
@@ -223,7 +225,14 @@ if(dist.threshold == -1){
 }
 allow.mt              <- args$allowMultiTrans
 
-script.dir            <- dirname(thisfile())
+if(!is.null(args$scriptDir)){
+  script.dir          <- args$scriptDir
+} else {
+  script.dir          <- dirname(thisfile())
+  if(!dir.exists(script.dir)){
+    stop("Cannot detect the location of the /phyloscanner/tools directory. Please specify it at the command line with -D.")
+  }
+}
 
 if(is.null(script.dir)){
   script.dir <- getwd()
@@ -268,8 +277,7 @@ if(file.exists(tree.input)){
     do.summary.statistics <- F
   }
   
-  if(!do.collapsed | !do.class.detail){
-    do.collapsed          <- T
+  if(!do.class.detail){
     do.class.detail       <- T
   }
   
@@ -496,55 +504,66 @@ if(!is.null(norm.constants.input)){
     warning("Cannot parse -nc argument; tree branch lengths will not be normalised.\n")
   }
 } else if(!is.null(norm.ref.file.name)){
-  if (verbose) cat('Loading normalising constants reference file ', norm.ref.file.name, "\n", sep="")
+  if(readable.coords){
+    if (verbose) cat('Loading normalising constants reference file ', norm.ref.file.name, "\n", sep="")
+    
+    if(grepl(paste0(csv.fe, "$"), norm.ref.file.name)){
+      norm.table	<- as.data.table(read.csv(norm.ref.file.name, stringsAsFactors=FALSE))
   
-  if(grepl(paste0(csv.fe, "$"), norm.ref.file.name)){
-    norm.table	<- as.data.table(read.csv(norm.ref.file.name, stringsAsFactors=FALSE))
-    if(any(!(c('POSITION',norm.column.var) %in% colnames(norm.table)))){
-      warning(paste0("One or more of POSITION and ",norm.column.var," columns not present in file ",norm.ref.file.name," skipping normalisation.\n"))
+      if(ncol(norm.table)!=2){
+        stop(paste0(norm.ref.file.name," is not formatted as expected for a normalisation lookup file; expecting two columns.\n"))
+      } else {
+        setnames(norm.table, 1, 'POSITION')
+        setnames(norm.table, 2, 'NORM_CONST')
+        
+        if(norm.standardise.gp){
+          #	Standardize to mean of 1 on gag+pol ( prot + first part of RT in total 1300bp )
+          
+          #790 - 3385
+          if (verbose) cat('Standardising normalising constants to 1 on the gag+pol (prot + first part of RT in total 1300bp pol) region\n')
+          
+          tmp		<- subset(norm.table, POSITION>=790L & POSITION<=3385L)
+          
+          if(nrow(tmp)<=0){
+            stop(paste0("No positions from gag+pol present in file ",norm.ref.file.name,"; unable to standardise"))
+          }
+          
+          tmp		<- tmp[, mean(NORM_CONST)]
+  
+          if(!is.finite(tmp)){
+            stop(paste0("Standardising constant is not finite"))
+          }
+          
+          set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
+        } else {
+          if (verbose) cat('Standardising normalising constants to 1 on the whole genome\n')
+  
+          tmp		<- norm.table[, mean(NORM_CONST)]
+          if(!is.finite(tmp)){
+            stop(paste0("Standardising constant is not finite"))
+          }
+          
+          set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
+        }
+        
+        all.tree.info <- sapply(all.tree.info, function(tree.info){
+          tree.info$normalisation.constant <- lookup.normalisation.for.tree(tree.info, norm.table, lookup.column = "NORM_CONST")
+          tree.info
+        }, simplify = F, USE.NAMES = T)
+      }
+    } else {
+      warning(paste0("Unknown input file format for normalisation file; tree branch lengths will not be normalised.\n"))
       all.tree.info <- sapply(all.tree.info, function(tree.info) {
         tree.info$normalisation.constant  <- 1
         tree.info
       }, simplify = F, USE.NAMES = T)
-    } else {
-      setnames(norm.table, norm.column.var, 'NORM_CONST')
-      
-      if(norm.standardise.gp){
-        #	Standardize to mean of 1 on gag+pol ( prot + first part of RT in total 1300bp )
-        
-        #790 - 3385
-        if (verbose) cat('Standardising normalising constants to 1 on the gag+pol (prot + first part of RT in total 1300bp pol) region\n')
-        
-        tmp		<- subset(norm.table, POSITION>=790L & POSITION<=3385L)
-        
-        if(nrow(tmp)<=0){
-          stop(paste0("No positions from gag+pol present in file ",norm.ref.file.name,"; unable to standardise"))
-        }
-        
-        tmp		<- tmp[, mean(NORM_CONST)]
-        if(!is.finite(tmp)){
-          stop(paste0("Standardising constant is not finite"))
-        }
-        
-        set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
-      } else {
-        if (verbose) cat('Standardising normalising constants to 1 on the whole genome\n')
-
-        tmp		<- norm.table[, mean(NORM_CONST)]
-        if(!is.finite(tmp)){
-          stop(paste0("Standardising constant is not finite"))
-        }
-        
-        set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
-      }
-      
-      all.tree.info <- sapply(all.tree.info, function(tree.info){
-        tree.info$normalisation.constant <- lookup.normalisation.for.tree(tree.info, norm.table, lookup.column = "NORM_CONST")
-        tree.info
-      }, simplify = F, USE.NAMES = T)
     }
   } else {
-    warning(paste0("Unknown input file format for normalisation file; tree branch lengths will not be normalised.\n"))
+    warning(paste0("Cannot normalise branch lengths from file without window cooardinates in file suffixes; tree branch lengths will not be normalised.\n"))
+    all.tree.info <- sapply(all.tree.info, function(tree.info) {
+      tree.info$normalisation.constant  <- 1
+      tree.info
+    }, simplify = F, USE.NAMES = T)
   }
 } else {
   all.tree.info <- sapply(all.tree.info, function(tree.info) {
@@ -613,6 +632,7 @@ if(do.dup.blacklisting){
 # 10. Parsimony blacklisting
 
 if(do.par.blacklisting){
+
   all.tree.info <- sapply(all.tree.info, function(tree.info){
     
     tree <- tree.info$tree
@@ -623,7 +643,7 @@ if(do.par.blacklisting){
     
     hosts <- hosts[order(hosts)]
     
-    results <- sapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, outgroup.name, bl.raw.threshold, bl.ratio.threshold, sankoff.k, T, no.read.counts, verbose), simplify = F, USE.NAMES = T)
+    results <- sapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, outgroup.name, bl.raw.threshold, bl.ratio.threshold, par.blacklisting.k, T, no.read.counts, verbose), simplify = F, USE.NAMES = T)
     
     contaminant                                 <- unlist(lapply(results, "[[", 2))
     contaminant.nos                             <- which(tree.info$tree$tip.label %in% contaminant)
@@ -756,7 +776,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
   # Do the reconstruction
   
   if(verbose) cat("Reconstructing internal node hosts on tree suffix ",tree.info$suffix, "\n", sep="")
-  
+
   tmp					     <- split.patients.to.subgraphs(tree.info$tree, tree.info$blacklist, reconstruction.mode, tip.regex, sankoff.k, sankoff.p, useff, read.counts.matter, hosts, verbose)
   tree					   <- tmp[['tree']]	
   
@@ -884,7 +904,7 @@ if(do.summary.statistics){
   pat.stats$tips    <- as.numeric(pat.stats$tips)
   
   if(output.ssf){
-    tmp	<- file.path(paste0(output.dir, "/", output.string,"_patStatsFull.csv"))
+    tmp	<- file.path(paste0(output.dir, "/", output.string,"_patStats.csv"))
     if (verbose) cat("Writing output to file ",tmp,"...\n",sep="")
     write.csv(pat.stats, tmp, quote = F, row.names = F)
   }
