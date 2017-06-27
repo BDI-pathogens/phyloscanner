@@ -346,9 +346,9 @@ extract.tt.subtree <- function(tt, patients, splits.for.patients, patients.for.s
   return(c(sub.tt$unique.splits, unique(none.but.maybe.relevant[which(adjacent.relevance.count > 1)])))
 }
 
-# every distance between subtrees
+# every distance between subgraphs
 
-all.subtree.distances <- function(tree, tt, splits, assocs, slow=F){
+all.subgraph.distances <- function(tree, tt, splits, assocs, slow=F){
   
   if(!slow){
     tree.dist <- dist.nodes(tree)
@@ -433,9 +433,9 @@ pat.dist <- function(tree, depths, node.1, node.2){
   return(dist)
 }
 
-# are each pair of subtrees adjacent? If !none.matters then two nodes separated only by "none" are still adjacent
+# are each pair of subgraphs adjacent? If !none.matters then two nodes separated only by "none" are still adjacent
 
-subtrees.adjacent <- function(tt, splits, none.matters = F){
+subgraphs.adjacent <- function(tt, splits, none.matters = F){
   out <- matrix(ncol = length(splits), nrow=length(splits))
   for(spt.1.no in 1:length(splits)){
     for(spt.2.no in 1:length(splits)){
@@ -467,9 +467,9 @@ subtrees.adjacent <- function(tt, splits, none.matters = F){
   return(out)
 }
 
-# are pairs of subtrees from two patients not separated by any other subtrees from either of those patients?
+# are pairs of subgraphs from two patients not separated by any other subgraphs from either of those patients?
 
-subtrees.unblocked <- function(tt, splits){
+subgraphs.unblocked <- function(tt, splits){
   out <- matrix(ncol = length(splits), nrow=length(splits))
   for(spt.1.no in 1:length(splits)){
     for(spt.2.no in 1:length(splits)){
@@ -602,13 +602,13 @@ classify <- function(tree.info, verbose = F) {
   
   total.pairs <- (length(patients.included) ^ 2 - length(patients.included))/2
   
-  if (verbose) cat("Collapsing subtrees...\n")
+  if (verbose) cat("Collapsing subgraphs...\n")
   
   tt <- output.trans.tree(tree, assocs)
   
   if (verbose) cat("Identifying pairs of unblocked splits...\n")
   
-  collapsed.adjacent <- subtrees.unblocked(tt, all.splits)
+  collapsed.adjacent <- subgraphs.unblocked(tt, all.splits)
   
   if (verbose) cat("Calculating pairwise distances between splits...\n")
   
@@ -730,11 +730,11 @@ classify <- function(tree.info, verbose = F) {
   
   classification <- cbind(adjacency.df, contiguity.df[,3], dir.12.df[,3], dir.21.df[,3], nodes.1.df[,3], nodes.2.df[,3], path.df[,3], min.distance.df[,3])
   
-  column.names <- c("Host_1", "Host_2", "adjacent", "contiguous", "paths12", "paths21", "nodes1", "nodes2", "path.classification", "min.distance.between.subtrees")
+  column.names <- c("Host_1", "Host_2", "adjacent", "contiguous", "paths12", "paths21", "nodes1", "nodes2", "path.classification", "min.distance.between.subgraphs")
   
   if(normalisation.constant!=1){
     classification <- cbind(classification, normalised.distance.df[,3])
-    column.names <- c(column.names, "normalised.min.distance.between.subtrees")
+    column.names <- c(column.names, "normalised.min.distance.between.subgraphs")
   }
   
   colnames(classification) <- column.names
@@ -807,10 +807,10 @@ summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.
   if(verbose) cat("Finding patristic distance columns...\n")
   
   # reset names depending on which Classify script was used
-  if(any('normalised.min.distance.between.subtrees'==colnames(tt))){
-    setnames(tt, 'normalised.min.distance.between.subtrees', 'PATRISTIC_DISTANCE')
-  } else if(any('min.distance.between.subtrees'==colnames(tt))){
-    setnames(tt, 'min.distance.between.subtrees', 'PATRISTIC_DISTANCE')
+  if(any('normalised.min.distance.between.subgraphs'==colnames(tt))){
+    setnames(tt, 'normalised.min.distance.between.subgraphs', 'PATRISTIC_DISTANCE')
+  } else if(any('min.distance.between.subgraphs'==colnames(tt))){
+    setnames(tt, 'min.distance.between.subgraphs', 'PATRISTIC_DISTANCE')
   }
   
   setnames(tt, c('Host_1','Host_2','path.classification','paths21','paths12','adjacent'), c('HOST.1','HOST.2','TYPE','PATHS.21','PATHS.12','ADJACENT'))
