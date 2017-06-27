@@ -277,8 +277,7 @@ if(file.exists(tree.input)){
     do.summary.statistics <- F
   }
   
-  if(!do.collapsed | !do.class.detail){
-    do.collapsed          <- T
+  if(!do.class.detail){
     do.class.detail       <- T
   }
   
@@ -905,7 +904,7 @@ if(do.summary.statistics){
   pat.stats$tips    <- as.numeric(pat.stats$tips)
   
   if(output.ssf){
-    tmp	<- file.path(paste0(output.dir, "/", output.string,"_patStatsFull.csv"))
+    tmp	<- file.path(paste0(output.dir, "/", output.string,"_patStats.csv"))
     if (verbose) cat("Writing output to file ",tmp,"...\n",sep="")
     write.csv(pat.stats, tmp, quote = F, row.names = F)
   }
