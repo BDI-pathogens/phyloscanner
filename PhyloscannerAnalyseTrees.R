@@ -302,7 +302,7 @@ if(file.exists(tree.input)){
   }
   
   suffixes <- sapply(tree.file.names, get.suffix, tree.input, tree.fe)
-  
+
   if(any(suffixes=="")){
     stop("Some trees have identifying suffixes of length zero. The tree file argument should be a path and a string that begins every tree file, but there must be something after that string (excluding the file extension).")
   }
@@ -323,7 +323,7 @@ if(file.exists(tree.input)){
     
     if(do.recomb){
       expected.recomb.file.name  <- paste0(recomb.input, suffix , ".", csv.fe)
-      
+
       if(file.exists(expected.recomb.file.name)){
         tree.info$recombination.file.name <- expected.recomb.file.name
       } else {
@@ -938,7 +938,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
   
   if(do.collapsed){
     tree.info$collapsed.file.name <- file.path(output.dir, paste0("CollapsedTree_",tree.info$output.string,".",csv.fe))
-    write.csv(tree.info$classification.results$collapsed, tree.info$collapsed.file.name, quote=F, row.names = F)
+    write.csv(tree.info$classification.results$collapsed[,1:4], tree.info$collapsed.file.name, quote=F, row.names = F)
   }
   if(do.class.detail){
     tree.info$classification.file.name <- file.path(output.dir, paste0("Classification_",tree.info$output.string,".",csv.fe))

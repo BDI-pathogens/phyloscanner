@@ -262,8 +262,8 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, missi
       
       # graph 6: longest branch to largest patristic distance ratios
       
-      if("Recombination.metric" %in% colnames(this.host.statistics)) {     
-        graph.6 <- ggplot(this.host.statistics, aes(x=xcoord, y=Recombination.metric))
+      if("recombination.metric" %in% colnames(this.host.statistics)) {     
+        graph.6 <- ggplot(this.host.statistics, aes(x=xcoord, y=recombination.metric))
         y.label <- "Recombination metric (%)"
         
         graph.6 <- graph.6 +
