@@ -428,7 +428,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
       
       tree.info$hosts.for.tips[blacklist] <- NA 
       
-      if(verbose) cat(length(blacklist), " tips pre-blacklisted for tree suffix ",tree.info$suffix, "\n")
+      if(verbose & length(blacklist)>0) cat(length(blacklist), " tips pre-blacklisted for tree suffix ",tree.info$suffix, "\n", sep="")
       
       tree.info$blacklist                 <- blacklist
     } else {
@@ -608,7 +608,7 @@ if(do.dup.blacklisting){
       
       newly.blacklisted                            <- setdiff(duplicate.nos, tree.info$blacklist) 
       
-      if(verbose) cat(length(newly.blacklisted), " tips blacklisted as duplicates for tree suffix ",tree.info$suffix, "\n")
+      if(verbose & length(newly.blacklisted > 0)) cat(length(newly.blacklisted), " tips blacklisted as duplicates for tree suffix ",tree.info$suffix, "\n", sep="")
       
       tree.info$hosts.for.tips[newly.blacklisted]  <- NA
       
@@ -651,7 +651,7 @@ if(do.par.blacklisting){
     
     newly.blacklisted                           <- setdiff(contaminant.nos, tree.info$blacklist) 
     
-    if(verbose) cat(length(newly.blacklisted), " tips blacklisted as probable contaminants by parsimony reconstruction for tree suffix ",tree.info$suffix, "\n")
+    if(verbose & length(newly.blacklisted)>0) cat(length(newly.blacklisted), " tips blacklisted as probable contaminants by parsimony reconstruction for tree suffix ",tree.info$suffix, "\n", sep="")
     
     tree.info$hosts.for.tips[newly.blacklisted] <- NA
     
@@ -725,7 +725,7 @@ if(do.dual.blacklisting){
       
       newly.blacklisted                           <- setdiff(dual.nos, tree.info$blacklist) 
       
-      if(verbose) cat(length(newly.blacklisted), " tips blacklisted for belonging to minor subgraphs in tree suffix ",tree.info$suffix, "\n")
+      if(verbose & length(newly.blacklisted)>0) cat(length(newly.blacklisted), " tips blacklisted for belonging to minor subgraphs in tree suffix ",tree.info$suffix, "\n", sep="")
       
       tree.info$hosts.for.tips[newly.blacklisted] <- NA
       

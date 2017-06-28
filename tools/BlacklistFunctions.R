@@ -65,7 +65,7 @@ blacklist.exact.duplicates <- function(tree.info, raw.threshold, ratio.threshold
 
 # Strip the tree down to just reads from one host and an outgroup. Do a parsimony reconstruction on that tree and return the subgraphs.
 
-get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold, ratio.threshold, sankhoff.k, check.duals, no.read.counts = T, verbose=F){
+get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold, ratio.threshold, sankoff.k, check.duals, no.read.counts = T, verbose=F){
   if (verbose) cat("Identifying splits for host ", host, "\n", sep="")
   
   blacklist.items <- vector()
