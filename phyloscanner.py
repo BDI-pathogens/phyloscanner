@@ -100,6 +100,11 @@ rename the bam files in all output. For example:
 PatientA.bam,PatientA_ref.fasta,A
 PatientB.bam,PatientB_ref.fasta,B''')
 
+parser.add_argument('-q', '--quiet', action='store_true', help='''Turns off the
+small amount of information printed to the terminal (via stdout). We'll still
+print warnings and errors (via stderr), and the command you ran, for logging
+purposes.''')
+
 WindowArgs = parser.add_argument_group('Window options - you must choose'
 ' exactly one of -W, -AW or -E')
 WindowArgs.add_argument('-W', '--windows', type=CommaSeparatedInts,
@@ -331,6 +336,7 @@ RecallContaminants = False
 CheckDuplicates = not args.dont_check_duplicates
 ExploreWindowWidths = args.explore_window_widths != None
 MergeReads = args.merging_threshold > 0
+PrintInfo = not args.quiet
 
 # Print how this script was called, for logging purposes.
 print('phyloscanner was called thus:\n' + ' '.join(sys.argv))
@@ -1182,8 +1188,9 @@ for window in range(NumCoords / 2):
   ThisWindowSuffix = 'InWindow_'+str(UserLeftWindowEdge)+'_to_'+\
   str(UserRightWindowEdge)
 
-  print('Now processing window ', UserLeftWindowEdge, '-', UserRightWindowEdge,
-  sep='')
+  if PrintInfo:
+    print('Now extracting and processing reads in window ', UserLeftWindowEdge,
+    '-', UserRightWindowEdge, sep='')
 
   # Prepare some things for checking for reads appearing again the consecutive
   # overlapping windows.
@@ -1210,7 +1217,8 @@ for window in range(NumCoords / 2):
       ContaminantFilesByWindow[(UserLeftWindowEdge, UserRightWindowEdge)]
     except KeyError:
       print('Warning: no contaminant file found for window ' + \
-      str(UserLeftWindowEdge) + '-' + str(UserRightWindowEdge) +'.')
+      str(UserLeftWindowEdge) + '-' + str(UserRightWindowEdge) +'.',
+      file=sys.stderr)
     else:
       for seq in SeqIO.parse(open(ContaminantFile), 'fasta'):
         if seq.id in ContaminantReadsInput:
@@ -1395,7 +1403,7 @@ for window in range(NumCoords / 2):
             'from', BamAlias, 'was not found in this window in',
             BamFileBasename + '. This could be due to a mismatch in window',
             'coordinates between the run that generated that contamination'
-            'file and the present run. Proceeding.')
+            'file and the present run. Proceeding.', file=sys.stderr)
             HaveWarned = True
 
     # If we are checking for read duplication between samples, record the file 
@@ -1546,8 +1554,9 @@ for window in range(NumCoords / 2):
         WindowWidthExplorationData.append([UserLeftWindowEdge,
         UserRightWindowEdge, alias, count])
     else:
-      print('There is only one read in this window, written to ' +\
-      FileForAlnReadsHere +'. Skipping to the next window.')
+      if PrintInfo:
+        print('There is only one read in this window, written to ' +\
+        FileForAlnReadsHere +'. Skipping to the next window.')
     continue
   SeqIO.write(AllReadsInThisWindow, TempFileForReadsHere, "fasta")
   TempFiles.add(TempFileForReadsHere)
@@ -1843,6 +1852,9 @@ for window in range(NumCoords / 2):
     continue
 
   # Create the ML tree
+  if PrintInfo:
+    print('Running RAxML on the processed & aligned reads in window ',
+    UserLeftWindowEdge, '-', UserRightWindowEdge, sep='')
   MLtreeFile = 'RAxML_bestTree.' +ThisWindowSuffix +'.tree'
   RAxMLcall = RAxMLargList + ['-s', FileForTrees, '-n',
   ThisWindowSuffix+'.tree']
@@ -2096,7 +2108,12 @@ if not args.keep_temp_files:
     try:
       os.remove(TempFile)
     except:
-      print('Failed to delete temporary file', TempFile + '. Leaving it.')
+      print('Failed to delete temporary file', TempFile + '. Leaving it.',
+      file=sys.stderr)
+
+# We're only printing info henceforth
+if not PrintInfo:
+  exit(0)
 
 # Stop if no trees
 if not AtLeastOneTreeMade:
