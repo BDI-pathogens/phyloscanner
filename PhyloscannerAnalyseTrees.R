@@ -76,7 +76,6 @@ arg_parser$add_argument("-tn", "--outputNexusTree", action="store_true", help="S
 
 # Summary statistics
 
-arg_parser$add_argument("-ssg", "--makeSummaryStatisticsGraph", action="store_true", help="Produce summary statistic graphs.")
 arg_parser$add_argument("-R", "--recombinationFiles", action="store", help="An optional file path and initial string identifying all recombination data files.")
 
 # Classification
@@ -206,11 +205,6 @@ if(!("package:ggtree" %in% search())){
   output.pdf          <- F
 }
 
-output.ssg            <- args$makeSummaryStatisticsGraph
-output.ssf            <- T
-
-do.summary.statistics <- output.ssg | output.ssf
-
 recomb.input          <- args$recombinationFiles
 do.recomb             <- !is.null(recomb.input)
 
@@ -270,12 +264,6 @@ if(file.exists(tree.input)){
   
   tree.info$prexisting.blacklist.file.name   <- blacklist.input
   
-  if(output.ssg | output.ssf){
-    warning("Only one tree provided; cannot output summary statistics\n")
-    output.ssf            <- F
-    output.ssg            <- F
-    do.summary.statistics <- F
-  }
   
   if(!do.class.detail){
     do.class.detail       <- T
@@ -302,7 +290,7 @@ if(file.exists(tree.input)){
   }
   
   suffixes <- sapply(tree.file.names, get.suffix, tree.input, tree.fe)
-
+  
   if(any(suffixes=="")){
     stop("Some trees have identifying suffixes of length zero. The tree file argument should be a path and a string that begins every tree file, but there must be something after that string (excluding the file extension).")
   }
@@ -323,7 +311,7 @@ if(file.exists(tree.input)){
     
     if(do.recomb){
       expected.recomb.file.name  <- paste0(recomb.input, suffix , ".", csv.fe)
-
+      
       if(file.exists(expected.recomb.file.name)){
         tree.info$recombination.file.name <- expected.recomb.file.name
       } else {
@@ -386,7 +374,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
   })
 }, simplify = F, USE.NAMES = T)
 
-if(!readable.coords & output.ssg){
+if(!readable.coords & !single.file){
   warning("Cannot obtain genome window coordinates from file names. Summary statistics will be plotted in alphabetical order of file names.")
 }
 
@@ -509,7 +497,7 @@ if(!is.null(norm.constants.input)){
     
     if(grepl(paste0(csv.fe, "$"), norm.ref.file.name)){
       norm.table	<- as.data.table(read.csv(norm.ref.file.name, stringsAsFactors=FALSE))
-  
+      
       if(ncol(norm.table)!=2){
         stop(paste0(norm.ref.file.name," is not formatted as expected for a normalisation lookup file; expecting two columns.\n"))
       } else {
@@ -529,7 +517,7 @@ if(!is.null(norm.constants.input)){
           }
           
           tmp		<- tmp[, mean(NORM_CONST)]
-  
+          
           if(!is.finite(tmp)){
             stop(paste0("Standardising constant is not finite"))
           }
@@ -537,7 +525,7 @@ if(!is.null(norm.constants.input)){
           set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
         } else {
           if (verbose) cat('Standardising normalising constants to 1 on the whole genome\n')
-  
+          
           tmp		<- norm.table[, mean(NORM_CONST)]
           if(!is.finite(tmp)){
             stop(paste0("Standardising constant is not finite"))
@@ -632,7 +620,7 @@ if(do.dup.blacklisting){
 # 10. Parsimony blacklisting
 
 if(do.par.blacklisting){
-
+  
   all.tree.info <- sapply(all.tree.info, function(tree.info){
     
     tree <- tree.info$tree
@@ -776,7 +764,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
   # Do the reconstruction
   
   if(verbose) cat("Reconstructing internal node hosts on tree suffix ",tree.info$suffix, "\n", sep="")
-
+  
   tmp					     <- split.patients.to.subgraphs(tree.info$tree, tree.info$blacklist, reconstruction.mode, tip.regex, sankoff.k, sankoff.p, useff, read.counts.matter, hosts, verbose)
   tree					   <- tmp[['tree']]	
   
@@ -835,98 +823,98 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
 
 # 16. Summary statistics
 
-if(do.summary.statistics){
-  
+
+
+coordinates <- lapply(all.tree.info, "[[" , "window.coords")
+
+if(readable.coords){
   coordinates <- lapply(all.tree.info, "[[" , "window.coords")
   
-  if(readable.coords){
-    coordinates <- lapply(all.tree.info, "[[" , "window.coords")
-    
-    starts <- sapply(coordinates, "[[", "start")
-    ends <- sapply(coordinates, "[[", "end")
-    
-    ews <- min(starts)
-    lwe <- max(ends)
-  } else {
-    coordinates <- sapply(all.tree.info, "[[" , "xcoord")
-    range <- max(coordinates) - min(coordinates)
-    increment <- range/length(coordinates)
-    
-    ews <- min(coordinates) - 0.45*increment
-    lwe <- max(coordinates) + 0.45*increment
-  }
+  starts <- sapply(coordinates, "[[", "start")
+  ends <- sapply(coordinates, "[[", "end")
   
-  all.tree.info <- sapply(all.tree.info, function(tree.info) {
-    clade.results                 <- resolveTreeIntoPatientClades(tree.info$tree, hosts, tip.regex, tree.info$blacklist, no.read.counts)
-    
-    tree.info$clades.by.host      <- clade.results$clades.by.patient
-    tree.info$clade.mrcas.by.host <- clade.results$clade.mrcas.by.patient
-    
-    tree.info
-  }, simplify = F, USE.NAMES = T)
+  ews <- min(starts)
+  lwe <- max(ends)
+} else {
+  coordinates <- sapply(all.tree.info, "[[" , "xcoord")
+  range <- max(coordinates) - min(coordinates)
+  increment <- range/length(coordinates)
   
-  pat.stats <- lapply(all.tree.info, function(x) calc.all.stats.in.window(x, hosts, tip.regex, verbose))
-  pat.stats <- rbindlist(pat.stats)
-  
-  read.proportions <- lapply(all.tree.info, function(y) sapply(hosts, function(x) get.read.proportions(x, y$suffix, y$splits.table), simplify = F, USE.NAMES = T))
-  
-  # Get the max split count over every window and patient (the exact number of columns depends on this)
-  
-  max.splits <- max(sapply(read.proportions, function(x) max(sapply(x, function(y) length(y)))))
-  
-  read.prop.columns <- lapply(all.tree.info, function(x){
-    window.props <- read.proportions[[x$suffix]]
-    out <- lapply(hosts, function(y){
-
-      result <- window.props[[y]]
-      
-      if(is.na(result[1])){
-        result <- rep(NA, max.splits)
-        
-      } else {
-        if(length(result)<max.splits){
-          result[(length(result)+1):max.splits] <- 0
-        }
-      }
-      
-      result
-    })
-    out <- as.data.table(do.call(rbind, out))
-    colnames(out) <- paste("prop.gp.",seq(1,max.splits),sep="")
-    out
-  })
-  
-  
-  read.prop.columns <- rbindlist(read.prop.columns)
-  
-  pat.stats         <- cbind(pat.stats, read.prop.columns)
-  
-  pat.stats$tips    <- as.numeric(pat.stats$tips)
-  
-  if(output.ssf){
-    tmp	<- file.path(paste0(output.dir, "/", output.string,"_patStats.csv"))
-    if (verbose) cat("Writing output to file ",tmp,"...\n",sep="")
-    write.csv(pat.stats, tmp, quote = F, row.names = F)
-  }
-  if(output.ssg){
-    tmp <- file.path(paste0(output.dir, "/", output.string,"_patStats.pdf"))
-    if (verbose) cat("Plotting to file ",tmp,"...\n",sep="")
-    
-    # Set up the boundaries of each window's region on the x-axis
-    
-    xcoords <- unique(pat.stats$xcoord)
-    xcoords <- xcoords[order(xcoords)]
-    
-    missing.window.data <- find.gaps(xcoords)
-    
-    xcoords <- missing.window.data$x.coordinates
-    regular.gaps <- missing.window.data$regular.gaps
-    rectangles.for.missing.windows <- missing.window.data$rectangles.for.missing.windows
-    bar.width <- missing.window.data$width
-    
-    produce.pdf.graphs(tmp, pat.stats, hosts, xcoords, rectangles.for.missing.windows, bar.width, regular.gaps, verbose = verbose)
-  }
+  ews <- min(coordinates) - 0.45*increment
+  lwe <- max(coordinates) + 0.45*increment
 }
+
+all.tree.info <- sapply(all.tree.info, function(tree.info) {
+  clade.results                 <- resolveTreeIntoPatientClades(tree.info$tree, hosts, tip.regex, tree.info$blacklist, no.read.counts)
+  
+  tree.info$clades.by.host      <- clade.results$clades.by.patient
+  tree.info$clade.mrcas.by.host <- clade.results$clade.mrcas.by.patient
+  
+  tree.info
+}, simplify = F, USE.NAMES = T)
+
+pat.stats <- lapply(all.tree.info, function(x) calc.all.stats.in.window(x, hosts, tip.regex, verbose))
+pat.stats <- rbindlist(pat.stats)
+
+read.proportions <- lapply(all.tree.info, function(y) sapply(hosts, function(x) get.read.proportions(x, y$suffix, y$splits.table), simplify = F, USE.NAMES = T))
+
+# Get the max split count over every window and patient (the exact number of columns depends on this)
+
+max.splits <- max(sapply(read.proportions, function(x) max(sapply(x, function(y) length(y)))))
+
+read.prop.columns <- lapply(all.tree.info, function(x){
+  window.props <- read.proportions[[x$suffix]]
+  out <- lapply(hosts, function(y){
+    
+    result <- window.props[[y]]
+    
+    if(is.na(result[1])){
+      result <- rep(NA, max.splits)
+      
+    } else {
+      if(length(result)<max.splits){
+        result[(length(result)+1):max.splits] <- 0
+      }
+    }
+    
+    result
+  })
+  out <- as.data.table(do.call(rbind, out))
+  colnames(out) <- paste("prop.gp.",seq(1,max.splits),sep="")
+  out
+})
+
+
+read.prop.columns <- rbindlist(read.prop.columns)
+
+pat.stats         <- cbind(pat.stats, read.prop.columns)
+
+pat.stats$tips    <- as.numeric(pat.stats$tips)
+
+
+tmp	<- file.path(paste0(output.dir, "/", output.string,"_patStats.csv"))
+if (verbose) cat("Writing output to file ",tmp,"...\n",sep="")
+write.csv(pat.stats, tmp, quote = F, row.names = F)
+
+if(!single.file){
+  tmp <- file.path(paste0(output.dir, "/", output.string,"_patStats.pdf"))
+  if (verbose) cat("Plotting to file ",tmp,"...\n",sep="")
+  
+  # Set up the boundaries of each window's region on the x-axis
+  
+  xcoords <- unique(pat.stats$xcoord)
+  xcoords <- xcoords[order(xcoords)]
+  
+  missing.window.data <- find.gaps(xcoords)
+  
+  xcoords <- missing.window.data$x.coordinates
+  regular.gaps <- missing.window.data$regular.gaps
+  rectangles.for.missing.windows <- missing.window.data$rectangles.for.missing.windows
+  bar.width <- missing.window.data$width
+  
+  produce.pdf.graphs(tmp, pat.stats, hosts, xcoords, rectangles.for.missing.windows, bar.width, regular.gaps, verbose = verbose)
+}
+
 
 # 17. Individual window classifications
 
