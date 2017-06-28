@@ -58,7 +58,7 @@ arg_parser$add_argument("-nc", "--normalisationConstants", action="store", help=
 arg_parser$add_argument("-db", "--duplicateBlacklist", action="store", help="Perform duplicate blacklisting for likely contaminants; argument here is input file produced by Python output.")
 arg_parser$add_argument("-pbk", "--parsimonyBlacklistK", action="store", type="double", help="If given, perform parsimony-based blacklisting for likely contaminants. The argument is the value of the within-host diversity penalty used.")
 arg_parser$add_argument("-rwt", "--rawBlacklistThreshold", action="store", default=0, help="Raw threshold for blacklisting; subgraphs or exact duplicate tips with read counts less than this will be blacklisted, regardless of the count of any other subgraphs from the same host or identical tips from another host. Default 0; one or both of this and -rtt must be specified and >0 for -db or -pb to do anything.")
-arg_parser$add_argument("-rtt", "--ratioBlacklistThreshold", action="store", default=0, help="Ratio threshold for blacklisting; subgraphs or exact duplicate tips will be blacklisted if the ratio of their tip count to that of another subgraph from the same host or tip from another host is less than this. Default 0; one or both of this and -rwt must be specified and >0 for -db or -pb to do anything.")
+arg_parser$add_argument("-rtt", "--ratioBlacklistThreshold", action="store", default=0, help="Ratio threshold for blacklisting; subgraphs will be blacklisted if the ratio of their tip count to the total tip count from the same host is smaller than this, and tips will be blacklisted if the ratio of their tip count to the tip count for an identical read from another host is less than this. Default 0; one or both of this and -rwt must be specified and >0 for -db or -pb to do anything.")
 arg_parser$add_argument("-ub", "--dualBlacklist", action="store_true", default=F, help="Blacklist all reads from the minor subgraphs for all hosts established as dual by parsimony blacklisting.")
 
 # Downsampling
@@ -149,6 +149,15 @@ if(do.dual.blacklisting & !do.par.blacklisting){
 
 bl.raw.threshold      <- as.numeric(args$rawBlacklistThreshold)
 bl.ratio.threshold    <- as.numeric(args$ratioBlacklistThreshold)
+
+if(do.par.blacklisting & bl.raw.threshold == 0 & bl.ratio.threshold){
+  stop("Parsimony blacklisting requested but no thresholds specified with -rwt or -rtt")
+}
+
+
+if(do.dup.blacklisting & bl.raw.threshold == 0 & bl.ratio.threshold){
+  stop("Duplicate blacklisting requested but no thresholds specified with -rwt or -rtt")
+}
 
 useff                 <- args$useff
 if(useff){
@@ -419,6 +428,8 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
       
       tree.info$hosts.for.tips[blacklist] <- NA 
       
+      if(verbose) cat(length(blacklist), " tips pre-blacklisted for tree suffix ",tree.info$suffix, "\n")
+      
       tree.info$blacklist                 <- blacklist
     } else {
       cat(paste("WARNING: File ",i$blacklist.input," does not exist; skipping.\n",sep=""))
@@ -597,6 +608,8 @@ if(do.dup.blacklisting){
       
       newly.blacklisted                            <- setdiff(duplicate.nos, tree.info$blacklist) 
       
+      if(verbose) cat(length(newly.blacklisted), " tips blacklisted as duplicates for tree suffix ",tree.info$suffix, "\n")
+      
       tree.info$hosts.for.tips[newly.blacklisted]  <- NA
       
       old.tip.labels    <- tree.info$tree$tip.label
@@ -637,6 +650,8 @@ if(do.par.blacklisting){
     contaminant.nos                             <- which(tree.info$tree$tip.label %in% contaminant)
     
     newly.blacklisted                           <- setdiff(contaminant.nos, tree.info$blacklist) 
+    
+    if(verbose) cat(length(newly.blacklisted), " tips blacklisted as probable contaminants by parsimony reconstruction for tree suffix ",tree.info$suffix, "\n")
     
     tree.info$hosts.for.tips[newly.blacklisted] <- NA
     
@@ -709,6 +724,8 @@ if(do.dual.blacklisting){
       dual.nos                                    <- which(tree.info$original.tip.labels %in% dual)
       
       newly.blacklisted                           <- setdiff(dual.nos, tree.info$blacklist) 
+      
+      if(verbose) cat(length(newly.blacklisted), " tips blacklisted for belonging to minor subgraphs in tree suffix ",tree.info$suffix, "\n")
       
       tree.info$hosts.for.tips[newly.blacklisted] <- NA
       
