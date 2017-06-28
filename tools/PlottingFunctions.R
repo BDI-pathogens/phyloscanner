@@ -264,7 +264,7 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, missi
       
       if("recombination.metric" %in% colnames(this.host.statistics)) {     
         graph.6 <- ggplot(this.host.statistics, aes(x=xcoord, y=recombination.metric))
-        y.label <- "Recombination metric (%)"
+        y.label <- "Recombination metric"
         
         graph.6 <- graph.6 +
           geom_point(alpha = 0.5, na.rm=TRUE) +

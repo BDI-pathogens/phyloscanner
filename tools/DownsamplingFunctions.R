@@ -96,7 +96,7 @@ downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, e
 downsample.tree<- function(tree.info, hosts.to.include, max.reads, rename = F, exclude.underrepresented = F, seed=NA, verbose=F) {
   
   if(verbose){
-    cat("Downsampling reads on tree ",tree.info$tree.file.name,"...\n",sep = "")
+    cat("Downsampling reads on tree ",tree.info$tree.file.name," to ",max.reads,"per host...\n",sep = "")
   }
 
   if(!is.na(seed))

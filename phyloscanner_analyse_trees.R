@@ -26,7 +26,7 @@ suppressMessages(require(kimisc, quietly=TRUE, warn.conflicts=FALSE))
 arg_parser		     <- ArgumentParser()
 
 arg_parser$add_argument("tree", action="store", help="A path and string that begins all the tree file names.")
-arg_parser$add_argument("output.string", action="store", help="This string identifies all output files.")
+arg_parser$add_argument("outputString", action="store", help="This string identifies all output files.")
 
 arg_parser$add_argument("-r", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
 arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, short branches in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. If a number, this number will be used as the threshold, with all branches strictly smaller collapsed. If 'g', it will be guessed from the branch lengths (use this only if you have checked by eye that the tree does indeed have multifurcations).")
@@ -37,8 +37,8 @@ arg_parser$add_argument("-b", "--blacklist", action="store", help="A path and st
 
 arg_parser$add_argument("-od", "--outputDir", action="store", help="All output will be written to this directory. If absent, current working directory.")
 arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what the script is doing.")
-arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. Three capture groups: patient ID, read ID, and read count; if the latter two groups are missing then read information will not be used. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name.")
-arg_parser$add_argument("-y", "--fileNameRegex", action="store", default="^\\D*([0-9]+)_to_([0-9]+).*$", help="Regular expression identifying window coordinates. Two capture groups: start and end; if the latter is missing then the first group is a single numerical identifier for the window. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name.")
+arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. Three capture groups: host ID, read ID, and read count; if the latter two groups are missing then read information will not be used. If absent, input will be assumed to be from the phyloscanner pipeline, and the host ID will be the BAM file name.")
+arg_parser$add_argument("-y", "--fileNameRegex", action="store", default="^\\D*([0-9]+)_to_([0-9]+).*$", help="Regular expression identifying window coordinates. Two capture groups: start and end; if the latter is missing then the first group is a single numerical identifier for the window. If absent, input will be assumed to be from the phyloscanner pipeline, and the host ID will be the BAM file name.")
 arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default="tree", help="The file extension for tree files (default tree).")
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="csv", help="The file extension for table files (default csv).")
 arg_parser$add_argument("-pw", "--pdfwidth", action="store", default=50, help="Width of tree pdf in inches.")
@@ -58,8 +58,8 @@ arg_parser$add_argument("-nc", "--normalisationConstants", action="store", help=
 arg_parser$add_argument("-db", "--duplicateBlacklist", action="store", help="Perform duplicate blacklisting for likely contaminants; argument here is input file produced by Python output.")
 arg_parser$add_argument("-pbk", "--parsimonyBlacklistK", action="store", type="double", help="If given, perform parsimony-based blacklisting for likely contaminants. The argument is the value of the within-host diversity penalty used.")
 arg_parser$add_argument("-rwt", "--rawBlacklistThreshold", action="store", default=0, help="Raw threshold for blacklisting; subgraphs or exact duplicate tips with read counts less than this will be blacklisted, regardless of the count of any other subgraphs from the same host or identical tips from another host. Default 0; one or both of this and -rtt must be specified and >0 for -db or -pb to do anything.")
-arg_parser$add_argument("-rtt", "--ratioBlacklistThreshold", action="store", default=0, help="Ratio threshold for blacklisting; subgraphs or exact duplicate tips will be blacklisted if the ratio of their tip count to that of another subgraph from the same host or tip from another host is less than this. Default 0; one or both of this and -rwt must be specified and >0 for -db or -pb to do anything.")
-arg_parser$add_argument("-ub", "--dualBlacklist", action="store_true", default=F, help="Blacklist all reads from the minor subgraphs for all patients established as dual by parsimony blacklisting.")
+arg_parser$add_argument("-rtt", "--ratioBlacklistThreshold", action="store", default=0, help="Ratio threshold for blacklisting; subgraphs will be blacklisted if the ratio of their tip count to the total tip count from the same host is smaller than this, and tips will be blacklisted if the ratio of their tip count to the tip count for an identical read from another host is less than this. Default 0; one or both of this and -rwt must be specified and >0 for -db or -pb to do anything.")
+arg_parser$add_argument("-ub", "--dualBlacklist", action="store_true", default=F, help="Blacklist all reads from the minor subgraphs for all hosts established as dual by parsimony blacklisting.")
 
 # Downsampling
 
@@ -69,14 +69,13 @@ arg_parser$add_argument("-dsb", "--blacklistUnderrepresented", action="store_tru
 # Parsimony reconstruction
 
 arg_parser$add_argument("-ff", "--useff", action="store_true", default=FALSE, help="Use ff to store parsimony reconstruction matrices. Use if you run out of memory.")
-arg_parser$add_argument("splitsRule", action="store", help="The rules by which the sets of patients are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. This takes a variable number of arguments. The first dictates the algorithm: s=Sankoff with optional within-host diversity penalty (slow, rigorous, default), r=Romero-Severson (quick, less rigorous with >2 patients), f=Sankoff with continuation costs (experimental). For 'r' no further arguments are expected. For 's' and 'f' the k parameter in the Sankoff reconstruction, which penalises within-host diversity, must also be given. There is an optional third argument for 's' and 'f'. For 's' this is the branch length threshold at which a lineage reconstructed as infecting a host will transition to the unsampled state. For 'f' this is the branch length at which an node is reconstructed as unsampled if all its neighbouring nodes are a greater distance away. Both defaults are 0.")
+arg_parser$add_argument("splitsRule", action="store", help="The rules by which the sets of hosts are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. This takes a variable number of arguments. The first dictates the algorithm: s=Sankoff with optional within-host diversity penalty (slow, rigorous, default), r=Romero-Severson (quick, less rigorous with >2 hosts), f=Sankoff with continuation costs (experimental). For 'r' no further arguments are expected. For 's' and 'f' the k parameter in the Sankoff reconstruction, which penalises within-host diversity, must also be given. There is an optional third argument for 's' and 'f'. For 's' this is the branch length threshold at which a lineage reconstructed as infecting a host will transition to the unsampled state. For 'f' this is the branch length at which an node is reconstructed as unsampled if all its neighbouring nodes are a greater distance away. Both defaults are 0.")
 arg_parser$add_argument("-P", "--pruneBlacklist", action="store_true", help="If present, all blacklisted and references tips (except the outgroup) are pruned away before starting parsimony-based reconstruction")
 arg_parser$add_argument("-rcm", "--readCountsMatterOnZeroBranches", default = FALSE, action="store_true", help="If present, read counts will be taken into account in parsimony reconstructions at the parents of zero-length branches. Not applicable for the Romero-Severson-like reconstruction method.")
 arg_parser$add_argument("-tn", "--outputNexusTree", action="store_true", help="Standard output of annotated trees are in PDF format. If this option is present, output them as NEXUS instead.")
 
 # Summary statistics
 
-arg_parser$add_argument("-ssg", "--makeSummaryStatisticsGraph", action="store_true", help="Produce summary statistic graphs.")
 arg_parser$add_argument("-R", "--recombinationFiles", action="store", help="An optional file path and initial string identifying all recombination data files.")
 
 # Classification
@@ -86,9 +85,9 @@ arg_parser$add_argument("-ct", "--collapsedTree", action="store_true", help="If 
 
 # Classification summary
 
-arg_parser$add_argument("-swt", "--windowThreshold", action="store", default=0, type="double", help="Relationships between two patients will only appear in output if they are within the distance threshold and ajacent to each other least this proportion of windows (default 0).")
-arg_parser$add_argument("-sdt", "--distanceThreshold", action="store", default=-1, type="double", help="Maximum distance threshold on a window for a relationship to be reconstructed between two patients on that window.")
-arg_parser$add_argument("-amt", "--allowMultiTrans", action="store_true", default=FALSE, help="If absent, directionality is only inferred between pairs of patients where a single clade from one patient is nested in one from the other; this is more conservative")
+arg_parser$add_argument("-swt", "--windowThreshold", action="store", default=0, type="double", help="Relationships between two hosts will only appear in output if they are within the distance threshold and ajacent to each other least this proportion of windows (default 0).")
+arg_parser$add_argument("-sdt", "--distanceThreshold", action="store", default=-1, type="double", help="Maximum distance threshold on a window for a relationship to be reconstructed between two hosts on that window.")
+arg_parser$add_argument("-amt", "--allowMultiTrans", action="store_true", default=FALSE, help="If absent, directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative")
 
 args                  <- arg_parser$parse_args()
 
@@ -151,6 +150,15 @@ if(do.dual.blacklisting & !do.par.blacklisting){
 bl.raw.threshold      <- as.numeric(args$rawBlacklistThreshold)
 bl.ratio.threshold    <- as.numeric(args$ratioBlacklistThreshold)
 
+if(do.par.blacklisting & bl.raw.threshold == 0 & bl.ratio.threshold){
+  stop("Parsimony blacklisting requested but no thresholds specified with -rwt or -rtt")
+}
+
+
+if(do.dup.blacklisting & bl.raw.threshold == 0 & bl.ratio.threshold){
+  stop("Duplicate blacklisting requested but no thresholds specified with -rwt or -rtt")
+}
+
 useff                 <- args$useff
 if(useff){
   suppressMessages(require(ff, quietly=TRUE, warn.conflicts=FALSE))
@@ -205,11 +213,6 @@ if(!("package:ggtree" %in% search())){
   output.nexus        <- T
   output.pdf          <- F
 }
-
-output.ssg            <- args$makeSummaryStatisticsGraph
-output.ssf            <- T
-
-do.summary.statistics <- output.ssg | output.ssf
 
 recomb.input          <- args$recombinationFiles
 do.recomb             <- !is.null(recomb.input)
@@ -270,12 +273,6 @@ if(file.exists(tree.input)){
   
   tree.info$prexisting.blacklist.file.name   <- blacklist.input
   
-  if(output.ssg | output.ssf){
-    warning("Only one tree provided; cannot output summary statistics\n")
-    output.ssf            <- F
-    output.ssg            <- F
-    do.summary.statistics <- F
-  }
   
   if(!do.class.detail){
     do.class.detail       <- T
@@ -302,7 +299,7 @@ if(file.exists(tree.input)){
   }
   
   suffixes <- sapply(tree.file.names, get.suffix, tree.input, tree.fe)
-
+  
   if(any(suffixes=="")){
     stop("Some trees have identifying suffixes of length zero. The tree file argument should be a path and a string that begins every tree file, but there must be something after that string (excluding the file extension).")
   }
@@ -323,7 +320,7 @@ if(file.exists(tree.input)){
     
     if(do.recomb){
       expected.recomb.file.name  <- paste0(recomb.input, suffix , ".", csv.fe)
-
+      
       if(file.exists(expected.recomb.file.name)){
         tree.info$recombination.file.name <- expected.recomb.file.name
       } else {
@@ -386,7 +383,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
   })
 }, simplify = F, USE.NAMES = T)
 
-if(!readable.coords & output.ssg){
+if(!readable.coords & !single.file){
   warning("Cannot obtain genome window coordinates from file names. Summary statistics will be plotted in alphabetical order of file names.")
 }
 
@@ -430,6 +427,8 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
       blacklist <- blacklist[!is.na(blacklist)]
       
       tree.info$hosts.for.tips[blacklist] <- NA 
+      
+      if(verbose & length(blacklist)>0) cat(length(blacklist), " tips pre-blacklisted for tree suffix ",tree.info$suffix, "\n", sep="")
       
       tree.info$blacklist                 <- blacklist
     } else {
@@ -509,7 +508,7 @@ if(!is.null(norm.constants.input)){
     
     if(grepl(paste0(csv.fe, "$"), norm.ref.file.name)){
       norm.table	<- as.data.table(read.csv(norm.ref.file.name, stringsAsFactors=FALSE))
-  
+      
       if(ncol(norm.table)!=2){
         stop(paste0(norm.ref.file.name," is not formatted as expected for a normalisation lookup file; expecting two columns.\n"))
       } else {
@@ -529,7 +528,7 @@ if(!is.null(norm.constants.input)){
           }
           
           tmp		<- tmp[, mean(NORM_CONST)]
-  
+          
           if(!is.finite(tmp)){
             stop(paste0("Standardising constant is not finite"))
           }
@@ -537,7 +536,7 @@ if(!is.null(norm.constants.input)){
           set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
         } else {
           if (verbose) cat('Standardising normalising constants to 1 on the whole genome\n')
-  
+          
           tmp		<- norm.table[, mean(NORM_CONST)]
           if(!is.finite(tmp)){
             stop(paste0("Standardising constant is not finite"))
@@ -609,6 +608,8 @@ if(do.dup.blacklisting){
       
       newly.blacklisted                            <- setdiff(duplicate.nos, tree.info$blacklist) 
       
+      if(verbose & length(newly.blacklisted > 0)) cat(length(newly.blacklisted), " tips blacklisted as duplicates for tree suffix ",tree.info$suffix, "\n", sep="")
+      
       tree.info$hosts.for.tips[newly.blacklisted]  <- NA
       
       old.tip.labels    <- tree.info$tree$tip.label
@@ -632,7 +633,7 @@ if(do.dup.blacklisting){
 # 10. Parsimony blacklisting
 
 if(do.par.blacklisting){
-
+  
   all.tree.info <- sapply(all.tree.info, function(tree.info){
     
     tree <- tree.info$tree
@@ -649,6 +650,8 @@ if(do.par.blacklisting){
     contaminant.nos                             <- which(tree.info$tree$tip.label %in% contaminant)
     
     newly.blacklisted                           <- setdiff(contaminant.nos, tree.info$blacklist) 
+    
+    if(verbose & length(newly.blacklisted)>0) cat(length(newly.blacklisted), " tips blacklisted as probable contaminants by parsimony reconstruction for tree suffix ",tree.info$suffix, "\n", sep="")
     
     tree.info$hosts.for.tips[newly.blacklisted] <- NA
     
@@ -682,9 +685,9 @@ if(do.par.blacklisting){
 }
 
 
-# 11. All IDs can be safely gathered and mapped now; dual blacklisting as performed by this script cannot eliminate patients entirely so we know who's in and who's out
+# 11. All IDs can be safely gathered and mapped now; dual blacklisting as performed by this script cannot eliminate hosts entirely so we know who's in and who's out
 
-if(verbose) cat("Gathering patient IDs...\n")
+if(verbose) cat("Gathering host IDs...\n")
 
 hosts <- lapply(all.tree.info, "[[" , "hosts.for.tips")
 hosts <- unique(unlist(hosts))
@@ -721,6 +724,8 @@ if(do.dual.blacklisting){
       dual.nos                                    <- which(tree.info$original.tip.labels %in% dual)
       
       newly.blacklisted                           <- setdiff(dual.nos, tree.info$blacklist) 
+      
+      if(verbose & length(newly.blacklisted)>0) cat(length(newly.blacklisted), " tips blacklisted for belonging to minor subgraphs in tree suffix ",tree.info$suffix, "\n", sep="")
       
       tree.info$hosts.for.tips[newly.blacklisted] <- NA
       
@@ -776,7 +781,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
   # Do the reconstruction
   
   if(verbose) cat("Reconstructing internal node hosts on tree suffix ",tree.info$suffix, "\n", sep="")
-
+  
   tmp					     <- split.patients.to.subgraphs(tree.info$tree, tree.info$blacklist, reconstruction.mode, tip.regex, sankoff.k, sankoff.p, useff, read.counts.matter, hosts, verbose)
   tree					   <- tmp[['tree']]	
   
@@ -835,104 +840,104 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
 
 # 16. Summary statistics
 
-if(do.summary.statistics){
-  
+
+
+coordinates <- lapply(all.tree.info, "[[" , "window.coords")
+
+if(readable.coords){
   coordinates <- lapply(all.tree.info, "[[" , "window.coords")
   
-  if(readable.coords){
-    coordinates <- lapply(all.tree.info, "[[" , "window.coords")
-    
-    starts <- sapply(coordinates, "[[", "start")
-    ends <- sapply(coordinates, "[[", "end")
-    
-    ews <- min(starts)
-    lwe <- max(ends)
-  } else {
-    coordinates <- sapply(all.tree.info, "[[" , "xcoord")
-    range <- max(coordinates) - min(coordinates)
-    increment <- range/length(coordinates)
-    
-    ews <- min(coordinates) - 0.45*increment
-    lwe <- max(coordinates) + 0.45*increment
-  }
+  starts <- sapply(coordinates, "[[", "start")
+  ends <- sapply(coordinates, "[[", "end")
   
-  all.tree.info <- sapply(all.tree.info, function(tree.info) {
-    clade.results                 <- resolveTreeIntoPatientClades(tree.info$tree, hosts, tip.regex, tree.info$blacklist, no.read.counts)
-    
-    tree.info$clades.by.host      <- clade.results$clades.by.patient
-    tree.info$clade.mrcas.by.host <- clade.results$clade.mrcas.by.patient
-    
-    tree.info
-  }, simplify = F, USE.NAMES = T)
+  ews <- min(starts)
+  lwe <- max(ends)
+} else {
+  coordinates <- sapply(all.tree.info, "[[" , "xcoord")
+  range <- max(coordinates) - min(coordinates)
+  increment <- range/length(coordinates)
   
-  pat.stats <- lapply(all.tree.info, function(x) calc.all.stats.in.window(x, hosts, tip.regex, verbose))
-  pat.stats <- rbindlist(pat.stats)
-  
-  read.proportions <- lapply(all.tree.info, function(y) sapply(hosts, function(x) get.read.proportions(x, y$suffix, y$splits.table), simplify = F, USE.NAMES = T))
-  
-  # Get the max split count over every window and patient (the exact number of columns depends on this)
-  
-  max.splits <- max(sapply(read.proportions, function(x) max(sapply(x, function(y) length(y)))))
-  
-  read.prop.columns <- lapply(all.tree.info, function(x){
-    window.props <- read.proportions[[x$suffix]]
-    out <- lapply(hosts, function(y){
-
-      result <- window.props[[y]]
-      
-      if(is.na(result[1])){
-        result <- rep(NA, max.splits)
-        
-      } else {
-        if(length(result)<max.splits){
-          result[(length(result)+1):max.splits] <- 0
-        }
-      }
-      
-      result
-    })
-    out <- as.data.table(do.call(rbind, out))
-    colnames(out) <- paste("prop.gp.",seq(1,max.splits),sep="")
-    out
-  })
-  
-  
-  read.prop.columns <- rbindlist(read.prop.columns)
-  
-  pat.stats         <- cbind(pat.stats, read.prop.columns)
-  
-  pat.stats$tips    <- as.numeric(pat.stats$tips)
-  
-  if(output.ssf){
-    tmp	<- file.path(paste0(output.dir, "/", output.string,"_patStats.csv"))
-    if (verbose) cat("Writing output to file ",tmp,"...\n",sep="")
-    write.csv(pat.stats, tmp, quote = F, row.names = F)
-  }
-  if(output.ssg){
-    tmp <- file.path(paste0(output.dir, "/", output.string,"_patStats.pdf"))
-    if (verbose) cat("Plotting to file ",tmp,"...\n",sep="")
-    
-    # Set up the boundaries of each window's region on the x-axis
-    
-    xcoords <- unique(pat.stats$xcoord)
-    xcoords <- xcoords[order(xcoords)]
-    
-    missing.window.data <- find.gaps(xcoords)
-    
-    xcoords <- missing.window.data$x.coordinates
-    regular.gaps <- missing.window.data$regular.gaps
-    rectangles.for.missing.windows <- missing.window.data$rectangles.for.missing.windows
-    bar.width <- missing.window.data$width
-    
-    produce.pdf.graphs(tmp, pat.stats, hosts, xcoords, rectangles.for.missing.windows, bar.width, regular.gaps, verbose = verbose)
-  }
+  ews <- min(coordinates) - 0.45*increment
+  lwe <- max(coordinates) + 0.45*increment
 }
+
+all.tree.info <- sapply(all.tree.info, function(tree.info) {
+  clade.results                 <- resolveTreeIntoPatientClades(tree.info$tree, hosts, tip.regex, tree.info$blacklist, no.read.counts)
+  
+  tree.info$clades.by.host      <- clade.results$clades.by.patient
+  tree.info$clade.mrcas.by.host <- clade.results$clade.mrcas.by.patient
+  
+  tree.info
+}, simplify = F, USE.NAMES = T)
+
+pat.stats <- lapply(all.tree.info, function(x) calc.all.stats.in.window(x, hosts, tip.regex, verbose))
+pat.stats <- rbindlist(pat.stats)
+
+read.proportions <- lapply(all.tree.info, function(y) sapply(hosts, function(x) get.read.proportions(x, y$suffix, y$splits.table), simplify = F, USE.NAMES = T))
+
+# Get the max split count over every window and host (the exact number of columns depends on this)
+
+max.splits <- max(sapply(read.proportions, function(x) max(sapply(x, function(y) length(y)))))
+
+read.prop.columns <- lapply(all.tree.info, function(x){
+  window.props <- read.proportions[[x$suffix]]
+  out <- lapply(hosts, function(y){
+    
+    result <- window.props[[y]]
+    
+    if(is.na(result[1])){
+      result <- rep(NA, max.splits)
+      
+    } else {
+      if(length(result)<max.splits){
+        result[(length(result)+1):max.splits] <- 0
+      }
+    }
+    
+    result
+  })
+  out <- as.data.table(do.call(rbind, out))
+  colnames(out) <- paste("prop.gp.",seq(1,max.splits),sep="")
+  out
+})
+
+
+read.prop.columns <- rbindlist(read.prop.columns)
+
+pat.stats         <- cbind(pat.stats, read.prop.columns)
+
+pat.stats$tips    <- as.numeric(pat.stats$tips)
+
+
+tmp	<- file.path(paste0(output.dir, "/", output.string,"_patStats.csv"))
+if (verbose) cat("Writing output to file ",tmp,"...\n",sep="")
+write.csv(pat.stats, tmp, quote = F, row.names = F)
+
+if(!single.file){
+  tmp <- file.path(paste0(output.dir, "/", output.string,"_patStats.pdf"))
+  if (verbose) cat("Plotting to file ",tmp,"...\n",sep="")
+  
+  # Set up the boundaries of each window's region on the x-axis
+  
+  xcoords <- unique(pat.stats$xcoord)
+  xcoords <- xcoords[order(xcoords)]
+  
+  missing.window.data <- find.gaps(xcoords)
+  
+  xcoords <- missing.window.data$x.coordinates
+  regular.gaps <- missing.window.data$regular.gaps
+  rectangles.for.missing.windows <- missing.window.data$rectangles.for.missing.windows
+  bar.width <- missing.window.data$width
+  
+  produce.pdf.graphs(tmp, pat.stats, hosts, xcoords, rectangles.for.missing.windows, bar.width, regular.gaps, verbose = verbose)
+}
+
 
 # 17. Individual window classifications
 
 all.tree.info <- sapply(all.tree.info, function(tree.info) {
   
-  if(verbose) cat("Classifying pairwise patient relationships for tree suffix ",tree.info$suffix, "\n", sep="")
+  if(verbose) cat("Classifying pairwise host relationships for tree suffix ",tree.info$suffix, "\n", sep="")
   
   tree.info$classification.results <- classify(tree.info, verbose)
   
