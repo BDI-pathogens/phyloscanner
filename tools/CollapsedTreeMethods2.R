@@ -188,10 +188,10 @@ output.trans.tree <- function(tree, assocs){
     root.nos <- c(root.nos, root)
   }
   
-  patients <-  unlist(lapply(strsplit(unique.splits, "-S"), `[[`, 1)) 
-  parent.patients <-  unlist(lapply(strsplit(parent.splits, "-S"), `[[`, 1)) 
+  hosts <-  unlist(lapply(strsplit(unique.splits, "-S"), `[[`, 1)) 
+  parent.hosts <-  unlist(lapply(strsplit(parent.splits, "-S"), `[[`, 1)) 
   
-  tt.table <- data.frame(unique.splits, parent.splits, patients, parent.patients, lengths, root.nos, stringsAsFactors = F)
+  tt.table <- data.frame(unique.splits, parent.splits, hosts, parent.hosts, lengths, root.nos, stringsAsFactors = F)
 
   return(tt.table)
 }
@@ -219,7 +219,7 @@ prune.unsampled.tips <- function(tt.table){
   } 
   
   for.output$patients[which(grepl("^unsampled_region",for.output$patients))] <- "UnsampledRegion"
-  for.output$parent.patients[which(grepl("^unsampled_region",for.output$parent.patients))] <- "UnsampledRegion"
+  for.output$parent.hosts[which(grepl("^unsampled_region",for.output$parent.hosts))] <- "UnsampledRegion"
 
   return(for.output)
 }
@@ -319,7 +319,7 @@ check.uninterrupted <- function(tt, patients, splits.for.patients, patients.for.
   return(any.contiguity & !any.interruption)
 }
 
-extract.tt.subtree <- function(tt, patients, splits.for.patients, patients.for.splits){
+extract.tt.subgraph <- function(tt, patients, splits.for.patients, patients.for.splits){
   # for now, at least
   
   if(length(patients)!=2){
@@ -346,9 +346,9 @@ extract.tt.subtree <- function(tt, patients, splits.for.patients, patients.for.s
   return(c(sub.tt$unique.splits, unique(none.but.maybe.relevant[which(adjacent.relevance.count > 1)])))
 }
 
-# every distance between subtrees
+# every distance between subgraphs
 
-all.subtree.distances <- function(tree, tt, splits, assocs, slow=F){
+all.subgraph.distances <- function(tree, tt, splits, assocs, slow=F){
   
   if(!slow){
     tree.dist <- dist.nodes(tree)
@@ -433,9 +433,9 @@ pat.dist <- function(tree, depths, node.1, node.2){
   return(dist)
 }
 
-# are each pair of subtrees adjacent? If !none.matters then two nodes separated only by "none" are still adjacent
+# are each pair of subgraphs adjacent? If !none.matters then two nodes separated only by "none" are still adjacent
 
-subtrees.adjacent <- function(tt, splits, none.matters = F){
+subgraphs.adjacent <- function(tt, splits, none.matters = F){
   out <- matrix(ncol = length(splits), nrow=length(splits))
   for(spt.1.no in 1:length(splits)){
     for(spt.2.no in 1:length(splits)){
@@ -467,9 +467,9 @@ subtrees.adjacent <- function(tt, splits, none.matters = F){
   return(out)
 }
 
-# are pairs of subtrees from two patients not separated by any other subtrees from either of those patients?
+# are pairs of subgraphs from two patients not separated by any other subgraphs from either of those patients?
 
-subtrees.unblocked <- function(tt, splits){
+subgraphs.unblocked <- function(tt, splits){
   out <- matrix(ncol = length(splits), nrow=length(splits))
   for(spt.1.no in 1:length(splits)){
     for(spt.2.no in 1:length(splits)){
@@ -602,21 +602,21 @@ classify <- function(tree.info, verbose = F) {
   
   total.pairs <- (length(patients.included) ^ 2 - length(patients.included))/2
   
-  if (verbose) cat("Collapsing subtrees...\n")
+  if (verbose) cat("Collapsing subgraphs...\n")
   
   tt <- output.trans.tree(tree, assocs)
   
   if (verbose) cat("Identifying pairs of unblocked splits...\n")
   
-  collapsed.adjacent <- subtrees.unblocked(tt, all.splits)
+  collapsed.adjacent <- subgraphs.unblocked(tt, all.splits)
   
   if (verbose) cat("Calculating pairwise distances between splits...\n")
   
   split.distances <- tryCatch(
-    all.subtree.distances(tree, tt, all.splits, assocs), warning=function(w){return(NULL)}, error=function(e){return(NULL)})
+    all.subgraph.distances(tree, tt, all.splits, assocs), warning=function(w){return(NULL)}, error=function(e){return(NULL)})
   
   if(is.null(split.distances)){
-    split.distances <- all.subtree.distances(tree, tt, all.splits, assocs, TRUE)
+    split.distances <- all.subgraph.distances(tree, tt, all.splits, assocs, TRUE)
   }
   
   if (verbose) cat("Testing pairs...\n")
@@ -689,7 +689,7 @@ classify <- function(tree.info, verbose = F) {
             path.matrix[pat.1, pat.2] <- "multiDesc"
           }
         } else {
-          path.matrix[pat.1, pat.2] <- "conflict"
+          path.matrix[pat.1, pat.2] <- "complex"
         }
         
         pairwise.distances <- vector()
@@ -730,11 +730,11 @@ classify <- function(tree.info, verbose = F) {
   
   classification <- cbind(adjacency.df, contiguity.df[,3], dir.12.df[,3], dir.21.df[,3], nodes.1.df[,3], nodes.2.df[,3], path.df[,3], min.distance.df[,3])
   
-  column.names <- c("Patient_1", "Patient_2", "adjacent", "contiguous", "paths12", "paths21", "nodes1", "nodes2", "path.classification", "min.distance.between.subtrees")
+  column.names <- c("Host_1", "Host_2", "adjacent", "contiguous", "paths12", "paths21", "nodes1", "nodes2", "path.classification", "min.distance.between.subgraphs")
   
   if(normalisation.constant!=1){
     classification <- cbind(classification, normalised.distance.df[,3])
-    column.names <- c(column.names, "normalised.min.distance.between.subtrees")
+    column.names <- c(column.names, "normalised.min.distance.between.subgraphs")
   }
   
   colnames(classification) <- column.names
@@ -785,7 +785,7 @@ summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.
   tt	<- lapply(tt, function(x){
     #x	<- tt[[1]]
     tmp	<- copy(x)
-    setnames(tmp, c('Patient_1','Patient_2','paths12','paths21'), c('Patient_2','Patient_1','paths21','paths12'))
+    setnames(tmp, c('Host_1','Host_2','paths12','paths21'), c('Host_2','Host_1','paths21','paths12'))
     set(tmp, tmp[, which(path.classification=="anc")], 'path.classification', 'TMP')
     set(tmp, tmp[, which(path.classification=="desc")], 'path.classification', 'anc')
     set(tmp, tmp[, which(path.classification=="TMP")], 'path.classification', 'desc')
@@ -793,8 +793,8 @@ summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.
     set(tmp, tmp[, which(path.classification=="multiDesc")], 'path.classification', 'multiAnc')
     set(tmp, tmp[, which(path.classification=="TMP")], 'path.classification', 'multiDesc')
     x	<- rbind(x, tmp)
-    setkey(x, Patient_1, Patient_2)
-    subset(x, Patient_1 < Patient_2)
+    setkey(x, Host_1, Host_2)
+    subset(x, Host_1 < Host_2)
   })
   #
   # rbind consolidated files
@@ -807,18 +807,18 @@ summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.
   if(verbose) cat("Finding patristic distance columns...\n")
   
   # reset names depending on which Classify script was used
-  if(any('normalised.min.distance.between.subtrees'==colnames(tt))){
-    setnames(tt, 'normalised.min.distance.between.subtrees', 'PATRISTIC_DISTANCE')
-  } else if(any('min.distance.between.subtrees'==colnames(tt))){
-    setnames(tt, 'min.distance.between.subtrees', 'PATRISTIC_DISTANCE')
+  if(any('normalised.min.distance.between.subgraphs'==colnames(tt))){
+    setnames(tt, 'normalised.min.distance.between.subgraphs', 'PATRISTIC_DISTANCE')
+  } else if(any('min.distance.between.subgraphs'==colnames(tt))){
+    setnames(tt, 'min.distance.between.subgraphs', 'PATRISTIC_DISTANCE')
   }
   
-  setnames(tt, c('Patient_1','Patient_2','path.classification','paths21','paths12','adjacent'), c('PAT.1','PAT.2','TYPE','PATHS.21','PATHS.12','ADJACENT'))
+  setnames(tt, c('Host_1','Host_2','path.classification','paths21','paths12','adjacent'), c('HOST.1','HOST.2','TYPE','PATHS.21','PATHS.12','ADJACENT'))
   
   # change type name depending on allow.mt
   if(!allow.mt){
     if(verbose) cat("Allowing only single lineage transmission...\n")
-    set(tt, tt[, which(TYPE%in%c("multiAnc", "multiDesc"))], 'TYPE', 'conflict')
+    set(tt, tt[, which(TYPE%in%c("multiAnc", "multiDesc"))], 'TYPE', 'complex')
   }
   
   #	check we have patristic distances, paths
@@ -840,31 +840,31 @@ summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.
   if(verbose) cat("Reordering...\n")
   
   #	reorder
-  setkey(tt, SUFFIX, PAT.1, PAT.2)
+  setkey(tt, SUFFIX, HOST.1, HOST.2)
   
   if (verbose) cat("Making summary output table...\n")
 
   set(tt, NULL, c('PATHS.12','PATHS.21'),NULL)
   
   
-  existence.counts <- tt[, list(both.exist=length(SUFFIX)), by=c('PAT.1','PAT.2')]
+  existence.counts <- tt[, list(both.exist=length(SUFFIX)), by=c('HOST.1','HOST.2')]
 
-  tt <- merge(tt, existence.counts, by=c('PAT.1', 'PAT.2'))
+  tt <- merge(tt, existence.counts, by=c('HOST.1', 'HOST.2'))
   
   tt.close <- tt[which(tt$ADJACENT & tt$PATRISTIC_DISTANCE < dist.threshold ),]
    
   tt.close$NOT.SIBLINGS <- tt.close$ADJACENT & (tt.close$PATRISTIC_DISTANCE < dist.threshold) & tt.close$TYPE!="none"
   
   # How many windows have this relationship, ADJACENT and PATRISTIC_DISTANCE below the threshold?
-  type.counts	<- tt.close[, list(windows=length(SUFFIX)), by=c('PAT.1','PAT.2','TYPE')]
+  type.counts	<- tt.close[, list(windows=length(SUFFIX)), by=c('HOST.1','HOST.2','TYPE')]
   # How many windows have ADJACENT and PATRISTIC_DISTANCE below the threshold?
-  any.counts  <- tt.close[, list(all.windows=length(SUFFIX)), by=c('PAT.1','PAT.2')]
+  any.counts  <- tt.close[, list(all.windows=length(SUFFIX)), by=c('HOST.1','HOST.2')]
   # How many windows have a relationship other than "none", ADJACENT and PATRISTIC_DISTANCE below the threshold?
-  ns.counts  <- tt.close[, list(ns.windows=length(which(NOT.SIBLINGS))), by=c('PAT.1','PAT.2')]
+  ns.counts  <- tt.close[, list(ns.windows=length(which(NOT.SIBLINGS))), by=c('HOST.1','HOST.2')]
   
-  tt.close		<- merge(tt.close, type.counts, by=c('PAT.1','PAT.2','TYPE'))
-  tt.close		<- merge(tt.close, any.counts, by=c('PAT.1','PAT.2'))
-  tt.close		<- merge(tt.close, ns.counts, by=c('PAT.1','PAT.2'))
+  tt.close		<- merge(tt.close, type.counts, by=c('HOST.1','HOST.2','TYPE'))
+  tt.close		<- merge(tt.close, any.counts, by=c('HOST.1','HOST.2'))
+  tt.close		<- merge(tt.close, ns.counts, by=c('HOST.1','HOST.2'))
   
   tt.close[, fraction:=paste(windows,'/',both.exist,sep='')]
   #	convert "anc_12" and "ans_21" to "anc" depending on direction
@@ -872,16 +872,16 @@ summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.
   tmp			<- tt.close[, which(TYPE=="anc_12")]
   set(tt.close, tmp, 'TYPE', "trans")
   tmp			<- tt.close[, which(TYPE=="anc_21")]
-  set(tt.close, tmp, 'DUMMY', tt.close[tmp, PAT.1])
-  set(tt.close, tmp, 'PAT.1', tt.close[tmp, PAT.2])
+  set(tt.close, tmp, 'DUMMY', tt.close[tmp, HOST.1])
+  set(tt.close, tmp, 'PAT.1', tt.close[tmp, HOST.2])
   set(tt.close, tmp, 'PAT.2', tt.close[tmp, DUMMY])
   set(tt.close, tmp, 'TYPE', "trans")
   
   tmp			<- tt.close[, which(TYPE=="multi_anc_12")]
   set(tt.close, tmp, 'TYPE', "multi_trans")
   tmp			<- tt.close[, which(TYPE=="multi_anc_21")]
-  set(tt.close, tmp, 'DUMMY', tt.close[tmp, PAT.1])
-  set(tt.close, tmp, 'PAT.1', tt.close[tmp, PAT.2])
+  set(tt.close, tmp, 'DUMMY', tt.close[tmp, HOST.1])
+  set(tt.close, tmp, 'PAT.1', tt.close[tmp, HOST.2])
   set(tt.close, tmp, 'PAT.2', tt.close[tmp, DUMMY])
   set(tt.close, tmp, 'TYPE', "multi_trans")
   
@@ -891,7 +891,7 @@ summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.
   tt.close <- tt.close[!duplicated(tt.close),]
   
   #	write to file
-  setkey(tt.close, PAT.1, PAT.2, TYPE)
+  setkey(tt.close, HOST.1, HOST.2, TYPE)
   #
   
   return(subset(tt.close, all.windows>=min.threshold))

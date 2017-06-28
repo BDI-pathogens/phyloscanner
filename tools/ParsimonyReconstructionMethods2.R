@@ -626,22 +626,22 @@ get.star.runs <- function(tree, assocs){
 # Make the full Sankhoff cost matrix
 
 make.cost.matrix <- function(node, tree, patients, tip.patients, individual.costs, current.matrix, k, tip.read.counts, verbose = F){
-  if(verbose){
-    cat("Node number ",node,":", sep="")
-  }
+  # if(verbose){
+  #   cat("Node number ",node,":", sep="")
+  # }
   if(is.tip(tree, node)){
-    if(verbose){
-      cat(" is a tip (host = ",tip.patients[node],")\n", sep="")
-    }
+    # if(verbose){
+    #   cat(" is a tip (host = ",tip.patients[node],")\n", sep="")
+    # }
     current.matrix[node,] <- rep(Inf, length(patients))
     current.matrix[node, which(patients == tip.patients[node])] <- 0
     
   } else {
-    if(verbose){
-      cat(" looking at children (")
-      cat(Children(tree, node),sep=" ")
-      cat(")\n")
-    }
+    # if(verbose){
+    #   cat(" looking at children (")
+    #   cat(Children(tree, node),sep=" ")
+    #   cat(")\n")
+    # }
     this.row <- vector()
     child.nos <- Children(tree, node)
     for(child in child.nos){
@@ -650,22 +650,22 @@ make.cost.matrix <- function(node, tree, patients, tip.patients, individual.cost
     if(length(child.nos)==0){
       stop("Reached an internal node with no children(?)")
     }
-    if(verbose){
-      cat("Done; back to node ",node,"\n", sep="")
-    }
+    # if(verbose){
+    #   cat("Done; back to node ",node,"\n", sep="")
+    # }
     current.matrix[node,] <- vapply(seq(1, length(patients)), function(x) node.cost(tree, x, patients, current.matrix, individual.costs, k, child.nos, tip.read.counts), 0)
     
-    if(verbose){
-      cat("Row for node ",node," calculated\n", sep="")
-    }
+    # if(verbose){
+    #   cat("Row for node ",node," calculated\n", sep="")
+    # }
     
   }
-  if(verbose){
-    ties.string <- format(patients[which(current.matrix[node,] == min(current.matrix[node,]))],sep=" ")
-    cat("Lowest cost (",min(current.matrix[node,]),") for node ",node," goes to ",sep="")
-    cat(ties.string, "\n")
-    cat("\n")  
-  }
+  # if(verbose){
+  #   ties.string <- format(patients[which(current.matrix[node,] == min(current.matrix[node,]))],sep=" ")
+  #   cat("Lowest cost (",min(current.matrix[node,]),") for node ",node," goes to ",sep="")
+  #   cat(ties.string, "\n")
+  #   cat("\n")  
+  # }
   if(length(which(!is.na(current.matrix[,1]))) %% 100 == 0){
     if (verbose) cat(length(which(!is.na(current.matrix[,1]))), " of ", nrow(current.matrix), " matrix rows calculated.\n", sep="")
   }
@@ -715,9 +715,9 @@ child.cost <- function(tree, child.index, patients, top.patient.no, bottom.patie
 
 reconstruct <- function(tree, node, node.state, node.assocs, tip.patients, patients, full.cost.matrix, node.cost.matrix, k, p, tip.read.counts, verbose=F){
   node.assocs[[node]] <- node.state
-  if(verbose){
-    cat("Node ",node," reconstructed as ",node.state,"\n", sep="")
-  }
+  # if(verbose){
+  #   cat("Node ",node," reconstructed as ",node.state,"\n", sep="")
+  # }
   if(is.tip(tree, node)){
     if(node.state != tip.patients[node]){
       stop("Attempting to reconstruct the wrong state onto a tip")
@@ -737,31 +737,31 @@ reconstruct <- function(tree, node, node.state, node.assocs, tip.patients, patie
       min.cost <- min(costs)
       if(length(which(costs == min.cost))==1){
         decision <- patients[which(costs == min.cost)]
-        if(verbose){
-          cat("Single minimum cost belongs to ", decision, "\n", sep="")
-        }
+        # if(verbose){
+        #   cat("Single minimum cost belongs to ", decision, "\n", sep="")
+        # }
       } else {
-        if(verbose){
-          cat("Tie at node ",node," between ",cat(patients[which(costs == min.cost)], sep=" "),"...", sep="")
-        }
+        # if(verbose){
+        #   cat("Tie at node ",node," between ",cat(patients[which(costs == min.cost)], sep=" "),"...", sep="")
+        # }
         if("unsampled" %in% patients[which(costs == min.cost)] & node.state %in% patients[which(costs == min.cost)]){
           child.branch.length <- get.edge.length(tree, child)
           if(child.branch.length > p){
-            if(verbose){
-              cat("broken in favour of unsampled\n")
-            }
+            # if(verbose){
+            #   cat("broken in favour of unsampled\n")
+            # }
             decision <- "unsampled"
           } else {
-            if(verbose){
-              cat("broken in favour of",node.state,"\n")
-            }
+            # if(verbose){
+            #   cat("broken in favour of",node.state,"\n")
+            # }
             decision <- node.state
           }
         } else {
           decision <- patients[sample(which(costs == min.cost), 1)]
-          if(verbose){
-            cat("broken in favour of", decision, '\n')
-          }
+          # if(verbose){
+          #   cat("broken in favour of", decision, '\n')
+          # }
           cat("WARNING: some ties broken at random\n", sep="")
         }
       }
@@ -814,22 +814,22 @@ cost.of.subtree <- function(tree, node, patient, tip.patients, finite.cost.col, 
 # Reconstruct node states based on the cost matrix. 
 
 make.cost.matrix.fi <- function(node, tree, patients, tip.assocs, current.matrix, k, us.penalty, finite.costs, tip.read.counts, verbose = F){
-  if(verbose){
-    cat("Node number ",node,":", sep="")
-  }
+  # if(verbose){
+  #   cat("Node number ",node,":", sep="")
+  # }
   if(is.tip(tree, node)){
-    if(verbose){
-      cat(" is a tip (host = ",tip.assocs[[node]],")\n", sep="")
-    }
+    # if(verbose){
+    #   cat(" is a tip (host = ",tip.assocs[[node]],")\n", sep="")
+    # }
     current.matrix[node,] <- rep(Inf, length(patients))
     current.matrix[node, which(patients == tip.assocs[[node]])] <- 0
     
   } else {
-    if(verbose){
-      cat(" looking at children (")
-      cat(Children(tree, node),sep=" ")
-      cat(")\n")
-    }
+    # if(verbose){
+    #   cat(" looking at children (")
+    #   cat(Children(tree, node),sep=" ")
+    #   cat(")\n")
+    # }
     this.row <- vector()
     child.nos <- Children(tree, node)
     for(child in child.nos){
@@ -839,25 +839,25 @@ make.cost.matrix.fi <- function(node, tree, patients, tip.assocs, current.matrix
     if(length(child.nos)==0){
       stop("Reached an internal node with no children(?)")
     }
-    if(verbose){
-      cat("Done; back to node ",node,"\n", sep="")
-    }
+    # if(verbose){
+    #   cat("Done; back to node ",node,"\n", sep="")
+    # }
     current.matrix[node,] <- vapply(seq(1, length(patients)), function(x) node.cost.fi(tree, child.nos, x, patients, current.matrix, k, us.penalty, finite.costs, tip.read.counts), 0)
     
-    if(verbose){
-      cat("Row for node ",node," calculated\n", sep="")
-    }
+    # if(verbose){
+    #   cat("Row for node ",node," calculated\n", sep="")
+    # }
     
   }
-  if(verbose){
-    ties.string <- format(patients[which(current.matrix[node,] == min(current.matrix[node,]))],sep=" ")
-    cat("Lowest cost (",min(current.matrix[node,]),") for node ",node," goes to ",sep="")
-    cat(ties.string, "\n")
-    cat("\n")  
-  }
-  if(length(which(!is.na(current.matrix[,1]))) %% 100 == 0){
-    if (verbose) cat(length(which(!is.na(current.matrix[,1]))), " of ", nrow(current.matrix), " matrix rows calculated.\n", sep="")
-  }
+  # if(verbose){
+  #   ties.string <- format(patients[which(current.matrix[node,] == min(current.matrix[node,]))],sep=" ")
+  #   cat("Lowest cost (",min(current.matrix[node,]),") for node ",node," goes to ",sep="")
+  #   cat(ties.string, "\n")
+  #   cat("\n")  
+  # }
+  # if(length(which(!is.na(current.matrix[,1]))) %% 100 == 0){
+  #   if (verbose) cat(length(which(!is.na(current.matrix[,1]))), " of ", nrow(current.matrix), " matrix rows calculated.\n", sep="")
+  # }
   
   return(current.matrix)
 }
@@ -909,9 +909,9 @@ child.cost.fi <- function(tree, child.index, patients, top.patient.no, bottom.pa
 
 reconstruct.fi <- function(tree, node, node.state, node.assocs, tip.assocs, patients, full.cost.matrix, finite.costs, k, penalty, tip.read.counts, verbose=F){
   node.assocs[[node]] <- node.state
-  if(verbose){
-    cat("Node ",node," reconstructed as ",node.state,"\n", sep="")
-  }
+  # if(verbose){
+  #   cat("Node ",node," reconstructed as ",node.state,"\n", sep="")
+  # }
   if(is.tip(tree, node)){
     if(node.state != tip.assocs[[node]]){
       stop("Attempting to reconstruct the wrong state onto a tip")
@@ -932,9 +932,9 @@ reconstruct.fi <- function(tree, node, node.state, node.assocs, tip.assocs, pati
       min.cost <- min(costs)
       if(length(which(costs == min.cost))==1){
         decision <- patients[which(costs == min.cost)]
-        if(verbose){
-          cat("Single minimum cost belongs to ", decision, "\n", sep="")
-        }
+        # if(verbose){
+        #   cat("Single minimum cost belongs to ", decision, "\n", sep="")
+        # }
       } else {
         cat("Tie at node",child,"between",format(patients[which(costs == min.cost)]),"broken randomly\n", sep=" ")
         choices <- which(costs == min.cost)

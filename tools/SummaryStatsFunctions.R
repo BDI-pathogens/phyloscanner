@@ -36,8 +36,6 @@ calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table
     pat.distances <- cophenetic(subtree.all)
     max.pat.distance <- max(pat.distances)
     
-    branch.to.pat.ratio <- max.branch.length/max.pat.distance
-    
     global.mean.pat.distance <- mean(pat.distances[upper.tri(pat.distances)])
     
     if(subgraphs==1){
@@ -86,7 +84,6 @@ calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table
     
     max.branch.length <- NA
     max.pat.distance <- NA
-    branch.to.pat.ratio <- NA
     global.mean.pat.distance <- NA
     subgraph.mean.pat.distance <- NA
     
@@ -100,8 +97,8 @@ calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table
       largest.rtt <- NA
     }
   }
-  return(list(overall.rtt = overall.rtt, largest.rtt = largest.rtt, max.branch.length = max.branch.length, max.pat.distance = max.pat.distance,
-              branch.to.pat.ratio  = branch.to.pat.ratio, global.mean.pat.distance=global.mean.pat.distance, subgraph.mean.pat.distance = subgraph.mean.pat.distance))
+  return(list(overall.rtt = overall.rtt, largest.rtt = largest.rtt, max.branch.length = max.branch.length, max.pat.distance = max.pat.distance, 
+              global.mean.pat.distance=global.mean.pat.distance, subgraph.mean.pat.distance = subgraph.mean.pat.distance))
 }
 
 # Calculates all statistics (apart from read proportions) for all patients in a given window
@@ -190,6 +187,7 @@ calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, verbose = F){
     }
     recomb.df <- recomb.df[c("Bam.file","Recombination.metric")]
     colnames(recomb.df)[colnames(recomb.df) == "Bam.file"] <- "id"
+    colnames(recomb.df)[colnames(recomb.df) == "Recombination.metric"] <- "recombination.metric"
     window.table <- merge(window.table, recomb.df, by="id", all=F)
   }
   

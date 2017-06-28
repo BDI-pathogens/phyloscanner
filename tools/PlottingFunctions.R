@@ -265,39 +265,51 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, missi
       if("Recombination.metric" %in% colnames(this.host.statistics)) {     
         graph.6 <- ggplot(this.host.statistics, aes(x=xcoord, y=Recombination.metric))
         y.label <- "Recombination metric (%)"
+        
+        graph.6 <- graph.6 +
+          geom_point(alpha = 0.5, na.rm=TRUE) +
+          theme_bw() + 
+          ylab(y.label) +
+          xlab("Window centre") +
+          scale_x_continuous(limits=c(ews, lwe)) +
+          expand_limits(y=0) +
+          #      scale_color_discrete(name="Tip set", labels=c("Longest branch", "Greatest patristic distance")) + 
+          theme(text = element_text(size=7))
+        
+        if(regular.gaps & !is.null(missing.rects)){
+          graph.6 <- add.no.data.rectangles(graph.6, missing.rects)
+        }
+        
+        all.plots <- AlignPlots(graph.1, graph.2, graph.3, graph.4, graph.5, graph.6)
+        
+        if(i!=1){
+          grid.newpage()
+        }
+        
+        pushViewport(viewport(layout = grid.layout(7, 1, heights = unit(c(0.25, rep(1,6)), "null") )))
+        grid.text(host, gp=gpar(fontsize=20), vp=viewport(layout.pos.row = 1, layout.pos.col = 1))
+        for(plot.no in 1:6){
+          plot <- all.plots[[plot.no]]
+          plot$vp = viewport(layout.pos.col = 1, layout.pos.row = plot.no + 1)
+          grid.draw(plot)
+        }
+        
       } else {
-        graph.6 <- ggplot(this.host.statistics, aes(x=xcoord, y=branch.to.pat.ratio))
-        y.label <- "Ratio of longest branch to greatest\n patristic distance between tips"
-      }
-      
-      graph.6 <- graph.6 +
-        geom_point(alpha = 0.5, na.rm=TRUE) +
-        theme_bw() + 
-        ylab(y.label) +
-        xlab("Window centre") +
-        scale_x_continuous(limits=c(ews, lwe)) +
-        expand_limits(y=0) +
-        #      scale_color_discrete(name="Tip set", labels=c("Longest branch", "Greatest patristic distance")) + 
-        theme(text = element_text(size=7))
-      
-      if(regular.gaps & !is.null(missing.rects)){
-        graph.6 <- add.no.data.rectangles(graph.6, missing.rects)
-      }
-      
-      all.plots <- AlignPlots(graph.1, graph.2, graph.3, graph.4, graph.5, graph.6)
-      
-      if(i!=1){
-        grid.newpage()
-      }
-      
-      pushViewport(viewport(layout = grid.layout(7, 1, heights = unit(c(0.25, rep(1,6)), "null") )))
-      grid.text(host, gp=gpar(fontsize=20), vp=viewport(layout.pos.row = 1, layout.pos.col = 1))
-      for(plot.no in 1:6){
-        plot <- all.plots[[plot.no]]
-        plot$vp = viewport(layout.pos.col = 1, layout.pos.row = plot.no + 1)
-        grid.draw(plot)
-      }
-      
+        
+        all.plots <- AlignPlots(graph.1, graph.2, graph.3, graph.4, graph.5)
+        
+        if(i!=1){
+          grid.newpage()
+        }
+        
+        pushViewport(viewport(layout = grid.layout(6, 1, heights = unit(c(0.25, rep(1,5)), "null") )))
+        grid.text(host, gp=gpar(fontsize=20), vp=viewport(layout.pos.row = 1, layout.pos.col = 1))
+        for(plot.no in 1:5){
+          plot <- all.plots[[plot.no]]
+          plot$vp = viewport(layout.pos.col = 1, layout.pos.row = plot.no + 1)
+          grid.draw(plot)
+        }
+      } 
     } else {
       if (verbose) cat("Skipping graphs for host ",host," as no reads are present and not blacklisted\n", sep="")
     }
