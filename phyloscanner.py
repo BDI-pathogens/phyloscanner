@@ -1168,6 +1168,8 @@ FileForRecombinantReads_basename = 'RecombinantReads_'
 OutputDirs['RecombFiles'] = 'RecombinationData'
 OutputFilesByDestinationDir['RecombFiles'] = []
 
+AtLeastOneTreeMade = False
+
 # Iterate through the windows
 for window in range(NumCoords / 2):
 
@@ -1860,6 +1862,7 @@ for window in range(NumCoords / 2):
     print(MLtreeFile +', expected to be produced by RAxML, does not exist.'+\
     '\nSkipping to the next window.', file=sys.stderr)
     continue
+  AtLeastOneTreeMade = True
 
   # Update on time taken if desired
   if args.time:
@@ -2095,23 +2098,59 @@ if not args.keep_temp_files:
     except:
       print('Failed to delete temporary file', TempFile + '. Leaving it.')
 
-# Find the RAxML best trees: there are 3 possibilities for what directory
-# they're in now.
-if args.keep_output_together:
-  if HaveMadeOutputDir:
-    TreesDir = args.output_dir
+# Stop if no trees
+if not AtLeastOneTreeMade:
+  print("Info: phyloscanner_make_trees.py has processed all windows but has",
+  "not produced any trees, either because you told it not to or because of",
+  "errors. Stopping.")
+  exit(0)
+
+print("\nphyloscanner_make_trees.py successfully produced some trees! If",
+"you're happy with them, step two of phyloscanner is analysing the trees. This",
+"is done with phyloscanner_analyse_trees.R; run it with --help to learn more.",
+"The analysis requires trees to be rooted. You should either (a) tell",
+"phyloscanner_analyse_trees.R (using its --outgroupName option) which sequence",
+"in each tree to use as an outgroup for rooting, which should be one of the",
+"references you included with the bam files here via the",
+"--alignment-of-other-refs option; or (b) manually root the trees before",
+"giving them as input to phyloscanner_analyse_trees.R.\n")
+
+def FindFilesForRcode(DescriptionOfFiles, FileBasename, DirKey, ROption,
+ExtraText=None):
+  '''TODO'''
+  if args.keep_output_together:
+    if HaveMadeOutputDir:
+      Dir = args.output_dir
+    else:
+      Dir = '.'
   else:
-    TreesDir = '.'
-else:
-  TreesDir = OutputDirs['raxml']
-TreeFileStart = os.path.join(TreesDir, 'RAxML_bestTree')
-trees = glob.glob(TreeFileStart + '*')
-if not trees:
-  print('Error: found no files matching', TreeFileStart + \
-  '*\nUnexpected. Quitting.', file=sys.stderr)
-  exit(1)
+    Dir = OutputDirs[DirKey]
+  Dir = os.path.abspath(Dir)
+  FileStart = os.path.join(Dir, FileBasename)
+  files = glob.glob(FileStart + '*')
+  if not files:
+    print("Oops, we've lost the", DescriptionOfFiles, "files we produced. "
+    "Expected to find files matching", FileStart + '*\nSorry about that.',
+    file=sys.stderr)
+  else:
+    if ExtraText != None:
+      end = ExtraText + '\n'
+    else:
+      end = '\n'
+    print("The", DescriptionOfFiles, "files we've produced can be given to",
+    'phyloscanner_analyse_trees.R, via its "' + ROption + '" option, as',
+    FileStart, end=end)
 
-
+  
+FindFilesForRcode("tree", 'RAxML_bestTree.', 'raxml', 'tree')
+if CheckDuplicates:
+  FindFilesForRcode("between-bam duplication data", 
+  FileForDuplicateReadCountsProcessed_basename, 'DupData',
+  "--duplicateBlacklist", " (be sure to also specify a raw and/or relative "
+  "threshold for blacklisting duplicates).")
+if args.check_recombination:
+  FindFilesForRcode("recombination data", FileForRecombinantReads_basename,
+  'RecombFiles', '--recombinationFiles')
 
 # Some code not being used at the moment:
 '''DuplicateReadRatios.append(float(ReadDict1[read])/ReadDict2[read])
