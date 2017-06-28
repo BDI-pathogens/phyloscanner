@@ -28,7 +28,7 @@ arg_parser		     <- ArgumentParser()
 arg_parser$add_argument("tree", action="store", help="A path and string that begins all the tree file names.")
 arg_parser$add_argument("outputString", action="store", help="This string identifies all output files.")
 
-arg_parser$add_argument("-r", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
+arg_parser$add_argument("-og", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
 arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, short branches in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. If a number, this number will be used as the threshold, with all branches strictly smaller collapsed. If 'g', it will be guessed from the branch lengths (use this only if you have checked by eye that the tree does indeed have multifurcations).")
 
 arg_parser$add_argument("-b", "--blacklist", action="store", help="A path and string that begins all the file names for pre-existing blacklist files.")
@@ -396,8 +396,6 @@ all.tree.info <- sapply(all.tree.info, function(tree.info){
   if(is.na(m.thresh)){
     m.thresh                          <- min(tree$edge.length*1.0001) 
   }
-  
-  print(outgroup.name)
   
   new.tree <- process.tree(tree, outgroup.name, m.thresh)
   
