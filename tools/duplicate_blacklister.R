@@ -42,7 +42,7 @@ ratio.threshold      <- args$ratioThreshold
 tip.regex            <- args$tipRegex
 input.string         <- args$inputFileName
 output.string        <- args$outputFileName
-blacklist.file.name  <- args$blacklist
+blacklist.input      <- args$blacklist
 
 # Load necessary functions
 
@@ -60,9 +60,12 @@ if(file.exists(input.string)){
   
   tree.info$input.file.name <- input.string
   tree.info$output.file.name <- output.string
-  if(!is.null(blacklist.file.name)){
-    tree.infoblacklist.file.name <- blacklist.file.name
+
+  if(!is.null(blacklist.input)){
+    tree.info$blacklist.file.name <- blacklist.input
   }
+  
+  all.tree.info[[input.string]] <- tree.info
   
 } else {
 
@@ -81,8 +84,8 @@ if(file.exists(input.string)){
     
     tree.info$output.file.name <- paste0(output.string, "_", suffixes[suffix.no], ".", csv.fe)
     
-    if(!is.null(blacklist.file.name)){
-      tree.info$blacklist.file.name <- paste0(blacklist.file.name, suffixes[suffix.no], ".", csv.fe)
+    if(!is.null(blacklist.input)){
+      tree.info$blacklist.file.name <- paste0(blacklist.input, suffixes[suffix.no], ".", csv.fe)
     }
     
     all.tree.info[[suffixes[suffix.no]]] <- tree.info
@@ -93,6 +96,7 @@ if(file.exists(input.string)){
 
 for(tree.info in all.tree.info){
   input.file.name <- tree.info$input.file.name
+
   if(!is.null(tree.info$blacklist.file.name)){
     if(!file.exists( tree.info$blacklist.file.name)){
       warning(paste0("Specified blacklist file ", tree.info$blacklist.file.name," does not exist; will be ignored.\n"))
