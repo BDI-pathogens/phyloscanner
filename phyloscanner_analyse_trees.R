@@ -100,7 +100,7 @@ output.dir            <- args$outputDir
 if(is.null(output.dir)){
   output.dir          <- getwd()
 }
-output.string         <- args$output.string
+output.string         <- args$outputString
 
 outgroup.name         <- args$outgroupName
 
