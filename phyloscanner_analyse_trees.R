@@ -1,4 +1,4 @@
-#!/usr/bin/Rscript
+#!/usr/bin/env Rscript
 
 list.of.packages <- c("argparse", "data.table", "ape", "ff", "phangorn", "phytools", "scales", "RColorBrewer", "gtable", "grid", "gridExtra", "kimisc")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
