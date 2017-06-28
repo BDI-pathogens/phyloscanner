@@ -287,15 +287,13 @@ for i in range(1, matrix.shape[1]):
   plt.plot(matrix[:, 0], matrix[:, i], label=label, linestyle=linestyle)
 
 plt.xlabel('window width', fontsize=args.axis_font_size)
+YaxisLabel = 'number of reads'
 if SomeDataIsPaired:
-  YaxisLabel = \
-  'number of reads or inserts'
   title = \
-  'Estimating the number of reads and inserts (after merging\n' + \
-  'overlapping read pairs) spanning each window, assuming\n' + \
+  'Estimating the number of unpaired reads and paired reads (merging\n' + \
+  'read in a pair when they overlap) spanning each window, assuming\n' + \
   'reads are randomly distributed over the whole genome'
 else:
-  YaxisLabel = 'number of reads'
   title = \
   'Estimating the number of reads spanning each window, assuming\n' + \
   'they are randomly distributed over the whole genome'

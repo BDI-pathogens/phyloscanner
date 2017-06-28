@@ -100,6 +100,11 @@ rename the bam files in all output. For example:
 PatientA.bam,PatientA_ref.fasta,A
 PatientB.bam,PatientB_ref.fasta,B''')
 
+parser.add_argument('-q', '--quiet', action='store_true', help='''Turns off the
+small amount of information printed to the terminal (via stdout). We'll still
+print warnings and errors (via stderr), and the command you ran, for logging
+purposes.''')
+
 WindowArgs = parser.add_argument_group('Window options - you must choose'
 ' exactly one of -W, -AW or -E')
 WindowArgs.add_argument('-W', '--windows', type=CommaSeparatedInts,
@@ -133,10 +138,6 @@ the reads, for comparison. (which need not be
 those used to produce the bam files) that will be cut into the same windows as
 the bam files and included in the alignment of reads, for comparison. This is
 required if phyloscanner is to analyse the trees it produces.''')
-#RecommendedArgs.add_argument('-RR', '--ref-for-rooting', help='''Used to name a
-#reference sequence, which must be present in the file you specify with -A, to be
-#an outgroup in each tree. This is required if phyloscanner is to analyse the
-#trees it produces.''')
 RecommendedArgs.add_argument('-2', '--pairwise-align-to', help='''By default,
 phyloscanner figures out where corresponding windows are in different bam files
 by creating a multiple sequence alignment containing all of the mapping
@@ -335,6 +336,7 @@ RecallContaminants = False
 CheckDuplicates = not args.dont_check_duplicates
 ExploreWindowWidths = args.explore_window_widths != None
 MergeReads = args.merging_threshold > 0
+PrintInfo = not args.quiet
 
 # Print how this script was called, for logging purposes.
 print('phyloscanner was called thus:\n' + ' '.join(sys.argv))
@@ -634,8 +636,7 @@ if IncludeOtherRefs:
 for FlagName, FlagValue in (('--ref-for-coords',  args.ref_for_coords),
 ('--pairwise-align-to', args.pairwise_align_to),
 ('--excision-ref', args.excision_ref)):
-  # Not needed until a ref for rooting is included:
-  # ('--ref-for-rooting', args.ref_for_rooting),
+  #('--ref-for-rooting', args.ref_for_rooting),
   if FlagValue == None:
     continue
   if not IncludeOtherRefs:
@@ -1173,6 +1174,8 @@ FileForRecombinantReads_basename = 'RecombinantReads_'
 OutputDirs['RecombFiles'] = 'RecombinationData'
 OutputFilesByDestinationDir['RecombFiles'] = []
 
+AtLeastOneTreeMade = False
+
 # Iterate through the windows
 for window in range(NumCoords / 2):
 
@@ -1185,8 +1188,9 @@ for window in range(NumCoords / 2):
   ThisWindowSuffix = 'InWindow_'+str(UserLeftWindowEdge)+'_to_'+\
   str(UserRightWindowEdge)
 
-  print('Now processing window ', UserLeftWindowEdge, '-', UserRightWindowEdge,
-  sep='')
+  if PrintInfo:
+    print('Now extracting and processing reads in window ', UserLeftWindowEdge,
+    '-', UserRightWindowEdge, sep='')
 
   # Prepare some things for checking for reads appearing again the consecutive
   # overlapping windows.
@@ -1213,7 +1217,8 @@ for window in range(NumCoords / 2):
       ContaminantFilesByWindow[(UserLeftWindowEdge, UserRightWindowEdge)]
     except KeyError:
       print('Warning: no contaminant file found for window ' + \
-      str(UserLeftWindowEdge) + '-' + str(UserRightWindowEdge) +'.')
+      str(UserLeftWindowEdge) + '-' + str(UserRightWindowEdge) +'.',
+      file=sys.stderr)
     else:
       for seq in SeqIO.parse(open(ContaminantFile), 'fasta'):
         if seq.id in ContaminantReadsInput:
@@ -1398,7 +1403,7 @@ for window in range(NumCoords / 2):
             'from', BamAlias, 'was not found in this window in',
             BamFileBasename + '. This could be due to a mismatch in window',
             'coordinates between the run that generated that contamination'
-            'file and the present run. Proceeding.')
+            'file and the present run. Proceeding.', file=sys.stderr)
             HaveWarned = True
 
     # If we are checking for read duplication between samples, record the file 
@@ -1549,8 +1554,9 @@ for window in range(NumCoords / 2):
         WindowWidthExplorationData.append([UserLeftWindowEdge,
         UserRightWindowEdge, alias, count])
     else:
-      print('There is only one read in this window, written to ' +\
-      FileForAlnReadsHere +'. Skipping to the next window.')
+      if PrintInfo:
+        print('There is only one read in this window, written to ' +\
+        FileForAlnReadsHere +'. Skipping to the next window.')
     continue
   SeqIO.write(AllReadsInThisWindow, TempFileForReadsHere, "fasta")
   TempFiles.add(TempFileForReadsHere)
@@ -1846,6 +1852,9 @@ for window in range(NumCoords / 2):
     continue
 
   # Create the ML tree
+  if PrintInfo:
+    print('Running RAxML on the processed & aligned reads in window ',
+    UserLeftWindowEdge, '-', UserRightWindowEdge, sep='')
   MLtreeFile = 'RAxML_bestTree.' +ThisWindowSuffix +'.tree'
   RAxMLcall = RAxMLargList + ['-s', FileForTrees, '-n',
   ThisWindowSuffix+'.tree']
@@ -1865,6 +1874,7 @@ for window in range(NumCoords / 2):
     print(MLtreeFile +', expected to be produced by RAxML, does not exist.'+\
     '\nSkipping to the next window.', file=sys.stderr)
     continue
+  AtLeastOneTreeMade = True
 
   # Update on time taken if desired
   if args.time:
@@ -2078,7 +2088,6 @@ if not args.keep_output_together:
           "subdirectories.", file=sys.stderr)
           args.keep_output_together = True
           break
-if not args.keep_output_together:
   for DirKey, files in OutputFilesByDestinationDir.items():
     Dir = OutputDirs[DirKey]
     for File in files:
@@ -2099,7 +2108,66 @@ if not args.keep_temp_files:
     try:
       os.remove(TempFile)
     except:
-      print('Failed to delete temporary file', TempFile + '. Leaving it.')
+      print('Failed to delete temporary file', TempFile + '. Leaving it.',
+      file=sys.stderr)
+
+# We're only printing info henceforth
+if not PrintInfo:
+  exit(0)
+
+# Stop if no trees
+if not AtLeastOneTreeMade:
+  print("Info: phyloscanner_make_trees.py has processed all windows but has",
+  "not produced any trees, either because you told it not to or because of",
+  "errors. Stopping.")
+  exit(0)
+
+print("\nphyloscanner_make_trees.py successfully produced some trees! If",
+"you're happy with them, step two of phyloscanner is analysing the trees. This",
+"is done with phyloscanner_analyse_trees.R; run it with --help to learn more.",
+"The analysis requires trees to be rooted. You should either (a) tell",
+"phyloscanner_analyse_trees.R (using its --outgroupName option) which sequence",
+"in each tree to use as an outgroup for rooting, which should be one of the",
+"references you included with the bam files here via the",
+"--alignment-of-other-refs option; or (b) manually root the trees before",
+"giving them as input to phyloscanner_analyse_trees.R.\n")
+
+def FindFilesForRcode(DescriptionOfFiles, FileBasename, DirKey, ROption,
+ExtraText=None):
+  '''TODO'''
+  if args.keep_output_together:
+    if HaveMadeOutputDir:
+      Dir = args.output_dir
+    else:
+      Dir = '.'
+  else:
+    Dir = OutputDirs[DirKey]
+  Dir = os.path.abspath(Dir)
+  FileStart = os.path.join(Dir, FileBasename)
+  files = glob.glob(FileStart + '*')
+  if not files:
+    print("Oops, we've lost the", DescriptionOfFiles, "files we produced. "
+    "Expected to find files matching", FileStart + '*\nSorry about that.',
+    file=sys.stderr)
+  else:
+    if ExtraText != None:
+      end = ExtraText + '\n'
+    else:
+      end = '\n'
+    print("The", DescriptionOfFiles, "files we've produced can be given to",
+    'phyloscanner_analyse_trees.R, via its "' + ROption + '" option, as',
+    FileStart, end=end)
+
+  
+FindFilesForRcode("tree", 'RAxML_bestTree.', 'raxml', 'tree')
+if CheckDuplicates:
+  FindFilesForRcode("between-bam duplication data", 
+  FileForDuplicateReadCountsProcessed_basename, 'DupData',
+  "--duplicateBlacklist", " (be sure to also specify a raw and/or relative "
+  "threshold for blacklisting duplicates).")
+if args.check_recombination:
+  FindFilesForRcode("recombination data", FileForRecombinantReads_basename,
+  'RecombFiles', '--recombinationFiles')
 
 # Some code not being used at the moment:
 '''DuplicateReadRatios.append(float(ReadDict1[read])/ReadDict2[read])
