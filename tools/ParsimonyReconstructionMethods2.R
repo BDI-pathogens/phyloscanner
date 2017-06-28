@@ -229,10 +229,10 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
   } else if (method=="s") {
     
     if(is.na(k)){
-      stop("k must be specified for Sankhoff reconstruction")
+      stop("k must be specified for Sankoff reconstruction")
     }
     
-    if (verbose) cat("Reconstructing internal node hosts with the Sankhoff algorithm...\n")
+    if (verbose) cat("Reconstructing internal node hosts with the Sankoff algorithm...\n")
 
     if (verbose) cat("Calculating node costs...\n")
     
@@ -621,9 +621,9 @@ get.star.runs <- function(tree, assocs){
   return(out)
 }
 
-# SANKHOFF METHODS
+# SANKOFF METHODS
 
-# Make the full Sankhoff cost matrix
+# Make the full Sankoff cost matrix
 
 make.cost.matrix <- function(node, tree, patients, tip.patients, individual.costs, current.matrix, k, tip.read.counts, verbose = F){
   # if(verbose){
