@@ -1,5 +1,7 @@
 #!/usr/bin/env Rscript
 
+options("warn"=1)
+
 list.of.packages <- c("argparse", "kimisc")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
@@ -38,8 +40,8 @@ csv.fe               <- args$csvFileExtension
 raw.threshold        <- args$rawThreshold
 ratio.threshold      <- args$ratioThreshold
 tip.regex            <- args$tipRegex
-input.file.name      <- args$inputFileName
-output.file.name     <- args$outputFileName
+input.string         <- args$inputFileName
+output.string        <- args$outputFileName
 blacklist.file.name  <- args$blacklist
 
 # Load necessary functions
@@ -52,53 +54,67 @@ source(file.path(script.dir, "blacklist_functions.R"))
 
 all.tree.info <- list()
 
-if(file.exists(input.file.name)){
+if(file.exists(input.string)){
   
   tree.info <- list()
   
-  input.file.names <- input.file.name
-  output.file.names <- output.file.name
+  tree.info$input.file.name <- input.string
+  tree.info$output.file.name <- output.string
   if(!is.null(blacklist.file.name)){
-    blacklist.file.names <- blacklist.file.name
+    tree.infoblacklist.file.name <- blacklist.file.name
   }
   
 } else {
 
-  file.regex <- paste0(basename(input.file.name), '.*\\.',csv.fe,'$')
-  input.file.names	<- list.files.mod(dirname(input.file.name), pattern=file.regex, full.names=TRUE)
+  file.regex <- paste0(basename(input.string), '.*\\.',csv.fe,'$')
+  input.file.names	<- list.files.mod(dirname(input.string), pattern=file.regex, full.names=TRUE)
   if (length(input.file.names) == 0) {
-    stop(paste0("Error: failed to find read duplication data. Searched for file names matching the regex ", file.regex, " in the directory ", dirname(input.file.name), ". Quitting.\n"))
+    stop(paste0("Error: failed to find read duplication data. Searched for file names matching the regex ", file.regex, " in the directory ", dirname(input.string), ". Quitting.\n"))
   }
-  suffixes <- substr(input.file.names, nchar(input.file.name) + 1, nchar(input.file.names)-nchar(csv.fe))
-  output.file.names <- paste0(output.file.name, suffixes, csv.fe)
-  if(!is.null(blacklist.file.name)){
-    blacklist.file.names <- paste0(blacklist.file.name, suffixes, csv.fe)
+  suffixes <- substr(input.file.names, nchar(input.string) + 1, nchar(input.file.names)-nchar(csv.fe)-1)
+  
+  for(suffix.no in 1:length(suffixes)){
+    tree.info <- list()
+    
+    tree.info$suffix <- suffixes[suffix.no]
+    tree.info$input.file.name <- input.file.names[suffix.no]
+    
+    tree.info$output.file.name <- paste0(output.string, "_", suffixes[suffix.no], ".", csv.fe)
+    
+    if(!is.null(blacklist.file.name)){
+      tree.info$blacklist.file.name <- paste0(blacklist.file.name, suffixes[suffix.no], ".", csv.fe)
+    }
+    
+    all.tree.info[[suffixes[suffix.no]]] <- tree.info
   }
+  
+  
 }
 
-for(file.no in 1:length(input.file.names)){
-  input.file.name <- input.file.names[file.no]
-  if(!is.null(blacklist.file.name)){
-    blacklist.file.name <- blacklist.file.names[file.no]
-    if(!file.exists(blacklist.file.name)){
-      warning(paste0("Specified blacklist file ",blacklist.file.name," does not exist; will be ignored.\n"))
+for(tree.info in all.tree.info){
+  input.file.name <- tree.info$input.file.name
+  if(!is.null(tree.info$blacklist.file.name)){
+    if(!file.exists( tree.info$blacklist.file.name)){
+      warning(paste0("Specified blacklist file ", tree.info$blacklist.file.name," does not exist; will be ignored.\n"))
       already.blacklisted <- vector()
     } else {
-      already.blacklisted <- readLines(blacklist.file.name, warn=F)
-    }
+      already.blacklisted <- readLines( tree.info$blacklist.file.name, warn=F)
+    } 
+  } else {
+    already.blacklisted <- vector()
   }
   
   if(verbose) cat("DuplicateBlacklister.R run on: ", input.file.name, "\n", sep="")
   
   # Read the lines of each input file and process them as a list
   
-  entries <- strsplit(readLines(input.file.name, warn=F),",")
+  tree.info$duplicate.tips <- strsplit(readLines(input.file.name, warn=F),",")
   
-  blacklisted <- blacklist.exact.duplicates(entries, raw.threshold, ratio.threshold, tip.regex, verbose)
+  blacklisted <- blacklist.exact.duplicates(tree.info, raw.threshold, ratio.threshold, tip.regex, verbose)
   
   if (verbose) cat(length(blacklisted)," newly blacklisted tips.\n",sep="")
 
   blacklisted <- unique(c(blacklisted, already.blacklisted))
   
-  write.table(blacklisted, output.file.names[file.no], sep=",", row.names=FALSE, col.names=FALSE, quote=F)
+  write.table(blacklisted, tree.info$output.file.name, sep=",", row.names=FALSE, col.names=FALSE, quote=F)
 }
