@@ -103,6 +103,11 @@ if(is.null(output.dir)){
 output.string         <- args$output.string
 
 outgroup.name         <- args$outgroupName
+
+if(is.null(output.string)){
+  warning("No outgroup name provided. Trees are assumed to be correctly rooted.")
+}
+
 use.m.thresh          <- !is.null(args$multifurcationThreshold)
 tree.fe               <- args$treeFileExtension
 csv.fe                <- args$csvFileExtension
