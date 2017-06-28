@@ -753,9 +753,6 @@ convert.to.columns <- function(matrix, names){
 
 
 summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.threshold, allow.mt = T, csv.fe = "csv", verbose = F){
-  #
-  # Read classification files
-  #
 
   tt	<-	lapply(all.tree.info, function(tree.info){
     
@@ -814,10 +811,11 @@ summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.
   }
   
   setnames(tt, c('Host_1','Host_2','path.classification','paths21','paths12','adjacent'), c('HOST.1','HOST.2','TYPE','PATHS.21','PATHS.12','ADJACENT'))
+
   
   # change type name depending on allow.mt
   if(!allow.mt){
-    if(verbose) cat("Allowing only single lineage transmission...\n")
+    if(verbose) cat("Allowing only single lineage transmission to be used to infer directionality\n")
     set(tt, tt[, which(TYPE%in%c("multiAnc", "multiDesc"))], 'TYPE', 'complex')
   }
   
@@ -846,7 +844,6 @@ summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.
 
   set(tt, NULL, c('PATHS.12','PATHS.21'),NULL)
   
-  
   existence.counts <- tt[, list(both.exist=length(SUFFIX)), by=c('HOST.1','HOST.2')]
 
   tt <- merge(tt, existence.counts, by=c('HOST.1', 'HOST.2'))
@@ -867,22 +864,23 @@ summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.
   tt.close		<- merge(tt.close, ns.counts, by=c('HOST.1','HOST.2'))
   
   tt.close[, fraction:=paste(windows,'/',both.exist,sep='')]
+  
   #	convert "anc_12" and "ans_21" to "anc" depending on direction
   tt.close[, DUMMY:=NA_character_]
   tmp			<- tt.close[, which(TYPE=="anc_12")]
   set(tt.close, tmp, 'TYPE', "trans")
   tmp			<- tt.close[, which(TYPE=="anc_21")]
   set(tt.close, tmp, 'DUMMY', tt.close[tmp, HOST.1])
-  set(tt.close, tmp, 'PAT.1', tt.close[tmp, HOST.2])
-  set(tt.close, tmp, 'PAT.2', tt.close[tmp, DUMMY])
+  set(tt.close, tmp, 'HOST.1', tt.close[tmp, HOST.2])
+  set(tt.close, tmp, 'HOST.2', tt.close[tmp, DUMMY])
   set(tt.close, tmp, 'TYPE', "trans")
   
   tmp			<- tt.close[, which(TYPE=="multi_anc_12")]
   set(tt.close, tmp, 'TYPE', "multi_trans")
   tmp			<- tt.close[, which(TYPE=="multi_anc_21")]
   set(tt.close, tmp, 'DUMMY', tt.close[tmp, HOST.1])
-  set(tt.close, tmp, 'PAT.1', tt.close[tmp, HOST.2])
-  set(tt.close, tmp, 'PAT.2', tt.close[tmp, DUMMY])
+  set(tt.close, tmp, 'HOST.1', tt.close[tmp, HOST.2])
+  set(tt.close, tmp, 'HOST.2', tt.close[tmp, DUMMY])
   set(tt.close, tmp, 'TYPE', "multi_trans")
   
   tt.close[, DUMMY:=NULL]
@@ -890,10 +888,10 @@ summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.
   set(tt.close, NULL, c('SUFFIX', 'ADJACENT','PATRISTIC_DISTANCE', "contiguous", "nodes1", "nodes2", "NOT.SIBLINGS"), NULL)
   tt.close <- tt.close[!duplicated(tt.close),]
   
-  #	write to file
   setkey(tt.close, HOST.1, HOST.2, TYPE)
-  #
+
+  setnames(tt.close, c('HOST.1','HOST.2','TYPE'), c("Host_1", "Host_2", "relationship"))
   
-  return(subset(tt.close, all.windows>=min.threshold))
+  return(subset(tt.close, all.windows>min.threshold))
 }
 

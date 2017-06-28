@@ -28,7 +28,7 @@ arg_parser		     <- ArgumentParser()
 arg_parser$add_argument("tree", action="store", help="A path and string that begins all the tree file names.")
 arg_parser$add_argument("outputString", action="store", help="This string identifies all output files.")
 
-arg_parser$add_argument("-r", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
+arg_parser$add_argument("-og", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
 arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, short branches in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. If a number, this number will be used as the threshold, with all branches strictly smaller collapsed. If 'g', it will be guessed from the branch lengths (use this only if you have checked by eye that the tree does indeed have multifurcations).")
 
 arg_parser$add_argument("-b", "--blacklist", action="store", help="A path and string that begins all the file names for pre-existing blacklist files.")
@@ -85,7 +85,7 @@ arg_parser$add_argument("-ct", "--collapsedTree", action="store_true", help="If 
 
 # Classification summary
 
-arg_parser$add_argument("-swt", "--windowThreshold", action="store", default=0, type="double", help="Relationships between two hosts will only appear in output if they are within the distance threshold and ajacent to each other least this proportion of windows (default 0).")
+arg_parser$add_argument("-swt", "--windowThreshold", action="store", default=0, type="double", help="Relationships between two hosts will only appear in output if they are within the distance threshold and ajacent to each other in more than this proportion of windows (default 0).")
 arg_parser$add_argument("-sdt", "--distanceThreshold", action="store", default=-1, type="double", help="Maximum distance threshold on a window for a relationship to be reconstructed between two hosts on that window.")
 arg_parser$add_argument("-amt", "--allowMultiTrans", action="store_true", default=FALSE, help="If absent, directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative")
 
@@ -100,9 +100,14 @@ output.dir            <- args$outputDir
 if(is.null(output.dir)){
   output.dir          <- getwd()
 }
-output.string         <- args$output.string
+output.string         <- args$outputString
 
 outgroup.name         <- args$outgroupName
+
+if(is.null(output.string)){
+  warning("No outgroup name provided. Trees are assumed to be correctly rooted.")
+}
+
 use.m.thresh          <- !is.null(args$multifurcationThreshold)
 tree.fe               <- args$treeFileExtension
 csv.fe                <- args$csvFileExtension
@@ -396,8 +401,6 @@ all.tree.info <- sapply(all.tree.info, function(tree.info){
   if(is.na(m.thresh)){
     m.thresh                          <- min(tree$edge.length*1.0001) 
   }
-  
-  print(outgroup.name)
   
   new.tree <- process.tree(tree, outgroup.name, m.thresh)
   
@@ -962,7 +965,7 @@ if(!single.file){
   results <- summarise.classifications(all.tree.info, hosts, win.threshold*length(all.tree.info), dist.threshold, allow.mt, csv.fe, verbose)
   
   if (verbose) cat('Writing summary to file', paste0("TransmissionSummary_",output.string,".",csv.fe),'\n')
-  write.csv(results, file=file.path(output.dir, paste0("TransmissionSummary_",output.string,".",csv.fe)), row.names=FALSE, quote=FALSE)
+  write.csv(results, file=file.path(output.dir, paste0(output.string,"_hostRelationshipSummary.",csv.fe)), row.names=FALSE, quote=FALSE)
 }
 
 # 19. Workspace image
