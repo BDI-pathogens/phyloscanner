@@ -965,7 +965,7 @@ if(!single.file){
   results <- summarise.classifications(all.tree.info, hosts, win.threshold*length(all.tree.info), dist.threshold, allow.mt, csv.fe, verbose)
   
   if (verbose) cat('Writing summary to file', paste0("TransmissionSummary_",output.string,".",csv.fe),'\n')
-  write.csv(results, file=file.path(output.dir, paste0(output.string,"hostRelationshipSummary.",csv.fe)), row.names=FALSE, quote=FALSE)
+  write.csv(results, file=file.path(output.dir, paste0(output.string,"_hostRelationshipSummary.",csv.fe)), row.names=FALSE, quote=FALSE)
 }
 
 # 19. Workspace image
