@@ -81,7 +81,7 @@ arg_parser$add_argument("-R", "--recombinationFiles", action="store", help="An o
 # Classification
 
 arg_parser$add_argument("-cd", "--allClassifications", action="store_true", help="If present, the per-window host relationships will be writted to a separate CSV file for each window.")
-arg_parser$add_argument("-ct", "--collapsedTree", action="store_true", help="If present, the collapsed tree (in which all adjacent nodes with the same assignment are collapsed to one) is output as a CSV file or files.")
+arg_parser$add_argument("-ct", "--collapsedTrees", action="store_true", help="If present, the collapsed tree (in which all adjacent nodes with the same assignment are collapsed to one) is output as a CSV file or files.")
 
 # Classification summary
 
