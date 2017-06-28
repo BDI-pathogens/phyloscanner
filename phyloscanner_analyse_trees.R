@@ -37,8 +37,8 @@ arg_parser$add_argument("-b", "--blacklist", action="store", help="A path and st
 
 arg_parser$add_argument("-od", "--outputDir", action="store", help="All output will be written to this directory. If absent, current working directory.")
 arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what the script is doing.")
-arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. Three capture groups: patient ID, read ID, and read count; if the latter two groups are missing then read information will not be used. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name.")
-arg_parser$add_argument("-y", "--fileNameRegex", action="store", default="^\\D*([0-9]+)_to_([0-9]+).*$", help="Regular expression identifying window coordinates. Two capture groups: start and end; if the latter is missing then the first group is a single numerical identifier for the window. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name.")
+arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. Three capture groups: host ID, read ID, and read count; if the latter two groups are missing then read information will not be used. If absent, input will be assumed to be from the phyloscanner pipeline, and the host ID will be the BAM file name.")
+arg_parser$add_argument("-y", "--fileNameRegex", action="store", default="^\\D*([0-9]+)_to_([0-9]+).*$", help="Regular expression identifying window coordinates. Two capture groups: start and end; if the latter is missing then the first group is a single numerical identifier for the window. If absent, input will be assumed to be from the phyloscanner pipeline, and the host ID will be the BAM file name.")
 arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default="tree", help="The file extension for tree files (default tree).")
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="csv", help="The file extension for table files (default csv).")
 arg_parser$add_argument("-pw", "--pdfwidth", action="store", default=50, help="Width of tree pdf in inches.")
@@ -59,7 +59,7 @@ arg_parser$add_argument("-db", "--duplicateBlacklist", action="store", help="Per
 arg_parser$add_argument("-pbk", "--parsimonyBlacklistK", action="store", type="double", help="If given, perform parsimony-based blacklisting for likely contaminants. The argument is the value of the within-host diversity penalty used.")
 arg_parser$add_argument("-rwt", "--rawBlacklistThreshold", action="store", default=0, help="Raw threshold for blacklisting; subgraphs or exact duplicate tips with read counts less than this will be blacklisted, regardless of the count of any other subgraphs from the same host or identical tips from another host. Default 0; one or both of this and -rtt must be specified and >0 for -db or -pb to do anything.")
 arg_parser$add_argument("-rtt", "--ratioBlacklistThreshold", action="store", default=0, help="Ratio threshold for blacklisting; subgraphs or exact duplicate tips will be blacklisted if the ratio of their tip count to that of another subgraph from the same host or tip from another host is less than this. Default 0; one or both of this and -rwt must be specified and >0 for -db or -pb to do anything.")
-arg_parser$add_argument("-ub", "--dualBlacklist", action="store_true", default=F, help="Blacklist all reads from the minor subgraphs for all patients established as dual by parsimony blacklisting.")
+arg_parser$add_argument("-ub", "--dualBlacklist", action="store_true", default=F, help="Blacklist all reads from the minor subgraphs for all hosts established as dual by parsimony blacklisting.")
 
 # Downsampling
 
@@ -69,7 +69,7 @@ arg_parser$add_argument("-dsb", "--blacklistUnderrepresented", action="store_tru
 # Parsimony reconstruction
 
 arg_parser$add_argument("-ff", "--useff", action="store_true", default=FALSE, help="Use ff to store parsimony reconstruction matrices. Use if you run out of memory.")
-arg_parser$add_argument("splitsRule", action="store", help="The rules by which the sets of patients are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. This takes a variable number of arguments. The first dictates the algorithm: s=Sankoff with optional within-host diversity penalty (slow, rigorous, default), r=Romero-Severson (quick, less rigorous with >2 patients), f=Sankoff with continuation costs (experimental). For 'r' no further arguments are expected. For 's' and 'f' the k parameter in the Sankoff reconstruction, which penalises within-host diversity, must also be given. There is an optional third argument for 's' and 'f'. For 's' this is the branch length threshold at which a lineage reconstructed as infecting a host will transition to the unsampled state. For 'f' this is the branch length at which an node is reconstructed as unsampled if all its neighbouring nodes are a greater distance away. Both defaults are 0.")
+arg_parser$add_argument("splitsRule", action="store", help="The rules by which the sets of hosts are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. This takes a variable number of arguments. The first dictates the algorithm: s=Sankoff with optional within-host diversity penalty (slow, rigorous, default), r=Romero-Severson (quick, less rigorous with >2 hosts), f=Sankoff with continuation costs (experimental). For 'r' no further arguments are expected. For 's' and 'f' the k parameter in the Sankoff reconstruction, which penalises within-host diversity, must also be given. There is an optional third argument for 's' and 'f'. For 's' this is the branch length threshold at which a lineage reconstructed as infecting a host will transition to the unsampled state. For 'f' this is the branch length at which an node is reconstructed as unsampled if all its neighbouring nodes are a greater distance away. Both defaults are 0.")
 arg_parser$add_argument("-P", "--pruneBlacklist", action="store_true", help="If present, all blacklisted and references tips (except the outgroup) are pruned away before starting parsimony-based reconstruction")
 arg_parser$add_argument("-rcm", "--readCountsMatterOnZeroBranches", default = FALSE, action="store_true", help="If present, read counts will be taken into account in parsimony reconstructions at the parents of zero-length branches. Not applicable for the Romero-Severson-like reconstruction method.")
 arg_parser$add_argument("-tn", "--outputNexusTree", action="store_true", help="Standard output of annotated trees are in PDF format. If this option is present, output them as NEXUS instead.")
@@ -85,9 +85,9 @@ arg_parser$add_argument("-ct", "--collapsedTree", action="store_true", help="If 
 
 # Classification summary
 
-arg_parser$add_argument("-swt", "--windowThreshold", action="store", default=0, type="double", help="Relationships between two patients will only appear in output if they are within the distance threshold and ajacent to each other least this proportion of windows (default 0).")
-arg_parser$add_argument("-sdt", "--distanceThreshold", action="store", default=-1, type="double", help="Maximum distance threshold on a window for a relationship to be reconstructed between two patients on that window.")
-arg_parser$add_argument("-amt", "--allowMultiTrans", action="store_true", default=FALSE, help="If absent, directionality is only inferred between pairs of patients where a single clade from one patient is nested in one from the other; this is more conservative")
+arg_parser$add_argument("-swt", "--windowThreshold", action="store", default=0, type="double", help="Relationships between two hosts will only appear in output if they are within the distance threshold and ajacent to each other least this proportion of windows (default 0).")
+arg_parser$add_argument("-sdt", "--distanceThreshold", action="store", default=-1, type="double", help="Maximum distance threshold on a window for a relationship to be reconstructed between two hosts on that window.")
+arg_parser$add_argument("-amt", "--allowMultiTrans", action="store_true", default=FALSE, help="If absent, directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative")
 
 args                  <- arg_parser$parse_args()
 
@@ -670,9 +670,9 @@ if(do.par.blacklisting){
 }
 
 
-# 11. All IDs can be safely gathered and mapped now; dual blacklisting as performed by this script cannot eliminate patients entirely so we know who's in and who's out
+# 11. All IDs can be safely gathered and mapped now; dual blacklisting as performed by this script cannot eliminate hosts entirely so we know who's in and who's out
 
-if(verbose) cat("Gathering patient IDs...\n")
+if(verbose) cat("Gathering host IDs...\n")
 
 hosts <- lapply(all.tree.info, "[[" , "hosts.for.tips")
 hosts <- unique(unlist(hosts))
@@ -858,7 +858,7 @@ pat.stats <- rbindlist(pat.stats)
 
 read.proportions <- lapply(all.tree.info, function(y) sapply(hosts, function(x) get.read.proportions(x, y$suffix, y$splits.table), simplify = F, USE.NAMES = T))
 
-# Get the max split count over every window and patient (the exact number of columns depends on this)
+# Get the max split count over every window and host (the exact number of columns depends on this)
 
 max.splits <- max(sapply(read.proportions, function(x) max(sapply(x, function(y) length(y)))))
 
@@ -920,7 +920,7 @@ if(!single.file){
 
 all.tree.info <- sapply(all.tree.info, function(tree.info) {
   
-  if(verbose) cat("Classifying pairwise patient relationships for tree suffix ",tree.info$suffix, "\n", sep="")
+  if(verbose) cat("Classifying pairwise host relationships for tree suffix ",tree.info$suffix, "\n", sep="")
   
   tree.info$classification.results <- classify(tree.info, verbose)
   
