@@ -34,9 +34,9 @@ blacklist.file.name  <- args$blacklist
 
 # Load necessary functions
 
-source(file.path(script.dir, "TreeUtilityFunctions.R"))
-source(file.path(script.dir, "GeneralFunctions.R"))
-source(file.path(script.dir, "BlacklistFunctions.R"))
+source(file.path(script.dir, "tree_utility_functions.R"))
+source(file.path(script.dir, "general_functions.R"))
+source(file.path(script.dir, "blacklist_functions.R"))
 
 # Decide if we're in single or batch mode
 
