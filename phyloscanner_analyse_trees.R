@@ -169,7 +169,7 @@ reconst.mode.arg      <- args$splitsRule
 reconst.mode.arg      <- unlist(strsplit(reconst.mode.arg, ","))
 
 if(!(reconst.mode.arg[1] %in% c("r", "s", "f"))){
-  stop(paste("Unknown split classifier: ", mode, "\n", sep=""))
+  stop(paste("Unknown split classifier: ", reconst.mode.arg[1], "\n", sep=""))
 }
 
 reconstruction.mode   <- reconst.mode.arg[1]
