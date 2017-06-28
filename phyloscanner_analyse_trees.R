@@ -397,6 +397,8 @@ all.tree.info <- sapply(all.tree.info, function(tree.info){
     m.thresh                          <- min(tree$edge.length*1.0001) 
   }
   
+  print(outgroup.name)
+  
   new.tree <- process.tree(tree, outgroup.name, m.thresh)
   
   tree.info$tree <- new.tree
