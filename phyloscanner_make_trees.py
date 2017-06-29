@@ -44,7 +44,6 @@ import copy
 import shutil
 import glob
 import time
-from shutil import copy2
 import argparse
 import pysam
 from Bio import SeqIO
@@ -2055,7 +2054,7 @@ if args.inspect_disagreeing_overlaps:
       # together with the discarded reads file. This might fail e.g. if the same
       # file exists already - then do nothing.
       try:
-        copy2(RefFile, LocalRefFileName)
+        shutil.copy2(RefFile, LocalRefFileName)
       except:
         pass
       else:
