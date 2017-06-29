@@ -19,9 +19,9 @@ split.patients.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff
   
   # Find patient IDs from each tip
   
-  tip.hosts <- sapply(tip.labels, function(x) patient.from.label(x, tip.regex))
+  tip.hosts <- sapply(tip.labels, function(x) host.from.label(x, tip.regex))
 
-  non.host.tips <- which(is.na(sapply(tree$tip.label, function(name) patient.from.label(name, tip.regex))))
+  non.host.tips <- which(is.na(sapply(tree$tip.label, function(name) host.from.label(name, tip.regex))))
   tip.hosts[c(non.host.tips, blacklist)] <- "unsampled"
   
   # Find the complete list of patients present in this tree minus blacklisting
@@ -112,7 +112,7 @@ split.patients.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff
   attr(tree, 'INDIVIDUAL') <- patient.annotation
   attr(tree, 'BRANCH_COLOURS') <- branch.colours
   
-  rs.subgraphs <- data.table(subgraph=results$split.patients)
+  rs.subgraphs <- data.table(subgraph=results$split.hosts)
   rs.subgraphs <- rs.subgraphs[, list(patient= unlist(strsplit(subgraph, "-S"))[1], tip= tree$tip.label[ results$split.tips[[subgraph]] ]	), by='subgraph']
   rs.subgraphs <- as.data.frame(subset(rs.subgraphs, select=c(patient, subgraph, tip)))
   
@@ -128,7 +128,7 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
     tip.assocs <- annotate.tips(tree, patients, patient.tips)
     
     for(tip in seq(1, length(tree$tip.label))){
-      if(tip %in% blacklist | is.na(patient.from.label(tree$tip.label[tip], tip.regex))){
+      if(tip %in% blacklist | is.na(host.from.label(tree$tip.label[tip], tip.regex))){
         tip.assocs[[tip]] <- "*"
       }
     }
@@ -222,7 +222,7 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
     
     # No need for the stars anymore
     
-    return(list(assocs = split.assocs, split.patients = patients.copy, split.tips = patient.tips.copy, 
+    return(list(assocs = split.assocs, split.hosts = patients.copy, split.tips = patient.tips.copy, 
                 first.nodes = first.nodes.by.patients))
     
     
@@ -364,8 +364,8 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
     
   } else if(method=="f"){
 
-    non.patient.tips <- which(is.na(sapply(tree$tip.label, function(name) patient.from.label(name, tip.regex))))
-    patient.ids <- sapply(tree$tip.label, function(x) patient.from.label(x, tip.regex))
+    non.patient.tips <- which(is.na(sapply(tree$tip.label, function(name) host.from.label(name, tip.regex))))
+    patient.ids <- sapply(tree$tip.label, function(x) host.from.label(x, tip.regex))
     patient.ids[c(non.patient.tips, blacklist)] <- "unsampled"
 
     patients <- unique(patient.ids)

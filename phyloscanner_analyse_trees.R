@@ -253,7 +253,6 @@ if(!is.null(args$toolsDir)){
 
 source(file.path(tools.dir, "general_functions.R"))
 source(file.path(tools.dir, "normalisation_functions.R"))
-source(file.path(tools.dir, "../deprecated/TreeUtilityFunctions.R")) # just temporary
 source(file.path(tools.dir, "tree_utility_functions.R"))
 source(file.path(tools.dir, "blacklist_functions.R"))
 source(file.path(tools.dir, "parsimony_reconstruction_methods.R"))
