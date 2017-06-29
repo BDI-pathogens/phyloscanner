@@ -45,8 +45,3 @@ Why yes!
 For HIV at least, try [shiver](https://github.com/ChrisHIV/shiver).
 We discussed [here](http://biorxiv.org/content/early/2016/12/09/092916) problems and solutions for mapping well in general.
 
-### Some more pictures
-Here are some cartoons of the `--merge-paired-reads`, `--merging-threshold` and `--excision-coords` options in action:
-
-<p align="center"><img src="InfoAndInputs/OptionsDiagram.jpg" alt="Phyloscanner" width="750" height="377"/></p>
-
