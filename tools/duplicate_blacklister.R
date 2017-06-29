@@ -4,7 +4,10 @@ options("warn"=1)
 
 list.of.packages <- c("argparse", "kimisc")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
+if(length(new.packages)){
+  cat("Please run package_install.R to continue\n")
+  quit(save="no", status=1)
+}
 
 suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(kimisc, quietly=TRUE, warn.conflicts=FALSE))
@@ -34,6 +37,7 @@ if(!is.null(args$scriptDir)){
     stop("Cannot detect the location of the /phyloscanner/tools directory. Please specify it at the command line with -D.")
   }
 }
+
 verbose              <- args$verbose
 tree.fe              <- args$treeFileExtension
 csv.fe               <- args$csvFileExtension
