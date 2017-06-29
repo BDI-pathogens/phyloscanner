@@ -123,7 +123,7 @@ calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, verbose = F){
   
   # A vector of patients for each tip
   
-  hosts.for.tips <- sapply(tree$tip.label, function(x) patient.from.label(x, tip.regex))
+  hosts.for.tips <- sapply(tree$tip.label, function(x) host.from.label(x, tip.regex))
   hosts.for.tips[blacklist] <- NA
   
   # If no patients from the input file are actually here, give a warning
