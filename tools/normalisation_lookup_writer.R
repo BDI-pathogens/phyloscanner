@@ -18,8 +18,7 @@ arg_parser		     <- ArgumentParser(description="Calculate normalising constants 
 arg_parser$add_argument("tree.file.root", action="store", type="character", help="Start of tree file names.")
 arg_parser$add_argument("norm.file.name", action="store", type="character", help="File name of reference table.")
 arg_parser$add_argument("output.file.name", action="store", type="character", help="Output file name of csv file that has two columns, the base tree file name and the corresponding normalising constant.")
-arg_parser$add_argument("norm.var", action="store", type="character", help="Column name in reference table that is to be used as normalising constant.")
-arg_parser$add_argument("-s", "--standardise", action="store_true", default=FALSE, help="If true, the normalising constants are standardized so that the average on gag+pol equals 1. This way the normalised branch lengths are interpretable as typical distances on gag+pol")
+arg_parser$add_argument("-s", "--standardiseGagPol", action="store_true", default=FALSE, help="HIV-specific; if true, the normalising constants are standardized so that the average on gag+pol equals 1, rather than that the average on the whole genome equals 1. The normalised branch lengths are interpretable as typical distances on gag+pol")
 arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.")
 arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what the script is doing.")
 arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default="tree", help="The file extension for tree files (default .tree).")
@@ -38,61 +37,62 @@ if(!is.null(args$scriptDir)){
   }
 }
 
-tree.file.root 	  <- args$tree.file.root
-norm.file.name 	  <- args$norm.file.name
-output.file.name  <- args$output.file.name
-norm.var 		      <- args$norm.var
-norm.standardise  <- args$standardise
-verbose           <- args$verbose
-tree.fe           <- args$treeFileExtension
-csv.fe            <- args$csvFileExtension
+tree.file.root 	    <- args$tree.file.root
+norm.ref.file.name 	<- args$norm.file.name
+output.file.name    <- args$output.file.name
+norm.var 		        <- args$norm.var
+norm.standardise    <- args$standardiseGagPol
+verbose             <- args$verbose
+tree.fe             <- args$treeFileExtension
+csv.fe              <- args$csvFileExtension
 
 # Load necessary functions
 
-source(file.path(script.dir, "GeneralFunctions.R"))
-source(file.path(script.dir, "NormalisationFunctions.R"))
+source(file.path(script.dir, "general_functions.R"))
+source(file.path(script.dir, "normalisation_functions.R"))
 
 #	Load reference table, define normalising constant
 
-if (verbose) cat('Loading normalising constants reference file ', norm.file.name, "\n", sep="")
+if (verbose) cat('Loading normalising constants reference file ', norm.ref.file.name, "\n", sep="")
 
-if(grepl(paste0(csv.fe, "$"), norm.file.name)){
-	norm.table	<- as.data.table(read.csv(norm.file.name, stringsAsFactors=FALSE))
-} else if(grepl('rda$', norm.file.name)){
-	tmp			<- load(norm.file.name)
-	if(length(tmp)!=1)	stop("Expected one R data.table in file ",norm.file.name)
-	eval(parse(text=paste("norm.table<- ",tmp,sep='')))
+norm.table	<- as.data.table(read.csv(norm.ref.file.name, stringsAsFactors=FALSE))
+
+if(ncol(norm.table)!=2){
+  stop(paste0(norm.ref.file.name," is not formatted as expected for a normalisation lookup file; expecting two columns.\n"))
 } else {
-  stop(paste0("Unknown input file format.\n"))
-}
-
-if(any(!(c('POSITION',norm.var) %in% colnames(norm.table)))){
-  stop(paste0("One or more of POSITION and ",norm.var," columns not present in file ",norm.file.name))
-}
-
-setnames(norm.table, norm.var, 'NORM_CONST')
-
-#	Standardize to mean of 1 on gag+pol ( prot + first part of RT in total 1300bp )
-
-if(norm.standardise){
-	#790 - 3385
-	if (verbose) cat('Standardising normalising constants to 1 on the gag+pol (prot + first part of RT in total 1300bp pol) region\n')
+  setnames(norm.table, 1, 'POSITION')
+  setnames(norm.table, 2, 'NORM_CONST')
   
-	tmp		<- subset(norm.table, POSITION>=790L & POSITION<=3385L)
-	
-	if(nrow(tmp)<=0){
-	  stop(paste0("No positions from gag+pol present in file ",norm.file.name,"; unable to standardise"))
-	}
-	
-	tmp		<- tmp[, mean(NORM_CONST)]
-	if(!is.finite(tmp)){
-	  stop("Standardising constant is not finite")
-	}
-
-	set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
+  if(norm.standardise){
+    #	Standardize to mean of 1 on gag+pol ( prot + first part of RT in total 1300bp )
+    
+    #790 - 3385
+    if (verbose) cat('Standardising normalising constants to 1 on the gag+pol (prot + first part of RT in total 1300bp pol) region\n')
+    
+    tmp		<- subset(norm.table, POSITION>=790L & POSITION<=3385L)
+    
+    if(nrow(tmp)<=0){
+      stop(paste0("No positions from gag+pol present in file ",norm.ref.file.name,"; unable to standardise"))
+    }
+    
+    tmp		<- tmp[, mean(NORM_CONST)]
+    
+    if(!is.finite(tmp)){
+      stop(paste0("Standardising constant is not finite"))
+    }
+    
+    set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
+  } else {
+    if (verbose) cat('Standardising normalising constants to 1 on the whole genome\n')
+    
+    tmp		<- norm.table[, mean(NORM_CONST)]
+    if(!is.finite(tmp)){
+      stop(paste0("Standardising constant is not finite"))
+    }
+    
+    set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
+  }
 }
-
-norm.table	         <- subset(norm.table, select=c("POSITION", "NORM_CONST"))
 
 #	guess window coordinates of tree files from file name
 if (verbose) cat('Reading tree files starting with ', tree.file.root, "\n")
