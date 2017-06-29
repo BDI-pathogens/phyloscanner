@@ -45,7 +45,7 @@ arg_parser$add_argument("-pw", "--pdfWidth", action="store", default=50, help="W
 arg_parser$add_argument("-ph", "--pdfRelHeight", action="store", default=0.15, help="Relative height of tree pdf.")
 arg_parser$add_argument("-rda", "--outputRDA", action="store_true", help="Write the final R workspace image to file.")
 arg_parser$add_argument("-sd", "--seed", action="store_true", help="Random number seed; used by the downsampling process, and also ties in some parsimony reconstructions can be broken randomly.")
-arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.")
+arg_parser$add_argument("-D", "--toolsDir", action="store", help="Full path of the /tools/ directory.")
 arg_parser$add_argument("-ow", "--overwrite", action="store_true", help="Overwrite existing output files with the same names.")
 
 # Normalisation options
@@ -121,8 +121,8 @@ use.m.thresh          <- !is.null(args$multifurcationThreshold)
 tree.fe               <- args$treeFileExtension
 csv.fe                <- args$csvFileExtension
 
-pdf.hm                <- as.numeric(args$pdfrelheight)
-pdf.w                 <- as.numeric(args$pdfwidth)
+pdf.hm                <- as.numeric(args$pdfRelHeight)
+pdf.w                 <- as.numeric(args$pdfWidth)
 
 seed                  <- args$seed
 
@@ -216,7 +216,7 @@ downsample            <- !is.null(args$maxReadsPerHost)
 downsampling.limit    <- args$maxReadsPerHost
 blacklist.ur          <- args$blacklistUnderrepresensted
 
-read.counts.matter    <- args$readCountsMatterOnZeroBranches
+read.counts.matter    <- args$readCountsMatterOnZeroLengthBranches
 prune.blacklist       <- args$pruneBlacklist
 
 output.nexus          <- args$outputNexusTree
@@ -231,7 +231,7 @@ if(!("package:ggtree" %in% search())){
 recomb.input          <- args$recombinationFiles
 do.recomb             <- !is.null(recomb.input)
 
-do.collapsed          <- args$collapsedTree
+do.collapsed          <- args$collapsedTrees
 do.class.detail       <- args$allClassifications
 
 win.threshold         <- args$windowThreshold 
@@ -242,31 +242,27 @@ if(dist.threshold == -1){
 }
 allow.mt              <- args$allowMultiTrans
 
-if(!is.null(args$scriptDir)){
-  script.dir          <- args$scriptDir
+if(!is.null(args$toolsDir)){
+  tools.dir           <- args$toolsDir
 } else {
-  script.dir          <- paste0(dirname(thisfile()),"/tools")
-  if(!dir.exists(script.dir)){
+  tools.dir           <- paste0(dirname(thisfile()),"/tools")
+  if(!dir.exists(tools.dir)){
     stop("Cannot detect the location of the /phyloscanner/tools directory. Please specify it at the command line with -D.")
   }
 }
 
-if(is.null(script.dir)){
-  script.dir <- getwd()
-}
-
-source(file.path(script.dir, "general_functions.R"))
-source(file.path(script.dir, "NormalisationFunctions.R"))
-source(file.path(script.dir, "TreeUtilityFunctions.R"))
-source(file.path(script.dir, "TreeUtilityFunctions2.R"))
-source(file.path(script.dir, "blacklist_functions.R"))
-source(file.path(script.dir, "ParsimonyReconstructionMethods2.R"))
-source(file.path(script.dir, "CollapsedTreeMethods2.R"))
-source(file.path(script.dir, "WriteAnnotatedTrees.R"))
-source(file.path(script.dir, "SummariseTrees_funcs.R"))
-source(file.path(script.dir, "SummaryStatsFunctions.R"))
-source(file.path(script.dir, "PlottingFunctions.R"))
-source(file.path(script.dir, "DownsamplingFunctions.R"))
+source(file.path(tools.dir, "general_functions.R"))
+source(file.path(tools.dir, "NormalisationFunctions.R"))
+source(file.path(tools.dir, "../deprecated/TreeUtilityFunctions.R")) # just temporary
+source(file.path(tools.dir, "tree_utility_functions.R"))
+source(file.path(tools.dir, "blacklist_functions.R"))
+source(file.path(tools.dir, "ParsimonyReconstructionMethods2.R"))
+source(file.path(tools.dir, "CollapsedTreeMethods2.R"))
+source(file.path(tools.dir, "WriteAnnotatedTrees.R"))
+source(file.path(tools.dir, "SummariseTrees_funcs.R"))
+source(file.path(tools.dir, "SummaryStatsFunctions.R"))
+source(file.path(tools.dir, "PlottingFunctions.R"))
+source(file.path(tools.dir, "DownsamplingFunctions.R"))
 
 # todo All functions that get passed tree info should check that the lists have what they need. If they have file names but not the contents, they should load the contents in.
 
