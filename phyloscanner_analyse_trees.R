@@ -255,11 +255,11 @@ if(is.null(script.dir)){
   script.dir <- getwd()
 }
 
-source(file.path(script.dir, "GeneralFunctions.R"))
+source(file.path(script.dir, "general_functions.R"))
 source(file.path(script.dir, "NormalisationFunctions.R"))
 source(file.path(script.dir, "TreeUtilityFunctions.R"))
 source(file.path(script.dir, "TreeUtilityFunctions2.R"))
-source(file.path(script.dir, "BlacklistFunctions.R"))
+source(file.path(script.dir, "blacklist_functions.R"))
 source(file.path(script.dir, "ParsimonyReconstructionMethods2.R"))
 source(file.path(script.dir, "CollapsedTreeMethods2.R"))
 source(file.path(script.dir, "WriteAnnotatedTrees.R"))
