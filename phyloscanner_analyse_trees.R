@@ -1,4 +1,4 @@
-#!/usr/bin/Rscript
+#!/usr/bin/env Rscript
 
 list.of.packages <- c("argparse", "data.table", "ape", "ff", "phangorn", "phytools", "scales", "RColorBrewer", "gtable", "grid", "gridExtra", "kimisc")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
@@ -38,14 +38,15 @@ arg_parser$add_argument("-b", "--blacklist", action="store", help="A path and st
 arg_parser$add_argument("-od", "--outputDir", action="store", help="All output will be written to this directory. If absent, current working directory.")
 arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what the script is doing.")
 arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. Three capture groups: host ID, read ID, and read count; if the latter two groups are missing then read information will not be used. If absent, input will be assumed to be from the phyloscanner pipeline, and the host ID will be the BAM file name.")
-arg_parser$add_argument("-y", "--fileNameRegex", action="store", default="^\\D*([0-9]+)_to_([0-9]+).*$", help="Regular expression identifying window coordinates. Two capture groups: start and end; if the latter is missing then the first group is a single numerical identifier for the window. If absent, input will be assumed to be from the phyloscanner pipeline, and the host ID will be the BAM file name.")
+arg_parser$add_argument("-y", "--fileNameRegex", action="store", default="^\\D*([0-9]+)_to_([0-9]+)\\D*$", help="Regular expression identifying window coordinates. Two capture groups: start and end; if the latter is missing then the first group is a single numerical identifier for the window. If absent, input will be assumed to be from the phyloscanner pipeline, and the host ID will be the BAM file name.")
 arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default="tree", help="The file extension for tree files (default tree).")
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="csv", help="The file extension for table files (default csv).")
-arg_parser$add_argument("-pw", "--pdfwidth", action="store", default=50, help="Width of tree pdf in inches.")
-arg_parser$add_argument("-ph", "--pdfrelheight", action="store", default=0.15, help="Relative height of tree pdf.")
+arg_parser$add_argument("-pw", "--pdfWidth", action="store", default=50, help="Width of tree pdf in inches.")
+arg_parser$add_argument("-ph", "--pdfRelHeight", action="store", default=0.15, help="Relative height of tree pdf.")
 arg_parser$add_argument("-rda", "--outputRDA", action="store_true", help="Write the final R workspace image to file.")
 arg_parser$add_argument("-sd", "--seed", action="store_true", help="Random number seed; used by the downsampling process, and also ties in some parsimony reconstructions can be broken randomly.")
 arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.")
+arg_parser$add_argument("-ow", "--overwrite", action="store_true", help="Overwrite existing output files with the same names.")
 
 # Normalisation options
 
@@ -71,7 +72,7 @@ arg_parser$add_argument("-dsb", "--blacklistUnderrepresented", action="store_tru
 arg_parser$add_argument("-ff", "--useff", action="store_true", default=FALSE, help="Use ff to store parsimony reconstruction matrices. Use if you run out of memory.")
 arg_parser$add_argument("splitsRule", action="store", help="The rules by which the sets of hosts are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. This takes a variable number of arguments. The first dictates the algorithm: s=Sankoff with optional within-host diversity penalty (slow, rigorous, default), r=Romero-Severson (quick, less rigorous with >2 hosts), f=Sankoff with continuation costs (experimental). For 'r' no further arguments are expected. For 's' and 'f' the k parameter in the Sankoff reconstruction, which penalises within-host diversity, must also be given. There is an optional third argument for 's' and 'f'. For 's' this is the branch length threshold at which a lineage reconstructed as infecting a host will transition to the unsampled state. For 'f' this is the branch length at which an node is reconstructed as unsampled if all its neighbouring nodes are a greater distance away. Both defaults are 0.")
 arg_parser$add_argument("-P", "--pruneBlacklist", action="store_true", help="If present, all blacklisted and references tips (except the outgroup) are pruned away before starting parsimony-based reconstruction")
-arg_parser$add_argument("-rcm", "--readCountsMatterOnZeroBranches", default = FALSE, action="store_true", help="If present, read counts will be taken into account in parsimony reconstructions at the parents of zero-length branches. Not applicable for the Romero-Severson-like reconstruction method.")
+arg_parser$add_argument("-rcm", "--readCountsMatterOnZeroLengthBranches", default = FALSE, action="store_true", help="If present, read counts will be taken into account in parsimony reconstructions at the parents of zero-length branches. Not applicable for the Romero-Severson-like reconstruction method.")
 arg_parser$add_argument("-tn", "--outputNexusTree", action="store_true", help="Standard output of annotated trees are in PDF format. If this option is present, output them as NEXUS instead.")
 
 # Summary statistics
@@ -81,7 +82,7 @@ arg_parser$add_argument("-R", "--recombinationFiles", action="store", help="An o
 # Classification
 
 arg_parser$add_argument("-cd", "--allClassifications", action="store_true", help="If present, the per-window host relationships will be writted to a separate CSV file for each window.")
-arg_parser$add_argument("-ct", "--collapsedTree", action="store_true", help="If present, the collapsed tree (in which all adjacent nodes with the same assignment are collapsed to one) is output as a CSV file or files.")
+arg_parser$add_argument("-ct", "--collapsedTrees", action="store_true", help="If present, the collapsed tree (in which all adjacent nodes with the same assignment are collapsed to one) is output as a CSV file or files.")
 
 # Classification summary
 
@@ -93,6 +94,10 @@ args                  <- arg_parser$parse_args()
 
 verbose               <- args$verbose
 
+overwrite             <- args$overwrite
+
+
+
 tree.input            <- args$tree
 blacklist.input       <- args$blacklist
 
@@ -101,6 +106,10 @@ if(is.null(output.dir)){
   output.dir          <- getwd()
 }
 output.string         <- args$outputString
+
+if(!overwrite & file.exists(paste0(output.dir, "/", output.string,"_patStats.csv"))){
+  stop("Previous output with this output string (",output.string,") detected. Please re-run with --overwrite if you wish to overwrite this.")
+}
 
 outgroup.name         <- args$outgroupName
 
@@ -246,11 +255,11 @@ if(is.null(script.dir)){
   script.dir <- getwd()
 }
 
-source(file.path(script.dir, "GeneralFunctions.R"))
+source(file.path(script.dir, "general_functions.R"))
 source(file.path(script.dir, "NormalisationFunctions.R"))
 source(file.path(script.dir, "TreeUtilityFunctions.R"))
 source(file.path(script.dir, "TreeUtilityFunctions2.R"))
-source(file.path(script.dir, "BlacklistFunctions.R"))
+source(file.path(script.dir, "blacklist_functions.R"))
 source(file.path(script.dir, "ParsimonyReconstructionMethods2.R"))
 source(file.path(script.dir, "CollapsedTreeMethods2.R"))
 source(file.path(script.dir, "WriteAnnotatedTrees.R"))
@@ -844,8 +853,6 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
 
 
 # 16. Summary statistics
-
-
 
 coordinates <- lapply(all.tree.info, "[[" , "window.coords")
 

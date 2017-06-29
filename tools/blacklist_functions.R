@@ -35,19 +35,19 @@ blacklist.exact.duplicates <- function(tree.info, raw.threshold, ratio.threshold
   if(is.null(tmp))
     pairs.table$reads.2 <- integer(0)
   
-  tmp <- unlist(sapply(pairs.table$V1, function(x) patient.from.label(x, tip.regex)))
+  tmp <- unlist(sapply(pairs.table$V1, function(x) host.from.label(x, tip.regex)))
   if(!is.null(tmp))
     pairs.table$host.1 <- tmp
   if(is.null(tmp))
     pairs.table$host.1 <- character(0)
   
-  tmp <- unlist(sapply(pairs.table$V2, function(x) patient.from.label(x, tip.regex)))
+  tmp <- unlist(sapply(pairs.table$V2, function(x) host.from.label(x, tip.regex)))
   if(!is.null(tmp))
     pairs.table$host.2 <- tmp
   if(is.null(tmp))
     pairs.table$host.2 <- character(0)
   
-  # pairs from the same patient aren't under consideration
+  # pairs from the same host aren't under consideration
   
   pairs.table <- pairs.table[which(pairs.table$host.1 != pairs.table$host.2),]
   
@@ -117,7 +117,7 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
     
     # vector of of split IDs
     
-    host.split.ids <- split.results$split.patients
+    host.split.ids <- split.results$split.hosts
     
     # list of tips that belong to each split ID
     
@@ -234,20 +234,20 @@ check.read.count.for.split <- function(split, tips.for.splits, raw.threshold, ra
 
 # This 
 
-blacklist.all.reads.for.dual.patient <- function(patient, tree.info){
+blacklist.all.reads.for.dual.host <- function(host, tree.info){
   for(info in tree.info){
     labels <- info$tree$tip.label
-    patients <- sapply(labels, function(x) patient.from.label(x, tip.regex))
-    labels.to.go <- labels[patients==patient]
+    hosts <- sapply(labels, function(x) host.from.label(x, tip.regex))
+    labels.to.go <- labels[hosts==host]
     info$blacklist <- c(info$blacklist, labels.to.go)
   }
 }
 
-blacklist.small.subgraphs.for.dual.patient <- function(patient, tree.info, max.reads){
+blacklist.small.subgraphs.for.dual.host <- function(host, tree.info, max.reads){
   for(info in tree.info){
     labels <- info$tree$tip.label
     duals.table <- info$duals.info
-    pat.rows <- duals.table[duals.table$patient==patient,]
+    pat.rows <- duals.table[duals.table$host==host,]
     
     if(nrow(pat.rows)>0){
       max.reads <- max(pat.rows$reads.in.subtree)
@@ -270,7 +270,7 @@ blacklist.duals <- function(all.tree.info, hosts, threshold = 1, summary.file=NU
   
   if(verbose) cat("Calculating dual window fractions...\n")
   
-  #	Count number of potential dual windows by patient
+  #	Count number of potential dual windows by host
   
   fractions <- lapply(hosts, function(x){
     rowSums(sapply(all.tree.info, function(y){
@@ -327,7 +327,7 @@ blacklist.duals <- function(all.tree.info, hosts, threshold = 1, summary.file=NU
     proportions <- unlist(lapply(output, "[[", 1))
     counts <- unlist(lapply(output, "[[", 2))
     
-    out.df <- data.frame(patient = hosts, count = counts, proportion = proportions, stringsAsFactors = F)
+    out.df <- data.frame(host = hosts, count = counts, proportion = proportions, stringsAsFactors = F)
     if(verbose) cat("\nWriting dual summary file to ", summary.file, "\n", sep="")
     write.csv(out.df, file=summary.file, row.names=FALSE, quote=FALSE)
   }

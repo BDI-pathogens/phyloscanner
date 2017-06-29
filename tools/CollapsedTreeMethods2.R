@@ -890,7 +890,7 @@ summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.
   
   setkey(tt.close, HOST.1, HOST.2, TYPE)
 
-  setnames(tt.close, c('HOST.1','HOST.2','TYPE'), c("Host_1", "Host_2", "relationship"))
+  setnames(tt.close, c('HOST.1','HOST.2','TYPE', 'windows'), c("Host_1", "Host_2", "relationship", "trees"))
   
   return(subset(tt.close, all.windows>min.threshold))
 }
