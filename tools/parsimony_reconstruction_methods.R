@@ -359,7 +359,7 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
       }
     }
     
-    return(list(assocs = split.assocs, split.patients = patients.copy, split.tips = patient.tips.copy, 
+    return(list(assocs = split.assocs, split.hosts = patients.copy, split.tips = patient.tips.copy, 
                 first.nodes = first.nodes.by.patients))
     
   } else if(method=="f"){
@@ -478,7 +478,7 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
       }
     }
     
-    return(list(assocs = split.assocs, split.patients = patients.copy, split.tips = patient.tips.copy, 
+    return(list(assocs = split.assocs, split.hosts = patients.copy, split.tips = patient.tips.copy, 
                 first.nodes = first.nodes.by.patients))
     
     

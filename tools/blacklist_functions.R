@@ -163,7 +163,6 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
       
       too.small <- sapply(host.split.ids, function(x) check.read.count.for.split(x, tips.for.splits, raw.threshold, ratio.threshold, reads.per.tip, total.reads))
       
-      
       if(length(which(!too.small))>1 & check.duals){
         # there are at least two subgraphs which are too big to be contaminants
         
