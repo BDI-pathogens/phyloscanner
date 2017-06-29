@@ -1,3 +1,5 @@
+#!/usr/bin/env Rscript
+
 list.of.packages <- c("argparse", "phangorn")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
@@ -56,9 +58,9 @@ if(use.m.thresh){
   m.thresh <- -1
 }
 
-source(file.path(script.dir, "TreeUtilityFunctions.R"))
-source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
-source(file.path(script.dir, "DownsamplingFunctions.R"))
+source(file.path(script.dir, "tree_utility_functions.R"))
+source(file.path(script.dir, "parsimony_reconstruction_methods.R"))
+source(file.path(script.dir, "downsampling_functions.R"))
 
 all.tree.info <- list()
 
