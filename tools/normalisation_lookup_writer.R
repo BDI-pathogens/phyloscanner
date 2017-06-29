@@ -1,12 +1,15 @@
-list.of.packages <- c("argparse","data.table")
+#!/usr/bin/env Rscript
+
+list.of.packages <- c("argparse", "data.table", "kimisc")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)){
-  cat("Please run PackageInstall.R to continue\n")
+  cat("Please run package_install.R to continue\n")
   quit(save="no", status=1)
 }
 
 suppressMessages(require(argparse, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(kimisc, quietly=TRUE, warn.conflicts=FALSE))
 
 # 	Define arguments
 
@@ -25,7 +28,16 @@ arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="c
 # Parse arguments
 
 args              <- arg_parser$parse_args()
-script.dir        <- args$scriptdir
+
+if(!is.null(args$scriptDir)){
+  script.dir          <- args$scriptDir
+} else {
+  script.dir          <- dirname(thisfile())
+  if(!dir.exists(script.dir)){
+    stop("Cannot detect the location of the /phyloscanner/tools directory. Please specify it at the command line with -D.")
+  }
+}
+
 tree.file.root 	  <- args$tree.file.root
 norm.file.name 	  <- args$norm.file.name
 output.file.name  <- args$output.file.name

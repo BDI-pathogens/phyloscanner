@@ -1,3 +1,5 @@
+#!/usr/bin/env Rscript
+
 list.of.packages <- c("argparse", "ape", "phangorn", "kimisc")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)){
