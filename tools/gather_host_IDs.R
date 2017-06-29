@@ -21,7 +21,7 @@ arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, h
 arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. Three capture groups: host ID, read ID, and read count; if the latter two groups are missing then read information will not be used. If absent, input will be assumed to be from the phyloscanner pipeline, and the host ID will be the BAM file name.")
 arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default="tree", help="The file extension for tree files (default .tree).")
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="csv", help="The file extension for table files (default .csv).")
-arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the /tools directory.")
+arg_parser$add_argument("-D", "--scriptDir", action="store", help="Full path of the /tools directory.")
 
 # Parse arguments
 
