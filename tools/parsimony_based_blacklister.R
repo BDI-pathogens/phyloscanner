@@ -68,10 +68,10 @@ if(!is.null(args$multifurcationThreshold)){
 
 
 
-source(file.path(script.dir, "TreeUtilityFunctions2.R"))
-source(file.path(script.dir, "ParsimonyReconstructionMethods2.R"))
-source(file.path(script.dir, "GeneralFunctions.R"))
-source(file.path(script.dir, "BlacklistFunctions.R"))
+source(file.path(script.dir, "tree_utility_functions.R"))
+source(file.path(script.dir, "parsimony_reconstruction_methods.R"))
+source(file.path(script.dir, "general_functions.R"))
+source(file.path(script.dir, "blacklist_functions.R"))
 
 if(is.null(root.name)){
   cat("No outgroup name given; will assume the tree is rooted and use a random other tip as an outgroup for each host\n")
