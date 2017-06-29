@@ -853,17 +853,17 @@ summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.
   tt.close$NOT.SIBLINGS <- tt.close$ADJACENT & (tt.close$PATRISTIC_DISTANCE < dist.threshold) & tt.close$TYPE!="none"
   
   # How many windows have this relationship, ADJACENT and PATRISTIC_DISTANCE below the threshold?
-  type.counts	<- tt.close[, list(windows=length(SUFFIX)), by=c('HOST.1','HOST.2','TYPE')]
+  type.counts	<- tt.close[, list(trees.with.this.relationship=length(SUFFIX)), by=c('HOST.1','HOST.2','TYPE')]
   # How many windows have ADJACENT and PATRISTIC_DISTANCE below the threshold?
-  any.counts  <- tt.close[, list(all.windows=length(SUFFIX)), by=c('HOST.1','HOST.2')]
+  any.counts  <- tt.close[, list(trees.with.any.relationship=length(SUFFIX)), by=c('HOST.1','HOST.2')]
   # How many windows have a relationship other than "none", ADJACENT and PATRISTIC_DISTANCE below the threshold?
-  ns.counts  <- tt.close[, list(ns.windows=length(which(NOT.SIBLINGS))), by=c('HOST.1','HOST.2')]
+  ns.counts  <- tt.close[, list(trees.with.any.ancestral.relationship=length(which(NOT.SIBLINGS))), by=c('HOST.1','HOST.2')]
   
   tt.close		<- merge(tt.close, type.counts, by=c('HOST.1','HOST.2','TYPE'))
   tt.close		<- merge(tt.close, any.counts, by=c('HOST.1','HOST.2'))
   tt.close		<- merge(tt.close, ns.counts, by=c('HOST.1','HOST.2'))
   
-  tt.close[, fraction:=paste(windows,'/',both.exist,sep='')]
+  tt.close[, fraction:=paste(trees.with.this.relationship,'/',both.exist,sep='')]
   
   #	convert "anc_12" and "ans_21" to "anc" depending on direction
   tt.close[, DUMMY:=NA_character_]
@@ -890,8 +890,8 @@ summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.
   
   setkey(tt.close, HOST.1, HOST.2, TYPE)
 
-  setnames(tt.close, c('HOST.1','HOST.2','TYPE', 'windows'), c("Host_1", "Host_2", "relationship", "trees"))
+  setnames(tt.close, c('HOST.1','HOST.2','TYPE'), c("Host_1", "Host_2", "relationship"))
   
-  return(subset(tt.close, all.windows>min.threshold))
+  return(subset(tt.close, trees.with.any.relationship>min.threshold))
 }
 
