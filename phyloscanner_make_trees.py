@@ -21,7 +21,6 @@ More details on running phyloscanner can be found in the manual.
 
 ################################################################################
 # The names of some files we'll create.
-FileForBamIDs = 'BamIDs.txt'
 FileForAlignedRefs = 'RefsAln.fasta'
 
 # Some temporary working files we'll create
@@ -44,7 +43,6 @@ import copy
 import shutil
 import glob
 import time
-from shutil import copy2
 import argparse
 import pysam
 from Bio import SeqIO
@@ -687,11 +685,6 @@ if args.time:
 BamFiles, RefFiles, BamAliases, BamFileBasenames = \
 pf.ReadInputCSVfile(args.BamAndRefList)
 NumberOfBams = len(BamFiles)
-
-with open(FileForBamIDs, 'w') as f:
-  f.write('\n'.join(BamAliases))
-
-
 
 # Read in all the reference sequences. Set each seq name to be the corresponding
 # alias.
@@ -2055,7 +2048,7 @@ if args.inspect_disagreeing_overlaps:
       # together with the discarded reads file. This might fail e.g. if the same
       # file exists already - then do nothing.
       try:
-        copy2(RefFile, LocalRefFileName)
+        shutil.copy2(RefFile, LocalRefFileName)
       except:
         pass
       else:
@@ -2093,7 +2086,6 @@ if not args.keep_output_together:
     for File in files:
       shutil.move(File, os.path.join(Dir, File))
 if HaveMadeOutputDir:
-  shutil.move(FileForBamIDs, os.path.join(args.output_dir, FileForBamIDs))
   if os.path.isfile(FileForAlignedRefs):
     shutil.move(FileForAlignedRefs, os.path.join(args.output_dir,
     FileForAlignedRefs))
