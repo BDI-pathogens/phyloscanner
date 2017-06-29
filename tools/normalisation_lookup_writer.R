@@ -19,7 +19,7 @@ arg_parser$add_argument("tree.file.root", action="store", type="character", help
 arg_parser$add_argument("norm.file.name", action="store", type="character", help="File name of reference table.")
 arg_parser$add_argument("output.file.name", action="store", type="character", help="Output file name of csv file that has two columns, the base tree file name and the corresponding normalising constant.")
 arg_parser$add_argument("-s", "--standardiseGagPol", action="store_true", default=FALSE, help="HIV-specific; if true, the normalising constants are standardized so that the average on gag+pol equals 1, rather than that the average on the whole genome equals 1. The normalised branch lengths are interpretable as typical distances on gag+pol")
-arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.")
+arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the /tools directory.")
 arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what the script is doing.")
 arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default="tree", help="The file extension for tree files (default .tree).")
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="csv", help="The file extension for table files (default .csv).")

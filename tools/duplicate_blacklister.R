@@ -21,7 +21,7 @@ arg_parser$add_argument("rawThreshold", action="store", type="double", help="Raw
 arg_parser$add_argument("ratioThreshold", action="store", type="double", help="Ratio threshold; tips will be blacklisted if the ratio of their tip count to that of another, identical tip from another patient is less than this value.")
 arg_parser$add_argument("inputFileName", action="store", help="A file (comma-separated) outlining groups of tips that have identical sequences, each forming a single line.")
 arg_parser$add_argument("outputFileName", action="store", help="The file to write the output to, a list of tips to be blacklisted.")
-arg_parser$add_argument("-D", "--scriptDir", action="store", help="Full path of the script directory.")
+arg_parser$add_argument("-D", "--scriptDir", action="store", help="Full path of the /tools directory.")
 arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what I'm doing.")
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="csv", help="The file extension for table files (default .csv).")
 
