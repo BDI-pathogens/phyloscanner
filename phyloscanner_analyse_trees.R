@@ -46,6 +46,7 @@ arg_parser$add_argument("-ph", "--pdfRelHeight", action="store", default=0.15, h
 arg_parser$add_argument("-rda", "--outputRDA", action="store_true", help="Write the final R workspace image to file.")
 arg_parser$add_argument("-sd", "--seed", action="store_true", help="Random number seed; used by the downsampling process, and also ties in some parsimony reconstructions can be broken randomly.")
 arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.")
+arg_parser$add_argument("-ow", "--overwrite", action="store_true", help="Overwrite existing output files with the same names.")
 
 # Normalisation options
 
@@ -93,6 +94,10 @@ args                  <- arg_parser$parse_args()
 
 verbose               <- args$verbose
 
+overwrite             <- args$overwrite
+
+
+
 tree.input            <- args$tree
 blacklist.input       <- args$blacklist
 
@@ -101,6 +106,10 @@ if(is.null(output.dir)){
   output.dir          <- getwd()
 }
 output.string         <- args$outputString
+
+if(!overwrite & file.exists(paste0(output.dir, "/", output.string,"_patStats.csv"))){
+  stop("Previous output with this output string (",output.string,") detected. Please re-run with --overwrite if you wish to overwrite this.")
+}
 
 outgroup.name         <- args$outgroupName
 
@@ -844,8 +853,6 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
 
 
 # 16. Summary statistics
-
-
 
 coordinates <- lapply(all.tree.info, "[[" , "window.coords")
 
