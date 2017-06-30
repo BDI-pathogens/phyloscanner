@@ -261,7 +261,7 @@ source(file.path(tools.dir, "WriteAnnotatedTrees.R"))
 source(file.path(tools.dir, "SummariseTrees_funcs.R"))
 source(file.path(tools.dir, "SummaryStatsFunctions.R"))
 source(file.path(tools.dir, "PlottingFunctions.R"))
-source(file.path(tools.dir, "DownsamplingFunctions.R"))
+source(file.path(tools.dir, "downsampling_functions.R"))
 
 # todo All functions that get passed tree info should check that the lists have what they need. If they have file names but not the contents, they should load the contents in.
 

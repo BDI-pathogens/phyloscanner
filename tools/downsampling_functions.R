@@ -140,13 +140,14 @@ downsample.tree<- function(tree.info, hosts.to.include, max.reads, rename = F, e
   hosts.present <- unique(hosts.present)
   
   if(!is.null(hosts.to.include)){
-    if(interaction(setdiff(hosts.to.include, hosts.present)) == 0){
+    if(length(intersect(hosts.to.include, hosts.present)) == 0){
       stop(paste("No entries in give vector of hosts are actually present in the tree", sep=""))
     }
+    
     if(length(setdiff(hosts.to.include, hosts.present)) > 0){
       warning(paste("Not all hosts in file ", hosts.file.name, " are present in the tree", sep=""))
     }
-    hosts.to.include <- intersection(hosts.to.include, hosts.present)
+    hosts.to.include <- intersect(hosts.to.include, hosts.present)
     
   } else {
     hosts.to.include <- hosts.present
