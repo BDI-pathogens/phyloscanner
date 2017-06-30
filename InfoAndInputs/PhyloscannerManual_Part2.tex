@@ -1,3 +1,374 @@
 \part{Analysing within- and between-host phylogenies}
 
-This part of the manual will appear early on in the day on Friday 30th June 2017 -- if you're seeing this message before then please wait just a little while then reload the github repository!
+The scripts for tree analysis take as input one or more phylogenies, and analyse them to reconstruct transmission, and identify multiply infected individuals and contaminants.
+In order, the following steps are performed:
+
+\begin{enumerate}
+\item  Identify and exclude tree tips corresponding to reads that should not be used to reconstruct transmission (blacklisting)
+\item Perform an ancestral state reconstruction on each tree in turn, and use this to identify host subgraphs (contiguous regions of the phylogeny that have been assigned to the same host)
+\item Calculate per-host summary statistics, and graph them across the genome if multiple trees are given as input
+\item In each tree, determine the relationship between each pair of hosts determined by the relative positions of their subgraphs
+\item Summarise these pairwise relationships over all trees (if more than one tree was given).
+\end{enumerate}
+
+A single script, \pat, can be used to perform all these steps in order.
+Each step also has its own standalone script, which can be used to, for example, analyse multiple trees in parallel on a cluster.
+We do not document all the command line options for these additional scripts here, and the user is directed to their \c{--help} options.
+
+\section{The basic command}
+
+The basic command for \pat is
+\begin{verbatim}
+$ phyloscanner_analyse_trees.R TreeInput OutputString ReconstructionModeArguments
+\end{verbatim}
+\c{OutputString} is simply a string identifying all file output.
+The tree input can be either a single tree file or a single string that begins all files (see below).
+For full instructions regarding \c{ReconstructionModeArguments}, see section~\ref{sec:ParsimonyReconstruction}; for a quick start, \c{s,0} gives a parsimony reconstruction with no within-host diversity penalty.
+However, be aware that this version of the algorithm will not be aware of potential contamination.
+
+\section{Name format for input files}
+
+Tree files should be in Newick or Nexus format.
+These can be the product of \pmt, but need not be; the script will work on any set of trees if the tip labels can be interpreted properly (see below).
+Each tree should reside in a single file.
+
+The tree files, when the analysis is to be performed on multiple trees, are expected to all be located in the same directory and have names that all begin with the same nonempty string.
+The remainders of the file names, excluding the file extensions, are referred to as file suffixes.
+If the genome window approach is used (i.e. each tree represents a window of the genome), the suffixes will be expected to contain the coordinates of the genome window for each tree.
+(Output from \pmt will automatically be formatted in this way.) A regular expression described below (see section~\ref{sec:regexes}) is used to identify these coordinates; if it fails to identify them, then the script will assume that the windowed approach was not used.
+
+Any accompanying per-window files specified in optional arguments are assumed to follow the same pattern: a string beginning every file, the same set of suffixes, and a file extension.
+This will automatically be the case for files produced by \pmt: the values of the recombination metric (see section~\ref{sec:SumStats}), and the list of reads that are identical amongst different hosts (see section~\ref{sec:DupBlacklisting}).
+Any user-specified blacklists (see section~\ref{sec:UserBlacklisting}) must also have file names in this format.
+
+Tree files are by default assumed to have \c{.tree} as a file extension and csv files \c{.csv}, but this can be overridden with the \c{-tfe} and \c{-cfe} options.
+
+If the analysis is instead to be performed on a single tree, the file name of that tree should be given as the \c{TreeInput} argument instead.
+The same goes for any other files to be used as optional arguments.
+
+\section{Output}
+
+The default output of \pat varies depending on whether it is run on one or multiple trees.
+
+If the input is a single tree file, the default output is an annotated pdf version of that tree, a csv file of summary statistics for the hosts present in that tree, and a csv file outlining the relationship between each pair of hosts in that tree.
+
+If the input is multiple trees, then the default output is an annotated pdf version of all trees, a csv file of summary statistics for every host across all the trees, a pdf graphing those statistics across all trees, and a csv file summarising which pairs of hosts meet the criteria for being closely related.
+
+\section{Preparing the trees}
+
+Two options determine processing of the phylogeny before any further operations are performed.
+A named outgroup can be specified with \c{-og}; this is recommended unless the input trees are known to be correctly rooted.
+It is always assumed that the lineage represented by the root of the entire phylogeny was not present in any sampled host, even if no outgroup is given.
+Trees output by \pmt will need to be re-rooted
+
+The output of many phylogeny reconstruction packages, including \R, is a binary phylogeny.
+While multifurcations may seem to appear when the trees are viewed by eye, these will have a hidden binary branching order.
+The branches connecting the nodes within these ``multifurcations'' may all be of an extremely short but nonzero minimum length (in \R output) or actually zero length (in, e.g., PhyML output).
+Since this branching order is largely arbitrary, it is recommended that these regions of the tree be collapsed into genuine multifurcating nodes for \pat.
+A length threshold to determine pairs of nodes that should be so collapsed can be specified with \c{-m}.
+This is normally numerical, but if \c{g} is given it will be guessed from the trees itself, as 1.001 times the shortest branch length.
+Before specifying \c{g} the user should ensure that the trees genuinely do contain apparent multifurcations.
+
+\section{Tip label and file suffix regular expressions} \label{sec:regexes}
+
+The tip labels in the input phylogenies are expected to follow a regular expression that identifies host IDs, and optionally also read identifiers and read counts.
+The exact format is specified using a regular expression with three capture groups: for host ID, read ID, and count.
+The count is expected to be an integer.
+If a third group is not found then it assumed that every tip represents only a single read.
+The default regular expression is \verb|"^(.*)_read_([0-9]+)_count_([0-9]+)$"|, but the user can specify an alternative with the \c{--tipRegex} option.
+In plainer language, this is of the form ``NAME\_read\_X\_count\_Y'' where NAME is the host name, X the read identifier and Y the read count.
+The tip names of the outgroup (if it exists), and of any other references sequences that are included, should not match this regular expression.
+
+The default regex is appropriate for analysing trees output by \pmt, when each bam contains reads from a different host.
+A different regular expression may be required if the input is not from \pmt.
+It may also be required for trees output by \pmt if multiple bam files contain sequences derived from the same host, and part of the bam file name identifies the host.
+For example if you had three bam files named \mbox{PatientA-1.bam}, PatientA-2.bam and PatientB-1.bam, where tips from the first two are from the same host.
+Changing the tip regex to \verb|"^(.*)-[0-9+]\\.bam_read_([0-9]+)_count_([0-9]+)$"| means that the first group in the regex will match ``PatientA'', ``PatientA'' and ``PatientB'' for the three bams respectively; all tips from the first two bams are then associated to the same host, PatientA.
+
+Similarly, the set of file suffixes (see above) may contain genome window coordinates, and a regular expression is used to identify these.
+Two capture groups are expected for the start and end of the window.
+The default is \verb|"^\\D*([0-9]+)_to_([0-9]+)\\D*$"|.
+In plainer language this is any number of non-digit characters, followed by ``X\_to\_Y'' where X is the window start and Y the end, followed by any number of non-digit characters.
+An alternative can be specified with the \c{--fileNameRegex} option.
+
+\section{Branch length normalisation}
+
+Two hosts may be classified as closely linked by \pat on the grounds that they have host subtrees separated by a patristic distance that lies below a given threshold.
+Because we are often interested in a genomic window approach, however, a fixed distance threshold for all trees may not be appropriate because of variations in nucleotide diversity in different areas of the genome.
+This is because a distance threshold suggestive of a close epidemiological relationship in one window will not be in others.
+To remedy this, \pat can be asked to normalise branch lengths in the chosen phylogenies.
+
+The \c{--normalisationConstants} option is used to specify previously calculated normalisations.
+If the argument is numerical, it is used as a normalising constant for every tree.
+If it is instead the path to a .csv file, then this file is expected to consist of a first column listing all input tree file names, and a second of normalising constants.
+The presence of \c{-nc} overrides any other normalisation options, which will be disregarded.
+
+The \c{--normRefFileName} option is used to specify a lookup file of normalisation constants for each genome position, and should consist of a column of genome positions and a numerical column.
+This option assumes that window coordinates are present in file suffixes.
+The calculated normalising constant for a genome window will be the mean of the second column for all positions in that window, standardised so the mean of all the constants over every window is 1.
+An HIV-specific additional option is \c{--normStandardiseGagPol}, which instead standardises so that the mean of the constants on the gag and pol genes is 1 instead.
+Distances are then interpretable as standard distances on this region.
+Note that the genomic coordinates specified here must mean the same thing as the window coordinates in the file suffixes.
+As discussed in section~\ref{sec:CoordMeaning}, window coordinates in tree file names output by \pmt may mean one of two things - they may be with respect to a named sequence or with respect to an alignment.
+
+It is anticipated that normalisation constants would be derived from phylogenies built using reference sequences of the pathogen under investigation.
+See the supplementary text of the \p paper for further guidance.
+
+Normalisation constants can be separately calculated using the standalone script \\\c{normalisation\_lookup\_writer.R.}
+
+\section{Blacklisting}
+
+Blacklisting refers to the exclusion of some tips in the phylogeny from the full analysis.
+This may be done for a variety of reasons:
+\begin{itemize}
+\item Tips from suspected contaminant reads (i.e. for which we suspect the true host is not the recorded host) should not be used to reconstruct transmission
+\item Possible multiple infections may complicate an analysis and the user may prefer to deal only with the largest collection of reads from such a host
+\item Uneven tip or read counts between different hosts have the potential to bias the inference of transmission.
+The user may wish to remove some tips in order to mitigate this.
+\end{itemize}
+\pat includes a number of utilities to perform blacklisting, all of which can be run as part of \pat.
+The script does all blacklisting internally, but other scripts in the \c{tools} directory of the \p code can be used to generate lists of suspect tips in an input phylogeny.
+The various types of blacklisting are listed below.
+All, except user blacklisting, assume that the tree tips are annotated with read counts.
+
+\subsection{Duplicate blacklisting} \label{sec:DupBlacklisting}
+
+This procedure blacklists reads from one host which are identical to reads from another, but are present in sufficiently small numbers that it would be suspected that they are merely contaminants.
+It is enabled with the \c{--duplicateBlacklist} option to \pat, which takes a single argument identifying the duplicate output files from \pmt.
+Tips are blacklisted if the corresponding sequence is exactly identical to the sequence for a tip from another host, and either the raw read count from the former tip, or the ratio of the read count from the former tip to the read count from the latter tip, is less than a specified threshold.
+The raw read count is specified with the \c{-rwt} option and the ratio threshold with the \c{-rtt} option.
+It is acceptable to specify both.
+As the default values for both are 0, nothing will be blacklisted unless at least one is given a positive value.
+
+\pat will append ``\_X\_DUPLICATE'' to the tip names of tips blacklisted by this procedure, which will appear in annotated tree output.
+The standalone R script is \c{duplicate\_blacklister.R}.
+
+\subsection{Parsimony-based blacklisting for contaminants}
+
+While in many cases contaminant reads will be identical to those from another host in the dataset, the user may not always be so fortunate; the contaminant may be from another dataset entirely, and hence have no exact matches amongst the reads that are used to reconstruct the phylogeny.
+Similarly, a variant may be sequenced from the dataset that is never assigned the correct host.
+The \c{--parsimonyBlacklistK} option to \pat can be used to identify such tips, using the same parsimony procedure that is employed for ancestral state reconstruction (see section~\ref{sec:ParsimonyReconstruction}, and the \p paper).
+The single additional numerical argument to \c{--parsimonyBlacklistK} is the value of k used to calculate a within-host diversity penalty.
+
+We use this procedure because excessive amounts of within-host diversity may be just as suggestive of contamination as of a genuine multiple infection.
+For each host in turn, the tree is pruned so that only the tips from that host, and the outgroup, remain.
+(If no such outgroup is given, \pat will attempt to find one.) The reconstruction is them performed on this pruned tree, using the k parameter specified with \c{--parsimonyBlacklistK}, and the result used to see whether the tips of the tree were grouped into one subgraph or more than one subgraph.
+If the former, then the phylogeny does not suggest sufficient diversity within this host to suggest either a multiple infection or contamination.
+If the latter, then one or the other is likely to be true.
+We suggest that a subgraph is more likely to be contamination when it contains very few reads.
+The arguments used in duplicate blacklisting are reused here.
+If the total number of reads associated with the tips in a subgraph is smaller than the raw threshold (\c{--rawBlacklistThreshold}), then all tips in the subgraph are blacklisted.
+If the proportion of reads from the host that belong to a subgraph is smaller than the ratio threshold (\c{--ratioBlacklistThreshold}), then all tips in that subgraph are blacklisted.
+The former threshold is applied even if there is only one subgraph, in which case it is assumed that so few reads exist from the host in question that all of them could well be contaminants, with genuine sequencing failing in this part of the genome.
+
+\pat will append ``\_X\_CONTAMINANT'' to the tip names of tips blacklisted by this procedure, which will appear in annotated tree output.
+The standalone R script is \c{parsimony\_based\_blacklister.R}.
+
+\subsection{Dual infection blacklisting}
+
+If the parsimony-based blacklisting procedure identifies a host with suspicious amounts of within-host diversity where the smaller subgraphs have too many reads to be flagged as likely contaminants, a dual infection (or larger multiple infection) may be suspected.
+The current version of \pat is only able to summarise the relationships of such a host with the neighbours of all its subgraphs in the transmission tree; it cannot separate the neighbours of each subgraph.
+This may result in spurious inferences being drawn, where a close neighbour to one subgraph and a close neighbour to another are identified as closely related to each other.
+If this behaviour is regarded as particularly undesirable, a suggested stopgap remedy is to assume that the subgraph with the largest read count represents the same infection across the entire genome, and blacklist the rest.
+
+The \c{--dualBlacklist} flag, which can be used only if \c{--parsimonyBlacklistK} is also specified, will do this blacklisting.
+\pat will append ``\_X\_DUAL'' to the tip names of tips blacklisted by this procedure, which will appear in annotated tree output.
+ The standalone R script is \c{dual\_host\_blacklister.R}.
+
+\subsection{User blacklisting} \label{sec:UserBlacklisting}
+
+The user may wish to specify his or her own blacklist before \pat is run.
+A separate plain text file for each window should be prepared, with a blacklisted tip on each line, ending with the same file suffix as the corresponding tree file.
+These tips will be blacklisted from the start, and \pat will append ``\_X\_USER'' to tip labels.
+
+\subsection{Downsampling}
+
+The intention of the downsampling procedure is to ensure that the same numbers of reads are included in the analysis from each host in the dataset.
+This is done by taking a random sample of reads, without replacement, and blacklisting tips where the corresponding reads was never selected at all.
+ The \c{--maxReadsPerHost} option is used to specify a number of reads to downsample to.
+If \c{--blacklistUnderrepresented} is specified then hosts without enough reads in totality are blacklisted, but if it is absent then all tips from those hosts are retained.
+
+\pat rewrites tip labels to reflect the number of times a tip was randomly selected.
+``\_X\_DOWNSAMPLED'' is appended to tips that are blacklisted because the corresponding reads were never selected, in which case the read count in the tip label will have been rewritten to 0.
+``\_X\_UNDERREPRESENTED'' is appended to those that are blacklisted because they are from a host without enough reads in total (if \c{-dsb} is given).
+The standalone R script is \c{downsample\_reads.R}.
+
+\subsection{Pruning the blacklist}
+
+Default behaviour is to leave blacklisted tips in the phylogeny; they are not annotated with any host and are instead given the unsampled state in the parsimony reconstruction, but they remain so as to be examined in the annotated tree output.
+The \c{--pruneBlacklist} option to \pat can be used to prune these tips instead, in which case they will not appear in output at all.
+
+\section{Parsimony reconstruction} \label{sec:ParsimonyReconstruction}
+
+The core of the \pat analysis is an ancestral state reconstruction of hosts to internal nodes of each phylogeny.
+We offer several algorithms for this; the exact one is specified with the final compulsory argument to \pat.
+For full details, see the supplementary information of the \p paper.
+\begin{itemize}
+\item A fast, non-rigorous (for more than two hosts) adaptation of the procedure outlined in Romero-Severson et al. (PNAS 2016).
+This is specified by \c{r}.
+It will not reliably reconstruct multiple infections.
+\item A parsimony reconstruction using the Sankoff algorithm that allows for an additional ``unsampled'' state and can be configured to penalise the reconstruction of single infections to hosts which imply unreasonable amounts of diversity.
+This is specified by two or three arguments, separated by commas.
+The first is \c{s}.
+The second is the value of the k parameter that penalises within-host diversity; if this is set to 0 then no penalty is applied and the procedure is equivalent to standard parsimony with the unsampled state.
+It is recommended that users explore their data to pick suitable values of k, as it is likely to be pathogen- and sequencing method-dependent, and does not have an immediate intuitive interpretation.
+The optional third argument is a threshold for a branch length $p$ at which lineages will, if the parent node is reconstructed as belonging to one host, return to the unsampled state rather that continuing to be reconstructed in that host, if the costs are equal.
+The default is infinity, which means that lineages never return to unsamped in these circumstances.
+\item An alternative, somewhat experimental Sankoff reconstruction in which all branches whose parent and child nodes have the same host are assigned a cost, and an additional parameter $q$ defines a patristic distance at which an internal node is sufficiently far from its neighbours that it would be preferred to reconstruct it as an unsampled lineage.
+As with the previous version, this takes two or three arguments; the first is $f$, the second the $k$ parameter which behaves similarly (although not identically) to the case above and the third, optionally, $q$; the default $q$ is again infinite, which means that internal nodes will never be reconstructed as unsampled if they have an ancestor reconstructed to a sampled host.
+The interactions of $k$ and $q$ can be quite complex and once again it is recommended that users explore their own data to identify suitable values.
+\end{itemize}
+The latter two parsimony reconstruction algorithms use a very large matrix for large trees and occasionally R will run out of memory; the argument \c{--useff} will cause the script to use the ff library instead, which solves many memory issues at the cost of speed.
+
+Of concern in either of the two proper parsimony reconstruction algorithms is used is how to handle terminal branches of zero or negligible length.
+In particular, if a tip with a read count of n is connected to its parent node by such a branch, should that tip be considered as one tip or n tips for the parsimony reconstruction? As an illustrated example, see below.
+Phylogenetic software output, with minimum-length branches collapsed to zero (see above) might appear as in diagram a) in Fig.~\ref{fig:ZeroLengthBranches} below, where colours represent hosts and the numbers in the coloured tips read counts, while numbers on branches are branch lengths (with zero-length branches displayed with nonzero lengths for clarity).
+The question is whether a parsimony reconstruction should consider this clade as b), where all the reads represented by the blue tip in a) form separate tips but their MRCA $m$ is not the MRCA $n$ of the entire clade, or b), where the MRCAs are the same.
+Under simple parsimony, the cost of reconstructing $n$ as red is 1 in b) and 3 in c), but the cost of reconstructing it as blue is 2 in both.
+By default, \pat treats this situation as b), which is the same as ignoring read counts in the parsimony reconstruction - as it will always be most parsimonious to reconstruct $m$ as blue to avoid turning one transition into three, the three blue tips can be ignored and the colour of $m$ fixed, so we are back to diagram a) - but the \c{--readCountsMatterOnZeroLengthBranches} option, if specified, will treat it as c) instead.
+
+\begin{figure}[!h]
+\centering
+\includegraphics[width=0.6\textwidth]{manualfigure.pdf}
+\caption{}
+\label{fig:ZeroLengthBranches}
+\end{figure}
+
+Annotated versions of all input trees will be output by \pat, in pdf format by default; this requires the ggtree package.
+The \c{--outputNexusTree} option can be used to make it provide these trees in Nexus format instead, which is also the default if \c{ggtree} is unavailable.
+
+The standalone R script to perform parsimony reconstruction is \c{split\_hosts\_to\_subtrees.R}.
+
+\section{Summary statistics} \label{sec:SumStats}
+
+By default, \pat produces a csv file of summary statistics with the following columns:
+\begin{itemize}
+\item id: the host ID for the statistics in this row.
+\item file\_suffix: the file suffix of the associated tree file.
+\item xcoord: used to draw the graphs (see below); this is the midpoint of the genome window if the windowed approach is used, and the position of the file\_suffix in an alphabetical ordering if not.
+\item Tips: the number of tips from this host in this tree.
+\item Reads: the number of reads from this host in this tree (if read counts were not detected then this column will be identical to the tip counts, as each tip is assumed to represent one read).
+\item Subgraphs: the number of subgraphs that the parsimony reconstruction identified for this host in this tree.
+\item clades: the number of separate clades monophyletic clades from this host in this tree.
+\item overall.rtt: the mean patristic distance from tips from this host to the MRCA of the tips from this host, weighted by read counts if these are given
+\item largest.rtt: the mean patristic distance from tips from the largest (by read count) subgraph from the host to the MRCA of that subgraph, weighted by read counts if these are given.
+\item max.branch.length: the length of the longest branch in the tree obtained by pruning all tips from the tree except the ones from this host.
+\item max.patristic.distance: the largest patristic distance between any pair of tips from this host.
+\item global.mean.pat.distance: the mean patristic distance between tips from this host.
+\item subgraph.mean.pat.distance: the mean patristic distance between tips in the largest subgraph.
+\item recombination.metric: this column only appears if the recombination metric files output by \\\pmt have been given to \pat using the \\\c{--recombinationFiles} argument.
+It gives the value of the recombination metric for this host in this tree.
+\item prop.gp.1 to prop.gp.X: A variable number of columns recording what proportion of the reads from this host occur in each subgraph, ordered by size.
+The total number of columns is the largest number of subgraphs present for any host in any tree (and so many columns will be 0 for most hosts).
+\end{itemize}
+
+Also generated, if more than one phylogeny is given as input, is a pdf file graphing these statistics across all trees for every host.
+Each host occupies a separate page in this file, with five or six graphs per host:
+\begin{enumerate}
+\item Number of reads and number of tips
+\item Number of subgraphs and number of clades
+\item Mean root-to-tip distance in the largest subgraph and in the whole tree
+\item Mean pairwise patristic distance in the largest subgraph and in the whole tree
+\item The proportion of reads appearing in each subgraph
+\item (If recombination metric files are specified with \c{-R}) The value of the recombination metric across the genome
+\end{enumerate}
+
+If the script could detect genome window coordinates from the file suffixes, and the starts and ends of those windows occur regularly across the genome, these graphs will be annotated with light grey rectangles for windows where a host is missing from a single window, and dark grey rectangles where a window appears to be entirely missing (i.e. it had no tree file).
+
+The standalone R script to produce summary statistics is \c{summary\_statistics.R}.
+
+\section{Classification of pairwise relationships}
+
+The parsimony reconstruction has annotated all internal nodes in each phylogeny with either a host or the unsampled state, and from this information, host subgraphs have been identified.
+The next step in the script is to document the relationships between each pair of hosts in every tree.
+By default (when the script is run on multiple tree files) this is done silently, but two types of output file can be generated.
+
+The \c{--collapsedTrees} option produces the collapsed tree (see the \p paper), in csv format.
+This file has four columns:
+\begin{itemize}
+\item The collapsed tree node ID, which is the host ID or ``unsampled\_region'' followed by \c{-S} and an identifying number
+\item The collapsed tree node ID of that node’s unique host, or ``root'' if it has none
+\item The ID for the host, or ``unsampled\_region'', associated with this node
+\item The ID for the host, or ``unsampled\_region'', associated with the parent node
+\end{itemize}
+
+If the script is run on a single tree file only, the classification csv file is produced by default, but the collapsed tree is not.
+
+The \c{--allClassifications} option produces per-tree csv files describing all pairwise relationships between hosts.
+The columns of this file are as follows:
+\begin{itemize}
+\item Host\_1, Host\_2: the pair of hosts.
+The order does not signify anything on its own but is relevant to interpretation of the path.classification column.
+\item adjacent: This is TRUE if there exist two nodes, one each from subgraphs from the two hosts, such that the path between the two traverses only nodes that are either also from these host subgraphs, or unsampled.
+(In other words, it is possible to move through the phylogeny from one host to the other without moving through the subgraph of another sampled patient.)
+\item contiguous: This is TRUE if for any two nodes, one each from subgraphs from the two hosts, the path between the two intersects no nodes that are not either also from these host subgraphs, or unsampled.
+This is similar to adjacent but a little stronger.
+\item paths12, paths21: paths12 is the number of nodes from Host\_2 in the collapsed tree which have an ancestor that is from Host\_1, and paths21 is the opposite.
+\item nodes1, nodes2: these are the number of collapsed tree nodes for Host\_1 and Host\_2 respectively.
+\item path.classification: this describes the topological relationship between the two hosts in the collapsed tree: \begin{itemize}                                                                                                                    
+\item ``none'' indicates that no nodes from Host\_1 are ancestral to nodes from Host\_2 or vice versa
+\item ``anc'' indicates that there is only one node from Host\_2 and it is a descendant of a node from Host\_1
+\item ``desc'' indicates that there is only one node from Host\_1 and it is a descendant of a node from Host\_2
+\item ``multiAnc'' indicates that there is more than one node from Host\_2 and all are descended from a node from Host\_1
+\item ``multiDesc'' indicates that there is more than one node from Host\_1 and all are descended from a node from Host\_2
+\item ``complex'' indicates that none of the above are true (which is suggestive of an ancestral relationship and often direct transmission, but with unknown direction)
+\end{itemize}
+\item min.distance.between.subgraphs: this is the smallest  patristic distance between a node in a Host\_1 subgraph and a Host\_2 subgraph
+\item normalised.min.distance.between.subgraphs: If the tree branch lengths were normalised, this is the above distance but divided by the normalisation constant for this tree
+\end{itemize}
+
+The standalone script to classify pairwise host relationships is \c{classify\_relationships.R}.
+
+\section{Pairwise relationship summary}
+
+The final stage in the script is to gather the pairwise relationships between hosts in each window and summarise this across the whole run.
+Pairs are inferred to be related in a tree if they are both adjacent and (optionally) within the patristic distance threshold specified by the \c{--distanceThreshold} option.
+If \c{--distanceThreshold} is not given then it is assumed to be infinite and adjacency is the only criterion that will be used to identify related pairs.
+If tree branch lengths were normalised then the distance threshold is applied to normalised distances.
+
+The output is a csv file whose first three columns are a pair of hosts and a classification of the topological relationship between the pair.
+Rows for pairs who are never related at all or never show a particular topological relationship are omitted.
+
+The \c{--minThreshold} option can be used to retain only rows where the pair of hosts are related in more than the stated proportion of trees; the default is 0 so relationships are reported if they ever occur at all.
+
+The csv file has the following columns:
+\begin{itemize}
+\item Host\_1, Host\_2: the two hosts.
+\item relationship: the topological relationship (see below).
+\item both.exist: the number of trees in which both hosts are present.
+\item trees.with.this.relationship: the number of trees in which this relationship exists.
+\item trees.with.any.relationship: the number of trees in which any relationship exists, i.e. the pair are adjacent and within the distance threshold.
+\item trees.with.any.ancestral.relationship: the number of trees in which any relationship exists, if that relationship is not ``none''.
+\item fraction: the number of windows showing this relationship over the number of windows where both occur, as text.
+\end{itemize}
+
+The topological relationships are as follows:
+\begin{itemize}
+\item ``none'': see above.
+\item ``trans'': there is just one collapsed tree node from Host\_2 and it is descended from a node from Host\_1.
+Since they must be adjacent, this makes Host\_1 its immediate ancestor.
+\item ``multi\_trans'': there is more than one collapsed tree node from Host\_2 and all are descended from a node from Host\_1.
+This classification only appears if the \c{--allowMultiTrans} option is given; if not these relationships count as ``complex''.
+This is because this relationship is less indicative of the direction of transmission than ``trans''; it may simply indicate that the tips from the two hosts are very intermingled, and it is prone to bias introduced by differences in tip counts.
+By default, the script is conservative and does not take this relationship as a signal of directionality.
+However, as with ``complex'', it is quite strongly indicative of direct transmission (Romero-Severson et al. PNAS 2016).
+\item ``complex'': where none of the above are true; if \c{--allowMultiTrans} is not specified then ``multi\_trans'' relationships are also allocated ``complex''.
+\end{itemize}
+The standalone script to summarise these relationships is transmission\_summary.R.
+
+The output of this script can be visualised in a graph analysis package, such as Cytoscape.
+
+\section{Miscellaneous options}
+
+Remaining command line options are as follows:
+\begin{itemize}
+\item \c{--verbose}: verbose output; if absent, only warnings and errors will appear.
+\item \c{--outputDir}: the directory to write output files into; if not specified this is the current working directory.
+\item \c{--pdfWidth}: the width of the pdf tree file output
+\item \c{--pdfRelHeight}: the height, per tip, of the pdf tree file output
+\item \c{--outputRDA}: If present, an R list containing all objects used in the calculations is written as  a workspace image at the end of the script
+\item \c{--seed}: Two parts of the process may use randomisation: the downsampling, and occasional tie-breaking in parsimony reconstruction.
+This option sets a random number seed.
+\item \c{--toolsDir}: The path of the \c{phyloscanner/tools} directory.
+The script will try to identify this automatically, but this may not work on all systems.
+\end{itemize}

@@ -231,7 +231,7 @@ The full set of processed, unaligned reads extracted from each window are aligne
 However using this option, the mapping references used to create the bam files are each separately pairwise aligned to one of the extra references included with \c{--alignment-of-other-refs}, and window coordinates are interpreted with respect to this reference.
 The reference to use should be specified after this option.
 \item \c{--x-raxml}: use this option to tell \pmt how to run \c{RAxML}; by default, \c{`raxmlHPC-AVX -m GTRCAT -p 1 --no-seq-check'}.
-You will need to change the first part if your \r executable is not called \c{raxmlHPC-AVX}, or if the executable's location is not contained in your \c{\$PATH} environment variable (i.e. if you need to specify the path to the executable in order to run it).
+You will need to change the first part if your \R executable is not called \c{raxmlHPC-AVX}, or if the executable's location is not contained in your \c{\$PATH} environment variable (i.e. if you need to specify the path to the executable in order to run it).
 \c{-m} tells \R which evolutionary model to use, and \c{-p} specifies a random number seed for the parsimony inferences; both are compulsory.
 You may include any other \R options in this command.
 The set of things you specify with \c{--x-raxml} need to be surrounded with one pair of quotation marks (so that they're kept together as one option for \pmt and only split up for \R).
