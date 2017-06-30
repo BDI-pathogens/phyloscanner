@@ -213,7 +213,7 @@ if(reconstruction.mode!="r"){
 
 downsample            <- !is.null(args$maxReadsPerHost)
 downsampling.limit    <- args$maxReadsPerHost
-blacklist.ur          <- args$blacklistUnderrepresensted
+blacklist.ur          <- args$blacklistUnderrepresented
 
 read.counts.matter    <- args$readCountsMatterOnZeroLengthBranches
 prune.blacklist       <- args$pruneBlacklist
@@ -293,7 +293,7 @@ if(file.exists(tree.input)){
 } else {
   
   tree.file.names <- list.files.mod(dirname(tree.input), pattern=paste(basename(tree.input),'.*',tree.fe,'$',sep=''), full.names=TRUE)
-  
+ 
   if(length(tree.file.names)==0){
     stop("No tree files found.")
   }
