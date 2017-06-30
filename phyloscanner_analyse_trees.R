@@ -200,7 +200,7 @@ if(reconstruction.mode!="r"){
   if(length(reconst.mode.arg) > 2){
     sankoff.p           <- as.numeric(reconst.mode.arg[3])
   } else {
-    sankoff.p           <- Inf
+    sankoff.p           <- 0
   }
   
   if(is.na(sankoff.k) | is.na(sankoff.p)){
@@ -255,8 +255,8 @@ source(file.path(tools.dir, "normalisation_functions.R"))
 source(file.path(tools.dir, "tree_utility_functions.R"))
 source(file.path(tools.dir, "blacklist_functions.R"))
 source(file.path(tools.dir, "parsimony_reconstruction_methods.R"))
-source(file.path(tools.dir, "CollapsedTreeMethods2.R"))
-source(file.path(tools.dir, "WriteAnnotatedTrees.R"))
+source(file.path(tools.dir, "collapsed_tree_methods.R"))
+source(file.path(tools.dir, "write_annotated_trees.R"))
 source(file.path(tools.dir, "SummariseTrees_funcs.R"))
 source(file.path(tools.dir, "SummaryStatsFunctions.R"))
 source(file.path(tools.dir, "PlottingFunctions.R"))
