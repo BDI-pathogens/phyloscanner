@@ -257,7 +257,7 @@ source(file.path(tools.dir, "collapsed_tree_methods.R"))
 source(file.path(tools.dir, "write_annotated_trees.R"))
 source(file.path(tools.dir, "clade_functions.R"))
 source(file.path(tools.dir, "summary_stats_functions.R"))
-source(file.path(tools.dir, "PlottingFunctions.R"))
+source(file.path(tools.dir, "plotting_functions.R"))
 source(file.path(tools.dir, "downsampling_functions.R"))
 
 # todo All functions that get passed tree info should check that the lists have what they need. If they have file names but not the contents, they should load the contents in.
