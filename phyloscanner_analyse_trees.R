@@ -95,8 +95,6 @@ verbose               <- args$verbose
 
 overwrite             <- args$overwrite
 
-
-
 tree.input            <- args$tree
 blacklist.input       <- args$blacklist
 
@@ -257,8 +255,8 @@ source(file.path(tools.dir, "blacklist_functions.R"))
 source(file.path(tools.dir, "parsimony_reconstruction_methods.R"))
 source(file.path(tools.dir, "collapsed_tree_methods.R"))
 source(file.path(tools.dir, "write_annotated_trees.R"))
-source(file.path(tools.dir, "SummariseTrees_funcs.R"))
-source(file.path(tools.dir, "SummaryStatsFunctions.R"))
+source(file.path(tools.dir, "clade_functions.R"))
+source(file.path(tools.dir, "summary_stats_functions.R"))
 source(file.path(tools.dir, "PlottingFunctions.R"))
 source(file.path(tools.dir, "downsampling_functions.R"))
 
