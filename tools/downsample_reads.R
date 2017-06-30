@@ -150,9 +150,7 @@ if(file.exists(input.file.name)){
     tree.info$blacklist        <- blacklist
     
     tree <- read.tree(tree.info$tree.input)
-    
     tree <- process.tree(tree, blacklist.for.pruning = blacklist)
-
     tree.info$tree        <- tree
     
     tree.info
