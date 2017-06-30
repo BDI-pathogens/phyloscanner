@@ -11,6 +11,8 @@ To make phylogenies from mapped reads, phyloscanner requires [samtools](http://w
 To analyse these phylogenies, or your own provided as input, phyloscanner needs some R packages which are installed by running [this](tools/PackageInstall.R) script.
 
 The phyloscanner manual is [here](InfoAndInputs/PhyloscannerManual.pdf).  
+Problem with the code? Create a [New Issue](https://github.com/BDI-pathogens/phyloscanner/issues).  
+Query? Ask it publicly at the [google group](https://groups.google.com/forum/#!forum/phyloscanner-users).
 
 ### An Example
 
