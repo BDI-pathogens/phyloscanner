@@ -2,8 +2,10 @@
 
 list.of.packages <- c("argparse", "phangorn", "kimisc")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
-
+if(length(new.packages)){
+  cat("Please run package_install.R to continue\n")
+  quit(save="no", status=1)
+}
 options("warn"=1)
 
 suppressMessages(library(argparse))
