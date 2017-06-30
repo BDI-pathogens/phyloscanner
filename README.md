@@ -6,10 +6,11 @@ Analysing pathogen genetic diversity and relationships between and within hosts 
 phyloscanner's input is bam files: reads (fragments of nucleotide sequence) that have been mapped (aligned) to the correct part of some reference genome.
 We wrote phyloscanner to analyse bam files that each represent a pathogen population in one host, exhibiting within-host and between-host diversity; in general use each bam file should be a sample representing some subpopulation, and we analyse within- and between-sample diversity.  
 
-The phyloscanner manual is [here](InfoAndInputs/PhyloscannerManual.pdf).  
 phyloscanner is freely available under the GNU General Public License version 3, described [here](LICENSE).  
 To make phylogenies from mapped reads, phyloscanner requires [samtools](http://www.htslib.org/), [pysam](https://github.com/pysam-developers/pysam) (0.8.1 or later), [biopython](http://biopython.org/wiki/Download), [mafft](http://mafft.cbrc.jp/alignment/software/) and [RAxML](http://sco.h-its.org/exelixis/web/software/raxml/index.html); notes on installing these are [here](InfoAndInputs/DependencyInstallationNotes.txt).
 To analyse these phylogenies, or your own provided as input, phyloscanner needs some R packages which are installed by running [this](tools/PackageInstall.R) script.
+
+The phyloscanner manual is [here](InfoAndInputs/PhyloscannerManual.pdf).  
 
 ### An Example
 
@@ -22,7 +23,7 @@ $ ../phyloscanner_make_trees.py InputFileList.csv --windows 1000,1300,2000,2300,
 (Those windows make best use of this simulated data, the `-A` option includes an alignment of extra reference sequences along with the reads, see the manual for the `--pairwise-align-to` option.)  
 Now let's analyse those phylogenies:
 ```bash
-$ ../phyloscanner_analyse_trees.R RAxMLfiles/RAxML_bestTree. MyOutput s,1 --outgroupName C.BW.00.00BW07621.AF443088
+$ ../phyloscanner_analyse_trees.R RAxMLfiles/RAxML_bestTree. MyOutput s,20 --outgroupName C.BW.00.00BW07621.AF443088 --multifurcationThreshold g
 ```
 In the output you'll see trees and summary information indicating that these samples constitute:
 * a straightforward, singly infected individual, 
