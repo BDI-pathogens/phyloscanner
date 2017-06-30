@@ -21,7 +21,7 @@ arg_parser$add_argument("splitsFileName", action="store", help="Splits file name
 arg_parser$add_argument("outputFileName", action="store", help="A path and root character string identifiying all output files.")
 arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default="tree", help="The file extension for tree files (default .tree).")
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="csv", help="The file extension for table files (default .csv).")
-arg_parser$add_argument("-D", "--scriptDir", action="store", help="Full path of the script directory.")
+arg_parser$add_argument("-D", "--scriptDir", action="store", help="Full path of the /tools directory.")
 arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what the script is doing.")
 args <- arg_parser$parse_args()
 
