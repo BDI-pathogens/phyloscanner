@@ -20,7 +20,6 @@ suppressMessages(require(RColorBrewer, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(gtable, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(grid, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(gridExtra, quietly=TRUE, warn.conflicts=FALSE))
-suppressMessages(require(devtools, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(kimisc, quietly=TRUE, warn.conflicts=FALSE))
 
 arg_parser		     <- ArgumentParser()

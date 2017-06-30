@@ -1,20 +1,18 @@
-\part{Inferring within- and between-host phylogenies in windows along the genome, using mapped reads (Chris)}
+\part{Inferring within- and between-host phylogenies in windows along the genome, using mapped reads}
 
-This part of \p is written in Python, and so we will refer to as the Python code.
+\section{The basic command} \label{sec:The basic command}
 
-\section{The basic command}
-
-As input to \p, you need to have generated files of mapped reads in bam format -- bam files henceforth.
+As input to \pmt, you need to have generated files of mapped reads in bam format -- bam files henceforth.
 The bam format does not include the sequence to which the reads were mapped -- the {\it reference} -- which we also need.
-With the initial \c{\$} traditionally indicating that what follows is a command to be run on the command line / in a terminal, the basic \p command looks like
+With the initial \c{\$} traditionally indicating that what follows is a command to be run on the command line / in a terminal (i.e. don't type that initial \c{\$}), the basic \pmt command looks like
 
 \begin{verbatim}
-$ phyloscanner.py ListOfMyInputFiles.csv --windows 1,300,301,600,...
+$ phyloscanner_make_trees.py ListOfMyInputFiles.csv --windows 1,300,301,600,...
 \end{verbatim}
 where
 \begin{itemize}
 \item \c{ListOfMyInputFiles.csv} is a plain-text, comma-separated-variable (csv) format file in which the first column contains the bam files, the second column contains the corresponding reference files.
-An optional third column, if present, contains {\it aliases} -- things to rename each bam file to in \p output; if not present the base name of the bam, i.e. the file name not including the directory path, will be used.
+An optional third column, if present, contains {\it aliases} -- things to rename each bam file to in \pmt output; if not present the base name of the bam, i.e. the file name not including the directory path, will be used.
 e.g. This input file list might look like\\
 \c{PatientA.bam,PatientA\_ref.fasta,A\\
 PatientB.bam,PatientB\_ref.fasta,B}\\
@@ -22,7 +20,7 @@ Bam file base names, and aliases if present, must be unique and free of whitespa
 Quotation marks are interpreted as wrapping/protecting fields, allowing them to contain commas that are not field separators.
 You can generate this input file list however you like, including manually.
 The following block of code illustrates how you might generate it automatically from the command line.
-It also checks that your files exist, which \p does anyway, but errors are best caught soonest.
+It also checks that your files exist, which \pmt does anyway, but it's always best to catch your errors soonest.
 \begin{verbatim}
 $ for ID in PatientA PatientB PatientC; do
 $   bam=MyBamsDir/"$ID".bam
@@ -41,15 +39,16 @@ If those IDs were stored in a plain-text file \c{MyIDs.txt} separated by whitesp
 \c{for ID in \$(cat MyIDs.txt); do}
 \item The \c{--windows} (or \c{-W}) option is used to specify an even number of comma-separated positive integers: these are the coordinates of the windows to analyse, interpreted pairwise, i.e. the first two are the left and right edges of the first window, the third and fourth are the left and right edges of the second window, $\ldots$ i.e. in the above example we have windows 1-300, 301-600, $\ldots$
 \end{itemize}
-Note that to run the \c{phyloscanner.py} binary file, like running any other binary file, you must either prepend to it the directory in which it lives (e.g. \c{/path/to/my/phyloscanner/code/phyloscanner.py}) or add that directory to the \c{\$PATH} environment variable associated with your terminal (google this if needed).
+You shouldn't run multiple \pmt commands simultaneously in the same directory, as it writes to and reads from files with fixed names, so the commands could clash.
+If you're running multiple jobs in parallel on a computing cluster that starts jobs in the same place, ensure that each job runs in a different directory (e.g. using the \c{mkdir} and \c{cd} commands to make and change into a directory specific to that job).
 
-\section{What do the window coordinates mean exactly?}
+\section{What do the window coordinates mean exactly?} \label{sec:CoordMeaning}
 By default the references used for mapping, together with any extra references if included using the \c{--alignment-of-other-refs} option, are all aligned together and window coordinates are interpreted with respect to the alignment (i.e. position $n$ refers to the $n$th column of that alignment, which could be a gap for some of the sequences).
-This alignment can be found in the file \c{RefsAln.fasta} after running \p, should you want to inspect it and possibly run again.
+This alignment can be found in the file \c{RefsAln.fasta} after running \pmt, should you want to inspect it and possibly run again.
 You can manually specify window coordinates with respect to this alignment, using the \c{--windows} option, or have windows automatically chosen using \c{--auto-window-params}, which attempts to minimise the affect of insertions and deletions in the references on your window width and overlap preferences.
-Alternatively, if you are using the \c{--alignment-of-other-refs} option to include extra references, you can use \c{--pairwise-align-to} to name one of these references to be a kind of {\it reference reference}: instead of aligning of all the bam file references to each other, they will be sequentially and separately pairwise-aligned to your named reference, and window coordinates are interpreted with respect to that named reference (i.e. position $n$ refers to the position of the $n$th base of the named reference).
+Alternatively, if you are using the \c{--alignment-of-other-refs} option to include extra references, you can use \c{--pairwise-align-to} to name one of these references to be a kind of {\it reference reference}: instead of aligning of all the bam file references to each other, they will be sequentially and separately pairwise-aligned to your named reference, and window coordinates are interpreted with respect to that named reference (i.e. position $n$ refers to the position of the $n$th base of the named reference, not counting any gaps inside the reference).
 Using the \c{--pairwise-align-to} option is expected to more stable than \c{--windows} or \c{--auto-window-params} if your bam file references are many and diverse, since pairwise alignment is easier than multiple sequence alignment.
-It also has the advantage that when running \p more than once with different bam files, the coordinates mean the same thing each time.
+It also has the advantage that when running \pmt more than once with different bam files, the coordinates mean the same thing each time.
 
 \section{What windows should I choose?}
 I'm glad you asked.
@@ -59,11 +58,11 @@ It's important.
 
 You might as well fully cover the genomic region you're interested in.
 That requires choosing where to start and where to end.
-If you're interested in the whole genome, the start is 1 and the end is the genome length, or more precisely the length of the alignment of all references together (or the length of your named reference if you used the \c{--pairwise-align-to} option.)
+If you're interested in the whole genome, the start is 1 and the end is the genome length, or more precisely the length of the alignment of all references together (or the length of your named reference if you used the \c{--pairwise-align-to} option).
 You may know that your reads don't start right at the beginning of the genome.
 If this is the case, a good place to start your first window would be the genome position at which you start having reads.
 
-If your reads were generated by amplifying the sample using primers, the primers ought to have been trimmed from the reads as part of whatever bioinformatic pipeline produced your input bam files.
+If your reads were generated by amplifying the sample using primers, the primers should ideally have been trimmed from the reads as part of whatever bioinformatic pipeline produced your input bam files.
 (This can be done for example using \href{https://github.com/sanger-pathogens/Fastaq}{\color{blue} \underline{\c{fastaq}}}, which is called as part of the \href{https://github.com/ChrisHIV/shiver}{\c{\color{blue} \underline{shiver}}} pipeline.)
 Then a sensible choice for the start of the first window would be the first position after the first primer, and a sensible choice for the end of the last window would be the last position before the last primer.
 
@@ -72,59 +71,133 @@ Let's revisit that.
 In what part of the genome would you like to do phylogenetics?
 Perhaps all of it.
 Then again, remember that phylogenetics assumes neutral evolution at every included site.
-Though \p allows individual specified sites to be excised after alignment of all the reads from all the bam files, there may be regions of the genome where selected sites are so dense that it's simpler to skip the region altogether.
-There may also be regions of the genome where there are so many insertions and deletions (indels) that you're skeptical that the reads will align correctly in the first place.
+Though \pmt allows individual specified sites to be excised after alignment of all the reads from all the bam files, there may be regions of the genome where selected sites are so dense that it's simpler to skip the region altogether.
+There may also be regions of the genome where there are so many insertions and deletions (indels) that you're sceptical that the reads will align correctly in the first place.
 You can choose to specify no windows covering such regions.
 
-\subsection{Window width}
-As well as choosing where your first window should start and where your last one should end, you need to choose how wide each single window is.
-If a window is very small, so little diversity is contained inside it (within or between samples) that the number of {\it unique} reads overlapping the window is small, hindering meaningful phylogenetics.
-If window width exceeds read length, then you will have no reads in the window, since we keep only reads fully overlapping the window.
-Somewhere between these two extremes therefore maximises the number of unique reads; to help you figure out what that is for your data, you can run \p with the \c{--explore-window-widths} option.
-This reports, for each in a list of window widths to try, how many unique reads are found for each bam and at each position along the genome.
+\subsection{Window width} \label{sec:WindowWidth}
+As well as choosing where your first window should start and where your last one should end, you need to choose how wide each window is.
+Having a wider window, all else being equal, increases phylogenetic resolution (i.e. the amount of information contained in the window).
+However a read must fully span a window to be included in it, so the wider you make a window the fewer reads it will contain.
+To quantify this latter effect, you can run
+\begin{verbatim}
+$ tools/EstimateReadCountPerWindow.py ListOfMyInputFiles.csv
+\end{verbatim}
+(where \c{ListOfMyInputFiles.csv} is the same file as we discussed at the top of section~\ref{sec:The basic command}, and \c{tools} is a subdirectory inside the main \p code directory).
+This command uses the information in each bam about the number of reads and how long\footnote{
+In this particular instance we define read length as the length of the mapping reference covered by the read, from its start to its end.
+This can differ from the actual read length due to insertions or deletions in the read relative to the reference.
+Defining the read length this way is appropriate since we're interested in reads spanning windows, and windows get defined relative to the reference.
+This length will also differ from the nominal read length of your sequencing run (which is typically one fixed value) if the reads have been trimmed as part of bioinformatic processing, e.g. removing primers, adapters, low-quality bases, or bits of the read that could not be mapped.
+} they are; it then estimates the number of reads expected to span a window of width $W$ by assuming reads are distributed randomly over the whole genome (ignoring the actual read location information in the bam files).
+If reads are found to be paired, the calculation is also done in the context of \pmt's \c{--merge-paired-reads} option, which merges each pair of reads into a single longer read if they overlap with each other (this will give exactly the same result as considering reads separately if reads in a pair never overlap).
+The calculation is done as a function of $W$, showing how the number of reads decreases monotonically\footnote{
+The number of positions at which we could place a window of width $W$ equals the length of the reference $- W + 1$.
+The number of positions at which we could place a window of width $W$ such that it is wholly inside a read is the length of the read $- W + 1$.
+The probability of a randomly placed read overlapping a window of width $W$ is therefore (read length $- W + 1$) / (reference length $- W + 1$).
+The number of reads and their different lengths are fixed in the data; increasing $W$ will decrease this probability (except for reads that span the entire reference).}.
+A good choice of window width, roughly, would be as large as you can yet before the number of reads per window gets too low to make useful within-host phylogenies.
+Skip ahead to section~\ref{sec:overlap} if that's good enough for you and you don't want to think about it any more.
+
+The \c{--explore-window-widths} option of \pmt was written with the following balancing act in mind.
+If a window is too wide, too few reads overlap it, as discussed.
+However if it is too small, there aren't enough positions at which a variant can be observed and so few {\it unique} reads will be observed in the window.
+Somewhere between these two extremes therefore maximises the number of unique reads.
+The \c{--explore-window-widths} option reports, for each in a list of window widths to try, how many unique reads are found in each bam and in each successive along the genome.
 To summarise these read counts into a single value that varies with window width, you could use the mean or the median, or you might be interested in a percentile lower than the 50th, if your concern is ensuring some minimal amount of diversity across all bams and all genomic positions.
 Up to you.
+Anecdotally, I did not find this option useful for our HIV data: manually examining phylogenies revealed that they were more interesting when a larger window width was used than the one that maximised the number of unique reads.
 
 (Note that some of the other options can affect how many reads you get in a window and so can affect what \c{--explore-window-widths} will tell you, namely the \c{--excision-coords}, \c{--merging-threshold}, \c{--min-read-count}, \c{--quality-trim-ends}, \c{--min-internal-quality}, and \c{--discard-improper-pairs} options.
 The first two can result in two or more unique reads being merged into one; the rest can simply discard some reads.
-You could choose values for the associated parameters immediately and then use \c{--explore-window-widths}, or else come back to \c{--explore-window-widths} later on once you've got the hang of \p and investigated the effect of those other options in your data.)  
+You could choose values for the associated parameters immediately and then use \c{--explore-window-widths}, or else come back to \c{--explore-window-widths} later on once you've got the hang of \pmt and investigated the effect of those other options in your data.)  
 
 Power users might want to optimise their own measure of phylogenetic information as a function of window width; one of the first metrics to pop into your head might be the mean bootstrap of all nodes in the tree.
-That's not advised because within a sample there may be many very similar sequences, and the set of nodes connecting these may have poor boostrap support, but this is not something that ought to be penalised.
+That's not advised because within a sample there may be many very similar sequences, and the set of nodes connecting these may have poor bootstrap support, but this is not something that ought to be penalised.
 Also in theory you might be able to increase the window width until only a single read is found spanning the window in each patient; your bootstraps might then be great, because between-host diversity is greater than that within-host, but you've thrown out all the within-host information.
 
-NB wherever {\it read} and {\it read length} appeared in the discussion above, they should be substituted for {\it insert} and {\it insert size} if you have paired-read data AND the reads in a pair sometimes overlap AND you run \p with \c{--merge-paired-reads} to merge overlapping paired reads into a single longer read (see the cartoon below).
-A complication with this is that whereas read length is typically fixed within a sample, insert size has a distribution of different values.
-A window which is wider than twice the read length can never get any reads, because the reads in a pair need to overlap in order to be merged.
-So you have two choices.
-\begin{enumerate}
-\item Choose\\  
-(read length) $<$ (window width) $<$ (twice the read length)\\  
-Then you're restricted to the subset of read pairs that satisfy  
-(window width) $\leq$ (insert size) $<$ (twice the read length)  
-because only such pairs can overlap and fully span the window.
-The fraction of such reads in a sample is the integral of the unit-normalised insert size distribution between the two limits in the inequality above.
-\item Choose\\  
-(window width) $\leq$ (read length)\\  
-Then you can have single reads contribute in addition to merged overlapping read pairs.
-But perhaps that window is too short; see the discussion on window width above.
-\end{enumerate}
 
-\subsection{Window overlap}
+\subsection{Window overlap} \label{sec:overlap}
 How much should neighbouring windows overlap?
-A simple answer to this is zero, i.e. each window starts right after the previous one ends.
-e.g. 1-99, 100-199, 200-299, $\ldots$\\
-{\bf TODO: discuss positive overlap.}
+\begin{itemize}
+\item A good, simple answer to this is zero, i.e. each window starts right after the previous one ends.
+e.g. 1-99, 100-199, 200-299, $\ldots$
+\item Negative overlap means unused space in between windows, e.g. 1-99, 200-299, 400-499, $\ldots$
+The only reason for this is if you want to exclude certain parts of the genome.
+(Though it's hard to imagine that the regions you want to exclude are perfectly regularly spaced.)
+\item Positive overlap means the next window begins before the current one ends, e.g. 1-99, 50-149, 100-199, $\ldots$
+There's a redundancy in doing this, because you're analysing the same information multiple times.
+However there's a little bit of stochasticity involved when performing algorithmic multiple sequence alignment then phylogenetic inference, so even if two windows overlap heavily some minor differences in the results could arise by chance.
+Positive overlap may therefore smooth out some of this stochasticity, at the expense of additional compute time.
+(You'll also need to take into account the non-independency of overlapping windows if you interpret results from multiple windows in a probabilistic framework.)
+ 
+ \end{itemize}
 
 \section{What output files are produced?}
 
-{\bf TODO}
+By default, those files that are produced for each window are grouped into subdirectories by file type.
+\begin{itemize}
+\item \c{RefsAln.fasta}.
+This contains the mapping reference from each bam file, together with any extra references included with \c{--alignment-of-other-refs}.
+This alignment is not created if \c{--pairwise-align-to} is used.
+\item \c{AlignedReads/AlignedReadsInWindow\_X\_to\_Y.fasta} (where $X$ and $Y$ are window coordinates).
+Contains the reads from all bam files in the window $X$-$Y$, after processing and alignment, but before excision of any positions specified with \c{--excision-coords}.
+Reads are automatically assigned a name of the form {\it A\_read\_M\_count\_N}, where {\it A} identifies the bam from which the read came, $N$ is the number of times that read was found (either identical copies of the same sequence, or merged similar sequences if \c{--merging-threshold} is used), and $M$ is the rank of the read when they are ordered by count (i.e. $M=1$ is the most common read, $M=2$ the second most common etc.)
+\item \c{AlignedReads/AlignedReads\_PositionsExcised\_InWindow\_X\_to\_Y.fasta}.
+Only produced if you specified some positions to excise with \c{--excision-coords}, and at least one of those positions was inside\footnote{
+Note that if \c{--pairwise-align-to} is used, the window coordinates $X$ and $Y$ mean the same thing as the excision coordinates.
+If \c{--pairwise-align-to} is {\it not} used, the window coordinates $X$ and $Y$ mean positions $X$ and $Y$ in \c{RefsAln.fasta} as discussed in section~\ref{sec:CoordMeaning}; therefore a position to excise, $Z$, being inside the window $X$-$Y$ is not the same as $X\leq Z \leq Y$.
+} the window $X$-$Y$.
+If this file exists, the tree in window $X$-$Y$ is based on this alignment (not \c{AlignedReadsInWindow\_X\_to\_Y.fasta}).
+Note that excising positions may result in reads that were previously distinct becoming identical -- if they differed only at the excised positions.
+This is checked after positions are excised, and reads from the same bam that have become identical are merged with an updated count.
+Similarly, if the merging of similar reads (in addition to identical reads) has been specified with a \c{--merging-threshold}, the merging is rerun after excision of positions.
+If the excision of positions results in reads becoming merged, clearly there will not be a one-to-one correspondence between reads before and after excision: after merging there may be fewer unique reads, though with the same total count.
+\item \c{Consensuses/Consensuses\_InWindow\_X\_to\_Y.fasta}.
+In this alignment, the set of unique reads retained from each bam file is collapsed into a single sequence: their consensus (taking the most common base/gap at each position, weighting each unique read by its count).
+Note that in general this consensus could differ from the corresponding part of a consensus called using all reads mapped along the full length of the reference, because the only reads retained by \pmt in a window are those fully spanning it.
+This process can result in some columns containing only gaps; these columns are kept, so that the coordinates of this file match those of \\\c{AlignedReadsInWindow\_X\_to\_Y.fasta}.
+\item \c{Consensuses/Consensuses\_PositionsExcised\_InWindow\_X\_to\_Y.fasta}.
+The consensus as previously, but with any specified positions to excise excised.
+Only produced if there are such positions.
+\item \c{DiscardedReads/DiscardedReads\_A.bam}, where A identifies one of the input bams.
+Only produced if \c{--inspect-disagreeing-overlaps} is used; see that option's description in ~\ref{sec:BioinfArgs}.
+These files will be accompanied by \c{DiscardedReads\_A\_ref.fasta} (the reference for the bam file).
+\item \c{DuplicationData/DuplicateReadCountsRaw\_InWindow\_X\_to\_Y.csv}.
+Each row in this csv-format file corresponds to one instance of exactly the same unique read being found in two different bams, {\it before} any processing of the reads (merging, excising positions etc.).
+The first two columns show the two bams involved, and the third and fourth columns show the count of the read in the two bams.
+If a read is exactly duplicated in $N$ different bams, then there will be $N(N-1)/2$ associated lines in this file -- one for each different pair of bams.
+See also the information in the next point.
+These files will not be produced if \c{--dont-check-duplicates} is specified.
+\item \c{DuplicationData/DuplicateReadCountsProcessed\_InWindow\_X\_to\_Y.csv}.
+Each row in this csv-format file corresponds to one instance of exactly the same unique read being found in at least two different bams, {\it after} all processing of the reads (merging, excising positions etc.).
+If the same read is found in $N$ different bams, there will be one row for this, containing $N$ fields separated by commas (each row in general therefore has a different number of columns, though 2 is the most common).
+Each field is the name of the read, assigned based on the bam in which it was found.
+These files will not be produced if \c{--dont-check-duplicates} is specified.\\
+Why is information about the duplication of reads checked and recorded twice, in these two different files?
+Duplication information {\it after} processing is easiest to work with, because it is the processed reads that are used to infer phylogenies.
+However instances of exact duplication {\it before} any processing of the reads is a better indicator of cross-sample contamination.
+Firstly because the options for similarity-based merging of reads within each bam, and for a minimum read count for inclusion, result in fewer unique reads to compare between bams.
+Secondly because excising positions makes reads shorter and increases the possibility for genuine cross-sample duplication (i.e. not contamination).
+Anecdotally, we found that being trigger-happy with deleting all codons associated with HLA escape in a conserved part of the HIV genome resulted in considerable duplication in the reads after processing that was not present before.
+Note that during both similarity-based merging of reads and excision of positions (which is followed by merging newly identical reads), we lose track of the original identity of reads, i.e. we don't know what the correspondence is between reads before processing and after processing.
+\item \c{DuplicationData/DuplicateReads\_contaminants\_InWindow\_X\_to\_Y.fasta}.
+Only produced if \\\c{--contaminant-count-ratio} is used; see that option's description in section~\ref {sec:DeprecatedArgs}.
+\item \c{ReadNames/ReadNames1\_InWindow\_X\_to\_Y\_InBam\_A.txt}.
+Only produced if \c{--read-names-1} is used; see that option's description in section~\ref{sec:BioinfArgs}.
+\item \c{ReadNames/ReadNames2\_InWindow\_X\_to\_Y\_InBam\_A.csv}.
+Only produced if \c{--read-names-2} is used; see that option's description in section~\ref{sec:BioinfArgs}.
+\item \c{RecombinationData/RecombinantReads\_InWindow\_X\_to\_Y.fasta}.
+Only produced if \\\c{--check-recombination} is used; see that option's description in section~\ref{sec:RecArgs}.
+\end{itemize}
+Some temporary files are also written to the working directory; by default these are deleted.
+(They are kept with \c{--keep-temp-files}.)
 
 \section{Optional arguments}
 
-Information about all optional arguments and what they do can also be seen by running \p with the \c{--help} option.
+Information about all optional arguments and what they do can also be seen by running \\\pmt with the \c{--help} option.
 That will give information guaranteed to be synchronised to your current version of the code, as well as showing all option shorthands (e.g. \c{--help} = \c{-h}); however we go into slightly more detail here.
-We particularly encourage you to familiarise yourself with the {\it Window options} and {\it Recommended options} below, which are particularly important for running \p well.
+We particularly encourage you to familiarise yourself with the {\it Window options} and {\it Recommended options} below, which are particularly important for running \pmt well.
 
 \subsection{Window options}
 You must choose exactly one of these: \c{--windows}, \c{--auto-window-params}, \c{--explore-window-widths}.
@@ -132,7 +205,7 @@ You must choose exactly one of these: \c{--windows}, \c{--auto-window-params}, \
 \item \c{--windows}: used to specify a comma-separated series of paired coordinates defining the boundaries of the windows.
 e.g. specifying \c{1,300,301,600,601,900} would define windows 1-300, 301-600, 601-900.
 \item \c{--auto-window-params}: used to specify 2, 3 or 4 comma-separated integers controlling the automatic creation of regular windows.
-The first integer is the width you want windows to be, weighting each column in the alignment of bam file references (plus any extra references included with \c{--alignment-of-other-refs}) by its non-gap fraction, so that windows with rows or columns containing many gaps become correspondindly wider.
+The first integer is the width you want windows to be, weighting each column in the alignment of bam file references (plus any extra references included with \c{--alignment-of-other-refs}) by its non-gap fraction, so that windows with rows or columns containing many gaps become correspondingly wider.
 The second is the overlap between the end of one window and the start of the next (which can be negative, implying unused space in between windows; the recommended value of 0 means each window starts right after the previous one ends).
 The optional third integer is the start position for the first window (by default, 1).
 The optional fourth integer is the end position for the last window (by default, windows will continue up to the end of the alignment of references).
@@ -147,29 +220,31 @@ Output is written to the file specified with the \c{--explore-window-width-file}
 Output is in in csv format.
 \end{itemize}
 
-\subsection{Recommended options}
+\subsection{Recommended options} \label{sec:RecArgs}
 %Options we think are particularly worth your while understanding and using.
 \begin{itemize}
 \item \c{--alignment-of-other-refs}: used to specify an alignment of reference sequences for inclusion with the reads, for comparison.
 These references need not be those used to produce the bam files.
-This option is required if \p is to analyse the trees it produces.
-\item \c{--pairwise-align-to}: by default, \p figures out where corresponding windows are in different bam files by creating a multiple sequence alignment containing all of the mapping references used to create the bam files (plus any extra references included with \c{--alignment-of-other-refs}), and window coordinates are intepreted with respect to this alignment.
+This option is required if \p is to analyse the trees it produces (i.e if you are going to run \pat after \pmt).
+The full set of processed, unaligned reads extracted from each window are aligned to the corresponding section of the reference alignment using \c{mafft --add}.
+\item \c{--pairwise-align-to}: by default, \pmt figures out where corresponding windows are in different bam files by creating a multiple sequence alignment containing all of the mapping references used to create the bam files (plus any extra references included with \c{--alignment-of-other-refs}), and window coordinates are interpreted with respect to this alignment.
 However using this option, the mapping references used to create the bam files are each separately pairwise aligned to one of the extra references included with \c{--alignment-of-other-refs}, and window coordinates are interpreted with respect to this reference.
 The reference to use should be specified after this option.
-\item \c{--x-raxml}: use this option to tell \p how to run \c{RAxML}; by default, \c{`raxmlHPC-AVX -m GTRCAT -p 1'}.
-You will need to change the first part if your \r binary is not called \c{raxmlHPC-AVX}, or if the binary's location is not contained in your \c{\$PATH} environment variable (i.e. if you need to specify the path to the binary in order to run it).
+\item \c{--x-raxml}: use this option to tell \pmt how to run \c{RAxML}; by default, \c{`raxmlHPC-AVX -m GTRCAT -p 1 --no-seq-check'}.
+You will need to change the first part if your \r executable is not called \c{raxmlHPC-AVX}, or if the executable's location is not contained in your \c{\$PATH} environment variable (i.e. if you need to specify the path to the executable in order to run it).
 \c{-m} tells \R which evolutionary model to use, and \c{-p} specifies a random number seed for the parsimony inferences; both are compulsory.
 You may include any other \R options in this command.
-The set of things you specify with \c{--x-raxml} need to be surrounded with one pair of quotation marks (so that they're kept together as one option for \p and only split up for \R).
-If you include a path to your \R binary, it may not include whitespace, since whitespace is interpreted as separating \R options.
-Do not include options relating to bootstraps: use \p's \c{--num-bootstraps} and \c{--bootstrap-seed} options instead.
+The set of things you specify with \c{--x-raxml} need to be surrounded with one pair of quotation marks (so that they're kept together as one option for \pmt and only split up for \R).
+If you include a path to your \R executable, it may not include whitespace, since whitespace is interpreted as separating \R options.
+Do not include options relating to bootstraps: use \pmt's \c{--num-bootstraps} and \c{--bootstrap-seed} options instead.
 Do not include options relating to the naming of files.
 \item \c{--merge-paired-reads}: this is only relevant for paired-read data for which the mates in a pair
 (sometimes) overlap with each other, but is very useful for such data.
 With this option, overlapping mates in a pair are merged into a single (longer) read.
 This allows wider windows to be used, enhancing the phylogenetic resolution in a single window.
-Pairs will only be merged if they agree on the overlapping sequence; if they do not, that pair is discarded.
+Pairs will only be merged if they agree on the bases in the overlap and where they have been mapped to; if the reads disagree, that pair is discarded.
 Discarded pairs can be inspected by using \c{--inspect-disagreeing-overlaps}.
+If reads are paired but never overlap, trying to merge them will do nothing except increase \pmt's run time and memory usage; if you're not sure about read pair overlap (i.e. you don't know the {\it insert size distribution} for your data), run \\\c{tools/EstimateReadCountPerWindow.py} as discussed at the start of section~\ref{sec:WindowWidth}.
 \item \c{--check-recombination}: calculate a metric of recombination for each sample's set of reads in each window.
 (Recommended only if you're interested, of course.)
 How the metric is calculated: for each possible set of three sequences, one is considered the putative recombinant and the other two the parents.
@@ -192,9 +267,9 @@ read count).
 For paired-read data.
 \item \c{--quality-trim-ends}: used to specify a quality threshold for trimming the ends of reads.
 We trim each read inwards until a base of this quality is met.
-\item \c{--min-internal-quality}: used to specify an interal quality threshold for reads.
+\item \c{--min-internal-quality}: used to specify an internal quality threshold for reads.
 Reads are allowed at most one base below this quality; any read with two or more bases below this quality are discarded.
-(If used in conjuction with the \c{--quality-trim-ends option}, the trimming of the ends is done first.)
+(If used in conjunction with the \c{--quality-trim-ends option}, the trimming of the ends is done first.)
 \item \c{--min-read-count}: used to specify a minimum count for each unique read.
 Reads with a count (i.e. the number of times that sequence was observed, after merging if merging is being done) less than this value are discarded.
 The default value of 1 means all reads are kept.
@@ -210,7 +285,7 @@ Requires the \c{--excision-ref} flag.
 \item \c{--excision-ref}: used to specify the name of a reference (which must be present in the file you specify with \c{--alignment-of-other-refs}) with respect to which the coordinates specified with \c{--excision-coords} are interpreted.
 If you are also using the \c{--pairwise-align-to} option, you must specify the same reference there
 and here.
-\item \c{--merging-threshold}: when multiple reads in the same bam file have exactly the same sequence, \p always collapses these to a single read with an associated {\it count} (i.e. the number of times that exact sequence was found in distinct reads in the bam file).
+\item \c{--merging-threshold}: when multiple reads in the same bam file have exactly the same sequence, \pmt always collapses these to a single read with an associated {\it count} (i.e. the number of times that exact sequence was found in distinct reads in the bam file).
 With this option, similar reads are merged as well as identical reads.
 Use this option to specify a positive integer as the threshold for merging.
 Where there is a group of reads that differ from each other by this threshold or less (i.e. each read in the group is sufficiently similar to at least one other read in the group), we use only the most common read to represent that group (with an updated count equal to the sum of counts of in the group).
@@ -219,37 +294,37 @@ Where there is a group of reads that differ from each other by this threshold or
 The default is 1.
 \item \c{--output-dir}: used to specify the name of a directory into which output files will be moved.
 If it does not exist, it will be created; however we cannot create a new directory inside a directory that does not yet exist.
-Temporary and output files are always created in the working directory, i.e. the directory in which the \p command was run, but with this option the output files are copied to the specified directory at the end.
+Temporary and output files are always created in the working directory, i.e. the directory in which the \pmt command was run, but with this option the output files are copied to the specified directory at the end.
 \item \c{--time}: print the times taken by different steps.
 \item \c{--x-mafft}: used to specify the command you need in order to run \c{mafft}.
-The default is simply \c{mafft}; if your \c{mafft} binary is not in the \c{\$PATH} environment variable for your terminal (google this if you don't know what it means) you will need to include the directory where this binary lives, e.g. \c{/path/to/where/I/installed/mafft/mafft}.
+The default is simply \c{mafft}; if your \c{mafft} executable is not in the \c{\$PATH} environment variable for your terminal (google this if you don't know what it means) you will need to include the directory where this executable lives, e.g. \c{/path/to/where/I/installed/mafft/mafft}.
 \item \c{--x-samtools}: used to specify the command you need in order to run \c{samtools}.
 The default is simply \c{samtools}.
 See the points raised for the \c{--x-mafft} option above.
-\item \c{--keep-output-together}: by default, subdirectories are made for different kinds of \p output.
+\item \c{--keep-output-together}: by default, subdirectories are made for different kinds of output.
 With this option, all output files will be in the same directory (either the working directory, or whatever you specify with \c{--output-dir}).
 \item \c{--keep-temp-files}: keep temporary files we create on the way (these are deleted by default).
 \end{itemize}
 
-\subsection{Options for bioinformatic interrogation}
+\subsection{Options for bioinformatic interrogation} \label{sec:BioinfArgs}
 Options for detailed bioinformatic interrogation of the input bam files, not intended for normal usage.
 \begin{itemize}
 \item \c{--inspect-disagreeing-overlaps}: with --merge-paired-reads, those pairs that overlap but disagree are discarded.
 With this option, these discarded pairs are written to a bam file (one per patient, with their reference file copied to the working directory) for your inspection.
-\item \c{--read-names-1}: produce a file for each window and each bam, listing the names (as they appear in the input bam file) of the reads that \p used.
+\item \c{--read-names-1}: produce a file for each window and each bam, listing the names (as they appear in the input bam file) of the reads that \pmt used.
 If you like this you may also like \c{tools/ExtractNamedReadsFromBam.py}, which is run
 separately from the command line (run it initially with \c{--help} for more information).
 \item \c{--read-names-2}: as \c{--read-names-1}, except the files will show the correspondence between
 read names and which unique sequence they correspond to.
 This option cannot be used with either of the \c{--merging-threshold} or \c{--excision-coords} options (because they change the correspondence initially established between unique sequences and reads).
-\item \c{--exact-window-start}: normally \p retrieves all reads that fully overlap a given window, i.e. starting at or anywhere before the window start, and ending at or anywhere after the window end.
+\item \c{--exact-window-start}: normally \pmt retrieves all reads that fully overlap a given window, i.e. starting at or anywhere before the window start, and ending at or anywhere after the window end.
 If this option is used {\it without} \c{--exact-window-end}, the reads that are retrieved are those that start at exactly the start of the window, and end anywhere (ignoring all the window end coordinates specified).
 If this option is used {\it with} \c{--exact-window-end}, for a read to be kept it must start at exactly the window start AND end at exactly the window end.
 If \c{--merge-paired-reads} is also used, this explanation applies to inserts (read pairs) instead of individual reads.
 \item \c{--exact-window-end}: with this option, the reads that are retrieved are those that end at
 exactly the end of the window.
 Read the \c{--exact-window-start} help.
-\item \c{--recover-clipped-ends}: the default behaviour of \p is to keep only reads that fully span the window in question.
+\item \c{--recover-clipped-ends}: the default behaviour of \pmt is to keep only reads that fully span the window in question.
 A read which is long enough in principle to reach the edge of the window but is not mapped at its end, i.e.
 the end is clipped, will therefore not be included.
 With this option, clipped ends are recovered by considering any bases at the ends of the read that are unmapped to be mapped instead to 1 more than the base to their left (at the right end) or 1 less than the base to their right (at the left end), iterating out from the centre.
@@ -257,14 +332,14 @@ e.g. a 9bp read mapped to positions None,None,10,11,13,14,None,None,None (i.e. c
 In this example, if the window left edge is 8 or 9 and the right edge is 15, 16 or 17, the read with its clipped ends recovered spans the window but the read without clipped ends does not.
 WARNING: mapping software clips the ends of reads for a reason, namely that that stretch of sequence does not look anything like the reference at that point.
 The clipped sequence could be just junk, or genuine sample from a distant part of the genome (i.e. the read is chimeric); in this case the clipped sequence should be discarded and not recovered.
-As such, this option should not be used as part of normal \p usage.
+As such, this option should not be used as part of normal \pmt usage.
 Its intended usage is specifically the following: you have identified a window in a bam file in which reads are clipped, but you believe the reads to be correct, i.e. the clipping is an artefact of the mapper being unable to find the correct local alignment.
 You should combine this option with \c{--no-trees} because the inclusion of clipped sequence, which by definition is very different, increases the chance of misalignment.
 You should inspect the aligned reads manually before doing anything else (and hopefully get some insight into how the reference in this window should be changed in order to have subsequent remapping get the local alignment right, in particular by contrasting the reference with the consensus of the aligned reads).
 \end{itemize}
 
 \subsection{Partial processing options}
-Options to only partially run \p, stopping early or skipping steps.
+Options to only partially run \pmt, stopping early or skipping steps.
 \begin{itemize}
  \item \c{--align-refs-only}: align the mapping references used to create the bam files (plus any extra reference sequences specified with \c{--alignment-of-other-refs}), then quit without doing anything
 else.
@@ -277,11 +352,11 @@ the read names to a file (which means the reads are not aligned).
 \end{itemize}
 
 
-\subsection{Deprecated options}
-Left in \p for backward compatability or interest.
+\subsection{Deprecated options} \label{sec:DeprecatedArgs}
+Left in \pmt for backward compatibility or interest.
 \begin{itemize}
 \item \c{--contaminant-count-ratio}: used to specify a numerical value which is interpreted in the following way: if a sequence is found exactly duplicated between any two bam files, and is more common in one than the other by a factor at least equal to this value, the rarer sequence is deleted and goes instead into a separate contaminant read fasta file.
-This is considered deprecated because including the exact duplicates in the tree and dealing with them during tree analysis is more flexible.
+This is considered deprecated because including the exact duplicates in the tree and dealing with them during tree analysis is more convenient -- \pmt does not need to be rerun if you change your mind about count thresholds for removing duplicates -- it also allows the offending duplicates to be inspected in the tree.
 \item \c{--flag-contaminants-only}: for each window, just flag contaminant reads then move on (without aligning reads or making a tree).
 Only makes sense with the \c{--contaminant-count-ratio} flag.
 \item \c{--forbid-read-repeats}: using this option, if a read with the same name is found to span each of a series of consecutive, overlapping windows, it is only used in the first window.
