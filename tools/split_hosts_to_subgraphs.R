@@ -1,8 +1,10 @@
-list.of.packages <- c("argparse", "ggplot2", "ff", "ggtree", "phangorn", "ape")
+#!/usr/bin/env Rscript
+
+list.of.packages <- c("argparse", "ggplot2", "ff", "ggtree", "phangorn", "ape", "kimisc")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 
 if(length(new.packages)){
-  cat("Please run PackageInstall.R to continue\n")
+  cat("Please run package_install.R to continue\n")
   quit(save="no", status=1)
 }
 
@@ -11,6 +13,7 @@ suppressMessages(library(ggplot2, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(ggtree, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(data.table, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(argparse, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(kimisc, quietly=TRUE, warn.conflicts=FALSE))
 
 arg_parser = ArgumentParser(description="Annotate the internal nodes of the phylogeny, by an ancestral state reconstruction scheme, such that the tree can subsequently be partitioned into connected subgraphs, one per split. Input and output file name arguments are either a single file, or the root name for a group of files, in which case all files matching that root will be processed, and matching output files generated.")  
 arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. Three groups: patient ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name.")
@@ -19,26 +22,35 @@ arg_parser$add_argument("-s", "--splitsRule", action="store", default="r", help=
 arg_parser$add_argument("-b", "--blacklist", action="store", help="A .csv file listing tips to ignore. Alternatively, a base name that identifies blacklist files. Blacklist files are assumed to end in .csv.")
 arg_parser$add_argument("-k", "--kParam", action="store", default=0, help="The k parameter in the cost matrix for Sankoff reconstruction (see documentation)")
 arg_parser$add_argument("-P", "--pruneBlacklist", action="store_true", help="If present, all blacklisted and references tips (except the outgroup) are pruned away before starting.")
-arg_parser$add_argument("-p", "--proximityThreshold", action="store", default=0)
+arg_parser$add_argument("-p", "--proximityThreshold", action="store", default=0, help="The parameter determining when nodes return to the unsampled state; p for splitsRule = s, q for splitsRule = f; see documentation.")
 arg_parser$add_argument("-i", "--idFile", action="store", help="Optionally, a full list of patients; this will be used to standardise colours in PDF output across multiple runs for the same data")
 arg_parser$add_argument("-R", "--readCountsMatterOnZeroBranches", help="If present, read counts will be taken into account in parsimony reconstructions at the parents of zero-length branches. Not applicable for the Romero-Severson-like reconstruction method.", default = FALSE, action="store_true")
 arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, short branches in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. If a number, this number will be used as the threshold. If 'g', it will be guessed from the branch lengths (use this only if you've checked by eye that the tree does indeed have multifurcations).")
 arg_parser$add_argument("-n", "--branchLengthNormalisation", default = 1, action="store", help="If present and a number, a normalising constant for all branch lengths in the tree or trees. If present and a file, the path to a .csv file with two columns: tree file name and normalising constant")
-arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
+arg_parser$add_argument("-D", "--scriptDir", action="store", help="Full path of the /tools directory.")
 arg_parser$add_argument("-OD", "--outputdir", action="store", help="Full path of the directory for output; if absent, current working directory")
 arg_parser$add_argument("-pw", "--pdfwidth", action="store", default=100, help="Width of tree pdf in inches.")
 arg_parser$add_argument("-ph", "--pdfrelheight", action="store", default=0.15, help="Relative height of tree pdf.")
-arg_parser$add_argument("-ff", "--useff", action="store_true", default=FALSE, help="Use ff to store parsimony reconstruction matrices. Use if you run out of memory.")
-arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what I'm doing.")
+arg_parser$add_argument("-ff", "--useff", action="store_true", help="Use ff to store parsimony reconstruction matrices. Use if you run out of memory.")
+arg_parser$add_argument("-v", "--verbose", action="store_true", help="Talk about what I'm doing.")
 arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default="tree", help="The file extension for tree files (default .tree).")
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="csv", help="The file extension for table files (default .csv).")
-arg_parser$add_argument("-ORDA", "--outputAsRDA", action="store_true", default=FALSE, help="Store output in rda format.")
+arg_parser$add_argument("-ORDA", "--outputAsRDA", action="store_true", help="Store output in rda format.")
 arg_parser$add_argument("inputFileName", action="store", help="The file or file root for the input tree in Newick format")
 arg_parser$add_argument("outputFileID", action="store", help="A string shared by all output file names.")
 
 args <- arg_parser$parse_args()
 
-script.dir             <- args$scriptdir
+if(!is.null(args$scriptDir)){
+  script.dir          <- args$scriptDir
+} else {
+  script.dir          <- dirname(thisfile())
+  if(!dir.exists(script.dir)){
+    stop("Cannot detect the location of the /phyloscanner/tools directory. Please specify it at the command line with -D.")
+  }
+}
+
+
 tree.file.name         <- args$inputFile
 sankoff.k              <- as.numeric(args$kParam)
 sankoff.p              <- as.numeric(args$proximityThreshold)
@@ -84,11 +96,11 @@ if(is.null(root.name)){
   cat("No outgroup name given; will assume the tree is already rooted\n")
 }
 
-source(file.path(script.dir, "TreeUtilityFunctions.R"))
-source(file.path(script.dir, "ParsimonyReconstructionMethods2.R"))
-source(file.path(script.dir, "CollapsedTreeMethods.R"))
-source(file.path(script.dir, "WriteAnnotatedTrees.R"))
-source(file.path(script.dir, "GeneralFunctions.R"))
+source(file.path(script.dir, "tree_utility_functions.R"))
+source(file.path(script.dir, "parsimony_reconstruction_methods.R"))
+source(file.path(script.dir, "collapsed_tree_methods.R"))
+source(file.path(script.dir, "write_annotated_trees.R"))
+source(file.path(script.dir, "general_functions.R"))
 
 if(useff){
   suppressMessages(library(ff, quietly=TRUE, warn.conflicts=FALSE))
@@ -110,17 +122,17 @@ if(!is.null(args$idFile)){
 
 if(file.exists(tree.file.name)){
 
-  file.details <- list()
+  all.tree.info <- list()
   
-  file.name.list <- list()
-  file.name.list$tree.input <- tree.file.name
+  tree.info <- list()
+  tree.info$tree.input <- tree.file.name
 
   tree.file.names <- tree.file.name
   if(!is.null(blacklist.file.name)){
-    file.name.list$blacklist.input <- blacklist.file.name
+    tree.info$blacklist.input <- blacklist.file.name
   }
   
-  file.name.list$output.ID <- output.file.ID
+  tree.info$output.ID <- output.file.ID
   
   normalisation.constant <- suppressWarnings(as.numeric(normalisation.argument))
   
@@ -137,9 +149,9 @@ if(file.exists(tree.file.name)){
     }
   }
 
-  file.name.list$normalisation.constant <- normalisation.constant
+  tree.info$normalisation.constant <- normalisation.constant
   
-  file.details[[tree.file.name]] <- file.name.list
+  all.tree.info[[tree.file.name]] <- tree.info
   
 } else {
   
@@ -156,7 +168,7 @@ if(file.exists(tree.file.name)){
   if(!is.null(blacklist.file.name)){  
     blacklist.file.names <- paste(blacklist.file.name, suffixes, ".", csv.fe, sep="")
   }
-  output.file.IDs <- paste(output.file.ID, suffixes, sep="")
+  output.file.IDs <- paste(output.file.ID, "_", suffixes, sep="")
   
   normalisation.constant <- suppressWarnings(as.numeric(normalisation.argument))
   
@@ -181,12 +193,12 @@ if(file.exists(tree.file.name)){
   if(!is.null(blacklist.file.name)){
     fn.df$blacklist.input <- blacklist.file.names
   }
-  file.details <- split(fn.df, rownames(fn.df))
+  all.tree.info <- split(fn.df, rownames(fn.df))
 }
 
 
 
-for(i in file.details){
+for(i in all.tree.info){
   
   # we now do all the tree processing here
   
