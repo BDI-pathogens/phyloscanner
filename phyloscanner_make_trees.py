@@ -1169,6 +1169,8 @@ OutputFilesByDestinationDir['RecombFiles'] = []
 
 AtLeastOneTreeMade = False
 
+HaveWarnedNoQualities = False
+
 # Iterate through the windows
 for window in range(NumCoords / 2):
 
@@ -1267,6 +1269,19 @@ for window in range(NumCoords / 2):
       if args.discard_improper_pairs and read.is_paired and \
       not read.is_proper_pair:
         continue
+
+      if not read.query_qualities:
+        read.query_qualities = [106 for base in range(len(read.query_sequence))]
+        if not HaveWarnedNoQualities:
+          print('Warning: found a read with no information about base',
+          'qualities. All bases will be set to have quality 106 for this read',
+          'and any others lacking this information found henceforth.',
+          file=sys.stderr)
+          if QualTrimEnds or ImposeMinQual: 
+            print('WARNING: you have specified at least one option relating to',
+            'read quality, when read quality information is missing. This is',
+            'strongly discouraged. Continuing nonetheless.', file=sys.stderr)
+          HaveWarnedNoQualities = True
 
       if args.merge_paired_reads:
 
