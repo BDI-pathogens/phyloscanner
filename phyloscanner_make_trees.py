@@ -686,6 +686,10 @@ BamFiles, RefFiles, BamAliases, BamFileBasenames = \
 pf.ReadInputCSVfile(args.BamAndRefList)
 NumberOfBams = len(BamFiles)
 
+# Don't produce duplication files if there's only one bam.
+if NumberOfBams == 1:
+  CheckDuplicates = False
+
 # Read in all the reference sequences. Set each seq name to be the corresponding
 # alias.
 RefSeqs = []
