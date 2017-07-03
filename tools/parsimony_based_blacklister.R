@@ -19,7 +19,7 @@ suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
 # Define arguments
 
 arg_parser = ArgumentParser(description="Identify phylogeny tips for blacklisting as representing suspected contaminants, based on a Sankoff parsimony reconstruction. Input and output file name arguments are either a single file, or the root name for a group of files, in which case all files matching that root will be processed, and matching output files generated.")
-arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. Three groups, in order: host ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the host ID will be the BAM file name.")
+arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. Three capture groups, in order: host ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the host ID will be the BAM file name.")
 arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the /tools directory.")
 arg_parser$add_argument("-r", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
 arg_parser$add_argument("-b", "--blacklist", action="store", help="A blacklist to be applied before this script is run.")
@@ -33,8 +33,8 @@ arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="c
 arg_parser$add_argument("rawThreshold", action="store", type="double", help="Raw threshold; subgraphs with read counts less than this will be blacklisted, regardless of the count of any other subgraphs from the same host")
 arg_parser$add_argument("ratioThreshold", action="store", type="double", help="Ratio threshold; subgraphs will be blacklisted if the ratio of their tip count to that of another subgraph from the same host is less than this.")
 arg_parser$add_argument("sankoffK", action="store", type="double", help="The k parameter in the cost matrix for Sankoff reconstruction (see documentation)")
-arg_parser$add_argument("inputFileName", action="store", help="The file or file root for the input tree in Newick format")
-arg_parser$add_argument("blacklistOutputFileName", action="store", help="The file or file root to write a list of tips to be blacklisted to.")
+arg_parser$add_argument("inputFileName", action="store", help="The file or file root for the input tree in Newick or Nexus format")
+arg_parser$add_argument("blacklistOutputFileName", action="store", help="The file or file root where the list of tips to be blacklisted will be written")
 
 
 # Parse arguments

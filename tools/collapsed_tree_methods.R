@@ -197,28 +197,30 @@ output.trans.tree <- function(tree, assocs){
 }
 
 prune.unsampled.tips <- function(tt.table){
-  
+
   for.output <- tt.table[,1:6]
   
   unsampled.tips <- which(grepl("unsampled",for.output$unique.splits) &
                             !(for.output$unique.splits %in% for.output$parent.splits))
-  
+
   if(length(unsampled.tips) > 0){
     for.output <- for.output[-unsampled.tips,]
   }
   #renumber
   unsampled.rows <- which(grepl("^unsampled_region",for.output$unique.splits))
-  
+
   unsampled.labels <- for.output$unique.splits[which(grepl("^unsampled_region",for.output$unique.splits))]
-  
+
   for(x in 1:length(unsampled.rows)) {
     old.label <- unsampled.labels[x]
     new.label <- paste("UnsampledRegion-S",x,sep="")
     for.output$unique.splits[unsampled.rows[x]] <- new.label
     for.output$parent.splits[which(for.output$parent.splits==old.label)] <- new.label
   } 
+
   
-  for.output$patients[which(grepl("^unsampled_region",for.output$patients))] <- "UnsampledRegion"
+  for.output$hosts[which(grepl("^unsampled_region",for.output$hosts))] <- "UnsampledRegion"
+
   for.output$parent.hosts[which(grepl("^unsampled_region",for.output$parent.hosts))] <- "UnsampledRegion"
 
   return(for.output)
@@ -548,8 +550,9 @@ check.tt.node.adjacency <- function(tt, label1, label2, allow.unsampled = F){
 }
 
 classify <- function(tree.info, verbose = F) {	
-  
-  if(is.null(tree.info$tree)){
+
+  if(is.null(tree.info[["tree"]])){
+
     if (verbose) cat("Reading tree file ", tree.info$tree.file.name, "...\n", sep = "")
     
     pseudo.beast.import <- read.beast(tree.info$tree.file.name)
@@ -562,6 +565,7 @@ classify <- function(tree.info, verbose = F) {
     annotations$INDIVIDUAL <- as.character(annotations$INDIVIDUAL)
     annotations$SPLIT <- as.character(annotations$SPLIT)
   } else {
+    
     tree <- tree.info$tree
     
     annotations <- data.frame(node = seq(1, length(tree$tip.label) + tree$Nnode), 
@@ -569,7 +573,7 @@ classify <- function(tree.info, verbose = F) {
                               SPLIT = as.character(attr(tree, "SPLIT")), 
                               stringsAsFactors = F)
   }
-  
+
   if(is.null(tree.info$splits.table)){
     if (verbose) cat("Reading splits file",splits.file.name,"...\n")
     

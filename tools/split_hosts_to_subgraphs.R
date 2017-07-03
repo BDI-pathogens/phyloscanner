@@ -50,7 +50,6 @@ if(!is.null(args$scriptDir)){
   }
 }
 
-
 tree.file.name         <- args$inputFile
 sankoff.k              <- as.numeric(args$kParam)
 sankoff.p              <- as.numeric(args$proximityThreshold)

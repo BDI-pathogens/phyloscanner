@@ -1,9 +1,13 @@
-list.of.packages <- c("argparse","phytools", "dplyr", "ggplot2", "ggtree", "reshape", "dtplyr", "gtable", "grid", "gridExtra", "RColorBrewer", "scales", "pegas")
+#!/usr/bin/env Rscript
+
+list.of.packages <- c("argparse","phytools", "dplyr", "ggplot2", "ggtree", "reshape", "dtplyr", "gtable", "grid", "gridExtra", "RColorBrewer", "scales", "pegas", "kimisc")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)){
-  cat("Please run PackageInstall.R to continue\n")
+  cat("Please run package_install.R to continue\n")
   quit(save="no", status=1)
 }
+
+options("warn"=1)
 
 suppressMessages(require(ape, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(phytools, quietly=TRUE, warn.conflicts=FALSE))
@@ -19,6 +23,7 @@ suppressMessages(require(dplyr, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(dtplyr, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(argparse, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(kimisc, quietly=TRUE, warn.conflicts=FALSE))
 
 arg_parser = ArgumentParser(description="Summarise patient statistics from each phylogeny across all windows.")
 
@@ -31,7 +36,7 @@ arg_parser$add_argument("idFile", action="store", help="A file containing a list
 arg_parser$add_argument("treeFiles", action="store", help="A file path and initial string identifying all tree files (processed tree files output by SplitPatientsToSubgraphs.R file extension must be .tree).")
 arg_parser$add_argument("splitsFiles", action="store",help="A file path and initial string identifying all splits files (file extension must be .csv).")
 arg_parser$add_argument("outputBaseName", action="store", help="A path and string to begin the names of all output files.")
-arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the script directory.")
+arg_parser$add_argument("-D", "--scriptDir", action="store", help="Full path of the /tools directory.")
 arg_parser$add_argument("-R", "--recombinationFiles", action="store", help="A file path and initial string identifying all recombination data files.")
 arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about the script is doing.")
 arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default="tree", help="The file extension for tree files (default .tree).")
@@ -41,8 +46,16 @@ arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="c
 
 args                     <- arg_parser$parse_args()
 
+if(!is.null(args$scriptDir)){
+  script.dir          <- args$scriptDir
+} else {
+  script.dir          <- dirname(thisfile())
+  if(!dir.exists(script.dir)){
+    stop("Cannot detect the location of the /phyloscanner/tools directory. Please specify it at the command line with -D.")
+  }
+}
+
 id.file                  <- args$idFile
-script.dir               <- args$scriptdir
 verbose                  <- args$verbose
 tip.regex                <- args$tipRegex
 tree.file.root           <- args$treeFiles
@@ -56,11 +69,11 @@ csv.fe                   <- args$csvFileExtension
 recomb.files.exist       <- !is.null(recomb.file.root)
 no.read.counts           <- args$noReadCounts
 
-source(file.path(script.dir, "TreeUtilityFunctions.R"))
-source(file.path(script.dir, "SummariseTrees_funcs.R"))
-source(file.path(script.dir, "GeneralFunctions.R"))
-source(file.path(script.dir, "SummaryStatsFunctions.R"))
-source(file.path(script.dir, "PlottingFunctions.R"))
+source(file.path(script.dir, "tree_utility_functions.R"))
+source(file.path(script.dir, "clade_functions.R"))
+source(file.path(script.dir, "general_functions.R"))
+source(file.path(script.dir, "summary_stats_functions.R"))
+source(file.path(script.dir, "plotting_functions.R"))
 
 # Find the input files
 
@@ -90,7 +103,6 @@ if(length(splits.files)==0){
 # Get the suffixes
 
 tree.suffixes	  <- sapply(tree.files, function(x) get.suffix(x, tree.file.root, tree.fe))
-
 splits.suffixes	<- sapply(splits.files, function(x) get.suffix(x, splits.file.root, csv.fe))
 
 # Only take suffixes that have both a tree file and a subgraph file
@@ -117,12 +129,11 @@ all.tree.info <- list()
 
 for(suffix in ts.both.present){
   tree.info <- list()
-  tree.info$name <- suffix
+  tree.info$suffix <- suffix
   tree.info$tree.file.name <- paste0(tree.file.root, suffix, ".", tree.fe)
   tree.info$splits.file.name <- paste0(splits.file.root, suffix, ".", csv.fe)
   all.tree.info[[suffix]] <- tree.info
 }
-
 
 # Check which suffixes from the current list have a blacklist file and vice versa
 
@@ -160,6 +171,7 @@ if (recomb.files.exist) {
   recomb.suffixes	<- sapply(recomb.files, function(x) get.suffix(x, recomb.file.root, csv.fe))
   recomb.but.no.tree.suffixes <- setdiff(recomb.suffixes, ts.both.present)
   tree.but.no.recomb.suffixes <- setdiff(ts.both.present, recomb.suffixes)
+  
   if (length(recomb.but.no.tree.suffixes) > 0) {
     missing.files <- paste(recomb.file.root, recomb.but.no.tree.suffixes, ".", csv.fe, sep="")
     stop("Error: no tree file found for the following recombination files:", paste(missing.files, collapse=' '), "\nQuitting.\n")
@@ -169,10 +181,10 @@ if (recomb.files.exist) {
     stop("Error: no recombination file found for the following tree files:", paste(missing.files, collapse=' '), "\nQuitting.\n")
   }
   for(suffix in recomb.suffixes){
-    all.tree.info[[suffix]]$recombination.file.name <-  paste(recomb.file.root, recomb.but.no.tree.suffixes, ".", csv.fe, sep="")
+    all.tree.info[[suffix]]$recombination.file.name <-  paste(recomb.file.root, suffix, ".", csv.fe, sep="")
   }
 }
-    
+
 # From now on we work with suffixes only
 
 suffixes <- ts.both.present
@@ -376,9 +388,9 @@ mean.na.rm <- function(x) mean(x, na.rm = T)
 
 # Output a summary of the pat.stats table to file
 if (recomb.files.exist) { 
-  tmp <- subset(as.data.table(pat.stats), reads>0, c(id, tips, reads, subgraphs, clades, overall.rtt, largest.rtt, max.pat.distance, prop.reads.largest.subtree, max.branch.length, subgraph.mean.pat.distance, global.mean.pat.distance, branch.to.pat.ratio, Recombination.metric))
+  tmp <- subset(as.data.table(pat.stats), reads>0, c(id, tips, reads, subgraphs, clades, overall.rtt, largest.rtt, max.pat.distance, prop.reads.largest.subtree, max.branch.length, subgraph.mean.pat.distance, global.mean.pat.distance, recombination.metric))
 } else {
-  tmp <- subset(as.data.table(pat.stats), reads>0, c(id, tips, reads, subgraphs, clades, overall.rtt, largest.rtt, max.pat.distance, prop.reads.largest.subtree, max.branch.length, subgraph.mean.pat.distance, global.mean.pat.distance, branch.to.pat.ratio))
+  tmp <- subset(as.data.table(pat.stats), reads>0, c(id, tips, reads, subgraphs, clades, overall.rtt, largest.rtt, max.pat.distance, prop.reads.largest.subtree, max.branch.length, subgraph.mean.pat.distance, global.mean.pat.distance))
 }
 pat.stats.summary <- tmp[, lapply(.SD, mean.na.rm), by='id']
 tmp <- file.path(paste(output.root,"patStatsSummary.csv",sep=""))
@@ -401,6 +413,5 @@ xcoords <- missing.window.data$x.coordinates
 regular.gaps <- missing.window.data$regular.gaps
 rectangles.for.missing.windows <- missing.window.data$rectangles.for.missing.windows
 bar.width <- missing.window.data$width
-
 
 produce.pdf.graphs(tmp, pat.stats, hosts, xcoords, rectangles.for.missing.windows, bar.width, regular.gaps, verbose = verbose)
