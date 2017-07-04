@@ -34,8 +34,6 @@ if(!is.null(args$scriptDir)){
   }
 }
 
-summary.file             <- args$summaryFile
-id.file                  <- args$idFile
 output.file              <- args$outputFile
 verbose                  <- args$verbose
 csv.fe                   <- args$csvFileExtension
@@ -44,7 +42,6 @@ dist.threshold           <- as.numeric(args$distanceThreshold)
 if(dist.threshold==-1){
   dist.threshold         <- Inf
 }
-detailed.output          <- args$detailed
 if(is.null(min.threshold)){
   split.threshold        <- 1L
 }
