@@ -39,8 +39,8 @@ if(command.line){
   allow.mt <- args$allowMultiTrans
   input.file.name <- args$inputFiles
   
-  source(file.path(script.dir, "TreeUtilityFunctions.R"))
-  source(file.path(script.dir, "GeneralFunctions.R"))
+  source(file.path(script.dir, "../deprecated/TreeUtilityFunctions.R"))
+  source(file.path(script.dir, "../deprecated/GeneralFunctions.R"))
   
   input.files <- list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name)), full.names=TRUE)
   
@@ -54,11 +54,11 @@ if(command.line){
   }
   
 } else {
-  setwd("/Users/mdhall/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/")
+  setwd("/Users/mdhall/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/Phyloscanner2Tests/")
   script.dir <- "/Users/mdhall/phylotypes/tools"
-  summary.file	<- "/Users/mdhall/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/SumStats/run20161013D_patStatsFull.csv"
-  id.file 					<- "patientIDList.txt"
-  input.file.name			<- "/Users/mdhall/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/run20161013/Classifications_s/Classification_s_classification_run20161013D_inWindow_"
+  summary.file	<- NULL
+  id.file 					<- "BamIDs.txt"
+  input.file.name			<- "cr_test1_classification"
   min.threshold				<- 16.5
   dist.threshold <- 0.05183
   allow.mt 				<- TRUE
@@ -204,7 +204,7 @@ if(any('normalised.min.distance.between.subtrees'==colnames(tt))){
   setnames(tt, 'min.distance.between.subtrees', 'PATRISTIC_DISTANCE')
 }
 
-setnames(tt, c('Patient_1','Patient_2','path.classification','paths21','paths12','adjacent'), c('PAT.1','PAT.2','TYPE','PATHS.21','PATHS.12','ADJACENT'))
+setnames(tt, c('Patient_1','Patient_2','path.classification','paths21','paths12','adjacent','contiguous'), c('PAT.1','PAT.2','TYPE','PATHS.21','PATHS.12','ADJACENT','CONTIGUOUS'))
 # change type name depending on allow.mt
 if(!allow.mt){
   if(verbose) cat("Allowing only single lineage transmission...\n")
@@ -279,9 +279,9 @@ setkey(tt, SUFFIX, PAT.1, PAT.2)
 
 if(!is.null(detailed.output)){	
   if(!is.null(summary.file)){
-    tt			<- subset(tt, select=c('SUFFIX','PAT.1','PAT.2','TYPE','PATRISTIC_DISTANCE','ADJACENT','PATHS.12','PATHS.21','PAT.1_tips','PAT.1_reads','PAT.2_tips','PAT.2_reads'))
+    tt			<- subset(tt, select=c('SUFFIX','PAT.1','PAT.2','TYPE','PATRISTIC_DISTANCE','ADJACENT','CONTIGUOUS','PATHS.12','PATHS.21','PAT.1_tips','PAT.1_reads','PAT.2_tips','PAT.2_reads'))
   } else {
-    tt			<- subset(tt, select=c('SUFFIX','PAT.1','PAT.2','TYPE','PATRISTIC_DISTANCE','ADJACENT','PATHS.12','PATHS.21'))
+    tt			<- subset(tt, select=c('SUFFIX','PAT.1','PAT.2','TYPE','PATRISTIC_DISTANCE','ADJACENT','CONTIGUOUS','PATHS.12','PATHS.21'))
   }
   setnames(tt, colnames(tt),toupper(colnames(tt)))
   #	write to file
