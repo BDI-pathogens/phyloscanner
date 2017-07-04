@@ -755,7 +755,7 @@ convert.to.columns <- function(matrix, names){
   return(a.df)
 }
 
-merge.classifications <- function(all.tree.info){
+merge.classifications <- function(all.tree.info, allow.mt = T){
   tt	<-	lapply(all.tree.info, function(tree.info){
     
     if(is.null(tree.info$classification.results$classification) & is.null(tree.info$classification.file.name)){
@@ -846,7 +846,7 @@ merge.classifications <- function(all.tree.info){
 
 summarise.classifications <- function(all.tree.info, min.threshold, dist.threshold, allow.mt = T, csv.fe = "csv", verbose = F, contiguous = F){
 
-  tt <- merge.classifications(all.tree.info)
+  tt <- merge.classifications(all.tree.info, allow.mt)
   
   if (verbose) cat("Making summary output table...\n")
 
