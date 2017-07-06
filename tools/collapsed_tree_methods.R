@@ -755,9 +755,7 @@ convert.to.columns <- function(matrix, names){
   return(a.df)
 }
 
-
-summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.threshold, allow.mt = T, csv.fe = "csv", verbose = F){
-
+merge.classifications <- function(all.tree.info, allow.mt = T){
   tt	<-	lapply(all.tree.info, function(tree.info){
     
     if(is.null(tree.info$classification.results$classification) & is.null(tree.info$classification.file.name)){
@@ -814,8 +812,7 @@ summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.
     setnames(tt, 'min.distance.between.subgraphs', 'PATRISTIC_DISTANCE')
   }
   
-  setnames(tt, c('Host_1','Host_2','path.classification','paths21','paths12','adjacent'), c('HOST.1','HOST.2','TYPE','PATHS.21','PATHS.12','ADJACENT'))
-
+  setnames(tt, c('Host_1','Host_2','path.classification','paths21','paths12','adjacent','contiguous'), c('HOST.1','HOST.2','TYPE','PATHS.21','PATHS.12','ADJACENT','CONTIGUOUS'))
   
   # change type name depending on allow.mt
   if(!allow.mt){
@@ -844,6 +841,13 @@ summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.
   #	reorder
   setkey(tt, SUFFIX, HOST.1, HOST.2)
   
+  return(tt)
+}
+
+summarise.classifications <- function(all.tree.info, min.threshold, dist.threshold, allow.mt = T, csv.fe = "csv", verbose = F, contiguous = F){
+
+  tt <- merge.classifications(all.tree.info, allow.mt)
+  
   if (verbose) cat("Making summary output table...\n")
 
   set(tt, NULL, c('PATHS.12','PATHS.21'),NULL)
@@ -852,7 +856,11 @@ summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.
 
   tt <- merge(tt, existence.counts, by=c('HOST.1', 'HOST.2'))
   
-  tt.close <- tt[which(tt$ADJACENT & tt$PATRISTIC_DISTANCE < dist.threshold ),]
+  if(!contiguous){
+    tt.close <- tt[which(tt$ADJACENT & tt$PATRISTIC_DISTANCE < dist.threshold ),]
+  } else {
+    tt.close <- tt[which(tt$CONTIGUOUS & tt$PATRISTIC_DISTANCE < dist.threshold ),]
+  }
    
   tt.close$NOT.SIBLINGS <- tt.close$ADJACENT & (tt.close$PATRISTIC_DISTANCE < dist.threshold) & tt.close$TYPE!="none"
   
@@ -889,7 +897,7 @@ summarise.classifications <- function(all.tree.info, hosts, min.threshold, dist.
   
   tt.close[, DUMMY:=NULL]
   
-  set(tt.close, NULL, c('SUFFIX', 'ADJACENT','PATRISTIC_DISTANCE', "contiguous", "nodes1", "nodes2", "NOT.SIBLINGS"), NULL)
+  set(tt.close, NULL, c('SUFFIX', 'ADJACENT','PATRISTIC_DISTANCE', "CONTIGUOUS", "nodes1", "nodes2", "NOT.SIBLINGS"), NULL)
   tt.close <- tt.close[!duplicated(tt.close),]
   
   setkey(tt.close, HOST.1, HOST.2, TYPE)

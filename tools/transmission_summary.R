@@ -18,7 +18,6 @@ arg_parser$add_argument("-m", "--minThreshold", action="store", default=0, type=
 arg_parser$add_argument("-c", "--distanceThreshold", action="store", default=-1, help="Maximum distance threshold on a window for a relationship to be reconstructed between two patients on that window.")
 arg_parser$add_argument("-p", "--allowMultiTrans", action="store_true", default=FALSE, help="If absent, directionality is only inferred between pairs of patients where a single clade from one patient is nested in one from the other; this is more conservative")
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="csv", help="The file extension for table files (default .csv).")
-arg_parser$add_argument("idFile", action="store", help="A file containing a list of the IDs of all the patients to calculate and display statistics for.")
 arg_parser$add_argument("inputFiles", action="store", help="Either (if -l is present) a list of all input files (output from ClassifyRelationships.R), separated by colons, or (if not) a single string that begins every input file name.")
 arg_parser$add_argument("outputFile", action="store", help="A .csv file to write the output to.")
 arg_parser$add_argument("-D", "--scriptDir", action="store", help="Full path of the /tools directory.")
@@ -35,8 +34,6 @@ if(!is.null(args$scriptDir)){
   }
 }
 
-summary.file             <- args$summaryFile
-id.file                  <- args$idFile
 output.file              <- args$outputFile
 verbose                  <- args$verbose
 csv.fe                   <- args$csvFileExtension
@@ -45,7 +42,6 @@ dist.threshold           <- as.numeric(args$distanceThreshold)
 if(dist.threshold==-1){
   dist.threshold         <- Inf
 }
-detailed.output          <- args$detailed
 if(is.null(min.threshold)){
   split.threshold        <- 1L
 }
@@ -62,16 +58,6 @@ if(length(input.files)==0){
   stop("No input files found.")
 }
 
-
-# Read in the IDs. Remove duplicates. Shuffle their order if desired.
-
-if(verbose) cat("Reading patient IDs...\n")
-
-patient.ids	<- unique(scan(id.file, what="", sep="\n", quiet=TRUE))
-if(!length(patient.ids)){
-  stop(paste("No IDs found in ", id.file, ". Quitting.\n", sep=""))  
-}
-
 all.tree.info <- list()
 
 for(file in input.files){
@@ -84,7 +70,7 @@ for(file in input.files){
   all.tree.info[[file]] <- tree.info
 }
 
-results <- summarise.classifications(all.tree.info, patient.ids, min.threshold*length(all.tree.info), dist.threshold, allow.mt, csv.fe, verbose)
+results <- summarise.classifications(all.tree.info, min.threshold*length(all.tree.info), dist.threshold, allow.mt, csv.fe, verbose)
 
 if (verbose) cat('Writing summary to file',output.file,'\n')
 write.csv(results, file=output.file, row.names=FALSE, quote=FALSE)
