@@ -161,12 +161,12 @@ if(do.dual.blacklisting & !do.par.blacklisting){
 bl.raw.threshold      <- as.numeric(args$rawBlacklistThreshold)
 bl.ratio.threshold    <- as.numeric(args$ratioBlacklistThreshold)
 
-if(do.par.blacklisting & bl.raw.threshold == 0 & bl.ratio.threshold){
+if(do.par.blacklisting & bl.raw.threshold == 0 & bl.ratio.threshold == 0){
   stop("Parsimony blacklisting requested but no thresholds specified with -rwt or -rtt")
 }
 
 
-if(do.dup.blacklisting & bl.raw.threshold == 0 & bl.ratio.threshold){
+if(do.dup.blacklisting & bl.raw.threshold == 0 & bl.ratio.threshold == 0){
   stop("Duplicate blacklisting requested but no thresholds specified with -rwt or -rtt")
 }
 

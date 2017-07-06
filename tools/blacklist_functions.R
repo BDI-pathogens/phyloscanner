@@ -194,8 +194,12 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
     # this covers the situation where there is only one host tip (because ape has trouble with two-tip trees)
     tip.no <- which(tip.hosts==host)
     
-    reads <- read.count.from.label(tree$tip.label[tip.no], tip.regex)
-    
+    if(!no.read.counts){
+      reads <- read.count.from.label(tree$tip.label[tip.no], tip.regex)
+    } else {
+      reads <- 1
+    }
+
     if(reads < raw.threshold){
       if(verbose){
         cat("Blacklisting ",host,"; not enough reads in total.\n", sep="")
