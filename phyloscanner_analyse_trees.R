@@ -348,7 +348,13 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
     cat("Reading tree file",tree.info$tree.file.name,'\n')
   }
   
-  tree                           <- read.tree(tree.info$tree.file.name)
+  first.line                     <- readLines(tree.info$tree.file.name, n=1)
+  
+  if(first.line == "#NEXUS"){
+    tree                           <- read.nexus(tree.info$tree.file.name)
+  } else {
+    tree                           <- read.tree(tree.info$tree.file.name)
+  }
   
   tree.info$tree                 <- tree
   
