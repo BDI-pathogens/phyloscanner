@@ -2,7 +2,10 @@
 
 list.of.packages <- c("prodlim", "reshape2", "kimisc")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-if(length(new.packages)) install.packages(new.packages, dependencies = TRUE, repos="http://cran.ma.imperial.ac.uk/")
+if(length(new.packages)){
+  cat("Please run package_install.R to continue\n")
+  quit(save="no", status=1)
+}
 
 suppressMessages(library(prodlim, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(reshape2, quietly=TRUE, warn.conflicts=FALSE))

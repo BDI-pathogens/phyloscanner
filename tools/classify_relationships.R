@@ -3,7 +3,7 @@
 list.of.packages <- c("phangorn", "argparse", "phytools", "kimisc")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)){
-  cat("Please run PackageInstall.R to continue\n")
+  cat("Please run package_install.R to continue\n")
   quit(save="no", status=1)
 }
 
@@ -148,8 +148,7 @@ if(file.exists(tree.file.name)){
   }
   all.tree.info <- split(fn.df, rownames(fn.df))
 }
-
-
+  
 for(tree.info in all.tree.info){	
 
   tree.info <- as.list(tree.info)
