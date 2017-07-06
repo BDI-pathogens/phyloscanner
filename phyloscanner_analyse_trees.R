@@ -279,7 +279,6 @@ if(file.exists(tree.input)){
   
   tree.info$prexisting.blacklist.file.name   <- blacklist.input
   
-  
   if(!do.class.detail){
     do.class.detail       <- T
   }
@@ -438,7 +437,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
       
       tree.info$blacklist                 <- blacklist
     } else {
-      cat(paste("WARNING: File ",i$blacklist.input," does not exist; skipping.\n",sep=""))
+      cat(paste("WARNING: File ",tree.info$blacklist.input," does not exist; skipping.\n",sep=""))
     }
   } 
   
