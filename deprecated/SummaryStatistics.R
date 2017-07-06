@@ -471,7 +471,7 @@ calc.all.stats.in.window <- function(suffix, verbose = F){
   
   blacklist <- vector()
   
-  if(!is.null(blacklist.file.name)){
+  if(!is.null(blacklist.file.name)){	  
     if(file.exists(blacklist.file.name)){
       # There should already have been a warning if this file does not exist. It isn't fatal.
       
@@ -623,7 +623,7 @@ all.splits.table <- lapply(setNames(suffixes, suffixes), function(x){
 
 # Calculate all the statistics apart from the subgraph proportions
 
-pat.stats <- lapply(suffixes, function(x) calc.all.stats.in.window(x, F))
+pat.stats <- lapply(suffixes, function(x) calc.all.stats.in.window(x, verbose))
 pat.stats <- rbindlist(pat.stats)
 
 # If you're looking at absolutely nothing, I'm not drawing you any graphs
