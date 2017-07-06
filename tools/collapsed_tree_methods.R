@@ -575,7 +575,7 @@ classify <- function(tree.info, verbose = F) {
   }
 
   if(is.null(tree.info$splits.table)){
-    if (verbose) cat("Reading splits file",splits.file.name,"...\n")
+    if (verbose) cat("Reading splits file", tree.info$splits.file.name, "...\n")
     
     splits <- read.csv(tree.info$splits.file.name, stringsAsFactors = F)
   } else {
