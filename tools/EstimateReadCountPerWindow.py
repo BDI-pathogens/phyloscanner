@@ -19,14 +19,9 @@ import os
 import sys
 import argparse
 import pysam
-import tools.phyloscanner_funcs as pf
+import phyloscanner_funcs as pf
 import collections
 import numpy as np
-GotMatPlotLib = True
-try:
-  import matplotlib.pyplot as plt
-except:
-  GotMatPlotLib = False
 
 # Define a function to check files exist, as a type for the argparse.
 def File(MyFile):
@@ -41,7 +36,6 @@ class SmartFormatter(argparse.HelpFormatter):
       return text[2:].splitlines()
     return argparse.HelpFormatter._split_lines(self, text, width)
 
-# Set up the arguments for this script
 # Set up the arguments for this script
 parser = argparse.ArgumentParser(description=ExplanatoryMessage,
 formatter_class=SmartFormatter)
@@ -60,6 +54,8 @@ PatientB.bam,PatientB_ref.fasta,B''')
 parser.add_argument('-O', '--out-filename', help="We'll append '.csv' for the "
 "output data file, and '.pdf' for the plot. The default is "
 "'EstimatedReadCountsPerWindow'.", default='EstimatedReadCountsPerWindow')
+parser.add_argument('-DB', '--dont-plot', action='store_true',
+help="Don't plot the results.")
 parser.add_argument('-MC', '--min-read-count', type=float, help='''Used to
 specify a positive number: we'll truncate the x axis when the window width
 becomes so large that all bams have a read count per window below this
@@ -251,11 +247,15 @@ else:
 with open(args.out_filename + '.csv', 'w') as f:
   np.savetxt(f, matrix, delimiter=',', header=header, fmt='%.1f')
 
-# Quit if we can't plot.
-if not GotMatPlotLib:
+if args.dont_plot:
+  exit(0)
+
+try:
+  import matplotlib.pyplot as plt
+except ImportError:
   print("The python library matplotlib does not seem to be installed: you'll "
   "need to plot", args.out_filename + '.csv yourself.' )
-  exit(0)
+  exit(1)
 
 # For plotting: cut off the tail end of the matrix where read counts are too
 # small.
