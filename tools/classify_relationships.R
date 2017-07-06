@@ -56,7 +56,7 @@ all.tree.info                        <- list()
 if(file.exists(tree.file.name)){
 
   tree.info                          <- list()
-  tree.info$tree.file.name     <- tree.file.name
+  tree.info$tree.file.name           <- tree.file.name
   tree.info$splits.file.names        <- splits.file.name
   tree.info$classification.file.name <- paste(output.root, "_classification", ".", csv.fe, sep="")
   if(do.collapsed){
