@@ -129,13 +129,13 @@ if(file.exists(input.name)){
   
   # batch mode
   
-  tree.input.names <- basename(list.files.mod(dirname(input.name), pattern=paste0("^",basename(input.name),'.*',tree.fe,'$'), full.names=TRUE))
+  tree.input.names <- list.files.mod(dirname(input.name), pattern=paste0("^",basename(input.name),'.*',tree.fe,'$'), full.names=TRUE)
   
   if(length(tree.input.names)==0){
     stop("No tree files found.")
   }
   
-  suffixes <- substr(tree.input.names, nchar(basename(input.name)) + 1, nchar(tree.input.names) - nchar(tree.fe) - 1)
+  suffixes <- substr(tree.input.names, nchar(input.name) + 1, nchar(tree.input.names) - nchar(tree.fe) - 1)
   
   b.output.names <- paste(b.output.name, "_", suffixes, ".", csv.fe, sep="")
   if(!is.null(d.output.name)){

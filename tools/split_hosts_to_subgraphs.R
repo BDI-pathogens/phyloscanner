@@ -156,14 +156,13 @@ if(file.exists(tree.file.name)){
   
   # Assume we are dealing with a group of files
   
-  tree.file.names	<- basename(list.files.mod(dirname(tree.file.name), pattern=paste('^',basename(tree.file.name),".*",tree.fe,'$',sep=''), full.names=TRUE))
-
+  tree.file.names	<- list.files.mod(dirname(tree.file.name), pattern=paste('^',basename(tree.file.name),".*",tree.fe,'$',sep=''), full.names=TRUE)
   if(length(tree.file.names)==0){
     cat("No input trees found.\n")
     quit(save="no", status=1)
   }
   
-  suffixes <- substr(tree.file.names, nchar(basename(tree.file.name)) + 1, nchar(tree.file.names)-nchar(tree.fe)-1)
+  suffixes <- substr(tree.file.names, nchar(tree.file.name) + 1, nchar(tree.file.names)-nchar(tree.fe)-1)
   if(!is.null(blacklist.file.name)){  
     blacklist.file.names <- paste(blacklist.file.name, suffixes, ".", csv.fe, sep="")
   }
