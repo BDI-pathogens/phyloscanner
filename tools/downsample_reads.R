@@ -104,15 +104,12 @@ if(file.exists(input.file.name)){
   #	option 2: input.file.name specifies a root name for several input files
 
   input.file.names <- sort(list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name),'.*\\.', tree.fe,'$',sep=''), full.names=TRUE))
-
   if(length(input.file.names)==0){
     cat("No tree files found.\nQuitting.\n")
     quit(save="no", status=1)
-  }
-  
-  suffixes <- substr(input.file.names, nchar(basename(input.file.name)) + 1, nchar(input.file.names)-nchar(tree.fe)-1 )
-
-  b.output.names <- paste(output.file.name, "_", suffixes, ".", csv.fe, sep="")
+  }  
+  suffixes <- substr(basename(input.file.names), nchar(basename(input.file.name)) + 1, nchar(basename(input.file.names))-nchar(tree.fe)-1 )
+  b.output.names <- paste(output.file.name, "_", suffixes, ".", csv.fe, sep="")  
   if(rename){
     rt.output.names <- paste(renamed.file.name, "_", suffixes, ".", tree.fe, sep="")
   }
