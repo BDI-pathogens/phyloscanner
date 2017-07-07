@@ -20,7 +20,7 @@ suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
 
 arg_parser = ArgumentParser(description="Identify phylogeny tips for blacklisting as representing suspected contaminants, based on a Sankoff parsimony reconstruction. Input and output file name arguments are either a single file, or the root name for a group of files, in which case all files matching that root will be processed, and matching output files generated.")
 arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. Three capture groups, in order: host ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the host ID will be the BAM file name.")
-arg_parser$add_argument("-D", "--scriptdir", action="store", help="Full path of the /tools directory.")
+arg_parser$add_argument("-D", "--scriptDir", action="store", help="Full path of the /tools directory.")
 arg_parser$add_argument("-r", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
 arg_parser$add_argument("-b", "--blacklist", action="store", help="A blacklist to be applied before this script is run.")
 arg_parser$add_argument("-c", "--noReadCounts", action="store_true", help="If present, read counts are not taken from tip labels and each tip is assumed to represent one read")
@@ -129,13 +129,13 @@ if(file.exists(input.name)){
   
   # batch mode
   
-  tree.input.names <- list.files.mod(dirname(input.name), pattern=paste(basename(input.name),'.*',tree.fe,'$',sep=''), full.names=TRUE)
+  tree.input.names <- list.files.mod(dirname(input.name), pattern=paste0("^",basename(input.name),'.*',tree.fe,'$'), full.names=TRUE)
   
   if(length(tree.input.names)==0){
     stop("No tree files found.")
   }
   
-  suffixes <- substr(tree.input.names, nchar(basename(input.name)) + 1, nchar(tree.input.names) - nchar(tree.fe) - 1)
+  suffixes <- substr(tree.input.names, nchar(input.name) + 1, nchar(tree.input.names) - nchar(tree.fe) - 1)
   
   b.output.names <- paste(b.output.name, "_", suffixes, ".", csv.fe, sep="")
   if(!is.null(d.output.name)){

@@ -290,14 +290,14 @@ for(suffix in suffixes){
   tree.file.name <- all.tree.info[[suffix]]$tree.file.name
 
   if(!file.exists(tree.file.name)){
-    cat("Tree ",splits.file.name," does not exist.\n", sep="")
+    cat("Tree ",tree.file.name," does not exist.\n", sep="")
     quit(save="no", status=1)
   }
 
   pseudo.beast.import <- read.beast(tree.file.name)
   tree <- attr(pseudo.beast.import, "phylo")
 
-  if (verbose) cat('Read tree file ',splits.file.name,'\n', sep="")
+  if (verbose) cat('Read tree file ',tree.file.name,'\n', sep="")
 
   all.tree.info[[suffix]]$tree <- tree
   

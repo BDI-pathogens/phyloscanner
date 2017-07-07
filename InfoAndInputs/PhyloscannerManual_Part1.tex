@@ -151,7 +151,7 @@ If \c{--pairwise-align-to} is {\it not} used, the window coordinates $X$ and $Y$
 If this file exists, the tree in window $X$-$Y$ is based on this alignment (not \c{AlignedReadsInWindow\_X\_to\_Y.fasta}).
 Note that excising positions may result in reads that were previously distinct becoming identical -- if they differed only at the excised positions.
 This is checked after positions are excised, and reads from the same bam that have become identical are merged with an updated count.
-Similarly, if the merging of similar reads (in addition to identical reads) has been specified with a \c{--merging-threshold}, the merging is rerun after excision of positions.
+Similarly, if the merging of similar reads (in addition to identical reads) has been specified, the merging is rerun after excision of positions.
 If the excision of positions results in reads becoming merged, clearly there will not be a one-to-one correspondence between reads before and after excision: after merging there may be fewer unique reads, though with the same total count.
 \item \c{Consensuses/Consensuses\_InWindow\_X\_to\_Y.fasta}.
 In this alignment, the set of unique reads retained from each bam file is collapsed into a single sequence: their consensus (taking the most common base/gap at each position, weighting each unique read by its count).
@@ -257,8 +257,7 @@ AAAAAAA\\
 AAAACCC\\
 CCCCCCC\\
 Calculation time scales cubically with the number of unique sequences each sample has per window, and so the option is turned off by default.
-You can save time by only turning it on only after you've settled on the values of other parameters that affect the number of unique sequences per window (notably window width, a merging threshold and a minimum
-read count).
+You can save time by only turning it on only after you've settled on the values of other parameters that affect the number of unique sequences per window (notably window width, a merging threshold and a minimum read count).
 \end{itemize}
 
 \subsection{Read quality options}
@@ -285,10 +284,15 @@ Requires the \c{--excision-ref} flag.
 \item \c{--excision-ref}: used to specify the name of a reference (which must be present in the file you specify with \c{--alignment-of-other-refs}) with respect to which the coordinates specified with \c{--excision-coords} are interpreted.
 If you are also using the \c{--pairwise-align-to} option, you must specify the same reference there
 and here.
-\item \c{--merging-threshold}: when multiple reads in the same bam file have exactly the same sequence, \pmt always collapses these to a single read with an associated {\it count} (i.e. the number of times that exact sequence was found in distinct reads in the bam file).
+\item \c{--merging-threshold-a}: when multiple reads in the same bam file have exactly the same sequence, \pmt always collapses these to a single read with an associated {\it count} (i.e. the number of times that exact sequence was found in distinct reads in the bam file).
 With this option, similar reads are merged as well as identical reads.
 Use this option to specify a positive integer as the threshold for merging.
-Where there is a group of reads that differ from each other by this threshold or less (i.e. each read in the group is sufficiently similar to at least one other read in the group), we use only the most common read to represent that group (with an updated count equal to the sum of counts of in the group).
+If read X differs from read Y by this threshold or less, and X has the smaller count, we keep only read Y and update its count to be the sum of the two counts.
+Note that with \c{--merging-threshold-a}, if X is similar enough to Y for merging, but Y has already been merged into Z, X will only be merged into Z too if X and Z are similar enough (contrast with \c{--merging-threshold-b} below).
+What this algorithm does is to start with the most common read, see if any less common reads are similar enough to into it, and if so remove those reads and use their count to bolster the more common read.
+The procedure is repeated starting with the second most common read, skipping any reads that have already been `used up'  in merging; then the third most common read and so on.
+\item \c{--merging-threshold-b}: similar to \c{--merging-threshold-a} above, except that if X is similar enough to Y for merging, but Y has already been merged into Z, X will automatically be merged into Z.
+This algorithm effectively partions the set of reads into groups such that each member of a group is similar enough to at least one other group member (and each group can be split no further, i.e. no read is similar enough to any read outside its own group), and uses only the read with the highest count to represent each group.
 \item \c{--num-bootstraps}: used to specify the number of bootstraps to be calculated for \c{RAxML} trees (by default, none, i.e. only the maximum-likelihood tree is calculated).
 \item \c{--bootstrap-seed}: used to specify the random-number seed for running \c{RAxML} with bootstraps.
 The default is 1.

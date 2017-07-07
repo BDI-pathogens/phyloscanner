@@ -525,7 +525,7 @@ def ResolveTree(tree):
       break
   return ResolvedCladesAtThisLevel
 
-def MergeSimilarStrings(DictOfStringCounts, SimilarityThreshold=1):
+def MergeSimilarStringsB(DictOfStringCounts, SimilarityThreshold=1):
   '''Absorbs those strings with lower counts into those with higher counts.
 
   Takes a dict for which the keys are the strings and the values are the counts
@@ -543,7 +543,7 @@ def MergeSimilarStrings(DictOfStringCounts, SimilarityThreshold=1):
   # Check that the keys of the dict are strings.
   for String in DictOfStringCounts:
     if type(String) != type('foo'):
-      print('The function MergeSimilarStrings was called with a dict',
+      print('The function MergeSimilarStringsB was called with a dict',
       "containing a key that's not a string.\nQuitting.", file=sys.stderr)
       exit(1)
 
@@ -552,7 +552,7 @@ def MergeSimilarStrings(DictOfStringCounts, SimilarityThreshold=1):
   try:
     TotalStringCount = sum(DictOfStringCounts.values())
   except TypeError:
-    print('The function MergeSimilarStrings was called with a dict',
+    print('The function MergeSimilarStringsB was called with a dict',
     "containing values of types that cannot be added together.\nQuitting.",
     file=sys.stderr)
     exit(1)
@@ -792,4 +792,80 @@ def MakeBamIndices(BamFiles, SamtoolsCommand):
         raise
 
 
+def MergeSimilarStringsA(DictOfStringCounts, SimilarityThreshold=1):
+  '''Absorbs those strings with lower counts into those with higher counts.
+  TODO
+  '''
 
+  # Check that the keys of the dict are strings.
+  for String in DictOfStringCounts:
+    if type(String) != type('foo'):
+      print('The function MergeSimilarStringsA was called with a dict',
+      "containing a key that's not a string.\nQuitting.", file=sys.stderr)
+      exit(1)
+
+  # Sum the dict's values
+  try:
+    TotalStringCount = sum(DictOfStringCounts.values())
+  except TypeError:
+    print('The function MergeSimilarStringsA was called with a dict',
+    "containing values of types that cannot be added together.\nQuitting.",
+    file=sys.stderr)
+    exit(1)
+      
+  # Nothing needs to be done to dicts with fewer than two entries.
+  NumberOfUniqueStrings = len(DictOfStringCounts)
+  if NumberOfUniqueStrings < 2:
+    return DictOfStringCounts
+
+  # Sort the strings by their counts
+  SortedDict = sorted(DictOfStringCounts.items(), key=lambda x: x[1])
+
+  PositionsOfStringsThatGetAbsorbed = set([])
+  MergedDict = {}
+
+  for i in range(NumberOfUniqueStrings - 1, -1, -1):
+
+    if i in PositionsOfStringsThatGetAbsorbed:
+      continue
+
+    CommonString, CommonCount = SortedDict[i]
+    CountForJsToMergeToThisI = 0
+
+    for j in range(0, i):
+
+      if j in PositionsOfStringsThatGetAbsorbed:
+        continue
+
+      RareString, RareCount = SortedDict[j]
+      if RareCount == CommonCount:
+        break
+
+      # Compare the two strings. Initialise the number of differences as the
+      # difference in string length, then do a pairwise comparison of characters
+      # over the length of the shorter string. As soon as the number of 
+      # differences exceeds the threshold, we know we shouldn't be merging them. 
+      NumDifferingBases = abs(len(RareString) - len(CommonString))
+      if NumDifferingBases > SimilarityThreshold:
+        continue
+      for base1, base2 in itertools.izip(RareString, CommonString):
+        if base1 != base2:
+          NumDifferingBases += 1
+          if NumDifferingBases > SimilarityThreshold:
+            break
+      if NumDifferingBases <= SimilarityThreshold:
+        CountForJsToMergeToThisI += RareCount
+        PositionsOfStringsThatGetAbsorbed.add(j)
+
+    MergedDict[CommonString] = CommonCount + CountForJsToMergeToThisI
+
+  # Check the total count is the same before and after.
+  TotalStringCountAfterMerging = sum(MergedDict.values())
+  if TotalStringCountAfterMerging != TotalStringCount:
+    print('FATAL ERROR: the number of strings after merging, '+\
+    str(TotalStringCountAfterMerging)+', != the number before merging, '+\
+    str(TotalStringCount)+'. Please report this to Chris Wymant. Quitting.',
+    file=sys.stderr)
+    exit(1)
+
+  return MergedDict
