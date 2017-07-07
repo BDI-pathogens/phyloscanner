@@ -36,9 +36,9 @@ get.tt.adjacent <- function(tt, label){
 
 # The grandparent of a node in the collapsed tree
 
-get.tt.parent.patient <- function(tt, label){
+get.tt.parent.host <- function(tt, label){
   if(length(which(tt$unique.splits==label))>0){
-    return(tt$patients[which(tt$unique.splits==label)])
+    return(tt$hosts[which(tt$unique.splits==label)])
   } else {
     return(NULL)
   }
@@ -60,12 +60,12 @@ get.tt.mrca <- function(tt, label1, label2){
   return(ca.vec[1])
 }
 
-# The patient corresponding to the MRCA of two nodes
+# The host corresponding to the MRCA of two nodes
 
-get.tt.mrca.patient <- function(tt, label1, label2){
+get.tt.mrca.host <- function(tt, label1, label2){
   node <- intersect(c(label1,get.tt.ancestors(tt, label1)), c(label2, get.tt.ancestors(tt, label2)))[1]
   
-  return(tt$patients[which(tt$unique.splits==node)])
+  return(tt$hosts[which(tt$unique.splits==node)])
 }
 
 # The path from one node in the collapsed tree to another
@@ -226,15 +226,15 @@ prune.unsampled.tips <- function(tt.table){
   return(for.output)
 }
 
-check.contiguous <- function(tt, patients, splits.for.patients, patients.for.splits){
-  if(length(patients)!=2){
+check.contiguous <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
+  if(length(hosts)!=2){
     stop("Not implemented")
   }
-  pat.1.id <- patients[1]
-  pat.2.id <- patients[2]
+  pat.1.id <- hosts[1]
+  pat.2.id <- hosts[2]
   
   OK <- TRUE
-  all.nodes <-  c(splits.for.patients[[pat.1.id]], splits.for.patients[[pat.2.id]])
+  all.nodes <-  c(splits.for.hosts[[pat.1.id]], splits.for.hosts[[pat.2.id]])
   
   for(node.1 in seq(1, length(all.nodes))){
     for(node.2 in seq(1, length(all.nodes))){
@@ -244,7 +244,7 @@ check.contiguous <- function(tt, patients, splits.for.patients, patients.for.spl
         path <- get.tt.path(tt, node.1.id, node.2.id)
         for(node in path){
           if(!grepl("^unsampled_region",node)){
-            if(!(patients.for.splits[[node]] %in% c(pat.1.id, pat.2.id))){
+            if(!(hosts.for.splits[[node]] %in% c(pat.1.id, pat.2.id))){
               OK <- FALSE
               break
             }
@@ -263,33 +263,33 @@ check.contiguous <- function(tt, patients, splits.for.patients, patients.for.spl
   return(OK)
 }
 
-check.uninterrupted <- function(tt, patients, splits.for.patients, patients.for.splits){
+check.uninterrupted <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
   # this could certainly be faster
-  if(length(patients)!=2){
+  if(length(hosts)!=2){
     stop("Not implemented")
   }
-  pat.1.id <- patients[1]
-  pat.2.id <- patients[2]
+  pat.1.id <- hosts[1]
+  pat.2.id <- hosts[2]
   
-  nodes.1 <- splits.for.patients[[pat.1.id]]
-  nodes.2 <- splits.for.patients[[pat.2.id]]
+  nodes.1 <- splits.for.hosts[[pat.1.id]]
+  nodes.2 <- splits.for.hosts[[pat.2.id]]
   
   any.contiguity <- F
   any.interruption <- F
   
   for(node.1 in nodes.1){
     current.node <- get.tt.parent(tt, node.1)
-    while(current.node!="root" & (grepl("^unsampled_region",current.node) | (if(is.null(patients.for.splits[[current.node]])) {T} else {patients.for.splits[[current.node]]==pat.1.id}))){
+    while(current.node!="root" & (grepl("^unsampled_region",current.node) | (if(is.null(hosts.for.splits[[current.node]])) {T} else {hosts.for.splits[[current.node]]==pat.1.id}))){
       
       current.node <- get.tt.parent(tt, current.node)
     }
     if(current.node != "root"){
-      if(patients.for.splits[[current.node]]==pat.2.id){
+      if(hosts.for.splits[[current.node]]==pat.2.id){
         any.contiguity <- T
       } else {
         # this is a blocking node
         chain <- get.tt.ancestors(tt, current.node)
-        if(length(intersect(c(pat.1.id, pat.2.id), unlist(patients.for.splits[chain])))>0){
+        if(length(intersect(c(pat.1.id, pat.2.id), unlist(hosts.for.splits[chain])))>0){
           any.interruption <- T
           break
         }
@@ -300,16 +300,16 @@ check.uninterrupted <- function(tt, patients, splits.for.patients, patients.for.
   if(!any.interruption){
     for(node.2 in nodes.2){
       current.node <- get.tt.parent(tt, node.2)
-      while(current.node!="root" & (grepl("unsampled_region",current.node) | (if(is.null(patients.for.splits[[current.node]])) {T} else {patients.for.splits[[current.node]]==pat.2.id}))){
+      while(current.node!="root" & (grepl("unsampled_region",current.node) | (if(is.null(hosts.for.splits[[current.node]])) {T} else {hosts.for.splits[[current.node]]==pat.2.id}))){
         current.node <- get.tt.parent(tt, current.node)
       }
       if(current.node != "root"){
-        if(patients.for.splits[[current.node]]==pat.1.id){
+        if(hosts.for.splits[[current.node]]==pat.1.id){
           any.contiguity <- T
         } else {
           # this is a blocking node
           chain <- get.tt.ancestors(tt, current.node)
-          if(length(intersect(c(pat.1.id, pat.2.id), unlist(patients.for.splits[chain])))>0){
+          if(length(intersect(c(pat.1.id, pat.2.id), unlist(hosts.for.splits[chain])))>0){
             any.interruption <- T
             break
           }
@@ -321,25 +321,25 @@ check.uninterrupted <- function(tt, patients, splits.for.patients, patients.for.
   return(any.contiguity & !any.interruption)
 }
 
-extract.tt.subgraph <- function(tt, patients, splits.for.patients, patients.for.splits){
+extract.tt.subgraph <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
   # for now, at least
   
-  if(length(patients)!=2){
+  if(length(hosts)!=2){
     stop("Not implemented")
   }
-  if(!check.contiguous(tt, patients, splits.for.patients, patients.for.splits)){
+  if(!check.contiguous(tt, hosts, splits.for.hosts, hosts.for.splits)){
     stop("Not contiguous")
   }
   
-  pat.1.id <- patients[1]
-  pat.2.id <- patients[2]
+  pat.1.id <- hosts[1]
+  pat.2.id <- hosts[2]
   
-  pat.1.splts <- splits.for.patients[[pat.1.id]]
-  pat.2.splts <- splits.for.patients[[pat.2.id]]
+  pat.1.splts <- splits.for.hosts[[pat.1.id]]
+  pat.2.splts <- splits.for.hosts[[pat.2.id]]
   
   sub.tt <- tt[which(tt$unique.splits %in% c(pat.1.splts, pat.2.splts)),]
-  unsampled.below <- tt[which(tt$patients == "unsampled_region" & (tt$parent.splits %in% c(pat.1.splts, pat.2.splts))),]
-  unsampled.above <- tt[which(tt$patients == "unsampled_region" & (tt$unique.splits %in% sub.tt$parent.splits)),]
+  unsampled.below <- tt[which(tt$hosts == "unsampled_region" & (tt$parent.splits %in% c(pat.1.splts, pat.2.splts))),]
+  unsampled.above <- tt[which(tt$hosts == "unsampled_region" & (tt$unique.splits %in% sub.tt$parent.splits)),]
   
   none.but.maybe.relevant <- c(unsampled.above$unique.splits, unsampled.below$unique.splits)
   
@@ -469,7 +469,7 @@ subgraphs.adjacent <- function(tt, splits, none.matters = F){
   return(out)
 }
 
-# are pairs of subgraphs from two patients not separated by any other subgraphs from either of those patients?
+# are pairs of subgraphs from two hosts not separated by any other subgraphs from either of those hosts?
 
 subgraphs.unblocked <- function(tt, splits){
   out <- matrix(ncol = length(splits), nrow=length(splits))
@@ -506,16 +506,16 @@ subgraphs.unblocked <- function(tt, splits){
   return(out)
 }
 
-check.adjacency <- function(tt, patients, splits.for.patients){
+check.adjacency <- function(tt, hosts, splits.for.hosts){
   # this could certainly be faster
-  if(length(patients)!=2){
+  if(length(hosts)!=2){
     stop("Not implemented")
   }
-  pat.1.id <- patients[1]
-  pat.2.id <- patients[2]
+  pat.1.id <- hosts[1]
+  pat.2.id <- hosts[2]
   
-  nodes.1 <- splits.for.patients[[pat.1.id]]
-  nodes.2 <- splits.for.patients[[pat.2.id]]
+  nodes.1 <- splits.for.hosts[[pat.1.id]]
+  nodes.2 <- splits.for.hosts[[pat.2.id]]
   
   for(node.1 in nodes.1){
     for(node.2 in nodes.2){
@@ -591,10 +591,10 @@ classify <- function(tree.info, verbose = F) {
     splits <- tree.info$splits.table
   }
   
-  if (verbose) cat("Collecting tips for each patient...\n")
+  if (verbose) cat("Collecting tips for each host...\n")
   
-  patients <- unique(splits$patient)
-  patients <- patients[patients!="unsampled"]
+  hosts <- unique(splits$host)
+  hosts <- hosts[hosts!="unsampled"]
   
   all.splits <- unique(splits$subgraph)
   all.splits <- all.splits[all.splits!="unsampled"]
@@ -605,15 +605,15 @@ classify <- function(tree.info, verbose = F) {
   assocs <- lapply(assocs, function(x) replace(x, is.na(x), "none"))
   assocs <- lapply(assocs, function(x) replace(x, x=="unsampled", "none"))
   
-  splits.for.patients <- lapply(patients, function(x) unique(splits$subgraph[which(splits$patient==x)] ))
-  names(splits.for.patients) <- patients
+  splits.for.hosts <- lapply(hosts, function(x) unique(splits$subgraph[which(splits$host==x)] ))
+  names(splits.for.hosts) <- hosts
   
-  patients.for.splits <- lapply(all.splits, function(x) unique(splits$patient[which(splits$subgraph==x)] ))
-  names(patients.for.splits) <- all.splits
+  hosts.for.splits <- lapply(all.splits, function(x) unique(splits$host[which(splits$subgraph==x)] ))
+  names(hosts.for.splits) <- all.splits
   
-  patients.included <- patients
+  hosts.included <- hosts
   
-  total.pairs <- (length(patients.included) ^ 2 - length(patients.included))/2
+  total.pairs <- (length(hosts.included) ^ 2 - length(hosts.included))/2
   
   if (verbose) cat("Collapsing subgraphs...\n")
   
@@ -635,31 +635,31 @@ classify <- function(tree.info, verbose = F) {
   if (verbose) cat("Testing pairs...\n")
   
   count <- 0
-  adjacency.matrix <- matrix(NA, length(patients.included), length(patients.included))
-  contiguity.matrix <- matrix(NA, length(patients.included), length(patients.included))
-  path.matrix <- matrix(NA, length(patients.included), length(patients.included))
-  nodes.1.matrix <- matrix(NA, length(patients.included), length(patients.included))
-  nodes.2.matrix <- matrix(NA, length(patients.included), length(patients.included))
-  dir.12.matrix <- matrix(NA, length(patients.included), length(patients.included))
-  dir.21.matrix <- matrix(NA, length(patients.included), length(patients.included))
-  min.distance.matrix <- matrix(NA, length(patients.included), length(patients.included))
+  adjacency.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
+  contiguity.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
+  path.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
+  nodes.1.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
+  nodes.2.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
+  dir.12.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
+  dir.21.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
+  min.distance.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
   
-  for(pat.1 in seq(1, length(patients.included))){
-    for(pat.2 in  seq(1, length(patients.included))){
+  for(pat.1 in seq(1, length(hosts.included))){
+    for(pat.2 in  seq(1, length(hosts.included))){
       if (pat.1 < pat.2) {
         
         count <- count + 1
         
-        pat.1.id <- patients.included[pat.1]
-        pat.2.id <- patients.included[pat.2]
+        pat.1.id <- hosts.included[pat.1]
+        pat.2.id <- hosts.included[pat.2]
         
-        nodes.1 <- splits.for.patients[[pat.1.id]]
-        nodes.2 <- splits.for.patients[[pat.2.id]]
+        nodes.1 <- splits.for.hosts[[pat.1.id]]
+        nodes.2 <- splits.for.hosts[[pat.2.id]]
         
         all.nodes <-  c(nodes.1, nodes.2)
         
-        adjacency.matrix[pat.1, pat.2] <- check.adjacency(tt, c(pat.1.id, pat.2.id), splits.for.patients)		
-        contiguity.matrix[pat.1, pat.2] <- check.contiguous(tt, c(pat.1.id, pat.2.id), splits.for.patients, patients.for.splits)		
+        adjacency.matrix[pat.1, pat.2] <- check.adjacency(tt, c(pat.1.id, pat.2.id), splits.for.hosts)		
+        contiguity.matrix[pat.1, pat.2] <- check.contiguous(tt, c(pat.1.id, pat.2.id), splits.for.hosts, hosts.for.splits)		
         
         count.12 <- 0
         count.21 <- 0
@@ -729,16 +729,16 @@ classify <- function(tree.info, verbose = F) {
   
   normalised.distance.matrix<- min.distance.matrix/normalisation.constant
   
-  adjacency.df <- convert.to.columns(adjacency.matrix, patients.included)
-  contiguity.df <- convert.to.columns(contiguity.matrix, patients.included)
-  dir.12.df <- convert.to.columns(dir.12.matrix, patients.included)
-  dir.21.df <- convert.to.columns(dir.21.matrix, patients.included)
-  nodes.1.df <- convert.to.columns(nodes.1.matrix, patients.included)
-  nodes.2.df <- convert.to.columns(nodes.2.matrix, patients.included)
-  path.df <- convert.to.columns(path.matrix, patients.included)
-  min.distance.df <- convert.to.columns(min.distance.matrix, patients.included)
+  adjacency.df <- convert.to.columns(adjacency.matrix, hosts.included)
+  contiguity.df <- convert.to.columns(contiguity.matrix, hosts.included)
+  dir.12.df <- convert.to.columns(dir.12.matrix, hosts.included)
+  dir.21.df <- convert.to.columns(dir.21.matrix, hosts.included)
+  nodes.1.df <- convert.to.columns(nodes.1.matrix, hosts.included)
+  nodes.2.df <- convert.to.columns(nodes.2.matrix, hosts.included)
+  path.df <- convert.to.columns(path.matrix, hosts.included)
+  min.distance.df <- convert.to.columns(min.distance.matrix, hosts.included)
   if(normalisation.constant!=1){
-    normalised.distance.df <- convert.to.columns(normalised.distance.matrix, patients.included)
+    normalised.distance.df <- convert.to.columns(normalised.distance.matrix, hosts.included)
   }
   
   classification <- cbind(adjacency.df, contiguity.df[,3], dir.12.df[,3], dir.21.df[,3], nodes.1.df[,3], nodes.2.df[,3], path.df[,3], min.distance.df[,3])
@@ -788,7 +788,7 @@ merge.classifications <- function(all.tree.info, allow.mt = T){
   # need to worry about transmissions listed in the wrong direction in the input file
   # to avoid very large memory, consolidate by FILE
   
-  if(verbose) cat("Rearranging patient pairs...\n")
+  if(verbose) cat("Rearranging host pairs...\n")
   
   tt	<- lapply(tt, function(x){
     #x	<- tt[[1]]

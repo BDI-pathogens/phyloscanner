@@ -1,4 +1,4 @@
-split.patients.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff.k, sankoff.p, useff, count.reads, patient.master.list=NULL, verbose = F){
+split.hosts.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff.k, sankoff.p, useff, count.reads, host.master.list=NULL, verbose = F){
   
   if (verbose) cat("Getting tip read counts...\n")
   
@@ -17,14 +17,14 @@ split.patients.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff
   
   if (verbose) cat("Identifying tips with host...\n")
   
-  # Find patient IDs from each tip
+  # Find host IDs from each tip
   
   tip.hosts <- sapply(tip.labels, function(x) host.from.label(x, tip.regex))
 
   non.host.tips <- which(is.na(sapply(tree$tip.label, function(name) host.from.label(name, tip.regex))))
   tip.hosts[c(non.host.tips, blacklist)] <- "unsampled"
   
-  # Find the complete list of patients present in this tree minus blacklisting
+  # Find the complete list of hosts present in this tree minus blacklisting
   
   if (verbose) cat("Finding list of hosts...\n")
   
@@ -45,14 +45,14 @@ split.patients.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff
     return(list(tree=tree, rs.subgraphs=NULL))    
   } 
   
-  # host.tips is a list of tips that belong to each patient
+  # host.tips is a list of tips that belong to each host
   
   if (verbose) cat("Finding tips for each host...\n")
   
   host.tips <- lapply(hosts, function(x) which(tip.hosts==x))
   names(host.tips) <- hosts
   
-  # patient.mrcas is a list of MRCA nodes for each patient
+  # host.mrcas is a list of MRCA nodes for each host
   
   if (verbose) cat("Finding MRCAs for each host...\n")
   
@@ -91,30 +91,30 @@ split.patients.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff
     }
   }
 
-  # This is the annotation for each node by patient
+  # This is the annotation for each node by host
   
-  patient.annotation <- sapply(split.annotation, function(x) unlist(strsplit(x, "-S"))[1] )
-  names(patient.annotation) <- NULL
+  host.annotation <- sapply(split.annotation, function(x) unlist(strsplit(x, "-S"))[1] )
+  names(host.annotation) <- NULL
   
-  if(is.null(patient.master.list)){
-    patient.annotation <- factor(patient.annotation, levels = sample(levels(as.factor(patient.annotation))))
+  if(is.null(host.master.list)){
+    host.annotation <- factor(host.annotation, levels = sample(levels(as.factor(host.annotation))))
   } else {
-    patient.annotation <- factor(patient.annotation, levels = patient.master.list)
+    host.annotation <- factor(host.annotation, levels = host.master.list)
   }
   
-  branch.colours <- patient.annotation
+  branch.colours <- host.annotation
   branch.colours[first.nodes] <- NA
   
   # For annotation
   # We will return the original tree with the original branch lengths
   
   attr(tree, 'SPLIT') <- factor(split.annotation)
-  attr(tree, 'INDIVIDUAL') <- patient.annotation
+  attr(tree, 'INDIVIDUAL') <- host.annotation
   attr(tree, 'BRANCH_COLOURS') <- branch.colours
   
   rs.subgraphs <- data.table(subgraph=results$split.hosts)
-  rs.subgraphs <- rs.subgraphs[, list(patient= unlist(strsplit(subgraph, "-S"))[1], tip= tree$tip.label[ results$split.tips[[subgraph]] ]	), by='subgraph']
-  rs.subgraphs <- as.data.frame(subset(rs.subgraphs, select=c(patient, subgraph, tip)))
+  rs.subgraphs <- rs.subgraphs[, list(host= unlist(strsplit(subgraph, "-S"))[1], tip= tree$tip.label[ results$split.tips[[subgraph]] ]	), by='subgraph']
+  rs.subgraphs <- as.data.frame(subset(rs.subgraphs, select=c(host, subgraph, tip)))
   
   list(tree=tree, rs.subgraphs=rs.subgraphs)
 }
