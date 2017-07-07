@@ -23,7 +23,7 @@ arg_parser$add_argument("-e", "--excludeUnderrepresented", action="store_true", 
 arg_parser$add_argument("maxReadsPerHost", type="double", action="store", help="The upper limit for the number of reads to be included from each host")
 arg_parser$add_argument("inputFile", metavar="inputTreeFileName", help="Tree file name. Alternatively, a base name that identifies a group of tree file names can be specified. Tree files are assumed to end in .tree.")  
 arg_parser$add_argument("outputFile", metavar="outputFileName", help="The file to write the output to, a list of tips to be blacklisted.")  
-arg_parser$add_argument("-D", "--scriptDir", action="store", help="Full path of the script directory.", default="/Users/twoseventwo/Documents/phylotypes/")
+arg_parser$add_argument("-D", "--scriptDir", action="store", help="Full path of the script directory.")
 arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what the script is doing.")
 arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default="tree", help="The file extension for tree files (default .tree).")
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="csv", help="The file extension for table files (default .csv).")
@@ -104,15 +104,12 @@ if(file.exists(input.file.name)){
   #	option 2: input.file.name specifies a root name for several input files
 
   input.file.names <- sort(list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name),'.*\\.', tree.fe,'$',sep=''), full.names=TRUE))
-
   if(length(input.file.names)==0){
     cat("No tree files found.\nQuitting.\n")
     quit(save="no", status=1)
-  }
-  
-  suffixes <- substr(input.file.names, nchar(basename(input.file.name)) + 1, nchar(input.file.names)-nchar(tree.fe)-1 )
-
-  b.output.names <- paste(output.file.name, "_", suffixes, ".", csv.fe, sep="")
+  }  
+  suffixes <- substr(basename(input.file.names), nchar(basename(input.file.name)) + 1, nchar(basename(input.file.names))-nchar(tree.fe)-1 )
+  b.output.names <- paste(output.file.name, "_", suffixes, ".", csv.fe, sep="")  
   if(rename){
     rt.output.names <- paste(renamed.file.name, "_", suffixes, ".", tree.fe, sep="")
   }

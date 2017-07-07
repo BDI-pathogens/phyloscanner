@@ -161,12 +161,12 @@ if(do.dual.blacklisting & !do.par.blacklisting){
 bl.raw.threshold      <- as.numeric(args$rawBlacklistThreshold)
 bl.ratio.threshold    <- as.numeric(args$ratioBlacklistThreshold)
 
-if(do.par.blacklisting & bl.raw.threshold == 0 & bl.ratio.threshold){
+if(do.par.blacklisting & bl.raw.threshold == 0 & bl.ratio.threshold == 0){
   stop("Parsimony blacklisting requested but no thresholds specified with -rwt or -rtt")
 }
 
 
-if(do.dup.blacklisting & bl.raw.threshold == 0 & bl.ratio.threshold){
+if(do.dup.blacklisting & bl.raw.threshold == 0 & bl.ratio.threshold == 0){
   stop("Duplicate blacklisting requested but no thresholds specified with -rwt or -rtt")
 }
 
@@ -279,7 +279,6 @@ if(file.exists(tree.input)){
   
   tree.info$prexisting.blacklist.file.name   <- blacklist.input
   
-  
   if(!do.class.detail){
     do.class.detail       <- T
   }
@@ -349,7 +348,13 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
     cat("Reading tree file",tree.info$tree.file.name,'\n')
   }
   
-  tree                           <- read.tree(tree.info$tree.file.name)
+  first.line                     <- readLines(tree.info$tree.file.name, n=1)
+  
+  if(first.line == "#NEXUS"){
+    tree                           <- read.nexus(tree.info$tree.file.name)
+  } else {
+    tree                           <- read.tree(tree.info$tree.file.name)
+  }
   
   tree.info$tree                 <- tree
   
@@ -438,7 +443,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
       
       tree.info$blacklist                 <- blacklist
     } else {
-      cat(paste("WARNING: File ",i$blacklist.input," does not exist; skipping.\n",sep=""))
+      cat(paste("WARNING: File ",tree.info$blacklist.input," does not exist; skipping.\n",sep=""))
     }
   } 
   

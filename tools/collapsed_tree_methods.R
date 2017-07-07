@@ -564,6 +564,14 @@ classify <- function(tree.info, verbose = F) {
     
     annotations$INDIVIDUAL <- as.character(annotations$INDIVIDUAL)
     annotations$SPLIT <- as.character(annotations$SPLIT)
+    
+    # to deal with a problem with older versions of ggtree
+    
+    strip.quotes <- function(string) if(substr(string, 1, 1)=="\"") substr(string, 2, nchar(string)-1) else string
+    
+    annotations$INDIVIDUAL <- sapply(annotations$INDIVIDUAL, strip.quotes)
+    annotations$SPLIT <- sapply(annotations$SPLIT, strip.quotes)
+    
   } else {
     
     tree <- tree.info$tree
@@ -573,9 +581,10 @@ classify <- function(tree.info, verbose = F) {
                               SPLIT = as.character(attr(tree, "SPLIT")), 
                               stringsAsFactors = F)
   }
+  
 
   if(is.null(tree.info$splits.table)){
-    if (verbose) cat("Reading splits file",splits.file.name,"...\n")
+    if (verbose) cat("Reading splits file", tree.info$splits.file.name, "...\n")
     
     splits <- read.csv(tree.info$splits.file.name, stringsAsFactors = F)
   } else {
