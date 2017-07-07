@@ -102,6 +102,7 @@ source(file.path(script.dir, "TreeUtilityFunctions.R"))
 source(file.path(script.dir, "GeneralFunctions.R"))
 
 input.files <- list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name)), full.names=TRUE)
+
 # We only want the *classification*.csv files produced by
 # ClassifyRelationships.R, not the collapsedTree files if present.
 # NB this regex needs to match the hard-coded file naming for collapsed trees.
