@@ -293,6 +293,7 @@ What this algorithm does is to start with the most common read, see if any less 
 The procedure is repeated starting with the second most common read, skipping any reads that have already been `used up'  in merging; then the third most common read and so on.
 \item \c{--merging-threshold-b}: similar to \c{--merging-threshold-a} above, except that if X is similar enough to Y for merging, but Y has already been merged into Z, X will automatically be merged into Z.
 This algorithm effectively partions the set of reads into groups such that each member of a group is similar enough to at least one other group member (and each group can be split no further, i.e. no read is similar enough to any read outside its own group), and uses only the read with the highest count to represent each group.
+For the same value of the threshold, merging \c{b} will merge as much or more than merging \c{a} (i.e. \c{b} will tend to result in fewer unique reads).
 \item \c{--num-bootstraps}: used to specify the number of bootstraps to be calculated for \c{RAxML} trees (by default, none, i.e. only the maximum-likelihood tree is calculated).
 \item \c{--bootstrap-seed}: used to specify the random-number seed for running \c{RAxML} with bootstraps.
 The default is 1.
