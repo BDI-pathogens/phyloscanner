@@ -276,7 +276,7 @@ for(suffix in suffixes){
   
   splits.table <- fread(splits.file.name)
   
-  colnames(splits.table) <- c("patient", "subgraph", "tip")
+  colnames(splits.table) <- c("host", "subgraph", "tip")
   
   if (verbose) cat('Read subgraph file ',splits.file.name,'\n', sep="")
   
