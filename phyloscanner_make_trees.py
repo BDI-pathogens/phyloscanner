@@ -198,11 +198,19 @@ of a reference (which must be present in the file you specify with -A) with
 respect to which the coordinates specified with -XC are interpreted. If you are
 also using the --pairwise-align-to option, you must use the same reference there
 and here.''')
-OtherArgs.add_argument('-MT', '--merging-threshold', type=int, default=0, help=\
-'''Used to specify a similarity threshold for merging similar reads: reads that
-differ by a number of bases equal to or less than this are merged, those with
-higher counts effectively absorbing those with lower counts. The default value
-of 0 means there is no merging.''')
+OtherArgs.add_argument('-MTA', '--merging-threshold-a', type=int, default=0,
+help='''Used to specify a similarity threshold for merging similar reads: reads
+that differ by a number of bases equal to or less than this are merged, those
+with higher counts effectively absorbing those with lower counts. The default
+value of 0 means there is no merging. In this version of the merging algorithm,
+if B is similar enough to merge into C, and A is similar enough to merge into B
+but not into C (A -> B -> C), B will be merged into C and A will be kept
+separate. Contrast with --merging-threshold-b.''')
+OtherArgs.add_argument('-MTB', '--merging-threshold-b', type=int, default=0,
+help='''Similar to --merging-threshold-a, except that in this version of the
+merging algorithm, if B is similar enough to merge into C, and A is similar
+enough to merge into B but not into C (A -> B -> C), both A and B will be merged
+into C.''')
 OtherArgs.add_argument('-N', '--num-bootstraps', type=int,
 help='Used to specify the number of bootstraps to be calculated for RAxML trees'
 ' (by default, none, i.e. only the ML tree is calculated).')
@@ -333,7 +341,9 @@ FlagContaminants = args.contaminant_count_ratio != None
 RecallContaminants = False
 CheckDuplicates = not args.dont_check_duplicates
 ExploreWindowWidths = args.explore_window_widths != None
-MergeReads = args.merging_threshold > 0
+MergeReadsA = args.merging_threshold_a > 0
+MergeReadsB = args.merging_threshold_b > 0
+MergeReads = MergeReadsA or MergeReadsB
 PrintInfo = not args.quiet
 
 # Print how this script was called, for logging purposes.
@@ -362,6 +372,12 @@ if args.output_dir != None:
       "another new one.) Continuing.", file=sys.stderr)
     else:
       HaveMadeOutputDir = True
+
+# Check only one merging type is specified
+if MergeReadsA and MergeReadsB:
+  print('You cannot specify both --merging-threshold-a and',
+  '--merging-threshold-b. Quitting.', file=sys.stderr)
+  exit(1)
 
 # Check that window coords have been specified either manually or automatically,
 # or we're exploring window widths
@@ -442,8 +458,8 @@ if (ExcisePositions and args.excision_ref == None) or \
 
 # --read-names-2 can't be used with read merging or position excising
 if args.read_names_2 and (ExcisePositions or MergeReads):
-  print('The --read-names-2 option cannot be used with either of the',
-  '--merging-threshold or --excision-coords options, because they change the',
+  print('The --read-names-2 option cannot be used with --merging-threshold-a,',
+  '--merging-threshold-b or --excision-coords, because they change the',
   'correspondence initially established between unique sequences and reads.',
   'Quitting''', file=sys.stderr)
   exit(1)
@@ -988,8 +1004,11 @@ def ProcessReadDict(ReadDict, WhichBam, LeftWindowEdge, RightWindowEdge):
   BasenameForReads = BamAliases[WhichBam]
 
   # Merge similar reads if desired
-  if MergeReads:
-    ReadDict = pf.MergeSimilarStrings(ReadDict, args.merging_threshold)
+  if MergeReadsA:
+    ReadDict = pf.MergeSimilarStringsA(ReadDict, args.merging_threshold_a)
+  if MergeReadsB:
+    ReadDict = pf.MergeSimilarStringsB(ReadDict, args.merging_threshold_b)
+
 
   # Implement the minimum read count
   if args.min_read_count > 1:
@@ -1067,10 +1086,14 @@ def ReMergeAlignedReads(alignment):
   SampleReadCounts, RefSeqsHere = ReadAlignedReadsIntoDicts(alignment)
   NewAlignment = AlignIO.MultipleSeqAlignment([])
   for SampleName in SampleReadCounts:
-    if MergeReads:
+    if MergeReadsA:
       SampleReadCounts[SampleName] = \
-      pf.MergeSimilarStrings(SampleReadCounts[SampleName],
-      args.merging_threshold)
+      pf.MergeSimilarStringsA(SampleReadCounts[SampleName],
+      args.merging_threshold_a)
+    if MergeReadsB:
+      SampleReadCounts[SampleName] = \
+      pf.MergeSimilarStringsB(SampleReadCounts[SampleName],
+      args.merging_threshold_b)
     for k, (read, count) in enumerate(sorted(
     SampleReadCounts[SampleName].items(), key=lambda x: x[1], reverse=True)):
       ID = SampleName+'_read_'+str(k+1)+'_count_'+str(count)
@@ -1315,7 +1338,7 @@ for window in range(NumCoords / 2):
         else:
           AllReads[read.query_name] = read
 
-      # If we're not merging reads, process this read now to save memory.
+      # If we're not merging paired reads, process this read now to save memory.
       # ProcessRead returns None if we don't want to consider this read.
       else:
         ReadAsPseudoRead = pf.PseudoRead.InitFromRead(read)
