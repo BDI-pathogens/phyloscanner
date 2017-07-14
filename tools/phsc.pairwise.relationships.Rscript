@@ -44,9 +44,9 @@ if(args$rel.likely.pair.by.topology.only)
 if(args$rel.likely.pair.by.cross.table)
 	relationship.types	<- c(relationship.types,'TYPE_PAIR_TODI2x2')
 if(args$rel.direction)
-	relationship.types	<- c(relationship.types,'TYPE_DIR_TODI3','TYPE_DIRSCORE_TODI3','TYPE_DIR_TODI4')
+	relationship.types	<- c(relationship.types,'TYPE_DIR_TODI2')
 if(args$rel.chain)
-	relationship.types	<- c(relationship.types,'TYPE_CHAIN_TODI')
+	relationship.types	<- c(relationship.types,'TYPE_CHAIN_TODI','TYPE_NETWORK_SCORES')
 ###############################################################################
 #	for testing / debugging
 ###############################################################################
@@ -73,18 +73,18 @@ if(0)
 	prior.keff.dir					<- 2
 	prior.neff.dir					<- 3
 	prior.calibrated.prob			<- 0.66
-	relationship.types				<- c('TYPE_BASIC','TYPE_DIR_TODI3','TYPE_DIRSCORE_TODI3','TYPE_DIR_TODI4','TYPE_PAIR_TODI2','TYPE_CHAIN_TODI','TYPE_PAIR_DI2','TYPE_PAIR_TO','TYPE_PAIR_TODI2x2')
+	relationship.types				<- c('TYPE_PAIR_DI2','TYPE_PAIR_TO','TYPE_PAIR_TODI2x2','TYPE_PAIR_TODI2','TYPE_DIR_TODI2','TYPE_NETWORK_SCORES','TYPE_CHAIN_TODI')
 }
 ###############################################################################
 #	run script
 ###############################################################################
-suppressMessages(library(phyloscan))
+suppressMessages(library(Phyloscanner.R.utilities))
 #	load detailed summary file
 tmp		<- load(infile)
 if(length(tmp)!=1)	stop("Unexpected length of loaded objects in infile")
 eval(parse(text=paste("dwin<- copy(",tmp,")",sep='')))		
 eval(parse(text=paste(tmp,"<- NULL",sep='')))
-tmp		<- phsc.get.pairwise.relationships.likelihoods(dwin, relationship.types, trmw.min.reads, trmw.min.tips, trmw.close.brl, trmw.distant.brl, prior.keff, prior.neff, prior.calibrated.prob, prior.keff.dir=prior.keff.dir, prior.neff.dir=prior.neff.dir)
+tmp		<- phsc.get.pairwise.relationships.likelihoods(dwin, trmw.min.reads, trmw.min.tips, trmw.close.brl, trmw.distant.brl, prior.keff, prior.neff, prior.calibrated.prob, relationship.types, prior.keff.dir=prior.keff.dir, prior.neff.dir=prior.neff.dir)
 dwin	<- copy(tmp$dwin)
 rplkl	<- copy(tmp$rplkl)
 cat('\nwrite to file', outfile,'...')
