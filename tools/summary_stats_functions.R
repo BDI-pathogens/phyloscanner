@@ -131,7 +131,7 @@ calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, verbose = F){
   
   hosts.present <- intersect(hosts, unique(hosts.for.tips))
   if(length(hosts.present)==0){
-    warning(paste("No listed hosts appear in tree ",tree.file.name,"\n",sep=""))
+    warning(paste("No listed hosts appear in tree ",tree.info$suffix,"\n",sep=""))
   }
 
   # A list of tips for each patient 
