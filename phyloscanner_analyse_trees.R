@@ -340,6 +340,10 @@ if(file.exists(tree.input)){
   single.file <- F
 }
 
+if(length(all.tree.info)==1 & !single.file){
+  warning("Only a single input tree file detected, summary statistics will not be plotted and transmission summary will be skipped.")
+  single.file <- T
+}
 
 # 2. Read the trees
 
@@ -360,7 +364,6 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
   
   tree.info
 }, simplify = F, USE.NAMES = T)
-
 
 # 3. Find some things out - are there read counts at the tips? Are there window coordinates in suffixes?
 
@@ -598,6 +601,8 @@ if(do.dup.blacklisting){
   
   dup.file.names <- list.files.mod(dirname(dup.input.file.name), pattern=paste(basename(dup.input.file.name),'.*',csv.fe,'$',sep=''), full.names=TRUE)
   
+  print(dup.input.file.name)
+  
   all.tree.info <- sapply(all.tree.info, function(tree.info) {
     if(file.exists(paste0(dup.input.file.name, tree.info$suffix, ".", csv.fe))){
       tree.info$duplicate.tips <- strsplit(readLines(paste0(dup.input.file.name, tree.info$suffix, ".", csv.fe), warn=F),",")
@@ -695,28 +700,7 @@ if(do.par.blacklisting){
   }, simplify = F, USE.NAMES = T)
 }
 
-
-# 11. All IDs can be safely gathered and mapped now; dual blacklisting as performed by this script cannot eliminate hosts entirely so we know who's in and who's out
-
-if(verbose) cat("Gathering host IDs...\n")
-
-hosts <- lapply(all.tree.info, "[[" , "hosts.for.tips")
-hosts <- unique(unlist(hosts))
-hosts <- hosts[!is.na(hosts)]
-hosts <- hosts[order(hosts)]
-
-all.tree.info <- sapply(all.tree.info, function(tree.info){
-  tips.for.hosts <- sapply(hosts, function(x){
-    
-    which(tree.info$hosts.for.tips == x)
-    
-  }, simplify = F, USE.NAMES = T)
-  tree.info$tips.for.hosts <- tips.for.hosts
-  tree.info
-}, simplify = F, USE.NAMES = T)
-
-
-# 12. Dual blacklisting
+# 11. Dual blacklisting
 
 if(do.dual.blacklisting){
   hosts.that.are.duals <- lapply(all.tree.info, function(tree.info){
@@ -757,7 +741,7 @@ if(do.dual.blacklisting){
 }
 
 
-# 13. Downsampling
+# 12. Downsampling
 
 if(downsample){
   all.tree.info <- sapply(all.tree.info, function(tree.info){
@@ -766,7 +750,41 @@ if(downsample){
     
     tree.info
   }, simplify = F, USE.NAMES = T)
-  
+}
+
+# 13. All IDs can be safely gathered and mapped now. Windows with no patients should be removed.
+
+if(verbose) cat("Gathering host IDs...\n")
+
+hosts <- lapply(all.tree.info, "[[" , "hosts.for.tips")
+hosts <- unique(unlist(hosts))
+hosts <- hosts[!is.na(hosts)]
+hosts <- hosts[order(hosts)]
+
+all.tree.info <- sapply(all.tree.info, function(tree.info){
+  if(all(is.na(tree.info$hosts.for.tips))){
+    warning("For tree suffix ",tree.info$suffix," no non-blacklisted tips remain; this window will be removed from the analysis.")
+    NULL 
+  } else {
+    tips.for.hosts <- sapply(hosts, function(x){
+      
+      which(tree.info$hosts.for.tips == x)
+      
+    }, simplify = F, USE.NAMES = T)
+    tree.info$tips.for.hosts <- tips.for.hosts
+    tree.info
+  }
+}, simplify = F, USE.NAMES = T)
+
+all.tree.info[sapply(all.tree.info, is.null)] <- NULL
+
+if(length(all.tree.info)==0){
+  stop("All hosts have been blacklisted from all trees; nothing to do.")
+}
+
+if(length(all.tree.info)==1 & !single.file){
+  warning("Only one window with any hosts is present after blacklisting, summary statistics will not be plotted and transmission summary will be skipped.")
+  single.file <- T
 }
 
 # 14. Prune away the blacklist if so requested
@@ -800,6 +818,10 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
   
   tree.info$ tree  <- tree
   rs.subgraphs		 <- tmp[['rs.subgraphs']]
+  
+  if(is.null(rs.subgraphs)){
+    warning("No non-blacklisted tips for suffix ",tree.info$suffix,"; this window will not be analysed further.")
+  }
   
   # Convert back to unnormalised branch lengths for output
   
@@ -855,12 +877,11 @@ coordinates <- lapply(all.tree.info, "[[" , "window.coords")
 
 if(readable.coords){
   coordinates <- lapply(all.tree.info, "[[" , "window.coords")
-  
   starts <- sapply(coordinates, "[[", "start")
   ends <- sapply(coordinates, "[[", "end")
-  
   ews <- min(starts)
   lwe <- max(ends)
+
 } else {
   coordinates <- sapply(all.tree.info, "[[" , "xcoord")
   range <- max(coordinates) - min(coordinates)
@@ -916,7 +937,6 @@ read.prop.columns <- rbindlist(read.prop.columns)
 pat.stats         <- cbind(pat.stats, read.prop.columns)
 
 pat.stats$tips    <- as.numeric(pat.stats$tips)
-
 
 tmp	<- file.path(paste0(output.dir, "/", output.string,"_patStats.csv"))
 if (verbose) cat("Writing output to file ",tmp,"...\n",sep="")

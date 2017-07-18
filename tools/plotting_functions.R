@@ -98,6 +98,7 @@ find.gaps <- function(xcoords){
 }
 
 produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, missing.window.rects, bar.width, regular.gaps = F, width=8.26772, height=11.6929, verbose = F){
+
   pdf(file=file.name, width=width, height=height)
   
   for (i in seq(1, length(hosts))) {

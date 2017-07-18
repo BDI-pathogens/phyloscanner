@@ -20,6 +20,10 @@ split.hosts.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff.k,
   # Find host IDs from each tip
   
   tip.hosts <- sapply(tip.labels, function(x) host.from.label(x, tip.regex))
+  
+  if(!any(!is.na(tip.hosts))){
+    return(list(tree=tree, r.subgraphs=NULL))
+  }
 
   non.host.tips <- which(is.na(sapply(tree$tip.label, function(name) host.from.label(name, tip.regex))))
   tip.hosts[c(non.host.tips, blacklist)] <- "unsampled"
