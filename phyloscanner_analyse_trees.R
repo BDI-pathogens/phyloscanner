@@ -285,7 +285,7 @@ if(file.exists(tree.input)){
   
   all.tree.info[["only.tree"]] <- tree.info
   
-  single.file <- T
+  single.input <- T
   
 } else {
   
@@ -337,13 +337,17 @@ if(file.exists(tree.input)){
     all.tree.info[[suffix]] <- tree.info
   }
   
-  single.file <- F
+  single.input <- F
 }
 
-if(length(all.tree.info)==1 & !single.file){
+if(length(all.tree.info)==1 & !single.input){
   warning("Only a single input tree file detected, summary statistics will not be plotted and transmission summary will be skipped.")
-  single.file <- T
 }
+
+# single.file is TRUE if there is just one input file, whereas single.input is if the user specified just one file (they might have 
+# specified a tree prefix which matches just one file)
+
+single.file <- single.input | length(all.tree.info)==1
 
 # 2. Read the trees
 
@@ -599,22 +603,21 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
 
 if(do.dup.blacklisting){
   
-  dup.file.names <- list.files.mod(dirname(dup.input.file.name), pattern=paste(basename(dup.input.file.name),'.*',csv.fe,'$',sep=''), full.names=TRUE)
-  
-  print(dup.input.file.name)
-  
-  all.tree.info <- sapply(all.tree.info, function(tree.info) {
-    if(file.exists(paste0(dup.input.file.name, tree.info$suffix, ".", csv.fe))){
-      tree.info$duplicate.tips <- strsplit(readLines(paste0(dup.input.file.name, tree.info$suffix, ".", csv.fe), warn=F),",")
-    } else {
-      warning("No duplicates file found for tree suffix ",tree.info$suffix, "; skipping duplicate blacklisting.")
-    }
-    tree.info
-  }, simplify = F, USE.NAMES = T)
+  if(!single.input){
+    all.tree.info <- sapply(all.tree.info, function(tree.info) {
+      if(file.exists(paste0(dup.input.file.name, tree.info$suffix, ".", csv.fe))){
+        tree.info$duplicate.tips <- strsplit(readLines(paste0(dup.input.file.name, tree.info$suffix, ".", csv.fe), warn=F),",")
+      } else {
+        warning("No duplicates file found for tree suffix ",tree.info$suffix, "; skipping duplicate blacklisting.")
+      }
+      tree.info
+    }, simplify = F, USE.NAMES = T)
+  } else {
+    all.tree.info[[1]]$duplicate.tips <- strsplit(readLines(dup.input.file.name),",")
+  }
   
   all.tree.info <- sapply(all.tree.info, function(tree.info) {
     tree <- tree.info$tree
-    
     
     if(!is.null(tree.info$duplicate.tips)){
       
