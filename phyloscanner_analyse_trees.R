@@ -195,6 +195,10 @@ if(reconstruction.mode!="r" & length(reconst.mode.arg)==1){
 
 if(reconstruction.mode!="r"){
   sankoff.k             <- as.numeric(reconst.mode.arg[2])
+  if(sankoff.k == 0 & reconstruction.mode=="f"){
+    stop("k=0 for continuation costs parsimony is not supported (for simple parsimony use 's,0')")
+  }
+  
   if(length(reconst.mode.arg) > 2){
     sankoff.p           <- as.numeric(reconst.mode.arg[3])
   } else {
