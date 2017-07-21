@@ -281,6 +281,7 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
 
     # Then traverse
     
+
     for(pat.no in 1:length(patients)){
       start.col <- sapply(finite.cost[,pat.no], function(x) if(x) 0 else Inf)
       
@@ -298,7 +299,11 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
       cost.matrix <- matrix(NA, nrow=length(tree$tip.label) + tree$Nnode, ncol=length(patients))
     }
     
-    cost.matrix <- make.cost.matrix(getRoot(tree), tree, patients, tip.patients, individual.costs, cost.matrix, k, tip.read.counts, verbose)
+    progress.bar <- txtProgressBar(width=50, style=3)
+    
+    cost.matrix <- make.cost.matrix(getRoot(tree), tree, patients, tip.patients, individual.costs, cost.matrix, k, tip.read.counts, progress.bar, verbose)
+    
+    close(progress.bar)
     
     if (verbose) cat("Reconstructing...\n")
     
@@ -410,8 +415,12 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
       cost.matrix <- matrix(NA, nrow=length(tree$tip.label) + tree$Nnode, ncol=length(patients))
     }
     
-    cost.matrix <- make.cost.matrix.fi(getRoot(tree), tree, patients, tip.patients, cost.matrix, k, p, finite.cost, tip.read.counts, verbose)
+    progress.bar <- txtProgressBar(width=50, style=3)
+    
+    cost.matrix <- make.cost.matrix.fi(getRoot(tree), tree, patients, tip.patients, cost.matrix, k, p, finite.cost, tip.read.counts, progress.bar, verbose)
 
+    close(progress.bar)
+    
     if (verbose) cat("Reconstructing...\n")
   
     full.assocs <- reconstruct.fi(tree, getRoot(tree), "unsampled", list(), tip.patients, patients, cost.matrix, finite.cost, k, p, tip.read.counts, verbose)
@@ -619,7 +628,7 @@ get.star.runs <- function(tree, assocs){
 
 # Make the full Sankoff cost matrix
 
-make.cost.matrix <- function(node, tree, patients, tip.patients, individual.costs, current.matrix, k, tip.read.counts, verbose = F){
+make.cost.matrix <- function(node, tree, patients, tip.patients, individual.costs, current.matrix, k, tip.read.counts, progress.bar=NULL, verbose = F){
   # if(verbose){
   #   cat("Node number ",node,":", sep="")
   # }
@@ -660,8 +669,8 @@ make.cost.matrix <- function(node, tree, patients, tip.patients, individual.cost
   #   cat(ties.string, "\n")
   #   cat("\n")  
   # }
-  if(length(which(!is.na(current.matrix[,1]))) %% 100 == 0){
-    if (verbose) cat(length(which(!is.na(current.matrix[,1]))), " of ", nrow(current.matrix), " matrix rows calculated.\n", sep="")
+  if(verbose & !is.null(progress.bar)){
+    setTxtProgressBar(progress.bar, length(which(!is.na(current.matrix[,1])))/nrow(current.matrix))
   }
   
   return(current.matrix)
@@ -786,7 +795,7 @@ calc.costs <- function(patient.no, patients, node.state, child.node, node.cost.m
   return(out)
 }
 
-cost.of.subtree <- function(tree, node, patient, tip.patients, finite.cost.col, results){
+cost.of.subtree <- function(tree, node, patient, tip.patients, finite.cost.col, results, progress.bar = NULL){
   if(is.tip(tree, node)){
     if(patient == tip.patients[node]){
       results[node] <- 0
@@ -796,7 +805,7 @@ cost.of.subtree <- function(tree, node, patient, tip.patients, finite.cost.col, 
   } else {
     for(child in Children(tree, node)){
       if(finite.cost.col[child]){
-        results <- cost.of.subtree(tree, child, patient, tip.patients, finite.cost.col, results)
+        results <- cost.of.subtree(tree, child, patient, tip.patients, finite.cost.col, results, progress.bar)
         results[node] <- results[node] + results[child] + get.edge.length(tree, child)
       }
     }
@@ -807,7 +816,7 @@ cost.of.subtree <- function(tree, node, patient, tip.patients, finite.cost.col, 
 
 # Reconstruct node states based on the cost matrix. 
 
-make.cost.matrix.fi <- function(node, tree, patients, tip.assocs, current.matrix, k, us.penalty, finite.costs, tip.read.counts, verbose = F){
+make.cost.matrix.fi <- function(node, tree, patients, tip.assocs, current.matrix, k, us.penalty, finite.costs, tip.read.counts, progress.bar = NULL, verbose = F){
   # if(verbose){
   #   cat("Node number ",node,":", sep="")
   # }
@@ -849,9 +858,10 @@ make.cost.matrix.fi <- function(node, tree, patients, tip.assocs, current.matrix
   #   cat(ties.string, "\n")
   #   cat("\n")  
   # }
-  # if(length(which(!is.na(current.matrix[,1]))) %% 100 == 0){
-  #   if (verbose) cat(length(which(!is.na(current.matrix[,1]))), " of ", nrow(current.matrix), " matrix rows calculated.\n", sep="")
-  # }
+  if(verbose & !is.null(progress.bar)){
+
+    setTxtProgressBar(progress.bar, length(which(!is.na(current.matrix[,1])))/nrow(current.matrix))
+  }
   
   return(current.matrix)
 }
@@ -931,7 +941,7 @@ reconstruct.fi <- function(tree, node, node.state, node.assocs, tip.assocs, pati
         #   cat("Single minimum cost belongs to ", decision, "\n", sep="")
         # }
       } else {
-        #cat("Tie at node",child,"between",format(patients[which(costs == min.cost)]),"broken randomly\n", sep=" ")
+#        cat("Tie at node",child,"between",format(patients[which(costs == min.cost)]),"broken randomly\n", sep=" ")
         choices <- which(costs == min.cost)
         choice <- choices[sample.int(length(choices), 1)]
         

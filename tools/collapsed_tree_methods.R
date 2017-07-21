@@ -350,13 +350,17 @@ extract.tt.subgraph <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
 
 # every distance between subgraphs
 
-all.subgraph.distances <- function(tree, tt, splits, assocs, slow=F){
+all.subgraph.distances <- function(tree, tt, splits, assocs, slow=F, total.pairs, verbose){
+  
+  if (verbose) progress.bar <- txtProgressBar(width=50, style=3)
   
   if(!slow){
     tree.dist <- dist.nodes(tree)
   } else {
     depths <- node.depth.edgelength(tree)
   }
+  
+  count <- 0
   
   temp <- matrix(ncol = length(splits), nrow=length(splits))
   
@@ -365,6 +369,8 @@ all.subgraph.distances <- function(tree, tt, splits, assocs, slow=F){
       if(spt.1.no==spt.2.no){
         temp[spt.1.no, spt.2.no] <- 0
       } else if(spt.1.no<spt.2.no){
+        
+        
         spt.1 <- splits[spt.1.no]
         spt.2 <- splits[spt.2.no]
         
@@ -408,12 +414,18 @@ all.subgraph.distances <- function(tree, tt, splits, assocs, slow=F){
             temp[spt.1.no, spt.2.no] <- pat.dist(tree, depths, mrca.1, mrca.2)
           }
         }
+        
+        count <- count + 1
+        
+        if(verbose){
+          setTxtProgressBar(progress.bar, count/total.pairs)
+        }
         temp[spt.2.no, spt.1.no] <- temp[spt.1.no, spt.2.no]
       }
     }
   }
   
-  
+  if(verbose) close(progress.bar)
   colnames(temp) <- splits
   rownames(temp) <- splits
   return(temp)
@@ -471,14 +483,17 @@ subgraphs.adjacent <- function(tt, splits, none.matters = F){
 
 # are pairs of subgraphs from two hosts not separated by any other subgraphs from either of those hosts?
 
-subgraphs.unblocked <- function(tt, splits){
+subgraphs.unblocked <- function(tt, splits, total.pairs, verbose = F){
+  if (verbose) progress.bar <- txtProgressBar(width=50, style=3)
+  count <- 0
+  
   out <- matrix(ncol = length(splits), nrow=length(splits))
   for(spt.1.no in 1:length(splits)){
     for(spt.2.no in 1:length(splits)){
       if(spt.1.no==spt.2.no){
         out[spt.1.no, spt.2.no] <- NA
       } else if(spt.1.no<spt.2.no){
-        
+
         spt.1 <- splits[spt.1.no]
         spt.2 <- splits[spt.2.no]
         
@@ -497,9 +512,15 @@ subgraphs.unblocked <- function(tt, splits){
           out[spt.1.no, spt.2.no] <- adj
           out[spt.2.no, spt.1.no] <- adj
         } 
+        count <- count + 1
+        if (verbose) {
+          setTxtProgressBar(progress.bar, count/total.pairs)
+        }
       }
     }
   }
+  if (verbose) close(progress.bar)
+  
   colnames(out) <- splits
   rownames(out) <- splits
   
@@ -621,18 +642,20 @@ classify <- function(tree.info, verbose = F) {
   
   if (verbose) cat("Identifying pairs of unblocked splits...\n")
   
-  collapsed.adjacent <- subgraphs.unblocked(tt, all.splits)
+  collapsed.adjacent <- subgraphs.unblocked(tt, all.splits, total.pairs, verbose)
   
   if (verbose) cat("Calculating pairwise distances between splits...\n")
   
   split.distances <- tryCatch(
-    all.subgraph.distances(tree, tt, all.splits, assocs), warning=function(w){return(NULL)}, error=function(e){return(NULL)})
+    all.subgraph.distances(tree, tt, all.splits, assocs, FALSE, total.pairs, verbose), warning=function(w){return(NULL)}, error=function(e){return(NULL)})
   
   if(is.null(split.distances)){
-    split.distances <- all.subgraph.distances(tree, tt, all.splits, assocs, TRUE)
+    split.distances <- all.subgraph.distances(tree, tt, all.splits, assocs, TRUE, total.pairs, verbose)
   }
   
   if (verbose) cat("Testing pairs...\n")
+  
+  if (verbose) progress.bar <- txtProgressBar(width=50, style=3)
   
   count <- 0
   adjacency.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
@@ -717,13 +740,14 @@ classify <- function(tree.info, verbose = F) {
         
         min.distance.matrix[pat.1, pat.2] <- min(pairwise.distances)
         
-        
-        if (count %% 100 == 0) {
-          if (verbose) cat(paste("Done ",format(count, scientific = F)," of ",format(total.pairs, scientific = F)," pairwise calculations\n", sep = ""))
+        if (verbose) {
+          setTxtProgressBar(progress.bar, count/total.pairs)
         }
       }
     }
   }
+  
+  if (verbose) close(progress.bar)
   
   normalisation.constant <- tree.info$normalisation.constant
   
