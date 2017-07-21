@@ -877,16 +877,16 @@ merge.classifications <- function(all.tree.info, allow.mt = T){
   return(tt)
 }
 
-summarise.classifications <- function(all.tree.info, min.threshold, dist.threshold, allow.mt = T, csv.fe = "csv", verbose = F, contiguous = F){
-
+summarise.classifications <- function(all.tree.info, min.threshold, dist.threshold, allow.mt = T, verbose = F, contiguous = F){
+  
   tt <- merge.classifications(all.tree.info, allow.mt)
   
   if (verbose) cat("Making summary output table...\n")
-
+  
   set(tt, NULL, c('PATHS.12','PATHS.21'),NULL)
   
   existence.counts <- tt[, list(both.exist=length(SUFFIX)), by=c('HOST.1','HOST.2')]
-
+  
   tt <- merge(tt, existence.counts, by=c('HOST.1', 'HOST.2'))
   
   if(!contiguous){
@@ -894,7 +894,7 @@ summarise.classifications <- function(all.tree.info, min.threshold, dist.thresho
   } else {
     tt.close <- tt[which(tt$CONTIGUOUS & tt$PATRISTIC_DISTANCE < dist.threshold ),]
   }
-   
+  
   tt.close$NOT.SIBLINGS <- tt.close$ADJACENT & (tt.close$PATRISTIC_DISTANCE < dist.threshold) & tt.close$TYPE!="none"
   
   # How many windows have this relationship, ADJACENT and PATRISTIC_DISTANCE below the threshold?
@@ -934,7 +934,7 @@ summarise.classifications <- function(all.tree.info, min.threshold, dist.thresho
   tt.close <- tt.close[!duplicated(tt.close),]
   
   setkey(tt.close, HOST.1, HOST.2, TYPE)
-
+  
   setnames(tt.close, c('HOST.1','HOST.2','TYPE'), c("Host_1", "Host_2", "relationship"))
   
   return(subset(tt.close, trees.with.any.relationship>min.threshold))
