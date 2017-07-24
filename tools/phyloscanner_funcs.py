@@ -202,7 +202,10 @@ class PseudoRead:
     if not len(read.query_sequence) == len(positions) == \
     len(read.query_qualities) > 0:
       print('Unexpected attribute properties for pysam.AlignedSegment\n', read,
-      '\nQuitting',  file=sys.stderr)
+      '\nSpecifically, expected equal numbers of bases, mapped positions and ',
+      'base qualities, but found ', len(read.query_sequence), ', ', 
+      len(positions), ' and ', len(read.query_qualities),
+      ' respectively. Quitting.', sep='', file=sys.stderr)
       exit(1)
     return cls(read.query_name, read.query_sequence, positions,
     read.query_qualities)

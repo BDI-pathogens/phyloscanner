@@ -1292,6 +1292,10 @@ for window in range(NumCoords / 2):
     for read in BamFile.fetch(RefSeqName, LeftWindowEdgeForFetch,
     RightWindowEdgeForFetch):
 
+      # fetch isn't supposed to return unmapped reads, but does.
+      if read.is_unmapped:
+        continue
+
       # Skip improperly paired reads if desired
       if args.discard_improper_pairs and read.is_paired and \
       not read.is_proper_pair:
