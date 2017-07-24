@@ -40,8 +40,9 @@ arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_
 arg_parser$add_argument("-y", "--fileNameRegex", action="store", default="^\\D*([0-9]+)_to_([0-9]+)\\D*$", help="Regular expression identifying window coordinates. Two capture groups: start and end; if the latter is missing then the first group is a single numerical identifier for the window. If absent, input will be assumed to be from the phyloscanner pipeline, and the host ID will be the BAM file name.")
 arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default="tree", help="The file extension for tree files (default tree).")
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="csv", help="The file extension for table files (default csv).")
-arg_parser$add_argument("-pw", "--pdfWidth", action="store", default=50, help="Width of tree pdf in inches.")
-arg_parser$add_argument("-ph", "--pdfRelHeight", action="store", default=0.15, help="Relative height of tree pdf.")
+arg_parser$add_argument("-pw", "--pdfWidth", action="store", default=50, help="Width of tree PDF in inches.")
+arg_parser$add_argument("-ph", "--pdfRelHeight", action="store", default=0.15, help="Relative height of tree PDF")
+arg_parser$add_argument("-psb", "--pdfScaleBarWidth", action="store", default=0.01, help="Width of the scale bar in the PDF output (in branch length units)")
 arg_parser$add_argument("-rda", "--outputRDA", action="store_true", help="Write the final R workspace image to file.")
 arg_parser$add_argument("-sd", "--seed", action="store_true", help="Random number seed; used by the downsampling process, and also ties in some parsimony reconstructions can be broken randomly.")
 arg_parser$add_argument("-D", "--toolsDir", action="store", help="Full path of the /tools/ directory.")
@@ -120,6 +121,7 @@ csv.fe                <- args$csvFileExtension
 
 pdf.hm                <- as.numeric(args$pdfRelHeight)
 pdf.w                 <- as.numeric(args$pdfWidth)
+pdf.scale.bar.width   <- as.numeric(args$pdfScaleBarWidth)
 
 seed                  <- args$seed
 
@@ -846,7 +848,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
         scale_color_hue(na.value = "black", drop=F) +
         theme(legend.position="none") +
         geom_tiplab(aes(col=INDIVIDUAL)) + 
-        geom_treescale(width=0.01, y=-5, offset=1.5)	  
+        geom_treescale(width=pdf.scale.bar.width, y=-5, offset=1.5)	  
       x.max <- ggplot_build(tree.display)$layout$panel_ranges[[1]]$x.range[2]	  
       tree.display <- tree.display + ggplot2::xlim(0, 1.1*x.max)
       tree.display		
