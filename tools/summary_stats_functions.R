@@ -3,7 +3,7 @@
 calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table, no.read.counts, verbose = F){
   if(verbose) cat("Calculating detailed statistics for host ",id,".\n", sep="")
   
-  subgraphs <- length(unique(splits.table$subgraph[which(splits.table$patient==id)]))
+  subgraphs <- length(unique(splits.table$subgraph[which(splits.table$host==id)]))
   
   all.tips <- tips.for.patients[[id]]
   
@@ -42,7 +42,8 @@ calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table
       subgraph.mean.pat.distance <- global.mean.pat.distance
       largest.rtt <- overall.rtt
     } else {
-      relevant.reads <- splits.table[which(splits.table$patient==id),]
+
+      relevant.reads <- splits.table[which(splits.table$host==id),]
       
       splits <- unique(relevant.reads$subgraph)
 
@@ -104,7 +105,7 @@ calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table
 # Calculates all statistics (apart from read proportions) for all patients in a given window
 
 calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, verbose = F){
-  
+
   if(verbose) cat("Calculating host statistics for tree suffix ",tree.info$suffix,"\n",sep="")
   
   suffix <- tree.info$suffix
@@ -130,9 +131,9 @@ calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, verbose = F){
   
   hosts.present <- intersect(hosts, unique(hosts.for.tips))
   if(length(hosts.present)==0){
-    warning(paste("No listed hosts appear in tree ",tree.file.name,"\n",sep=""))
+    warning(paste("No listed hosts appear in tree ",tree.info$suffix,"\n",sep=""))
   }
-  
+
   # A list of tips for each patient 
   
   tips.for.hosts <- lapply(setNames(hosts, hosts), function(x) tree$tip.label[which(hosts.for.tips==x)])
@@ -155,7 +156,7 @@ calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, verbose = F){
     }
   } 
   )]
-  window.table <- window.table[, subgraphs := sapply(hosts, function(x) length(unique(splits.table[which(splits.table$patient==x),]$subgraph)))]
+  window.table <- window.table[, subgraphs := sapply(hosts, function(x) length(unique(splits.table[which(splits.table$host==x),]$subgraph)))]
   window.table <- window.table[, clades := sapply(hosts, function(x) length(clades.by.host[[x]]))  ]
   
   new.cols <- sapply(hosts, function(x) calc.subtree.stats(x, suffix, tree, tips.for.hosts, splits.table, no.read.counts, verbose))
@@ -198,7 +199,7 @@ calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, verbose = F){
 
 get.read.proportions <- function(id, suffix, splits.table){
   
-  this.pat.splits <- splits.table[which(splits.table$patient==id),]
+  this.pat.splits <- splits.table[which(splits.table$host==id),]
   
   if(nrow(this.pat.splits)>0){
     this.pat.reads.by.split <- aggregate(this.pat.splits$reads, by=list(Category=this.pat.splits$subgraph), sum)

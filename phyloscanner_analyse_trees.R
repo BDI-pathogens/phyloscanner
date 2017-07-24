@@ -40,8 +40,9 @@ arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_
 arg_parser$add_argument("-y", "--fileNameRegex", action="store", default="^\\D*([0-9]+)_to_([0-9]+)\\D*$", help="Regular expression identifying window coordinates. Two capture groups: start and end; if the latter is missing then the first group is a single numerical identifier for the window. If absent, input will be assumed to be from the phyloscanner pipeline, and the host ID will be the BAM file name.")
 arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default="tree", help="The file extension for tree files (default tree).")
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="csv", help="The file extension for table files (default csv).")
-arg_parser$add_argument("-pw", "--pdfWidth", action="store", default=50, help="Width of tree pdf in inches.")
-arg_parser$add_argument("-ph", "--pdfRelHeight", action="store", default=0.15, help="Relative height of tree pdf.")
+arg_parser$add_argument("-pw", "--pdfWidth", action="store", default=50, help="Width of tree PDF in inches.")
+arg_parser$add_argument("-ph", "--pdfRelHeight", action="store", default=0.15, help="Relative height of tree PDF")
+arg_parser$add_argument("-psb", "--pdfScaleBarWidth", action="store", default=0.01, help="Width of the scale bar in the PDF output (in branch length units)")
 arg_parser$add_argument("-rda", "--outputRDA", action="store_true", help="Write the final R workspace image to file.")
 arg_parser$add_argument("-sd", "--seed", action="store_true", help="Random number seed; used by the downsampling process, and also ties in some parsimony reconstructions can be broken randomly.")
 arg_parser$add_argument("-D", "--toolsDir", action="store", help="Full path of the /tools/ directory.")
@@ -69,7 +70,7 @@ arg_parser$add_argument("-dsb", "--blacklistUnderrepresented", action="store_tru
 # Parsimony reconstruction
 
 arg_parser$add_argument("-ff", "--useff", action="store_true", default=FALSE, help="Use ff to store parsimony reconstruction matrices. Use if you run out of memory.")
-arg_parser$add_argument("splitsRule", action="store", help="The rules by which the sets of hosts are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. This takes a variable number of arguments. The first dictates the algorithm: s=Sankoff with optional within-host diversity penalty (slow, rigorous, default), r=Romero-Severson (quick, less rigorous with >2 hosts), f=Sankoff with continuation costs (experimental). For 'r' no further arguments are expected. For 's' and 'f' the k parameter in the Sankoff reconstruction, which penalises within-host diversity, must also be given. There is an optional third argument for 's' and 'f'. For 's' this is the branch length threshold at which a lineage reconstructed as infecting a host will transition to the unsampled state. For 'f' this is the branch length at which an node is reconstructed as unsampled if all its neighbouring nodes are a greater distance away. Both defaults are 0.")
+arg_parser$add_argument("splitsRule", action="store", help="The rules by which the sets of hosts are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. This takes one string as an argument which is itself a variable number of arguments, comma-separated. The first dictates the algorithm: s=Sankoff with optional within-host diversity penalty (slow, rigorous, default), r=Romero-Severson (quick, less rigorous with >2 hosts), f=Sankoff with continuation costs (experimental). For 'r' no further arguments are expected. For 's' and 'f' the k parameter in the Sankoff reconstruction, which penalises within-host diversity, must also be given. There is an optional third argument for 's' and 'f'. For 's' this is the branch length threshold at which a lineage reconstructed as infecting a host will transition to the unsampled state. For 'f' this is the branch length at which an node is reconstructed as unsampled if all its neighbouring nodes are a greater distance away. Both defaults are 0.")
 arg_parser$add_argument("-P", "--pruneBlacklist", action="store_true", help="If present, all blacklisted and references tips (except the outgroup) are pruned away before starting parsimony-based reconstruction")
 arg_parser$add_argument("-rcm", "--readCountsMatterOnZeroLengthBranches", default = FALSE, action="store_true", help="If present, read counts will be taken into account in parsimony reconstructions at the parents of zero-length branches. Not applicable for the Romero-Severson-like reconstruction method.")
 arg_parser$add_argument("-tn", "--outputNexusTree", action="store_true", help="Standard output of annotated trees are in PDF format. If this option is present, output them as NEXUS instead.")
@@ -86,7 +87,7 @@ arg_parser$add_argument("-ct", "--collapsedTrees", action="store_true", help="If
 # Classification summary
 
 arg_parser$add_argument("-swt", "--windowThreshold", action="store", default=0, type="double", help="Relationships between two hosts will only appear in output if they are within the distance threshold and ajacent to each other in more than this proportion of windows (default 0).")
-arg_parser$add_argument("-sdt", "--distanceThreshold", action="store", default=-1, type="double", help="Maximum distance threshold on a window for a relationship to be reconstructed between two hosts on that window.")
+arg_parser$add_argument("-sdt", "--distanceThreshold", action="store", default=-1, type="double", help="Maximum distance threshold on a window for a relationship to be reconstructed between two hosts on that window. If absent then no such threshold will be applied.")
 arg_parser$add_argument("-amt", "--allowMultiTrans", action="store_true", default=FALSE, help="If absent, directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative")
 
 args                  <- arg_parser$parse_args()
@@ -120,6 +121,7 @@ csv.fe                <- args$csvFileExtension
 
 pdf.hm                <- as.numeric(args$pdfRelHeight)
 pdf.w                 <- as.numeric(args$pdfWidth)
+pdf.scale.bar.width   <- as.numeric(args$pdfScaleBarWidth)
 
 seed                  <- args$seed
 
@@ -195,6 +197,10 @@ if(reconstruction.mode!="r" & length(reconst.mode.arg)==1){
 
 if(reconstruction.mode!="r"){
   sankoff.k             <- as.numeric(reconst.mode.arg[2])
+  if(sankoff.k == 0 & reconstruction.mode=="f"){
+    stop("k=0 for continuation costs parsimony is not supported (for simple parsimony use 's,0')")
+  }
+  
   if(length(reconst.mode.arg) > 2){
     sankoff.p           <- as.numeric(reconst.mode.arg[3])
   } else {
@@ -285,7 +291,7 @@ if(file.exists(tree.input)){
   
   all.tree.info[["only.tree"]] <- tree.info
   
-  single.file <- T
+  single.input <- T
   
 } else {
   
@@ -337,9 +343,17 @@ if(file.exists(tree.input)){
     all.tree.info[[suffix]] <- tree.info
   }
   
-  single.file <- F
+  single.input <- F
 }
 
+if(length(all.tree.info)==1 & !single.input){
+  warning("Only a single input tree file detected, summary statistics will not be plotted and transmission summary will be skipped.")
+}
+
+# single.file is TRUE if there is just one input file, whereas single.input is if the user specified just one file (they might have 
+# specified a tree prefix which matches just one file)
+
+single.file <- single.input | length(all.tree.info)==1
 
 # 2. Read the trees
 
@@ -360,7 +374,6 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
   
   tree.info
 }, simplify = F, USE.NAMES = T)
-
 
 # 3. Find some things out - are there read counts at the tips? Are there window coordinates in suffixes?
 
@@ -596,20 +609,21 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
 
 if(do.dup.blacklisting){
   
-  dup.file.names <- list.files.mod(dirname(dup.input.file.name), pattern=paste(basename(dup.input.file.name),'.*',csv.fe,'$',sep=''), full.names=TRUE)
-  
-  all.tree.info <- sapply(all.tree.info, function(tree.info) {
-    if(file.exists(paste0(dup.input.file.name, tree.info$suffix, ".", csv.fe))){
-      tree.info$duplicate.tips <- strsplit(readLines(paste0(dup.input.file.name, tree.info$suffix, ".", csv.fe), warn=F),",")
-    } else {
-      warning("No duplicates file found for tree suffix ",tree.info$suffix, "; skipping duplicate blacklisting.")
-    }
-    tree.info
-  }, simplify = F, USE.NAMES = T)
+  if(!single.input){
+    all.tree.info <- sapply(all.tree.info, function(tree.info) {
+      if(file.exists(paste0(dup.input.file.name, tree.info$suffix, ".", csv.fe))){
+        tree.info$duplicate.tips <- strsplit(readLines(paste0(dup.input.file.name, tree.info$suffix, ".", csv.fe), warn=F),",")
+      } else {
+        warning("No duplicates file found for tree suffix ",tree.info$suffix, "; skipping duplicate blacklisting.")
+      }
+      tree.info
+    }, simplify = F, USE.NAMES = T)
+  } else {
+    all.tree.info[[1]]$duplicate.tips <- strsplit(readLines(dup.input.file.name),",")
+  }
   
   all.tree.info <- sapply(all.tree.info, function(tree.info) {
     tree <- tree.info$tree
-    
     
     if(!is.null(tree.info$duplicate.tips)){
       
@@ -695,28 +709,7 @@ if(do.par.blacklisting){
   }, simplify = F, USE.NAMES = T)
 }
 
-
-# 11. All IDs can be safely gathered and mapped now; dual blacklisting as performed by this script cannot eliminate hosts entirely so we know who's in and who's out
-
-if(verbose) cat("Gathering host IDs...\n")
-
-hosts <- lapply(all.tree.info, "[[" , "hosts.for.tips")
-hosts <- unique(unlist(hosts))
-hosts <- hosts[!is.na(hosts)]
-hosts <- hosts[order(hosts)]
-
-all.tree.info <- sapply(all.tree.info, function(tree.info){
-  tips.for.hosts <- sapply(hosts, function(x){
-    
-    which(tree.info$hosts.for.tips == x)
-    
-  }, simplify = F, USE.NAMES = T)
-  tree.info$tips.for.hosts <- tips.for.hosts
-  tree.info
-}, simplify = F, USE.NAMES = T)
-
-
-# 12. Dual blacklisting
+# 11. Dual blacklisting
 
 if(do.dual.blacklisting){
   hosts.that.are.duals <- lapply(all.tree.info, function(tree.info){
@@ -757,7 +750,7 @@ if(do.dual.blacklisting){
 }
 
 
-# 13. Downsampling
+# 12. Downsampling
 
 if(downsample){
   all.tree.info <- sapply(all.tree.info, function(tree.info){
@@ -766,7 +759,41 @@ if(downsample){
     
     tree.info
   }, simplify = F, USE.NAMES = T)
-  
+}
+
+# 13. All IDs can be safely gathered and mapped now. Windows with no patients should be removed.
+
+if(verbose) cat("Gathering host IDs...\n")
+
+hosts <- lapply(all.tree.info, "[[" , "hosts.for.tips")
+hosts <- unique(unlist(hosts))
+hosts <- hosts[!is.na(hosts)]
+hosts <- hosts[order(hosts)]
+
+all.tree.info <- sapply(all.tree.info, function(tree.info){
+  if(all(is.na(tree.info$hosts.for.tips))){
+    warning("For tree suffix ",tree.info$suffix," no non-blacklisted tips remain; this window will be removed from the analysis.")
+    NULL 
+  } else {
+    tips.for.hosts <- sapply(hosts, function(x){
+      
+      which(tree.info$hosts.for.tips == x)
+      
+    }, simplify = F, USE.NAMES = T)
+    tree.info$tips.for.hosts <- tips.for.hosts
+    tree.info
+  }
+}, simplify = F, USE.NAMES = T)
+
+all.tree.info[sapply(all.tree.info, is.null)] <- NULL
+
+if(length(all.tree.info)==0){
+  stop("All hosts have been blacklisted from all trees; nothing to do.")
+}
+
+if(length(all.tree.info)==1 & !single.file){
+  warning("Only one window with any hosts is present after blacklisting, summary statistics will not be plotted and transmission summary will be skipped.")
+  single.file <- T
 }
 
 # 14. Prune away the blacklist if so requested
@@ -793,13 +820,17 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
   
   if(verbose) cat("Reconstructing internal node hosts on tree suffix ",tree.info$suffix, "\n", sep="")
   
-  tmp					     <- split.patients.to.subgraphs(tree.info$tree, tree.info$blacklist, reconstruction.mode, tip.regex, sankoff.k, sankoff.p, useff, read.counts.matter, hosts, verbose)
+  tmp					     <- split.hosts.to.subgraphs(tree.info$tree, tree.info$blacklist, reconstruction.mode, tip.regex, sankoff.k, sankoff.p, useff, read.counts.matter, hosts, verbose)
   tree					   <- tmp[['tree']]	
   
   # trees are annotated from now on
   
   tree.info$ tree  <- tree
   rs.subgraphs		 <- tmp[['rs.subgraphs']]
+  
+  if(is.null(rs.subgraphs)){
+    warning("No non-blacklisted tips for suffix ",tree.info$suffix,"; this window will not be analysed further.")
+  }
   
   # Convert back to unnormalised branch lengths for output
   
@@ -817,7 +848,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
         scale_color_hue(na.value = "black", drop=F) +
         theme(legend.position="none") +
         geom_tiplab(aes(col=INDIVIDUAL)) + 
-        geom_treescale(width=0.01, y=-5, offset=1.5)	  
+        geom_treescale(width=pdf.scale.bar.width, y=-5, offset=1.5)	  
       x.max <- ggplot_build(tree.display)$layout$panel_ranges[[1]]$x.range[2]	  
       tree.display <- tree.display + ggplot2::xlim(0, 1.1*x.max)
       tree.display		
@@ -855,12 +886,11 @@ coordinates <- lapply(all.tree.info, "[[" , "window.coords")
 
 if(readable.coords){
   coordinates <- lapply(all.tree.info, "[[" , "window.coords")
-  
   starts <- sapply(coordinates, "[[", "start")
   ends <- sapply(coordinates, "[[", "end")
-  
   ews <- min(starts)
   lwe <- max(ends)
+
 } else {
   coordinates <- sapply(all.tree.info, "[[" , "xcoord")
   range <- max(coordinates) - min(coordinates)
@@ -917,7 +947,6 @@ pat.stats         <- cbind(pat.stats, read.prop.columns)
 
 pat.stats$tips    <- as.numeric(pat.stats$tips)
 
-
 tmp	<- file.path(paste0(output.dir, "/", output.string,"_patStats.csv"))
 if (verbose) cat("Writing output to file ",tmp,"...\n",sep="")
 write.csv(pat.stats, tmp, quote = F, row.names = F)
@@ -966,7 +995,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
 # 18. Transmission summary
 
 if(!single.file){
-  results <- summarise.classifications(all.tree.info, win.threshold*length(all.tree.info), dist.threshold, allow.mt, csv.fe, verbose)
+  results <- summarise.classifications(all.tree.info, win.threshold*length(all.tree.info), dist.threshold, allow.mt, verbose)
   
   if (verbose) cat('Writing summary to file', paste0(output.string,"_hostRelationshipSummary.",csv.fe),'\n')
   write.csv(results, file=file.path(output.dir, paste0(output.string,"_hostRelationshipSummary.",csv.fe)), row.names=FALSE, quote=FALSE)

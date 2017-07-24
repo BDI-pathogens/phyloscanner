@@ -1,4 +1,4 @@
-split.patients.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff.k, sankoff.p, useff, count.reads, patient.master.list=NULL, verbose = F){
+split.hosts.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff.k, sankoff.p, useff, count.reads, host.master.list=NULL, verbose = F){
   
   if (verbose) cat("Getting tip read counts...\n")
   
@@ -17,14 +17,18 @@ split.patients.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff
   
   if (verbose) cat("Identifying tips with host...\n")
   
-  # Find patient IDs from each tip
+  # Find host IDs from each tip
   
   tip.hosts <- sapply(tip.labels, function(x) host.from.label(x, tip.regex))
+  
+  if(!any(!is.na(tip.hosts))){
+    return(list(tree=tree, r.subgraphs=NULL))
+  }
 
   non.host.tips <- which(is.na(sapply(tree$tip.label, function(name) host.from.label(name, tip.regex))))
   tip.hosts[c(non.host.tips, blacklist)] <- "unsampled"
   
-  # Find the complete list of patients present in this tree minus blacklisting
+  # Find the complete list of hosts present in this tree minus blacklisting
   
   if (verbose) cat("Finding list of hosts...\n")
   
@@ -45,14 +49,14 @@ split.patients.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff
     return(list(tree=tree, rs.subgraphs=NULL))    
   } 
   
-  # host.tips is a list of tips that belong to each patient
+  # host.tips is a list of tips that belong to each host
   
   if (verbose) cat("Finding tips for each host...\n")
   
   host.tips <- lapply(hosts, function(x) which(tip.hosts==x))
   names(host.tips) <- hosts
   
-  # patient.mrcas is a list of MRCA nodes for each patient
+  # host.mrcas is a list of MRCA nodes for each host
   
   if (verbose) cat("Finding MRCAs for each host...\n")
   
@@ -91,30 +95,30 @@ split.patients.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff
     }
   }
 
-  # This is the annotation for each node by patient
+  # This is the annotation for each node by host
   
-  patient.annotation <- sapply(split.annotation, function(x) unlist(strsplit(x, "-S"))[1] )
-  names(patient.annotation) <- NULL
+  host.annotation <- sapply(split.annotation, function(x) unlist(strsplit(x, "-S"))[1] )
+  names(host.annotation) <- NULL
   
-  if(is.null(patient.master.list)){
-    patient.annotation <- factor(patient.annotation, levels = sample(levels(as.factor(patient.annotation))))
+  if(is.null(host.master.list)){
+    host.annotation <- factor(host.annotation, levels = sample(levels(as.factor(host.annotation))))
   } else {
-    patient.annotation <- factor(patient.annotation, levels = patient.master.list)
+    host.annotation <- factor(host.annotation, levels = host.master.list)
   }
   
-  branch.colours <- patient.annotation
+  branch.colours <- host.annotation
   branch.colours[first.nodes] <- NA
   
   # For annotation
   # We will return the original tree with the original branch lengths
   
   attr(tree, 'SPLIT') <- factor(split.annotation)
-  attr(tree, 'INDIVIDUAL') <- patient.annotation
+  attr(tree, 'INDIVIDUAL') <- host.annotation
   attr(tree, 'BRANCH_COLOURS') <- branch.colours
   
   rs.subgraphs <- data.table(subgraph=results$split.hosts)
-  rs.subgraphs <- rs.subgraphs[, list(patient= unlist(strsplit(subgraph, "-S"))[1], tip= tree$tip.label[ results$split.tips[[subgraph]] ]	), by='subgraph']
-  rs.subgraphs <- as.data.frame(subset(rs.subgraphs, select=c(patient, subgraph, tip)))
+  rs.subgraphs <- rs.subgraphs[, list(host= unlist(strsplit(subgraph, "-S"))[1], tip= tree$tip.label[ results$split.tips[[subgraph]] ]	), by='subgraph']
+  rs.subgraphs <- as.data.frame(subset(rs.subgraphs, select=c(host, subgraph, tip)))
   
   list(tree=tree, rs.subgraphs=rs.subgraphs)
 }
@@ -277,6 +281,7 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
 
     # Then traverse
     
+
     for(pat.no in 1:length(patients)){
       start.col <- sapply(finite.cost[,pat.no], function(x) if(x) 0 else Inf)
       
@@ -294,7 +299,11 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
       cost.matrix <- matrix(NA, nrow=length(tree$tip.label) + tree$Nnode, ncol=length(patients))
     }
     
-    cost.matrix <- make.cost.matrix(getRoot(tree), tree, patients, tip.patients, individual.costs, cost.matrix, k, tip.read.counts, verbose)
+    progress.bar <- txtProgressBar(width=50, style=3)
+
+    cost.matrix <- make.cost.matrix(getRoot(tree), tree, patients, tip.patients, individual.costs, cost.matrix, k, tip.read.counts, progress.bar, verbose)
+    
+    close(progress.bar)
     
     if (verbose) cat("Reconstructing...\n")
     
@@ -406,8 +415,12 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
       cost.matrix <- matrix(NA, nrow=length(tree$tip.label) + tree$Nnode, ncol=length(patients))
     }
     
-    cost.matrix <- make.cost.matrix.fi(getRoot(tree), tree, patients, tip.patients, cost.matrix, k, p, finite.cost, tip.read.counts, verbose)
+    progress.bar <- txtProgressBar(width=50, style=3)
+    
+    cost.matrix <- make.cost.matrix.fi(getRoot(tree), tree, patients, tip.patients, cost.matrix, k, p, finite.cost, tip.read.counts, progress.bar, verbose)
 
+    close(progress.bar)
+    
     if (verbose) cat("Reconstructing...\n")
   
     full.assocs <- reconstruct.fi(tree, getRoot(tree), "unsampled", list(), tip.patients, patients, cost.matrix, finite.cost, k, p, tip.read.counts, verbose)
@@ -615,7 +628,7 @@ get.star.runs <- function(tree, assocs){
 
 # Make the full Sankoff cost matrix
 
-make.cost.matrix <- function(node, tree, patients, tip.patients, individual.costs, current.matrix, k, tip.read.counts, verbose = F){
+make.cost.matrix <- function(node, tree, patients, tip.patients, individual.costs, current.matrix, k, tip.read.counts, progress.bar=NULL, verbose = F){
   # if(verbose){
   #   cat("Node number ",node,":", sep="")
   # }
@@ -635,7 +648,7 @@ make.cost.matrix <- function(node, tree, patients, tip.patients, individual.cost
     this.row <- vector()
     child.nos <- Children(tree, node)
     for(child in child.nos){
-      current.matrix <- make.cost.matrix(child, tree, patients, tip.patients, individual.costs, current.matrix, k, tip.read.counts, verbose)
+      current.matrix <- make.cost.matrix(child, tree, patients, tip.patients, individual.costs, current.matrix, k, tip.read.counts, progress.bar, verbose)
     }
     if(length(child.nos)==0){
       stop("Reached an internal node with no children(?)")
@@ -656,8 +669,9 @@ make.cost.matrix <- function(node, tree, patients, tip.patients, individual.cost
   #   cat(ties.string, "\n")
   #   cat("\n")  
   # }
-  if(length(which(!is.na(current.matrix[,1]))) %% 100 == 0){
-    if (verbose) cat(length(which(!is.na(current.matrix[,1]))), " of ", nrow(current.matrix), " matrix rows calculated.\n", sep="")
+  
+  if(verbose & !is.null(progress.bar)){
+    setTxtProgressBar(progress.bar, length(which(!is.na(current.matrix[,1])))/nrow(current.matrix))
   }
   
   return(current.matrix)
@@ -782,7 +796,7 @@ calc.costs <- function(patient.no, patients, node.state, child.node, node.cost.m
   return(out)
 }
 
-cost.of.subtree <- function(tree, node, patient, tip.patients, finite.cost.col, results){
+cost.of.subtree <- function(tree, node, patient, tip.patients, finite.cost.col, results, progress.bar = NULL){
   if(is.tip(tree, node)){
     if(patient == tip.patients[node]){
       results[node] <- 0
@@ -792,7 +806,7 @@ cost.of.subtree <- function(tree, node, patient, tip.patients, finite.cost.col, 
   } else {
     for(child in Children(tree, node)){
       if(finite.cost.col[child]){
-        results <- cost.of.subtree(tree, child, patient, tip.patients, finite.cost.col, results)
+        results <- cost.of.subtree(tree, child, patient, tip.patients, finite.cost.col, results, progress.bar)
         results[node] <- results[node] + results[child] + get.edge.length(tree, child)
       }
     }
@@ -803,7 +817,7 @@ cost.of.subtree <- function(tree, node, patient, tip.patients, finite.cost.col, 
 
 # Reconstruct node states based on the cost matrix. 
 
-make.cost.matrix.fi <- function(node, tree, patients, tip.assocs, current.matrix, k, us.penalty, finite.costs, tip.read.counts, verbose = F){
+make.cost.matrix.fi <- function(node, tree, patients, tip.assocs, current.matrix, k, us.penalty, finite.costs, tip.read.counts, progress.bar = NULL, verbose = F){
   # if(verbose){
   #   cat("Node number ",node,":", sep="")
   # }
@@ -824,7 +838,7 @@ make.cost.matrix.fi <- function(node, tree, patients, tip.assocs, current.matrix
     child.nos <- Children(tree, node)
     for(child in child.nos){
 
-      current.matrix <- make.cost.matrix.fi(child, tree, patients, tip.assocs, current.matrix, k, us.penalty, finite.costs, tip.read.counts, verbose)
+      current.matrix <- make.cost.matrix.fi(child, tree, patients, tip.assocs, current.matrix, k, us.penalty, finite.costs, tip.read.counts, progress.bar, verbose)
     }
     if(length(child.nos)==0){
       stop("Reached an internal node with no children(?)")
@@ -845,9 +859,10 @@ make.cost.matrix.fi <- function(node, tree, patients, tip.assocs, current.matrix
   #   cat(ties.string, "\n")
   #   cat("\n")  
   # }
-  # if(length(which(!is.na(current.matrix[,1]))) %% 100 == 0){
-  #   if (verbose) cat(length(which(!is.na(current.matrix[,1]))), " of ", nrow(current.matrix), " matrix rows calculated.\n", sep="")
-  # }
+  if(verbose & !is.null(progress.bar)){
+
+    setTxtProgressBar(progress.bar, length(which(!is.na(current.matrix[,1])))/nrow(current.matrix))
+  }
   
   return(current.matrix)
 }
@@ -927,7 +942,7 @@ reconstruct.fi <- function(tree, node, node.state, node.assocs, tip.assocs, pati
         #   cat("Single minimum cost belongs to ", decision, "\n", sep="")
         # }
       } else {
-        #cat("Tie at node",child,"between",format(patients[which(costs == min.cost)]),"broken randomly\n", sep=" ")
+#        cat("Tie at node",child,"between",format(patients[which(costs == min.cost)]),"broken randomly\n", sep=" ")
         choices <- which(costs == min.cost)
         choice <- choices[sample.int(length(choices), 1)]
         

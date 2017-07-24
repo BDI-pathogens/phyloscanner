@@ -39,20 +39,6 @@ if(command.line){
   allow.mt <- args$allowMultiTrans
   input.file.name <- args$inputFiles
   
-  source(file.path(script.dir, "../deprecated/TreeUtilityFunctions.R"))
-  source(file.path(script.dir, "../deprecated/GeneralFunctions.R"))
-  
-  input.files <- list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name)), full.names=TRUE)
-  
-  # We only want the *classification*.csv files produced by
-  # ClassifyRelationships.R, not the collapsedTree files if present.
-  # NB this regex needs to match the hard-coded file naming for collapsed trees.
-  input.files <- input.files[! grepl('collapsedTree', input.files)]
-
-  if(length(input.files)==0){
-    stop("No input files found.")
-  }
-  
 } else {
   setwd("/Users/mdhall/Dropbox (Infectious Disease)/BEEHIVE/phylotypes/Phyloscanner2Tests/")
   script.dir <- "/Users/mdhall/phylotypes/tools"
@@ -64,8 +50,7 @@ if(command.line){
   allow.mt 				<- TRUE
   output.file 				<- "run20161013D_huhh.csv"
   detailed.output				<- NULL
-  input.files 				<- sort(list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name)), full.names=TRUE))
-  
+
   # setwd("/Users/mdhall/Documents/Pneumo/rerun/")
   # script.dir <- "/Users/mdhall/phylotypes/tools"
   # summary.file <- "statspatStatsFull.csv"
@@ -78,15 +63,6 @@ if(command.line){
   # detailed.output <- "test2.csv"
   # verbose <- T
   
-  source(file.path(script.dir, "TreeUtilityFunctions.R"))
-  source(file.path(script.dir, "GeneralFunctions.R"))
-  
-  input.files <- list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name)), full.names=TRUE)
-  
-  # We only want the *classification*.csv files produced by
-  # ClassifyRelationships.R, not the collapsedTree files if present.
-  # NB this regex needs to match the hard-coded file naming for collapsed trees.
-  input.files <- input.files[! grepl('collapsedTree', input.files)]
   # 
   # 
   # setwd("/Users/twoseventwo/Downloads/PossibleDuals/")
@@ -100,23 +76,19 @@ if(command.line){
   # output.file <- "test1.csv"
   # detailed.output <- "test2.csv"
   # 
-  # 
-  # input.files <- list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name)), full.names=TRUE)
-  # 
-  # input.files <- input.files[! grepl('collapsedTree', input.files)]
-  # input.files <- input.files[! grepl('_classification\\.', input.files)]
   
   if(0)
   {
-    script.dir					<- "/Users/Oliver/git/phylotypes/tools"
-    summary.file				<- "/Users/Oliver/duke/tmp/pty_17-04-04-16-26-50/ptyr22_patStatsFull.csv"
-    id.file 					<- "/Users/Oliver/duke/tmp/pty_17-04-04-16-26-50/ptyr22_patient.txt"
-    input.file.name				<- "/Users/Oliver/duke/tmp/pty_17-04-04-16-26-50/ptyr22_classification_InWindow_"
+    script.dir					<- "/Users/Oliver/git/phylotypes/deprecated"
+    summary.file				<- "/Users/Oliver/duke/tmp/pty_17-07-07-07-52-42/ptyr22_patStatsFull.csv"
+    id.file 					<- "/Users/Oliver/duke/tmp/pty_17-07-07-07-52-42/ptyr22_patients.txt"
+    input.file.name				<- "/Users/Oliver/duke/tmp/pty_17-07-07-07-52-42/ptyr22_classification_InWindow_"
     min.threshold				<- 1
+	dist.threshold 				<- Inf
     allow.mt 				<- TRUE
-    output.file 				<- "/Users/Oliver/duke/tmp/pty_17-04-04-16-26-50/ptyr22_trmStats.csv"
-    detailed.output				<- "/Users/Oliver/duke/tmp/pty_17-04-04-16-26-50/ptyr22_patStatsPerWindow.csv"
-    input.files 				<- sort(list.files(dirname(input.file.name), pattern=basename(input.file.name), full.names=TRUE))
+    output.file 				<- "/Users/Oliver/duke/tmp/pty_17-07-07-07-52-42/ptyr22_trmStats.csv"
+    detailed.output				<- "/Users/Oliver/duke/tmp/pty_17-07-07-07-52-42/ptyr22_patStatsPerWindow.csv"    
+	verbose						<- TRUE
   }
 }
 #
@@ -125,6 +97,20 @@ suppressMessages(library(reshape2, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(gdata, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(ggplot2, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
+
+source(file.path(script.dir, "TreeUtilityFunctions.R"))
+source(file.path(script.dir, "GeneralFunctions.R"))
+
+input.files <- list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name)), full.names=TRUE)
+
+# We only want the *classification*.csv files produced by
+# ClassifyRelationships.R, not the collapsedTree files if present.
+# NB this regex needs to match the hard-coded file naming for collapsed trees.
+input.files <- input.files[! grepl('collapsedTree', input.files)]
+
+if(length(input.files)==0){
+	stop("No input files found.")
+}
 
 #
 # Get the denominators
@@ -176,7 +162,7 @@ if(verbose) cat("Rearranging patient pairs...\n")
 tt	<- lapply(tt, function(x){
   #x	<- tt[[1]]
   tmp	<- copy(x)
-  setnames(tmp, c('Patient_1','Patient_2','paths12','paths21'), c('Patient_2','Patient_1','paths21','paths12'))
+  setnames(tmp, c('Host_1','Host_2','paths12','paths21'), c('Host_2','Host_1','paths21','paths12'))
   set(tmp, tmp[, which(path.classification=="anc")], 'path.classification', 'TMP')
   set(tmp, tmp[, which(path.classification=="desc")], 'path.classification', 'anc')
   set(tmp, tmp[, which(path.classification=="TMP")], 'path.classification', 'desc')
@@ -184,8 +170,8 @@ tt	<- lapply(tt, function(x){
   set(tmp, tmp[, which(path.classification=="multiDesc")], 'path.classification', 'multiAnc')
   set(tmp, tmp[, which(path.classification=="TMP")], 'path.classification', 'multiDesc')
   x	<- rbind(x, tmp)
-  setkey(x, Patient_1, Patient_2)
-  subset(x, Patient_1 < Patient_2)
+  setkey(x, Host_1, Host_2)
+  subset(x, Host_1 < Host_2)
 })
 #
 # rbind consolidated files
@@ -198,13 +184,15 @@ tt	<- do.call('rbind',tt)
 if(verbose) cat("Finding patristic distance columns...\n")
 
 # reset names depending on which Classify script was used
-if(any('normalised.min.distance.between.subtrees'==colnames(tt))){
-  setnames(tt, 'normalised.min.distance.between.subtrees', 'PATRISTIC_DISTANCE')
-} else if(any('min.distance.between.subtrees'==colnames(tt))){
-  setnames(tt, 'min.distance.between.subtrees', 'PATRISTIC_DISTANCE')
+if(any('normalised.min.distance.between.subgraphs'==colnames(tt))){
+  setnames(tt, 'normalised.min.distance.between.subgraphs', 'PATRISTIC_DISTANCE')
+  set(tt, NULL, 'min.distance.between.subgraphs', NULL)
+} else if(any('min.distance.between.subgraphs'==colnames(tt))){
+  setnames(tt, 'min.distance.between.subgraphs', 'PATRISTIC_DISTANCE')
 }
 
-setnames(tt, c('Patient_1','Patient_2','path.classification','paths21','paths12','adjacent','contiguous'), c('PAT.1','PAT.2','TYPE','PATHS.21','PATHS.12','ADJACENT','CONTIGUOUS'))
+setnames(tt, c('Host_1','Host_2','path.classification','paths21','paths12','nodes1','nodes2','adjacent','contiguous'), 
+			 c('PAT.1','PAT.2','TYPE','PATHS.21','PATHS.12','NODES.1','NODES.2','ADJACENT','CONTIGUOUS'))
 # change type name depending on allow.mt
 if(!allow.mt){
   if(verbose) cat("Allowing only single lineage transmission...\n")
@@ -217,18 +205,13 @@ stopifnot( !nrow(subset(tt, is.na(PATRISTIC_DISTANCE))) )
 stopifnot( !nrow(subset(tt, is.na(PATHS.12))) )
 stopifnot( !nrow(subset(tt, is.na(PATHS.21))) )
 
-#	set to numeric
+#	make sure PATRISTIC_DISTANCE is numeric (should be case now)
 set(tt, NULL, 'PATRISTIC_DISTANCE', tt[, as.numeric(PATRISTIC_DISTANCE)])
-# 	add window coordinates
 
 #	calculate #unique reads and #reads for each window
-#
-
-
 
 if(!is.null(summary.file)){
-  if(verbose) cat("Combining window data...\n")
-  
+  if(verbose) cat("Combining window data...\n")  
   dp	<-  reads.table[,{
     #	combine by window only for present patients to avoid large mem
     dp			<- data.table(PAT.1=NA_character_, PAT.2=NA_character_)
@@ -246,13 +229,10 @@ if(!is.null(summary.file)){
   }, by=c('SUFFIX')]
   dp <- subset(dp, !is.na(PAT.1) & !is.na(PAT.2))
   tmp	<- subset(reads.table, present, c(SUFFIX, id, reads, tips))
-  setnames(tmp, c("id","reads","tips"), c("PAT.1","PAT.1_reads","PAT.1_tips"))
-  
-  
+  setnames(tmp, c("id","reads","tips"), c("PAT.1","PAT.1_reads","PAT.1_tips"))  
   dp <- merge(dp, tmp, by=c('SUFFIX','PAT.1'))
   setnames(tmp, c("PAT.1","PAT.1_tips","PAT.1_reads"), c("PAT.2","PAT.2_tips","PAT.2_reads"))
   dp <- merge(dp, tmp, by=c('SUFFIX','PAT.2'))
-
   #
   #	merge reads/leaves with tt
   #
@@ -262,7 +242,7 @@ if(!is.null(summary.file)){
 
 
 if(nrow(tt)==0){
-  cat("Failed to merge tables; e.g. file suffix ",tt$SUFFIX[1]," not found in ",summary.file,"\n",sep="")
+  cat("Error: Failed to merge tables; e.g. file suffix ",tt$SUFFIX[1]," not found in ",summary.file,"\n",sep="")
   quit(save="no", status=1)
 }
 
@@ -285,7 +265,7 @@ if(!is.null(detailed.output)){
   }
   setnames(tt, colnames(tt),toupper(colnames(tt)))
   #	write to file
-  if (verbose) cat("Saving RDA file to ",detailed.output,"\n",sep="")
+  if (verbose) cat("Saving RDA file to ",gsub('\\.csv','\\.rda',detailed.output),"\n",sep="")
   save(tt, file=gsub('\\.csv','\\.rda',detailed.output))
 }
 

@@ -8,7 +8,7 @@ We wrote phyloscanner to analyse bam files that each represent a pathogen popula
 
 phyloscanner is freely available under the GNU General Public License version 3, described [here](LICENSE).  
 To make phylogenies from mapped reads, phyloscanner requires [samtools](http://www.htslib.org/), [pysam](https://github.com/pysam-developers/pysam) (0.8.1 or later), [biopython](http://biopython.org/wiki/Download), [mafft](http://mafft.cbrc.jp/alignment/software/) and [RAxML](http://sco.h-its.org/exelixis/web/software/raxml/index.html); notes on installing these are [here](InfoAndInputs/DependencyInstallationNotes.txt).
-To analyse these phylogenies, or your own provided as input, phyloscanner needs some R packages which are installed by running [this](tools/PackageInstall.R) script.
+To analyse these phylogenies, or your own provided as input, phyloscanner needs some R packages which are installed by running [this](tools/package_install.R) script.
 
 The phyloscanner manual is [here](InfoAndInputs/PhyloscannerManual.pdf).  
 Problem with the code? Create a [New Issue](https://github.com/BDI-pathogens/phyloscanner/issues).  

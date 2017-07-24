@@ -73,7 +73,7 @@ for(file in input.files){
   all.tree.info[[file]] <- tree.info
 }
 
-results <- summarise.classifications(all.tree.info, min.threshold*length(all.tree.info), dist.threshold, allow.mt, csv.fe, verbose)
+results <- summarise.classifications(all.tree.info, min.threshold*length(all.tree.info), dist.threshold, allow.mt, verbose)
 
 if (verbose) cat('Writing summary to file',output.file,'\n')
 write.csv(results, file=output.file, row.names=FALSE, quote=FALSE)

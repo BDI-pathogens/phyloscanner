@@ -16,14 +16,14 @@ suppressMessages(require(argparse, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(kimisc, quietly=TRUE, warn.conflicts=FALSE))
 
 arg_parser = ArgumentParser(description="Annotate the internal nodes of the phylogeny, by an ancestral state reconstruction scheme, such that the tree can subsequently be partitioned into connected subgraphs, one per split. Input and output file name arguments are either a single file, or the root name for a group of files, in which case all files matching that root will be processed, and matching output files generated.")  
-arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. Three groups: patient ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the patient ID will be the BAM file name.")
+arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. Three groups: host ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the host ID will be the BAM file name.")
 arg_parser$add_argument("-r", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
-arg_parser$add_argument("-s", "--splitsRule", action="store", default="r", help="The rules by which the sets of patients are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. Currently available: s=Sankoff (slow, rigorous), r=Romero-Severson (quick, less rigorous with >2 patients).")
+arg_parser$add_argument("-s", "--splitsRule", action="store", default="r", help="The rules by which the sets of hosts are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. Currently available: s=Sankoff (slow, rigorous), r=Romero-Severson (quick, less rigorous with >2 hosts).")
 arg_parser$add_argument("-b", "--blacklist", action="store", help="A .csv file listing tips to ignore. Alternatively, a base name that identifies blacklist files. Blacklist files are assumed to end in .csv.")
 arg_parser$add_argument("-k", "--kParam", action="store", default=0, help="The k parameter in the cost matrix for Sankoff reconstruction (see documentation)")
 arg_parser$add_argument("-P", "--pruneBlacklist", action="store_true", help="If present, all blacklisted and references tips (except the outgroup) are pruned away before starting.")
 arg_parser$add_argument("-p", "--proximityThreshold", action="store", default=0, help="The parameter determining when nodes return to the unsampled state; p for splitsRule = s, q for splitsRule = f; see documentation.")
-arg_parser$add_argument("-i", "--idFile", action="store", help="Optionally, a full list of patients; this will be used to standardise colours in PDF output across multiple runs for the same data")
+arg_parser$add_argument("-i", "--idFile", action="store", help="Optionally, a full list of hosts; this will be used to standardise colours in PDF output across multiple runs for the same data")
 arg_parser$add_argument("-R", "--readCountsMatterOnZeroBranches", help="If present, read counts will be taken into account in parsimony reconstructions at the parents of zero-length branches. Not applicable for the Romero-Severson-like reconstruction method.", default = FALSE, action="store_true")
 arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, short branches in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. If a number, this number will be used as the threshold. If 'g', it will be guessed from the branch lengths (use this only if you've checked by eye that the tree does indeed have multifurcations).")
 arg_parser$add_argument("-n", "--branchLengthNormalisation", default = 1, action="store", help="If present and a number, a normalising constant for all branch lengths in the tree or trees. If present and a file, the path to a .csv file with two columns: tree file name and normalising constant")
@@ -227,10 +227,11 @@ for(i in all.tree.info){
     }
   } 
   
-  tips.to.go <- blacklist
-  
   if(prune.blacklist){
+    tips.to.go <- blacklist
     blacklist <- vector()
+  } else {
+    tips.to.go <- vector()
   }
   
   if(use.m.thresh){
@@ -241,10 +242,10 @@ for(i in all.tree.info){
   } else {
     m.thresh <- -1
   }
-  
+
   tree <- process.tree(tree, root.name, m.thresh, tips.to.go, i$normalisation.constant)
   
-  tmp					    <- split.patients.to.subgraphs(tree, blacklist, mode, tip.regex, sankoff.k, sankoff.p, useff, read.counts.matter, host.master.list, verbose)
+  tmp					    <- split.hosts.to.subgraphs(tree, blacklist, mode, tip.regex, sankoff.k, sankoff.p, useff, read.counts.matter, host.master.list, verbose)
   tree					  <- tmp[['tree']]	
   rs.subgraphs		<- tmp[['rs.subgraphs']]
   
