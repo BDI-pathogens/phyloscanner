@@ -300,7 +300,7 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
     }
     
     progress.bar <- txtProgressBar(width=50, style=3)
-    
+
     cost.matrix <- make.cost.matrix(getRoot(tree), tree, patients, tip.patients, individual.costs, cost.matrix, k, tip.read.counts, progress.bar, verbose)
     
     close(progress.bar)
@@ -648,7 +648,7 @@ make.cost.matrix <- function(node, tree, patients, tip.patients, individual.cost
     this.row <- vector()
     child.nos <- Children(tree, node)
     for(child in child.nos){
-      current.matrix <- make.cost.matrix(child, tree, patients, tip.patients, individual.costs, current.matrix, k, tip.read.counts, verbose)
+      current.matrix <- make.cost.matrix(child, tree, patients, tip.patients, individual.costs, current.matrix, k, tip.read.counts, progress.bar, verbose)
     }
     if(length(child.nos)==0){
       stop("Reached an internal node with no children(?)")
@@ -669,6 +669,7 @@ make.cost.matrix <- function(node, tree, patients, tip.patients, individual.cost
   #   cat(ties.string, "\n")
   #   cat("\n")  
   # }
+  
   if(verbose & !is.null(progress.bar)){
     setTxtProgressBar(progress.bar, length(which(!is.na(current.matrix[,1])))/nrow(current.matrix))
   }
@@ -837,7 +838,7 @@ make.cost.matrix.fi <- function(node, tree, patients, tip.assocs, current.matrix
     child.nos <- Children(tree, node)
     for(child in child.nos){
 
-      current.matrix <- make.cost.matrix.fi(child, tree, patients, tip.assocs, current.matrix, k, us.penalty, finite.costs, tip.read.counts, verbose)
+      current.matrix <- make.cost.matrix.fi(child, tree, patients, tip.assocs, current.matrix, k, us.penalty, finite.costs, tip.read.counts, progress.bar, verbose)
     }
     if(length(child.nos)==0){
       stop("Reached an internal node with no children(?)")
