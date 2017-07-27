@@ -35,6 +35,7 @@ args                   <- arg_parser$parse_args()
 if(!is.null(args$scriptDir)){
   script.dir          <- args$scriptDir
 } else {
+  suppressMessages(library(kimisc, quietly=TRUE, warn.conflicts=FALSE))
   script.dir          <- dirname(thisfile())
   if(!dir.exists(script.dir)){
     stop("Cannot detect the location of the /phyloscanner/tools directory. Please specify it at the command line with -D.")
@@ -76,7 +77,6 @@ cat("Loading libraries...\n")
 
 suppressMessages(library(ape, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(phangorn, quietly=TRUE, warn.conflicts=FALSE))
-suppressMessages(library(kimisc, quietly=TRUE, warn.conflicts=FALSE))
 
 cat("Reading functions...\n")
 
