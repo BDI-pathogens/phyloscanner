@@ -299,11 +299,11 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
       cost.matrix <- matrix(NA, nrow=length(tree$tip.label) + tree$Nnode, ncol=length(patients))
     }
     
-    progress.bar <- txtProgressBar(width=50, style=3)
+    if(verbose) progress.bar <- txtProgressBar(width=50, style=3) else progress.bar <- NULL
 
     cost.matrix <- make.cost.matrix(getRoot(tree), tree, patients, tip.patients, individual.costs, cost.matrix, k, tip.read.counts, progress.bar, verbose)
     
-    close(progress.bar)
+    if(verbose) close(progress.bar)
     
     if (verbose) cat("Reconstructing...\n")
     

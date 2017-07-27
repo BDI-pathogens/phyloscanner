@@ -73,12 +73,12 @@ if(use.m.thresh){
   m.thresh            <- -1       
 }
 
-cat("Loading libraries...\n")
+if(verbose) cat("Loading libraries...\n")
 
 suppressMessages(library(ape, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(phangorn, quietly=TRUE, warn.conflicts=FALSE))
 
-cat("Reading functions...\n")
+if(verbose) cat("Reading functions...\n")
 
 source(file.path(script.dir, "tree_utility_functions.R"))
 source(file.path(script.dir, "parsimony_reconstruction_methods.R"))
