@@ -296,7 +296,7 @@ if(file.exists(tree.input)){
 } else {
   
   tree.file.names <- list.files.mod(dirname(tree.input), pattern=paste(basename(tree.input),'.*',tree.fe,'$',sep=''), full.names=TRUE)
- 
+  
   if(length(tree.file.names)==0){
     stop("No tree files found.")
   }
@@ -754,7 +754,7 @@ if(do.dual.blacklisting){
 
 if(downsample){
   all.tree.info <- sapply(all.tree.info, function(tree.info){
-    tree.info <- downsample.tree(tree.info, NULL, downsampling.limit, T, blacklist.ur, seed, verbose)
+    tree.info <- downsample.tree(tree.info, NULL, downsampling.limit, T, blacklist.ur, no.read.counts, seed, verbose)
     tree.info$hosts.for.tips[tree.info$blacklist] <- NA 
     
     tree.info
@@ -825,7 +825,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
   
   # trees are annotated from now on
   
-  tree.info$ tree  <- tree
+  tree.info$tree  <- tree
   rs.subgraphs		 <- tmp[['rs.subgraphs']]
   
   if(is.null(rs.subgraphs)){
@@ -969,6 +969,11 @@ if(!single.file){
   
   produce.pdf.graphs(tmp, pat.stats, hosts, xcoords, rectangles.for.missing.windows, bar.width, regular.gaps, verbose = verbose)
 }
+
+# for(tree.info in all.tree.info){
+#   splits.file.name <- file.path(output.dir, paste0("Splits_",tree.info$output.string,".",csv.fe))
+#   write.csv(tree.info$splits.table, splits.file.name, quote=F, row.names = F)
+# }
 
 
 # 17. Individual window classifications
