@@ -147,12 +147,13 @@ for i, BamFileName in enumerate(BamFiles):
   # Iterate through the reads
   for read in bam.fetch(RefName):
 
-    TotalReadCount += 1
     MappedPositions = read.get_reference_positions(full_length=False)
 
     # Skip unmapped reads
     if not MappedPositions:
       continue
+
+    TotalReadCount += 1
 
     start = min(MappedPositions[0], MappedPositions[-1])
     end   = max(MappedPositions[0], MappedPositions[-1])
@@ -279,7 +280,7 @@ ax = plt.figure().add_subplot(111)
 
 for i in range(1, matrix.shape[1]):
   if SomeDataIsPaired:
-    alias = aliases[(i - 1) % 2]
+    alias = aliases[(i - 1) / 2]
     if i % 2 == 0:
       label = 'inserts, ' + alias
       linestyle = '--'
