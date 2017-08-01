@@ -18,6 +18,7 @@ arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_
 arg_parser$add_argument("-b", "--blacklist", action="store", help="A blacklist to be applied before this script is run.")
 arg_parser$add_argument("-H", "--hosts", action="store", help="A file listing which hosts to downsample (on separate lines, with no header). If absent, then downsample every host present.")
 arg_parser$add_argument("-s", "--seed", action="store", help="Random number seed (integer value).")
+arg_parser$add_argument("-nrc", "--noReadCounts", action="store_true", help="If present, treat each tip as a single read")
 arg_parser$add_argument("-R", "--rename", action="store", help="If present, tip labels will be rewritten to include the number of reads that were sampled, not the total in the starting data. A new tree file will be output to this argument or, if there are multiple tree files, to this base name. This is recommended if this script is used and the -R option is used in split_hosts_to_subtrees.R, which should then be given the relabelled tree as input.")
 arg_parser$add_argument("-e", "--excludeUnderrepresented", action="store_true", help="If present, hosts without enough reads will be blacklisted entirely from this tree. If absent, all reads from that host will be included.")
 arg_parser$add_argument("maxReadsPerHost", type="double", action="store", help="The upper limit for the number of reads to be included from each host")
@@ -46,6 +47,7 @@ blacklist.file.name <- args$blacklist
 max.reads <- args$maxReadsPerHost
 seed <- ifelse(is.null(args$seed), NA_real_,args$seed)  
 hosts.file.name <- args$hosts
+no.read.counts <- args$noReadCounts
 rename <- !is.null(args$rename)
 if(rename){
   renamed.file.name <- args$rename
@@ -69,6 +71,13 @@ if(file.exists(input.file.name)){
   
   tree.info <- list()
   tree.info$tree.input <- input.file.name
+  
+  tree <- read.tree(input.file.name)
+  
+  tree <- process.tree(tree, blacklist.for.pruning = tree.info$blacklist)
+  
+  tree.info$tree <- tree
+  
   tree.info$blacklist.input <- blacklist.file.name
   
   blacklist <- vector()
@@ -81,7 +90,7 @@ if(file.exists(input.file.name)){
         blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
       }
     } else {
-      warning(paste("File ",blacklist.file.name," does not exist; skipping.",paste=""))
+      warning("File ",blacklist.file.name," does not exist; skipping.",paste="")
     }	
   }
   
@@ -91,19 +100,14 @@ if(file.exists(input.file.name)){
   if(rename){
     tree.info$renamed.tree.file.name <- renamed.file.name
   }
-  
-  
-  tree <- read.tree(input.file.name)
-  
-  tree <- process.tree(tree, blacklist.for.pruning = tree.info$blacklist)
-  
-  tree.info$tree <- tree
+
   
   all.tree.info[[input.file.name]] <- tree.info
 } else {
   #	option 2: input.file.name specifies a root name for several input files
 
   input.file.names <- sort(list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name),'.*\\.', tree.fe,'$',sep=''), full.names=TRUE))
+
   if(length(input.file.names)==0){
     cat("No tree files found.\nQuitting.\n")
     quit(save="no", status=1)
@@ -165,7 +169,7 @@ if(!is.null(hosts.file.name)){
 }
 
 for(tree.info in all.tree.info){
-  tree.info <- downsample.tree(tree.info, hosts, max.reads, rename, exclude.underrepresented, seed, verbose)
+  tree.info <- downsample.tree(tree.info, hosts, max.reads, rename, exclude.underrepresented, no.read.counts, seed, verbose)
   
 
   if(rename){

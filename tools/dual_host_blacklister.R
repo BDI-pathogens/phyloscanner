@@ -118,7 +118,7 @@ results <- blacklist.duals(all.tree.info, hosts, threshold, summary.file, verbos
 
 
 for(tree.info in all.tree.info){
-  if(verbose) cat("Writing new blacklist file ", tree.info$bl.output.name, "...\n")
+  if(verbose) cat("Writing new blacklist file ", tree.info$bl.output.name, "...\n", sep="")
   tree.info$blacklist <- results[tree.info$name]
   write.table(results[[tree.info$suffix]], tree.info$bl.output.name, sep=",", row.names=FALSE, col.names=FALSE, quote=F)
 }

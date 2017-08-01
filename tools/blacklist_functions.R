@@ -323,15 +323,14 @@ blacklist.duals <- function(all.tree.info, hosts, threshold = 1, summary.file=NU
   }
   
   if(!is.null(summary.file)) {
-    if(verbose) cat("Writing summary file to ",summary.file,"...\n")
-    
+
     output <- lapply(hosts, function(x) c(fractions[[x]][1]/fractions[[a.host]][2], fractions[[x]][1]))
     
     proportions <- unlist(lapply(output, "[[", 1))
     counts <- unlist(lapply(output, "[[", 2))
     
     out.df <- data.frame(host = hosts, count = counts, proportion = proportions, stringsAsFactors = F)
-    if(verbose) cat("\nWriting dual summary file to ", summary.file, "\n", sep="")
+    if(verbose) cat("Writing dual summary file to ", summary.file, "\n", sep="")
     write.csv(out.df, file=summary.file, row.names=FALSE, quote=FALSE)
   }
   

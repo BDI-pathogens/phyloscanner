@@ -7,14 +7,6 @@ if(length(new.packages)){
   quit(save="no", status=1)
 }
 
-cat("Loading libraries...\n")
-
-suppressMessages(library(ape, quietly=TRUE, warn.conflicts=FALSE))
-suppressMessages(library(phangorn, quietly=TRUE, warn.conflicts=FALSE))
-suppressMessages(library(kimisc, quietly=TRUE, warn.conflicts=FALSE))
-
-cat("Reading functions...\n")
-
 suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
 # Define arguments
 
@@ -43,6 +35,7 @@ args                   <- arg_parser$parse_args()
 if(!is.null(args$scriptDir)){
   script.dir          <- args$scriptDir
 } else {
+  suppressMessages(library(kimisc, quietly=TRUE, warn.conflicts=FALSE))
   script.dir          <- dirname(thisfile())
   if(!dir.exists(script.dir)){
     stop("Cannot detect the location of the /phyloscanner/tools directory. Please specify it at the command line with -D.")
@@ -80,6 +73,12 @@ if(use.m.thresh){
   m.thresh            <- -1       
 }
 
+if(verbose) cat("Loading libraries...\n")
+
+suppressMessages(library(ape, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(library(phangorn, quietly=TRUE, warn.conflicts=FALSE))
+
+if(verbose) cat("Reading functions...\n")
 
 source(file.path(script.dir, "tree_utility_functions.R"))
 source(file.path(script.dir, "parsimony_reconstruction_methods.R"))
