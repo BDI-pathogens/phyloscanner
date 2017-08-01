@@ -149,6 +149,11 @@ for i, BamFileName in enumerate(BamFiles):
 
     TotalReadCount += 1
     MappedPositions = read.get_reference_positions(full_length=False)
+
+    # Skip unmapped reads
+    if not MappedPositions:
+      continue
+
     start = min(MappedPositions[0], MappedPositions[-1])
     end   = max(MappedPositions[0], MappedPositions[-1])
     ReadLength = end - start
