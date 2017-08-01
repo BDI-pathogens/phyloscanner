@@ -107,6 +107,7 @@ if(file.exists(input.file.name)){
   #	option 2: input.file.name specifies a root name for several input files
 
   input.file.names <- sort(list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name),'.*\\.', tree.fe,'$',sep=''), full.names=TRUE))
+
   if(length(input.file.names)==0){
     cat("No tree files found.\nQuitting.\n")
     quit(save="no", status=1)

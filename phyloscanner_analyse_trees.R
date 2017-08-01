@@ -408,7 +408,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
 }, simplify = F, USE.NAMES = T)
 
 if(!readable.coords & !single.file){
-  warning("Cannot obtain genome window coordinates from file names. Summary statistics will be plotted in alphabetical order of file names.")
+  warning("Cannot obtain genome window coordinates from file names. Summary statistics will be plotted in alphabetical order of file name.")
 }
 
 # 4. Root tree, collapse multifurcations, get host for each tip

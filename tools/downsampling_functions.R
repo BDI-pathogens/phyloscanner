@@ -88,11 +88,8 @@ downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, e
     label.map <- NULL
   }
   
-
-  
   sampled.names <- labels.from.host[which(sample > 0)]
-  
-  
+
   return(list(blacklist = setdiff(labels.from.host, sampled.names), map=label.map))
 }
 
@@ -100,7 +97,7 @@ downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, e
 downsample.tree<- function(tree.info, hosts.to.include, max.reads, rename = F, exclude.underrepresented = F, no.read.counts = T, seed=NA, verbose=F) {
   
   if(verbose){
-    cat("Downsampling reads on tree ",tree.info$tree.file.name," to ",max.reads,"per host...\n",sep = "")
+    cat("Downsampling reads on tree ",tree.info$input.file.name," to ",max.reads," per host...\n",sep = "")
   }
 
   if(!is.na(seed))
