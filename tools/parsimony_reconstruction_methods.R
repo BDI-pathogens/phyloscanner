@@ -415,7 +415,7 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
       cost.matrix <- matrix(NA, nrow=length(tree$tip.label) + tree$Nnode, ncol=length(patients))
     }
     
-    progress.bar <- txtProgressBar(width=50, style=3)
+    if(verbose) progress.bar <- txtProgressBar(width=50, style=3)
     
     cost.matrix <- make.cost.matrix.fi(getRoot(tree), tree, patients, tip.patients, cost.matrix, k, p, finite.cost, tip.read.counts, progress.bar, verbose)
 

@@ -65,7 +65,7 @@ blacklist.exact.duplicates <- function(tree.info, raw.threshold, ratio.threshold
 
 # Strip the tree down to just reads from one host and an outgroup. Do a parsimony reconstruction on that tree and return the subgraphs.
 
-get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold, ratio.threshold, sankoff.k, check.duals, no.read.counts = T, verbose=F){
+get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold, ratio.threshold, sankoff.method = "s", sankoff.k, sankoff.p = 0, check.duals, no.read.counts = T, verbose=F){
   if (verbose) cat("Identifying splits for host ", host, "\n", sep="")
   
   blacklist.items <- vector()
@@ -113,7 +113,7 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
     
     # Perform split.and.annotate; get a list of splits
     
-    split.results <- split.and.annotate(subtree, c(host, "unsampled"), tip.hosts, host.tips, NULL, vector(), tip.regex, "s", rep(1, length(subtree$tip.label)), sankoff.k, 0, useff = F, verbose)
+    split.results <- split.and.annotate(subtree, c(host, "unsampled"), tip.hosts, host.tips, NULL, vector(), tip.regex, sankoff.method, rep(1, length(subtree$tip.label)), sankoff.k, sankoff.p, useff = F, verbose)
     
     # vector of of split IDs
     
@@ -219,7 +219,6 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
   
   list(id = host, blacklist.items = blacklist.items, tip.names = tips.vector, read.counts = read.count.vector, tip.counts = tip.count.vector, dual=dual)
 }
-
 
 # Return whether the number of reads in this split is below one of the thresholds
 
