@@ -485,9 +485,6 @@ if PairwiseAlign:
     file=sys.stderr)
     exit(1)
 
-# TODO: remove this testing
-#read1 = pf.PseudoRead('read1', 'abcdefghij', [1,2,3,4,5,6,7,8,9,10], [30]*10)
-
 def CheckMaxCoord(coords, ref):
   '''Check that no coordinate is after the end of the reference with respect to
   which it is supposed to be interpreted.'''
@@ -669,11 +666,6 @@ for FlagName, FlagValue in (('--ref-for-coords',  args.ref_for_coords),
 if ExcisePositions:
   args.excision_coords = list(set(args.excision_coords))
   args.excision_coords = sorted(args.excision_coords, reverse=True)
-
-# Check that the bootstrap threshold is between 0 and 100
-#if not (0 <= args.min_support <= 100):
-#  print('MIN_SUPPORT was given as', str(args.min_support)+'; it should be',
-#  'between 0 and 100 inclusive.\nQuitting.', file=sys.stderr)
 
 TranslateCoordsCode = pf.FindAndCheckCode('TranslateCoords.py')
 FindSeqsInFastaCode = pf.FindAndCheckCode('FindSeqsInFasta.py')
@@ -1897,9 +1889,6 @@ for window in range(NumCoords / 2):
   MLtreeFile = 'RAxML_bestTree.' +ThisWindowSuffix +'.tree'
   RAxMLcall = RAxMLargList + ['-s', FileForTrees, '-n',
   ThisWindowSuffix+'.tree']
-  # Better not to root till after RAxML: 
-  #if args.ref_for_rooting != None:
-  #  RAxMLcall += ['-o', args.ref_for_rooting]
   proc = subprocess.Popen(RAxMLcall, stdout=subprocess.PIPE,
   stderr=subprocess.PIPE)
   out, err = proc.communicate()
@@ -1997,49 +1986,6 @@ for window in range(NumCoords / 2):
   # With no bootstraps, just use the ML tree:
   else:
     MainTreeFile = MLtreeFile
-
-  #MainTree = Phylo.read(MainTreeFile, 'newick')
-  #for TipOrMonoSampleClade in ResolveTree(MainTree):
-  #  print(TipOrMonoSampleClade)
-
-  #MainTree.collapse_all(lambda c: c.confidence is not None and \
-  #c.confidence < args.min_support)
-  #for clade in MainTree.find_clades(order='level'):
-  #  node_path = MainTree.get_path(clade)
-  #  if len(node_path) == 0:     
-  #    print('whole tree?')
-  #    parent = 'N/A'
-  #  elif len(node_path) == 1: 
-  #    parent = MainTree.root 
-  #  else:
-  #    parent = node_path[-2]
-  #  if  len(node_path) == 1: 
-  #    print(clade.is_terminal(), MainTree.get_path(clade))
-  #    print('parent:', parent)
-  #    print(' '.join([tip.name for tip in clade.get_terminals()]))
-  #  continue
-  #  if not clade.is_terminal():
-  #    print('Subclade:')
-  #    for clade2 in clade.find_clades(order='level'):
-  #      print(clade2.is_terminal())
-  #      print('MainTree.get_path(clade):', MainTree.get_path(clade2))
-  #      print('clade.get_path(clade):', clade.get_path(clade2))
-  #      print(' '.join([tip.name for tip in clade2.get_terminals()]))
-  #  print()
-
-  #  #if clade.name == None:
-  #  #  for clade2 in clade.find_clades():
-  #  #print(clade2.name, clade2.confidence, clade2.count_terminals(),
-  #  #clade2.is_preterminal(), '\n', clade2, '\n\n')
-  #  if clade2.is_preterminal()
-
-  #MainTree.ladderize()   # Flip branches so deeper clades are displayed at top
-  #with open(MainTreeFile+'_image.txt', 'w') as f:
-  #  Phylo.draw_ascii(MainTree, file=f, column_width=1000)
-
-  #plt.ion()
-  #Phylo.draw(MainTree)
-  #plt.savefig('foo.pdf')
 
 if ExploreWindowWidths:
   TableHeaders = 'Window start,' + ','.join(sorted(BamAliases))
@@ -2207,15 +2153,3 @@ if args.check_recombination:
   FindFilesForRcode("recombination data", FileForRecombinantReads_basename,
   'RecombFiles', '--recombinationFiles')
 
-# Some code not being used at the moment:
-'''DuplicateReadRatios.append(float(ReadDict1[read])/ReadDict2[read])
-        if DuplicateReadRatios != []:
-          DuplicateDetails.append([BamFile1Basename, BamFile2Basename] + \
-          DuplicateReadRatios)
-    if DuplicateDetails != []:
-      DuplicateDetails.sort(key=lambda entry: len(entry), reverse=True)
-      FileForDuplicates = FileForDuplicates_basename + ThisWindowSuffix + '.csv'
-      with open(FileForDuplicates, 'w') as f:
-        f.write('"BamFile1","BamFile2","BamFile1Count/BamFile2Count'+\
-        ' for each duplicated read"\n')
-        f.write('\n'.join(','.join(map(str,data)) for data in DuplicateDetails))'''
