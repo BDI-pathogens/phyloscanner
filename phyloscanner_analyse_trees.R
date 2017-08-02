@@ -880,6 +880,8 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
     tree.info$splits.table  <- rs.subgraphs
   }
   
+  tree.info$tree <- tree
+  
   tree.info
 }, simplify = F, USE.NAMES = T)
 
@@ -974,10 +976,10 @@ if(!single.file){
   produce.pdf.graphs(tmp, pat.stats, hosts, xcoords, rectangles.for.missing.windows, bar.width, regular.gaps, verbose = verbose)
 }
 
-# for(tree.info in all.tree.info){
-#   splits.file.name <- file.path(output.dir, paste0("Splits_",tree.info$output.string,".",csv.fe))
-#   write.csv(tree.info$splits.table, splits.file.name, quote=F, row.names = F)
-# }
+for(tree.info in all.tree.info){
+  splits.file.name <- file.path(output.dir, paste0("Splits_",tree.info$output.string,".",csv.fe))
+  write.csv(tree.info$splits.table, splits.file.name, quote=F, row.names = F)
+}
 
 
 # 17. Individual window classifications
