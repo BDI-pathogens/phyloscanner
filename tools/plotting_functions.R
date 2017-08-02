@@ -315,6 +315,6 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, missi
     }
   }
   
-  dev.off()
+  never.mind <- dev.off()
 
 }
