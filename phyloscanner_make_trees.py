@@ -671,22 +671,12 @@ TranslateCoordsCode = pf.FindAndCheckCode('TranslateCoords.py')
 FindSeqsInFastaCode = pf.FindAndCheckCode('FindSeqsInFasta.py')
 FindWindowsCode     = pf.FindAndCheckCode('FindInformativeWindowsInFasta.py')
 
-# Test RAxML works, if trees are to be made.
-RAxMLargList = args.x_raxml.split()
+# Test RAxML works
 if not args.no_trees:
-  FNULL = open(os.devnull, 'w')
-  try:
-    ExitStatus = subprocess.call(RAxMLargList + ['-h'], stdout=FNULL,
-    stderr=subprocess.STDOUT)
-    assert ExitStatus == 0
-  except:
-    print('Error: could not run the command "', args.x_raxml, ' -h". If you ',
-    'have installed RAxML, try rerunning phyloscanner using the --x-raxml ',
-    'option:\n', RaxmlHelp, '\nQuitting.', sep='', file=sys.stderr)
-    raise
+  RAxMLargList = pf.TestRAxML(args.x_raxml, RaxmlHelp)
 
+times = []
 if args.time:
-  times = []
   times.append(time.time())
 
 # Read in the input bam and ref files
@@ -1186,7 +1176,7 @@ FileForRecombinantReads_basename = 'RecombinantReads_'
 OutputDirs['RecombFiles'] = 'RecombinationData'
 OutputFilesByDestinationDir['RecombFiles'] = []
 
-AtLeastOneTreeMade = False
+NumMLtreesMade = 0
 
 HaveWarnedNoQualities = False
 
@@ -1886,106 +1876,11 @@ for window in range(NumCoords / 2):
   if PrintInfo:
     print('Running RAxML on the processed & aligned reads in window ',
     UserLeftWindowEdge, '-', UserRightWindowEdge, sep='')
-  MLtreeFile = 'RAxML_bestTree.' +ThisWindowSuffix +'.tree'
-  RAxMLcall = RAxMLargList + ['-s', FileForTrees, '-n',
-  ThisWindowSuffix+'.tree']
-  proc = subprocess.Popen(RAxMLcall, stdout=subprocess.PIPE,
-  stderr=subprocess.PIPE)
-  out, err = proc.communicate()
-  ExitStatus = proc.returncode
-  if ExitStatus != 0:
-    print('Problem making the ML tree with RAxML. It returned an exit code of',
-    ExitStatus, ' and printed this to stdout:\n', out, '\nand printed this to',
-    'stderr:\n', err, '\nSkipping to the next window.', file=sys.stderr)
-    continue
-  if not os.path.isfile(MLtreeFile):
-    print(MLtreeFile +', expected to be produced by RAxML, does not exist.'+\
-    '\nSkipping to the next window.', file=sys.stderr)
-    continue
-  AtLeastOneTreeMade = True
-
-  # Update on time taken if desired
-  if args.time:
-    times.append(time.time())
-    LastStepTime = times[-1] - times[-2]
-    print('ML tree in window', UserLeftWindowEdge, '-',
-    UserRightWindowEdge, 'finished. Number of seconds taken: ', LastStepTime)
-
-  # If desired, make bootstrapped alignments
-  if args.num_bootstraps != None:
-    try:
-      ExitStatus = subprocess.call(RAxMLargList + ['-b',
-      str(args.bootstrap_seed), '-f', 'j', '-#', str(args.num_bootstraps), '-s',
-      FileForTrees, '-n', ThisWindowSuffix + '_bootstraps'])
-      assert ExitStatus == 0
-    except:
-      print('Problem generating bootstrapped alignments with RAxML',
-      '\nSkipping to the next window.', file=sys.stderr)
-      continue
-    BootstrappedAlignments = [FileForTrees+'.BS'+str(bootstrap) for \
-    bootstrap in range(args.num_bootstraps)]
-    if not all(os.path.isfile(BootstrappedAlignment) \
-    for BootstrappedAlignment in BootstrappedAlignments):
-      print('At least one of the following files, expected to be produced by'+\
-      ' RAxML, is missing:\n', ' '.join(BootstrappedAlignments)+\
-      '\nSkipping to the next window.', file=sys.stderr)
-      continue
-
-    # Make a tree for each bootstrap
-    for bootstrap,BootstrappedAlignment in enumerate(BootstrappedAlignments):
-      try:
-        ExitStatus = subprocess.call(RAxMLargList + ['-s',
-        BootstrappedAlignment, '-n', ThisWindowSuffix + '_bootstrap_' + \
-        str(bootstrap)+'.tree'])
-        assert ExitStatus == 0
-      except:
-        print('Problem generating a tree with RAxML for bootstrap',
-        str(bootstrap), '\Breaking.', file=sys.stderr)
-        break
-    BootstrappedTrees = ['RAxML_bestTree.' +ThisWindowSuffix +'_bootstrap_' +\
-    str(bootstrap) +'.tree' for bootstrap in range(args.num_bootstraps)]
-    if not all(os.path.isfile(BootstrappedTree) \
-    for BootstrappedTree in BootstrappedTrees):
-      print('At least one of the following files, expected to be produced by'+\
-      ' RAxML, is missing:\n', ' '.join(BootstrappedTrees)+\
-      '\nSkipping to the next window.', file=sys.stderr)
-      continue
-
-    # Collect the trees from all bootstraps into one file
-    TempAllBootstrappedTreesFile = TempFileForAllBootstrappedTrees_basename +\
-    ThisWindowSuffix+'.tree'
-    with open(TempAllBootstrappedTreesFile, 'w') as outfile:
-      for BootstrappedTree in BootstrappedTrees:
-        with open(BootstrappedTree, 'r') as infile:
-          outfile.write(infile.read())
-    TempFiles.add(TempAllBootstrappedTreesFile)
-
-    # Collect the trees from all bootstraps onto the ML tree
-    MainTreeFile = 'MLtreeWbootstraps' +ThisWindowSuffix +'.tree'
-    try:
-      ExitStatus = subprocess.call(RAxMLargList + ['-f', 'b', '-t', MLtreeFile,
-       '-z', TempAllBootstrappedTreesFile, '-n', MainTreeFile])
-      assert ExitStatus == 0
-    except:
-      print('Problem collecting all the bootstrapped trees onto the ML tree',
-      'with RAxML. Skipping to the next window.', file=sys.stderr)
-      continue
-    MainTreeFile = 'RAxML_bipartitions.' +MainTreeFile
-    if not os.path.isfile(MainTreeFile):
-      print(MainTreeFile +', expected to be produced by RAxML, does not '+\
-      'exist.\nSkipping to the next window.', file=sys.stderr)
-      continue
-
-    # Update on time taken if desired
-    if args.time:
-      times.append(time.time())
-      LastStepTime = times[-1] - times[-2]
-      print('Bootstrapped trees in window', UserLeftWindowEdge, '-',
-      UserRightWindowEdge, 'finished. Number of seconds taken: ', LastStepTime)
-
-  # With no bootstraps, just use the ML tree:
-  else:
-    MainTreeFile = MLtreeFile
+    
+  NumMLtreesMade += pf.RunRAxML(FileForTrees, RAxMLargList, ThisWindowSuffix,
+  UserLeftWindowEdge, UserRightWindowEdge, TempFiles,
+  TempFileForAllBootstrappedTrees_basename, args.bootstrap_seed,
+  args.num_bootstraps, times)
 
 if ExploreWindowWidths:
   TableHeaders = 'Window start,' + ','.join(sorted(BamAliases))
@@ -2100,7 +1995,7 @@ if not PrintInfo:
   exit(0)
 
 # Stop if no trees
-if not AtLeastOneTreeMade:
+if NumMLtreesMade == 0:
   print("Info: phyloscanner_make_trees.py has processed all windows but has",
   "not produced any trees, either because you told it not to or because of",
   "errors. Stopping.")

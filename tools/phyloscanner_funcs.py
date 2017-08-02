@@ -4,6 +4,7 @@ import sys
 import subprocess
 import itertools
 import csv
+import time
 
 GapChar = '-'
 
@@ -155,6 +156,141 @@ def ReadInputCSVfile(TheFile):
   return BamFiles, RefFiles, aliases, BamBaseNames
 
 
+def TestRAxML(ArgString, HelpMessage):
+  '''Runs RAxML with the desired options and --flag-check.'''
+  ArgList = ArgString.split()
+  try:
+    proc = subprocess.Popen(ArgList + ['--flag-check'], stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE)
+  except:
+    success = False
+    raise
+  else:
+    out, err = proc.communicate()
+    success = proc.returncode == 0
+    if not success:
+      print('RAxML error messages: ', out + '\n' + err)
+  finally:
+    if not success:
+      print('Error: could not run the command "', ArgString, ' --flag-check". ',
+      'If RAxML is not installed, please install it first.',
+      ' If it is installed, try rerunning using the --x-raxml option:\n',
+      HelpMessage, '\nQuitting.', sep='', file=sys.stderr)
+      exit(1)
+  return ArgList
+
+
+
+
+def RunRAxML(alignment, RAxMLargList, WindowSuffix, LeftEdge, RightEdge,
+TempFilesSet, TempFileForAllBootstrappedTrees_basename, BootstrapSeed=None,
+NumBootstraps=None, TimesList=[]):
+  '''Runs RAxML on aligned sequences in a window, with bootstraps if desired.
+
+  Returns 1 if an ML tree was produced (regardless of whether any subsequent
+  bootstrapping worked), 0 if not.'''
+
+  # Update on times if we weren't given an empty list
+  UpdateTimes = TimesList != []
+
+  MLtreeFile = 'RAxML_bestTree.' + WindowSuffix + '.tree'
+  RAxMLcall = RAxMLargList + ['-s', alignment, '-n',
+  WindowSuffix+'.tree']
+  proc = subprocess.Popen(RAxMLcall, stdout=subprocess.PIPE,
+  stderr=subprocess.PIPE)
+  out, err = proc.communicate()
+  ExitStatus = proc.returncode
+  if ExitStatus != 0:
+    print('Problem making the ML tree with RAxML. It returned an exit code of',
+    ExitStatus, ' and printed this to stdout:\n', out, '\nand printed this to',
+    'stderr:\n', err, '\nSkipping to the next window.', file=sys.stderr)
+    return 0
+  if not os.path.isfile(MLtreeFile):
+    print(MLtreeFile +', expected to be produced by RAxML, does not exist.'+\
+    '\nSkipping to the next window.', file=sys.stderr)
+    return 0
+
+  # Update on time taken if desired
+  if UpdateTimes:
+    TimesList.append(time.time())
+    LastStepTime = TimesList[-1] - TimesList[-2]
+    print('ML tree in window', LeftEdge, '-', RightEdge,
+    'finished. Number of seconds taken: ', LastStepTime)
+
+  # If desired, make bootstrapped alignments
+  if NumBootstraps != None:
+    try:
+      ExitStatus = subprocess.call(RAxMLargList + ['-b',
+      str(BootstrapSeed), '-f', 'j', '-#', str(NumBootstraps), '-s',
+      alignment, '-n', WindowSuffix + '_bootstraps'])
+      assert ExitStatus == 0
+    except:
+      print('Problem generating bootstrapped alignments with RAxML',
+      '\nSkipping to the next window.', file=sys.stderr)
+      return 1
+    BootstrappedAlignments = [alignment+'.BS'+str(bootstrap) for \
+    bootstrap in range(NumBootstraps)]
+    if not all(os.path.isfile(BootstrappedAlignment) \
+    for BootstrappedAlignment in BootstrappedAlignments):
+      print('At least one of the following files, expected to be produced by'+\
+      ' RAxML, is missing:\n', ' '.join(BootstrappedAlignments)+\
+      '\nSkipping to the next window.', file=sys.stderr)
+      return 1
+
+    # Make a tree for each bootstrap
+    for bootstrap,BootstrappedAlignment in enumerate(BootstrappedAlignments):
+      try:
+        ExitStatus = subprocess.call(RAxMLargList + ['-s',
+        BootstrappedAlignment, '-n', WindowSuffix + '_bootstrap_' + \
+        str(bootstrap)+'.tree'])
+        assert ExitStatus == 0
+      except:
+        print('Problem generating a tree with RAxML for bootstrap',
+        str(bootstrap), '. Skipping subsequent bootstraps.', file=sys.stderr)
+        break
+    BootstrappedTrees = ['RAxML_bestTree.' +WindowSuffix +'_bootstrap_' +\
+    str(bootstrap) +'.tree' for bootstrap in range(NumBootstraps)]
+    if not all(os.path.isfile(BootstrappedTree) \
+    for BootstrappedTree in BootstrappedTrees):
+      print('At least one of the following files, expected to be produced by'+\
+      ' RAxML, is missing:\n', ' '.join(BootstrappedTrees)+\
+      '\nSkipping to the next window.', file=sys.stderr)
+      return 1
+
+    # Collect the trees from all bootstraps into one file
+    TempAllBootstrappedTreesFile = TempFileForAllBootstrappedTrees_basename +\
+    WindowSuffix+'.tree'
+    with open(TempAllBootstrappedTreesFile, 'w') as outfile:
+      for BootstrappedTree in BootstrappedTrees:
+        with open(BootstrappedTree, 'r') as infile:
+          outfile.write(infile.read())
+    TempFilesSet.add(TempAllBootstrappedTreesFile)
+
+    # Collect the trees from all bootstraps onto the ML tree
+    MainTreeFile = 'MLtreeWbootstraps' +WindowSuffix +'.tree'
+    try:
+      ExitStatus = subprocess.call(RAxMLargList + ['-f', 'b', '-t', MLtreeFile,
+       '-z', TempAllBootstrappedTreesFile, '-n', MainTreeFile])
+      assert ExitStatus == 0
+    except:
+      print('Problem collecting all the bootstrapped trees onto the ML tree',
+      'with RAxML. Skipping to the next window.', file=sys.stderr)
+      return 1
+    MainTreeFile = 'RAxML_bipartitions.' +MainTreeFile
+    if not os.path.isfile(MainTreeFile):
+      print(MainTreeFile +', expected to be produced by RAxML, does not '+\
+      'exist.\nSkipping to the next window.', file=sys.stderr)
+      return 1
+
+    # Update on time taken if desired
+    if UpdateTimes:
+      TimesList.append(time.time())
+      LastStepTime = TimesList[-1] - TimesList[-2]
+      print('Bootstrapped trees in window', LeftEdge, '-',
+      RightEdge, 'finished. Number of seconds taken: ', LastStepTime)
+  return 1
+
+
 
 
 def TranslateSeqCoordsToAlnCoords(seq, coords):
@@ -163,9 +299,12 @@ def TranslateSeqCoordsToAlnCoords(seq, coords):
   translated to their positions in the gappy version of the sequence.
   e.g. called with the arguments "-a--cg-t-" and [1,2,3], we return [2,5,6].
   '''
-  assert type(seq) == type('abc')
-  assert all(type(coord) == int for coord in coords)
-  assert all(coord > 0 for coord in coords)
+  assert type(seq) == type('abc'), \
+  'TranslateSeqCoordsToAlnCoords called with a sequence not of string type.'
+  assert all(type(coord) == int for coord in coords), \
+  'TranslateSeqCoordsToAlnCoords called with coords not of int type.'
+  assert all(coord > 0 for coord in coords), \
+  'TranslateSeqCoordsToAlnCoords called with at least one non-positive coord.'
   TranslatedCoords = [-1 for coord in coords]
   PositionInSeq = 0
   for GappyPostitionMin1,base in enumerate(seq):
@@ -176,8 +315,8 @@ def TranslateSeqCoordsToAlnCoords(seq, coords):
           TranslatedCoords[i] = GappyPostitionMin1+1
       if not -1 in TranslatedCoords:
         break
-  assert not -1 in TranslatedCoords
-  assert len(TranslatedCoords) == len(coords)
+  assert not -1 in TranslatedCoords, \
+  'TranslateSeqCoordsToAlnCoords failed to find at least one coord.'
   return TranslatedCoords
 
 
