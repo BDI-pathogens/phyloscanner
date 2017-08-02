@@ -1,7 +1,8 @@
 # Collects a variety of statistics about a single patient in a single tree
 
 calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table, no.read.counts, verbose = F){
-  if(verbose) cat("Calculating detailed statistics for host ",id,".\n", sep="")
+
+  if(verbose) cat("Calculating statistics for host ",id,".\n", sep="")
   
   subgraphs <- length(unique(splits.table$subgraph[which(splits.table$host==id)]))
   
@@ -44,9 +45,9 @@ calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table
     } else {
 
       relevant.reads <- splits.table[which(splits.table$host==id),]
-      
-      splits <- unique(relevant.reads$subgraph)
 
+      splits <- unique(relevant.reads$subgraph)
+      
       reads.per.split <- sapply(splits, function(x) sum(splits.table$reads[which(splits.table$subgraph==x)] ) )
       
       winner <- splits[which(reads.per.split==max(reads.per.split))]
@@ -98,6 +99,7 @@ calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table
       largest.rtt <- NA
     }
   }
+
   return(list(overall.rtt = overall.rtt, largest.rtt = largest.rtt, max.branch.length = max.branch.length, max.pat.distance = max.pat.distance, 
               global.mean.pat.distance=global.mean.pat.distance, subgraph.mean.pat.distance = subgraph.mean.pat.distance))
 }
@@ -160,10 +162,13 @@ calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, verbose = F){
   window.table <- window.table[, clades := sapply(hosts, function(x) length(clades.by.host[[x]]))  ]
   
   new.cols <- sapply(hosts, function(x) calc.subtree.stats(x, suffix, tree, tips.for.hosts, splits.table, no.read.counts, verbose))
-  new.cols <- as.data.table(t(new.cols))
-  new.cols <- sapply(new.cols, as.numeric)
-  window.table <- cbind(window.table, new.cols) 
   
+  new.cols <- as.data.table(t(new.cols))
+  
+  new.cols <- new.cols[, lapply(.SD, as.numeric)]
+  
+  window.table <- cbind(window.table, new.cols) 
+
   recomb.file.name <- tree.info$recombination.file.name
   
   if (!is.null(recomb.file.name)) {
@@ -191,7 +196,7 @@ calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, verbose = F){
     colnames(recomb.df)[colnames(recomb.df) == "Recombination.metric"] <- "recombination.metric"
     window.table <- merge(window.table, recomb.df, by="id", all=F)
   }
-  
+
   window.table
 }
 
