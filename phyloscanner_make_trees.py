@@ -98,7 +98,7 @@ rename the bam files in all output. For example:
 PatientA.bam,PatientA_ref.fasta,A
 PatientB.bam,PatientB_ref.fasta,B''')
 
-parser.add_argument('-q', '--quiet', action='store_true', help='''Turns off the
+parser.add_argument('-Q', '--quiet', action='store_true', help='''Turns off the
 small amount of information printed to the terminal (via stdout). We'll still
 print warnings and errors (via stderr), and the command you ran, for logging
 purposes.''')
