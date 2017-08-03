@@ -97,7 +97,7 @@ split.hosts.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff.k,
 
   # This is the annotation for each node by host
   
-  host.annotation <- sapply(split.annotation, function(x) unlist(strsplit(x, "-S"))[1] )
+  host.annotation <- sapply(split.annotation, function(x) unlist(strsplit(x, "-SPLIT"))[1] )
   names(host.annotation) <- NULL
   
   if(is.null(host.master.list)){
@@ -117,7 +117,7 @@ split.hosts.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff.k,
   attr(tree, 'BRANCH_COLOURS') <- branch.colours
   
   rs.subgraphs <- data.table(subgraph=results$split.hosts)
-  rs.subgraphs <- rs.subgraphs[, list(host= unlist(strsplit(subgraph, "-S"))[1], tip= tree$tip.label[ results$split.tips[[subgraph]] ]	), by='subgraph']
+  rs.subgraphs <- rs.subgraphs[, list(host= unlist(strsplit(subgraph, "-SPLIT"))[1], tip= tree$tip.label[ results$split.tips[[subgraph]] ]	), by='subgraph']
   rs.subgraphs <- as.data.frame(subset(rs.subgraphs, select=c(host, subgraph, tip)))
   
   list(tree=tree, rs.subgraphs=rs.subgraphs)
@@ -192,7 +192,7 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
         pat.tips <- patient.tips[[patient]]
         patient.tips.copy[[patient]] <- NULL
         patients.copy <- patients.copy[which(patients.copy!=patient)]
-        patients.copy <- c(patients.copy, paste(patient,"-S",seq(1, no.splits),sep=""))
+        patients.copy <- c(patients.copy, paste(patient,"-SPLIT",seq(1, no.splits),sep=""))
         
         for(tip in pat.tips){
           # go up until you find one of the first nodes
@@ -205,7 +205,7 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
             current.node <- Ancestors(tree, current.node, type="parent")
           }
           split.index <- which(subtree.roots == current.node)
-          new.name <- paste(patient,"-S", split.index, sep="")
+          new.name <- paste(patient,"-SPLIT", split.index, sep="")
           
           current.node <- tip
           split.assocs[[subtree.roots[split.index]]] <- new.name
@@ -348,13 +348,13 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
         
         patient.tips.copy[[patient]] <- NULL
         patients.copy <- patients.copy[which(patients.copy!=patient)]
-        patients.copy <- c(patients.copy, paste(patient,"-S",seq(1, no.splits),sep=""))
+        patients.copy <- c(patients.copy, paste(patient,"-SPLIT",seq(1, no.splits),sep=""))
         
         subtree.roots <- first.nodes.by.patients[[patient]]
         
         for(split.no in 1:no.splits){
           split.root <- subtree.roots[split.no]
-          new.name <- paste(patient,"-S", split.no, sep="")
+          new.name <- paste(patient,"-SPLIT", split.no, sep="")
           split.assocs[[split.root]] <- new.name
           split.assocs <- assign.splits.down(split.root, tree, full.assocs, split.assocs)
           
@@ -415,7 +415,7 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
       cost.matrix <- matrix(NA, nrow=length(tree$tip.label) + tree$Nnode, ncol=length(patients))
     }
     
-    progress.bar <- txtProgressBar(width=50, style=3)
+    if(verbose) progress.bar <- txtProgressBar(width=50, style=3)
     
     cost.matrix <- make.cost.matrix.fi(getRoot(tree), tree, patients, tip.patients, cost.matrix, k, p, finite.cost, tip.read.counts, progress.bar, verbose)
 
@@ -464,13 +464,13 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
         
         patient.tips.copy[[patient]] <- NULL
         patients.copy <- patients.copy[which(patients.copy!=patient)]
-        patients.copy <- c(patients.copy, paste(patient,"-S",seq(1, no.splits),sep=""))
+        patients.copy <- c(patients.copy, paste(patient,"-SPLIT",seq(1, no.splits),sep=""))
         
         subtree.roots <- first.nodes.by.patients[[patient]]
         
         for(split.no in 1:no.splits){
           split.root <- subtree.roots[split.no]
-          new.name <- paste(patient,"-S", split.no, sep="")
+          new.name <- paste(patient,"-SPLIT", split.no, sep="")
           split.assocs[[split.root]] <- new.name
           split.assocs <- assign.splits.down(split.root, tree, full.assocs, split.assocs)
           

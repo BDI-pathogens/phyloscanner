@@ -127,7 +127,7 @@ ladderise.trees) {
 
 
 resolveTreeIntoPatientClades <- function(tree, ids, tip.regex, blacklisted.tips = vector(), no.read.counts = T) {
-
+  
   num.tips <- length(tree$tip.label)
   num.patients <- length(ids)
 
@@ -152,7 +152,7 @@ resolveTreeIntoPatientClades <- function(tree, ids, tip.regex, blacklisted.tips 
   num.tips.and.nodes <- num.tips + tree$Nnode
   m <- matrix(FALSE, num.tips.and.nodes, num.patients)
   m[cbind(is.patient, match(tip.ids, ids))] <- TRUE
-
+  
   # Our main object of interest: each patient will have a list, with one item in 
   # that list being a list of monophyletic tips for that patient.
   groups <- vector("list", num.patients)
@@ -184,15 +184,15 @@ resolveTreeIntoPatientClades <- function(tree, ids, tip.regex, blacklisted.tips 
   # patient's list in groups.
   keep.going <- rep(TRUE, num.tips.and.nodes)
   keep.going[!(seq_len(num.tips) %in% is.patient)] <- FALSE
-
+  
   # Iterate through the nodes (we always meet ancestors nodes after their
   # descendants):
   for (i in seq_along(nodes)) {
-
     node <- nodes[[i]]
     these.children <- children[[i]]
+    
     keep.going[node] <- (all(keep.going[these.children]) && 
-                       sum(colSums(m[these.children, ]) > 0) == 1)
+                       sum(colSums(m[these.children, , drop=F]) > 0) == 1)
 
     if (keep.going[node]) {
       m[node, ] <- m[these.children[1], ]

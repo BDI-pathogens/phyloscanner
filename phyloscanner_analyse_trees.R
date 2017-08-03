@@ -669,7 +669,7 @@ if(do.par.blacklisting){
     
     hosts <- hosts[order(hosts)]
     
-    results <- sapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, outgroup.name, bl.raw.threshold, bl.ratio.threshold, par.blacklisting.k, T, no.read.counts, verbose), simplify = F, USE.NAMES = T)
+    results <- sapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, outgroup.name, bl.raw.threshold, bl.ratio.threshold, "s", par.blacklisting.k, 0, T, no.read.counts, verbose), simplify = F, USE.NAMES = T)
     
     contaminant                                 <- unlist(lapply(results, "[[", 2))
     contaminant.nos                             <- which(tree.info$tree$tip.label %in% contaminant)
@@ -770,6 +770,10 @@ hosts <- unique(unlist(hosts))
 hosts <- hosts[!is.na(hosts)]
 hosts <- hosts[order(hosts)]
 
+if(length(hosts)==1){
+  warning("Only one host detected in any tree, will skip classification of topological relationships between hosts.")
+}
+
 all.tree.info <- sapply(all.tree.info, function(tree.info){
   if(all(is.na(tree.info$hosts.for.tips))){
     warning("For tree suffix ",tree.info$suffix," no non-blacklisted tips remain; this window will be removed from the analysis.")
@@ -825,7 +829,6 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
   
   # trees are annotated from now on
   
-  tree.info$tree  <- tree
   rs.subgraphs		 <- tmp[['rs.subgraphs']]
   
   if(is.null(rs.subgraphs)){
@@ -876,7 +879,10 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
     tree.info$splits.table  <- rs.subgraphs
   }
   
+  tree.info$tree <- tree
+  
   tree.info
+  
 }, simplify = F, USE.NAMES = T)
 
 
@@ -978,28 +984,30 @@ if(!single.file){
 
 # 17. Individual window classifications
 
-all.tree.info <- sapply(all.tree.info, function(tree.info) {
-  
-  if(verbose) cat("Classifying pairwise host relationships for tree suffix ",tree.info$suffix, "\n", sep="")
-  
-  tree.info$classification.results <- classify(tree.info, verbose)
-  
-  if(do.collapsed){
-    tree.info$collapsed.file.name <- file.path(output.dir, paste0("CollapsedTree_",tree.info$output.string,".",csv.fe))
-    write.csv(tree.info$classification.results$collapsed[,1:4], tree.info$collapsed.file.name, quote=F, row.names = F)
-  }
-  if(do.class.detail){
-    tree.info$classification.file.name <- file.path(output.dir, paste0("Classification_",tree.info$output.string,".",csv.fe))
-    write.csv(tree.info$classification.results$classification, tree.info$classification.file.name, quote=F, row.names = F)
-  }
-  
-  tree.info
-}, simplify = F, USE.NAMES = T)
+if(length(hosts)>1){
+  all.tree.info <- sapply(all.tree.info, function(tree.info) {
+    
+    if(verbose) cat("Classifying pairwise host relationships for tree suffix ",tree.info$suffix, "\n", sep="")
+    
+    tree.info$classification.results <- classify(tree.info, verbose)
+    
+    if(do.collapsed){
+      tree.info$collapsed.file.name <- file.path(output.dir, paste0("CollapsedTree_",tree.info$output.string,".",csv.fe))
+      write.csv(tree.info$classification.results$collapsed[,1:4], tree.info$collapsed.file.name, quote=F, row.names = F)
+    }
+    if(do.class.detail){
+      tree.info$classification.file.name <- file.path(output.dir, paste0("Classification_",tree.info$output.string,".",csv.fe))
+      write.csv(tree.info$classification.results$classification, tree.info$classification.file.name, quote=F, row.names = F)
+    }
+    
+    tree.info
+  }, simplify = F, USE.NAMES = T)
+}
 
 
 # 18. Transmission summary
 
-if(!single.file){
+if(!single.file & length(hosts)>1){
   results <- summarise.classifications(all.tree.info, win.threshold*length(all.tree.info), dist.threshold, allow.mt, verbose)
   
   if (verbose) cat('Writing summary to file', paste0(output.string,"_hostRelationshipSummary.",csv.fe),'\n')

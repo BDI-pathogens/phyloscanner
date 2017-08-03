@@ -153,7 +153,7 @@ output.trans.tree <- function(tree, assocs){
   unsampled.roots <- which(splits.vec=="none" & first.of.split)
   
   splits.vec[unsampled.roots] <- 
-    paste("unsampled_region-S", 1:length(unsampled.roots), sep="")
+    paste("unsampled_region-SPLIT", 1:length(unsampled.roots), sep="")
   
   for(node.no in seq(1, tree$Nnode + length(tree$tip.label))){
     if(assocs.vec[node.no]=="none" & !first.of.split[node.no]){
@@ -188,8 +188,8 @@ output.trans.tree <- function(tree, assocs){
     root.nos <- c(root.nos, root)
   }
   
-  hosts <-  unlist(lapply(strsplit(unique.splits, "-S"), `[[`, 1)) 
-  parent.hosts <-  unlist(lapply(strsplit(parent.splits, "-S"), `[[`, 1)) 
+  hosts <-  unlist(lapply(strsplit(unique.splits, "-SPLIT"), `[[`, 1)) 
+  parent.hosts <-  unlist(lapply(strsplit(parent.splits, "-SPLIT"), `[[`, 1)) 
   
   tt.table <- data.frame(unique.splits, parent.splits, hosts, parent.hosts, lengths, root.nos, stringsAsFactors = F)
 
@@ -213,7 +213,7 @@ prune.unsampled.tips <- function(tt.table){
 
   for(x in 1:length(unsampled.rows)) {
     old.label <- unsampled.labels[x]
-    new.label <- paste("UnsampledRegion-S",x,sep="")
+    new.label <- paste("UnsampledRegion-SPLIT",x,sep="")
     for.output$unique.splits[unsampled.rows[x]] <- new.label
     for.output$parent.splits[which(for.output$parent.splits==old.label)] <- new.label
   } 
@@ -497,8 +497,8 @@ subgraphs.unblocked <- function(tt, splits, total.pairs, verbose = F){
         spt.1 <- splits[spt.1.no]
         spt.2 <- splits[spt.2.no]
         
-        pat.1 <- strsplit(spt.1, "-S")[[1]][1]
-        pat.2 <- strsplit(spt.2, "-S")[[1]][1]
+        pat.1 <- strsplit(spt.1, "-SPLIT")[[1]][1]
+        pat.2 <- strsplit(spt.2, "-SPLIT")[[1]][1]
         
         if(spt.1 %in%  get.tt.adjacent(tt, spt.2)){
           out[spt.1.no, spt.2.no] <- T

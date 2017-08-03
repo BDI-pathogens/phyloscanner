@@ -22,9 +22,11 @@ arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, s
 arg_parser$add_argument("-d", "--dualsOutputFile", action="store", help="A file or file root to write the set of hosts which seem to be dually infected according to the parameters of this run; if unspecified, do not output this.")
 arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default="tree", help="The file extension for tree files (default .tree).")
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="csv", help="The file extension for table files (default .csv).")
+arg_parser$add_argument("-dpr", "--developmentParsimonyReconstruction", default=F, action="store_true")
 arg_parser$add_argument("rawThreshold", action="store", type="double", help="Raw threshold; subgraphs with read counts less than this will be blacklisted, regardless of the count of any other subgraphs from the same host")
 arg_parser$add_argument("ratioThreshold", action="store", type="double", help="Ratio threshold; subgraphs will be blacklisted if the ratio of their tip count to that of another subgraph from the same host is less than this.")
 arg_parser$add_argument("sankoffK", action="store", type="double", help="The k parameter in the cost matrix for Sankoff reconstruction (see documentation)")
+arg_parser$add_argument("-p", "--sankoffP", action="store", type="double", default=0, help="The p parameter in the cost matrix for Sankoff reconstruction (see documentation)")
 arg_parser$add_argument("inputFileName", action="store", help="The file or file root for the input tree in Newick or Nexus format")
 arg_parser$add_argument("blacklistOutputFileName", action="store", help="The file or file root where the list of tips to be blacklisted will be written")
 
@@ -45,6 +47,8 @@ if(!is.null(args$scriptDir)){
 raw.threshold          <- args$rawThreshold
 ratio.threshold        <- args$ratioThreshold
 sankoff.k              <- args$sankoffK
+sankoff.p              <- args$sankoffP
+sankoff.method         <- if(args$developmentParsimonyReconstruction==T) "f" else "s"
 tip.regex              <- args$tipRegex
 input.name             <- args$inputFileName
 b.output.name          <- args$blacklistOutputFileName
@@ -247,7 +251,7 @@ for(tree.info in all.tree.info){
   
   tree <- process.tree(tree, root.name, m.thresh)
   
-  results <- lapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, root.name, raw.threshold, ratio.threshold, sankoff.k, !is.null(tree.info$duals.output), no.read.counts, verbose))
+  results <- lapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, root.name, raw.threshold, ratio.threshold, sankoff.method, sankoff.k, sankoff.p, !is.null(tree.info$duals.output), no.read.counts, verbose))
 
   if (verbose) cat("Finished\n")
   

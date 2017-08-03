@@ -104,7 +104,6 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, missi
   for (i in seq(1, length(hosts))) {
     
     host <- hosts[i]
-    
   
     this.host.statistics <- host.statistics[which(host.statistics$id==host),]
     this.host.statistics <- this.host.statistics[order(this.host.statistics$xcoord),]
@@ -316,6 +315,6 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, missi
     }
   }
   
-  dev.off()
+  never.mind <- dev.off()
 
 }
