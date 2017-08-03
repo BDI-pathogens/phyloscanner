@@ -3,11 +3,6 @@
 list.of.packages <- c("prodlim", "reshape2", "kimisc")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = TRUE, repos="http://cran.ma.imperial.ac.uk/")
-
-suppressMessages(library(prodlim, quietly=TRUE, warn.conflicts=FALSE))
-suppressMessages(library(reshape2, quietly=TRUE, warn.conflicts=FALSE))
-suppressMessages(library(gdata, quietly=TRUE, warn.conflicts=FALSE))
-suppressMessages(library(ggplot2, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(kimisc, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
