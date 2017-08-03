@@ -16,7 +16,7 @@ lookup.normalisation.for.tree <- function(tree.info, lookup.df, lookup.column = 
     stop(paste0("No column called ",lookup.column," in lookup data frame."))
   }
 
-  window.rows <- lookup.df[which(lookup.df$POSITION<=end & lookup.df$POSITION>=end),]
+  window.rows <- lookup.df[which(lookup.df$POSITION<=end & lookup.df$POSITION>=start),]
   
   return(colMeans(window.rows)[lookup.column]) 
 }
