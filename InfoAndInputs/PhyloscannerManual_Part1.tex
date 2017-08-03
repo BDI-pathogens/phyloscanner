@@ -77,13 +77,16 @@ You can choose to specify no windows covering such regions.
 
 \subsection{Window width} \label{sec:WindowWidth}
 As well as choosing where your first window should start and where your last one should end, you need to choose how wide each window is.
-Having a wider window, all else being equal, increases phylogenetic resolution (i.e. the amount of information contained in the window).
-However a read must fully span a window to be included in it, so the wider you make a window the fewer reads it will contain.
-To quantify this latter effect, you can run
+On the one hand, increasing the width of a window increases its phylogenetic resolution.
+To see this effect using just some existing reference sequences (forgetting momentarily about any read data you have), the script \c{tools/CalculateTreeSizeInGenomeWindows.py} could be useful: it calculates trees from references in sliding windows along the genome.
+(It then calculates patristic distances, for a purpose discussed later in section~\ref{sec:normalisation}.)
+You may be able to see from visual inspection, or from some automated analysis of your own, that one's ability to construct well-resolved phylogenies increases with window width.
+On the other hand, a read must fully span a window to be included in it, so the wider you make a window the fewer reads it will contain.
+To quantify this effect, you can run
 \begin{verbatim}
 $ tools/EstimateReadCountPerWindow.py ListOfMyInputFiles.csv
 \end{verbatim}
-(where \c{ListOfMyInputFiles.csv} is the same file as we discussed at the top of section~\ref{sec:The basic command}, and \c{tools} is a subdirectory inside the main \p code directory).
+(where \c{ListOfMyInputFiles.csv} is the same file as we discussed at the top of section~\ref{sec:The basic command}).
 This command uses the information in each bam about the number of reads and how long\footnote{
 In this particular instance we define read length as the length of the mapping reference covered by the read, from its start to its end.
 This can differ from the actual read length due to insertions or deletions in the read relative to the reference.

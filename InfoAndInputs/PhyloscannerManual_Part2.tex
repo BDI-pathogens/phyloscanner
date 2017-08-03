@@ -91,32 +91,77 @@ The default is \verb|"^\\D*([0-9]+)_to_([0-9]+)\\D*$"|.
 In plainer language this is any number of non-digit characters, followed by ``X\_to\_Y'' where X is the window start and Y the end, followed by any number of non-digit characters.
 An alternative can be specified with the \c{--fileNameRegex} option.
 
-\section{Branch length normalisation}
+\section{Branch length normalisation} \label{sec:normalisation}
 
 Two hosts may be classified as closely linked by \pat on the grounds that they have host subtrees separated by a patristic distance that lies below a given threshold.
-Because we are often interested in a genomic window approach, however, a fixed distance threshold for all trees may not be appropriate because of variations in nucleotide diversity in different areas of the genome.
+However because we are often interested in a genomic window approach, a fixed distance threshold for all trees may not be appropriate because of variations in nucleotide diversity in different areas of the genome.
 This is because a distance threshold suggestive of a close epidemiological relationship in one window will not be in others.
-To remedy this, \pat can be asked to normalise branch lengths in the chosen phylogenies.
+To remedy this, \pat can be asked to normalise branch lengths across windows.
 
-The \c{--normalisationConstants} option is used to specify previously calculated normalisations.
+One approach to generating appropriate normalisation values over the genome is implemented by the script \c{tools/CalculateTreeSizeInGenomeWindows.py}.
+Run from the command line (see it's \c{--help} option for details on how) taking a whole-genome alignment of existing reference sequences as input, it infers phylogenies in sliding windows, and characterises the size of the tree by taking the median of the set of patristic distances between all pairs of references.
+One such value is obtained per window; one value is then assigned to each integeter position in the genome by taking the mean of the values from those windows spanning this position (with windows chosen to overlap, so that multiple values for each position should smooth some stochasticity in phylogenetic inference).
+Q: what alignment of existing reference sequences should you use for this?
+A: ideally, one which is in some sense representative of between-host diversity.
+We find all pairwise patristic distances, so if your set of sequences is biased to be overly representative of a particular subset, these patristic distances will become biased towards zero.
+That said, all we're interested in here is how patristic distances change across the genome, not their absolute values.
+
+The output from \c{tools/CalculateTreeSizeInGenomeWindows.py}, or alternatively any other csv file containing genomic positions with associated normalisation constants, can be used with the \c{--normRefFileName} option.
+This will scale all normalisation constants by the same factor such that their mean is 1.
+A normalisation constant is then determined for each window by taking the mean of the values for all positions in the window.
+This constant for the window is used to scale all branch lengths in the tree for subsequent processing by \pat.
+The similar option \c{--normStandardiseGagPol}, specific to HIV genomes, instead scales normalisation constants so that the mean of the constants on the {\it gag} and {\it pol} genes is 1; distances anywhere in the genome are then interpretable as standard distances in {\it gag/pol}.
+Both of these options assume that window coordinates are present in file suffixes.
+Note that the genomic coordinates specified here must mean the same thing as the window coordinates in the file suffixes.
+As discussed in section~\ref{sec:CoordMeaning}, window coordinates in tree file names output by \pmt may mean one of two things -- they may be with respect to a named sequence or with respect to an alignment.
+
+The \c{--normalisationConstants} option is used to directly specify the normalisation to be used for each tree file.
 If the argument is numerical, it is used as a normalising constant for every tree.
 If it is instead the path to a .csv file, then this file is expected to consist of a first column listing all input tree file names, and a second of normalising constants.
-The presence of \c{-nc} overrides any other normalisation options, which will be disregarded.
-
-The \c{--normRefFileName} option is used to specify a lookup file of normalisation constants for each genome position, and should consist of a column of genome positions and a numerical column.
-This option assumes that window coordinates are present in file suffixes.
-The calculated normalising constant for a genome window will be the mean of the second column for all positions in that window, standardised so the mean of all the constants over every window is 1.
-An HIV-specific additional option is \c{--normStandardiseGagPol}, which instead standardises so that the mean of the constants on the gag and pol genes is 1 instead.
-Distances are then interpretable as standard distances on this region.
-Note that the genomic coordinates specified here must mean the same thing as the window coordinates in the file suffixes.
-As discussed in section~\ref{sec:CoordMeaning}, window coordinates in tree file names output by \pmt may mean one of two things - they may be with respect to a named sequence or with respect to an alignment.
-
-It is anticipated that normalisation constants would be derived from phylogenies built using reference sequences of the pathogen under investigation.
-See the supplementary text of the \p paper for further guidance.
+The presence of \c{--normalisationConstants} overrides any other normalisation options, which will be disregarded.
 
 Normalisation constants can be separately calculated using the standalone script \\\c{normalisation\_lookup\_writer.R.}
 
-\section{Blacklisting}
+\subsection{Parallelising \texttt{tools/CalculateTreeSizeInGenomeWindows.py}}
+The \c{--threads} option of \c{tools/CalculateTreeSizeInGenomeWindows.py} can be used to specify multiple threads, allows multiple windows to be analysed in parallel using multiple cores on the same machine.
+Alternatively, power users may want to massively parallelise, e.g. over multiple different machines on a computing cluster.
+Read on if interested; skip ahead to section~\ref{sec:Blacklisting} if not.
+First choose your desired start, end, window width and increment parameters.
+Then generate a set of \\\c{tools/CalculateTreeSizeInGenomeWindows.py} commands, with each command running only a single window, namely the window after the one of the previous command.
+For example say you wanted to start at position $1000$, end at $9000$, have a window width of $300$ and an increment of $10$.
+Your first window is $1000-1299$, your second is $1010-1309$, $\ldots$ and these can be run as separate commands thus:
+\begin{verbatim}
+$ tools/CalculateTreeSizeInGenomeWindows.py MyAln.fasta MyChosenSeqName \
+  1000 300 output_1000-1299 -E 1299
+$ tools/CalculateTreeSizeInGenomeWindows.py MyAln.fasta MyChosenSeqName \
+  1010 300 output_1010-1309 -E 1309
+...
+\end{verbatim}
+Generating these commands is easily done as part of a loop, e.g.
+\begin{verbatim}
+$ for start in $(seq 1000 10 8700); do
+$   end=$((start + 299))
+$   command="tools/CalculateTreeSizeInGenomeWindows.py MyAln.fasta MyChosenSeqName"\
+" $start 300 output_${start}-${end} -E $end"
+$ done
+\end{verbatim}
+and each command could be put inside a separate file to be run as a separate job.
+In this example, output files will be produced named \c{output\_1000-1299\_ByWindow.csv}, \c{output\_1000-1299\_ByWindow.csv}, $\ldots$; these can be combined with
+\begin{verbatim}
+$ cat output_*_ByWindow.csv | sort -n | uniq > output_all_ByWindow.csv 
+\end{verbatim}
+(the \c{sort} and \c{uniq} commands preventing the csv header repeating).
+Finally, running
+\begin{verbatim}
+$ tools/FromPerWindowStatsToPerPositionStats.py output_all_ByWindow.csv \
+  > output_all_ByPosition.csv
+\end{verbatim}
+converts the per-window tree sizes to per-position tree sizes, as required as input for the \c{--normRefFileName} option of \pat.
+
+(We used this approach for parallelisation, as we covered the HIV genome with windows of width 301 bp and an increment of 1 bp, necessitating 9179 windows.
+Running these as 9179 separate commands in parallel on a cluster sped things up considerably.)
+
+\section{Blacklisting} \label{sec:Blacklisting}
 
 Blacklisting refers to the exclusion of some tips in the phylogeny from the full analysis.
 This may be done for a variety of reasons:
