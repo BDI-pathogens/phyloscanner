@@ -50,11 +50,15 @@ brew tap homebrew/science
 brew install samtools
 # Test it works by running the command 'samtools'
 
-# python (for pip)
+# Install up-to-date python
 brew install python
+
+# pip
+sudo easy_install pip
 
 # biopython
 pip install biopython
+# if that didn't work, try running this next command 
 # Test it works by running the command 'python' to start an interactive python
 # session, then typing 'import Bio'.
 
