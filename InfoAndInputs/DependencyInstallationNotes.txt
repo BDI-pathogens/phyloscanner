@@ -10,7 +10,7 @@ pysam version at least 0.8.1 is required.
 # ON LINUX:
 
 # Install RAxML from https://github.com/stamatak/standard-RAxML
-# Install MAFFT from http://mafft.cbrc.jp/alignment/software/macstandard.html
+# Install MAFFT from http://mafft.cbrc.jp/alignment/software/linux.html
 
 # Subsequently, command-line based installation (you may need to run the command
 # 'su' first, or prepend 'sudo ' to each command below, in order to have
@@ -20,10 +20,17 @@ pysam version at least 0.8.1 is required.
 apt-get install samtools
 # Test it works by running the command 'samtools'
 
+# Get pip
+sudo apt-get install python-pip
+pip install --upgrade pip
+
 # biopython
 pip install biopython
 # Test it works by running the command 'python' to start an interactive python
 # session, then typing 'import Bio'.
+
+# cython
+sudo apt-get install cython
 
 # pysam (we need version 0.8.1 or later)
 pip install pysam --upgrade
