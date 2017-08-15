@@ -48,8 +48,12 @@ sudo apt-get install cython
 
 # We need pysam version at least 0.8.1. It can be tricky to install.
 # Installing these packages may help subsequently:
-sudo apt-get install libz-dev zlib1g-dev libxml2-dev libxslt1-dev
-pip install pysam --upgrade
+sudo apt-get install libz-dev zlib1g-dev libxml2-dev libxslt1-dev libbz2-dev liblzma-dev
+# Then
+git clone https://github.com/pysam-developers/pysam.git
+cd pysam/
+python setup.py build
+sudo python setup.py install
 # Test it works by running the command 'python' to start an interactive python
 # session, then typing 'import pysam'.
 ################################################################################
