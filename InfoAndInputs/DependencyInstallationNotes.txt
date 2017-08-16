@@ -9,24 +9,51 @@ pysam version at least 0.8.1 is required.
 ################################################################################
 # ON LINUX:
 
-# Install RAxML from https://github.com/stamatak/standard-RAxML
-# Install MAFFT from http://mafft.cbrc.jp/alignment/software/macstandard.html
+# RAxML can be installed in different ways from https://github.com/stamatak/standard-RAxML
+# Here follows one way to intsall it directly from the command line.
+# There are alternative 'make' commands to compile versions suitable for
+# more recent processors and multiple threads; see the website above.
+sudo apt install git
+git clone https://github.com/stamatak/standard-RAxML.git
+cd standard-RAxML/
+make -f Makefile.gcc
+rm *.o
+cd ..
 
-# Subsequently, command-line based installation (you may need to run the command
-# 'su' first, or prepend 'sudo ' to each command below, in order to have
-# permission to install things in the normal places on your system).
+# MAFFT can be installed in different ways from http://mafft.cbrc.jp/alignment/software/linux.html
+# Here follows one way to install version 7.310 directly from the command line.
+wget http://mafft.cbrc.jp/alignment/software/mafft-7.310-without-extensions-src.tgz
+tar -xzf mafft-7.310-without-extensions-src.tgz
+cd mafft-7.310-without-extensions/core/
+make clean
+make
+sudo make install
+cd ../..
 
 # samtools
-apt-get install samtools
+sudo apt-get install samtools
 # Test it works by running the command 'samtools'
+
+# Get pip
+sudo apt-get install python-pip
+pip install --upgrade pip
 
 # biopython
 pip install biopython
 # Test it works by running the command 'python' to start an interactive python
 # session, then typing 'import Bio'.
 
-# pysam (we need version 0.8.1 or later)
-pip install pysam --upgrade
+# cython
+sudo apt-get install cython
+
+# We need pysam version at least 0.8.1. It can be tricky to install.
+# Installing these packages may help subsequently:
+sudo apt-get install libz-dev zlib1g-dev libxml2-dev libxslt1-dev libbz2-dev liblzma-dev
+# Then
+git clone https://github.com/pysam-developers/pysam.git
+cd pysam/
+python setup.py build
+sudo python setup.py install
 # Test it works by running the command 'python' to start an interactive python
 # session, then typing 'import pysam'.
 ################################################################################
@@ -46,14 +73,19 @@ xcode-select --install
 /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 
 # samtools
+brew tap homebrew/science
 brew install samtools
 # Test it works by running the command 'samtools'
 
-# python (for pip)
+# Install up-to-date python
 brew install python
+
+# pip
+sudo easy_install pip
 
 # biopython
 pip install biopython
+# if that didn't work, try running this next command 
 # Test it works by running the command 'python' to start an interactive python
 # session, then typing 'import Bio'.
 

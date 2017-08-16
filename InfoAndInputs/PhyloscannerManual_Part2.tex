@@ -23,13 +23,13 @@ $ phyloscanner_analyse_trees.R TreeInput OutputString ReconstructionModeArgument
 \end{verbatim}
 \c{OutputString} is simply a string identifying all file output.
 The tree input can be either a single tree file or a single string that begins all files (see below).
-For full instructions regarding \c{ReconstructionModeArguments}, see section~\ref{sec:ParsimonyReconstruction}; for a quick start, \c{s,0} gives a parsimony reconstruction with no within-host diversity penalty.
+For full instructions regarding\break \c{ReconstructionModeArguments}, see section~\ref{sec:ParsimonyReconstruction}; for a quick start, \c{s,0} gives a parsimony reconstruction with no within-host diversity penalty.
 However, be aware that this version of the algorithm will not be aware of potential contamination.
 
 \section{Name format for input files}
 
 Tree files should be in Newick or Nexus format.
-These can be the product of \pmt, but need not be; the script will work on any set of trees if the tip labels can be interpreted properly (see below).
+These can be the product of\break \pmt, but need not be; the script will work on any set of trees if the tip labels can be interpreted properly (see below).
 Each tree should reside in a single file.
 
 The tree files, when the analysis is to be performed on multiple trees, are expected to all be located in the same directory and have names that all begin with the same nonempty string.
@@ -100,13 +100,14 @@ To remedy this, \pat can be asked to normalise branch lengths across windows.
 
 One approach to generating appropriate normalisation values over the genome is implemented by the script \c{tools/CalculateTreeSizeInGenomeWindows.py}.
 Run from the command line (see it's \c{--help} option for details on how) taking a whole-genome alignment of existing reference sequences as input, it infers phylogenies in sliding windows, and characterises the size of the tree by taking the median of the set of patristic distances between all pairs of references.
-One such value is obtained per window; one value is then assigned to each integeter position in the genome by taking the mean of the values from those windows spanning this position (with windows chosen to overlap, so that multiple values for each position should smooth some stochasticity in phylogenetic inference).
+One such value is obtained per window; one value is then assigned to each integer position in the genome by taking the mean of the values from those windows spanning this position (with windows chosen to overlap, so that multiple values for each position should smooth some stochasticity in phylogenetic inference).
+
 Q: what alignment of existing reference sequences should you use for this?
 A: ideally, one which is in some sense representative of between-host diversity.
 We find all pairwise patristic distances, so if your set of sequences is biased to be overly representative of a particular subset, these patristic distances will become biased towards zero.
 That said, all we're interested in here is how patristic distances change across the genome, not their absolute values.
 
-The output from \c{tools/CalculateTreeSizeInGenomeWindows.py}, or alternatively any other csv file containing genomic positions with associated normalisation constants, can be used with the \c{--normRefFileName} option.
+The output from \c{tools/CalculateTreeSizeInGenomeWindows.py}, or alternatively any other csv file containing genomic positions with associated normalisation constants, can be used with the\break \c{--normRefFileName} option.
 This will scale all normalisation constants by the same factor such that their mean is 1.
 A normalisation constant is then determined for each window by taking the mean of the values for all positions in the window.
 This constant for the window is used to scale all branch lengths in the tree for subsequent processing by \pat.
@@ -120,7 +121,9 @@ If the argument is numerical, it is used as a normalising constant for every tre
 If it is instead the path to a .csv file, then this file is expected to consist of a first column listing all input tree file names, and a second of normalising constants.
 The presence of \c{--normalisationConstants} overrides any other normalisation options, which will be disregarded.
 
-Normalisation constants can be separately calculated using the standalone script \\\c{normalisation\_lookup\_writer.R.}
+The standalone script \c{normalisation\_lookup\_writer.R} can be used to separately write a .csv file for use with the \c{--normalisationConstants} option using the procedure described in this section. This is not normally necessary for use of \pat, but can be used as an argument for other standalone scripts.
+
+The normalisation is used for the parsimony reconstruction (see section~\ref{sec:ParsimonyReconstruction}) and for the identification of closely-related hosts (see sections~\ref{sec:Classification} and \ref{sec:ClassificationSummary}). However, output trees have the same branch lengths as input trees, and summary statistics (see section~\ref{sec:SumStats}) are calculated using raw branch lengths.
 
 \subsection{Parallelising \texttt{tools/CalculateTreeSizeInGenomeWindows.py}}
 The \c{--threads} option of \c{tools/CalculateTreeSizeInGenomeWindows.py} can be used to specify multiple threads, allows multiple windows to be analysed in parallel using multiple cores on the same machine.
@@ -156,7 +159,7 @@ Finally, running
 $ tools/FromPerWindowStatsToPerPositionStats.py output_all_ByWindow.csv \
   > output_all_ByPosition.csv
 \end{verbatim}
-converts the per-window tree sizes to per-position tree sizes, as required as input for the \c{--normRefFileName} option of \pat.
+converts the per-window tree sizes to per-position tree sizes, as required as input for the\break \c{--normRefFileName} option of \pat.
 
 (We used this approach for parallelisation, as we covered the HIV genome with windows of width 301 bp and an increment of 1 bp, necessitating 9179 windows.
 Running these as 9179 separate commands in parallel on a cluster sped things up considerably.)
@@ -197,7 +200,7 @@ The single additional numerical argument to \c{--parsimonyBlacklistK} is the val
 
 We use this procedure because excessive amounts of within-host diversity may be just as suggestive of contamination as of a genuine multiple infection.
 For each host in turn, the tree is pruned so that only the tips from that host, and the outgroup, remain.
-(If no such outgroup is given, \pat will attempt to find one.) The reconstruction is them performed on this pruned tree, using the k parameter specified with \c{--parsimonyBlacklistK}, and the result used to see whether the tips of the tree were grouped into one subgraph or more than one subgraph.
+(If no such outgroup is given,\break \pat will attempt to find one.) The reconstruction is them performed on this pruned tree, using the k parameter specified with \c{--parsimonyBlacklistK}, and the result used to see whether the tips of the tree were grouped into one subgraph or more than one subgraph.
 If the former, then the phylogeny does not suggest sufficient diversity within this host to suggest either a multiple infection or contamination.
 If the latter, then one or the other is likely to be true.
 We suggest that a subgraph is more likely to be contamination when it contains very few reads.
@@ -212,7 +215,7 @@ The standalone R script is \c{parsimony\_based\_blacklister.R}.
 \subsection{Dual infection blacklisting}
 
 If the parsimony-based blacklisting procedure identifies a host with suspicious amounts of within-host diversity where the smaller subgraphs have too many reads to be flagged as likely contaminants, a dual infection (or larger multiple infection) may be suspected.
-The current version of \pat is only able to summarise the relationships of such a host with the neighbours of all its subgraphs in the transmission tree; it cannot separate the neighbours of each subgraph.
+The current version of\break \pat is only able to summarise the relationships of such a host with the neighbours of all its subgraphs in the transmission tree; it cannot separate the neighbours of each subgraph.
 This may result in spurious inferences being drawn, where a close neighbour to one subgraph and a close neighbour to another are identified as closely related to each other.
 If this behaviour is regarded as particularly undesirable, a suggested stopgap remedy is to assume that the subgraph with the largest read count represents the same infection across the entire genome, and blacklist the rest.
 
@@ -321,7 +324,7 @@ If the script could detect genome window coordinates from the file suffixes, and
 
 The standalone R script to produce summary statistics is \c{summary\_statistics.R}.
 
-\section{Classification of pairwise relationships}
+\section{Classification of pairwise relationships}\label{sec:Classification}
 
 The parsimony reconstruction has annotated all internal nodes in each phylogeny with either a host or the unsampled state, and from this information, host subgraphs have been identified.
 The next step in the script is to document the relationships between each pair of hosts in every tree.
@@ -363,7 +366,7 @@ This is similar to adjacent but a little stronger.
 
 The standalone script to classify pairwise host relationships is \c{classify\_relationships.R}.
 
-\section{Pairwise relationship summary}
+\section{Pairwise relationship summary}\label{sec:ClassificationSummary}
 
 The final stage in the script is to gather the pairwise relationships between hosts in each window and summarise this across the whole run.
 Pairs are inferred to be related in a tree if they are both adjacent and (optionally) within the patristic distance threshold specified by the \c{--distanceThreshold} option.
@@ -396,7 +399,7 @@ This classification only appears if the \c{--allowMultiTrans} option is given; i
 This is because this relationship is less indicative of the direction of transmission than ``trans''; it may simply indicate that the tips from the two hosts are very intermingled, and it is prone to bias introduced by differences in tip counts.
 By default, the script is conservative and does not take this relationship as a signal of directionality.
 However, as with ``complex'', it is quite strongly indicative of direct transmission (Romero-Severson et al. PNAS 2016).
-\item ``complex'': where none of the above are true; if \c{--allowMultiTrans} is not specified then ``multi\_trans'' relationships are also allocated ``complex''.
+\item ``complex'': where none of the above are true; if \c{--allowMultiTrans} is not specified then\break ``multi\_trans'' relationships are also allocated ``complex''.
 \end{itemize}
 The standalone script to summarise these relationships is transmission\_summary.R.
 

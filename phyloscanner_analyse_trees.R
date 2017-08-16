@@ -498,9 +498,7 @@ if(!is.null(norm.constants.input)){
       tree.info
     }, simplify = F, USE.NAMES = T)
   } else if(file.exists(norm.constants.input)){
-    if(!readable.coords){
-      stop("Cannot read window coordinates from tree files names, so cannot calculate normalisation constants.")
-    }
+
     nc.df   <- read.csv(norm.constants.input, stringsAsFactors = F, header = F)
     all.tree.info <- sapply(all.tree.info, function(tree.info) {
       rows  <- which(nc.df[,1]==basename(tree.info$tree.file.name))
