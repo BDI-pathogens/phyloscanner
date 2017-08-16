@@ -2018,14 +2018,15 @@ ExtraText=None):
     if HaveMadeOutputDir:
       Dir = args.output_dir
     else:
-      Dir = '.'
+      Dir = os.getcwd()
   else:
     Dir = OutputDirs[DirKey]
   Dir = os.path.abspath(Dir)
   FileStart = os.path.join(Dir, FileBasename)
   files = glob.glob(FileStart + '*')
   if not files:
-    print("Oops, we've lost the", DescriptionOfFiles, "files we produced. "
+    print("Oops, internally we've lost track of the location of the",
+    DescriptionOfFiles, "files we produced. "
     "Expected to find files matching", FileStart + '*\nSorry about that.',
     file=sys.stderr)
   else:
