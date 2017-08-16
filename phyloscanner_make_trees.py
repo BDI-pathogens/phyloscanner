@@ -1860,6 +1860,10 @@ for window in range(NumCoords / 2):
       for result in sorted(RecombinationResults, key=lambda x: x[1],
       reverse=True):
         f.write('\n' + ','.join(map(str, result)) )
+      # Add to the recombination data file those bams with no reads here:
+      for alias in BamAliases:
+        if not alias in SamplesToAlnPosDict:
+          f.write('\n' + alias + ',NA,NA,NA,NA')
     OutputFilesByDestinationDir['RecombFiles'].append(FileForRecombinantReads)
 
     # Update on time taken if desired
