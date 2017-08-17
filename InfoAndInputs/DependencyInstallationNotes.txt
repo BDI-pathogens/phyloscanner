@@ -10,7 +10,7 @@ pysam version at least 0.8.1 is required.
 # ON LINUX:
 
 # RAxML can be installed in different ways from https://github.com/stamatak/standard-RAxML
-# Here follows one way to intsall it directly from the command line.
+# Here follows one way to install it directly from the command line.
 # There are alternative 'make' commands to compile versions suitable for
 # more recent processors and multiple threads; see the website above.
 sudo apt install git
