@@ -19,6 +19,8 @@ cd standard-RAxML/
 make -f Makefile.gcc
 rm *.o
 cd ..
+# Optionally, add RAxML to your PATH environment variable:
+
 
 # MAFFT can be installed in different ways from http://mafft.cbrc.jp/alignment/software/linux.html
 # Here follows one way to install version 7.310 directly from the command line.
@@ -56,6 +58,13 @@ python setup.py build
 sudo python setup.py install
 # Test it works by running the command 'python' to start an interactive python
 # session, then typing 'import pysam'.
+
+# This completes the installation of the dependencies of phyloscanner_make_trees.py.
+# Optionally, add phyloscanner to your PATH environment variable:
+# If you downloaded the phyloscanner code directly into your home directory, that's achieved with
+
+# otherwise it's the above command with the directory modified accordingly.
+
 ################################################################################
 
 ################################################################################
