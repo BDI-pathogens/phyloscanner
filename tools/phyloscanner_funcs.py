@@ -156,31 +156,75 @@ def ReadInputCSVfile(TheFile):
   return BamFiles, RefFiles, aliases, BamBaseNames
 
 
-def TestRAxML(ArgString, HelpMessage):
+def TestRAxML(ArgString, DefaultFlags, HelpMessage):
   '''Runs RAxML with the desired options and --flag-check.'''
-  ArgList = ArgString.split()
-  try:
-    proc = subprocess.Popen(ArgList + ['--flag-check'], stdout=subprocess.PIPE,
-    stderr=subprocess.PIPE)
-  except:
-    success = False
-    raise
+
+  # The user has specified how to call RAxML. Try it.
+  if ArgString != None:
+    ArgList = ArgString.split()
+    out = None
+    err = None
+    try:
+      proc = subprocess.Popen(ArgList + ['--flag-check'],
+      stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except:
+      success = False
+      raise
+    else:
+      out, err = proc.communicate()
+      success = proc.returncode == 0
+    finally:
+      if not success:
+        print('Error: could not run the command "', ArgString,
+        ' --flag-check".', sep='', file=sys.stderr)
+        if out != None and err != None:
+          print('RAxML produced the error messages: ', out + '\n' + err, sep='',
+          file=sys.stderr)
+        else:
+          print('If RAxML is not installed, please install it first. If it is',
+          'installed, it seems you need to specify a different executable',
+          'and/or set of options. Quitting.', file=sys.stderr)
+        print('Quitting.', file=sys.stderr)
+        exit(1)
+
+  # The user has not specified how to call RAxML. Try different executables.
   else:
-    out, err = proc.communicate()
-    success = proc.returncode == 0
+    FlagList = DefaultFlags.split()
+    success = False
+    out = None
+    err = None
+    ExesToTry = ['raxmlHPC-AVX', 'raxmlHPC-SSE3', 'raxmlHPC']
+    for exe in ExesToTry:
+      ArgList = [exe] + FlagList
+      try:
+        proc = subprocess.Popen(ArgList + ['--flag-check'],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+      except:
+        continue
+      else:
+        out, err = proc.communicate()
+        if proc.returncode != 0:
+          continue
+      success = True
+      break
+    print(success)
     if not success:
-      print('RAxML error messages: ', out + '\n' + err)
-  finally:
-    if not success:
-      print('Error: could not run the command "', ArgString, ' --flag-check". ',
-      'If RAxML is not installed, please install it first.',
-      ' If it is installed, try rerunning using the --x-raxml option:\n',
-      HelpMessage, '\nQuitting.', sep='', file=sys.stderr)
+      print("Error: could not successfully call RAxML using any of the ",
+      "commands ", ', '.join(ExesToTry), ', with the options "', DefaultFlags,
+      '".', sep='', file=sys.stderr)
+      if out != None and err != None:
+        print('RAxML produced the error messages: ', out + '\n' + err, sep='',
+        file=sys.stderr)
+      else:
+        print('If RAxML is not installed, please install it first. If it is ',
+        'installed, try adding the path containing its executable files to the',
+        ' PATH environment variable of your terminal, or rerunning',
+        ' using the --x-raxml option:\n', HelpMessage, sep='',
+        file=sys.stderr)
+      print('Quitting.', file=sys.stderr)
       exit(1)
+
   return ArgList
-
-
-
 
 def RunRAxML(alignment, RAxMLargList, WindowSuffix, LeftEdge, RightEdge,
 TempFilesSet, TempFileForAllBootstrappedTrees_basename, BootstrapSeed=None,

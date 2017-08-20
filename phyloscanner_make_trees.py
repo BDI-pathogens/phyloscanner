@@ -145,22 +145,22 @@ However using this option, the mapping references used to create the bam files
 are each separately pairwise aligned to one of the extra references included
 with -A, and window coordinates are interpreted with respect to this
 reference. Specify the name of the reference to use after this option.''')
-RaxmlHelp ='''Use this option to tell phyloscanner how to run RAxML; by default,
-'raxmlHPC-AVX -m GTRCAT -p 1 --no-seq-check'. You will need to change the first part if your
-RAxML binary is not called raxmlHPC-AVX, or if the binary's location is not in
-your $PATH variable (i.e. if you need to specify the path to the binary in order
-to run it). -m tells RAxML which evolutionary model to use, and -p specifies a
-random number seed for the parsimony inferences; both are compulsory. You may
-include any other RAxML options in this command. The set of things you specify
-with --x-raxml need to be surrounded with one pair of quotation marks (so that
-they're kept together as one option for phyloscanner and only split up for
-raxml). If you include a path to your raxml binary, it may not include
-whitespace, since whitespace is interpreted as separating raxml options. Do not
-include options relating to bootstraps: use phyloscanner's --num-bootstraps and
---bootstrap-seed options instead. Do not include options relating to the naming
-of files.'''
-RecommendedArgs.add_argument('--x-raxml', default='raxmlHPC-AVX -m GTRCAT -p 1 --no-seq-check',
-help=RaxmlHelp)
+RAxMLdefaultOptions = "-m GTRCAT -p 1 --no-seq-check"
+RaxmlHelp ='''Use this option to specify how RAxML is to be run, including
+both the executable (with the path to it if needed), and the options. If you do
+not specify anything, we will try to find the fastest RAxML exectuable available
+(assuming its path is in your PATH environment variable) and use the
+options''' + RAxMLdefaultOptions + '''. -m tells RAxML which evolutionary model
+to use, and -p specifies a random number seed for the parsimony inferences; both
+are compulsory. You may include any other RAxML options in this command. The set
+of things you specify with --x-raxml need to be surrounded with one pair of
+quotation marks (so that they're kept together as one option for phyloscanner
+and only split up for raxml). If you include a path to your raxml binary, it may
+not include whitespace, since whitespace is interpreted as separating raxml
+options. Do not include options relating to bootstraps: use phyloscanner's
+--num-bootstraps and --bootstrap-seed options instead. Do not include options
+relating to the naming of files.'''
+RecommendedArgs.add_argument('--x-raxml', help=RaxmlHelp)
 RecommendedArgs.add_argument('-P', '--merge-paired-reads', action='store_true',
 help='''Relevant only for paired-read data for which the mates in a pair
 (sometimes) overlap with each other: merge overlapping mates into a single
@@ -673,7 +673,7 @@ FindWindowsCode     = pf.FindAndCheckCode('FindInformativeWindowsInFasta.py')
 
 # Test RAxML works
 if not args.no_trees:
-  RAxMLargList = pf.TestRAxML(args.x_raxml, RaxmlHelp)
+  RAxMLargList = pf.TestRAxML(args.x_raxml, RAxMLdefaultOptions, RaxmlHelp)
 
 times = []
 if args.time:
