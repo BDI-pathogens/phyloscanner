@@ -1,5 +1,6 @@
 # phyloscanner
 Analysing pathogen genetic diversity and relationships between and within hosts at once, in windows along the genome.  
+Preprint [here](http://www.biorxiv.org/content/early/2017/06/30/157768).  
 
 <p align="center"><img src="InfoAndInputs/PhyloscannerDiagram_big4.jpg" alt="Phyloscanner" width="820", height="314"/></p>
 
