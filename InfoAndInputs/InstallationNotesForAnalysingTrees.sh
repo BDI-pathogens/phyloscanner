@@ -1,5 +1,6 @@
 # Phyloscanner's analysis of phylogenies with within- and between-host diversity, achived with the
-# phyloscanner_analyse_trees.R command, requires first of all an up-to-date installation of the R language.
+# phyloscanner_analyse_trees.R command, requires first of all an up-to-date installation of the R
+# language.
 
 ############################################################
 # INSTALLING UP-TO-DATE R ON UBUNTU
@@ -8,7 +9,8 @@
 # Add an R repository to the list of things Ubuntu should keep up to date.
 # The command below uses the R studio mirror (you can use others), and specifies 'trusty' as the
 # codename for the Ubuntu version you're running (you should replace this appropriately if running
-# a different version of Ubuntu). See https://cran.r-project.org/bin/linux/ubuntu/README.html for details.
+# a different version of Ubuntu). See https://cran.r-project.org/bin/linux/ubuntu/README.html for
+# details.
 sudo sh -c 'echo "deb http://cran.rstudio.com/bin/linux/ubuntu trusty/" >> /etc/apt/sources.list'
 
 # Gather information about what needs updating:
@@ -36,6 +38,7 @@ remove.packages("BiocInstaller")
 # exiting the R session (Ctrl+D), then rerunning
 sudo Rscript ~/phyloscanner/tools/package_install.R
 
-# Finally, ensure all installed R packages are up-to-date by entering an interactive R session and running
+# Finally, ensure all installed R packages are up-to-date by entering an interactive R session
+# and running
 library(rvcheck)
 update_all()

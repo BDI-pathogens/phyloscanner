@@ -1,10 +1,7 @@
-INSTALLING DEPENDENCIES OF phyloscanner_make_trees.py
+# INSTALLING DEPENDENCIES OF phyloscanner_make_trees.py
 
-Note that phyloscanner_make_trees.py is written in python 2 (not 3), so biopython and pysam
-need to be installed as part of your python 2 installation. If successful, you should be able to
-(1) run 'python' from the command line to start an interactive python session which says 'Python
-2.x.y' at the top (x and y replaced by numbers), then (2) run 'import Bio, pysam' without error.
-pysam version at least 0.8.1 is required.
+# Note that phyloscanner_make_trees.py is written in python 2 (not 3), so biopython and pysam
+# need to be installed as part of your python 2 installation.
 
 ################################################################################
 # ON LINUX:
@@ -61,8 +58,8 @@ sudo python setup.py install
 # session, then typing 'import pysam'.
 
 # This completes the installation of the dependencies of phyloscanner_make_trees.py.
-# Optionally, add phyloscanner to your PATH environment variable:
-# If you downloaded the phyloscanner code directly into your home directory, that's achieved with
+# Optionally, add phyloscanner to your PATH environment variable: if you downloaded
+# the phyloscanner code directly into your home directory, that's achieved with
 echo 'PATH=$PATH:~/phyloscanner/' >> ~/.bashrc
 # otherwise it's the above command with the directory modified accordingly. Then
 source ~/.bashrc
@@ -104,6 +101,6 @@ pip install pysam --upgrade
 # session, then typing 'import pysam'.
 ################################################################################
 
-Note that the python modules below are also required, however unlike pysam and Biopython,
-these would normally be included in a standard installation of the python language.
-os, collections, itertools, subprocess, sys, re, copy, shutil, glob, time, argparse
+# Note that the python modules below are also required, however unlike pysam and Biopython,
+# these would normally be included in a standard installation of the python language:
+# os, collections, itertools, subprocess, sys, re, copy, shutil, glob, time, argparse
