@@ -207,7 +207,6 @@ def TestRAxML(ArgString, DefaultFlags, HelpMessage):
           continue
       success = True
       break
-    print(success)
     if not success:
       print("Error: could not successfully call RAxML using any of the ",
       "commands ", ', '.join(ExesToTry), ', with the options "', DefaultFlags,
