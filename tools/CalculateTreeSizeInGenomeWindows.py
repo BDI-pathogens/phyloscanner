@@ -125,7 +125,11 @@ if multithread:
 RAxMLargList = pf.TestRAxML(args.x_raxml, RAxMLdefaultOptions, RaxmlHelp)
     
 # Extract the chosen seq
-alignment = AlignIO.read(args.alignment, "fasta")
+try:
+  alignment = AlignIO.read(args.alignment, "fasta")
+except:
+  print('Problem reading in', args.alignment + '. Quitting.', file=sys.stderr)
+  raise
 AlignmentLength = alignment.get_alignment_length()
 ChosenSeq = None
 for seq in alignment:
