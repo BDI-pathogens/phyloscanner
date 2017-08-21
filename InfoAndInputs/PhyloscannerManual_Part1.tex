@@ -99,7 +99,7 @@ The number of positions at which we could place a window of width $W$ equals the
 The number of positions at which we could place a window of width $W$ such that it is wholly inside a read is the length of the read $- W + 1$.
 The probability of a randomly placed read overlapping a window of width $W$ is therefore (read length $- W + 1$) / (reference length $- W + 1$).
 The number of reads and their different lengths are fixed in the data; increasing $W$ will decrease this probability (except for reads that span the entire reference).}.
-A good choice of window width, roughly, would be as large as you can yet before the number of reads per window gets too low to make useful within-host phylogenies.
+A good choice of window width, roughly, would be as large as you can get before the number of reads per window gets too low to make useful within-host phylogenies.
 Skip ahead to section~\ref{sec:overlap} if that's good enough for you and you don't want to think about it any more.
 
 The \c{--explore-window-widths} option of \pmt was written with the following balancing act in mind.
@@ -208,11 +208,18 @@ You must choose exactly one of these: \c{--windows}, \c{--auto-window-params}, \
 \item \c{--windows}: used to specify a comma-separated series of paired coordinates defining the boundaries of the windows.
 e.g. specifying \c{1,300,301,600,601,900} would define windows 1-300, 301-600, 601-900.
 \item \c{--auto-window-params}: used to specify 2, 3 or 4 comma-separated integers controlling the automatic creation of regular windows.
-The first integer is the width you want windows to be, weighting each column in the alignment of bam file references (plus any extra references included with \c{--alignment-of-other-refs}) by its non-gap fraction, so that windows with rows or columns containing many gaps become correspondingly wider.
-The second is the overlap between the end of one window and the start of the next (which can be negative, implying unused space in between windows; the recommended value of 0 means each window starts right after the previous one ends).
-The optional third integer is the start position for the first window (by default, 1).
-The optional fourth integer is the end position for the last window (by default, windows will continue up to the end of the alignment of references).
-This option cannot be used with \c{--pairwise-align-to}.
+\begin{itemize}
+\item The first integer is the width you want windows to be.
+If the \c{--pairwise-align-to} option is {\it not} being used, we create an alignment containing all references, as mentioned already.
+In this case, we weight each column in this alignment by its non-gap fraction, so that windows in which many references have gaps become correspondingly wider.
+If the \c{--pairwise-align-to} option {\it is} being used, width is simply interpreted with respect to the named reference (i.e. a width of $W$ means each window contains $W$ bases from that reference).
+\item The second is the overlap between the end of one window and the start of the next.
+This can be negative, implying unused space in between windows; the recommended value of 0 means each window starts right after the previous one ends.
+\item The third integer, if specified, is the start position for the first window.
+If not specified, this is 1.
+\item The fourth integer, if specified, is the end position for the last window.
+If not specified, windows will continue up to the end of the reference or references.
+\end{itemize}
 \item \c{--explore-window-widths}: use this option to explore how the number of unique reads found in each bam file in each window, all along the genome, depends on the window width.
 After this option specify a comma-separated list of integers.
 The first integer is the starting position for stepping along the genome, in case you're not interested in the very beginning.
