@@ -112,12 +112,14 @@ the boundaries of the windows. e.g. 1,300,301,600,601,900 would define windows
 WindowArgs.add_argument('-AW', '--auto-window-params',
 type=CommaSeparatedInts, help='''Used to specify 2, 3 or 4 comma-separated
 integers controlling the automatic creation of regular windows. The first
-integer is the width you want windows to be, weighting each column in the
-alignment of all references by its non-gap fraction. The second is the overlap
-between the end of one window and the start of the next. The optional third
-integer is the start position for the first window (by default, 1). The optional
-fourth integer is the end position for the last window (by default, windows will
-continue up to the end of the alignment of references).''')
+integer is the width you want windows to be. (If you are not using the
+--pairwise-align-to option, columns in the alignment of all references are
+weighted by their non-gap fraction; see the manual for clarification.) The
+second integer is the overlap between the end of one window and the start of the
+next. The third integer, if specified, is the start position for the first
+window (if not specified this is 1). The fourth integer, if specified, is the
+end position for the last window (if not specified, windows will continue up to
+the end of the reference or references).''')
 WindowArgs.add_argument('-E', '--explore-window-widths',
 type=CommaSeparatedInts, help='''Use this option to explore how the number of
 unique reads found in each bam file in each window, all along the genome,
@@ -473,12 +475,6 @@ if PairwiseAlign:
       print('Furthermore you have chosen two different values for these flags,'
       , 'indicating some confusion as to their use. Try again.')
       exit(1)
-  if AutoWindows:
-    print('As you have chosen that references are aligned in a pairwise',
-    'manner, please specify coordinates manually - the automatic option is',
-    "for stepping through a global alignment of all references. Quitting.",
-    file=sys.stderr)
-    exit(1)
   if ExcisePositions and args.excision_ref != args.pairwise_align_to:
     print('The --pairwise-align-to and --excision-ref options can only be',
     'used at once if the same reference is specified for both. Qutting.',
@@ -539,6 +535,7 @@ if AutoWindows:
       WindowEndPos = float('inf')
   else:
     WindowStartPos = 1
+    WindowEndPos = float('inf')
   if WeightedWindowWidth <= 0:
     print('The weighted window width for the --auto-window-params option must',
     'be greater than zero. Quitting.', file=sys.stderr)
@@ -625,10 +622,11 @@ if IncludeOtherRefs:
       RefForPairwiseAlnsGappySeq = str(ref.seq)
       RefForPairwiseAlns = copy.deepcopy(ref)
       RefForPairwiseAlns.seq = RefForPairwiseAlns.seq.ungap("-")
+      RefForPairwiseAlnsLength = len(RefForPairwiseAlns.seq)
       if UserSpecifiedCoords:
         CheckMaxCoord(WindowCoords, ref)
       elif ExploreWindowWidths:
-        MaxCoordForWindowWidthTesting = len(RefForPairwiseAlns.seq)
+        MaxCoordForWindowWidthTesting = RefForPairwiseAlnsLength
         WindowCoords = FindExploratoryWindows(MaxCoordForWindowWidthTesting)
         NumCoords = len(WindowCoords)
         UserCoords = WindowCoords
@@ -751,6 +749,30 @@ def TranslateCoords(CodeArgs):
     CoordsDict[SeqName] = coords
   return CoordsDict
 
+def SimpleCoordsFromAutoParams(RefSeqLength):
+  WindowEndPosLocal = min(WindowEndPos, RefSeqLength)
+  if WindowEndPosLocal < WindowStartPos + WeightedWindowWidth:
+    print('With the --auto-window-params option you specified a start', 
+    'point of', WindowStartPos, 'and your weighted window width was', 
+    str(WeightedWindowWidth) + '; one or both of these values should be', 
+    'decreased because the length of your reference or your', 
+    'specified end point is only', str(WindowEndPosLocal) + '. We need to be',
+    'able to fit at least one window in between the start and end. Quitting.',
+    file=sys.stderr)
+    exit(1)
+  WindowCoords = []
+  NextStart = WindowStartPos
+  NextEnd = WindowStartPos + WeightedWindowWidth - 1
+  while NextEnd <= WindowEndPosLocal:
+    WindowCoords += [NextStart, NextEnd]
+    NextStart = NextEnd - WindowOverlap + 1
+    NextEnd = NextStart + WeightedWindowWidth - 1
+  NumCoords = len(WindowCoords)
+  UserCoords = WindowCoords
+
+  return WindowCoords, UserCoords, NumCoords, WindowEndPosLocal
+
+
 # If there is only one bam and no other refs, no coordinate translation
 # is necessary - we use the coords as they are, though setting any after the end
 # of the reference to be equal to the end of the reference.
@@ -762,25 +784,8 @@ if NumberOfBams == 1 and not IncludeOtherRefs:
     exit(1)
   RefSeqLength = len(RefSeqs[0])
   if AutoWindows:
-    WindowEndPos = min(WindowEndPos, RefSeqLength)
-    if WindowEndPos < WindowStartPos + WeightedWindowWidth:
-      print('With the --auto-window-params option you specified a start', 
-      'point of', WindowStartPos, 'and your weighted window width was', 
-      str(WeightedWindowWidth) + '; one or both of these values should be', 
-      'decreased because the length of the reference in the bam file or your', 
-      'specified end point is only', str(WindowEndPos) + '. We need to be',
-      'able to fit at least one window in between the start and end. Quitting.',
-      file=sys.stderr)
-      exit(1)
-    WindowCoords = []
-    NextStart = WindowStartPos
-    NextEnd = WindowStartPos + WeightedWindowWidth - 1
-    while NextEnd <= WindowEndPos:
-      WindowCoords += [NextStart, NextEnd]
-      NextStart = NextEnd - WindowOverlap + 1
-      NextEnd = NextStart + WeightedWindowWidth - 1
-    NumCoords = len(WindowCoords)
-    UserCoords = WindowCoords
+    WindowCoords, UserCoords, NumCoords, WindowEndPos = \
+    SimpleCoordsFromAutoParams(RefSeqLength)
   if ExploreWindowWidths:
     MaxCoordForWindowWidthTesting = RefSeqLength
     WindowCoords = FindExploratoryWindows(MaxCoordForWindowWidthTesting)
@@ -797,6 +802,11 @@ else:
   # If we're separately and sequentially pairwise aligning our references to
   # a chosen ref in order to determine window coordinates, do so now.
   if PairwiseAlign:
+
+    # Get the coords if auto coords
+    if AutoWindows:
+      WindowCoords, UserCoords, NumCoords, WindowEndPos = \
+      SimpleCoordsFromAutoParams(RefForPairwiseAlnsLength)
 
     # Find the coordinates with respect to the chosen ref, in the alignment of
     # just the external refs - we'll need these later.
