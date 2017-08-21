@@ -5,19 +5,19 @@ from __future__ import print_function
 ## Acknowledgement: I wrote this while funded by ERC Advanced Grant PBDR-339251
 ##
 ## Overview:
-ExplanatoryMessage = '''phyloscanner analyses the genetic diversity and
-relationships between and within samples of mapped reads, in windows along the
-genome. The user specifies one or more
-windows of the genome in which this done. For each window: for each sample, all
-reads mapped to that window are found, and identical reads are collected together
-with an associated count. Then all reads from all samples in this window 
-are aligned using mafft and a phylogeny is constructed using RAxML. All
-phylogenies are then analysed. Temporary files and output files are written to
-the current working directory; to avoid overwriting existing files, you should
-run phyloscanner from inside an empty directory.
+ExplanatoryMessage = '''phyloscanner_make_trees.py infers phylogenies containing
+both within- and between-host pathogen genetic diversity in windows along the
+genome, using mapped reads as input. For each window, for each sample, all reads
+mapped to that window are found and identical reads are collected together with
+an associated count. Then all reads from all samples in each window are aligned
+using MAFFT and a phylogeny is constructed using RAxML. Temporary files and
+output files are written to the current working directory; to avoid overwriting
+existing files, you should run phyloscanner_make_trees.py from inside an empty
+directory.
 
-More details on running phyloscanner can be found in the manual.
-'''
+More information on running phyloscanner can be found in the manual. Options are
+explained below; for some options we go into greater detail in the manual,
+trying to be as concise as possible here.'''
 
 ################################################################################
 # The names of some files we'll create.
