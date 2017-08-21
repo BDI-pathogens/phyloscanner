@@ -13,7 +13,8 @@ To analyse these phylogenies, or your own provided as input, phyloscanner needs 
 
 The phyloscanner manual is [here](InfoAndInputs/PhyloscannerManual.pdf).  
 Problem with the code? Create a [New Issue](https://github.com/BDI-pathogens/phyloscanner/issues).  
-Query? Ask it publicly at the [google group](https://groups.google.com/forum/#!forum/phyloscanner-users).
+Query? Ask it publicly at the [google group](https://groups.google.com/forum/#!forum/phyloscanner-users).  
+If you use phyloscanner for published work, please cite it and the tools it uses, details [here](InfoAndInputs/CitationDetails.bib).  
 
 ### An Example
 
