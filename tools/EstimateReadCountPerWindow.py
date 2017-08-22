@@ -65,9 +65,12 @@ help='For the plot. The default is 15.', default=15)
 parser.add_argument('-TS', '--title-font-size', type=int,
 help='For the plot. The default is 15.', default=15)
 parser.add_argument('-LS', '--legend-font-size', type=int,
-help='For the plot. The default is 13.', default=13)
+help='For the plot. The default is 7.', default=7)
 parser.add_argument('-LL', '--legend-location', 
-help='For the plot. The default is "best".', default='best')
+help='''For the plot. The default is 'lower left'. The other options are:
+'best', 'upper right', 'upper left', 'lower right', 'right', 'center left',
+'center right', 'lower center',' upper center', 'center' ''',
+default='lower left')
 parser.add_argument('-LY', '--linear-y-axis', 
 help='For the plot. The default is logarithmic.', action='store_true')
 parser.add_argument('-XM', '--x-min-max', help='The minimum and maximum for '\
