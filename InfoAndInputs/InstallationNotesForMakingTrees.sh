@@ -57,6 +57,12 @@ sudo python setup.py install
 # Test it works by running the command 'python' to start an interactive python
 # session, then typing 'import pysam'.
 
+# Optional: the python module matplotlib. If installed, it is used by the helper
+# script tools/EstimateReadCountPerWindow.py to plot its output data.
+sudo apt-get install python-matplotlib
+# Test it works by running the command 'python' to start an interactive python
+# session, then typing 'import matplotlib.pyplot'.
+
 # This completes the installation of the dependencies of phyloscanner_make_trees.py.
 # Optionally, add phyloscanner to your PATH environment variable: if you downloaded
 # the phyloscanner code directly into your home directory, that's achieved with
