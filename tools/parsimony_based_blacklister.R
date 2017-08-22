@@ -61,7 +61,7 @@ normalisation.argument <- args$branchLengthNormalisation
 tree.fe                <- args$treeFileExtension
 csv.fe                 <- args$csvFileExtension
 
-has.normalisation <- !is.null(normalisation.argument)
+has.normalisation      <- !is.null(normalisation.argument)
 
 use.m.thresh           <- !is.null(args$multifurcationThreshold)
 
@@ -104,12 +104,12 @@ if(file.exists(input.name)){
   tree.info$blacklist.input <- blacklist.file.name
   tree.info$duals.output <- d.output.name
   tree.info$blacklist.output <- b.output.name
-  
+
   if(!has.normalisation){
     tree.info$normalisation.constant <- 1
   } else {
     normalisation.constant <- suppressWarnings(as.numeric(normalisation.argument))
-    
+
     if(is.na(normalisation.constant)){
       norm.table <- read.csv(normalisation.argument, stringsAsFactors = F, header = F)
       if(nrow(norm.table[which(norm.table[,1]==basename(input.name)),])==1){

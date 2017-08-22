@@ -72,9 +72,8 @@ if(file.exists(input.file.name)){
   tree.info <- list()
   tree.info$tree.input <- input.file.name
   
+  if(verbose) cat("Reading tree ", input.file.name, "\n", sep="")
   tree <- read.tree(input.file.name)
-  
-  tree <- process.tree(tree, blacklist.for.pruning = tree.info$blacklist)
   
   tree.info$tree <- tree
   
@@ -112,16 +111,17 @@ if(file.exists(input.file.name)){
     cat("No tree files found.\nQuitting.\n")
     quit(save="no", status=1)
   }  
-  suffixes <- substr(basename(input.file.names), nchar(basename(input.file.name)) + 1, nchar(basename(input.file.names))-nchar(tree.fe)-1 )
-  b.output.names <- paste(output.file.name, "_", suffixes, ".", csv.fe, sep="")  
+  suffixes <- substr(basename(input.file.names), nchar(basename(input.file.name)) + 1, nchar(basename(input.file.names))-nchar(tree.fe)-1)
+  
+  b.output.names <- paste(output.file.name, suffixes, ".", csv.fe, sep="")  
   if(rename){
-    rt.output.names <- paste(renamed.file.name, "_", suffixes, ".", tree.fe, sep="")
+    rt.output.names <- paste(renamed.file.name, suffixes, ".", tree.fe, sep="")
   }
   if(!is.null(blacklist.file.name)){
-    b.input.names <- paste(blacklist.file.name, "_", suffixes, ".", csv.fe, sep="")
+    b.input.names <- paste(blacklist.file.name, suffixes, ".", csv.fe, sep="")
   }
   
-  fn.df <- data.frame(row.names = suffixes, tree.input = input.file.names, blacklist.output = b.output.names, stringsAsFactors = F)
+  fn.df <- data.frame(row.names = suffixes, suffix = suffixes, tree.input = input.file.names, blacklist.output = b.output.names, stringsAsFactors = F)
   if(rename){
     fn.df$renamed.tree.file.name <- rt.output.names
   }
@@ -134,26 +134,26 @@ if(file.exists(input.file.name)){
   all.tree.info <- sapply(all.tree.info, function(tree.info){
     tree.info <- as.list(tree.info)
     
+    if(verbose) cat("Reading tree ", tree.info$tree.input, "\n", sep="")
+    tree <- read.tree(tree.info$tree.input)
+    
     blacklist <- vector()
- 
-    if(!is.null(tree.info$blacklist.file.name)){
-
-      if(file.exists(tree.info$blacklist.file.name)){
-        if(verbose) cat("Reading existing blacklist file",tree.info$blacklist.file.name,'\n')
-        blacklisted.tips <- read.table(tree.info$blacklist.file.name, sep=",", header=F, stringsAsFactors = F, col.names="read")
+    
+    if(!is.null(tree.info$blacklist.input)){
+      
+      if(file.exists(tree.info$blacklist.input)){
+        if(verbose) cat("Reading existing blacklist file",tree.info$blacklist.input,'\n')
+        blacklisted.tips <- read.table(tree.info$blacklist.input, sep=",", header=F, stringsAsFactors = F, col.names="read")
         if(nrow(blacklisted.tips)>0){
           blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
         }
       } else {
-        warning(paste("File ",tree.info$blacklist.file.name," does not exist; skipping.",paste=""))
+        warning(paste("File ",tree.info$blacklist.input," does not exist; skipping.",paste=""))
       }	
     }
-
+  
+    tree.info$tree             <- tree
     tree.info$blacklist        <- blacklist
-    
-    tree <- read.tree(tree.info$tree.input)
-    tree <- process.tree(tree, blacklist.for.pruning = blacklist)
-    tree.info$tree        <- tree
     
     tree.info
   }, simplify = F, USE.NAMES = T)
@@ -171,7 +171,6 @@ if(!is.null(hosts.file.name)){
 for(tree.info in all.tree.info){
   tree.info <- downsample.tree(tree.info, hosts, max.reads, rename, exclude.underrepresented, no.read.counts, seed, verbose)
   
-
   if(rename){
     if(verbose){
       cat("Writing new tree to ",tree.info$renamed.tree.file.name,"...\n",sep = "")
@@ -180,8 +179,9 @@ for(tree.info in all.tree.info){
   }
   
   if(verbose){
-    cat("Writing new blacklist to ",output.file.name,"...\n",sep = "")
+    cat("Writing new blacklist to ",tree.info$blacklist.output,"...\n",sep = "")
   }
+  
   write.table(tree.info$tree$tip.label[tree.info$blacklist],  tree.info$blacklist.output, sep=",", row.names=FALSE, col.names=FALSE, quote=F)
   
 }

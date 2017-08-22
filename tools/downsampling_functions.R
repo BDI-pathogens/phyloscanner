@@ -118,7 +118,6 @@ downsample.tree<- function(tree.info, hosts.to.include, max.reads, rename = F, e
     blacklist <- tree.info$blacklist
   } else if(!is.null(tree.info$blacklist.file.name)){
   
-
     blacklist <- vector()
   
     if(file.exists(tree.info$blacklist.file.name)){
