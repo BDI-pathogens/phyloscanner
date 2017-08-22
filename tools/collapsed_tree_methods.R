@@ -767,7 +767,7 @@ classify <- function(tree.info, verbose = F) {
   
   classification <- cbind(adjacency.df, contiguity.df[,3], dir.12.df[,3], dir.21.df[,3], nodes.1.df[,3], nodes.2.df[,3], path.df[,3], min.distance.df[,3])
   
-  column.names <- c("Host_1", "Host_2", "adjacent", "contiguous", "paths12", "paths21", "nodes1", "nodes2", "path.classification", "min.distance.between.subgraphs")
+  column.names <- c("host.1", "host.2", "adjacent", "contiguous", "paths12", "paths21", "nodes1", "nodes2", "path.classification", "min.distance.between.subgraphs")
   
   if(normalisation.constant!=1){
     classification <- cbind(classification, normalised.distance.df[,3])
@@ -817,7 +817,7 @@ merge.classifications <- function(all.tree.info, allow.mt = T){
   tt	<- lapply(tt, function(x){
     #x	<- tt[[1]]
     tmp	<- copy(x)
-    setnames(tmp, c('Host_1','Host_2','paths12','paths21'), c('Host_2','Host_1','paths21','paths12'))
+    setnames(tmp, c('host.1','host.2','paths12','paths21'), c('host.2','host.1','paths21','paths12'))
     set(tmp, tmp[, which(path.classification=="anc")], 'path.classification', 'TMP')
     set(tmp, tmp[, which(path.classification=="desc")], 'path.classification', 'anc')
     set(tmp, tmp[, which(path.classification=="TMP")], 'path.classification', 'desc')
@@ -825,8 +825,8 @@ merge.classifications <- function(all.tree.info, allow.mt = T){
     set(tmp, tmp[, which(path.classification=="multiDesc")], 'path.classification', 'multiAnc')
     set(tmp, tmp[, which(path.classification=="TMP")], 'path.classification', 'multiDesc')
     x	<- rbind(x, tmp)
-    setkey(x, Host_1, Host_2)
-    subset(x, Host_1 < Host_2)
+    setkey(x, host.1, host.2)
+    subset(x, host.1 < host.2)
   })
   #
   # rbind consolidated files
@@ -845,7 +845,7 @@ merge.classifications <- function(all.tree.info, allow.mt = T){
     setnames(tt, 'min.distance.between.subgraphs', 'PATRISTIC_DISTANCE')
   }
   
-  setnames(tt, c('Host_1','Host_2','path.classification','paths21','paths12','adjacent','contiguous'), c('HOST.1','HOST.2','TYPE','PATHS.21','PATHS.12','ADJACENT','CONTIGUOUS'))
+  setnames(tt, c('host.1','host.2','path.classification','paths21','paths12','adjacent','contiguous'), c('HOST.1','HOST.2','TYPE','PATHS.21','PATHS.12','ADJACENT','CONTIGUOUS'))
   
   # change type name depending on allow.mt
   if(!allow.mt){
@@ -902,11 +902,11 @@ summarise.classifications <- function(all.tree.info, min.threshold, dist.thresho
   # How many windows have ADJACENT and PATRISTIC_DISTANCE below the threshold?
   any.counts  <- tt.close[, list(trees.with.any.relationship=length(SUFFIX)), by=c('HOST.1','HOST.2')]
   # How many windows have a relationship other than "none", ADJACENT and PATRISTIC_DISTANCE below the threshold?
-  ns.counts  <- tt.close[, list(trees.with.any.ancestral.relationship=length(which(NOT.SIBLINGS))), by=c('HOST.1','HOST.2')]
+#  ns.counts  <- tt.close[, list(trees.with.any.ancestral.relationship=length(which(NOT.SIBLINGS))), by=c('HOST.1','HOST.2')]
   
   tt.close		<- merge(tt.close, type.counts, by=c('HOST.1','HOST.2','TYPE'))
   tt.close		<- merge(tt.close, any.counts, by=c('HOST.1','HOST.2'))
-  tt.close		<- merge(tt.close, ns.counts, by=c('HOST.1','HOST.2'))
+#  tt.close		<- merge(tt.close, ns.counts, by=c('HOST.1','HOST.2'))
   
   tt.close[, fraction:=paste(trees.with.this.relationship,'/',both.exist,sep='')]
   
@@ -935,8 +935,10 @@ summarise.classifications <- function(all.tree.info, min.threshold, dist.thresho
   
   setkey(tt.close, HOST.1, HOST.2, TYPE)
   
-  setnames(tt.close, c('HOST.1','HOST.2','TYPE'), c("Host_1", "Host_2", "relationship"))
+  setnames(tt.close, c('HOST.1','HOST.2','TYPE', 'fraction', 'trees.with.this.relationship', 'trees.with.any.relationship'), 
+           c('host.1', 'host.2', 'ancestry', 'fraction', 'ancestry.count', 'related.count'))
+  setcolorder(tt.close, c('host.1', 'host.2', 'ancestry', 'ancestry.count', 'both.exist', 'fraction', 'related.count'))
   
-  return(subset(tt.close, trees.with.any.relationship>min.threshold))
+  return(subset(tt.close, related.count>min.threshold))
 }
 

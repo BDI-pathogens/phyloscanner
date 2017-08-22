@@ -344,23 +344,23 @@ If the script is run on a single tree file only, the classification csv file is 
 The \c{--allClassifications} option produces per-tree csv files describing all pairwise relationships between hosts.
 The columns of this file are as follows:
 \begin{itemize}
-\item Host\_1, Host\_2: the pair of hosts.
+\item host.1, host.2: the pair of hosts.
 The order does not signify anything on its own but is relevant to interpretation of the path.classification column.
 \item adjacent: This is TRUE if there exist two nodes, one each from subgraphs from the two hosts, such that the path between the two traverses only nodes that are either also from these host subgraphs, or unsampled.
 (In other words, it is possible to move through the phylogeny from one host to the other without moving through the subgraph of another sampled patient.)
 \item contiguous: This is TRUE if for any two nodes, one each from subgraphs from the two hosts, the path between the two intersects no nodes that are not either also from these host subgraphs, or unsampled.
 This is similar to adjacent but a little stronger.
-\item paths12, paths21: paths12 is the number of nodes from Host\_2 in the collapsed tree which have an ancestor that is from Host\_1, and paths21 is the opposite.
-\item nodes1, nodes2: these are the number of collapsed tree nodes for Host\_1 and Host\_2 respectively.
+\item paths12, paths21: paths12 is the number of nodes from host.2 in the collapsed tree which have an ancestor that is from host.1, and paths21 is the opposite.
+\item nodes1, nodes2: these are the number of collapsed tree nodes for host.1 and host.2 respectively.
 \item path.classification: this describes the topological relationship between the two hosts in the collapsed tree: \begin{itemize}                                                                                                                    
-\item ``none'' indicates that no nodes from Host\_1 are ancestral to nodes from Host\_2 or vice versa
-\item ``anc'' indicates that there is only one node from Host\_2 and it is a descendant of a node from Host\_1
-\item ``desc'' indicates that there is only one node from Host\_1 and it is a descendant of a node from Host\_2
-\item ``multiAnc'' indicates that there is more than one node from Host\_2 and all are descended from a node from Host\_1
-\item ``multiDesc'' indicates that there is more than one node from Host\_1 and all are descended from a node from Host\_2
+\item ``none'' indicates that no nodes from host.1 are ancestral to nodes from host.2 or vice versa
+\item ``anc'' indicates that there is only one node from host.2 and it is a descendant of a node from host.1
+\item ``desc'' indicates that there is only one node from host.1 and it is a descendant of a node from host.2
+\item ``multiAnc'' indicates that there is more than one node from host.2 and all are descended from a node from host.1
+\item ``multiDesc'' indicates that there is more than one node from host.1 and all are descended from a node from host.2
 \item ``complex'' indicates that none of the above are true (which is suggestive of an ancestral relationship and often direct transmission, but with unknown direction)
 \end{itemize}
-\item min.distance.between.subgraphs: this is the smallest  patristic distance between a node in a Host\_1 subgraph and a Host\_2 subgraph
+\item min.distance.between.subgraphs: this is the smallest  patristic distance between a node in a host.1 subgraph and a host.2 subgraph
 \item normalised.min.distance.between.subgraphs: If the tree branch lengths were normalised, this is the above distance but divided by the normalisation constant for this tree
 \end{itemize}
 
@@ -374,27 +374,26 @@ If \c{--distanceThreshold} is not given then it is assumed to be infinite and ad
 If tree branch lengths were normalised then the distance threshold is applied to normalised distances.
 
 The output is a csv file whose first three columns are a pair of hosts and a classification of the topological relationship between the pair.
-Rows for pairs who are never related at all or never show a particular topological relationship are omitted.
+Rows for pairs which are never related at all or never show a particular topological relationship are omitted.
 
 The \c{--minThreshold} option can be used to retain only rows where the pair of hosts are related in more than the stated proportion of trees; the default is 0 so relationships are reported if they ever occur at all.
 
 The csv file has the following columns:
 \begin{itemize}
-\item Host\_1, Host\_2: the two hosts.
-\item relationship: the topological relationship (see below).
+\item host.1, host.2: the two hosts.
+\item ancestry: the type of ancestry (see below).
+\item ancestry.tree.count: the number of trees in which this pair of hosts are related (by the definition given above) and the relationship is of the type given under ``ancestry''.
 \item both.exist: the number of trees in which both hosts are present.
-\item trees.with.this.relationship: the number of trees in which this relationship exists.
-\item trees.with.any.relationship: the number of trees in which any relationship exists, i.e. the pair are adjacent and within the distance threshold.
-\item trees.with.any.ancestral.relationship: the number of trees in which any relationship exists, if that relationship is not ``none''.
-\item fraction: the number of windows showing this relationship over the number of windows where both occur, as text.
+\item fraction: the number of windows showing this relationship over the number of windows where both occur (``count'' over ``both.exist''), as text.
+\item related.tree.count: the number of trees in which this pair of hosts are related (by the definition given above).
 \end{itemize}
 
-The topological relationships are as follows:
+The ancestry relationships are as follows:
 \begin{itemize}
-\item ``none'': see above.
-\item ``trans'': there is just one collapsed tree node from Host\_2 and it is descended from a node from Host\_1.
-Since they must be adjacent, this makes Host\_1 its immediate ancestor.
-\item ``multi\_trans'': there is more than one collapsed tree node from Host\_2 and all are descended from a node from Host\_1.
+\item ``none'': no node in the collapsed tree from host.1 is descended from a node from host.2 or vice versa.
+\item ``trans'': there is just one collapsed tree node from host.2 and it is descended from a node from host.1.
+Since they must be adjacent, this makes host.1 its immediate ancestor.
+\item ``multi\_trans'': there is more than one collapsed tree node from host.2 and all are descended from a node from host.1.
 This classification only appears if the \c{--allowMultiTrans} option is given; if not these relationships count as ``complex''.
 This is because this relationship is less indicative of the direction of transmission than ``trans''; it may simply indicate that the tips from the two hosts are very intermingled, and it is prone to bias introduced by differences in tip counts.
 By default, the script is conservative and does not take this relationship as a signal of directionality.
