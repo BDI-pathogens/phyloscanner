@@ -62,20 +62,20 @@ use. See the phyloscanner manual chapter 'Branch length normalisation' for an
 explanation of an alternative way of parallelising this script that is suitable
 for massive parallelisation (as opposed to just using multiple cores on a single
 machine, which this option does).''')
-RaxmlHelp ='''Use this option to specify how RAxML is to be run; by default,
-'raxmlHPC-AVX -m GTRCAT -p 1 --no-seq-check'. You will need to change the first
-part if your RAxML binary is not called raxmlHPC-AVX, or if the binary's
-location is not in your $PATH variable (i.e. if you need to specify the path to
-the binary in order to run it). -m tells RAxML which evolutionary model to use,
-and -p specifies a random number seed for the parsimony inferences; both are
-compulsory. You may include any other RAxML options in this command. The set of
-things you specify with --x-raxml need to be surrounded with one pair of
+RAxMLdefaultOptions = "-m GTRCAT -p 1 --no-seq-check"
+RaxmlHelp ='''Use this option to specify how RAxML is to be run, including
+both the executable (with the path to it if needed), and the options. If you do
+not specify anything, we will try to find the fastest RAxML exectuable available
+(assuming its path is in your PATH environment variable) and use the
+options''' + RAxMLdefaultOptions + '''. -m tells RAxML which evolutionary model
+to use, and -p specifies a random number seed for the parsimony inferences; both
+are compulsory. You may include any other RAxML options in this command. The set
+of things you specify with --x-raxml need to be surrounded with one pair of
 quotation marks (so that they're kept together as one option for this script and
 only split up for raxml). If you include a path to your raxml binary, it may not
 include whitespace, since whitespace is interpreted as separating raxml options.
 Do not include options relating to bootstraps or to the naming of files.'''
-parser.add_argument('--x-raxml',
-default='raxmlHPC-AVX -m GTRCAT -p 1 --no-seq-check', help=RaxmlHelp)
+parser.add_argument('--x-raxml', help=RaxmlHelp)
 parser.add_argument('-Q', '--quiet', action='store_true', help='''Turns off the
 small amount of information printed to the terminal (via stdout). We'll still
 print warnings and errors (via stderr), and the command you ran, for logging
@@ -122,10 +122,14 @@ if multithread:
       exit(1)
 
 # Test RAxML works
-RAxMLargList = pf.TestRAxML(args.x_raxml, RaxmlHelp)
+RAxMLargList = pf.TestRAxML(args.x_raxml, RAxMLdefaultOptions, RaxmlHelp)
     
 # Extract the chosen seq
-alignment = AlignIO.read(args.alignment, "fasta")
+try:
+  alignment = AlignIO.read(args.alignment, "fasta")
+except:
+  print('Problem reading in', args.alignment + '. Quitting.', file=sys.stderr)
+  raise
 AlignmentLength = alignment.get_alignment_length()
 ChosenSeq = None
 for seq in alignment:

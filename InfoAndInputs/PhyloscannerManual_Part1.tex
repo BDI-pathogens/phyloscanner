@@ -99,7 +99,7 @@ The number of positions at which we could place a window of width $W$ equals the
 The number of positions at which we could place a window of width $W$ such that it is wholly inside a read is the length of the read $- W + 1$.
 The probability of a randomly placed read overlapping a window of width $W$ is therefore (read length $- W + 1$) / (reference length $- W + 1$).
 The number of reads and their different lengths are fixed in the data; increasing $W$ will decrease this probability (except for reads that span the entire reference).}.
-A good choice of window width, roughly, would be as large as you can yet before the number of reads per window gets too low to make useful within-host phylogenies.
+A good choice of window width, roughly, would be as large as you can get before the number of reads per window gets too low to make useful within-host phylogenies.
 Skip ahead to section~\ref{sec:overlap} if that's good enough for you and you don't want to think about it any more.
 
 The \c{--explore-window-widths} option of \pmt was written with the following balancing act in mind.
@@ -208,11 +208,18 @@ You must choose exactly one of these: \c{--windows}, \c{--auto-window-params}, \
 \item \c{--windows}: used to specify a comma-separated series of paired coordinates defining the boundaries of the windows.
 e.g. specifying \c{1,300,301,600,601,900} would define windows 1-300, 301-600, 601-900.
 \item \c{--auto-window-params}: used to specify 2, 3 or 4 comma-separated integers controlling the automatic creation of regular windows.
-The first integer is the width you want windows to be, weighting each column in the alignment of bam file references (plus any extra references included with \c{--alignment-of-other-refs}) by its non-gap fraction, so that windows with rows or columns containing many gaps become correspondingly wider.
-The second is the overlap between the end of one window and the start of the next (which can be negative, implying unused space in between windows; the recommended value of 0 means each window starts right after the previous one ends).
-The optional third integer is the start position for the first window (by default, 1).
-The optional fourth integer is the end position for the last window (by default, windows will continue up to the end of the alignment of references).
-This option cannot be used with \c{--pairwise-align-to}.
+\begin{itemize}
+\item The first integer is the width you want windows to be.
+If the \c{--pairwise-align-to} option is {\it not} being used, we create an alignment containing all references, as mentioned already.
+In this case, we weight each column in this alignment by its non-gap fraction, so that windows in which many references have gaps become correspondingly wider.
+If the \c{--pairwise-align-to} option {\it is} being used, width is simply interpreted with respect to the named reference (i.e. a width of $W$ means each window contains $W$ bases from that reference).
+\item The second is the overlap between the end of one window and the start of the next.
+This can be negative, implying unused space in between windows; the recommended value of 0 means each window starts right after the previous one ends.
+\item The third integer, if specified, is the start position for the first window.
+If not specified, this is 1.
+\item The fourth integer, if specified, is the end position for the last window.
+If not specified, windows will continue up to the end of the reference or references.
+\end{itemize}
 \item \c{--explore-window-widths}: use this option to explore how the number of unique reads found in each bam file in each window, all along the genome, depends on the window width.
 After this option specify a comma-separated list of integers.
 The first integer is the starting position for stepping along the genome, in case you're not interested in the very beginning.
@@ -233,10 +240,11 @@ The full set of processed, unaligned reads extracted from each window are aligne
 \item \c{--pairwise-align-to}: by default, \pmt figures out where corresponding windows are in different bam files by creating a multiple sequence alignment containing all of the mapping references used to create the bam files (plus any extra references included with \c{--alignment-of-other-refs}), and window coordinates are interpreted with respect to this alignment.
 However using this option, the mapping references used to create the bam files are each separately pairwise aligned to one of the extra references included with \c{--alignment-of-other-refs}, and window coordinates are interpreted with respect to this reference.
 The reference to use should be specified after this option.
-\item \c{--x-raxml}: use this option to tell \pmt how to run \c{RAxML}; by default, \c{`raxmlHPC-AVX -m GTRCAT -p 1 --no-seq-check'}.
-You will need to change the first part if your \R executable is not called \c{raxmlHPC-AVX}, or if the executable's location is not contained in your \c{\$PATH} environment variable (i.e. if you need to specify the path to the executable in order to run it).
+\item \c{--x-raxml}: use this option to tell \pmt how to run \R, including both the executable (with the path to it if needed), and the options.
+If you do not specify anything, we will try to find the fastest \R exectuable available (first \c{raxmlHPC-AVX}, then \c{raxmlHPC-SSE3}, then \c{raxmlHPC}) and use the options \c{-m GTRCAT -p 1 --no-seq-check}.
+You will need to specify something if the path to your \R executable is not contained in your \c{PATH} environment variable (i.e. if you need to specify the path to the executable in order to run it), or if you want to use different \R options.
 \c{-m} tells \R which evolutionary model to use, and \c{-p} specifies a random number seed for the parsimony inferences; both are compulsory.
-You may include any other \R options in this command.
+You may include any other \R options in this command (including multi-threading, provided you use one of the multi-threaded executables).
 The set of things you specify with \c{--x-raxml} need to be surrounded with one pair of quotation marks (so that they're kept together as one option for \pmt and only split up for \R).
 If you include a path to your \R executable, it may not include whitespace, since whitespace is interpreted as separating \R options.
 Do not include options relating to bootstraps: use \pmt's \c{--num-bootstraps} and \c{--bootstrap-seed} options instead.

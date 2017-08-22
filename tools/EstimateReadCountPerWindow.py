@@ -65,15 +65,46 @@ help='For the plot. The default is 15.', default=15)
 parser.add_argument('-TS', '--title-font-size', type=int,
 help='For the plot. The default is 15.', default=15)
 parser.add_argument('-LS', '--legend-font-size', type=int,
-help='For the plot. The default is 13.', default=13)
+help='For the plot. The default is 7.', default=7)
 parser.add_argument('-LL', '--legend-location', 
-help='For the plot. The default is "best".', default='best')
+help='''For the plot. The default is 'lower left'. The other options are:
+'best', 'upper right', 'upper left', 'lower right', 'right', 'center left',
+'center right', 'lower center',' upper center', 'center' ''',
+default='lower left')
 parser.add_argument('-LY', '--linear-y-axis', 
 help='For the plot. The default is logarithmic.', action='store_true')
+parser.add_argument('-XM', '--x-min-max', help='The minimum and maximum for '\
+'the x axis in the plot, specified together as a comma-separated pair of '\
+'numbers.')
+parser.add_argument('-YM', '--y-min-max', help='The minimum and maximum for '\
+'the y axis in the plot, specified together as a comma-separated pair of '\
+'numbers.')
 parser.add_argument('--x-samtools', default='samtools', help=\
 'Used to specify the command required to run samtools, if it is needed to index'
 ' the bam files (by default: samtools).')
 args = parser.parse_args()
+
+def GetIntPair(arg, ArgName):
+  MinMax = arg.split(',')
+  if len(MinMax) != 2:
+    print(ArgName, 'should be used to specify a comma-separated pair of',
+    'numbers. Quitting.', file=sys.stderr)
+    exit(1)
+  try:
+    Min = float(MinMax[0])
+    Max = float(MinMax[1])
+  except ValueError:
+    print(ArgName, 'should be used to specify a comma-separated pair of',
+    'numbers. Quitting.', file=sys.stderr)
+    exit(1)
+  return min(Min, Max), max(Min, Max)
+
+# Get plot limits
+if args.x_min_max:
+  Xmin, Xmax = GetIntPair(args.x_min_max, '--x-min-max')
+if args.y_min_max:
+  Ymin, Ymax = GetIntPair(args.y_min_max, '--y-min-max')
+
 
 # Read in the input bam and ref files
 BamFiles, RefFiles, aliases, BamFileBasenames = \
@@ -277,6 +308,11 @@ if LastDesiredRow == 0:
 matrix = matrix[:LastDesiredRow + 1, :]
 
 ax = plt.figure().add_subplot(111)
+
+if args.x_min_max:
+  ax.set_xlim(xmin=Xmin, xmax=Xmax)
+if args.y_min_max:
+  ax.set_ylim(ymin=Ymin, ymax=Ymax)
 
 for i in range(1, matrix.shape[1]):
   if SomeDataIsPaired:

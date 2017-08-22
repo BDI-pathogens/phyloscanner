@@ -5,19 +5,19 @@ from __future__ import print_function
 ## Acknowledgement: I wrote this while funded by ERC Advanced Grant PBDR-339251
 ##
 ## Overview:
-ExplanatoryMessage = '''phyloscanner analyses the genetic diversity and
-relationships between and within samples of mapped reads, in windows along the
-genome. The user specifies one or more
-windows of the genome in which this done. For each window: for each sample, all
-reads mapped to that window are found, and identical reads are collected together
-with an associated count. Then all reads from all samples in this window 
-are aligned using mafft and a phylogeny is constructed using RAxML. All
-phylogenies are then analysed. Temporary files and output files are written to
-the current working directory; to avoid overwriting existing files, you should
-run phyloscanner from inside an empty directory.
+ExplanatoryMessage = '''phyloscanner_make_trees.py infers phylogenies containing
+both within- and between-host pathogen genetic diversity in windows along the
+genome, using mapped reads as input. For each window, for each sample, all reads
+mapped to that window are found and identical reads are collected together with
+an associated count. Then all reads from all samples in each window are aligned
+using MAFFT and a phylogeny is constructed using RAxML. Temporary files and
+output files are written to the current working directory; to avoid overwriting
+existing files, you should run phyloscanner_make_trees.py from inside an empty
+directory.
 
-More details on running phyloscanner can be found in the manual.
-'''
+More information on running phyloscanner can be found in the manual. Options are
+explained below; for some options we go into greater detail in the manual,
+trying to be as concise as possible here.'''
 
 ################################################################################
 # The names of some files we'll create.
@@ -112,12 +112,14 @@ the boundaries of the windows. e.g. 1,300,301,600,601,900 would define windows
 WindowArgs.add_argument('-AW', '--auto-window-params',
 type=CommaSeparatedInts, help='''Used to specify 2, 3 or 4 comma-separated
 integers controlling the automatic creation of regular windows. The first
-integer is the width you want windows to be, weighting each column in the
-alignment of all references by its non-gap fraction. The second is the overlap
-between the end of one window and the start of the next. The optional third
-integer is the start position for the first window (by default, 1). The optional
-fourth integer is the end position for the last window (by default, windows will
-continue up to the end of the alignment of references).''')
+integer is the width you want windows to be. (If you are not using the
+--pairwise-align-to option, columns in the alignment of all references are
+weighted by their non-gap fraction; see the manual for clarification.) The
+second integer is the overlap between the end of one window and the start of the
+next. The third integer, if specified, is the start position for the first
+window (if not specified this is 1). The fourth integer, if specified, is the
+end position for the last window (if not specified, windows will continue up to
+the end of the reference or references).''')
 WindowArgs.add_argument('-E', '--explore-window-widths',
 type=CommaSeparatedInts, help='''Use this option to explore how the number of
 unique reads found in each bam file in each window, all along the genome,
@@ -145,22 +147,22 @@ However using this option, the mapping references used to create the bam files
 are each separately pairwise aligned to one of the extra references included
 with -A, and window coordinates are interpreted with respect to this
 reference. Specify the name of the reference to use after this option.''')
-RaxmlHelp ='''Use this option to tell phyloscanner how to run RAxML; by default,
-'raxmlHPC-AVX -m GTRCAT -p 1 --no-seq-check'. You will need to change the first part if your
-RAxML binary is not called raxmlHPC-AVX, or if the binary's location is not in
-your $PATH variable (i.e. if you need to specify the path to the binary in order
-to run it). -m tells RAxML which evolutionary model to use, and -p specifies a
-random number seed for the parsimony inferences; both are compulsory. You may
-include any other RAxML options in this command. The set of things you specify
-with --x-raxml need to be surrounded with one pair of quotation marks (so that
-they're kept together as one option for phyloscanner and only split up for
-raxml). If you include a path to your raxml binary, it may not include
-whitespace, since whitespace is interpreted as separating raxml options. Do not
-include options relating to bootstraps: use phyloscanner's --num-bootstraps and
---bootstrap-seed options instead. Do not include options relating to the naming
-of files.'''
-RecommendedArgs.add_argument('--x-raxml', default='raxmlHPC-AVX -m GTRCAT -p 1 --no-seq-check',
-help=RaxmlHelp)
+RAxMLdefaultOptions = "-m GTRCAT -p 1 --no-seq-check"
+RaxmlHelp ='''Use this option to specify how RAxML is to be run, including
+both the executable (with the path to it if needed), and the options. If you do
+not specify anything, we will try to find the fastest RAxML exectuable available
+(assuming its path is in your PATH environment variable) and use the
+options''' + RAxMLdefaultOptions + '''. -m tells RAxML which evolutionary model
+to use, and -p specifies a random number seed for the parsimony inferences; both
+are compulsory. You may include any other RAxML options in this command. The set
+of things you specify with --x-raxml need to be surrounded with one pair of
+quotation marks (so that they're kept together as one option for phyloscanner
+and only split up for raxml). If you include a path to your raxml binary, it may
+not include whitespace, since whitespace is interpreted as separating raxml
+options. Do not include options relating to bootstraps: use phyloscanner's
+--num-bootstraps and --bootstrap-seed options instead. Do not include options
+relating to the naming of files.'''
+RecommendedArgs.add_argument('--x-raxml', help=RaxmlHelp)
 RecommendedArgs.add_argument('-P', '--merge-paired-reads', action='store_true',
 help='''Relevant only for paired-read data for which the mates in a pair
 (sometimes) overlap with each other: merge overlapping mates into a single
@@ -473,12 +475,6 @@ if PairwiseAlign:
       print('Furthermore you have chosen two different values for these flags,'
       , 'indicating some confusion as to their use. Try again.')
       exit(1)
-  if AutoWindows:
-    print('As you have chosen that references are aligned in a pairwise',
-    'manner, please specify coordinates manually - the automatic option is',
-    "for stepping through a global alignment of all references. Quitting.",
-    file=sys.stderr)
-    exit(1)
   if ExcisePositions and args.excision_ref != args.pairwise_align_to:
     print('The --pairwise-align-to and --excision-ref options can only be',
     'used at once if the same reference is specified for both. Qutting.',
@@ -539,6 +535,7 @@ if AutoWindows:
       WindowEndPos = float('inf')
   else:
     WindowStartPos = 1
+    WindowEndPos = float('inf')
   if WeightedWindowWidth <= 0:
     print('The weighted window width for the --auto-window-params option must',
     'be greater than zero. Quitting.', file=sys.stderr)
@@ -625,10 +622,11 @@ if IncludeOtherRefs:
       RefForPairwiseAlnsGappySeq = str(ref.seq)
       RefForPairwiseAlns = copy.deepcopy(ref)
       RefForPairwiseAlns.seq = RefForPairwiseAlns.seq.ungap("-")
+      RefForPairwiseAlnsLength = len(RefForPairwiseAlns.seq)
       if UserSpecifiedCoords:
         CheckMaxCoord(WindowCoords, ref)
       elif ExploreWindowWidths:
-        MaxCoordForWindowWidthTesting = len(RefForPairwiseAlns.seq)
+        MaxCoordForWindowWidthTesting = RefForPairwiseAlnsLength
         WindowCoords = FindExploratoryWindows(MaxCoordForWindowWidthTesting)
         NumCoords = len(WindowCoords)
         UserCoords = WindowCoords
@@ -673,7 +671,7 @@ FindWindowsCode     = pf.FindAndCheckCode('FindInformativeWindowsInFasta.py')
 
 # Test RAxML works
 if not args.no_trees:
-  RAxMLargList = pf.TestRAxML(args.x_raxml, RaxmlHelp)
+  RAxMLargList = pf.TestRAxML(args.x_raxml, RAxMLdefaultOptions, RaxmlHelp)
 
 times = []
 if args.time:
@@ -751,6 +749,30 @@ def TranslateCoords(CodeArgs):
     CoordsDict[SeqName] = coords
   return CoordsDict
 
+def SimpleCoordsFromAutoParams(RefSeqLength):
+  WindowEndPosLocal = min(WindowEndPos, RefSeqLength)
+  if WindowEndPosLocal < WindowStartPos + WeightedWindowWidth:
+    print('With the --auto-window-params option you specified a start', 
+    'point of', WindowStartPos, 'and your weighted window width was', 
+    str(WeightedWindowWidth) + '; one or both of these values should be', 
+    'decreased because the length of your reference or your', 
+    'specified end point is only', str(WindowEndPosLocal) + '. We need to be',
+    'able to fit at least one window in between the start and end. Quitting.',
+    file=sys.stderr)
+    exit(1)
+  WindowCoords = []
+  NextStart = WindowStartPos
+  NextEnd = WindowStartPos + WeightedWindowWidth - 1
+  while NextEnd <= WindowEndPosLocal:
+    WindowCoords += [NextStart, NextEnd]
+    NextStart = NextEnd - WindowOverlap + 1
+    NextEnd = NextStart + WeightedWindowWidth - 1
+  NumCoords = len(WindowCoords)
+  UserCoords = WindowCoords
+
+  return WindowCoords, UserCoords, NumCoords, WindowEndPosLocal
+
+
 # If there is only one bam and no other refs, no coordinate translation
 # is necessary - we use the coords as they are, though setting any after the end
 # of the reference to be equal to the end of the reference.
@@ -762,25 +784,8 @@ if NumberOfBams == 1 and not IncludeOtherRefs:
     exit(1)
   RefSeqLength = len(RefSeqs[0])
   if AutoWindows:
-    WindowEndPos = min(WindowEndPos, RefSeqLength)
-    if WindowEndPos < WindowStartPos + WeightedWindowWidth:
-      print('With the --auto-window-params option you specified a start', 
-      'point of', WindowStartPos, 'and your weighted window width was', 
-      str(WeightedWindowWidth) + '; one or both of these values should be', 
-      'decreased because the length of the reference in the bam file or your', 
-      'specified end point is only', str(WindowEndPos) + '. We need to be',
-      'able to fit at least one window in between the start and end. Quitting.',
-      file=sys.stderr)
-      exit(1)
-    WindowCoords = []
-    NextStart = WindowStartPos
-    NextEnd = WindowStartPos + WeightedWindowWidth - 1
-    while NextEnd <= WindowEndPos:
-      WindowCoords += [NextStart, NextEnd]
-      NextStart = NextEnd - WindowOverlap + 1
-      NextEnd = NextStart + WeightedWindowWidth - 1
-    NumCoords = len(WindowCoords)
-    UserCoords = WindowCoords
+    WindowCoords, UserCoords, NumCoords, WindowEndPos = \
+    SimpleCoordsFromAutoParams(RefSeqLength)
   if ExploreWindowWidths:
     MaxCoordForWindowWidthTesting = RefSeqLength
     WindowCoords = FindExploratoryWindows(MaxCoordForWindowWidthTesting)
@@ -797,6 +802,11 @@ else:
   # If we're separately and sequentially pairwise aligning our references to
   # a chosen ref in order to determine window coordinates, do so now.
   if PairwiseAlign:
+
+    # Get the coords if auto coords
+    if AutoWindows:
+      WindowCoords, UserCoords, NumCoords, WindowEndPos = \
+      SimpleCoordsFromAutoParams(RefForPairwiseAlnsLength)
 
     # Find the coordinates with respect to the chosen ref, in the alignment of
     # just the external refs - we'll need these later.
@@ -1860,6 +1870,10 @@ for window in range(NumCoords / 2):
       for result in sorted(RecombinationResults, key=lambda x: x[1],
       reverse=True):
         f.write('\n' + ','.join(map(str, result)) )
+      # Add to the recombination data file those bams with no reads here:
+      for alias in BamAliases:
+        if not alias in SamplesToAlnPosDict:
+          f.write('\n' + alias + ',NA,NA,NA,NA')
     OutputFilesByDestinationDir['RecombFiles'].append(FileForRecombinantReads)
 
     # Update on time taken if desired
@@ -2018,14 +2032,15 @@ ExtraText=None):
     if HaveMadeOutputDir:
       Dir = args.output_dir
     else:
-      Dir = '.'
+      Dir = os.getcwd()
   else:
     Dir = OutputDirs[DirKey]
   Dir = os.path.abspath(Dir)
   FileStart = os.path.join(Dir, FileBasename)
   files = glob.glob(FileStart + '*')
   if not files:
-    print("Oops, we've lost the", DescriptionOfFiles, "files we produced. "
+    print("Oops, internally we've lost track of the location of the",
+    DescriptionOfFiles, "files we produced. "
     "Expected to find files matching", FileStart + '*\nSorry about that.',
     file=sys.stderr)
   else:
