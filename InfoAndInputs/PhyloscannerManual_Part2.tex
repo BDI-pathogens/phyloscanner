@@ -400,9 +400,9 @@ By default, the script is conservative and does not take this relationship as a 
 However, as with ``complex'', it is quite strongly indicative of direct transmission (Romero-Severson et al. PNAS 2016).
 \item ``complex'': where none of the above are true; if \c{--allowMultiTrans} is not specified then\break ``multi\_trans'' relationships are also allocated ``complex''.
 \end{itemize}
-The standalone script to summarise these relationships is transmission\_summary.R.
+The standalone script to summarise these relationships is \c{transmission\_summary.R}.
 
-The output of this script can be visualised in a graph analysis package, such as Cytoscape.
+The output of this script can be visualised in a graph analysis package, such as Cytoscape. This, if configured correctly, will display multiple links between hosts, as in figure 4A of the \p paper. To simplify the diagram so it appears as figure 4B, so only one edge links each pair, a standalone script, \c{simplify\_graph.R}, is also available in the \c{tools} directory. See the command line help for that script for more information.
 
 \section{Miscellaneous options}
 
