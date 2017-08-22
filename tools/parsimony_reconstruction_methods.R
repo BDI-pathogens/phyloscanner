@@ -115,6 +115,7 @@ split.hosts.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff.k,
   attr(tree, 'SPLIT') <- factor(split.annotation)
   attr(tree, 'INDIVIDUAL') <- host.annotation
   attr(tree, 'BRANCH_COLOURS') <- branch.colours
+  attr(tree, 'SUBGRAPH_MRCA') <- first.nodes
   
   rs.subgraphs <- data.table(subgraph=results$split.hosts)
   rs.subgraphs <- rs.subgraphs[, list(host= unlist(strsplit(subgraph, "-SPLIT"))[1], tip= tree$tip.label[ results$split.tips[[subgraph]] ]	), by='subgraph']

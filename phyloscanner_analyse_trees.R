@@ -844,7 +844,8 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
     if(output.pdf){
       if (verbose) cat("Drawing PDF tree...\n")
       tree.display <- ggtree(tree, aes(color=BRANCH_COLOURS)) +
-        geom_point2(shape = 16, size=1, aes(color=INDIVIDUAL)) +
+        geom_point2(aes(subset=SUBGRAPH_MRCA, color=INDIVIDUAL), shape = 23, size = 3, fill="white") +
+        geom_point2(aes(color=INDIVIDUAL), shape=16, size=1) +
         scale_fill_hue(na.value = "black", drop=F) +
         scale_color_hue(na.value = "black", drop=F) +
         theme(legend.position="none") +
