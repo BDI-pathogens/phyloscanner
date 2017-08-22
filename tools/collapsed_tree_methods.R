@@ -939,6 +939,6 @@ summarise.classifications <- function(all.tree.info, min.threshold, dist.thresho
            c('host.1', 'host.2', 'ancestry', 'fraction', 'ancestry.tree.count', 'any.relationship.tree.count'))
   setcolorder(tt.close, c('host.1', 'host.2', 'ancestry', 'ancestry.tree.count', 'both.exist', 'fraction', 'any.relationship.tree.count'))
   
-  return(subset(tt.close, related.count>min.threshold))
+  return(subset(tt.close, any.relationship.tree.count>min.threshold))
 }
 
