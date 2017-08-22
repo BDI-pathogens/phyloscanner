@@ -23,7 +23,11 @@ every.package <- c("argparse",
 new.packages <- every.package[!(every.package %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
 
-if(!("ggtree" %in% installed.packages()[,"Package"])){
-  source("https://bioconductor.org/biocLite.R")
-  biocLite("ggtree")
-}
+tryCatch({
+  if(!("ggtree" %in% installed.packages()[,"Package"])){
+    source("https://bioconductor.org/biocLite.R")
+    biocLite("ggtree")
+  }
+}, error=function(err){
+  message("Failed to install ggtree. Check your Bioconductor installation, in particular BiocInstaller, is up-to-date.")
+})
