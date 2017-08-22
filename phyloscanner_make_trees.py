@@ -47,7 +47,6 @@ import argparse
 import pysam
 from Bio import SeqIO
 from Bio import Seq
-from Bio import Phylo
 from Bio import AlignIO
 from Bio import Align
 import tools.phyloscanner_funcs as pf
