@@ -24,10 +24,10 @@ suppressMessages(require(kimisc, quietly=TRUE, warn.conflicts=FALSE))
 
 arg_parser		     <- ArgumentParser()
 
-arg_parser$add_argument("tree", action="store", help="A path and string that begins all the tree file names.")
-arg_parser$add_argument("outputString", action="store", help="This string identifies all output files.")
+arg_parser$add_argument("tree", action="store", help="A string that begins the file names (including the path) of all input trees. e.g. path/to/RAxML_bestTree.InWindow_")
+arg_parser$add_argument("outputString", action="store", help="A string that will be used to label all output files.")
 
-arg_parser$add_argument("-og", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
+arg_parser$add_argument("-og", "--outgroupName", action="store", help="The name of the tip in the phylogeny/phylogenies to be used as outgroup (if unspecified, trees will be assumed to be already rooted).")
 arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, short branches in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. If a number, this number will be used as the threshold, with all branches strictly smaller collapsed. If 'g', it will be guessed from the branch lengths (use this only if you have checked by eye that the tree does indeed have multifurcations).")
 
 arg_parser$add_argument("-b", "--blacklist", action="store", help="A path and string that begins all the file names for pre-existing blacklist files.")
@@ -56,10 +56,10 @@ arg_parser$add_argument("-nc", "--normalisationConstants", action="store", help=
 
 # Blacklisting
 
-arg_parser$add_argument("-db", "--duplicateBlacklist", action="store", help="Perform duplicate blacklisting for likely contaminants; argument here is input file produced by Python output.")
-arg_parser$add_argument("-pbk", "--parsimonyBlacklistK", action="store", type="double", help="If given, perform parsimony-based blacklisting for likely contaminants. The argument is the value of the within-host diversity penalty used.")
-arg_parser$add_argument("-rwt", "--rawBlacklistThreshold", action="store", default=0, help="Raw threshold for blacklisting; subgraphs or exact duplicate tips with read counts less than this will be blacklisted, regardless of the count of any other subgraphs from the same host or identical tips from another host. Default 0; one or both of this and -rtt must be specified and >0 for -db or -pb to do anything.")
-arg_parser$add_argument("-rtt", "--ratioBlacklistThreshold", action="store", default=0, help="Ratio threshold for blacklisting; subgraphs will be blacklisted if the ratio of their tip count to the total tip count from the same host is smaller than this, and tips will be blacklisted if the ratio of their tip count to the tip count for an identical read from another host is less than this. Default 0; one or both of this and -rwt must be specified and >0 for -db or -pb to do anything.")
+arg_parser$add_argument("-db", "--duplicateBlacklist", action="store", help="Perform blacklisting for likely contamination between samples in this data set, suggested by exact duplicate reads found in different samples. Use this option to specify a string that begins the file names (including their path) of the duplication data produced by phyloscanner_make_trees.py. For example, 'path/to/DuplicateReadCountsProcessed_InWindow_'. This option must be used in conjunction with the --rawBlacklistThreshold and/or --ratioBlacklistThreshold option.")
+arg_parser$add_argument("-pbk", "--parsimonyBlacklistK", action="store", type="double", help="Perform parsimony-based blacklisting for likely contaminant sequences (including those originating from a sample outside the current data set). Use this option to specify the value of the within-host diversity penalty used (corresponding to the k parameter in the Sankoff option of the splitsRule argument). This option must be used in conjunction with the --rawBlacklistThreshold and/or --ratioBlacklistThreshold option.")
+arg_parser$add_argument("-rwt", "--rawBlacklistThreshold", action="store", default=0, help="Used to specify a read count to be used as a raw threshold for blacklisting. --parsimonyBlacklistK and/or --duplicateBlacklist must also be used. If --parsimonyBlacklistK is used, we will blacklist any subgraph with a read count strictly less than this threshold. If --duplicateBlacklist is used, we will black list any duplicate read with a count strictly less than this threshold. The default value of 0 means nothing is blacklisted.")
+arg_parser$add_argument("-rtt", "--ratioBlacklistThreshold", action="store", default=0, help="Used to specify a read count ratio (between 0 and 1) to be used as a threshold for blacklisting. --parsimonyBlacklistK and/or --duplicateBlacklist must also be used. If --parsimonyBlacklistK is used, we will blacklist a subgraph if the ratio of its read count to the total read count from the same host is strictly less than this threshold. If --duplicateBlacklist is used, we will black list a duplicate read if the ratio of its count to the count of the duplicate (from another host) is strictly less than this threshold.")
 arg_parser$add_argument("-ub", "--dualBlacklist", action="store_true", default=F, help="Blacklist all reads from the minor subgraphs for all hosts established as dual by parsimony blacklisting.")
 
 # Downsampling
@@ -77,7 +77,7 @@ arg_parser$add_argument("-tn", "--outputNexusTree", action="store_true", help="S
 
 # Summary statistics
 
-arg_parser$add_argument("-R", "--recombinationFiles", action="store", help="An optional file path and initial string identifying all recombination data files.")
+arg_parser$add_argument("-R", "--recombinationFiles", action="store", help="Include in the summary plots the recombination metric calculated by phyloscanner_make_trees.py. Use this option to specify a string that begins the file names (including their path) of the recombination data files. For example, 'path/to/RecombinantReads_InWindow_'.")
 
 # Classification
 
