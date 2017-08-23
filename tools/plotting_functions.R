@@ -134,28 +134,49 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, missi
       
       this.host.statistics.temp <- melt(this.host.statistics[,c("xcoord","id","tips","reads")], id.vars=c("id", "xcoord"))
       
-      max.value <- max(this.host.statistics.temp$value)
-      log.upper.tick <- ceiling(log10(max.value))
-      ticks <- 10^(seq(0, log.upper.tick))
+      # if the difference between the largest and smallest values is greater than 10, we want log scale. Otherwise, normal scale.
       
+      log.scale <- max(this.host.statistics.temp$value - min(this.host.statistics.temp$value) >= 10)
+      y.limits <- NULL
+      
+      if(log.scale){
+        max.value <- max(this.host.statistics.temp$value)
+        log.upper.tick <- ceiling(log10(max.value))
+        ticks <- 10^(seq(0, log.upper.tick))
+        y.limits <- c(0.8, 1.2*(10^log.upper.tick))
+      }
+    
       graph.1 <- ggplot(this.host.statistics.temp, aes(x=xcoord, y=value, col=variable))
       
       graph.1 <- graph.1 + geom_point(na.rm=TRUE) +
         theme_bw() + 
-        scale_y_log10(breaks=ticks, limits=c(0.8, 1.2*(10^log.upper.tick))) +
         ylab("Count") +
         xlab("Window centre") +
         scale_x_continuous(limits=c(ews, lwe)) +
         scale_color_discrete(name="Variable", labels=c("Tips", "Reads")) + 
         theme(text = element_text(size=7))
       
+      if(log.scale){
+        graph.1 <- graph.1 + scale_y_log10(breaks=ticks, limits=y.limits)
+      }
+      
       if(regular.gaps & !is.null(missing.rects)){
-        graph.1 <- add.no.data.rectangles(graph.1, missing.rects,  TRUE, c(log10(0.8), log10(1.2) + log.upper.tick))
+        graph.1 <- add.no.data.rectangles(graph.1, missing.rects, log.scale, if(is.null(y.limits)) NULL else if(log.scale) log10(y.limits) else y.limits)
       }
       
       #graph 2: subgraph and clade counts
       
       this.host.statistics.temp <- melt(this.host.statistics[,c("xcoord", "id", "subgraphs", "clades")], id.vars=c("id", "xcoord"))
+      
+      log.scale <- max(this.host.statistics.temp$value - min(this.host.statistics.temp$value) >= 10)
+      y.limits <- NULL
+      
+      if(log.scale){
+        max.value <- max(this.host.statistics.temp$value)
+        log.upper.tick <- ceiling(log10(max.value))
+        ticks <- 10^(seq(0, log.upper.tick))
+        y.limits <- c(0.8, 1.2*(10^log.upper.tick))
+      }
       
       graph.2 <- ggplot(this.host.statistics.temp, aes(x=xcoord, y=value))
       
@@ -175,12 +196,14 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, missi
         graph.2 <- graph.2 + scale_y_continuous(breaks = c(0,1))
       } else if(max(this.host.statistics.temp$value)==2){
         graph.2 <- graph.2 + expand_limits(y=0)+ scale_y_continuous(breaks = c(0,1,2)) 
-      } else {
+      } else if(!log.scale) {
         graph.2 <- graph.2 + expand_limits(y=0) + scale_y_continuous(breaks = pretty_breaks()) 
+      } else {
+        graph.2 <- graph.2 + scale_y_log10(breaks=ticks, limits=y.limits)
       }
-      
+
       if(regular.gaps & !is.null(missing.rects)){
-        graph.2 <- add.no.data.rectangles(graph.2, missing.rects)
+        graph.2 <- add.no.data.rectangles(graph.2, missing.rects, log.scale, if(is.null(y.limits)) NULL else if(log.scale) log10(y.limits) else y.limits)
       }
       
       # graph 3: root-to-tip distances for all reads and largest subgraph
