@@ -131,11 +131,15 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, missi
       
       this.host.statistics.temp <- melt(this.host.statistics[,c("xcoord","id","tips","reads")], id.vars=c("id", "xcoord"))
       
+      max.value <- max(this.host.statistics.temp$value)
+      log.upper.tick <- ceiling(log10(max.value))
+      ticks <- 10^(seq(0, log.upper.tick))
+      
       graph.1 <- ggplot(this.host.statistics.temp, aes(x=xcoord, y=value, col=variable))
       
       graph.1 <- graph.1 + geom_point(na.rm=TRUE) +
         theme_bw() + 
-        scale_y_log10(breaks=c(1,10,100,1000,10000)) +
+        scale_y_log10(breaks=ticks, limits=c(1, 10^log.upper.tick)) +
         ylab("Count") +
         xlab("Window centre") +
         scale_x_continuous(limits=c(ews, lwe)) +
