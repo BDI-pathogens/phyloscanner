@@ -271,13 +271,22 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, missi
       
       splits.props.1col$fgroup <- as.factor(splits.props.1col$ngroup)
       
-      colourCount = length(unique(splits.props.1col$ngroup))
-      getPalette = colorRampPalette(brewer.pal(9, "Greens"))
+      colourCount <- length(unique(splits.props.1col$ngroup))
+      
+      # want subgraph 1 to be the darkest colour even if all windows have 1 subgraph
+      
+      getPalette <- function(x){
+        if(x>1){
+          colorRampPalette(brewer.pal(5, "RdYlBu"))(x)
+        } else {
+          brewer.pal(5, "RdYlBu")[5]
+        }
+      }
       
       graph.5 <- ggplot(splits.props.1col, aes(x=xcoord, weight=value, fill=reorder(fgroup, rev(order(splits.props.1col$ngroup)))))
-      
+
       graph.5 <- graph.5 +
-        geom_bar(width=bar.width, colour="black", size=0.25) +
+        geom_bar(width=bar.width, colour="black", lty="blank") +
         theme_bw() + 
         ylab("Proportion of reads\nin discrete subraphs") +
         xlab("Window centre") +
