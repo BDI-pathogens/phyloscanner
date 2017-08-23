@@ -25,8 +25,11 @@ AlignPlots <- function(...) {
 
 # Add coloured rectangles to the graphs to represent areas with no coverage
 
-add.no.data.rectangles <- function(graph, rectangle.coords, log = F){
-  y.limits <- ggplot_build(graph)$layout$panel_ranges[[1]]$y.range
+add.no.data.rectangles <- function(graph, rectangle.coords, log = F, y.limits = NULL){
+  
+  if(is.null(y.limits)){
+    y.limits <- ggplot_build(graph)$layout$panel_ranges[[1]]$y.range
+  }
   
   if(nrow(rectangle.coords)>0){
     for(rect.no in seq(1, nrow(rectangle.coords))){
@@ -139,7 +142,7 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, missi
       
       graph.1 <- graph.1 + geom_point(na.rm=TRUE) +
         theme_bw() + 
-        scale_y_log10(breaks=ticks, limits=c(1, 10^log.upper.tick)) +
+        scale_y_log10(breaks=ticks, limits=c(0.8, 1.2*(10^log.upper.tick))) +
         ylab("Count") +
         xlab("Window centre") +
         scale_x_continuous(limits=c(ews, lwe)) +
@@ -147,7 +150,7 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, missi
         theme(text = element_text(size=7))
       
       if(regular.gaps & !is.null(missing.rects)){
-        graph.1 <- add.no.data.rectangles(graph.1, missing.rects,  TRUE)
+        graph.1 <- add.no.data.rectangles(graph.1, missing.rects,  TRUE, c(log10(0.8), log10(1.2) + log.upper.tick))
       }
       
       #graph 2: subgraph and clade counts
