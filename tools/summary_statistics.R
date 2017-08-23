@@ -250,6 +250,7 @@ if(!is.null(window.coords.file)){
   }
 }
 
+x.limits <- c(ews, lwe)
 
 # Read in the IDs. Remove duplicates. Alphabeticise.
 
@@ -414,4 +415,4 @@ regular.gaps <- missing.window.data$regular.gaps
 rectangles.for.missing.windows <- missing.window.data$rectangles.for.missing.windows
 bar.width <- missing.window.data$width
 
-produce.pdf.graphs(tmp, pat.stats, hosts, xcoords, rectangles.for.missing.windows, bar.width, regular.gaps, verbose = verbose)
+produce.pdf.graphs(tmp, pat.stats, hosts, xcoords, x.limits, rectangles.for.missing.windows, bar.width, regular.gaps, readable.coords = !is.null(window.coords.file), verbose = verbose)

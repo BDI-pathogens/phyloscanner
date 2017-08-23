@@ -689,8 +689,12 @@ if(do.par.blacklisting){
     
     tree.info$blacklist                         <- unique(c(tree.info$blacklist, contaminant.nos))
     tree.info$blacklist                         <- tree.info$blacklist[order(tree.info$blacklist)]
-    
+
     which.are.duals                             <- which(unlist(lapply(results, "[[", 6)))
+    mi.count                                    <- unlist(lapply(results, "[[", 7))
+    
+    multiplicity.table                          <- data.frame(host = hosts, count = mi.count, stringsAsFactors = F)
+    tree.info$dual.detection.splits             <- multiplicity.table
     
     if(length(which.are.duals) > 0) {
       mi.df                                     <- data.frame(host = unlist(sapply(results[which.are.duals], function (x) rep(x$id, length(x$tip.names)) )), 
@@ -719,6 +723,7 @@ if(do.dual.blacklisting){
   dual.results <- blacklist.duals(all.tree.info, hosts.that.are.duals, summary.file = NULL, verbose)
   
   all.tree.info <- sapply(all.tree.info, function(tree.info) {
+
     tree <- tree.info$tree
     
     if(!is.null(dual.results[[tree.info$suffix]])){
@@ -887,24 +892,6 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
 
 # 16. Summary statistics
 
-coordinates <- lapply(all.tree.info, "[[" , "window.coords")
-
-if(readable.coords){
-  coordinates <- lapply(all.tree.info, "[[" , "window.coords")
-  starts <- sapply(coordinates, "[[", "start")
-  ends <- sapply(coordinates, "[[", "end")
-  ews <- min(starts)
-  lwe <- max(ends)
-
-} else {
-  coordinates <- sapply(all.tree.info, "[[" , "xcoord")
-  range <- max(coordinates) - min(coordinates)
-  increment <- range/length(coordinates)
-  
-  ews <- min(coordinates) - 0.45*increment
-  lwe <- max(coordinates) + 0.45*increment
-}
-
 all.tree.info <- sapply(all.tree.info, function(tree.info) {
   clade.results                 <- resolveTreeIntoPatientClades(tree.info$tree, hosts, tip.regex, tree.info$blacklist, no.read.counts)
   
@@ -957,6 +944,26 @@ if (verbose) cat("Writing output to file ",tmp,"...\n",sep="")
 write.csv(pat.stats, tmp, quote = F, row.names = F)
 
 if(!single.file){
+  coordinates <- lapply(all.tree.info, "[[" , "window.coords")
+  
+  if(readable.coords){
+    coordinates <- lapply(all.tree.info, "[[" , "window.coords")
+    starts <- sapply(coordinates, "[[", "start")
+    ends <- sapply(coordinates, "[[", "end")
+    ews <- min(starts)
+    lwe <- max(ends)
+    
+  } else {
+    coordinates <- sapply(all.tree.info, "[[" , "xcoord")
+    range <- max(coordinates) - min(coordinates)
+    increment <- range/length(coordinates)
+    
+    ews <- min(coordinates) - 0.45*increment
+    lwe <- max(coordinates) + 0.45*increment
+  }
+  
+  x.limits <- c(ews, lwe)
+  
   tmp <- file.path(paste0(output.dir, "/", output.string,"_patStats.pdf"))
   if (verbose) cat("Plotting to file ",tmp,"...\n",sep="")
   
@@ -972,7 +979,7 @@ if(!single.file){
   rectangles.for.missing.windows <- missing.window.data$rectangles.for.missing.windows
   bar.width <- missing.window.data$width
   
-  produce.pdf.graphs(tmp, pat.stats, hosts, xcoords, rectangles.for.missing.windows, bar.width, regular.gaps, verbose = verbose)
+  produce.pdf.graphs(tmp, pat.stats, hosts, xcoords, x.limits, rectangles.for.missing.windows, bar.width, regular.gaps, readable.coords = readable.coords, verbose = verbose)
 }
 
 # for(tree.info in all.tree.info){

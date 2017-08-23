@@ -100,8 +100,10 @@ find.gaps <- function(xcoords){
   
 }
 
-produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, missing.window.rects, bar.width, regular.gaps = F, width=8.26772, height=11.6929, verbose = F){
+produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, x.limits, missing.window.rects, bar.width, regular.gaps = F, width=8.26772, height=11.6929, readable.coords = F, verbose = F){
 
+  x.axis.label <- if(readable.coords) "Window centre" else "Tree number"
+  
   pdf(file=file.name, width=width, height=height)
   
   for (i in seq(1, length(hosts))) {
@@ -151,8 +153,8 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, missi
       graph.1 <- graph.1 + geom_point(na.rm=TRUE) +
         theme_bw() + 
         ylab("Tip or read count") +
-        xlab("Window centre") +
-        scale_x_continuous(limits=c(ews, lwe)) +
+        xlab(x.axis.label) +
+        scale_x_continuous(limits=x.limits) +
         scale_color_discrete(name="Variable", labels=c("Tips", "Reads")) + 
         theme(text = element_text(size=7))
       
@@ -185,8 +187,8 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, missi
         aes(col = variable) +
         theme_bw() + 
         ylab("Subgraph or clade count") +
-        xlab("Window centre") +
-        scale_x_continuous(limits=c(ews, lwe)) +
+        xlab(x.axis.label) +
+        scale_x_continuous(limits=x.limits) +
         scale_shape_manual(values=c(1,19), name="Variable", labels=c("Subgraphs", "Clades")) +  
         scale_size_manual(values=c(2,1), name="Variable", labels=c("Subgraphs", "Clades")) +		
         scale_color_discrete(name="Variable", labels=c("Subgraphs", "Clades")) + 
@@ -217,8 +219,8 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, missi
         aes(col = variable) +
         theme_bw() + 
         ylab("Mean root-to-tip-distance\n(read-weighted)") +
-        xlab("Window centre") +
-        scale_x_continuous(limits=c(ews, lwe)) +
+        xlab(x.axis.label) +
+        scale_x_continuous(limits=x.limits) +
         expand_limits(y=0) + 
         scale_color_discrete(name="Tip set", labels=c("All", "Largest subgraph")) + 
         scale_shape_manual(values=c(1,19), name="Tip set", labels=c("All", "Largest subgraph")) +
@@ -240,8 +242,8 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, missi
         aes(col = variable) +
         theme_bw() + 
         ylab("Mean pairwise patristic distance") +
-        xlab("Window centre") +
-        scale_x_continuous(limits=c(ews, lwe)) +
+        xlab(x.axis.label) +
+        scale_x_continuous(limits=x.limits) +
         expand_limits(y=0) + 
         scale_color_discrete(name="Tip set", labels=c("All", "Largest subgraph")) + 
         scale_shape_manual(values=c(1,19), name="Tip set", labels=c("All", "Largest subgraph")) +
@@ -273,7 +275,7 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, missi
       
       colourCount <- length(unique(splits.props.1col$ngroup))
       
-      # want subgraph 1 to be the darkest colour even if all windows have 1 subgraph
+      # want largest subgraph to be the darkest colour even if all windows have 1 subgraph
       
       getPalette <- function(x){
         if(x>1){
@@ -289,8 +291,8 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, missi
         geom_bar(width=bar.width, colour="black", lty="blank") +
         theme_bw() + 
         ylab("Proportion of reads\nin different subraphs") +
-        xlab("Window centre") +
-        scale_x_continuous(limits=c(ews, lwe)) +
+        xlab(x.axis.label) +
+        scale_x_continuous(limits=x.limits) +
         scale_fill_manual(values = getPalette(colourCount)) +
         theme(text = element_text(size=7)) + 
         guides(fill = guide_legend(title = "Subgraph rank\n(by tip count)", keywidth = 1, keyheight = 0.4))
@@ -309,8 +311,8 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, missi
           geom_point(alpha = 0.5, na.rm=TRUE) +
           theme_bw() + 
           ylab(y.label) +
-          xlab("Window centre") +
-          scale_x_continuous(limits=c(ews, lwe)) +
+          xlab(x.axis.label) +
+          scale_x_continuous(limits=x.limits) +
           expand_limits(y=0) +
           #      scale_color_discrete(name="Tip set", labels=c("Longest branch", "Greatest patristic distance")) + 
           theme(text = element_text(size=7))

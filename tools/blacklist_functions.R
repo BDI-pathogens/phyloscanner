@@ -114,7 +114,7 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
     # Perform split.and.annotate; get a list of splits
     
     split.results <- split.and.annotate(subtree, c(host, "unsampled"), tip.hosts, host.tips, NULL, vector(), tip.regex, sankoff.method, rep(1, length(subtree$tip.label)), sankoff.k, sankoff.p, useff = F, verbose)
-    
+     
     # vector of of split IDs
     
     host.split.ids <- split.results$split.hosts
@@ -147,6 +147,10 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
           cat("Blacklisting ",host,"; not enough reads in total.\n", sep="")
         }
         blacklist.items <- subtree$tip.label[which(subtree$tip.label!=root.name)]
+        
+        multiplicity <- 0
+      } else {
+        multiplicity <- 1
       }
       
     } else {
@@ -172,6 +176,8 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
         
         dual <- T
       }
+      
+      multiplicity <- length(which(!too.small))
       
       # blacklist the tips from small subgraphs
       
@@ -205,10 +211,12 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
         cat("Blacklisting ",host,"; not enough reads in total.\n", sep="")
       }
       blacklist.items <- tree$tip.label[tip.no]
+      multiplicity <- 0
     } else {
       if(verbose){
         cat("Keeping ",host,"; host has a single tip with sufficient reads.\n", sep="")
       }
+      multiplicity <- 1
     }
     
     tips.vector <- tree$tip.label[tip.no]
@@ -217,7 +225,7 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
   }
   
   
-  list(id = host, blacklist.items = blacklist.items, tip.names = tips.vector, read.counts = read.count.vector, tip.counts = tip.count.vector, dual=dual)
+  list(id = host, blacklist.items = blacklist.items, tip.names = tips.vector, read.counts = read.count.vector, tip.counts = tip.count.vector, dual = dual, multiplicity = multiplicity)
 }
 
 # Return whether the number of reads in this split is below one of the thresholds
