@@ -200,7 +200,9 @@ calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, verbose = F){
   # If you did dual detection, add that in
   
   if(!is.null(tree.info$dual.detection.splits)){
+    
     window.table$solo.dual.count <- tree.info$dual.detection.splits$count[match(window.table$id, tree.info$dual.detection.splits$host)]
+    
   }
 
   window.table

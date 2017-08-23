@@ -2,7 +2,7 @@
 
 AlignPlots <- function(...) {
   LegendWidth <- function(x) x$grobs[[15]]$grobs[[1]]$widths[[4]]
-  
+
   plots.grobs <- lapply(list(...), ggplotGrob)
   
   max.widths <- do.call(unit.pmax, lapply(plots.grobs, "[[", "widths"))
@@ -116,6 +116,8 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, x.lim
     this.host.statistics <- this.host.statistics[which(this.host.statistics$reads>0),]
     
     if(length(which(this.host.statistics$reads>0)) > 0){
+      plot.list <- list()
+      
       if (verbose) cat("Drawing graphs for host ",host,"\n", sep="")
       
       # The coordinates for windows missing from all patients are known. These are those missing for this patient, but not all patients.
@@ -166,6 +168,8 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, x.lim
         graph.1 <- add.no.data.rectangles(graph.1, missing.rects, log.scale, if(is.null(y.limits)) NULL else if(log.scale) log10(y.limits) else y.limits)
       }
       
+      plot.list[["reads.and.tips"]] <- graph.1
+      
       #graph 2: subgraph and clade counts
       
       this.host.statistics.temp <- melt(this.host.statistics[,c("xcoord", "id", "subgraphs", "clades")], id.vars=c("id", "xcoord"))
@@ -208,6 +212,8 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, x.lim
         graph.2 <- add.no.data.rectangles(graph.2, missing.rects, log.scale, if(is.null(y.limits)) NULL else if(log.scale) log10(y.limits) else y.limits)
       }
       
+      plot.list[["subgraphs.and.clades"]] <- graph.2
+      
       # graph 3: root-to-tip distances for all reads and largest subgraph
       
       this.host.statistics.temp <- melt(this.host.statistics[,c("xcoord","id","overall.rtt","largest.rtt")], id.vars=c("id", "xcoord"))
@@ -231,6 +237,8 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, x.lim
         graph.3 <- add.no.data.rectangles(graph.3, missing.rects)
       }
       
+      plot.list[["root.to.tip"]] <- graph.3
+      
       # graph 4: largest patristic distance in largest subgraph
       
       this.host.statistics.temp <- melt(this.host.statistics[,c("xcoord","id","global.mean.pat.distance","subgraph.mean.pat.distance")], id.vars=c("id", "xcoord"))
@@ -253,6 +261,8 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, x.lim
       if(regular.gaps & !is.null(missing.rects)){
         graph.4 <- add.no.data.rectangles(graph.4, missing.rects)
       }
+      
+      plot.list[["patristic.distance"]] <- graph.4
       
       # graph 5: read proportions in each subgraph
       
@@ -301,7 +311,9 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, x.lim
         graph.5 <- add.no.data.rectangles(graph.5, missing.rects)
       }
       
-      # graph 6: longest branch to largest patristic distance ratios
+      plot.list[["subgraph.read.proportions"]] <- graph.5
+      
+      # graph 6: recombination metric
       
       if("recombination.metric" %in% colnames(this.host.statistics)) {     
         graph.6 <- ggplot(this.host.statistics, aes(x=xcoord, y=recombination.metric))
@@ -321,36 +333,52 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, x.lim
           graph.6 <- add.no.data.rectangles(graph.6, missing.rects)
         }
         
-        all.plots <- AlignPlots(graph.1, graph.2, graph.3, graph.4, graph.5, graph.6)
+        plot.list[["recombination.metric"]] <- graph.6
+      }
+      if("solo.dual.count" %in% colnames(this.host.statistics)) {
+
+        graph.7 <- ggplot(this.host.statistics, aes(x=xcoord, y=solo.dual.count))
+        y.label <- "Number of dual infections detected"
         
-        if(i!=1){
-          grid.newpage()
+        graph.7 <- graph.7 +
+          geom_point(alpha = 0.5, na.rm=TRUE) +
+          theme_bw() + 
+          ylab(y.label) +
+          xlab(x.axis.label) +
+          scale_x_continuous(limits=x.limits) +
+          expand_limits(y=0) +
+          #      scale_color_discrete(name="Tip set", labels=c("Longest branch", "Greatest patristic distance")) + 
+          theme(text = element_text(size=7))
+
+        if(max(this.host.statistics$solo.dual.count)==1){
+          graph.7 <- graph.7 + scale_y_continuous(breaks = c(0,1))
+        } else if(max(this.host.statistics$solo.dual.count)==2){
+          graph.7 <- graph.7 + expand_limits(y=0)+ scale_y_continuous(breaks = c(0,1,2)) 
+        } else if(!log.scale) {
+          graph.7 <- graph.7 + expand_limits(y=0) + scale_y_continuous(breaks = pretty_breaks()) 
         }
         
-        pushViewport(viewport(layout = grid.layout(7, 1, heights = unit(c(0.25, rep(1,6)), "null") )))
-        grid.text(host, gp=gpar(fontsize=20), vp=viewport(layout.pos.row = 1, layout.pos.col = 1))
-        for(plot.no in 1:6){
-          plot <- all.plots[[plot.no]]
-          plot$vp = viewport(layout.pos.col = 1, layout.pos.row = plot.no + 1)
-          grid.draw(plot)
+        if(regular.gaps & !is.null(missing.rects)){
+          graph.7 <- add.no.data.rectangles(graph.7, missing.rects)
         }
         
-      } else {
-        
-        all.plots <- AlignPlots(graph.1, graph.2, graph.3, graph.4, graph.5)
-        
-        if(i!=1){
-          grid.newpage()
-        }
-        
-        pushViewport(viewport(layout = grid.layout(6, 1, heights = unit(c(0.25, rep(1,5)), "null") )))
-        grid.text(host, gp=gpar(fontsize=20), vp=viewport(layout.pos.row = 1, layout.pos.col = 1))
-        for(plot.no in 1:5){
-          plot <- all.plots[[plot.no]]
-          plot$vp = viewport(layout.pos.col = 1, layout.pos.row = plot.no + 1)
-          grid.draw(plot)
-        }
-      } 
+        plot.list[["dual.infections"]] <- graph.7
+      }
+      
+      all.plots <- do.call(AlignPlots, plot.list)
+
+      if(i!=1){
+        grid.newpage()
+      }
+      
+      pushViewport(viewport(layout = grid.layout(length(all.plots) + 1, 1, heights = unit(c(0.25, rep(1,length(all.plots))), "null") )))
+      grid.text(host, gp=gpar(fontsize=20), vp=viewport(layout.pos.row = 1, layout.pos.col = 1))
+      for(plot.no in 1:length(all.plots)){
+        plot <- all.plots[[plot.no]]
+        plot$vp = viewport(layout.pos.col = 1, layout.pos.row = plot.no + 1)
+        grid.draw(plot)
+      }
+      
     } else {
       if (verbose) cat("Skipping graphs for host ",host," as no reads are present and not blacklisted\n", sep="")
     }
