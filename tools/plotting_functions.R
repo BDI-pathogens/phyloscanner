@@ -150,7 +150,7 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, missi
       
       graph.1 <- graph.1 + geom_point(na.rm=TRUE) +
         theme_bw() + 
-        ylab("Count") +
+        ylab("Tip or read count") +
         xlab("Window centre") +
         scale_x_continuous(limits=c(ews, lwe)) +
         scale_color_discrete(name="Variable", labels=c("Tips", "Reads")) + 
@@ -184,7 +184,7 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, missi
         geom_point(aes(shape=variable, size=variable), na.rm=TRUE) +
         aes(col = variable) +
         theme_bw() + 
-        ylab("Count") +
+        ylab("Subgraph or clade count") +
         xlab("Window centre") +
         scale_x_continuous(limits=c(ews, lwe)) +
         scale_shape_manual(values=c(1,19), name="Variable", labels=c("Subgraphs", "Clades")) +  
@@ -239,7 +239,7 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, missi
         geom_point(aes(shape=variable, size=variable), na.rm=TRUE) +
         aes(col = variable) +
         theme_bw() + 
-        ylab("Mean pairwise patristic distance \n(read-weighted)") +
+        ylab("Mean pairwise patristic distance") +
         xlab("Window centre") +
         scale_x_continuous(limits=c(ews, lwe)) +
         expand_limits(y=0) + 
@@ -288,7 +288,7 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, missi
       graph.5 <- graph.5 +
         geom_bar(width=bar.width, colour="black", lty="blank") +
         theme_bw() + 
-        ylab("Proportion of reads\nin discrete subraphs") +
+        ylab("Proportion of reads\nin different subraphs") +
         xlab("Window centre") +
         scale_x_continuous(limits=c(ews, lwe)) +
         scale_fill_manual(values = getPalette(colourCount)) +
