@@ -55,8 +55,8 @@ parser.add_argument('-I', '--increment', type=int, help='''The increment between
 the start of one window and the start of the next one. The default is one tenth
 of the window width (so that, except for close to the edges of the genome,
 each position is spanned by ten different windows). A smaller increment will be
-used just for the final window in order that it finishes exactly at the desired
-end point.''')
+used just for the final window if necessary for it to finish exactly at the
+desired end point.''')
 parser.add_argument('-T', '--threads', type=int, help='''Number of threads to
 use. See the phyloscanner manual chapter 'Branch length normalisation' for an
 explanation of an alternative way of parallelising this script that is suitable
@@ -78,8 +78,7 @@ Do not include options relating to bootstraps or to the naming of files.'''
 parser.add_argument('--x-raxml', help=RaxmlHelp)
 parser.add_argument('-Q', '--quiet', action='store_true', help='''Turns off the
 small amount of information printed to the terminal (via stdout). We'll still
-print warnings and errors (via stderr), and the command you ran, for logging
-purposes.''')
+print warnings and errors (via stderr).''')
 
 args = parser.parse_args()
 
