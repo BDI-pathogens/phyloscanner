@@ -417,7 +417,13 @@ if(is.na(m.thresh)){
 }
 
 all.tree.info <- sapply(all.tree.info, function(tree.info){
-  if(verbose) cat("Processing tree for suffix ",tree.info$suffix,".\n", sep="")
+  if(verbose){
+    if(!single.file){
+      cat("Processing tree for suffix ",tree.info$suffix,"...\n", sep="")
+    } else {
+      cat("Processing tree...\n", sep="")
+    }
+  }
   
   tree <- tree.info$tree
   
@@ -427,14 +433,23 @@ all.tree.info <- sapply(all.tree.info, function(tree.info){
       window.width = tree.info$window.coords$end - tree.info$window.coords$start + 1
       one.snp <- 1/window.width
       
-      
-      
       if(minimum.bl > 0.25*one.snp){
-        if(verbose) cat("In window suffix ",tree.info$suffix," the minimum branch length is ",minimum.bl,", which is equivalent to ",minimum.bl/one.snp," SNPs. Assuming this tree has no multifurcations.\n", sep="")
+        if(verbose){
+          if(!single.file){
+            cat("In window suffix ",tree.info$suffix," the minimum branch length is ",minimum.bl,", which is equivalent to ",minimum.bl/one.snp," SNPs. Assuming this tree has no multifurcations.\n", sep="")
+          } else {
+            cat("The minimum branch length is ",minimum.bl,", which is equivalent to ",minimum.bl/one.snp," SNPs. Assuming this tree has no multifurcations.\n", sep="")
+          }
+        }
         m.thresh                      <- -1
       } else {
-        if(verbose) cat("In window suffix ",tree.info$suffix," the minimum branch length is ",minimum.bl,", which is equivalent to ",minimum.bl/one.snp," SNPs. Using this branch length as a multifurcation threshold.\n", sep="")
-        
+        if(verbose) {
+          if(!single.file){
+            cat("In window suffix ",tree.info$suffix," the minimum branch length is ",minimum.bl,", which is equivalent to ",minimum.bl/one.snp," SNPs. Using this branch length as a multifurcation threshold.\n", sep="")
+          } else {
+            cat("The minimum branch length is ",minimum.bl,", which is equivalent to ",minimum.bl/one.snp," SNPs. Using this branch length as a multifurcation threshold.\n", sep="")
+          }
+        }
         if(minimum.bl==0){
           m.thresh                    <- 1E-9
         } else {
@@ -444,7 +459,13 @@ all.tree.info <- sapply(all.tree.info, function(tree.info){
 
     } else {
       warning("Attempting to guess a branch length threshold for multifurcations from the tree. Please ensure that the tree has multifurcations before using the results of this analysis.")
-      if(verbose) cat("In window suffix ",tree.info$suffix," the minimum branch length is ",minimum.bl,". Using this as a multifurcation threshold.\n", sep="")
+      if(verbose){
+        if(!single.file){
+          cat("In window suffix ",tree.info$suffix," the minimum branch length is ",minimum.bl,". Using this as a multifurcation threshold.\n", sep="")
+        } else {
+          cat("The minimum branch length is ",minimum.bl,". Using this as a multifurcation threshold.\n", sep="")
+        }
+      } 
       if(minimum.bl==0){
         m.thresh                    <- 1E-9
       } else {
@@ -857,7 +878,11 @@ if(prune.blacklist){
 all.tree.info <- sapply(all.tree.info, function(tree.info) {
   # Do the reconstruction
   
-  if(verbose) cat("Reconstructing internal node hosts on tree suffix ",tree.info$suffix, "\n", sep="")
+  if(!single.file){
+    if(verbose) cat("Reconstructing internal node hosts on tree suffix ",tree.info$suffix, "\n", sep="")
+  } else {
+    if(verbose) cat("Reconstructing internal node hosts\n", sep="")
+  }
   
   tmp					     <- split.hosts.to.subgraphs(tree.info$tree, tree.info$blacklist, reconstruction.mode, tip.regex, sankoff.k, sankoff.p, useff, read.counts.matter, hosts, verbose)
   tree					   <- tmp[['tree']]	
@@ -1025,7 +1050,11 @@ if(!single.file){
 if(length(hosts)>1){
   all.tree.info <- sapply(all.tree.info, function(tree.info) {
     
-    if(verbose) cat("Classifying pairwise host relationships for tree suffix ",tree.info$suffix, "\n", sep="")
+    if(!single.file){
+      if(verbose) cat("Classifying pairwise host relationships for tree suffix ",tree.info$suffix, ".\n", sep="")
+    } else {
+      if(verbose) cat("Classifying pairwise host relationships.\n", sep="")
+    }
     
     tree.info$classification.results <- classify(tree.info, verbose)
     
