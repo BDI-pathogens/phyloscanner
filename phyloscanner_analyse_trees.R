@@ -422,24 +422,34 @@ all.tree.info <- sapply(all.tree.info, function(tree.info){
   tree <- tree.info$tree
   
   if(is.na(m.thresh)){
+    minimum.bl                        <- min(tree$edge.length)
     if(readable.coords){
       window.width = tree.info$window.coords$end - tree.info$window.coords$start + 1
       one.snp <- 1/window.width
       
-      minimum.bl                      <- min(tree$edge.length)
+      
       
       if(minimum.bl > 0.25*one.snp){
         if(verbose) cat("In window suffix ",tree.info$suffix," the minimum branch length is ",minimum.bl,", which is equivalent to ",minimum.bl/one.snp," SNPs. Assuming this tree has no multifurcations.\n", sep="")
         m.thresh                      <- -1
       } else {
         if(verbose) cat("In window suffix ",tree.info$suffix," the minimum branch length is ",minimum.bl,", which is equivalent to ",minimum.bl/one.snp," SNPs. Using this branch length as a multifurcation threshold.\n", sep="")
-        m.thresh                      <- minimum.bl*1.0001
+        
+        if(minimum.bl==0){
+          m.thresh                    <- 1E-9
+        } else {
+          m.thresh                    <- minimum.bl*1.0001
+        }
       }
 
     } else {
       warning("Attempting to guess a branch length threshold for multifurcations from the tree. Please ensure that the tree has multifurcations before using the results of this analysis.")
-      if(verbose) cat("In window suffix ",tree.info$suffix," the minimum branch length is ",min(tree$edge.length),". Using this as a multifurcation threshold.\n", sep="")
-      m.thresh                        <- min(tree$edge.length)*1.0001
+      if(verbose) cat("In window suffix ",tree.info$suffix," the minimum branch length is ",minimum.bl,". Using this as a multifurcation threshold.\n", sep="")
+      if(minimum.bl==0){
+        m.thresh                    <- 1E-9
+      } else {
+        m.thresh                    <- minimum.bl*1.0001
+      }
     }
   }
   
