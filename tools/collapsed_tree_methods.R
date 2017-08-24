@@ -841,6 +841,7 @@ merge.classifications <- function(all.tree.info, allow.mt = T){
   # reset names depending on which Classify script was used
   if(any('normalised.min.distance.between.subgraphs'==colnames(tt))){
     setnames(tt, 'normalised.min.distance.between.subgraphs', 'PATRISTIC_DISTANCE')
+    set(tt, NULL, 'min.distance.between.subgraphs', NULL)
   } else if(any('min.distance.between.subgraphs'==colnames(tt))){
     setnames(tt, 'min.distance.between.subgraphs', 'PATRISTIC_DISTANCE')
   }
@@ -937,8 +938,6 @@ summarise.classifications <- function(all.tree.info, min.threshold, dist.thresho
   
   setnames(tt.close, c('HOST.1','HOST.2','TYPE', 'fraction', 'trees.with.this.relationship', 'trees.with.any.relationship'), 
            c('host.1', 'host.2', 'ancestry', 'fraction', 'ancestry.tree.count', 'any.relationship.tree.count'))
-  
-  print(colnames(tt.close))
   
   setcolorder(tt.close, c('host.1', 'host.2', 'ancestry', 'ancestry.tree.count', 'both.exist', 'fraction', 'any.relationship.tree.count'))
   
