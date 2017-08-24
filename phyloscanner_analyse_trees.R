@@ -438,7 +438,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info){
 
     } else {
       warning("Attempting to guess a branch length threshold for multifurcations from the tree. Please ensure that the tree has multifurcations before using the results of this analysis.")
-      if(verbose) cat("In window suffix ",tree.info$suffix," the minimum branch length is ",minimum.bl,". Using this as a multifurcation threshold.\n", sep="")
+      if(verbose) cat("In window suffix ",tree.info$suffix," the minimum branch length is ",min(tree$edge.length),". Using this as a multifurcation threshold.\n", sep="")
       m.thresh                        <- min(tree$edge.length)*1.0001
     }
   }
