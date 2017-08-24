@@ -66,8 +66,7 @@ While multifurcations may seem to appear when the trees are viewed by eye, these
 The branches connecting the nodes within these ``multifurcations'' may all be of an extremely short but nonzero minimum length (in \R output) or actually zero length (in, e.g., PhyML output).
 Since this branching order is largely arbitrary, it is recommended that these regions of the tree be collapsed into genuine multifurcating nodes for \pat.
 A length threshold to determine pairs of nodes that should be so collapsed can be specified with \c{-m}.
-This is normally numerical, but if \c{g} is given it will be guessed from the trees itself, as 1.001 times the shortest branch length.
-Before specifying \c{g} the user should ensure that the trees genuinely do contain apparent multifurcations.
+This is normally numerical, but if \c{g} is given it will be guessed from the trees itself. If the trees have interpretable genome window coordinates, the smallest branch length will be compared to the branch length corresponding to one SNP. If the former is smaller than 0.25 times the latter, the former will be used as the threshold; if not, the tree is assumed to contain no multifurcations and no collapsing is done. If no genome window coordinates are available, the shortest branch length is simply used as the threshold. Before specifying \c{g} the user should ideally ensure that the trees genuinely do contain apparent multifurcations.
 
 \section{Tip label and file suffix regular expressions} \label{sec:regexes}
 

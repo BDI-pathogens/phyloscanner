@@ -196,6 +196,14 @@ calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, verbose = F){
     colnames(recomb.df)[colnames(recomb.df) == "Recombination.metric"] <- "recombination.metric"
     window.table <- merge(window.table, recomb.df, by="id", all=F)
   }
+  
+  # If you did dual detection, add that in
+  
+  if(!is.null(tree.info$dual.detection.splits)){
+    
+    window.table$solo.dual.count <- tree.info$dual.detection.splits$count[match(window.table$id, tree.info$dual.detection.splits$host)]
+    
+  }
 
   window.table
 }

@@ -28,8 +28,7 @@ arg_parser$add_argument("tree", action="store", help="A string that begins the f
 arg_parser$add_argument("outputString", action="store", help="A string that will be used to label all output files.")
 
 arg_parser$add_argument("-og", "--outgroupName", action="store", help="The name of the tip in the phylogeny/phylogenies to be used as outgroup (if unspecified, trees will be assumed to be already rooted).")
-arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, short branches in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. If a number, this number will be used as the threshold, with all branches strictly smaller collapsed. If 'g', it will be guessed from the branch lengths (use this only if you have checked by eye that the tree does indeed have multifurcations).")
-
+arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, short branches in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. If a number, this number will be used as the threshold, with all branches strictly smaller collapsed. If 'g', it will be guessed from the branch lengths and the width of the genomic window (if appropriate). It is recommended that trees are examined by eye to check that they do appear to have multifurcations if 'g' is used.")
 arg_parser$add_argument("-b", "--blacklist", action="store", help="A path and string that begins all the file names for pre-existing blacklist files.")
 
 # General, bland options
@@ -413,12 +412,66 @@ if(!readable.coords & !single.file){
 
 # 4. Root tree, collapse multifurcations, get host for each tip
 
+if(is.na(m.thresh)){
+  warning("Attempting to guess a branch length threshold for multifurcations from the tree. Please visually examine the tree or trees for multifurcations before using the results of this analysis.")
+}
+
 all.tree.info <- sapply(all.tree.info, function(tree.info){
-  if(verbose) cat("Processing tree for suffix ",tree.info$suffix,".\n", sep="")
+  if(verbose){
+    if(!single.file){
+      cat("Processing tree for suffix ",tree.info$suffix,"...\n", sep="")
+    } else {
+      cat("Processing tree...\n", sep="")
+    }
+  }
   
   tree <- tree.info$tree
+  
   if(is.na(m.thresh)){
-    m.thresh                          <- min(tree$edge.length*1.0001) 
+    minimum.bl                        <- min(tree$edge.length)
+    if(readable.coords){
+      window.width = tree.info$window.coords$end - tree.info$window.coords$start + 1
+      one.snp <- 1/window.width
+      
+      if(minimum.bl > 0.25*one.snp){
+        if(verbose){
+          if(!single.file){
+            cat("In window suffix ",tree.info$suffix," the minimum branch length is ",minimum.bl,", which is equivalent to ",minimum.bl/one.snp," SNPs. Assuming this tree has no multifurcations.\n", sep="")
+          } else {
+            cat("The minimum branch length is ",minimum.bl,", which is equivalent to ",minimum.bl/one.snp," SNPs. Assuming this tree has no multifurcations.\n", sep="")
+          }
+        }
+        m.thresh                      <- -1
+      } else {
+        if(verbose) {
+          if(!single.file){
+            cat("In window suffix ",tree.info$suffix," the minimum branch length is ",minimum.bl,", which is equivalent to ",minimum.bl/one.snp," SNPs. Using this branch length as a multifurcation threshold.\n", sep="")
+          } else {
+            cat("The minimum branch length is ",minimum.bl,", which is equivalent to ",minimum.bl/one.snp," SNPs. Using this branch length as a multifurcation threshold.\n", sep="")
+          }
+        }
+        if(minimum.bl==0){
+          m.thresh                    <- 1E-9
+        } else {
+          m.thresh                    <- minimum.bl*1.0001
+        }
+      }
+
+    } else {
+      warning("Attempting to guess a branch length threshold for multifurcations from the tree. Please ensure that the tree has multifurcations before using the results of this analysis.")
+      if(verbose){
+        if(!single.file){
+          cat("In window suffix ",tree.info$suffix," the minimum branch length is ",minimum.bl,". Using this as a multifurcation threshold.\n", sep="")
+        } else {
+          cat("The minimum branch length is ",minimum.bl,". Using this as a multifurcation threshold.\n", sep="")
+        }
+      } 
+      if(minimum.bl==0){
+        m.thresh                    <- 1E-9
+      } else {
+        m.thresh                    <- minimum.bl*1.0001
+      }
+    }
   }
   
   new.tree <- process.tree(tree, outgroup.name, m.thresh)
@@ -825,7 +878,11 @@ if(prune.blacklist){
 all.tree.info <- sapply(all.tree.info, function(tree.info) {
   # Do the reconstruction
   
-  if(verbose) cat("Reconstructing internal node hosts on tree suffix ",tree.info$suffix, "\n", sep="")
+  if(!single.file){
+    if(verbose) cat("Reconstructing internal node hosts on tree suffix ",tree.info$suffix, "\n", sep="")
+  } else {
+    if(verbose) cat("Reconstructing internal node hosts\n", sep="")
+  }
   
   tmp					     <- split.hosts.to.subgraphs(tree.info$tree, tree.info$blacklist, reconstruction.mode, tip.regex, sankoff.k, sankoff.p, useff, read.counts.matter, hosts, verbose)
   tree					   <- tmp[['tree']]	
@@ -993,7 +1050,11 @@ if(!single.file){
 if(length(hosts)>1){
   all.tree.info <- sapply(all.tree.info, function(tree.info) {
     
-    if(verbose) cat("Classifying pairwise host relationships for tree suffix ",tree.info$suffix, "\n", sep="")
+    if(!single.file){
+      if(verbose) cat("Classifying pairwise host relationships for tree suffix ",tree.info$suffix, ".\n", sep="")
+    } else {
+      if(verbose) cat("Classifying pairwise host relationships.\n", sep="")
+    }
     
     tree.info$classification.results <- classify(tree.info, verbose)
     

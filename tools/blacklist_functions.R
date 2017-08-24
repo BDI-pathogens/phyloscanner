@@ -179,6 +179,7 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
       
       multiplicity <- length(which(!too.small))
       
+      
       # blacklist the tips from small subgraphs
       
       if(length(which(too.small))>0){
@@ -223,7 +224,6 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
     read.count.vector <- reads
     tip.count.vector <- 1
   }
-  
   
   list(id = host, blacklist.items = blacklist.items, tip.names = tips.vector, read.counts = read.count.vector, tip.counts = tip.count.vector, dual = dual, multiplicity = multiplicity)
 }
