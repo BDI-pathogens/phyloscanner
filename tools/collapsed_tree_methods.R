@@ -615,6 +615,7 @@ classify <- function(tree.info, verbose = F) {
   if (verbose) cat("Collecting tips for each host...\n")
   
   hosts <- unique(splits$host)
+  
   hosts <- hosts[hosts!="unsampled"]
   
   all.splits <- unique(splits$subgraph)

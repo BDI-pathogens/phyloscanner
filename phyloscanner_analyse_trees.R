@@ -505,7 +505,13 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
       
       tree.info$hosts.for.tips[blacklist] <- NA 
       
-      if(verbose & length(blacklist)>0) cat(length(blacklist), " tips pre-blacklisted for tree suffix ",tree.info$suffix, "\n", sep="")
+      if(verbose & length(blacklist)>0) {
+        if(!single.file){
+          cat(length(blacklist), " tips pre-blacklisted for tree suffix ",tree.info$suffix, ".\n", sep="")
+        } else {
+          cat(length(blacklist), " tips pre-blacklisted.\n", sep="")
+        }
+      }
       
       tree.info$blacklist                 <- blacklist
     } else {
