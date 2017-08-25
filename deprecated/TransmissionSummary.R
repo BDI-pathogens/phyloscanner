@@ -162,7 +162,7 @@ if(verbose) cat("Rearranging patient pairs...\n")
 tt	<- lapply(tt, function(x){
   #x	<- tt[[1]]
   tmp	<- copy(x)
-  setnames(tmp, c('Host_1','Host_2','paths12','paths21'), c('Host_2','Host_1','paths21','paths12'))
+  setnames(tmp, c('host.1','host.2','paths12','paths21'), c('host.2','host.1','paths21','paths12'))
   set(tmp, tmp[, which(path.classification=="anc")], 'path.classification', 'TMP')
   set(tmp, tmp[, which(path.classification=="desc")], 'path.classification', 'anc')
   set(tmp, tmp[, which(path.classification=="TMP")], 'path.classification', 'desc')
@@ -170,8 +170,8 @@ tt	<- lapply(tt, function(x){
   set(tmp, tmp[, which(path.classification=="multiDesc")], 'path.classification', 'multiAnc')
   set(tmp, tmp[, which(path.classification=="TMP")], 'path.classification', 'multiDesc')
   x	<- rbind(x, tmp)
-  setkey(x, Host_1, Host_2)
-  subset(x, Host_1 < Host_2)
+  setkey(x, host.1, host.2)
+  subset(x, host.1 < host.2)
 })
 #
 # rbind consolidated files
@@ -191,7 +191,7 @@ if(any('normalised.min.distance.between.subgraphs'==colnames(tt))){
   setnames(tt, 'min.distance.between.subgraphs', 'PATRISTIC_DISTANCE')
 }
 
-setnames(tt, c('Host_1','Host_2','path.classification','paths21','paths12','nodes1','nodes2','adjacent','contiguous'), 
+setnames(tt, c('host.1','host.2','path.classification','paths21','paths12','nodes1','nodes2','adjacent','contiguous'), 
 			 c('PAT.1','PAT.2','TYPE','PATHS.21','PATHS.12','NODES.1','NODES.2','ADJACENT','CONTIGUOUS'))
 # change type name depending on allow.mt
 if(!allow.mt){
