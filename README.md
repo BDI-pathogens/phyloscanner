@@ -27,7 +27,7 @@ You can make that csv file manually if you like, but here is an example of makin
 for i in ~/phyloscanner/ExampleInputData/*.bam; do
   RefFile=${i%.bam}_ref.fasta;
   echo $i,$RefFile
-done > InputFiles.csv
+done > InputFileList.csv
 ```
 To make some within- & between-host phylogenies, run this command from the directory where your local copy of this code repostory lives (or adjusting paths appropriately if run from another directory):
 ```bash
