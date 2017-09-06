@@ -75,13 +75,32 @@ source ~/.bashrc
 ################################################################################
 # ON MAC OS:
 
-# Install RAxML from https://github.com/stamatak/standard-RAxML
-# Install MAFFT from http://mafft.cbrc.jp/alignment/software/macstandard.html
-
-# Subsequently, command-line based installation:
-
-# xcode
+# Get xcode
 xcode-select --install
+
+# RAxML can be installed in different ways from https://github.com/stamatak/standard-RAxML
+# Here follows one way to install it directly from the command line.
+# The three different 'make' commands try to compile faster versions
+# suitable for more recent processors where possible.
+git clone https://github.com/stamatak/standard-RAxML.git
+cd standard-RAxML/
+make -f Makefile.AVX.gcc; rm *.o
+make -f Makefile.SSE3.gcc; rm *.o
+make -f Makefile.gcc; rm *.o
+cd ..
+# Optionally, add RAxML to your PATH environment variable:
+echo 'PATH=$PATH:~/standard-RAxML/' >> ~/.bashrc
+source ~/.bashrc
+
+# MAFFT can be installed in different ways from http://mafft.cbrc.jp/alignment/software/linux.html
+# Here follows one way to install version 7.310 directly from the command line.
+curl http://mafft.cbrc.jp/alignment/software/mafft-7.310-without-extensions-src.tgz > mafft-7.310-without-extensions-src.tgz 
+tar -xzf mafft-7.310-without-extensions-src.tgz
+cd mafft-7.310-without-extensions/core/
+make clean
+make
+sudo make install
+cd ../..
 
 # home brew: 
 /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
