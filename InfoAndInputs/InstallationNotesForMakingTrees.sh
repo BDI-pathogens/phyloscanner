@@ -8,13 +8,14 @@
 
 # RAxML can be installed in different ways from https://github.com/stamatak/standard-RAxML
 # Here follows one way to install it directly from the command line.
-# There are alternative 'make' commands to compile versions suitable for
-# more recent processors and multiple threads; see the website above.
+# The three different 'make' commands try to compile faster versions
+# suitable for more recent processors where possible.
 sudo apt install git
 git clone https://github.com/stamatak/standard-RAxML.git
 cd standard-RAxML/
-make -f Makefile.gcc
-rm *.o
+make -f Makefile.AVX.gcc; rm *.o
+make -f Makefile.SSE3.gcc; rm *.o
+make -f Makefile.gcc; rm *.o
 cd ..
 # Optionally, add RAxML to your PATH environment variable:
 echo 'PATH=$PATH:~/standard-RAxML/' >> ~/.bashrc
