@@ -1,19 +1,22 @@
 # phyloscanner
 Analysing pathogen genetic diversity and relationships between and within hosts at once, in windows along the genome.  
-Preprint [here](http://www.biorxiv.org/content/early/2017/06/30/157768).  
 
 <p align="center"><img src="InfoAndInputs/PhyloscannerDiagram_big4.jpg" alt="Phyloscanner" width="820", height="314"/></p>
 
 phyloscanner's input is bam files: reads (fragments of nucleotide sequence) that have been mapped (aligned) to the correct part of some reference genome.
 We wrote phyloscanner to analyse bam files that each represent a pathogen population in one host, exhibiting within-host and between-host diversity; in general use each bam file should be a sample representing some subpopulation, and we analyse within- and between-sample diversity.  
 
-phyloscanner is freely available under the GNU General Public License version 3, described [here](LICENSE).  
+phyloscanner is freely available under the GNU General Public License version 3, described [here](LICENSE).
 To make phylogenies from mapped reads, phyloscanner requires [samtools](http://www.htslib.org/), [pysam](https://github.com/pysam-developers/pysam) (0.8.1 or later), [biopython](http://biopython.org/wiki/Download), [mafft](http://mafft.cbrc.jp/alignment/software/) and [RAxML](http://sco.h-its.org/exelixis/web/software/raxml/index.html); notes on installing these are [here](InfoAndInputs/InstallationNotesForMakingTrees.sh).
 To analyse these phylogenies, or your own provided as input, phyloscanner needs some R packages; notes on installing these are [here](InfoAndInputs/InstallationNotesForAnalysingTrees.sh). 
 
-The phyloscanner manual is [here](InfoAndInputs/PhyloscannerManual.pdf).  
-Problem with the code? Create a [New Issue](https://github.com/BDI-pathogens/phyloscanner/issues).  
-Query? Ask it publicly at the [google group](https://groups.google.com/forum/#!forum/phyloscanner-users).  
+Info and help:
+* The phyloscanner preprint, discussing the method and its scientific context, is [here](http://www.biorxiv.org/content/early/2017/06/30/157768).  
+* The code's manual is [here](InfoAndInputs/PhyloscannerManual.pdf).  
+* Instructions and example data for a practical on using phyloscanner are [here](https://tinyurl.com/PhyloscannerPractical).
+* Problem with the code? Create a [New Issue](https://github.com/BDI-pathogens/phyloscanner/issues).  
+* Query? Ask it publicly at the [google group](https://groups.google.com/forum/#!forum/phyloscanner-users).  
+
 If you use phyloscanner for published work, please cite it and the tools it uses, details [here](InfoAndInputs/CitationDetails.bib).  
 
 ### An Example
