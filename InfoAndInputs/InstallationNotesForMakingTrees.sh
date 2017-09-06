@@ -40,7 +40,7 @@ sudo apt-get install python-pip
 pip install --upgrade pip
 
 # biopython
-pip install biopython
+sudo pip install biopython
 # Test it works by running the command 'python' to start an interactive python
 # session, then typing 'import Bio'.
 
@@ -56,7 +56,8 @@ cd pysam/
 python setup.py build
 sudo python setup.py install
 # Test it works by running the command 'python' to start an interactive python
-# session, then typing 'import pysam'.
+# session, then typing 'import pysam'. If you get an error, try closing your terminal,
+# reopening it and trying again: bizzarely this has worked for me for one error.
 
 # Optional: the python module matplotlib. If installed, it is used by the helper
 # script tools/EstimateReadCountPerWindow.py to plot its output data.
@@ -65,6 +66,10 @@ sudo apt-get install python-matplotlib
 # session, then typing 'import matplotlib.pyplot'.
 
 # This completes the installation of the dependencies of phyloscanner_make_trees.py.
+# Of course to run phyloscanner you'll need to download the phyloscanner code.
+# If you haven't already done that, do this:
+git clone https://github.com/BDI-pathogens/phyloscanner.git
+
 # Optionally, add phyloscanner to your PATH environment variable: if you downloaded
 # the phyloscanner code directly into your home directory, that's achieved with
 echo 'PATH=$PATH:~/phyloscanner/' >> ~/.bashrc
@@ -124,7 +129,8 @@ pip install biopython
 # pysam (we need version 0.8.1 or later)
 pip install pysam --upgrade
 # Test it works by running the command 'python' to start an interactive python
-# session, then typing 'import pysam'.
+# session, then typing 'import pysam'. If you get an error, try closing your terminal,
+# reopening it and trying again: bizzarely this has worked for me for one error.
 ################################################################################
 
 # Note that the python modules below are also required, however unlike pysam and Biopython,
