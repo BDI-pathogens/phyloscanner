@@ -278,6 +278,7 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
       }
     }
     
+    
     num.fc <- 1*!finite.cost
 
     # Then traverse

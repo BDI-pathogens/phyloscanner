@@ -73,4 +73,4 @@ if(length(which(dir)>0)){
 
 input.wide$label[!dir] <- as.character(round(input.wide[!dir, "total"]/total.trees, 2))
 
-write.csv(input.wide[,c(1,2,13,14)], output.file.name, quote=F, row.names=F)
+write.csv(input.wide[,c(1,2,15,16)], output.file.name, quote=F, row.names=F)
