@@ -1,6 +1,8 @@
 # Phyloscanner's analysis of phylogenies with within- and between-host diversity, achived with the
 # phyloscanner_analyse_trees.R command, requires first of all an up-to-date installation of the R
 # language.
+# BEWARE: unfortunately, updating the R language itself can cause problems with
+# packages you have in your current R installation - they may need to be reinstalled. 
 
 ############################################################
 # INSTALLING UP-TO-DATE R ON UBUNTU
@@ -15,7 +17,9 @@ sudo sh -c 'echo "deb http://cran.rstudio.com/bin/linux/ubuntu trusty/" >> /etc/
 
 # Gather information about what needs updating:
 sudo apt-get update
-# That command may fail, and complain about a key. In that case, try adding the key thus:
+# That command may fail with an error message saying "GPG error",
+# "the public key is not available", "The repository... is not signed".
+# In that case, try adding the key thus:
 sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9
 # That may fail, for example due to firewall issues. In that case, consult the section
 # 'Secure APT' at https://cran.r-project.org/bin/linux/ubuntu/README.html.
