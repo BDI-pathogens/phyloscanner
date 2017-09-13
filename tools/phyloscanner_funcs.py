@@ -225,9 +225,9 @@ def TestRAxML(ArgString, DefaultFlags, HelpMessage):
 
   return ArgList
 
-def RunRAxML(alignment, RAxMLargList, WindowSuffix, LeftEdge, RightEdge,
-TempFilesSet, TempFileForAllBootstrappedTrees_basename, BootstrapSeed=None,
-NumBootstraps=None, TimesList=[]):
+def RunRAxML(alignment, RAxMLargList, WindowSuffix, WindowAsStr, LeftEdge,
+RightEdge, TempFilesSet, TempFileForAllBootstrappedTrees_basename,
+BootstrapSeed=None, NumBootstraps=None, TimesList=[]):
   '''Runs RAxML on aligned sequences in a window, with bootstraps if desired.
 
   Returns 1 if an ML tree was produced (regardless of whether any subsequent
@@ -244,9 +244,10 @@ NumBootstraps=None, TimesList=[]):
   out, err = proc.communicate()
   ExitStatus = proc.returncode
   if ExitStatus != 0:
-    print('Problem making the ML tree with RAxML. It returned an exit code of',
-    ExitStatus, ' and printed this to stdout:\n', out, '\nand printed this to',
-    'stderr:\n', err, '\nSkipping to the next window.', file=sys.stderr)
+    print('Problem making the ML tree with RAxML in window ', WindowAsStr,
+    '. It returned an exit code of ', ExitStatus, ', printed this to stdout:\n',
+    out, '\nand printed this to stderr:\n', err,
+    '\nSkipping to the next window.', sep='', file=sys.stderr)
     return 0
   if not os.path.isfile(MLtreeFile):
     print(MLtreeFile +', expected to be produced by RAxML, does not exist.'+\
@@ -257,7 +258,7 @@ NumBootstraps=None, TimesList=[]):
   if UpdateTimes:
     TimesList.append(time.time())
     LastStepTime = TimesList[-1] - TimesList[-2]
-    print('ML tree in window', LeftEdge, '-', RightEdge,
+    print('ML tree in window', WindowAsStr,
     'finished. Number of seconds taken: ', LastStepTime)
 
   # If desired, make bootstrapped alignments
@@ -268,8 +269,8 @@ NumBootstraps=None, TimesList=[]):
       alignment, '-n', WindowSuffix + '_bootstraps'])
       assert ExitStatus == 0
     except:
-      print('Problem generating bootstrapped alignments with RAxML',
-      '\nSkipping to the next window.', file=sys.stderr)
+      print('Problem generating bootstrapped alignments with RAxML in window ',
+      WindowAsStr, '. Skipping to the next window.', sep='', file=sys.stderr)
       return 1
     BootstrappedAlignments = [alignment+'.BS'+str(bootstrap) for \
     bootstrap in range(NumBootstraps)]
@@ -316,8 +317,9 @@ NumBootstraps=None, TimesList=[]):
        '-z', TempAllBootstrappedTreesFile, '-n', MainTreeFile])
       assert ExitStatus == 0
     except:
-      print('Problem collecting all the bootstrapped trees onto the ML tree',
-      'with RAxML. Skipping to the next window.', file=sys.stderr)
+      print('Problem in window', WindowAsStr, 'trying to collect all the',
+      'bootstrapped trees onto the ML tree with RAxML. Skipping to the next',
+      'window.', file=sys.stderr)
       return 1
     MainTreeFile = 'RAxML_bipartitions.' +MainTreeFile
     if not os.path.isfile(MainTreeFile):
@@ -329,8 +331,8 @@ NumBootstraps=None, TimesList=[]):
     if UpdateTimes:
       TimesList.append(time.time())
       LastStepTime = TimesList[-1] - TimesList[-2]
-      print('Bootstrapped trees in window', LeftEdge, '-',
-      RightEdge, 'finished. Number of seconds taken: ', LastStepTime)
+      print('Bootstrapped trees in window', WindowAsStr,
+      'finished. Number of seconds taken: ', LastStepTime)
   return 1
 
 

@@ -986,7 +986,8 @@ for i,BamFileName in enumerate(BamFiles):
     elif coord == 'NaN':
       CoordsInRefs[BamAlias][j] = RefLength
 
-def ProcessReadDict(ReadDict, WhichBam, LeftWindowEdge, RightWindowEdge):
+def ProcessReadDict(ReadDict, WhichBam, LeftWindowEdge, RightWindowEdge,
+WindowAsStr):
   '''Turns a dict of reads into a list of reads, merging & imposing a minimum
   count.'''
 
@@ -1008,8 +1009,9 @@ def ProcessReadDict(ReadDict, WhichBam, LeftWindowEdge, RightWindowEdge):
 
   # Warn if there are no reads
   if len(ReadDict) == 0 and (not ExploreWindowWidths):
-    print('Warning: bam file', BamFileBasename, 'has no reads in window',
-    str(LeftWindowEdge+1)+'-'+   str(RightWindowEdge+1), file=sys.stderr)
+    print('Warning: bam file ', BamFileBasename, ' has no reads (after ',
+    'processing) that fully span the window ', WindowAsStr, ".", sep='',
+    file=sys.stderr)
     return []
 
   # Return a list of reads named according to their count.
@@ -1200,10 +1202,10 @@ for window in range(NumCoords / 2):
   UserRightWindowEdge = UserCoords[window*2 +1]
   ThisWindowSuffix = 'InWindow_'+str(UserLeftWindowEdge)+'_to_'+\
   str(UserRightWindowEdge)
+  ThisWindowAsStr = str(UserLeftWindowEdge) + '-' + str(UserRightWindowEdge)
 
   if PrintInfo:
-    print('Now extracting and processing reads in window ', UserLeftWindowEdge,
-    '-', UserRightWindowEdge, sep='')
+    print('Now extracting and processing reads in window', ThisWindowAsStr)
 
   # Prepare some things for checking for reads appearing again the consecutive
   # overlapping windows.
@@ -1229,9 +1231,8 @@ for window in range(NumCoords / 2):
       ContaminantFile = \
       ContaminantFilesByWindow[(UserLeftWindowEdge, UserRightWindowEdge)]
     except KeyError:
-      print('Warning: no contaminant file found for window ' + \
-      str(UserLeftWindowEdge) + '-' + str(UserRightWindowEdge) +'.',
-      file=sys.stderr)
+      print('Warning: no contaminant file found for window', ThisWindowAsStr + \
+      '.', file=sys.stderr)
     else:
       for seq in SeqIO.parse(open(ContaminantFile), 'fasta'):
         if seq.id in ContaminantReadsInput:
@@ -1446,7 +1447,8 @@ for window in range(NumCoords / 2):
     # read dict for this sample now and add it to the list of all reads here.
     else:
       AllReadsInThisWindow += \
-      ProcessReadDict(UniqueReads, i, LeftWindowEdge, RightWindowEdge)
+      ProcessReadDict(UniqueReads, i, LeftWindowEdge, RightWindowEdge,
+      ThisWindowAsStr)
 
     # Write recorded read names to file if desired.
     if args.read_names_1:
@@ -1533,7 +1535,8 @@ for window in range(NumCoords / 2):
     for i, (BamFileBasename, ReadDict, LeftWindowEdge, RightWindowEdge) \
     in enumerate(AllReadDictsInThisWindow):
       AllReadsInThisWindow += \
-      ProcessReadDict(ReadDict, i, LeftWindowEdge, RightWindowEdge)
+      ProcessReadDict(ReadDict, i, LeftWindowEdge, RightWindowEdge,
+      ThisWindowAsStr)
 
   # All read dicts have now been processed into the list AllReadsInThisWindow.
 
@@ -1546,8 +1549,7 @@ for window in range(NumCoords / 2):
     else:
       print('WARNING: no bam file had any reads (after a minimum post-merging '+\
       'read count of', args.min_read_count, 'was imposed) in the window',
-      str(UserLeftWindowEdge)+'-'+str(UserRightWindowEdge)+'. Skipping to the',
-      'next window.', file=sys.stderr)
+      ThisWindowAsStr + '. Skipping to the next window.', file=sys.stderr)
     continue
 
   # Re-define the window edge coords to be with respect to the alignment of refs
@@ -1572,9 +1574,10 @@ for window in range(NumCoords / 2):
       if RegexMatch and TheReadID[:RegexMatch.start()] in BamAliases:
         TheBamWithOneRead = TheReadID[:RegexMatch.start()]
       else:
-        print('Malfunction of phylotypes: there is only one read in this',
-        'window -', TheReadID, "- but we can't figure out which bam we got it",
-        'from. Quitting.', file=sys.stderr)
+        print('Malfunction of phylotypes: there is only one read in the ',
+        'window ', ThisWindowAsStr, ', namely ', TheReadID,
+        ", but we can't figure out which bam we got it from. Quitting.", sep='',
+        file=sys.stderr)
         exit(1)
       for alias in BamAliases:
         if alias == TheBamWithOneRead:
@@ -1633,8 +1636,8 @@ for window in range(NumCoords / 2):
   if args.time:
     times.append(time.time())
     LastStepTime = times[-1] - times[-2]
-    print('Read pre-processing in window', UserLeftWindowEdge, '-',
-    UserRightWindowEdge, 'finished. Number of seconds taken: ', LastStepTime)
+    print('Read pre-processing in window', ThisWindowAsStr,
+    'finished. Number of seconds taken: ', LastStepTime)
 
   # Align the reads. Prepend 'temp_' to the file name if we'll merge again after
   # aligning.
@@ -1666,8 +1669,8 @@ for window in range(NumCoords / 2):
   if args.time:
     times.append(time.time())
     LastStepTime = times[-1] - times[-2]
-    print('Read alignment in window', UserLeftWindowEdge, '-',
-    UserRightWindowEdge, 'finished. Number of seconds taken: ', LastStepTime)
+    print('Read alignment in window', ThisWindowAsStr,
+    'finished. Number of seconds taken: ', LastStepTime)
 
   # Read in the aligned reads.
   try:
@@ -1834,13 +1837,12 @@ for window in range(NumCoords / 2):
     times.append(time.time())
     LastStepTime = times[-1] - times[-2]
     if args.check_recombination:
-      print('All read processing except the recombination calculation in window',
-            UserLeftWindowEdge, '-', UserRightWindowEdge,
-            'finished. Number of seconds taken: ', LastStepTime)
+      print('All read processing except the recombination calculation in',
+      'window', ThisWindowAsStr, 'finished. Number of seconds taken: ',
+      LastStepTime)
     else:
-      print('All read processing in window',
-            UserLeftWindowEdge, '-', UserRightWindowEdge,
-            'finished. Number of seconds taken: ', LastStepTime)
+      print('All read processing in window', ThisWindowAsStr,
+      'finished. Number of seconds taken: ', LastStepTime)
 
   # Find the read that looks most like a recombinant for each patient.
   if args.check_recombination:
@@ -1879,19 +1881,19 @@ for window in range(NumCoords / 2):
     if args.time:
       times.append(time.time())
       LastStepTime = times[-1] - times[-2]
-      print('Recombination calculation in window', UserLeftWindowEdge, '-',
-      UserRightWindowEdge, 'finished. Number of seconds taken: ', LastStepTime)
+      print('Recombination calculation in window', ThisWindowAsStr,
+      'finished. Number of seconds taken: ', LastStepTime)
 
   if args.no_trees:
     continue
 
   # Create the ML tree
   if PrintInfo:
-    print('Running RAxML on the processed & aligned reads in window ',
-    UserLeftWindowEdge, '-', UserRightWindowEdge, sep='')
+    print('Running RAxML on the processed & aligned reads in window',
+    ThisWindowAsStr)
     
   NumMLtreesMade += pf.RunRAxML(FileForTrees, RAxMLargList, ThisWindowSuffix,
-  UserLeftWindowEdge, UserRightWindowEdge, TempFiles,
+  ThisWindowAsStr, UserLeftWindowEdge, UserRightWindowEdge, TempFiles,
   TempFileForAllBootstrappedTrees_basename, args.bootstrap_seed,
   args.num_bootstraps, times)
 

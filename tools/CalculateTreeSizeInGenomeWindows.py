@@ -230,13 +230,14 @@ def GetTreeSizeFromWindow(WindowNumber):
 
   WindowSuffix = 'InWindow_'+str(ChosenSeqStart)+'_to_'+\
   str(ChosenSeqEnd)
+  WindowAsStr = str(ChosenSeqStart) + '-' + str(ChosenSeqEnd)
 
   SeqAlignmentHere = alignment[:, start:end+1]
   FileForAlnHere = FileForAlignment_basename + WindowSuffix + '.fasta'
   AlignIO.write(SeqAlignmentHere, FileForAlnHere, 'fasta')
 
   NumTreesMade = pf.RunRAxML(FileForAlnHere, RAxMLargList, WindowSuffix,
-  ChosenSeqStart, ChosenSeqEnd, TempFilesSet,
+  WindowAsStr, ChosenSeqStart, ChosenSeqEnd, TempFilesSet,
   TempFileForAllBootstrappedTrees_basename)
 
   if NumTreesMade != 1:
