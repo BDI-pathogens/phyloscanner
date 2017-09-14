@@ -51,7 +51,7 @@ In the output you'll see trees and summary information indicating that these sam
 
 Here is one of the trees from the output.
 Each patient has many sequences (reads), with one colour per patient.
-Extra reference sequences and any reads phyloscanner decides it should ignore are coloured black.
+Extra reference sequences are coloured black.
 Can you see why each of the patients merits their label?
 
 <p align="center"><img src="InfoAndInputs/ProcessedTree_MyOutput_InWindow_4000_to_4300.jpg" alt="ExampleTree" width="800", height="741"/></p>
