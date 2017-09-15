@@ -36,7 +36,7 @@ if(!is.null(args$scriptDir)){
 
 tree.file.name           <- args$treeFileName
 splits.file.name         <- args$splitsFileName
-do.collapsed             <- args$collapsedTree
+do.collapsed             <- !is.null(args$collapsedTree)
 output.root              <- args$outputFileName
 has.normalisation        <- !is.null(args$branchLengthNormalisation)
 normalisation.argument   <- args$branchLengthNormalisation
