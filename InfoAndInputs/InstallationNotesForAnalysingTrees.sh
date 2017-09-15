@@ -33,16 +33,21 @@ sudo apt-get install r-base-dev
 ???? TODO
 ############################################################
 
-# Next, install the packages needed by phyloscanner_analyse_trees.R.
+# Next, install the packages needed for phyloscanner_analyse_trees.R, by running the installation
+# script.
+# If you don't have sudo priviledges on your system (e.g. you're using a computing cluster), 
+# instead of executing the command below, try entering an interactive R session by typing 'R' at
+# the command line, then running the commands contained inside the package_install.R file one
+# by one. (R should then prompt you to install things in your home directory, where you have
+# permission.)
 sudo Rscript ~/phyloscanner/tools/package_install.R
 # If ggtree fails to install, this could be because of an out of date BiocInstaller package.
-# Removing it worked for me: entering an interactive R session by typing 'R' at the command
-# line, running the single command
+# Removing it worked for me: entering an interactive R session and running
 remove.packages("BiocInstaller")
 # exiting the R session (Ctrl+D), then rerunning
 sudo Rscript ~/phyloscanner/tools/package_install.R
 
-# Finally, ensure all installed R packages are up-to-date by entering an interactive R session
-# and running
+# Finally, ensuring all installed R packages are up-to-date can help: enter an interactive R
+# session and run
 library(rvcheck)
 update_all()
