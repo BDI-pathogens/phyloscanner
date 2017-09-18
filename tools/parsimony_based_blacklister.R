@@ -23,7 +23,7 @@ arg_parser$add_argument("-d", "--dualsOutputFile", action="store", help="A file 
 arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default="tree", help="The file extension for tree files (default .tree).")
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="csv", help="The file extension for table files (default .csv).")
 arg_parser$add_argument("-dpr", "--developmentParsimonyReconstruction", default=F, action="store_true")
-arg_parser$add_argument("-oc", "--outputSplitsCounts", help="Use this option to specify an output csv file, in which we will record read the counts found in each subgraph and exit. (No actual blacklisting is done; whatever values you specify for the rawThreshold, ratioThreshold and blacklistOutputFileName will be ignored.)")
+arg_parser$add_argument("-oc", "--outputSplitsCounts", help="Use this option to specify an output csv file, in which we will record the read counts for each subgraph and exit. (No actual blacklisting is done; whatever values you specify for the rawThreshold, ratioThreshold and blacklistOutputFileName will be ignored.)")
 arg_parser$add_argument("rawThreshold", action="store", type="double", help="Raw threshold; subgraphs with read counts less than this will be blacklisted, regardless of the count of any other subgraphs from the same host")
 arg_parser$add_argument("ratioThreshold", action="store", type="double", help="Ratio threshold; subgraphs will be blacklisted if the ratio of their tip count to that of another subgraph from the same host is less than this.")
 arg_parser$add_argument("sankoffK", action="store", type="double", help="The k parameter in the cost matrix for Sankoff reconstruction (see documentation)")
