@@ -192,37 +192,37 @@ output.trans.tree <- function(tree, assocs){
   parent.hosts <-  unlist(lapply(strsplit(parent.splits, "-SPLIT"), `[[`, 1)) 
   
   tt.table <- data.frame(unique.splits, parent.splits, hosts, parent.hosts, lengths, root.nos, stringsAsFactors = F)
-
+  
   return(tt.table)
 }
 
 prune.unsampled.tips <- function(tt.table){
-
+  
   for.output <- tt.table[,1:6]
   
   unsampled.tips <- which(grepl("unsampled",for.output$unique.splits) &
                             !(for.output$unique.splits %in% for.output$parent.splits))
-
+  
   if(length(unsampled.tips) > 0){
     for.output <- for.output[-unsampled.tips,]
   }
   #renumber
   unsampled.rows <- which(grepl("^unsampled_region",for.output$unique.splits))
-
+  
   unsampled.labels <- for.output$unique.splits[which(grepl("^unsampled_region",for.output$unique.splits))]
-
+  
   for(x in 1:length(unsampled.rows)) {
     old.label <- unsampled.labels[x]
     new.label <- paste("UnsampledRegion-SPLIT",x,sep="")
     for.output$unique.splits[unsampled.rows[x]] <- new.label
     for.output$parent.splits[which(for.output$parent.splits==old.label)] <- new.label
   } 
-
+  
   
   for.output$hosts[which(grepl("^unsampled_region",for.output$hosts))] <- "UnsampledRegion"
-
+  
   for.output$parent.hosts[which(grepl("^unsampled_region",for.output$parent.hosts))] <- "UnsampledRegion"
-
+  
   return(for.output)
 }
 
@@ -364,63 +364,67 @@ all.subgraph.distances <- function(tree, tt, splits, assocs, slow=F, total.pairs
   
   temp <- matrix(ncol = length(splits), nrow=length(splits))
   
-  for(spt.1.no in 1:length(splits)){
-    for(spt.2.no in 1:length(splits)){
-      if(spt.1.no==spt.2.no){
-        temp[spt.1.no, spt.2.no] <- 0
-      } else if(spt.1.no<spt.2.no){
-        
-        
-        spt.1 <- splits[spt.1.no]
-        spt.2 <- splits[spt.2.no]
-        
-        chain.1 <- get.tt.ancestors(tt, spt.1)
-        chain.2 <- get.tt.ancestors(tt, spt.2)
-
-        if(spt.1 %in% chain.2){
-          mrca.2 <- tt$root.nos[which(tt$unique.splits==spt.2)]
-          current.node <- mrca.2
-          length <- 0
-          while(assocs[[current.node]]!=spt.1){
-            length <- length + get.edge.length(tree, current.node)
-            current.node <- Ancestors(tree, current.node, type="parent")
-            if(is.root(tree, current.node)){
-              stop("Reached the root?")
+  if(total.pairs==0){
+    setTxtProgressBar(progress.bar, 1)
+  } else {
+    for(spt.1.no in 1:length(splits)){
+      for(spt.2.no in 1:length(splits)){
+        if(spt.1.no==spt.2.no){
+          temp[spt.1.no, spt.2.no] <- 0
+        } else if(spt.1.no<spt.2.no){
+          
+          
+          spt.1 <- splits[spt.1.no]
+          spt.2 <- splits[spt.2.no]
+          
+          chain.1 <- get.tt.ancestors(tt, spt.1)
+          chain.2 <- get.tt.ancestors(tt, spt.2)
+          
+          if(spt.1 %in% chain.2){
+            mrca.2 <- tt$root.nos[which(tt$unique.splits==spt.2)]
+            current.node <- mrca.2
+            length <- 0
+            while(assocs[[current.node]]!=spt.1){
+              length <- length + get.edge.length(tree, current.node)
+              current.node <- Ancestors(tree, current.node, type="parent")
+              if(is.root(tree, current.node)){
+                stop("Reached the root?")
+              }
             }
-          }
-          temp[spt.1.no, spt.2.no] <- length
-          
-        } else if(spt.2 %in% chain.1){
-          mrca.1 <- tt$root.nos[which(tt$unique.splits==spt.1)]
-          current.node <- mrca.1
-          length <- 0
-          while(assocs[[current.node]]!=spt.2){
-
-            length <- length + get.edge.length(tree, current.node)
-            current.node <- Ancestors(tree, current.node, type="parent")
-            if(is.root(tree, current.node)){
-              stop("Reached the root?")
+            temp[spt.1.no, spt.2.no] <- length
+            
+          } else if(spt.2 %in% chain.1){
+            mrca.1 <- tt$root.nos[which(tt$unique.splits==spt.1)]
+            current.node <- mrca.1
+            length <- 0
+            while(assocs[[current.node]]!=spt.2){
+              
+              length <- length + get.edge.length(tree, current.node)
+              current.node <- Ancestors(tree, current.node, type="parent")
+              if(is.root(tree, current.node)){
+                stop("Reached the root?")
+              }
             }
-          }
-          temp[spt.1.no, spt.2.no] <- length
-          
-        } else {
-          
-          mrca.1 <- tt$root.nos[which(tt$unique.splits==spt.1)]
-          mrca.2 <- tt$root.nos[which(tt$unique.splits==spt.2)]
-          if(!slow){
-            temp[spt.1.no, spt.2.no] <- tree.dist[mrca.1, mrca.2]
+            temp[spt.1.no, spt.2.no] <- length
+            
           } else {
-            temp[spt.1.no, spt.2.no] <- pat.dist(tree, depths, mrca.1, mrca.2)
+            
+            mrca.1 <- tt$root.nos[which(tt$unique.splits==spt.1)]
+            mrca.2 <- tt$root.nos[which(tt$unique.splits==spt.2)]
+            if(!slow){
+              temp[spt.1.no, spt.2.no] <- tree.dist[mrca.1, mrca.2]
+            } else {
+              temp[spt.1.no, spt.2.no] <- pat.dist(tree, depths, mrca.1, mrca.2)
+            }
           }
+          
+          count <- count + 1
+          
+          if(verbose){
+            setTxtProgressBar(progress.bar, count/total.pairs)
+          }
+          temp[spt.2.no, spt.1.no] <- temp[spt.1.no, spt.2.no]
         }
-        
-        count <- count + 1
-        
-        if(verbose){
-          setTxtProgressBar(progress.bar, count/total.pairs)
-        }
-        temp[spt.2.no, spt.1.no] <- temp[spt.1.no, spt.2.no]
       }
     }
   }
@@ -484,37 +488,42 @@ subgraphs.adjacent <- function(tt, splits, none.matters = F){
 # are pairs of subgraphs from two hosts not separated by any other subgraphs from either of those hosts?
 
 subgraphs.unblocked <- function(tt, splits, total.pairs, verbose = F){
+
   if (verbose) progress.bar <- txtProgressBar(width=50, style=3)
   count <- 0
   
   out <- matrix(ncol = length(splits), nrow=length(splits))
-  for(spt.1.no in 1:length(splits)){
-    for(spt.2.no in 1:length(splits)){
-      if(spt.1.no==spt.2.no){
-        out[spt.1.no, spt.2.no] <- NA
-      } else if(spt.1.no<spt.2.no){
-
-        spt.1 <- splits[spt.1.no]
-        spt.2 <- splits[spt.2.no]
-        
-        pat.1 <- strsplit(spt.1, "-SPLIT")[[1]][1]
-        pat.2 <- strsplit(spt.2, "-SPLIT")[[1]][1]
-        
-        if(spt.1 %in%  get.tt.adjacent(tt, spt.2)){
-          out[spt.1.no, spt.2.no] <- T
-          out[spt.2.no, spt.1.no] <- T
-        } else {
-          path <- get.tt.path(tt, spt.1, spt.2)
-          internal.path <- path[2:(length(path)-1)]
-          blockers <- which(grepl(paste0('^',pat.1),internal.path) | grepl(paste0('^',pat.2),internal.path))
+  if(total.pairs==0){
+    setTxtProgressBar(progress.bar, 1)
+  } else {
+    
+    for(spt.1.no in 1:length(splits)){
+      for(spt.2.no in 1:length(splits)){
+        if(spt.1.no==spt.2.no){
+          out[spt.1.no, spt.2.no] <- NA
+        } else if(spt.1.no<spt.2.no){
+          spt.1 <- splits[spt.1.no]
+          spt.2 <- splits[spt.2.no]
           
-          adj <- length(blockers) == 0
-          out[spt.1.no, spt.2.no] <- adj
-          out[spt.2.no, spt.1.no] <- adj
-        } 
-        count <- count + 1
-        if (verbose) {
-          setTxtProgressBar(progress.bar, count/total.pairs)
+          pat.1 <- strsplit(spt.1, "-SPLIT")[[1]][1]
+          pat.2 <- strsplit(spt.2, "-SPLIT")[[1]][1]
+          
+          if(spt.1 %in%  get.tt.adjacent(tt, spt.2)){
+            out[spt.1.no, spt.2.no] <- T
+            out[spt.2.no, spt.1.no] <- T
+          } else {
+            path <- get.tt.path(tt, spt.1, spt.2)
+            internal.path <- path[2:(length(path)-1)]
+            blockers <- which(grepl(paste0('^',pat.1),internal.path) | grepl(paste0('^',pat.2),internal.path))
+            
+            adj <- length(blockers) == 0
+            out[spt.1.no, spt.2.no] <- adj
+            out[spt.2.no, spt.1.no] <- adj
+          } 
+          count <- count + 1
+          if (verbose) {
+            setTxtProgressBar(progress.bar, count/total.pairs)
+          }
         }
       }
     }
@@ -568,7 +577,7 @@ check.tt.node.adjacency <- function(tt, label1, label2, allow.unsampled = F){
   
   #START TEMPORARY BIT - if the middle node is the region around the root this adjacency is not interesting
   
-  if(substr(path[2], 1, 16) == "unsampled_region" & get.tt.parent(path[2])=="root"){
+  if(substr(path[2], 1, 16) == "unsampled_region" & get.tt.parent(tt, path[2])=="root"){
     return(F)
   }
   
@@ -580,9 +589,9 @@ check.tt.node.adjacency <- function(tt, label1, label2, allow.unsampled = F){
 }
 
 classify <- function(tree.info, verbose = F) {	
-
+  
   if(is.null(tree.info[["tree"]])){
-
+    
     if (verbose) cat("Reading tree file ", tree.info$tree.file.name, "...\n", sep = "")
     
     pseudo.beast.import <- read.beast(tree.info$tree.file.name)
@@ -612,7 +621,7 @@ classify <- function(tree.info, verbose = F) {
                               stringsAsFactors = F)
   }
   
-
+  
   if(is.null(tree.info$splits.table)){
     if (verbose) cat("Reading splits file", tree.info$splits.file.name, "...\n")
     
@@ -677,82 +686,87 @@ classify <- function(tree.info, verbose = F) {
   dir.21.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
   min.distance.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
   
-  for(pat.1 in seq(1, length(hosts.included))){
-    for(pat.2 in  seq(1, length(hosts.included))){
-      if (pat.1 < pat.2) {
-        
-        count <- count + 1
-        
-        pat.1.id <- hosts.included[pat.1]
-        pat.2.id <- hosts.included[pat.2]
-        
-        nodes.1 <- splits.for.hosts[[pat.1.id]]
-        nodes.2 <- splits.for.hosts[[pat.2.id]]
-        
-        all.nodes <-  c(nodes.1, nodes.2)
-        
-        adjacency.matrix[pat.1, pat.2] <- check.adjacency(tt, c(pat.1.id, pat.2.id), splits.for.hosts)		
-        contiguity.matrix[pat.1, pat.2] <- check.contiguous(tt, c(pat.1.id, pat.2.id), splits.for.hosts, hosts.for.splits)		
-        
-
-        count.12 <- 0
-        count.21 <- 0
-        
-        for(node.2 in nodes.2){
-          ancestors <- get.tt.ancestors(tt, node.2)
-          if(length(intersect(ancestors, nodes.1)) > 0){
-            count.12 <- count.12 + 1
-          }
-        }
-        
-        for(node.1 in nodes.1){
-          ancestors <- get.tt.ancestors(tt, node.1)
-          if(length(intersect(ancestors, nodes.2)) > 0){
-            count.21 <- count.21 + 1
-          }
-        }
-        
-        prop.12 <- count.12/length(nodes.2)
-        prop.21 <- count.21/length(nodes.1)
-        
-        nodes.1.matrix[pat.1, pat.2] <- length(nodes.1)
-        nodes.2.matrix[pat.1, pat.2] <- length(nodes.2)
-        
-        dir.12.matrix[pat.1, pat.2] <- count.12
-        dir.21.matrix[pat.1, pat.2] <- count.21
-        
-        if(count.12 == 0 & count.21 == 0){
-          path.matrix[pat.1, pat.2] <- "none"
-        } else if(count.12 != 0 & count.21 == 0 & prop.12 == 1) {
-          if(count.12 == 1){
-            path.matrix[pat.1, pat.2] <- "anc"
-          } else {
-            path.matrix[pat.1, pat.2] <- "multiAnc"
-          }
-        } else if(count.21 != 0 & count.12 == 0 & prop.21 == 1) {
-          if(count.21 == 1){
-            path.matrix[pat.1, pat.2] <- "desc"
-          } else {
-            path.matrix[pat.1, pat.2] <- "multiDesc"
-          }
-        } else {
-          path.matrix[pat.1, pat.2] <- "complex"
-        }
-        
-        pairwise.distances <- vector()
-        
-        for(node.1 in nodes.1){
+  if(total.pairs==0){
+    setTxtProgressBar(progress.bar, 1)
+  } else {
+    
+    for(pat.1 in seq(1, length(hosts.included))){
+      for(pat.2 in  seq(1, length(hosts.included))){
+        if (pat.1 < pat.2) {
+          
+          count <- count + 1
+          
+          pat.1.id <- hosts.included[pat.1]
+          pat.2.id <- hosts.included[pat.2]
+          
+          nodes.1 <- splits.for.hosts[[pat.1.id]]
+          nodes.2 <- splits.for.hosts[[pat.2.id]]
+          
+          all.nodes <-  c(nodes.1, nodes.2)
+          
+          adjacency.matrix[pat.1, pat.2] <- check.adjacency(tt, c(pat.1.id, pat.2.id), splits.for.hosts)		
+          contiguity.matrix[pat.1, pat.2] <- check.contiguous(tt, c(pat.1.id, pat.2.id), splits.for.hosts, hosts.for.splits)		
+          
+          
+          count.12 <- 0
+          count.21 <- 0
+          
           for(node.2 in nodes.2){
-            if(collapsed.adjacent[node.1, node.2]){
-              pairwise.distances <- c(pairwise.distances, split.distances[node.1, node.2])
+            ancestors <- get.tt.ancestors(tt, node.2)
+            if(length(intersect(ancestors, nodes.1)) > 0){
+              count.12 <- count.12 + 1
             }
           }
-        }
-        
-        min.distance.matrix[pat.1, pat.2] <- min(pairwise.distances)
-        
-        if (verbose) {
-          setTxtProgressBar(progress.bar, count/total.pairs)
+          
+          for(node.1 in nodes.1){
+            ancestors <- get.tt.ancestors(tt, node.1)
+            if(length(intersect(ancestors, nodes.2)) > 0){
+              count.21 <- count.21 + 1
+            }
+          }
+          
+          prop.12 <- count.12/length(nodes.2)
+          prop.21 <- count.21/length(nodes.1)
+          
+          nodes.1.matrix[pat.1, pat.2] <- length(nodes.1)
+          nodes.2.matrix[pat.1, pat.2] <- length(nodes.2)
+          
+          dir.12.matrix[pat.1, pat.2] <- count.12
+          dir.21.matrix[pat.1, pat.2] <- count.21
+          
+          if(count.12 == 0 & count.21 == 0){
+            path.matrix[pat.1, pat.2] <- "none"
+          } else if(count.12 != 0 & count.21 == 0 & prop.12 == 1) {
+            if(count.12 == 1){
+              path.matrix[pat.1, pat.2] <- "anc"
+            } else {
+              path.matrix[pat.1, pat.2] <- "multiAnc"
+            }
+          } else if(count.21 != 0 & count.12 == 0 & prop.21 == 1) {
+            if(count.21 == 1){
+              path.matrix[pat.1, pat.2] <- "desc"
+            } else {
+              path.matrix[pat.1, pat.2] <- "multiDesc"
+            }
+          } else {
+            path.matrix[pat.1, pat.2] <- "complex"
+          }
+          
+          pairwise.distances <- vector()
+          
+          for(node.1 in nodes.1){
+            for(node.2 in nodes.2){
+              if(collapsed.adjacent[node.1, node.2]){
+                pairwise.distances <- c(pairwise.distances, split.distances[node.1, node.2])
+              }
+            }
+          }
+          
+          min.distance.matrix[pat.1, pat.2] <- min(pairwise.distances)
+          
+          if (verbose) {
+            setTxtProgressBar(progress.bar, count/total.pairs)
+          }
         }
       }
     }
@@ -914,11 +928,11 @@ summarise.classifications <- function(all.tree.info, min.threshold, dist.thresho
   # How many windows have ADJACENT and PATRISTIC_DISTANCE below the threshold?
   any.counts  <- tt.close[, list(trees.with.any.relationship=length(SUFFIX)), by=c('HOST.1','HOST.2')]
   # How many windows have a relationship other than "none", ADJACENT and PATRISTIC_DISTANCE below the threshold?
-#  ns.counts  <- tt.close[, list(trees.with.any.ancestral.relationship=length(which(NOT.SIBLINGS))), by=c('HOST.1','HOST.2')]
+  #  ns.counts  <- tt.close[, list(trees.with.any.ancestral.relationship=length(which(NOT.SIBLINGS))), by=c('HOST.1','HOST.2')]
   
   tt.close		<- merge(tt.close, type.counts, by=c('HOST.1','HOST.2','TYPE'))
   tt.close		<- merge(tt.close, any.counts, by=c('HOST.1','HOST.2'))
-#  tt.close		<- merge(tt.close, ns.counts, by=c('HOST.1','HOST.2'))
+  #  tt.close		<- merge(tt.close, ns.counts, by=c('HOST.1','HOST.2'))
   
   tt.close[, fraction:=paste(trees.with.this.relationship,'/',both.exist,sep='')]
   
