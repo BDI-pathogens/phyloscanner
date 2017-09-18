@@ -258,7 +258,7 @@ def GetTreeSizeFromWindow(WindowNumber):
   try:
     assert TreeSizeCodeExitStatus == 0
     TreeSize = float(out)
-  except AssertionError, ValueError:
+  except (AssertionError, ValueError):
     print('Problem calculating the size of the tree', MLtreeFile, 'using',
     TreeSizeCode + ':', err + '\nQuitting.', file=sys.stderr)
     raise

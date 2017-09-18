@@ -55,7 +55,7 @@ with open(args.CsvFile) as f:
       WindowStart = int(fields[0])
       WindowEnd   = int(fields[1])
       assert WindowEnd > WindowStart
-    except ValueError, AssertionError:
+    except (ValueError, AssertionError):
       print('Error on line ', LineNumMin1 + 1, ': the first field should be ',
       'the window start, the second the window end. These should be integers, ',
       'with the latter greater than the former. Quitting.', sep='',
