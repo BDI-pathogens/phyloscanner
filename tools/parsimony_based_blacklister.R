@@ -23,6 +23,7 @@ arg_parser$add_argument("-d", "--dualsOutputFile", action="store", help="A file 
 arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default="tree", help="The file extension for tree files (default .tree).")
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="csv", help="The file extension for table files (default .csv).")
 arg_parser$add_argument("-dpr", "--developmentParsimonyReconstruction", default=F, action="store_true")
+arg_parser$add_argument("-oc", "--outputSplitsCounts", help="Use this option to specify an output csv file, in which we will record read the counts found in each subgraph and exit. (No actual blacklisting is done; whatever values you specify for the rawThreshold, ratioThreshold and blacklistOutputFileName will be ignored.)")
 arg_parser$add_argument("rawThreshold", action="store", type="double", help="Raw threshold; subgraphs with read counts less than this will be blacklisted, regardless of the count of any other subgraphs from the same host")
 arg_parser$add_argument("ratioThreshold", action="store", type="double", help="Ratio threshold; subgraphs will be blacklisted if the ratio of their tip count to that of another subgraph from the same host is less than this.")
 arg_parser$add_argument("sankoffK", action="store", type="double", help="The k parameter in the cost matrix for Sankoff reconstruction (see documentation)")
@@ -60,6 +61,7 @@ verbose                <- args$verbose
 normalisation.argument <- args$branchLengthNormalisation
 tree.fe                <- args$treeFileExtension
 csv.fe                 <- args$csvFileExtension
+just.report.counts     <- !is.null(args$outputSplitsCounts)
 
 has.normalisation      <- !is.null(normalisation.argument)
 
@@ -95,7 +97,8 @@ if(is.null(root.name)){
 
 all.tree.info <- list()
 
-if(file.exists(input.name)){
+input.was.one.tree <- file.exists(input.name)
+if(input.was.one.tree){
   
   # single mode
   
@@ -127,6 +130,8 @@ if(file.exists(input.name)){
   }
   
   all.tree.info[[input.name]] <- tree.info
+
+  tree.input.names <- c(input.name)
   
 } else {
   
@@ -190,6 +195,11 @@ if(file.exists(input.name)){
 
 }
 
+# Initialise a named list, with the names being the tree files, and NULL
+# values. We'll populate each element of this list with the subgraph counts
+# for each host present in that tree.
+host.subgraph.counts.by.tree <- sapply(tree.input.names, function(x) NULL)
+
 for(tree.info in all.tree.info){
   
   if (verbose) cat(paste("Reading tree (",tree.info$tree.input,")...\n",sep=""))
@@ -207,6 +217,10 @@ for(tree.info in all.tree.info){
   tree <- unroot(tree)
   
   if(!is.null(root.name)){
+    if (! root.name %in% tree$tip.label) {
+      stop(paste0("The specified root, ", root.name, ", is not in ",
+      tree.info$tree.input, ". Quitting."))
+    }
     outgroup.no <- which(tree$tip.label==root.name)
     tree <- root(tree, outgroup = outgroup.no, resolve.root = T)
   }
@@ -251,7 +265,14 @@ for(tree.info in all.tree.info){
   
   tree <- process.tree(tree, root.name, m.thresh)
   
-  results <- lapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, root.name, raw.threshold, ratio.threshold, sankoff.method, sankoff.k, sankoff.p, !is.null(tree.info$duals.output), no.read.counts, verbose))
+  results <- lapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, root.name, raw.threshold, ratio.threshold, sankoff.method, sankoff.k, sankoff.p, !is.null(tree.info$duals.output), no.read.counts, verbose, just.report.counts))
+
+  if (just.report.counts) {
+    names(results) <- hosts
+    results <- lapply(results, function(x) paste(x, collapse=' '))
+    host.subgraph.counts.by.tree[[tree.info$tree.input]] <- results
+    next
+  }
 
   if (verbose) cat("Finished\n")
   
@@ -280,4 +301,19 @@ for(tree.info in all.tree.info){
       file.create(tree.info$duals.output)
     }
   }
+}
+
+if (just.report.counts) {
+
+  # host.subgraph.counts.by.tree is a named list of named lists; turn this into
+  # a table, filling missing values (i.e. windows in which some hosts were
+  # missing) with NAs.
+  # Set the 1,1 element of this table as "host name": inappropriate at the
+  # moment, but it's what we want when we transpose the table in a moment.
+  table <- data.table::rbindlist(host.subgraph.counts.by.tree, use.names=TRUE,
+  fill=TRUE, idcol="host name")
+  if (!input.was.one.tree) {table[["host name"]] <- suffixes}
+  table[["host name"]] <- paste("subgraph counts in", table[["host name"]])
+  write.table(t(table), args$outputSplitsCounts, row.names=TRUE,
+  col.names=FALSE, sep=",")
 }

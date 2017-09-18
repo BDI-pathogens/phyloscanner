@@ -65,7 +65,7 @@ blacklist.exact.duplicates <- function(tree.info, raw.threshold, ratio.threshold
 
 # Strip the tree down to just reads from one host and an outgroup. Do a parsimony reconstruction on that tree and return the subgraphs.
 
-get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold, ratio.threshold, sankoff.method = "s", sankoff.k, sankoff.p = 0, check.duals, no.read.counts = T, verbose=F){
+get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold, ratio.threshold, sankoff.method = "s", sankoff.k, sankoff.p = 0, check.duals, no.read.counts = T, verbose=F, just.report.counts=F){
   if (verbose) cat("Identifying splits for host ", host, "\n", sep="")
   
   blacklist.items <- vector()
@@ -133,6 +133,9 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
     }
     
     total.reads <- sum(reads.per.tip[!is.na(reads.per.tip)])
+
+    counts.per.split <- sapply(host.split.ids, function(x) sum(reads.per.tip[tips.for.splits[[x]]]), USE.NAMES=FALSE)
+    if (just.report.counts) {return(counts.per.split)}
     
     if(length(host.split.ids)==1){
       
@@ -164,7 +167,7 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
       tips.vector <- vector()
       read.count.vector <- vector()
       tip.count.vector <- vector()
-      
+
       too.small <- sapply(host.split.ids, function(x) check.read.count.for.split(x, tips.for.splits, raw.threshold, ratio.threshold, reads.per.tip, total.reads))
       
       if(length(which(!too.small))>1 & check.duals){
@@ -224,6 +227,8 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
     read.count.vector <- reads
     tip.count.vector <- 1
   }
+
+  if (just.report.counts) {return(c(reads))}
   
   list(id = host, blacklist.items = blacklist.items, tip.names = tips.vector, read.counts = read.count.vector, tip.counts = tip.count.vector, dual = dual, multiplicity = multiplicity)
 }
