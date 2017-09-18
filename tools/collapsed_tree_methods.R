@@ -566,7 +566,16 @@ check.tt.node.adjacency <- function(tt, label1, label2, allow.unsampled = F){
     return(F)
   }
   
-  return(substr(path[2], 1, 16) =="unsampled_region")
+  #START TEMPORARY BIT - if the middle node is the region around the root this adjacency is not interesting
+  
+  if(substr(path[2], 1, 16) == "unsampled_region" & get.tt.parent(path[2])=="root"){
+    return(F)
+  }
+  
+  #END TEMPORARY BIT
+  
+  
+  return(substr(path[2], 1, 16) == "unsampled_region")
   
 }
 
@@ -685,6 +694,7 @@ classify <- function(tree.info, verbose = F) {
         adjacency.matrix[pat.1, pat.2] <- check.adjacency(tt, c(pat.1.id, pat.2.id), splits.for.hosts)		
         contiguity.matrix[pat.1, pat.2] <- check.contiguous(tt, c(pat.1.id, pat.2.id), splits.for.hosts, hosts.for.splits)		
         
+
         count.12 <- 0
         count.21 <- 0
         

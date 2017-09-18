@@ -1,6 +1,5 @@
 # phyloscanner
 Analysing pathogen genetic diversity and relationships between and within hosts at once, in windows along the genome.  
-Preprint [here](http://www.biorxiv.org/content/early/2017/06/30/157768).  
 
 <p align="center"><img src="InfoAndInputs/PhyloscannerDiagram_big4.jpg" alt="Phyloscanner" width="820", height="314"/></p>
 
@@ -8,12 +7,18 @@ phyloscanner's input is bam files: reads (fragments of nucleotide sequence) that
 We wrote phyloscanner to analyse bam files that each represent a pathogen population in one host, exhibiting within-host and between-host diversity; in general use each bam file should be a sample representing some subpopulation, and we analyse within- and between-sample diversity.  
 
 phyloscanner is freely available under the GNU General Public License version 3, described [here](LICENSE).  
+phyloscanner runs natively on Linux and Mac OS, but not Windows.
+However on any operating system (including Windows), if you have [VirtualBox](https://www.virtualbox.org/wiki/Downloads) installed, you can run [this](https://drive.google.com/open?id=0BwygWUC73hnxVkpVck5GNDVISms) image of Linux Ubuntu 16.04 which contains phyloscanner v1.1.2.  
 To make phylogenies from mapped reads, phyloscanner requires [samtools](http://www.htslib.org/), [pysam](https://github.com/pysam-developers/pysam) (0.8.1 or later), [biopython](http://biopython.org/wiki/Download), [mafft](http://mafft.cbrc.jp/alignment/software/) and [RAxML](http://sco.h-its.org/exelixis/web/software/raxml/index.html); notes on installing these are [here](InfoAndInputs/InstallationNotesForMakingTrees.sh).
 To analyse these phylogenies, or your own provided as input, phyloscanner needs some R packages; notes on installing these are [here](InfoAndInputs/InstallationNotesForAnalysingTrees.sh). 
 
-The phyloscanner manual is [here](InfoAndInputs/PhyloscannerManual.pdf).  
-Problem with the code? Create a [New Issue](https://github.com/BDI-pathogens/phyloscanner/issues).  
-Query? Ask it publicly at the [google group](https://groups.google.com/forum/#!forum/phyloscanner-users).  
+Info and help:
+* The phyloscanner preprint, discussing the method and its scientific context, is [here](http://www.biorxiv.org/content/early/2017/06/30/157768).  
+* The code's manual is [here](InfoAndInputs/PhyloscannerManual.pdf).  
+* Instructions and example data for a practical on using phyloscanner are [here](https://tinyurl.com/PhyloscannerPractical).
+* Problem with the code? Create a [New Issue](https://github.com/BDI-pathogens/phyloscanner/issues).  
+* Query? Ask it publicly at the [google group](https://groups.google.com/forum/#!forum/phyloscanner-users).  
+
 If you use phyloscanner for published work, please cite it and the tools it uses, details [here](InfoAndInputs/CitationDetails.bib).  
 
 ### An Example
@@ -46,7 +51,7 @@ In the output you'll see trees and summary information indicating that these sam
 
 Here is one of the trees from the output.
 Each patient has many sequences (reads), with one colour per patient.
-Extra reference sequences and any reads phyloscanner decides it should ignore are coloured black.
+Extra reference sequences are coloured black.
 Can you see why each of the patients merits their label?
 
 <p align="center"><img src="InfoAndInputs/ProcessedTree_MyOutput_InWindow_4000_to_4300.jpg" alt="ExampleTree" width="800", height="741"/></p>

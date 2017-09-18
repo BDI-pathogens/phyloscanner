@@ -1,5 +1,4 @@
 
-
 # Get the tip number of this label
 
 get.tip.no <- function(tree, name) {

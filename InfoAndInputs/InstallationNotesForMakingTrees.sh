@@ -8,13 +8,14 @@
 
 # RAxML can be installed in different ways from https://github.com/stamatak/standard-RAxML
 # Here follows one way to install it directly from the command line.
-# There are alternative 'make' commands to compile versions suitable for
-# more recent processors and multiple threads; see the website above.
+# The three different 'make' commands try to compile faster versions
+# suitable for more recent processors where possible.
 sudo apt install git
 git clone https://github.com/stamatak/standard-RAxML.git
 cd standard-RAxML/
-make -f Makefile.gcc
-rm *.o
+make -f Makefile.AVX.gcc; rm *.o
+make -f Makefile.SSE3.gcc; rm *.o
+make -f Makefile.gcc; rm *.o
 cd ..
 # Optionally, add RAxML to your PATH environment variable:
 echo 'PATH=$PATH:~/standard-RAxML/' >> ~/.bashrc
@@ -39,7 +40,7 @@ sudo apt-get install python-pip
 pip install --upgrade pip
 
 # biopython
-pip install biopython
+sudo pip install biopython
 # Test it works by running the command 'python' to start an interactive python
 # session, then typing 'import Bio'.
 
@@ -55,7 +56,8 @@ cd pysam/
 python setup.py build
 sudo python setup.py install
 # Test it works by running the command 'python' to start an interactive python
-# session, then typing 'import pysam'.
+# session, then typing 'import pysam'. If you get an error, try closing your terminal,
+# reopening it and trying again: bizzarely this has worked for me for one error.
 
 # Optional: the python module matplotlib. If installed, it is used by the helper
 # script tools/EstimateReadCountPerWindow.py to plot its output data.
@@ -64,6 +66,10 @@ sudo apt-get install python-matplotlib
 # session, then typing 'import matplotlib.pyplot'.
 
 # This completes the installation of the dependencies of phyloscanner_make_trees.py.
+# Of course to run phyloscanner you'll need to download the phyloscanner code.
+# If you haven't already done that, do this:
+git clone https://github.com/BDI-pathogens/phyloscanner.git
+
 # Optionally, add phyloscanner to your PATH environment variable: if you downloaded
 # the phyloscanner code directly into your home directory, that's achieved with
 echo 'PATH=$PATH:~/phyloscanner/' >> ~/.bashrc
@@ -74,13 +80,32 @@ source ~/.bashrc
 ################################################################################
 # ON MAC OS:
 
-# Install RAxML from https://github.com/stamatak/standard-RAxML
-# Install MAFFT from http://mafft.cbrc.jp/alignment/software/macstandard.html
-
-# Subsequently, command-line based installation:
-
-# xcode
+# Get xcode
 xcode-select --install
+
+# RAxML can be installed in different ways from https://github.com/stamatak/standard-RAxML
+# Here follows one way to install it directly from the command line.
+# The three different 'make' commands try to compile faster versions
+# suitable for more recent processors where possible.
+git clone https://github.com/stamatak/standard-RAxML.git
+cd standard-RAxML/
+make -f Makefile.AVX.gcc; rm *.o
+make -f Makefile.SSE3.gcc; rm *.o
+make -f Makefile.gcc; rm *.o
+cd ..
+# Optionally, add RAxML to your PATH environment variable:
+echo 'PATH=$PATH:~/standard-RAxML/' >> ~/.bashrc
+source ~/.bashrc
+
+# MAFFT can be installed in different ways from http://mafft.cbrc.jp/alignment/software/linux.html
+# Here follows one way to install version 7.310 directly from the command line.
+curl http://mafft.cbrc.jp/alignment/software/mafft-7.310-without-extensions-src.tgz > mafft-7.310-without-extensions-src.tgz 
+tar -xzf mafft-7.310-without-extensions-src.tgz
+cd mafft-7.310-without-extensions/core/
+make clean
+make
+sudo make install
+cd ../..
 
 # home brew: 
 /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
@@ -104,7 +129,8 @@ pip install biopython
 # pysam (we need version 0.8.1 or later)
 pip install pysam --upgrade
 # Test it works by running the command 'python' to start an interactive python
-# session, then typing 'import pysam'.
+# session, then typing 'import pysam'. If you get an error, try closing your terminal,
+# reopening it and trying again: bizzarely this has worked for me for one error.
 ################################################################################
 
 # Note that the python modules below are also required, however unlike pysam and Biopython,

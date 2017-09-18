@@ -1,6 +1,8 @@
 # Phyloscanner's analysis of phylogenies with within- and between-host diversity, achived with the
 # phyloscanner_analyse_trees.R command, requires first of all an up-to-date installation of the R
 # language.
+# BEWARE: unfortunately, updating the R language itself can cause problems with
+# packages you have in your current R installation - they may need to be reinstalled. 
 
 ############################################################
 # INSTALLING UP-TO-DATE R ON UBUNTU
@@ -15,7 +17,9 @@ sudo sh -c 'echo "deb http://cran.rstudio.com/bin/linux/ubuntu trusty/" >> /etc/
 
 # Gather information about what needs updating:
 sudo apt-get update
-# That command may fail, and complain about a key. In that case, try adding the key thus:
+# That command may fail with an error message saying "GPG error",
+# "the public key is not available", "The repository... is not signed".
+# In that case, try adding the key thus:
 sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9
 # That may fail, for example due to firewall issues. In that case, consult the section
 # 'Secure APT' at https://cran.r-project.org/bin/linux/ubuntu/README.html.
@@ -29,16 +33,21 @@ sudo apt-get install r-base-dev
 ???? TODO
 ############################################################
 
-# Next, install the packages needed by phyloscanner_analyse_trees.R.
+# Next, install the packages needed for phyloscanner_analyse_trees.R, by running the installation
+# script.
+# If you don't have sudo priviledges on your system (e.g. you're using a computing cluster), 
+# instead of executing the command below, try entering an interactive R session by typing 'R' at
+# the command line, then running the commands contained inside the package_install.R file one
+# by one. (R should then prompt you to install things in your home directory, where you have
+# permission.)
 sudo Rscript ~/phyloscanner/tools/package_install.R
 # If ggtree fails to install, this could be because of an out of date BiocInstaller package.
-# Removing it worked for me: entering an interactive R session by typing 'R' at the command
-# line, running the single command
+# Removing it worked for me: entering an interactive R session and running
 remove.packages("BiocInstaller")
 # exiting the R session (Ctrl+D), then rerunning
 sudo Rscript ~/phyloscanner/tools/package_install.R
 
-# Finally, ensure all installed R packages are up-to-date by entering an interactive R session
-# and running
+# Finally, ensuring all installed R packages are up-to-date can help: enter an interactive R
+# session and run
 library(rvcheck)
 update_all()

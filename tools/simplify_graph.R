@@ -52,15 +52,30 @@ input.wide <- reshape(input, direction="w", idvar=c("host.1", "host.2"), timevar
 input.wide[is.na(input.wide)] <- 0
 
 input.wide$total.equiv <- input.wide$ancestry.tree.count.none + input.wide$ancestry.tree.count.complex
-input.wide$total.12 <- input.wide$ancestry.tree.count.trans12
+
+if("ancestry.tree.count.trans12" %in% colnames(input.wide)){
+  input.wide$total.12 <- input.wide$ancestry.tree.count.trans12
+} else {
+  input.wide$total.12 <- rep(0, nrow(input.wide))
+}
+   
 if(!is.null(input.wide$ancestry.tree.count.multi_trans12)){
   input.wide$total.12 <- input.wide$total.12 + input.wide$ancestry.tree.count.multi_trans12
 }
-input.wide$total.21 <- input.wide$ancestry.tree.count.trans21
-if(!is.null(input.wide$ancestry.tree.count.multi_trans21)){
-  input.wide$total.21 <- input.wide$total.21+ input.wide$ancestry.tree.count.multi_trans21
+
+
+if("ancestry.tree.count.trans21" %in% colnames(input.wide)){
+  input.wide$total.21 <- input.wide$ancestry.tree.count.trans21
+} else {
+  input.wide$total.21 <- rep(0, nrow(input.wide))
 }
+
+if(!is.null(input.wide$ancestry.tree.count.multi_trans21)){
+  input.wide$total.21 <- input.wide$total.21 + input.wide$ancestry.tree.count.multi_trans21
+}
+
 input.wide$total <- input.wide$total.21 + input.wide$total.12 + input.wide$total.equiv
+
 
 dir <- input.wide$total.12 >= direction.threshold*total.trees | input.wide$total.21 >= direction.threshold*total.trees
 
@@ -73,4 +88,4 @@ if(length(which(dir)>0)){
 
 input.wide$label[!dir] <- as.character(round(input.wide[!dir, "total"]/total.trees, 2))
 
-write.csv(input.wide[,c(1,2,13,14)], output.file.name, quote=F, row.names=F)
+write.csv(input.wide[,c("host.1","host.2","arrow","label")], output.file.name, quote=F, row.names=F)

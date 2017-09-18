@@ -14,7 +14,7 @@ suppressMessages(library(ggtree, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(kimisc, quietly=TRUE, warn.conflicts=FALSE))
 
 arg_parser = ArgumentParser(description="Classify relationships between study subjects based on their relative positions in the phylogeny")
-arg_parser$add_argument("-c", "--collapsedTree", action="store_true", default=T, help="If present, the collapsed tree (in which all adjacent nodes with the same assignment are collapsed to one) is output as a CSV file or files.")
+arg_parser$add_argument("-c", "--collapsedTree", action="store_true", help="If present, the collapsed tree (in which all adjacent nodes with the same assignment are collapsed to one) is output as a CSV file or files.")
 arg_parser$add_argument("-n", "--branchLengthNormalisation", action="store", help="If present and a number, a normalising constant for all branch lengths in the tree or trees. If present and a file, the path to a .csv file with two columns: tree file name and normalising constant")
 arg_parser$add_argument("treeFileName", action="store", help="Tree file name. Alternatively, a base name that identifies a group of tree file names. Tree files are assumed to end in '.tree'. This must be the 'processed' tree produced by SplitTreesToSubtrees.R.")
 arg_parser$add_argument("splitsFileName", action="store", help="Splits file name. Alternatively, a base name that identifies a group of split file.")
