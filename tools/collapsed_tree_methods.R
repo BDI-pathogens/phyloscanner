@@ -364,7 +364,7 @@ all.subgraph.distances <- function(tree, tt, splits, assocs, slow=F, total.pairs
   
   temp <- matrix(ncol = length(splits), nrow=length(splits))
   
-  if(total.pairs==0){
+  if(total.pairs==0 & verbose){
     setTxtProgressBar(progress.bar, 1)
   } else {
     for(spt.1.no in 1:length(splits)){
@@ -493,7 +493,7 @@ subgraphs.unblocked <- function(tt, splits, total.pairs, verbose = F){
   count <- 0
   
   out <- matrix(ncol = length(splits), nrow=length(splits))
-  if(total.pairs==0){
+  if(total.pairs==0 & verbose){
     setTxtProgressBar(progress.bar, 1)
   } else {
     
@@ -677,7 +677,7 @@ classify <- function(tree.info, verbose = F) {
   dir.21.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
   min.distance.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
   
-  if(total.pairs==0){
+  if(total.pairs==0 & verbose){
     setTxtProgressBar(progress.bar, 1)
   } else {
     
