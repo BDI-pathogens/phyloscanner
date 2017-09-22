@@ -3,7 +3,7 @@
 list.of.packages <- c("prodlim", "reshape2", "kimisc")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)){
-  cat("Please run package_install.R to continue\n")
+  cat("Missing dependencies; replacing the path below appropriately, run\n[path to your phyloscanner code]/tools/package_install.R\nthen try again.\n")
   quit(save="no", status=1)
 }
 
