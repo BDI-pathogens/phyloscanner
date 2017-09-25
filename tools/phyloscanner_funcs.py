@@ -822,7 +822,8 @@ def GenerateRandomSequence(length, bases='ACGT'):
   return ''.join(random.choice(bases) for _ in range(length))
 
 
-def CalculateRecombinationMetric(SeqAlignment, IncludeGaps=False):
+def CalculateRecombinationMetric(SeqAlignment, IncludeGaps=False,
+NormaliseToDiversity=True):
   '''Considers all triplets of seqs and finds the maximum recombination signal.
   
   For each possible set of three seqs in the alignment, one seq is considered
@@ -835,15 +836,29 @@ def CalculateRecombinationMetric(SeqAlignment, IncludeGaps=False):
   such that their differing in sign indicates that the left and right sides of
   the recombinant look like different parents. We maximise the difference
   between d_L and d_R (over all possible sets of three sequences and all
-  possible break points), take the smaller of the two absolute values, and
-  normalise it by half the alignment length (ignoring sites that are wholly
-  gaps). This means that the maximum possible score of 1 is obtained if and only
-  if the two parents disagree at every site, the break point is exactly in the
-  middle, and either side of the break point the recombinant agrees perfectly
-  with one of the parents e.g.
+  possible break points) and take the smaller of the two absolute values.
+  With the default value NormaliseToDiversity=True, we normalise by dividing by
+  half the number of informative sites (i.e. ignoring sites where all sequences
+  have the same base). This means that the maximum possible score of 1 is
+  obtained if and only the two parents disagree at every informative site, the
+  break point is exactly in the middle of all informative sites, and either side
+  of the break point the recombinant agrees perfectly with one of the parents
+  e.g.
+  TATATATATA
+  TATATATCTC
+  TCTCTCTCTC
+  If NormaliseToDiversity=False, we normalise by half the alignment length
+  (ignoring sites that are wholly gaps). This means that the maximum possible
+  score of 1 is obtained if and only if the two parents disagree at every site,
+  the break point is exactly in the middle, and either side of the break point
+  the recombinant agrees perfectly with one of the parents e.g.
   AAAAAAA
   AAAACCC
   CCCCCCC
+  For either normaliser, after dividing the appropriate number of sites (either
+  just informative ones, or all sites) by 2, we take the floor of the result
+  i.e. round half-integers down. This means that the perfect score of 1 can be
+  obtained with an odd number of sites.
   
   With the default value of False for the IncludeGaps argument, any position
   where any of the three sequences has the gap character '-' will be ignored.
@@ -891,6 +906,7 @@ def CalculateRecombinationMetric(SeqAlignment, IncludeGaps=False):
       if FirstBaseSeen == '-':
         NumPureGapCols += 1
   NumColsWithABase = AlignmentLength - NumPureGapCols
+  NumInformativeSites = SeqAlignment.get_alignment_length()
 
   # Recombination requires sequences at least 2bp long
   ReducedAlignmentLength = SeqAlignment.get_alignment_length()
@@ -963,7 +979,12 @@ def CalculateRecombinationMetric(SeqAlignment, IncludeGaps=False):
   MaxScore = MaxScoreAndSeqs[0]
   if MaxScore == 0:
     return MaxScoreAndSeqs
-  denominator = NumColsWithABase / 2
+  if NormaliseToDiversity:
+    denominator = NumInformativeSites / 2
+  else:
+    denominator = NumColsWithABase / 2
+  assert MaxScore <= denominator, \
+  'Error: recombination metric > 1 found. Please report to Chris Wymant.'
   return (float(MaxScore) / denominator, ) + \
   tuple([SeqAlignment[i].id for i in MaxScoreAndSeqs[1:]])
 

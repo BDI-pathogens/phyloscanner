@@ -18,12 +18,16 @@ looking to the right of the break point only. d_L and d_R are signed integers,
 such that their differing in sign indicates that the left and right sides of
 the recombinant look like different parents. We maximise the difference
 between d_L and d_R (over all possible sets of three sequences and all
-possible break points), take the smaller of the two absolute values, and
-normalise it by half the alignment length (ignoring sites that are wholly
-gaps). This means that the maximum possible score of 1 is obtained if and only
-if the two parents disagree at every site, the break point is exactly in the
-middle, and either side of the break point the recombinant agrees perfectly
-with one of the parents e.g. AAAAAAA, AAAACCC, CCCCCCC.
+possible break points), take the smaller of the two absolute values, then
+normalise by half the number of informative sites (i.e. ignoring sites where all
+sequences have the same base). This means that the maximum possible score of 1
+is obtained if and only the two parents disagree at every informative site, the
+break point is exactly in the middle of all informative sites, and either side
+of the break point the recombinant agrees perfectly with one of the parents e.g.
+TATATATA
+TATATCTC
+TCTCTCTC
+(If the number of informative sites is odd, after dividing by two to obtain the normalisation constant we round down so that a score of 1 remains possible.)
 
 For speed, Hamming distances are only calculated indirectly - looking only at
 informative sites, and considering only changes in distance each time the
@@ -58,10 +62,21 @@ option, the gap character counts as a fifth base and so (dis)agreement in gaps
 contributes to Hamming distance. This increases sensitivity of the metric to
 cases where indels are genuine signals of recombination, but decreases
 specificity, since misalignment may falsely suggest recombination.''')
+parser.add_argument('-D', '--dont-norm-diversity', action='store_true',
+help='''Instead of normalising by half the number of informative sites,
+normalise by half the alignment length (ignoring sites that are wholly gaps).
+This means that the maximum possible score of 1 is obtained if and only if the previously mentioned requirements are satisfied and in addition every site is informative, e.g.
+AAAAAAA
+AAAACCC
+CCCCCCC
+''')
+
 args = parser.parse_args()
+NormaliseToDiversity = not args.dont_norm_diversity
 
 alignment = AlignIO.read(args.alignment, "fasta")
 
-result = CalculateRecombinationMetric(alignment, args.gap_aware)
+result = CalculateRecombinationMetric(alignment, IncludeGaps=args.gap_aware,
+NormaliseToDiversity=NormaliseToDiversity)
 
 print(' '.join(map(str, result)))
