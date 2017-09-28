@@ -2,23 +2,24 @@
 
 every.package <- c("argparse", 
                    "ape", 
-                   "phangorn", 
-                   "data.table", 
-                   "ggplot2", 
+                   "data.table",
+                   "dplyr",
+                   "dtplyr",
                    "ff",
-                   "phytools", 
-                   "dplyr", 
-                   "reshape", 
-                   "dtplyr", 
-                   "gtable", 
+                   "GGally",
+                   "ggplot2", 
                    "grid", 
                    "gridExtra", 
-                   "RColorBrewer", 
-                   "scales", 
+                   "gtable", 
+                   "kimisc",
                    "pegas",
+                   "phangorn", 
+                   "phytools", 
                    "prodlim",
+                   "RColorBrewer", 
+                   "reshape", 
                    "reshape2",
-                   "kimisc")
+                   "scales")
 
 new.packages <- every.package[!(every.package %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
