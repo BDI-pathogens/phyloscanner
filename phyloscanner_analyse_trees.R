@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-list.of.packages <- c("argparse", "data.table", "ape", "ff", "phangorn", "phytools", "scales", "RColorBrewer", "gtable", "grid", "gridExtra", "kimisc")
+list.of.packages <- c("argparse", "data.table", "ape", "ff", "phangorn", "phytools", "scales", "RColorBrewer", "gtable", "grid", "gridExtra", "kimisc", "GGally", "network", "sna")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)){
   cat("Missing dependencies; replacing the path below appropriately, run\n[path to your phyloscanner code]/tools/package_install.R\nthen try again.\n")
@@ -15,12 +15,15 @@ suppressMessages(require(ape, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(phangorn, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(ggtree, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(phytools, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(network, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(scales, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(RColorBrewer, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(gtable, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(grid, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(gridExtra, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(kimisc, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(GGally, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(sna, quietly=TRUE, warn.conflicts=FALSE))
 
 arg_parser		     <- ArgumentParser()
 
@@ -85,9 +88,15 @@ arg_parser$add_argument("-ct", "--collapsedTrees", action="store_true", help="If
 
 # Classification summary
 
-arg_parser$add_argument("-swt", "--windowThreshold", action="store", default=0, type="double", help="Relationships between two hosts will only appear in output if they are within the distance threshold and ajacent to each other in more than this proportion of windows (default 0).")
+arg_parser$add_argument("-swt", "--windowThreshold", action="store", default=0.5, type="double", help="Relationships between two hosts will only appear in output if they are within the distance threshold and ajacent to each other in more than this proportion of windows (default 0.5).")
 arg_parser$add_argument("-sdt", "--distanceThreshold", action="store", default=-1, type="double", help="Maximum distance threshold on a window for a relationship to be reconstructed between two hosts on that window. If absent then no such threshold will be applied.")
-arg_parser$add_argument("-amt", "--allowMultiTrans", action="store_true", default=FALSE, help="If absent, directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative")
+arg_parser$add_argument("-amt", "--allowMultiTrans", action="store_true", help="If absent, directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative")
+
+# Classification simplification
+
+arg_parser$add_argument("-sat", "--directionThreshold", action="store", default=0.33, type="double", help="In the simplified graph diagram, links will be shown as arrows if direction of transmission was inferred in at least this proportion of windows (default 0.33). Must be less than or equal to --windowThreshold.")
+arg_parser$add_argument("-spd", "--simplifiedPlotDimensions", action="store", default=25, type="double", help="Width and height of the simplified graph PDF file in inches. Default is 25. If this output is too crowded, try increaing this.")
+arg_parser$add_argument("-sks", "--skipSummary", action="store_true", help="If present, do not output a simplified relationship graph")
 
 args                  <- arg_parser$parse_args()
 
@@ -238,6 +247,15 @@ do.class.detail       <- args$allClassifications
 
 win.threshold         <- args$windowThreshold 
 dist.threshold        <- args$distanceThreshold
+arrow.threshold       <- args$directionThreshold
+
+if(arrow.threshold >= win.threshold){
+  stop("Direction threshold cannot be larger than window threshold")
+}
+
+do.simplified.graph   <- !args$skipSummary
+simp.plot.dim         <- args$simplifiedPlotDimensions
+
 
 if(dist.threshold == -1){
   dist.threshold      <- Inf
@@ -1085,6 +1103,14 @@ if(!single.file & length(hosts)>1){
   
   if (verbose) cat('Writing summary to file', paste0(output.string,"_hostRelationshipSummary.",csv.fe),'\n')
   write.csv(results, file=file.path(output.dir, paste0(output.string,"_hostRelationshipSummary.",csv.fe)), row.names=FALSE, quote=FALSE)
+  
+  results$ancestry <- as.character(results$ancestry)
+  
+  if(do.simplified.graph){
+    simplified.graph <- simplify.summary(results, arrow.threshold, length(all.tree.info), plot = T)
+    simplified.graph$simp.diagram
+    ggsave(file = file.path(output.dir, paste0(output.string,"_simplifiedRelationshipGraph.pdf")), width=simp.plot.dim, height=simp.plot.dim)
+  }
 }
 
 # 19. Workspace image

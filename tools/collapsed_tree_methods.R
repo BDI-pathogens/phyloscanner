@@ -971,7 +971,7 @@ summarise.classifications <- function(all.tree.info, min.threshold, dist.thresho
 simplify.summary <- function(summary, arrow.threshold, total.trees, plot = F){
   
   done <- rep(FALSE, nrow(summary))
-  
+
   for(line in 1:nrow(summary)){
     if(!done[line]){
       forwards.rows <- which(summary$host.1 == summary$host.1[line] & summary$host.2 == summary$host.2[line])
@@ -1021,15 +1021,15 @@ simplify.summary <- function(summary, arrow.threshold, total.trees, plot = F){
   
   dir <- summary.wide$total.12 >= arrow.threshold*total.trees | summary.wide$total.21 >= arrow.threshold*total.trees
   
-  summary.wide$arrows[!dir] <- "none"
+  summary.wide$arrow[!dir] <- "none"
   
   if(length(which(dir)>0)){
     summary.wide$arrow[dir] <- sapply(which(dir), function(x)  if(summary.wide$total.12[x]>summary.wide$total.21[x]) "forwards" else "backwards")
-    summary.wide$label[dir] <- paste(round(pmax(summary.wide[dir, "total.12"],summary.wide[dir, "total.21"])/total.trees, 2),"/", round(summary.wide[dir, "total"]/total.trees, 2), sep="")
+    summary.wide$label[dir] <- paste0(round(pmax(summary.wide$total.12[dir],summary.wide$total.21[dir])/total.trees, 2),"/", round(summary.wide$total[dir]/total.trees, 2))
   }
 
-  summary.wide$label[!dir] <- as.character(round(summary.wide[!dir, "total"]/total.trees, 2))
-
+  summary.wide$label[!dir] <- as.character(round(summary.wide$total[!dir]/total.trees, 2))
+  
   out.table <- summary.wide[,c("host.1","host.2","arrow","label")]
 
   out.table[which(out.table$arrow=="backwards"),c(1,2)] <- out.table[which(out.table$arrow=="backwards"),c(2,1)] 
@@ -1042,20 +1042,20 @@ simplify.summary <- function(summary, arrow.threshold, total.trees, plot = F){
 
     # okay so we're doing this
     
-    arrangement <- ggnet2(csv.net[c(1,2)])$data[,c("label", "x", "y")]
+    arrangement <- ggnet2(out.table[,c(1,2)])$data[,c("label", "x", "y")]
     
-    csv.net$x.start <- sapply(csv.net$host.1, function(x) arrangement$x[match(x, arrangement$label)]) 
-    csv.net$y.start <- sapply(csv.net$host.1, function(x) arrangement$y[match(x, arrangement$label)]) 
-    csv.net$x.end <- sapply(csv.net$host.2, function(x) arrangement$x[match(x, arrangement$label)]) 
-    csv.net$y.end <- sapply(csv.net$host.2, function(x) arrangement$y[match(x, arrangement$label)]) 
-    csv.net$x.midpoint <- (csv.net$x.end + csv.net$x.start)/2
-    csv.net$y.midpoint <- (csv.net$y.end + csv.net$y.start)/2
+    out.table$x.start <- sapply(out.table$host.1, function(x) arrangement$x[match(x, arrangement$label)]) 
+    out.table$y.start <- sapply(out.table$host.1, function(x) arrangement$y[match(x, arrangement$label)]) 
+    out.table$x.end <- sapply(out.table$host.2, function(x) arrangement$x[match(x, arrangement$label)]) 
+    out.table$y.end <- sapply(out.table$host.2, function(x) arrangement$y[match(x, arrangement$label)]) 
+    out.table$x.midpoint <- (out.table$x.end + out.table$x.start)/2
+    out.table$y.midpoint <- (out.table$y.end + out.table$y.start)/2
     
     out.diagram <- ggplot() + 
-      geom_segment(data=csv.net[which(csv.net$arrow),], aes(x=x.start, xend = x.end, y=y.start, yend = y.end), arrow = arrow(length = unit(0.01, "npc"), type="closed"), col="steelblue3", size=1.5, lineend="round") +
-      geom_segment(data=csv.net[which(!csv.net$arrow),], aes(x=x.start, xend = x.end, y=y.start, yend = y.end), col="chartreuse3", size=1.5, lineend="round") +
+      geom_segment(data=out.table[which(out.table$arrow),], aes(x=x.start, xend = x.end, y=y.start, yend = y.end), arrow = arrow(length = unit(0.01, "npc"), type="closed"), col="steelblue3", size=1.5, lineend="round") +
+      geom_segment(data=out.table[which(!out.table$arrow),], aes(x=x.start, xend = x.end, y=y.start, yend = y.end), col="chartreuse3", size=1.5, lineend="round") +
       geom_label(data=arrangement, aes(x=x, y=y, label=label), alpha=0.25, fill="darkgoldenrod3") + 
-      geom_text(data=csv.net, aes(x=x.midpoint, y=y.midpoint, label=label)) + 
+      geom_text(data=out.table, aes(x=x.midpoint, y=y.midpoint, label=label)) + 
       theme_void()
     
     out$simp.diagram <- out.diagram

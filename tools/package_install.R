@@ -12,6 +12,7 @@ every.package <- c("argparse",
                    "gridExtra", 
                    "gtable", 
                    "kimisc",
+                   "network",
                    "pegas",
                    "phangorn", 
                    "phytools", 
@@ -19,7 +20,8 @@ every.package <- c("argparse",
                    "RColorBrewer", 
                    "reshape", 
                    "reshape2",
-                   "scales")
+                   "scales",
+                   "sna")
 
 new.packages <- every.package[!(every.package %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
