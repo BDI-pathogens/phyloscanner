@@ -76,7 +76,7 @@ The count is expected to be an integer.
 If a third group is not found then it assumed that every tip represents only a single read.
 The default regular expression is \verb|"^(.*)_read_([0-9]+)_count_([0-9]+)$"|, but the user can specify an alternative with the \c{--tipRegex} option.
 In plainer language, this is of the form ``NAME\_read\_X\_count\_Y'' where NAME is the host name, X the read identifier and Y the read count.
-The tip names of the outgroup (if it exists), and of any other references sequences that are included, should not match this regular expression.
+The tip names of the outgroup (if it exists), and of any other reference sequences that are included, should not match this regular expression.
 
 The default regex is appropriate for analysing trees output by \pmt, when each bam contains reads from a different host.
 A different regular expression may be required if the input is not from \pmt.
@@ -372,10 +372,10 @@ Pairs are inferred to be related in a tree if they are both adjacent and (option
 If \c{--distanceThreshold} is not given then it is assumed to be infinite and adjacency is the only criterion that will be used to identify related pairs.
 If tree branch lengths were normalised then the distance threshold is applied to normalised distances.
 
-The output is a csv file whose first three columns are a pair of hosts and a classification of the topological relationship between the pair.
+By default, two outputs are produced. The first is a \c{.csv} file whose first three columns are a pair of hosts and a classification of the topological relationship between the pair.
 Rows for pairs which are never related at all or never show a particular topological relationship are omitted.
 
-The \c{--minThreshold} option can be used to retain only rows where the pair of hosts are related in more than the stated proportion of trees; the default is 0 so relationships are reported if they ever occur at all.
+The \c{--minThreshold} option is used to specify the minimum proportion of trees in which a pair of hosts were found to be related to make rows for that pair appear in the output file. The default is 0.5, meaning that only pairs that are related in at least half of the trees appear. If this is instead set to 0, all relationships are reported if they ever occur at all.
 
 The csv file has the following columns:
 \begin{itemize}
@@ -401,7 +401,9 @@ However, as with ``complex'', it is quite strongly indicative of direct transmis
 \end{itemize}
 The standalone script to summarise these relationships is \c{transmission\_summary.R}.
 
-The output of this script can be visualised in a graph analysis package, such as Cytoscape. This, if configured correctly, will display multiple links between hosts, as in figure 4A of the \p paper. To simplify the diagram so it appears as figure 4B, so only one edge links each pair, a standalone script, \c{simplify\_graph.R}, is also available in the \c{tools} directory. See the command line help for that script for more information.
+Unless the \c{--skipSummaryGraph} option is specified, a PDF file displaying a simplified summary of between-patient relationships will also be produced. The dimensions of this plot (in inches) can be controlled with the \c{--summaryPlotDimensions} options; the default here is $25\times25$ inches. If the output plot is too small and cluttered, try using a larger number. The output here will simplify the between-host relationships as in figure 4B of the \p paper, such that there is only one link between any pair, and that link will appear as an arrow if the proportion of windows showing transmission in that direction is above a threshold, but simply as a line otherwise. Links with arrows are labelled with two numbers separated by a forward slash: the first is the proportion of trees showing the directional relationship implied by the arrow, while the second is the proportion of trees showing any relationship at all. Links without arrows are just labelled with a the proportion showing any relationship. The default threshold for the display of arrows is 0.33, but this can be overridden with the \c{--directionThreshold} option. Links will only appear at all if a relationship occurs in more that the \c{--minThreshold} option, and it is required that \c{--directionThreshold} be less than or equal to \c{--minThreshold}.
+
+Graph visualisation is a complicated affair, and we cannot ensure that this PDF file will always display a satisfactory arrangement of nodes and labels. Users wishing to make their own graphs may use an analysis package such as \href{http://www.cytoscape.org/}{Cytoscape} with the summary \c{.csv} file as input. A standalone script, \c{simplify\_graph.R}, can be used to simplify the information in this file in the manner described above. See the command line help for that script for more information.
 
 \section{Miscellaneous options}
 
