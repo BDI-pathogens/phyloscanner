@@ -95,8 +95,8 @@ arg_parser$add_argument("-amt", "--allowMultiTrans", action="store_true", help="
 # Classification simplification
 
 arg_parser$add_argument("-sat", "--directionThreshold", action="store", default=0.33, type="double", help="In the simplified graph diagram, links will be shown as arrows if direction of transmission was inferred in at least this proportion of windows (default 0.33). Must be less than or equal to --windowThreshold.")
-arg_parser$add_argument("-spd", "--simplifiedPlotDimensions", action="store", default=25, type="double", help="Width and height of the simplified graph PDF file in inches. Default is 25. If this output is too crowded, try increaing this.")
-arg_parser$add_argument("-sks", "--skipSummary", action="store_true", help="If present, do not output a simplified relationship graph")
+arg_parser$add_argument("-spd", "--summaryPlotDimensions", action="store", default=25, type="double", help="Width and height of the simplified graph PDF file in inches. Default is 25. If this output is too crowded, try increaing this.")
+arg_parser$add_argument("-sks", "--skipSummaryGraph", action="store_true", help="If present, do not output a simplified relationship graph")
 
 args                  <- arg_parser$parse_args()
 
@@ -253,8 +253,8 @@ if(arrow.threshold >= win.threshold){
   stop("Direction threshold cannot be larger than window threshold")
 }
 
-do.simplified.graph   <- !args$skipSummary
-simp.plot.dim         <- args$simplifiedPlotDimensions
+do.simplified.graph   <- !args$skipSummaryGraph
+simp.plot.dim         <- args$summaryPlotDimensions
 
 
 if(dist.threshold == -1){
