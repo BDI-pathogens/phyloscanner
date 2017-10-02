@@ -1348,8 +1348,8 @@ for window in range(NumCoords / 2):
               else:
                 ReadCounts[NewRead.query_name] = 1
             print('Encountered an error related to converting reads from pysam',
-            "format to phyloscanner's format. Please report to Chris Wymant.",
-            "Quitting.", file=sys.stderr)
+            "format to phyloscanner's format, for this read:", read,
+            "\nPlease report to Chris Wymant. Quitting.", file=sys.stderr)
             raise
           Read2 = read
           Read2asPseudoRead = pf.PseudoRead.InitFromRead(read)
