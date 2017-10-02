@@ -1328,7 +1328,29 @@ for window in range(NumCoords / 2):
         # If we've seen this read's mate already, merge the pair.
         if read.query_name in AllReads:
           Read1 = AllReads[read.query_name]
-          Read1asPseudoRead = pf.PseudoRead.InitFromRead(Read1)
+          try:
+            Read1asPseudoRead = pf.PseudoRead.InitFromRead(Read1)
+          except AttributeError:
+            # An attribute error will arise if we encounter the same name three
+            # times; check if that's the issue and print a more helpful exit
+            # message, otherwise just raise.
+            ReadCounts = {}
+            for NewRead in BamFile.fetch(RefSeqName):
+              if NewRead.query_name in ReadCounts:
+                if ReadCounts[NewRead.query_name] == 2:
+                  print('The name', NewRead.query_name, 'occurs (at least) 3',
+                  'times in', BamFileBasename + '; this should never happen -',
+                  'the same name should only be found for the two reads in a',
+                  'pair. Quitting.', file=sys.stderr)
+                  exit(1)
+                else:
+                  ReadCounts[NewRead.query_name] += 1
+              else:
+                ReadCounts[NewRead.query_name] = 1
+            print('Encountered an error related to converting reads from pysam',
+            "format to phyloscanner's format. Please report to Chris Wymant.",
+            "Quitting.", file=sys.stderr)
+            raise
           Read2 = read
           Read2asPseudoRead = pf.PseudoRead.InitFromRead(read)
           MergedRead = Read1asPseudoRead.MergeReadPairOverWindow(
