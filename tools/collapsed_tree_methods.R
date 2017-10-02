@@ -574,6 +574,14 @@ check.tt.node.adjacency <- function(tt, label1, label2, allow.unsampled = F){
     # they can't be - a path length greater than 2 can only go through an unsampled region, and adjacent unsampled regions are not allowed
     return(F)
   }
+
+  # #START TEMPORARY BIT - if the middle node is the region around the root this adjacency is not interesting
+  # 
+  # if(substr(path[2], 1, 16) == "unsampled_region" & get.tt.parent(tt, path[2])=="root"){
+  #   return(F)
+  # }
+  # 
+  # #END TEMPORARY BIT
   
   return(substr(path[2], 1, 16) == "unsampled_region")
   
@@ -960,3 +968,98 @@ summarise.classifications <- function(all.tree.info, min.threshold, dist.thresho
   return(subset(tt.close, any.relationship.tree.count>min.threshold))
 }
 
+simplify.summary <- function(summary, arrow.threshold, total.trees, plot = F){
+  
+  done <- rep(FALSE, nrow(summary))
+
+  for(line in 1:nrow(summary)){
+    if(!done[line]){
+      forwards.rows <- which(summary$host.1 == summary$host.1[line] & summary$host.2 == summary$host.2[line])
+      backwards.rows <- which(summary$host.1 == summary$host.2[line] & summary$host.2 == summary$host.1[line])
+      
+      done[forwards.rows] <- T
+      done[backwards.rows] <- T
+      
+      summary$ancestry[intersect(forwards.rows, which(summary$ancestry=="trans"))] <- "trans12"
+      summary$ancestry[intersect(forwards.rows, which(summary$ancestry=="multi_trans"))] <- "multi_trans12"
+      
+      summary$ancestry[intersect(backwards.rows, which(summary$ancestry=="trans"))] <- "trans21"
+      summary$ancestry[intersect(backwards.rows, which(summary$ancestry=="multi_trans"))] <- "multi_trans21"
+      
+      summary[backwards.rows,c(1,2)] <- summary[backwards.rows,c(2,1)]
+    }
+  }
+  
+  summary.wide <- reshape(summary, direction="w", idvar=c("host.1", "host.2"), timevar = "ancestry", v.names = "ancestry.tree.count",  drop=c("fraction"))
+  
+  summary.wide[is.na(summary.wide)] <- 0
+
+  summary.wide$total.equiv <- summary.wide$ancestry.tree.count.none + summary.wide$ancestry.tree.count.complex
+  
+  if("ancestry.tree.count.trans12" %in% colnames(summary.wide)){
+    summary.wide$total.12 <- summary.wide$ancestry.tree.count.trans12
+  } else {
+    summary.wide$total.12 <- rep(0, nrow(summary.wide))
+  }
+  
+  if(!is.null(summary.wide$ancestry.tree.count.multi_trans12)){
+    summary.wide$total.12 <- summary.wide$total.12 + summary.wide$ancestry.tree.count.multi_trans12
+  }
+  
+  
+  if("ancestry.tree.count.trans21" %in% colnames(summary.wide)){
+    summary.wide$total.21 <- summary.wide$ancestry.tree.count.trans21
+  } else {
+    summary.wide$total.21 <- rep(0, nrow(summary.wide))
+  }
+  
+  if(!is.null(summary.wide$ancestry.tree.count.multi_trans21)){
+    summary.wide$total.21 <- summary.wide$total.21 + summary.wide$ancestry.tree.count.multi_trans21
+  }
+  
+  summary.wide$total <- summary.wide$total.21 + summary.wide$total.12 + summary.wide$total.equiv
+  
+  dir <- summary.wide$total.12 >= arrow.threshold*total.trees | summary.wide$total.21 >= arrow.threshold*total.trees
+  
+  summary.wide$arrow[!dir] <- "none"
+  
+  if(length(which(dir)>0)){
+    summary.wide$arrow[dir] <- sapply(which(dir), function(x)  if(summary.wide$total.12[x]>summary.wide$total.21[x]) "forwards" else "backwards")
+    summary.wide$label[dir] <- paste0(round(pmax(summary.wide$total.12[dir],summary.wide$total.21[dir])/total.trees, 2),"/", round(summary.wide$total[dir]/total.trees, 2))
+  }
+
+  summary.wide$label[!dir] <- as.character(round(summary.wide$total[!dir]/total.trees, 2))
+  
+  out.table <- summary.wide[,c("host.1","host.2","arrow","label")]
+
+  out.table[which(out.table$arrow=="backwards"),c(1,2)] <- out.table[which(out.table$arrow=="backwards"),c(2,1)] 
+  
+  out.table$arrow <- out.table$arrow!="none"
+  
+  out <- list(simp.table = out.table)
+  
+  if(plot){
+
+    # okay so we're doing this
+    
+    arrangement <- ggnet2(out.table[,c(1,2)])$data[,c("label", "x", "y")]
+    
+    out.table$x.start <- sapply(out.table$host.1, function(x) arrangement$x[match(x, arrangement$label)]) 
+    out.table$y.start <- sapply(out.table$host.1, function(x) arrangement$y[match(x, arrangement$label)]) 
+    out.table$x.end <- sapply(out.table$host.2, function(x) arrangement$x[match(x, arrangement$label)]) 
+    out.table$y.end <- sapply(out.table$host.2, function(x) arrangement$y[match(x, arrangement$label)]) 
+    out.table$x.midpoint <- (out.table$x.end + out.table$x.start)/2
+    out.table$y.midpoint <- (out.table$y.end + out.table$y.start)/2
+    
+    out.diagram <- ggplot() + 
+      geom_segment(data=out.table[which(out.table$arrow),], aes(x=x.start, xend = x.end, y=y.start, yend = y.end), arrow = arrow(length = unit(0.01, "npc"), type="closed"), col="steelblue3", size=1.5, lineend="round") +
+      geom_segment(data=out.table[which(!out.table$arrow),], aes(x=x.start, xend = x.end, y=y.start, yend = y.end), col="chartreuse3", size=1.5, lineend="round") +
+      geom_label(data=arrangement, aes(x=x, y=y, label=label), alpha=0.25, fill="darkgoldenrod3") + 
+      geom_text(data=out.table, aes(x=x.midpoint, y=y.midpoint, label=label)) + 
+      theme_void()
+    
+    out$simp.diagram <- out.diagram
+  }
+  
+  return(out)
+}
