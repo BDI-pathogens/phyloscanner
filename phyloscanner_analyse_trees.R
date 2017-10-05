@@ -52,9 +52,9 @@ arg_parser$add_argument("-ow", "--overwrite", action="store_true", help="Overwri
 
 # Normalisation options
 
-arg_parser$add_argument("-nr", "--normRefFileName", action="store", help="File name of reference for window normalising constants. If absent, no normalisation will be performed.")
+arg_parser$add_argument("-nr", "--normRefFileName", action="store", help="Name of a file giving a normalisation constant for every genome position. Cannot be used simultaneously with -nc. If both -nr and -nc are absent then no normalisation will be performed.")
 arg_parser$add_argument("-ns", "--normStandardiseGagPol", action="store_true", default=FALSE, help="An HIV-specific option: if true, the normalising constants are standardised so that the average on gag+pol equals 1. Otherwise they are standardised so the average on the whole genome equals 1.")
-arg_parser$add_argument("-nc", "--normalisationConstants", action="store", help="Either a CSV file listing the file name for each tree (column 1) and the normalisation constant (column 2) or a single numerical normalisation constant to be applied to each window.")
+arg_parser$add_argument("-nc", "--normalisationConstants", action="store", help="Either a CSV file listing the file name for each tree (column 1) and the normalisation constant (column 2) or a single numerical normalisation constant to be applied to each window. If both -nr and -nc are absent then no normalisation will be performed.")
 
 # Blacklisting
 
@@ -89,7 +89,7 @@ arg_parser$add_argument("-ct", "--collapsedTrees", action="store_true", help="If
 # Classification summary
 
 arg_parser$add_argument("-swt", "--windowThreshold", action="store", default=0.5, type="double", help="Relationships between two hosts will only appear in output if they are within the distance threshold and ajacent to each other in more than this proportion of windows (default 0.5).")
-arg_parser$add_argument("-sdt", "--distanceThreshold", action="store", default=-1, type="double", help="Maximum distance threshold on a window for a relationship to be reconstructed between two hosts on that window. If absent then no such threshold will be applied.")
+arg_parser$add_argument("-sdt", "--distanceThreshold", action="store", default=-1, type="double", help="Maximum distance threshold on a window for a relationship to be reconstructed between two hosts on that window. If tree branchs lengths were normalised this will be applied to those normalised lengths. If absent then no such threshold will be applied.")
 arg_parser$add_argument("-amt", "--allowMultiTrans", action="store_true", help="If absent, directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative")
 
 # Classification simplification
