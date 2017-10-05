@@ -101,6 +101,9 @@ parser.add_argument('-Q', '--quiet', action='store_true', help='''Turns off the
 small amount of information printed to the terminal (via stdout). We'll still
 print warnings and errors (via stderr), and the command you ran, for logging
 purposes.''')
+parser.add_argument('-V', '--verbose', action='store_true', help='''Print a
+little more information than usual. The --time option also provides extra
+information on progress.''')
 
 WindowArgs = parser.add_argument_group('Window options - you must choose'
 ' exactly one of -W, -AW or -E')
@@ -803,6 +806,10 @@ if NumberOfBams == 1 and not IncludeOtherRefs:
 # indexed by the ref's name.
 else:
 
+  if args.verbose:
+    print('Now determining the correspondence between coordinates in different',
+    'bam files.')
+
   # If we're separately and sequentially pairwise aligning our references to
   # a chosen ref in order to determine window coordinates, do so now.
   if PairwiseAlign:
@@ -945,6 +952,8 @@ pf.MakeBamIndices(BamFiles, args.x_samtools)
 # Gather some data from each bam file
 BamFileRefSeqNames = {}
 BamFileRefLengths  = {}
+if args.verbose:
+  print('Now preparing the bam files for analysis.')
 for i,BamFileName in enumerate(BamFiles):
 
   BamFileBasename = BamFileBasenames[i]
@@ -1257,6 +1266,9 @@ for window in range(NumCoords / 2):
     LeftWindowEdge  = ThisBamCoords[window*2]
     RightWindowEdge = ThisBamCoords[window*2 +1]
 
+    if args.verbose:
+      print('Now extracting & processing reads from bam', BamAlias + '.')
+
     # For labelling read name files
     FileForReadNames1_basename_ThisBam = FileForReadNames1_basename + \
     ThisWindowSuffix + '_InBam_'
@@ -1316,7 +1328,29 @@ for window in range(NumCoords / 2):
         # If we've seen this read's mate already, merge the pair.
         if read.query_name in AllReads:
           Read1 = AllReads[read.query_name]
-          Read1asPseudoRead = pf.PseudoRead.InitFromRead(Read1)
+          try:
+            Read1asPseudoRead = pf.PseudoRead.InitFromRead(Read1)
+          except AttributeError:
+            # An attribute error will arise if we encounter the same name three
+            # times; check if that's the issue and print a more helpful exit
+            # message, otherwise just raise.
+            ReadCounts = {}
+            for NewRead in BamFile.fetch(RefSeqName):
+              if NewRead.query_name in ReadCounts:
+                if ReadCounts[NewRead.query_name] == 2:
+                  print('The name', NewRead.query_name, 'occurs (at least) 3',
+                  'times in', BamFileBasename + '; this should never happen -',
+                  'the same name should only be found for the two reads in a',
+                  'pair. Quitting.', file=sys.stderr)
+                  exit(1)
+                else:
+                  ReadCounts[NewRead.query_name] += 1
+              else:
+                ReadCounts[NewRead.query_name] = 1
+            print('Encountered an error related to converting reads from pysam',
+            "format to phyloscanner's format, for this read:", read,
+            "\nPlease report to Chris Wymant. Quitting.", file=sys.stderr)
+            raise
           Read2 = read
           Read2asPseudoRead = pf.PseudoRead.InitFromRead(read)
           MergedRead = Read1asPseudoRead.MergeReadPairOverWindow(
@@ -1476,6 +1510,8 @@ for window in range(NumCoords / 2):
   # Check every dict against every other dict, and record the ratio of counts
   # for any shared reads.
   if CheckDuplicates:
+    if args.verbose:
+      print('Now checking for duplication of reads between bam files.')
     DuplicateDetails = []
     ContaminantReadsFound = {}
     for i, (BamFile1Alias, ReadDict1, LeftWindowEdge1, RightWindowEdge1) \
