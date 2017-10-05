@@ -89,7 +89,7 @@ arg_parser$add_argument("-ct", "--collapsedTrees", action="store_true", help="If
 # Classification summary
 
 arg_parser$add_argument("-swt", "--windowThreshold", action="store", default=0.5, type="double", help="Relationships between two hosts will only appear in output if they are within the distance threshold and ajacent to each other in more than this proportion of windows (default 0.5).")
-arg_parser$add_argument("-sdt", "--distanceThreshold", action="store", default=-1, type="double", help="Maximum distance threshold on a window for a relationship to be reconstructed between two hosts on that window. If absent then no such threshold will be applied.")
+arg_parser$add_argument("-sdt", "--distanceThreshold", action="store", default=-1, type="double", help="Maximum distance threshold on a window for a relationship to be reconstructed between two hosts on that window. If tree branchs lengths were normalised this will be applied to those normalised lengths. If absent then no such threshold will be applied.")
 arg_parser$add_argument("-amt", "--allowMultiTrans", action="store_true", help="If absent, directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative")
 
 # Classification simplification
