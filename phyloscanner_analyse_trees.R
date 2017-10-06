@@ -745,7 +745,7 @@ if(do.par.blacklisting){
     hosts <- hosts[order(hosts)]
     
     results <- sapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, outgroup.name, bl.raw.threshold, bl.ratio.threshold, "s", par.blacklisting.k, 0, T, no.read.counts, verbose), simplify = F, USE.NAMES = T)
-    
+
     contaminant                                 <- unlist(lapply(results, "[[", 2))
     contaminant.nos                             <- which(tree.info$tree$tip.label %in% contaminant)
     

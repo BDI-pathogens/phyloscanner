@@ -1018,7 +1018,7 @@ simplify.summary <- function(summary, arrow.threshold, total.trees, plot = F){
   }
   
   summary.wide$total <- summary.wide$total.21 + summary.wide$total.12 + summary.wide$total.equiv
-  
+
   dir <- summary.wide$total.12 >= arrow.threshold*total.trees | summary.wide$total.21 >= arrow.threshold*total.trees
   
   summary.wide$arrow[!dir] <- "none"

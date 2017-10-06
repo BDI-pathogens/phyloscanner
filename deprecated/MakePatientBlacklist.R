@@ -34,7 +34,7 @@ for(row in seq(1,nrow(amps))){
       start.amp.section <- boundaries[amp.id]
       end.amp.section <- boundaries[amp.id+1]
       if(!amps[row,2+amp.id] & ((start>start.amp.section & start<end.amp.section) | (end>start.amp.section & end < end.amp.section))){
-        bad.patients <- c(bad.patients, amps[row,1])
+        bad.patients <- unique(c(bad.patients, amps[row,1]))
       }
     }
   }
