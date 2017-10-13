@@ -474,7 +474,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info){
           m.thresh                    <- minimum.bl*1.0001
         }
       }
-
+      
     } else {
       warning("Attempting to guess a branch length threshold for multifurcations from the tree. Please ensure that the tree has multifurcations before using the results of this analysis.")
       if(verbose){
@@ -503,6 +503,23 @@ all.tree.info <- sapply(all.tree.info, function(tree.info){
   tree.info
   
 }, simplify = F, USE.NAMES = T)
+
+# sanity check
+
+all.tree.info <- sapply(all.tree.info, function(tree.info){
+  if(all(is.na(tree.info$hosts.for.tips))){
+    warning("For tree suffix ",tree.info$suffix," no non-blacklisted tips remain; this window will be removed from the analysis.")
+    NULL 
+  } else {
+    tree.info
+  }
+}, simplify = F, USE.NAMES = T)
+
+all.tree.info[sapply(all.tree.info, is.null)] <- NULL
+
+if(length(all.tree.info)==0){
+  stop("Cannot find any hosts on any tree that match this regex. Please check that it is correct.")
+}
 
 
 # 5. Read the blacklists
@@ -575,7 +592,7 @@ if(!is.null(norm.constants.input)){
       tree.info
     }, simplify = F, USE.NAMES = T)
   } else if(file.exists(norm.constants.input)){
-
+    
     nc.df   <- read.csv(norm.constants.input, stringsAsFactors = F, header = F)
     all.tree.info <- sapply(all.tree.info, function(tree.info) {
       rows  <- which(nc.df[,1]==basename(tree.info$tree.file.name))
@@ -745,7 +762,7 @@ if(do.par.blacklisting){
     hosts <- hosts[order(hosts)]
     
     results <- sapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, outgroup.name, bl.raw.threshold, bl.ratio.threshold, "s", par.blacklisting.k, 0, T, no.read.counts, verbose), simplify = F, USE.NAMES = T)
-
+    
     contaminant                                 <- unlist(lapply(results, "[[", 2))
     contaminant.nos                             <- which(tree.info$tree$tip.label %in% contaminant)
     
@@ -766,7 +783,7 @@ if(do.par.blacklisting){
     
     tree.info$blacklist                         <- unique(c(tree.info$blacklist, contaminant.nos))
     tree.info$blacklist                         <- tree.info$blacklist[order(tree.info$blacklist)]
-
+    
     which.are.duals                             <- which(unlist(lapply(results, "[[", 6)))
     mi.count                                    <- unlist(lapply(results, "[[", 7))
     
@@ -800,7 +817,7 @@ if(do.dual.blacklisting){
   dual.results <- blacklist.duals(all.tree.info, hosts.that.are.duals, summary.file = NULL, verbose)
   
   all.tree.info <- sapply(all.tree.info, function(tree.info) {
-
+    
     tree <- tree.info$tree
     
     if(!is.null(dual.results[[tree.info$suffix]])){
