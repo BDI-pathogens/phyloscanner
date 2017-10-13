@@ -521,6 +521,8 @@ all.tree.info <- sapply(all.tree.info, function(tree.info){
   }
 }, simplify = F, USE.NAMES = T)
 
+all.tree.info[sapply(all.tree.info, is.null)] <- NULL
+
 if(length(all.tree.info)==0){
   stop("Cannot find any hosts on any tree that match this regex. Please check that it is correct.")
 }
