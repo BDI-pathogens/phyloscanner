@@ -504,6 +504,27 @@ all.tree.info <- sapply(all.tree.info, function(tree.info){
   
 }, simplify = F, USE.NAMES = T)
 
+# sanity check
+
+all.tree.info <- sapply(all.tree.info, function(tree.info){
+  if(all(is.na(tree.info$hosts.for.tips))){
+    warning("For tree suffix ",tree.info$suffix," no non-blacklisted tips remain; this window will be removed from the analysis.")
+    NULL 
+  } else {
+    tips.for.hosts <- sapply(hosts, function(x){
+      
+      which(tree.info$hosts.for.tips == x)
+      
+    }, simplify = F, USE.NAMES = T)
+    tree.info$tips.for.hosts <- tips.for.hosts
+    tree.info
+  }
+}, simplify = F, USE.NAMES = T)
+
+if(length(all.tree.info)==0){
+  stop("Cannot find any hosts on any tree that match this regex. Please check that it is correct.")
+}
+
 
 # 5. Read the blacklists
 
@@ -766,7 +787,7 @@ if(do.par.blacklisting){
     
     tree.info$blacklist                         <- unique(c(tree.info$blacklist, contaminant.nos))
     tree.info$blacklist                         <- tree.info$blacklist[order(tree.info$blacklist)]
-
+    
     which.are.duals                             <- which(unlist(lapply(results, "[[", 6)))
     mi.count                                    <- unlist(lapply(results, "[[", 7))
     
