@@ -510,7 +510,9 @@ all.tree.info <- sapply(all.tree.info, function(tree.info){
   if(all(is.na(tree.info$hosts.for.tips))){
     warning("For tree suffix ",tree.info$suffix," no non-blacklisted tips remain; this window will be removed from the analysis.")
     NULL 
-  } 
+  } else {
+    tree.info
+  }
 }, simplify = F, USE.NAMES = T)
 
 all.tree.info[sapply(all.tree.info, is.null)] <- NULL
