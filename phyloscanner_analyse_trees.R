@@ -30,7 +30,7 @@ arg_parser		     <- ArgumentParser()
 arg_parser$add_argument("tree", action="store", help="A string that begins the file names (including the path) of all input trees. e.g. path/to/RAxML_bestTree.InWindow_")
 arg_parser$add_argument("outputString", action="store", help="A string that will be used to label all output files.")
 
-arg_parser$add_argument("-og", "--outgroupName", action="store", help="The name of the tip in the phylogeny/phylogenies to be used as outgroup (if unspecified, trees will be assumed to be already rooted).")
+arg_parser$add_argument("-og", "--outgroupName", action="store", help="The name of the tip in the phylogeny/phylogenies to be used as outgroup (if unspecified, trees will be assumed to be already rooted). This should be sufficiently distant to any sequence obtained from a host that it can be assumed that the MRCA of the entire tree was not a lineage present in any sampled individual.")
 arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, short branches in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. If a number, this number will be used as the threshold, with all branches strictly smaller collapsed. If 'g', it will be guessed from the branch lengths and the width of the genomic window (if appropriate). It is recommended that trees are examined by eye to check that they do appear to have multifurcations if 'g' is used.")
 arg_parser$add_argument("-b", "--blacklist", action="store", help="A path and string that begins all the file names for pre-existing blacklist files.")
 
