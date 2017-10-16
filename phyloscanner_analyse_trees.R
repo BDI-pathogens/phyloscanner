@@ -66,7 +66,7 @@ arg_parser$add_argument("-ub", "--dualBlacklist", action="store_true", default=F
 
 # Downsampling
 
-arg_parser$add_argument("-dsl", "--maxReadsPerHost", action="store", type="integer", help="If given, blacklist to downsample read counts from each host to this number.")
+arg_parser$add_argument("-dsl", "--maxReadsPerHost", action="store", type="integer", help="If given, blacklist to downsample read counts (or tip counts if no read counts are identified) from each host to this number.")
 arg_parser$add_argument("-dsb", "--blacklistUnderrepresented", action="store_true", help="If present and -dsl is given, blacklist hosts from trees where their total tip count does not reach the maximum.")
 
 # Parsimony reconstruction
