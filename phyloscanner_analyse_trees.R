@@ -430,7 +430,7 @@ if(!readable.coords & !single.file){
 
 # 4. Root tree, collapse multifurcations, get host for each tip
 
-if(is.na(m.thresh)){
+if(use.m.thresh & is.na(m.thresh)){
   warning("Attempting to guess a branch length threshold for multifurcations from the tree. Please visually examine the tree or trees for multifurcations before using the results of this analysis.")
 }
 
