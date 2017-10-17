@@ -28,3 +28,8 @@ get.window.coords <- function(string, regex = "^\\D*([0-9]+)_to_([0-9]+).*$"){
   
   return(list(start=start, end = end))
 }
+
+get.window.coords.string <- function(string, regex = "^\\D*([0-9]+)_to_([0-9]+).*$"){
+  wc <- get.window.coords(string, regex)
+  return(paste0(wc$start, "_to_", wc$end))
+}
