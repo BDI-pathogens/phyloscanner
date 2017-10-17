@@ -5,15 +5,16 @@
 \title{Perform a phyloscanner analysis on a set of trees}
 \usage{
 phyloscanner.analyse.trees(tree.directory,
-  tree.file.regex = "RAxML_bestTree.InWindow_([0-9]+_to_[0-9]+)\\\\.tree",
+  tree.file.regex = "^RAxML_bestTree.InWindow_([0-9]+_to_[0-9]+)\\\\.tree$",
   splits.rule = c("s", "r", "f"), sankoff.k = 0,
   sankoff.unsampled.switch.threshold = 0,
   continuation.unsampled.proximity.cost = Inf, outgroup.name = NULL,
   multifurcation.threshold = 0, guess.multifurcation.threshold = F,
   user.blacklist.directory = NULL, user.blacklist.file.regex = NULL,
-  duplicate.file.directory = NULL, duplicate.file.regex = NULL,
+  duplicate.file.directory = NULL,
+  duplicate.file.regex = "^DuplicateReadCountsProcessed_InWindow_([0-9]+_to_[0-9]+).csv$",
   recombination.file.directory = NULL,
-  recombination.file.regex = "RecombinantReads_InWindow_([0-9]+_to_[0-9]+).csv",
+  recombination.file.regex = "^RecombinantReads_InWindow_([0-9]+_to_[0-9]+).csv$",
   tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
   file.name.regex = "^\\\\D*([0-9]+)_to_([0-9]+)\\\\D*$",
   seed = sample(1:1e+07, 1), norm.ref.file.name = NULL,
@@ -45,7 +46,7 @@ phyloscanner.analyse.trees(tree.directory,
 
 \item{user.blacklist.directory}{An optional path for a folder containing pre-existing blacklist files. These tips are specified by the user to be excluded from the analysis.}
 
-\item{user.blacklist.file.regex}{A regular expression identifying every file in \code{blacklist.directory} that contains a blacklist. If a capture group is specified then its contents will uniquely identify the tree it belongs to, which must matches the IDs found by \code{user.blacklist.regex}. If these IDs cannot be identified then matching will be attempted using genome window coordinates.}
+\item{user.blacklist.file.regex}{A regular expression identifying every file in \code{user.blacklist.directory} that contains a blacklist. If a capture group is specified then its contents will uniquely identify the tree it belongs to, which must matches the IDs found by \code{user.blacklist.regex}. If these IDs cannot be identified then matching will be attempted using genome window coordinates.}
 
 \item{duplicate.file.directory}{An optional path for a folder containing information on duplicate reads, to be used for duplicate blacklisting. Normally this is produced by \code{phyloscanner_make_trees.py}.}
 

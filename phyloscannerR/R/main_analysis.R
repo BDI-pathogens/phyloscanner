@@ -6,12 +6,12 @@
 #' @param splits.rule The rules by which the sets of hosts are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. Options: s=Sankoff with optional within-host diversity penalty (slow, rigorous, recommended), r=Romero-Severson (quick, less rigorous with >2 hosts), f=Sankoff with continuation costs (experimental).
 #' @param sankoff.k For \code{splits.rule = s} or \code{f} only. The \emph{k} parameter in the Sankoff reconstruction, representing the within-host diversity penalty.
 #' @param sankoff.unsampled.switch.threshold For \code{splits.rule = s} only. Threshold at which a lineage reconstructed as infecting a host will transition to the unsampled state, if it would be equally parsimonious to remain in that host.
-#' @param continuation.unsampled.proximity.cost For \code{splits.rule = f} only. The branch length at which an node is reconstructed as unsampled if all its neighbouring nodes are a greater distance away. If infinite (the default), such a node will never receive the unsampled state.
+#' @param continuation.unsampled.proximity.cost For \code{splits.rule = f} only. The branch length at which an node is reconstructed as unsampled if all its neighbouring nodes are a greater distance away. The default is 1000, intended to be effectively infinite, such a node will never normally receive the unsampled state.
 #' @param outgroup.name The name of the tip in the phylogeny/phylogenies to be used as outgroup (if unspecified, trees will be assumed to be already rooted). This should be sufficiently distant to any sequence obtained from a host that it can be assumed that the MRCA of the entire tree was not a lineage present in any sampled individual.
 #' @param multifurcation.threshold If specified, branches shorter than this in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. 
 #' @param guess.multifurcation.threshold Whether to guess the multifurcation threshold from the branch lengths of the trees and the width of the genomic window (if that information is available). It is recommended that trees are examined by eye to check that they do appear to have multifurcations if using this option.
 #' @param user.blacklist.directory An optional path for a folder containing pre-existing blacklist files. These tips are specified by the user to be excluded from the analysis.
-#' @param user.blacklist.file.regex A regular expression identifying every file in \code{blacklist.directory} that contains a blacklist. If a capture group is specified then its contents will uniquely identify the tree it belongs to, which must matches the IDs found by \code{user.blacklist.regex}. If these IDs cannot be identified then matching will be attempted using genome window coordinates.
+#' @param user.blacklist.file.regex A regular expression identifying every file in \code{user.blacklist.directory} that contains a blacklist. If a capture group is specified then its contents will uniquely identify the tree it belongs to, which must matches the IDs found by \code{user.blacklist.regex}. If these IDs cannot be identified then matching will be attempted using genome window coordinates.
 #' @param duplicate.file.directory An optional path for a folder containing information on duplicate reads, to be used for duplicate blacklisting. Normally this is produced by \code{phyloscanner_make_trees.py}.
 #' @param duplicate.file.regex A regular expression identifying every file in \code{duplicate.file.directory} that contains a duplicates file. If a capture group is specified then its contents will uniquely identify the tree it belongs to, which must matches the IDs found by \code{duplicate.file.regex}. If these IDs cannot be identified then matching will be attempted using genome window coordinates.
 #' @param recombination.file.directory An optional path for a folder containing results of the \code{phyloscanner_make_trees.py} recombination metric analysis.
@@ -33,50 +33,28 @@
 #' @param read.counts.matter.on.zero.length.tips If TRUE, read counts on tips will be taken into account in parsimony reconstructions at the parents of zero-length terminal branches. Not applicable for the Romero-Severson-like reconstruction method.
 #' @param verbose Give verbose output.
 #' @return A list of class \code{phyloscanner.trees}.
-#' @import grDevices
-#' @import stats
-#' @import utils
-#' @import graphics
-#' @import ape
-#' @import data.table
-#' @import dplyr
-#' @import dtplyr
-#' @import ff
-#' @import GGally
-#' @import ggplot2
-#' @import ggtree
-#' @import grid
-#' @import gridExtra
-#' @import gtable
-#' @import kimisc
-#' @import network
-#' @import pegas
-#' @import phangorn
-#' @import phytools
-#' @import prodlim
-#' @import RColorBrewer
-#' @import reshape
-#' @import reshape2
-#' @import scales
-#' @import sna
+#' @importFrom ape read.tree di2multi root node.depth.edgelength
+#' @importFrom data.table data.table as.data.table set setnames
+#' @importFrom ff ff
+#' @importFrom phangorn Ancestors Descendants Children mrca.phylo getRoot
 #' @export phyloscanner.analyse.trees 
 
 phyloscanner.analyse.trees <- function(
   tree.directory,
-  tree.file.regex = "RAxML_bestTree.InWindow_([0-9]+_to_[0-9]+)\\.tree",
+  tree.file.regex = "^RAxML_bestTree.InWindow_([0-9]+_to_[0-9]+)\\.tree$",
   splits.rule = c("s", "r", "f"),
   sankoff.k = 0,
   sankoff.unsampled.switch.threshold = 0,
-  continuation.unsampled.proximity.cost = Inf,
+  continuation.unsampled.proximity.cost = 1000,
   outgroup.name = NULL,
   multifurcation.threshold = 0,
   guess.multifurcation.threshold = F,
   user.blacklist.directory = NULL,
   user.blacklist.file.regex = NULL,
   duplicate.file.directory = NULL,
-  duplicate.file.regex = NULL,
+  duplicate.file.regex = "^DuplicateReadCountsProcessed_InWindow_([0-9]+_to_[0-9]+).csv$",
   recombination.file.directory = NULL,
-  recombination.file.regex = "RecombinantReads_InWindow_([0-9]+_to_[0-9]+).csv",
+  recombination.file.regex = "^RecombinantReads_InWindow_([0-9]+_to_[0-9]+).csv$",
   tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
   file.name.regex = "^\\D*([0-9]+)_to_([0-9]+)\\D*$",
   seed = sample(1:10000000,1),
@@ -91,19 +69,18 @@ phyloscanner.analyse.trees <- function(
   blacklist.underrepresented = F,
   use.ff = F,
   prune.blacklist = F,
-  read.counts.matter.on.zero.length.tips = F,
+  read.counts.matter.on.zero.length.tips = T,
   verbose = F)
 {
+  
+  splits.rule <- match.arg(splits.rule)
   
   # todo - split into phyloscanner.analyse.tree and phyloscanner.analyse.trees. At present this is for multiple trees. 
   # You can make the former call the latter by just fiddling with the directory and regex.
   
-  
   use.m.thresh          <- multifurcation.threshold > 0 | guess.multifurcation.threshold
   
-  seed                  <- args$seed
-  
-  if(guess.multifurcation.threshold & use.m.thresh){
+  if(guess.multifurcation.threshold & multifurcation.threshold > 0){
     stop("Please either specify a multifurcation threshold, ask for a guess, or neither.")
   }
   
@@ -111,32 +88,31 @@ phyloscanner.analyse.trees <- function(
     stop("Please either ask for calculation of normalisation constants, provide your own, or neither.")
   }
   
-  do.dup.blacklisting   <- !is.null(duplicate.blacklist.input.regex)
+  do.dup.blacklisting   <- !is.null(duplicate.file.directory)
   do.par.blacklisting   <- parsimony.blacklist.k > 0
-  do.dual.blacklisting  <- args$dualBlacklist
   
   if(do.dual.blacklisting & !do.par.blacklisting){
     warning("Dual blacklisting requires parsimony blacklisting. Turning dual blacklisting off.")
     do.dual.blacklisting <- F
   }
   
-  if(splits.rule == "r" & (sankoff.k > 0 | continuation.k > 0 | sankoff.unsampled.switch.threshold > 0 | continuation.unsampled.proximity.cost > 0)){
+  if(splits.rule == "r" & (sankoff.k > 0 | sankoff.unsampled.switch.threshold > 0 | continuation.unsampled.proximity.cost < Inf)){
     warning("Romero-Severson reconstuction has no parameters; specified values will be ignored.")
   }
   
   downsample            <- max.reads.per.host < Inf
   
-  existing.bl           <- !is.null(blacklist.directory)
+  existing.bl           <- !is.null(user.blacklist.directory)
   do.recomb             <- !is.null(recombination.file.directory)
   
   # 1. Make the big list.
   
   all.tree.info <- list()
-  all.tree.info$summary <- list()
-  
+
   class(all.tree.info) <- append(class(all.tree.info), "phyloscanner.trees")
   
-  tree.file.names <- list.files.mod(tree.directory, tree.file.regex, full.names=TRUE)
+  full.tree.file.names <- list.files.mod(tree.directory, tree.file.regex, full.names=TRUE)
+  tree.file.names <- list.files.mod(tree.directory, tree.file.regex)
   
   if(length(tree.file.names)==0){
     stop("No tree files found.")
@@ -150,7 +126,7 @@ phyloscanner.analyse.trees <- function(
   } else {
     match.mode <- "coords"
     tryCatch({
-      tree.identifiers <- sapply(tree.file.names, function(x) get.window.coords.string(tree.identifiers, file.name.regex))},
+      tree.identifiers <- sapply(tree.file.names, function(x) get.window.coords.string(x, file.name.regex))},
       error = function(e){
         cannot.match <- T
         tree.identifiers <- tree.file.names
@@ -158,7 +134,7 @@ phyloscanner.analyse.trees <- function(
       })
   }
   
-  if(length(unique(tree.identifiers))!=length(tree.identifiers)){
+  if(length(unique(tree.identifiers)) != length(tree.identifiers)){
     stop("Some trees have duplicate IDs.")
   }
   
@@ -169,7 +145,9 @@ phyloscanner.analyse.trees <- function(
     class(tree.info)              <- append(class(tree.info), "phyloscanner.tree")
     
     tree.info$suffix              <- suffix
-    tree.info$tree.file.name      <- tree.file.names[id.no]
+    tree.info$tree.file.name      <- full.tree.file.names[id.no]
+    
+    all.tree.info[[suffix]]       <- tree.info
   }
   
   # 2. Coordinates.
@@ -178,7 +156,7 @@ phyloscanner.analyse.trees <- function(
   
   all.tree.info <- sapply(all.tree.info, function(tree.info) {
     tryCatch({
-      coords                  <- get.window.coords(tree.info$tree.file.name, file.name.regex)
+      coords                  <- get.window.coords(tree.info$suffix, file.name.regex)
       tree.info$window.coords <- coords
       tree.info$xcoord        <- (coords$end + coords$start)/2
       tree.info
@@ -189,8 +167,8 @@ phyloscanner.analyse.trees <- function(
     })
   }, simplify = F, USE.NAMES = T)
   
-  all.tree.info$summary$readable.coords <- readable.coords
-  all.tree.info$summary$match.mode      <- match.mode
+  attr(all.tree.info, 'readable.coords') <- readable.coords
+  attr(all.tree.info, 'match.mode')      <- match.mode
   
   # more single file issues
   
@@ -201,26 +179,30 @@ phyloscanner.analyse.trees <- function(
   # 3. Attach blacklist and recombination files
   
   if(existing.bl){
-    if(!is.null(blacklist.file.regex)){
-      blacklist.identifiers <- sapply(blacklist.file.names, function(x) sub(blacklist.file.regex, "\\1", x))
+    user.blacklist.file.names <- list.files.mod(user.blacklist.directory, user.blacklist.file.regex)
+    full.user.blacklist.file.names <- list.files.mod(user.blacklist.directory, user.blacklist.file.regex, full.names=TRUE)
+    if(!is.null(user.blacklist.file.regex)){
+      user.blacklist.identifiers <- sapply(user.blacklist.file.names, function(x) sub(user.blacklist.file.regex, "\\1", x))
     } else {
       if(match.mode != "coords"){
         stop("Cannot match blacklist files with tree files using the information given.")
       } else {
         tryCatch({
-          blacklist.identifiers <- sapply(blacklist.file.names, function(x) get.window.coords.string(blacklist.identifiers, file.name.regex))},
+          user.blacklist.identifiers <- sapply(user.blacklist.file.names, function(x) get.window.coords.string(x, file.name.regex))},
           error = function(e){
             stop("Cannot match blacklist files with tree files using the information given.")
           })
       }
     }
-    if(!setequal(tree.identifiers, blacklist.identifiers)){
+    if(!setequal(tree.identifiers, user.blacklist.identifiers)){
       warning("Tree files and blacklist files do not entirely match. Blacklist files with no tree files will be ignored; tree files with no blacklist file will have no tips blacklisted.")
     }
   }
   
   
   if(do.recomb){
+    recombination.file.names <- list.files.mod(recombination.file.directory, recombination.file.regex)
+    full.recombination.file.names <- list.files.mod(recombination.file.directory, recombination.file.regex, full.names=TRUE)
     if(!is.null(recombination.file.regex)){
       recomb.identifiers <- sapply(recomb.file.names, function(x) sub(recombination.file.regex, "\\1", x))
     } else {
@@ -228,29 +210,57 @@ phyloscanner.analyse.trees <- function(
         stop("Cannot match recombination files with tree files using the information given.")
       } else {
         tryCatch({
-          recomb.identifiers <- sapply(recomb.file.names, function(x) get.window.coords.string(blacklist.identifiers, file.name.regex))},
+          recomb.identifiers <- sapply(recomb.file.names, function(x) get.window.coords.string(x, file.name.regex))},
           error = function(e){
             stop("Cannot match recombination files with tree files using the information given.")
           })
       }
     }
-    if(!setequal(tree.identifiers, blacklist.identifiers)){
+    if(!setequal(tree.identifiers, recomb.identifiers)){
       stop("Tree files and recombination files do not match.")
+    }
+  }
+  
+  if(do.dup.blacklisting){
+    duplicate.file.names <- list.files.mod(duplicate.file.directory, duplicate.file.regex)
+    full.duplicate.file.names <- list.files.mod(duplicate.file.directory, duplicate.file.regex, full.names=TRUE)
+    if(!is.null(duplicate.file.regex)){
+      duplicate.identifiers <- sapply(duplicate.file.names, function(x) sub(duplicate.file.regex, "\\1", x))
+    } else {
+      if(match.mode != "coords"){
+        stop("Cannot match duplicate files with tree files using the information given.")
+      } else {
+        tryCatch({
+          duplicate.identifiers <- sapply(duplicate.file.names, function(x) get.window.coords.string(x, file.name.regex))},
+          error = function(e){
+            stop("Cannot match duplicate files with tree files using the information given.")
+          })
+      }
+    }
+    if(!setequal(tree.identifiers, duplicate.identifiers)){
+      stop("Tree files and duplicate files do not match.")
     }
   }
   
   all.tree.info <- sapply(all.tree.info, function(tree.info) {
     if(existing.bl){
-      expected.blacklist.file.name  <- blacklist.file.names[which(blacklist.file.names)==tree.info$suffix]
-      if(length(expected.blacklist.file.name)!=0){
-        tree.info$prexisting.blacklist.file.name <- expected.blacklist.file.name
+      expected.user.blacklist.file.name  <- full.user.blacklist.file.names[which(user.blacklist.identifiers==tree.info$suffix)]
+      if(length(expected.user.blacklist.file.name)!=0){
+        tree.info$user.blacklist.file.name <- expected.user.blacklist.file.name
       }
     }
     
     if(do.recomb){
-      expected.recomb.file.name  <- recomb.file.names[which(recomb.identifiers)==tree.info$suffix]
+      expected.recomb.file.name  <- full.recomb.file.names[which(recomb.identifiers==tree.info$suffix)]
       if(length(expected.recomb.file.name)!=0){
         tree.info$recombination.file.name <- expected.recomb.file.name
+      }
+    }
+    
+    if(do.dup.blacklisting){
+      expected.duplicate.file.name  <- full.duplicate.file.names[which(duplicate.identifiers==tree.info$suffix)]
+      if(length(expected.duplicate.file.name)!=0){
+        tree.info$duplicate.file.name <- expected.duplicate.file.name
       }
     }
     
@@ -296,7 +306,7 @@ phyloscanner.analyse.trees <- function(
   read.counts.check <- sapply(all.tree.info, function(tree.info){
     tip.labels   <- tree.info$tree$tip.label
     read.counts  <- sapply(tip.labels, read.count.from.label, tip.regex)
-    return(all(is.na(read.counts)))
+    return(!all(is.na(read.counts)))
   })
   
   if(any(read.counts.check) & !all(read.counts.check)){
@@ -304,7 +314,7 @@ phyloscanner.analyse.trees <- function(
   }
   has.read.counts <- all(read.counts.check)
   
-  all.tree.info$summary$has.read.counts <- has.read.counts
+  attr(all.tree.info, 'has.read.counts') <- has.read.counts
   
   # 6. Root tree, collapse multifurcations, get host for each tip
   
@@ -327,20 +337,12 @@ phyloscanner.analyse.trees <- function(
         
         if(minimum.bl > 0.25*one.snp){
           if(verbose){
-            if(!single.file){
-              cat("In window suffix ",tree.info$suffix," the minimum branch length is ",minimum.bl,", which is equivalent to ",minimum.bl/one.snp," SNPs. Assuming this tree has no multifurcations.\n", sep="")
-            } else {
-              cat("The minimum branch length is ",minimum.bl,", which is equivalent to ",minimum.bl/one.snp," SNPs. Assuming this tree has no multifurcations.\n", sep="")
-            }
+            cat("In tree ID ",tree.info$suffix," the minimum branch length is ",minimum.bl,", which is equivalent to ",minimum.bl/one.snp," SNPs. Assuming this tree has no multifurcations.\n", sep="")
           }
           multifurcation.threshold                      <- -1
         } else {
           if(verbose) {
-            if(!single.file){
-              cat("In window suffix ",tree.info$suffix," the minimum branch length is ",minimum.bl,", which is equivalent to ",minimum.bl/one.snp," SNPs. Using this branch length as a multifurcation threshold.\n", sep="")
-            } else {
-              cat("The minimum branch length is ",minimum.bl,", which is equivalent to ",minimum.bl/one.snp," SNPs. Using this branch length as a multifurcation threshold.\n", sep="")
-            }
+            cat("In tree ID ",tree.info$suffix," the minimum branch length is ",minimum.bl,", which is equivalent to ",minimum.bl/one.snp," SNPs. Using this branch length as a multifurcation threshold.\n", sep="")
           }
           if(minimum.bl==0){
             multifurcation.threshold                    <- 1E-9
@@ -352,11 +354,7 @@ phyloscanner.analyse.trees <- function(
       } else {
         warning("Attempting to guess a branch length threshold for multifurcations from the tree. Please ensure that the tree has multifurcations before using the results of this analysis.")
         if(verbose){
-          if(!single.file){
-            cat("In window suffix ",tree.info$suffix," the minimum branch length is ",minimum.bl,". Using this as a multifurcation threshold.\n", sep="")
-          } else {
-            cat("The minimum branch length is ",minimum.bl,". Using this as a multifurcation threshold.\n", sep="")
-          }
+          cat("In tree ID ",tree.info$suffix," the minimum branch length is ",minimum.bl,". Using this as a multifurcation threshold.\n", sep="")
         } 
         if(minimum.bl==0){
           multifurcation.threshold                    <- 1E-9
@@ -399,27 +397,23 @@ phyloscanner.analyse.trees <- function(
   # 8. Read the blacklists
   
   all.tree.info <- sapply(all.tree.info, function(tree.info) {
-    if(!is.null(tree.info$prexisting.blacklist.file.name)){
-      if(file.exists(tree.info$prexisting.blacklist.file.name)){
-        if (verbose) cat("Reading blacklist file ",tree.info$prexisting.blacklist.file.name,'\n',sep="")
-        blacklisted.tips                    <- read.table(tree.info$prexisting.blacklist.file.name, sep=",", header=F, stringsAsFactors = F, col.names="read")
+    if(!is.null(tree.info$user.blacklist.file.name)){
+      if(file.exists(tree.info$user.blacklist.file.name)){
+        if (verbose) cat("Reading blacklist file ",tree.info$user.blacklist.file.name,'\n',sep="")
+        blacklisted.tips                    <- read.table(tree.info$user.blacklist.file.name, sep=",", header=F, stringsAsFactors = F, col.names="read")
         blacklist                           <- vector()
         if(nrow(blacklisted.tips)>0){
           blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree.info$tree))
         }
         if(any(is.na(blacklist))){
-          warning("Some tips listed in blacklist file ",tree.info$prexisting.blacklist.file.name," are not tips of tree ",tree.info$tree.file.name, sep="")
+          warning("Some tips listed in blacklist file ",tree.info$user.blacklist.file.name," are not tips of tree ",tree.info$tree.file.name, sep="")
         }
         blacklist <- blacklist[!is.na(blacklist)]
         
         tree.info$hosts.for.tips[blacklist] <- NA 
         
         if(verbose & length(blacklist)>0) {
-          if(!single.file){
-            cat(length(blacklist), " tips pre-blacklisted for tree suffix ",tree.info$suffix, ".\n", sep="")
-          } else {
-            cat(length(blacklist), " tips pre-blacklisted.\n", sep="")
-          }
+          cat(length(blacklist), " tips pre-blacklisted for tree ID ",tree.info$suffix, ".\n", sep="")
         }
         
         tree.info$blacklist                 <- blacklist
@@ -496,7 +490,7 @@ phyloscanner.analyse.trees <- function(
     if(readable.coords){
       if (verbose) cat('Loading normalising constants reference file ', norm.ref.file.name, "\n", sep="")
       
-      if(grepl(paste0(csv.fe, "$"), norm.ref.file.name)){
+      if(grepl(paste0("csv", "$"), norm.ref.file.name)){
         norm.table	<- as.data.table(read.csv(norm.ref.file.name, stringsAsFactors=FALSE))
         
         if(ncol(norm.table)!=2){
@@ -505,7 +499,7 @@ phyloscanner.analyse.trees <- function(
           setnames(norm.table, 1, 'POSITION')
           setnames(norm.table, 2, 'NORM_CONST')
           
-          if(norm.standardise.gp){
+          if(norm.standardise.gag.pol){
             #	Standardize to mean of 1 on gag+pol ( prot + first part of RT in total 1300bp )
             
             #790 - 3385
@@ -574,25 +568,21 @@ phyloscanner.analyse.trees <- function(
   # 11. Duplicate blacklisting
   
   if(do.dup.blacklisting){
-    if(!single.input){
-      all.tree.info <- sapply(all.tree.info, function(tree.info) {
-        if(file.exists(paste0(dup.input.file.name, tree.info$suffix, ".", csv.fe))){
-          tree.info$duplicate.tips <- strsplit(readLines(paste0(dup.input.file.name, tree.info$suffix, ".", csv.fe), warn=F),",")
-        } else {
-          warning("No duplicates file found for tree suffix ",tree.info$suffix, "; skipping duplicate blacklisting.")
-        }
-        tree.info
-      }, simplify = F, USE.NAMES = T)
-    } else {
-      all.tree.info[[1]]$duplicate.tips <- strsplit(readLines(dup.input.file.name),",")
-    }
-    
+    all.tree.info <- sapply(all.tree.info, function(tree.info) {
+      if(file.exists(tree.info$duplicate.file.name)){
+        tree.info$duplicate.tips <- strsplit(readLines(tree.info$duplicate.file.name, warn=F),",")
+      } else {
+        warning("No duplicates file found for tree suffix ",tree.info$suffix, "; skipping duplicate blacklisting.")
+      }
+      tree.info
+    }, simplify = F, USE.NAMES = T)
+
     all.tree.info <- sapply(all.tree.info, function(tree.info) {
       tree <- tree.info$tree
       
       if(!is.null(tree.info$duplicate.tips)){
         
-        duplicated                                   <- blacklist.exact.duplicates(tree.info, bl.raw.threshold, bl.ratio.threshold, tip.regex, verbose)
+        duplicated                                   <- blacklist.exact.duplicates(tree.info, raw.blacklist.threshold, ratio.blacklist.threshold, tip.regex, verbose)
         
         duplicate.nos                                <- which(tree.info$original.tip.labels %in% duplicated)
         
@@ -634,7 +624,7 @@ phyloscanner.analyse.trees <- function(
       
       hosts <- hosts[order(hosts)]
       
-      results <- sapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, outgroup.name, bl.raw.threshold, bl.ratio.threshold, "s", par.blacklisting.k, 0, T, no.read.counts, verbose), simplify = F, USE.NAMES = T)
+      results <- sapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, outgroup.name, raw.blacklist.threshold, ratio.blacklist.threshold, "s", parsimony.blacklist.k, 0, T, !has.read.counts, tip.regex, verbose), simplify = F, USE.NAMES = T)
       
       contaminant                                 <- unlist(lapply(results, "[[", 2))
       contaminant.nos                             <- which(tree.info$tree$tip.label %in% contaminant)
@@ -689,6 +679,8 @@ phyloscanner.analyse.trees <- function(
     
     dual.results <- blacklist.duals(all.tree.info, hosts.that.are.duals, summary.file = NULL, verbose)
     
+    print(dual.results)
+    
     all.tree.info <- sapply(all.tree.info, function(tree.info) {
       
       tree <- tree.info$tree
@@ -699,7 +691,7 @@ phyloscanner.analyse.trees <- function(
         
         newly.blacklisted                           <- setdiff(dual.nos, tree.info$blacklist) 
         
-        if(verbose & length(newly.blacklisted)>0) cat(length(newly.blacklisted), " tips blacklisted for belonging to minor subgraphs in tree suffix ",tree.info$suffix, "\n", sep="")
+        if(length(newly.blacklisted)>0) cat(length(newly.blacklisted), " tips blacklisted for belonging to minor subgraphs in tree suffix ",tree.info$suffix, "\n", sep="")
         
         tree.info$hosts.for.tips[newly.blacklisted] <- NA
         
@@ -724,7 +716,7 @@ phyloscanner.analyse.trees <- function(
   
   if(downsample){
     all.tree.info <- sapply(all.tree.info, function(tree.info){
-      tree.info <- downsample.tree(tree.info, NULL, downsampling.limit, T, blacklist.ur, no.read.counts, seed, verbose)
+      tree.info <- downsample.tree(tree.info, NULL, max.reads.per.host, T, blacklist.underrepresented, !has.read.counts, tip.regex, seed, verbose)
       tree.info$hosts.for.tips[tree.info$blacklist] <- NA 
       
       tree.info
@@ -765,9 +757,8 @@ phyloscanner.analyse.trees <- function(
     stop("All hosts have been blacklisted from all trees; nothing to do.")
   }
   
-  if(length(all.tree.info)==1 & !single.file){
+  if(length(all.tree.info)==1){
     warning("Only one window with any hosts is present after blacklisting, summary statistics will not be plotted and transmission summary will be skipped.")
-    single.file <- T
   }
   
   # 16. Prune away the blacklist if so requested
@@ -789,16 +780,20 @@ phyloscanner.analyse.trees <- function(
   
   # 17. Parsimony reconstruction
   
+  sankoff.p <- NA
+  
+  if(splits.rule == "s"){
+    sankoff.p <- sankoff.unsampled.switch.threshold
+  } else if(splits.rule == "f"){
+    sankoff.p <- continuation.unsampled.proximity.cost
+  } 
+  
   all.tree.info <- sapply(all.tree.info, function(tree.info) {
     # Do the reconstruction
     
-    if(!single.file){
-      if(verbose) cat("Reconstructing internal node hosts on tree suffix ",tree.info$suffix, "\n", sep="")
-    } else {
-      if(verbose) cat("Reconstructing internal node hosts\n", sep="")
-    }
+    if(verbose) cat("Reconstructing internal node hosts on tree ID ",tree.info$suffix, "\n", sep="")
     
-    tmp					     <- split.hosts.to.subgraphs(tree.info$tree, tree.info$blacklist, reconstruction.mode, tip.regex, sankoff.k, sankoff.p, useff, read.counts.matter, hosts, verbose)
+    tmp					     <- split.hosts.to.subgraphs(tree.info$tree, tree.info$blacklist, splits.rule, tip.regex, sankoff.k, sankoff.p, use.ff, read.counts.matter.on.zero.length.tips, hosts, verbose)
     tree					   <- tmp[['tree']]	
     
     # trees are annotated from now on
@@ -845,11 +840,11 @@ phyloscanner.analyse.trees <- function(
       # 
       # #	Save the table
       # 
-      # if(!no.read.counts){
-      #   rs.subgraphs$reads <- sapply(rs.subgraphs$tip, function(x) as.numeric(read.count.from.label(x, tip.regex)))
-      # } else {
-      #   rs.subgraphs$reads <- 1
-      # }
+      if(has.read.counts){
+        rs.subgraphs$reads <- sapply(rs.subgraphs$tip, function(x) as.numeric(read.count.from.label(x, tip.regex)))
+      } else {
+        rs.subgraphs$reads <- 1
+      }
       # 
       tree.info$splits.table  <- rs.subgraphs
     }
@@ -861,10 +856,11 @@ phyloscanner.analyse.trees <- function(
   }, simplify = F, USE.NAMES = T)
   
   
-  # 18. Summary statistics
+  # 19. For summary statistics
   
+
   all.tree.info <- sapply(all.tree.info, function(tree.info) {
-    clade.results                 <- resolveTreeIntoPatientClades(tree.info$tree, hosts, tip.regex, tree.info$blacklist, no.read.counts)
+    clade.results                 <- resolveTreeIntoPatientClades(tree.info$tree, hosts, tip.regex, tree.info$blacklist, !has.read.counts)
     
     tree.info$clades.by.host      <- clade.results$clades.by.patient
     tree.info$clade.mrcas.by.host <- clade.results$clade.mrcas.by.patient
@@ -872,43 +868,42 @@ phyloscanner.analyse.trees <- function(
     tree.info
   }, simplify = F, USE.NAMES = T)
   
-  pat.stats <- lapply(all.tree.info, function(x) calc.all.stats.in.window(x, hosts, tip.regex, verbose))
-  pat.stats <- rbindlist(pat.stats)
-  
-  read.proportions <- lapply(all.tree.info, function(y) sapply(hosts, function(x) get.read.proportions(x, y$suffix, y$splits.table), simplify = F, USE.NAMES = T))
-  
-  # Get the max split count over every window and host (the exact number of columns depends on this)
-  
-  max.splits <- max(sapply(read.proportions, function(x) max(sapply(x, function(y) length(y)))))
-  
-  read.prop.columns <- lapply(all.tree.info, function(x){
-    window.props <- read.proportions[[x$suffix]]
-    out <- lapply(hosts, function(y){
-      
-      result <- window.props[[y]]
-      
-      if(is.na(result[1])){
-        result <- rep(NA, max.splits)
-        
-      } else {
-        if(length(result)<max.splits){
-          result[(length(result)+1):max.splits] <- 0
-        }
-      }
-      
-      result
-    })
-    out <- as.data.table(do.call(rbind, out))
-    colnames(out) <- paste("prop.gp.",seq(1,max.splits),sep="")
-    out
-  })
-  
-  
-  read.prop.columns <- rbindlist(read.prop.columns)
-  
-  pat.stats         <- cbind(pat.stats, read.prop.columns)
-  
-  pat.stats$tips    <- as.numeric(pat.stats$tips)
+  # pat.stats <- lapply(all.tree.info, function(x) calc.all.stats.in.window(x, hosts, tip.regex, has.read.counts, verbose))
+  # pat.stats <- rbindlist(pat.stats)
+  # 
+  # read.proportions <- lapply(all.tree.info, function(y) sapply(hosts, function(x) get.read.proportions(x, y$suffix, y$splits.table), simplify = F, USE.NAMES = T))
+  # 
+  # # Get the max split count over every window and host (the exact number of columns depends on this)
+  # 
+  # max.splits <- max(sapply(read.proportions, function(x) max(sapply(x, function(y) length(y)))))
+  # 
+  # read.prop.columns <- lapply(all.tree.info, function(x){
+  #   window.props <- read.proportions[[x$suffix]]
+  #   out <- lapply(hosts, function(y){
+  #     
+  #     result <- window.props[[y]]
+  #     
+  #     if(is.na(result[1])){
+  #       result <- rep(NA, max.splits)
+  #       
+  #     } else {
+  #       if(length(result)<max.splits){
+  #         result[(length(result)+1):max.splits] <- 0
+  #       }
+  #     }
+  #     
+  #     result
+  #   })
+  #   out <- as.data.table(do.call(rbind, out))
+  #   colnames(out) <- paste("prop.gp.",seq(1,max.splits),sep="")
+  #   out
+  # })
+  # 
+  # read.prop.columns <- rbindlist(read.prop.columns)
+  # 
+  # pat.stats         <- cbind(pat.stats, read.prop.columns)
+  # 
+  # pat.stats$tips    <- as.numeric(pat.stats$tips)
   
   # tmp	<- file.path(paste0(output.dir, "/", output.string,"_patStats.csv"))
   # if (verbose) cat("Writing output to file ",tmp,"...\n",sep="")
@@ -958,17 +953,13 @@ phyloscanner.analyse.trees <- function(
   #   write.csv(tree.info$splits.table, splits.file.name, quote=F, row.names = F)
   # }
   
-  
   # 19. Individual window classifications
   
   if(length(hosts)>1){
     all.tree.info <- sapply(all.tree.info, function(tree.info) {
       
-      if(!single.file){
-        if(verbose) cat("Classifying pairwise host relationships for tree suffix ",tree.info$suffix, ".\n", sep="")
-      } else {
-        if(verbose) cat("Classifying pairwise host relationships.\n", sep="")
-      }
+
+      if(verbose) cat("Classifying pairwise host relationships for tree ID ",tree.info$suffix, ".\n", sep="")
       
       tree.info$classification.results <- classify(tree.info, verbose)
       
@@ -984,4 +975,6 @@ phyloscanner.analyse.trees <- function(
       tree.info
     }, simplify = F, USE.NAMES = T)
   }
+  
+  all.tree.info
 }

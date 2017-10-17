@@ -420,7 +420,7 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
     if(verbose) progress.bar <- txtProgressBar(width=50, style=3)
     
     cost.matrix <- make.cost.matrix.fi(getRoot(tree), tree, patients, tip.patients, cost.matrix, k, p, finite.cost, tip.read.counts, progress.bar, verbose)
-
+    
     close(progress.bar)
     
     if (verbose) cat("Reconstructing...\n")
@@ -938,6 +938,7 @@ reconstruct.fi <- function(tree, node, node.state, node.assocs, tip.assocs, pati
       costs.that.are.finite <- unique(c(which(patients=="unsampled"), which(patients==node.state), which(finite.costs[child,])))
       costs[costs.that.are.finite] <- vapply(costs.that.are.finite, function(x) calc.costs.fi(x, patients, node.state, child, bl, full.cost.matrix, k, penalty, multiplier), 0)
       min.cost <- min(costs)
+      
       if(length(which(costs == min.cost))==1){
         decision <- patients[which(costs == min.cost)]
         # if(verbose){
