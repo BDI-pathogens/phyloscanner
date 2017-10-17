@@ -33,9 +33,35 @@
 #' @param read.counts.matter.on.zero.length.tips If TRUE, read counts on tips will be taken into account in parsimony reconstructions at the parents of zero-length terminal branches. Not applicable for the Romero-Severson-like reconstruction method.
 #' @param verbose Give verbose output.
 #' @return A list of class \code{phyloscanner.trees}.
-#' @export phyloscanner_analyse_trees 
+#' @import grDevices
+#' @import stats
+#' @import utils
+#' @import graphics
+#' @import ape
+#' @import data.table
+#' @import dplyr
+#' @import dtplyr
+#' @import ff
+#' @import GGally
+#' @import ggplot2
+#' @import ggtree
+#' @import grid
+#' @import gridExtra
+#' @import gtable
+#' @import kimisc
+#' @import network
+#' @import pegas
+#' @import phangorn
+#' @import phytools
+#' @import prodlim
+#' @import RColorBrewer
+#' @import reshape
+#' @import reshape2
+#' @import scales
+#' @import sna
+#' @export phyloscanner.analyse.trees 
 
-phyloscanner_analyse_trees <- function(
+phyloscanner.analyse.trees <- function(
   tree.directory,
   tree.file.regex = "RAxML_bestTree.InWindow_([0-9]+_to_[0-9]+)\\.tree",
   splits.rule = c("s", "r", "f"),
@@ -47,8 +73,8 @@ phyloscanner_analyse_trees <- function(
   guess.multifurcation.threshold = F,
   user.blacklist.directory = NULL,
   user.blacklist.file.regex = NULL,
-  duplicate.blacklist.input.directory = NULL,
-  duplicate.blacklist.input.regex = NULL,
+  duplicate.file.directory = NULL,
+  duplicate.file.regex = NULL,
   recombination.file.directory = NULL,
   recombination.file.regex = "RecombinantReads_InWindow_([0-9]+_to_[0-9]+).csv",
   tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
@@ -69,7 +95,7 @@ phyloscanner_analyse_trees <- function(
   verbose = F)
 {
   
-  # todo - split into phyloscanner_analyse_tree and phyloscanner_analyse_trees. At present this is for multiple trees. 
+  # todo - split into phyloscanner.analyse.tree and phyloscanner.analyse.trees. At present this is for multiple trees. 
   # You can make the former call the latter by just fiddling with the directory and regex.
   
   
