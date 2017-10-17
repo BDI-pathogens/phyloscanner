@@ -1,4 +1,4 @@
-split.hosts.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff.k, sankoff.p, useff, count.reads, host.master.list=NULL, verbose = F){
+split.hosts.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff.k, sankoff.p, useff, count.reads, m.thresh = 0, host.master.list=NULL, verbose = F){
   
   if (verbose) cat("Getting tip read counts...\n")
   

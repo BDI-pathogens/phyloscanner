@@ -110,27 +110,32 @@ phyloscanner.analyse.trees <- function(
   all.tree.info <- list()
 
   class(all.tree.info) <- append(class(all.tree.info), "phyloscanner.trees")
-  
-  full.tree.file.names <- list.files.mod(tree.directory, tree.file.regex, full.names=TRUE)
-  tree.file.names <- list.files.mod(tree.directory, tree.file.regex)
-  
+ 
+  full.tree.file.names <- list.files.mod(tree.directory, pattern=tree.file.regex, full.names=TRUE)
+  tree.file.names <- list.files.mod(tree.directory,  pattern=tree.file.regex)
+
   if(length(tree.file.names)==0){
     stop("No tree files found.")
   }
   
   # There are two ways to match files - to the "suffixes" - which no longer literally have to be suffixes - and to window coordinates.
   
+  match.mode <<- NA
+  
   if(!is.null(tree.file.regex)){
     tree.identifiers <- sapply(tree.file.names, function(x) sub(tree.file.regex, "\\1", x))
-    match.mode <- "suffix"
-  } else {
-    match.mode <- "coords"
-    tryCatch({
-      tree.identifiers <- sapply(tree.file.names, function(x) get.window.coords.string(x, file.name.regex))},
+    if(all(tree.identifiers!="")){
+      match.mode <<- "suffix"
+    } 
+  } 
+  
+  if(is.na(match.mode)){
+    match.mode <<- "coords"
+    tree.identifiers <- tryCatch({
+      sapply(tree.file.names, function(x) get.window.coords.string(x, file.name.regex))},
       error = function(e){
-        cannot.match <- T
-        tree.identifiers <- tree.file.names
-        match.mode <- "none"
+        match.mode <<- "none"
+        tree.file.names
       })
   }
   
@@ -179,9 +184,9 @@ phyloscanner.analyse.trees <- function(
   # 3. Attach blacklist and recombination files
   
   if(existing.bl){
-    user.blacklist.file.names <- list.files.mod(user.blacklist.directory, user.blacklist.file.regex)
-    full.user.blacklist.file.names <- list.files.mod(user.blacklist.directory, user.blacklist.file.regex, full.names=TRUE)
-    if(!is.null(user.blacklist.file.regex)){
+    user.blacklist.file.names <- list.files.mod(user.blacklist.directory, pattern=user.blacklist.file.regex)
+    full.user.blacklist.file.names <- list.files.mod(user.blacklist.directory, pattern=user.blacklist.file.regex, full.names=TRUE)
+    if(match.mode == "suffix"){
       user.blacklist.identifiers <- sapply(user.blacklist.file.names, function(x) sub(user.blacklist.file.regex, "\\1", x))
     } else {
       if(match.mode != "coords"){
@@ -201,9 +206,9 @@ phyloscanner.analyse.trees <- function(
   
   
   if(do.recomb){
-    recombination.file.names <- list.files.mod(recombination.file.directory, recombination.file.regex)
-    full.recombination.file.names <- list.files.mod(recombination.file.directory, recombination.file.regex, full.names=TRUE)
-    if(!is.null(recombination.file.regex)){
+    recombination.file.names <- list.files.mod(recombination.file.directory, pattern=recombination.file.regex)
+    full.recombination.file.names <- list.files.mod(recombination.file.directory, pattern=recombination.file.regex, full.names=TRUE)
+    if(match.mode=="suffix"){
       recomb.identifiers <- sapply(recomb.file.names, function(x) sub(recombination.file.regex, "\\1", x))
     } else {
       if(match.mode != "coords"){
@@ -222,9 +227,9 @@ phyloscanner.analyse.trees <- function(
   }
   
   if(do.dup.blacklisting){
-    duplicate.file.names <- list.files.mod(duplicate.file.directory, duplicate.file.regex)
-    full.duplicate.file.names <- list.files.mod(duplicate.file.directory, duplicate.file.regex, full.names=TRUE)
-    if(!is.null(duplicate.file.regex)){
+    duplicate.file.names <- list.files.mod(duplicate.file.directory, pattern=duplicate.file.regex)
+    full.duplicate.file.names <- list.files.mod(duplicate.file.directory, pattern=duplicate.file.regex, full.names=TRUE)
+    if(match.mode=="suffix"){
       duplicate.identifiers <- sapply(duplicate.file.names, function(x) sub(duplicate.file.regex, "\\1", x))
     } else {
       if(match.mode != "coords"){
@@ -282,7 +287,7 @@ phyloscanner.analyse.trees <- function(
   # single.file <- single.input | length(all.tree.info)==1
   
   # 4. Read the trees
-  
+
   all.tree.info <- sapply(all.tree.info, function(tree.info) {
     if(verbose){
       cat("Reading tree file",tree.info$tree.file.name,'\n')
@@ -679,8 +684,6 @@ phyloscanner.analyse.trees <- function(
     
     dual.results <- blacklist.duals(all.tree.info, hosts.that.are.duals, summary.file = NULL, verbose)
     
-    print(dual.results)
-    
     all.tree.info <- sapply(all.tree.info, function(tree.info) {
       
       tree <- tree.info$tree
@@ -793,7 +796,7 @@ phyloscanner.analyse.trees <- function(
     
     if(verbose) cat("Reconstructing internal node hosts on tree ID ",tree.info$suffix, "\n", sep="")
     
-    tmp					     <- split.hosts.to.subgraphs(tree.info$tree, tree.info$blacklist, splits.rule, tip.regex, sankoff.k, sankoff.p, use.ff, read.counts.matter.on.zero.length.tips, hosts, verbose)
+    tmp					     <- split.hosts.to.subgraphs(tree.info$tree, tree.info$blacklist, splits.rule, tip.regex, sankoff.k, sankoff.p, use.ff, read.counts.matter.on.zero.length.tips, multifurcation.threshold, hosts, verbose)
     tree					   <- tmp[['tree']]	
     
     # trees are annotated from now on
