@@ -1,3 +1,83 @@
+#' Perform a phyloscanner analysis on a single tree
+#'
+#' This function performs a parsimony reconstruction and classification of pairwise host relationships.
+#' @param tree.file.name The name of the tree file (Newick or NEXUS format).
+#' @param splits.rule The rules by which the sets of hosts are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. Options: s=Sankoff with optional within-host diversity penalty (slow, rigorous, recommended), r=Romero-Severson (quick, less rigorous with >2 hosts), f=Sankoff with continuation costs (experimental).
+#' @param sankoff.k For \code{splits.rule = s} or \code{f} only. The \emph{k} parameter in the Sankoff reconstruction, representing the within-host diversity penalty.
+#' @param sankoff.unsampled.switch.threshold For \code{splits.rule = s} only. Threshold at which a lineage reconstructed as infecting a host will transition to the unsampled state, if it would be equally parsimonious to remain in that host.
+#' @param continuation.unsampled.proximity.cost For \code{splits.rule = f} only. The branch length at which an node is reconstructed as unsampled if all its neighbouring nodes are a greater distance away. The default is 1000, intended to be effectively infinite, such a node will never normally receive the unsampled state.
+#' @param outgroup.name The name of the tip in the phylogeny/phylogenies to be used as outgroup (if unspecified, trees will be assumed to be already rooted). This should be sufficiently distant to any sequence obtained from a host that it can be assumed that the MRCA of the entire tree was not a lineage present in any sampled individual.
+#' @param multifurcation.threshold If specified, branches shorter than this in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. 
+#' @param guess.multifurcation.threshold Whether to guess the multifurcation threshold from the branch lengths of the trees and the width of the genomic window (if that information is available). It is recommended that trees are examined by eye to check that they do appear to have multifurcations if using this option.
+#' @param user.blacklist.file.name The path of a text file containing the user-specified list of tips to be blacklisted
+#' @param duplicate.file.name The path of a .csv file specifying which tree tips are from duplicate reads. Normally this is produced by \code{phyloscanner_make_trees.py}.
+#' @param recombination.file.name The path for file containing the results of the \code{phyloscanner_make_trees.py} recombination metric analysis.
+#' @param tip.regex Regular expression identifying tips from the dataset. This expects up to three capture groups, for host ID, read ID, and read count (in that order). If the latter two groups are missing then read information will not be used. The default matches input from the phyloscanner pipeline where the host ID is the BAM file name.
+#' @param file.name.regex Regular expression identifying window coordinates. Two capture groups: start and end; if the latter is missing then the first group is a single numerical identifier for the window. The default matches input from the phyloscanner pipeline.
+#' @param seed Random number seed; used by the downsampling process, and also ties in some parsimony reconstructions can be broken randomly.
+#' @param norm.ref.file.name Name of a file giving a normalisation constant for every genome position. Cannot be used simultaneously with \code{norm.constants}. If neither is given then no normalisation will be performed.
+#' @param norm.standardise.gag.pol Use only if \code{norm.ref.file.name} is given. An HIV-specific option: if true, the normalising constants are standardised so that the average on gag+pol equals 1. Otherwise they are standardised so the average on the whole genome equals 1.
+#' @param norm.constants Either the path of a CSV file listing the file name for each tree (column 1) and the respective normalisation constant (column 2) or a single numerical normalisation constant to be applied to every tree. Cannot be used simultaneously with \code{norm.ref.file.name}. If neither is given then no normalisation will be performed.
+#' @param parsimony.blacklist.k The \emph{k} parameter of the single-host Sankhoff parsimony reconstruction used to identify probable contaminants. A value of 0 is equivalent to not performing parsimony blacklisting. 
+#' @param raw.blacklist.threshold Used to specify a read count to be used as a raw threshold for duplicate or parsimony blacklisting. Use with \code{parsimony.blacklist.k} or \code{duplicate.file.regex} or both. Parsimony blacklisting will blacklist any subgraph with a read count strictly less than this threshold. Duplicate blacklisting will black list any duplicate read with a count strictly less than this threshold. The default value of 0 means nothing is blacklisted.
+#' @param ratio.blacklist.threshold Used to specify a read count ratio (between 0 and 1) to be used as a threshold for duplicate or parsimony blacklisting. Use with \code{parsimony.blacklist.k} or \code{duplicate.file.regex} or both. Parsimony blacklisting will blacklist a subgraph if the ratio of its read count to the total read count from the same host is strictly less than this threshold. Duplcate blacklisting will blacklist a duplicate read if the ratio of its count to the count of the duplicate (from another host) is strictly less than this threshold.
+#' @param do.dual.blacklisting Blacklist all reads from the minor subgraphs for all hosts established as dual by parsimony blacklisting (which must have been done for this to do anything).
+#' @param max.reads.per.host Used to turn on downsampling. If given, reads will be blacklisted such that read counts (or tip counts if no read counts are identified) from each host are equal (although see \code{blacklist.underrepresented}.
+#' @param blacklist.underrepresented If TRUE and \code{max.reads.per.host} is given, blacklist hosts from trees where their total tip count does not reach the maximum.
+#' @param use.ff Use the \code{ff} package to store parsimony reconstruction matrices. Use if you run out of memory.
+#' @param prune.blacklist If TRUE, all blacklisted and reference tips (except the outgroup) are pruned away before starting parsimony-based reconstruction.
+#' @param read.counts.matter.on.zero.length.tips If TRUE, read counts on tips will be taken into account in parsimony reconstructions at the parents of zero-length terminal branches. Not applicable for the Romero-Severson-like reconstruction method.
+#' @param verbose Give verbose output.
+#' @return A list of class \code{phyloscanner.trees}.
+#' @importFrom ape read.tree di2multi root node.depth.edgelength
+#' @importFrom data.table data.table as.data.table set setnames
+#' @importFrom ff ff
+#' @importFrom phangorn Ancestors Descendants Children mrca.phylo getRoot
+#' @export phyloscanner.analyse.tree
+
+phyloscanner.analyse.tree <- function(
+  tree.file.name,
+  splits.rule = c("s", "r", "f"),
+  sankoff.k = 0,
+  sankoff.unsampled.switch.threshold = 0,
+  continuation.unsampled.proximity.cost = 1000,
+  outgroup.name = NULL,
+  multifurcation.threshold = 0,
+  guess.multifurcation.threshold = F,
+  user.blacklist.file.name = NULL,
+  duplicate.file.name = NULL,
+  recombination.file.name = NULL,
+  tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
+  file.name.regex = "^\\D*([0-9]+)_to_([0-9]+)\\D*$",
+  seed = sample(1:10000000,1),
+  norm.ref.file.name = NULL,
+  norm.standardise.gag.pol = F,
+  norm.constants = NULL,
+  parsimony.blacklist.k = 0,
+  raw.blacklist.threshold = 0,
+  ratio.blacklist.threshold = 0,
+  do.dual.blacklisting = F,
+  max.reads.per.host = Inf,
+  blacklist.underrepresented = F,
+  use.ff = F,
+  prune.blacklist = F,
+  read.counts.matter.on.zero.length.tips = T,
+  verbose = F){
+  
+  tree.directory <- dirname(tree.file.name)
+  user.blacklist.directory <- if(!is.null(user.blacklist.file.name)) dirname(user.blacklist.file.name) else NULL
+  duplicate.file.directory <- if(!is.null(duplicate.file.name)) dirname(duplicate.file.name) else NULL
+  recombination.file.directory <- if(!is.null(recombination.file.name)) dirname(recombination.file.name) else NULL
+  
+  phyloscanner.analyse.trees(tree.directory, basename(tree.file.name), splits.rule, sankoff.k, sankoff.unsampled.switch.threshold,
+                             continuation.unsampled.proximity.cost, outgroup.name, multifurcation.threshold, guess.multifurcation.threshold, 
+                             user.blacklist.directory, basename(user.blacklist.file.name), duplicate.file.directory, 
+                             basename(duplicate.file.name), recombination.file.directory, basename(recombination.file.name), tip.regex, 
+                             file.name.regex, seed, norm.ref.file.name, norm.standardise.gag.pol, norm.constants, parsimony.blacklist.k, 
+                             raw.blacklist.threshold, ratio.blacklist.threshold, do.dual.blacklisting, max.reads.per.host, 
+                             blacklist.underrepresented, use.ff, prune.blacklist, read.counts.matter.on.zero.length.tips, verbose)
+}
+
 #' Perform a phyloscanner analysis on a set of trees
 #'
 #' This function performs a parsimony reconstruction and classification of pairwise host relationships.
@@ -108,12 +188,12 @@ phyloscanner.analyse.trees <- function(
   # 1. Make the big list.
   
   all.tree.info <- list()
-
+  
   class(all.tree.info) <- append(class(all.tree.info), "phyloscanner.trees")
- 
+  
   full.tree.file.names <- list.files.mod(tree.directory, pattern=tree.file.regex, full.names=TRUE)
   tree.file.names <- list.files.mod(tree.directory,  pattern=tree.file.regex)
-
+  
   if(length(tree.file.names)==0){
     stop("No tree files found.")
   }
@@ -186,21 +266,25 @@ phyloscanner.analyse.trees <- function(
   if(existing.bl){
     user.blacklist.file.names <- list.files.mod(user.blacklist.directory, pattern=user.blacklist.file.regex)
     full.user.blacklist.file.names <- list.files.mod(user.blacklist.directory, pattern=user.blacklist.file.regex, full.names=TRUE)
-    if(match.mode == "suffix"){
-      user.blacklist.identifiers <- sapply(user.blacklist.file.names, function(x) sub(user.blacklist.file.regex, "\\1", x))
+    if(length(tree.file.names == 1) & length(user.blacklist.file.names)==1){
+      user.blacklist.identifiers <- tree.identifiers
     } else {
-      if(match.mode != "coords"){
-        stop("Cannot match blacklist files with tree files using the information given.")
+      if(match.mode == "suffix"){
+        user.blacklist.identifiers <- sapply(user.blacklist.file.names, function(x) sub(user.blacklist.file.regex, "\\1", x))
       } else {
-        tryCatch({
-          user.blacklist.identifiers <- sapply(user.blacklist.file.names, function(x) get.window.coords.string(x, file.name.regex))},
-          error = function(e){
-            stop("Cannot match blacklist files with tree files using the information given.")
-          })
+        if(match.mode != "coords"){
+          stop("Cannot match blacklist files with tree files using the information given.")
+        } else {
+          tryCatch({
+            user.blacklist.identifiers <- sapply(user.blacklist.file.names, function(x) get.window.coords.string(x, file.name.regex))},
+            error = function(e){
+              stop("Cannot match blacklist files with tree files using the information given.")
+            })
+        }
       }
-    }
-    if(!setequal(tree.identifiers, user.blacklist.identifiers)){
-      warning("Tree files and blacklist files do not entirely match. Blacklist files with no tree files will be ignored; tree files with no blacklist file will have no tips blacklisted.")
+      if(!setequal(tree.identifiers, user.blacklist.identifiers)){
+        warning("Tree files and blacklist files do not entirely match. Blacklist files with no tree files will be ignored; tree files with no blacklist file will have no tips blacklisted.")
+      }
     }
   }
   
@@ -208,42 +292,50 @@ phyloscanner.analyse.trees <- function(
   if(do.recomb){
     recombination.file.names <- list.files.mod(recombination.file.directory, pattern=recombination.file.regex)
     full.recombination.file.names <- list.files.mod(recombination.file.directory, pattern=recombination.file.regex, full.names=TRUE)
-    if(match.mode=="suffix"){
-      recomb.identifiers <- sapply(recomb.file.names, function(x) sub(recombination.file.regex, "\\1", x))
+    if(length(tree.file.names == 1) & length(recombination.file.names)==1){
+      recomb.identifiers <- tree.identifiers
     } else {
-      if(match.mode != "coords"){
-        stop("Cannot match recombination files with tree files using the information given.")
+      if(match.mode=="suffix"){
+        recomb.identifiers <- sapply(recomb.file.names, function(x) sub(recombination.file.regex, "\\1", x))
       } else {
-        tryCatch({
-          recomb.identifiers <- sapply(recomb.file.names, function(x) get.window.coords.string(x, file.name.regex))},
-          error = function(e){
-            stop("Cannot match recombination files with tree files using the information given.")
-          })
+        if(match.mode != "coords"){
+          stop("Cannot match recombination files with tree files using the information given.")
+        } else {
+          tryCatch({
+            recomb.identifiers <- sapply(recomb.file.names, function(x) get.window.coords.string(x, file.name.regex))},
+            error = function(e){
+              stop("Cannot match recombination files with tree files using the information given.")
+            })
+        }
       }
-    }
-    if(!setequal(tree.identifiers, recomb.identifiers)){
-      stop("Tree files and recombination files do not match.")
+      if(!setequal(tree.identifiers, recomb.identifiers)){
+        stop("Tree files and recombination files do not match.")
+      }
     }
   }
   
   if(do.dup.blacklisting){
     duplicate.file.names <- list.files.mod(duplicate.file.directory, pattern=duplicate.file.regex)
     full.duplicate.file.names <- list.files.mod(duplicate.file.directory, pattern=duplicate.file.regex, full.names=TRUE)
-    if(match.mode=="suffix"){
-      duplicate.identifiers <- sapply(duplicate.file.names, function(x) sub(duplicate.file.regex, "\\1", x))
+    if(length(tree.file.names == 1) & length(duplicate.file.names)==1){
+      duplicate.identifiers <- tree.identifiers
     } else {
-      if(match.mode != "coords"){
-        stop("Cannot match duplicate files with tree files using the information given.")
+      if(match.mode=="suffix"){
+        duplicate.identifiers <- sapply(duplicate.file.names, function(x) sub(duplicate.file.regex, "\\1", x))
       } else {
-        tryCatch({
-          duplicate.identifiers <- sapply(duplicate.file.names, function(x) get.window.coords.string(x, file.name.regex))},
-          error = function(e){
-            stop("Cannot match duplicate files with tree files using the information given.")
-          })
+        if(match.mode != "coords"){
+          stop("Cannot match duplicate files with tree files using the information given.")
+        } else {
+          tryCatch({
+            duplicate.identifiers <- sapply(duplicate.file.names, function(x) get.window.coords.string(x, file.name.regex))},
+            error = function(e){
+              stop("Cannot match duplicate files with tree files using the information given.")
+            })
+        }
       }
-    }
-    if(!setequal(tree.identifiers, duplicate.identifiers)){
-      stop("Tree files and duplicate files do not match.")
+      if(!setequal(tree.identifiers, duplicate.identifiers)){
+        stop("Tree files and duplicate files do not match.")
+      }
     }
   }
   
@@ -256,7 +348,7 @@ phyloscanner.analyse.trees <- function(
     }
     
     if(do.recomb){
-      expected.recomb.file.name  <- full.recomb.file.names[which(recomb.identifiers==tree.info$suffix)]
+      expected.recomb.file.name  <- full.recombination.file.names[which(recomb.identifiers==tree.info$suffix)]
       if(length(expected.recomb.file.name)!=0){
         tree.info$recombination.file.name <- expected.recomb.file.name
       }
@@ -287,7 +379,7 @@ phyloscanner.analyse.trees <- function(
   # single.file <- single.input | length(all.tree.info)==1
   
   # 4. Read the trees
-
+  
   all.tree.info <- sapply(all.tree.info, function(tree.info) {
     if(verbose){
       cat("Reading tree file",tree.info$tree.file.name,'\n')
@@ -581,7 +673,7 @@ phyloscanner.analyse.trees <- function(
       }
       tree.info
     }, simplify = F, USE.NAMES = T)
-
+    
     all.tree.info <- sapply(all.tree.info, function(tree.info) {
       tree <- tree.info$tree
       
@@ -593,7 +685,7 @@ phyloscanner.analyse.trees <- function(
         
         newly.blacklisted                            <- setdiff(duplicate.nos, tree.info$blacklist) 
         
-        if(verbose & length(newly.blacklisted > 0)) cat(length(newly.blacklisted), " tips blacklisted as duplicates for tree suffix ",tree.info$suffix, "\n", sep="")
+        if(verbose & length(newly.blacklisted > 0)) cat(length(newly.blacklisted), " tips blacklisted as duplicates for tree ID ",tree.info$suffix, "\n", sep="")
         
         tree.info$hosts.for.tips[newly.blacklisted]  <- NA
         
@@ -760,10 +852,6 @@ phyloscanner.analyse.trees <- function(
     stop("All hosts have been blacklisted from all trees; nothing to do.")
   }
   
-  if(length(all.tree.info)==1){
-    warning("Only one window with any hosts is present after blacklisting, summary statistics will not be plotted and transmission summary will be skipped.")
-  }
-  
   # 16. Prune away the blacklist if so requested
   
   if(prune.blacklist){
@@ -861,7 +949,7 @@ phyloscanner.analyse.trees <- function(
   
   # 19. For summary statistics
   
-
+  
   all.tree.info <- sapply(all.tree.info, function(tree.info) {
     clade.results                 <- resolveTreeIntoPatientClades(tree.info$tree, hosts, tip.regex, tree.info$blacklist, !has.read.counts)
     
@@ -961,7 +1049,7 @@ phyloscanner.analyse.trees <- function(
   if(length(hosts)>1){
     all.tree.info <- sapply(all.tree.info, function(tree.info) {
       
-
+      
       if(verbose) cat("Classifying pairwise host relationships for tree ID ",tree.info$suffix, ".\n", sep="")
       
       tree.info$classification.results <- classify(tree.info, verbose)
