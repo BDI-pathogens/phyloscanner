@@ -76,7 +76,7 @@ phyloscanner.analyse.tree(tree.file.name, splits.rule = c("s", "r", "f"),
 \item{verbose}{Give verbose output.}
 }
 \value{
-A list of class \code{phyloscanner.trees}.
+A list of class \code{phyloscanner.trees} with a single item of class \code{phyloscanner.tree}.
 }
 \description{
 This function performs a parsimony reconstruction and classification of pairwise host relationships.

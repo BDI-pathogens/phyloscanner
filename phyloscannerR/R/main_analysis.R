@@ -28,7 +28,7 @@
 #' @param prune.blacklist If TRUE, all blacklisted and reference tips (except the outgroup) are pruned away before starting parsimony-based reconstruction.
 #' @param read.counts.matter.on.zero.length.tips If TRUE, read counts on tips will be taken into account in parsimony reconstructions at the parents of zero-length terminal branches. Not applicable for the Romero-Severson-like reconstruction method.
 #' @param verbose Give verbose output.
-#' @return A list of class \code{phyloscanner.trees}.
+#' @return A list of class \code{phyloscanner.trees} with a single item of class \code{phyloscanner.tree}.
 #' @importFrom ape read.tree di2multi root node.depth.edgelength
 #' @importFrom data.table data.table as.data.table set setnames
 #' @importFrom ff ff
@@ -293,13 +293,13 @@ phyloscanner.analyse.trees <- function(
       recomb.identifiers <- tree.identifiers
     } else {
       if(match.mode=="suffix"){
-        recomb.identifiers <- sapply(recomb.file.names, function(x) sub(recombination.file.regex, "\\1", x))
+        recomb.identifiers <- sapply(recombination.file.names, function(x) sub(recombination.file.regex, "\\1", x))
       } else {
         if(match.mode != "coords"){
           stop("Cannot match recombination files with tree files using the information given.")
         } else {
           tryCatch({
-            recomb.identifiers <- sapply(recomb.file.names, function(x) get.window.coords.string(x, file.name.regex))},
+            recomb.identifiers <- sapply(recombination.file.names, function(x) get.window.coords.string(x, file.name.regex))},
             error = function(e){
               stop("Cannot match recombination files with tree files using the information given.")
             })
@@ -817,10 +817,7 @@ phyloscanner.analyse.trees <- function(
   
   if(verbose) cat("Gathering host IDs...\n")
   
-  hosts <- lapply(all.tree.info, "[[" , "hosts.for.tips")
-  hosts <- unique(unlist(hosts))
-  hosts <- hosts[!is.na(hosts)]
-  hosts <- hosts[order(hosts)]
+  hosts <- all.hosts.from.trees(all.tree.info)
   
   if(length(hosts)==1){
     warning("Only one host detected in any tree, will skip classification of topological relationships between hosts.")
@@ -895,37 +892,7 @@ phyloscanner.analyse.trees <- function(
     tree$edge.length <- tree$edge.length * tree.info$normalisation.constant
     
     if(!is.null(rs.subgraphs)){		
-      
-      # # Write PDF output
-      # 
-      # if(output.pdf){
-      #   if (verbose) cat("Drawing PDF tree...\n")
-      #   tree.display <- ggtree(tree, aes(color=BRANCH_COLOURS)) +
-      #     geom_point2(aes(subset=SUBGRAPH_MRCA, color=INDIVIDUAL), shape = 23, size = 3, fill="white") +
-      #     geom_point2(aes(color=INDIVIDUAL), shape=16, size=1) +
-      #     scale_fill_hue(na.value = "black", drop=F) +
-      #     scale_color_hue(na.value = "black", drop=F) +
-      #     theme(legend.position="none") +
-      #     geom_tiplab(aes(col=INDIVIDUAL)) + 
-      #     geom_treescale(width=pdf.scale.bar.width, y=-5, offset=1.5)	  
-      #   x.max <- ggplot_build(tree.display)$layout$panel_ranges[[1]]$x.range[2]	  
-      #   tree.display <- tree.display + ggplot2::xlim(0, 1.1*x.max)
-      #   tree.display		
-      #   tmp	<- file.path(output.dir, paste0('ProcessedTree_', tree.info$output.string, '.pdf'))
-      #   if (verbose) cat("Plot to file",tmp,"...\n")
-      #   ggsave(tmp, device="pdf", height = pdf.hm*length(tree$tip.label), width = pdf.w, limitsize = F)
-      # }
-      # 
-      # # Write nexus output
-      # 
-      # if(output.nexus){
-      #   tmp <- file.path(output.dir, paste0('ProcessedTree_', tree.info$output.string, ".", tree.fe))
-      #   if (verbose) cat("Writing rerooted, multifurcating, annotated tree to file",tmp,"...\n")	
-      #   write.ann.nexus(tree, file=tmp, annotations = c("INDIVIDUAL", "SPLIT"))
-      # }
-      # 
-      # #	Save the table
-      # 
+    
       if(has.read.counts){
         rs.subgraphs$reads <- sapply(rs.subgraphs$tip, function(x) as.numeric(read.count.from.label(x, tip.regex)))
       } else {
@@ -954,91 +921,6 @@ phyloscanner.analyse.trees <- function(
     tree.info
   }, simplify = F, USE.NAMES = T)
   
-  # pat.stats <- lapply(all.tree.info, function(x) calc.all.stats.in.window(x, hosts, tip.regex, has.read.counts, verbose))
-  # pat.stats <- rbindlist(pat.stats)
-  # 
-  # read.proportions <- lapply(all.tree.info, function(y) sapply(hosts, function(x) get.read.proportions(x, y$suffix, y$splits.table), simplify = F, USE.NAMES = T))
-  # 
-  # # Get the max split count over every window and host (the exact number of columns depends on this)
-  # 
-  # max.splits <- max(sapply(read.proportions, function(x) max(sapply(x, function(y) length(y)))))
-  # 
-  # read.prop.columns <- lapply(all.tree.info, function(x){
-  #   window.props <- read.proportions[[x$suffix]]
-  #   out <- lapply(hosts, function(y){
-  #     
-  #     result <- window.props[[y]]
-  #     
-  #     if(is.na(result[1])){
-  #       result <- rep(NA, max.splits)
-  #       
-  #     } else {
-  #       if(length(result)<max.splits){
-  #         result[(length(result)+1):max.splits] <- 0
-  #       }
-  #     }
-  #     
-  #     result
-  #   })
-  #   out <- as.data.table(do.call(rbind, out))
-  #   colnames(out) <- paste("prop.gp.",seq(1,max.splits),sep="")
-  #   out
-  # })
-  # 
-  # read.prop.columns <- rbindlist(read.prop.columns)
-  # 
-  # pat.stats         <- cbind(pat.stats, read.prop.columns)
-  # 
-  # pat.stats$tips    <- as.numeric(pat.stats$tips)
-  
-  # tmp	<- file.path(paste0(output.dir, "/", output.string,"_patStats.csv"))
-  # if (verbose) cat("Writing output to file ",tmp,"...\n",sep="")
-  # write.csv(pat.stats, tmp, quote = F, row.names = F)
-  # 
-  # if(!single.file){
-  #   coordinates <- lapply(all.tree.info, "[[" , "window.coords")
-  #   
-  #   if(readable.coords){
-  #     coordinates <- lapply(all.tree.info, "[[" , "window.coords")
-  #     starts <- sapply(coordinates, "[[", "start")
-  #     ends <- sapply(coordinates, "[[", "end")
-  #     ews <- min(starts)
-  #     lwe <- max(ends)
-  #     
-  #   } else {
-  #     coordinates <- sapply(all.tree.info, "[[" , "xcoord")
-  #     range <- max(coordinates) - min(coordinates)
-  #     increment <- range/length(coordinates)
-  #     
-  #     ews <- min(coordinates) - 0.45*increment
-  #     lwe <- max(coordinates) + 0.45*increment
-  #   }
-  #   
-  #   x.limits <- c(ews, lwe)
-  #   
-  #   tmp <- file.path(paste0(output.dir, "/", output.string,"_patStats.pdf"))
-  #   if (verbose) cat("Plotting to file ",tmp,"...\n",sep="")
-  #   
-  #   # Set up the boundaries of each window's region on the x-axis
-  #   
-  #   xcoords <- unique(pat.stats$xcoord)
-  #   xcoords <- xcoords[order(xcoords)]
-  #   
-  #   missing.window.data <- find.gaps(xcoords)
-  #   
-  #   xcoords <- missing.window.data$x.coordinates
-  #   regular.gaps <- missing.window.data$regular.gaps
-  #   rectangles.for.missing.windows <- missing.window.data$rectangles.for.missing.windows
-  #   bar.width <- missing.window.data$width
-  #   
-  #   produce.pdf.graphs(tmp, pat.stats, hosts, xcoords, x.limits, rectangles.for.missing.windows, bar.width, regular.gaps, readable.coords = readable.coords, verbose = verbose)
-  # }
-  
-  # for(tree.info in all.tree.info){
-  #   splits.file.name <- file.path(output.dir, paste0("Splits_",tree.info$output.string,".",csv.fe))
-  #   write.csv(tree.info$splits.table, splits.file.name, quote=F, row.names = F)
-  # }
-  
   # 19. Individual window classifications
   
   if(length(hosts)>1){
@@ -1049,15 +931,6 @@ phyloscanner.analyse.trees <- function(
       
       tree.info$classification.results <- classify(tree.info, verbose)
       
-      # if(do.collapsed){
-      #   tree.info$collapsed.file.name <- file.path(output.dir, paste0("CollapsedTree_",tree.info$output.string,".",csv.fe))
-      #   write.csv(tree.info$classification.results$collapsed[,1:4], tree.info$collapsed.file.name, quote=F, row.names = F)
-      # }
-      # if(do.class.detail){
-      #   tree.info$classification.file.name <- file.path(output.dir, paste0("Classification_",tree.info$output.string,".",csv.fe))
-      #   write.csv(tree.info$classification.results$classification, tree.info$classification.file.name, quote=F, row.names = F)
-      # }
-      
       tree.info
     }, simplify = F, USE.NAMES = T)
   }
@@ -1066,6 +939,218 @@ phyloscanner.analyse.trees <- function(
   attr(all.tree.info, 'match.mode')      <- match.mode
   attr(all.tree.info, 'has.read.counts') <- has.read.counts
   
-  
   all.tree.info
 }
+
+
+#' Make a \code{data.table} of per-window host statistics
+#'
+#' This function performs a parsimony reconstruction and classification of pairwise host relationships.
+#' @param phyloscanner.trees A list of class \code{phyloscanner.trees}
+#' @param hosts A list of hosts to record statistics for. If not specified, every identifiable host in \code{phyloscanner.trees}
+#' @param tip.regex Regular expression identifying tips from the dataset. This expects up to three capture groups, for host ID, read ID, and read count (in that order). If the latter two groups are missing then read information will not be used. The default matches input from the phyloscanner pipeline where the host ID is the BAM file name.
+#' @param verbose Produce verbose output
+#' @return A \code{data.table}
+#' @importFrom ape drop.tip unroot
+#' @importFrom phytools nodeheight
+#' @importFrom data.table rbindlist
+#' @export gather.summary.statistics
+
+gather.summary.statistics <- function(phyloscanner.trees, hosts = all.hosts.from.trees(phyloscanner.trees), tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$", verbose = F){
+  
+  has.read.counts <- attr(phyloscanner.trees, 'has.read.counts')
+  
+  pat.stats <- lapply(phyloscanner.trees, function(x) calc.all.stats.in.window(x, hosts, tip.regex, has.read.counts, verbose))
+  pat.stats <- rbindlist(pat.stats)
+  
+  read.proportions <- lapply(phyloscanner.trees, function(y) sapply(hosts, function(x) get.read.proportions(x, y$suffix, y$splits.table), simplify = F, USE.NAMES = T))
+  
+  # Get the max split count over every window and host (the exact number of columns depends on this)
+  
+  max.splits <- max(sapply(read.proportions, function(x) max(sapply(x, function(y) length(y)))))
+  
+  read.prop.columns <- lapply(phyloscanner.trees, function(x){
+    window.props <- read.proportions[[x$suffix]]
+    out <- lapply(hosts, function(y){
+      
+      result <- window.props[[y]]
+      
+      if(is.na(result[1])){
+        result <- rep(NA, max.splits)
+        
+      } else {
+        if(length(result)<max.splits){
+          result[(length(result)+1):max.splits] <- 0
+        }
+      }
+      
+      result
+    })
+    out <- as.data.table(do.call(rbind, out))
+    colnames(out) <- paste("prop.gp.",seq(1,max.splits),sep="")
+    out
+  })
+  
+  read.prop.columns <- rbindlist(read.prop.columns)
+  
+  pat.stats         <- cbind(pat.stats, read.prop.columns)
+  
+  pat.stats$tips    <- as.numeric(pat.stats$tips)
+  
+  pat.stats
+}
+
+
+
+#' Graph summary statistics for a single host
+#' @param phyloscanner.trees A list of class \code{phyloscanner.trees}
+#' @param sum.stats The output of a call to \code{gather.summary.statistics}.
+#' @param host The host to obtain graphs for.
+#' @param verbose Verbose output
+#' @import ggplot2
+#' @import grid
+#' @import gridExtra
+#' @import gtable
+#' @import RColorBrewer
+#' @importFrom data.table melt
+#' @importFrom scales pretty_breaks
+#' @export draw.summary.statistics
+
+draw.summary.statistics <- function(phyloscanner.trees, sum.stats, host, verbose = F){
+  
+  readable.coords <- attr(phyloscanner.trees, 'readable.coords')
+  
+  if(length(unique(sum.stats$file.suffix))==1){
+    stop("Only one tree, cannot draw summary statistics graph.")
+  }
+  
+  if(!(host %in% sum.stats$id)){
+    stop("Cannot find this host in this summary statistics table.")
+  }
+  
+  coordinates <- lapply(phyloscanner.trees, "[[" , "window.coords")
+  
+  if(readable.coords){
+    coordinates <- lapply(phyloscanner.trees, "[[" , "window.coords")
+    starts <- sapply(coordinates, "[[", "start")
+    ends <- sapply(coordinates, "[[", "end")
+    ews <- min(starts)
+    lwe <- max(ends)
+    
+  } else {
+    coordinates <- sapply(phyloscanner.trees, "[[" , "xcoord")
+    range <- max(coordinates) - min(coordinates)
+    increment <- range/length(coordinates)
+    
+    ews <- min(coordinates) - 0.45*increment
+    lwe <- max(coordinates) + 0.45*increment
+  }
+  
+  x.limits <- c(ews, lwe)
+  
+  # Set up the boundaries of each window's region on the x-axis
+  
+  xcoords <- unique(sum.stats$xcoord)
+  xcoords <- xcoords[order(xcoords)]
+  
+  missing.window.data <- find.gaps(xcoords)
+  
+  xcoords <- missing.window.data$x.coordinates
+  regular.gaps <- missing.window.data$regular.gaps
+  rectangles.for.missing.windows <- missing.window.data$rectangles.for.missing.windows
+  bar.width <- missing.window.data$width
+  
+  produce.host.graphs(sum.stats, host, xcoords, x.limits, rectangles.for.missing.windows, bar.width, regular.gaps, readable.coords = readable.coords, verbose = verbose)
+  
+}
+
+#' Draw summary statistics to file for many hosts as a multipage file
+#' @param phyloscanner.trees A list of class \code{phyloscanner.trees}
+#' @param sum.stats The output of a call to \code{gather.summary.statistics}.
+#' @param hosts A vector of hosts to obtain graphs for. By default, all hosts detected in \code{phyloscanner.trees}.
+#' @param file.name Output file name (should have a .pdf file extension)
+#' @param height The height of each page of the output file in inches (defaults to A4 size)
+#' @param width The width of each page of the output file in inches (defaults to A4 size)
+#' @param verbose Verbose output
+#' @import ggplot2
+#' @import grid
+#' @import gridExtra
+#' @import gtable
+#' @import RColorBrewer
+#' @importFrom data.table melt
+#' @importFrom scales pretty_breaks
+#' @export multipage.summary.statistics
+multipage.summary.statistics <- function(phyloscanner.trees, sum.stats, hosts = all.hosts.from.trees(phyloscanner.trees), file.name, height=11.6929, width=8.26772, verbose = F){
+  readable.coords <- attr(phyloscanner.trees, 'readable.coords')
+  
+  if(length(unique(sum.stats$file.suffix))==1){
+    stop("Only one tree, cannot draw summary statistics graph.")
+  }
+  
+  coordinates <- lapply(phyloscanner.trees, "[[" , "window.coords")
+  
+  if(readable.coords){
+    coordinates <- lapply(phyloscanner.trees, "[[" , "window.coords")
+    starts <- sapply(coordinates, "[[", "start")
+    ends <- sapply(coordinates, "[[", "end")
+    ews <- min(starts)
+    lwe <- max(ends)
+    
+  } else {
+    coordinates <- sapply(phyloscanner.trees, "[[" , "xcoord")
+    range <- max(coordinates) - min(coordinates)
+    increment <- range/length(coordinates)
+    
+    ews <- min(coordinates) - 0.45*increment
+    lwe <- max(coordinates) + 0.45*increment
+  }
+  
+  x.limits <- c(ews, lwe)
+  
+  # Set up the boundaries of each window's region on the x-axis
+  
+  xcoords <- unique(sum.stats$xcoord)
+  xcoords <- xcoords[order(xcoords)]
+  
+  missing.window.data <- find.gaps(xcoords)
+  
+  xcoords <- missing.window.data$x.coordinates
+  regular.gaps <- missing.window.data$regular.gaps
+  rectangles.for.missing.windows <- missing.window.data$rectangles.for.missing.windows
+  bar.width <- missing.window.data$width
+  
+  produce.pdf.graphs(file.name, sum.stats, hosts, xcoords, x.limits, rectangles.for.missing.windows, bar.width, regular.gaps = F, width, height, readable.coords = F, verbose = F)
+}
+
+#' Write the phylogeny with reconstructed host annotations to file
+#' @param phyloscanner.tree A list of class \code{phyloscanner.tree} (usually an item in a list of class \code{phyloscanner.trees})
+#' @param file.name The name of the output file
+#' @param format The format - PDF or NEXUS - in which to write the output.
+#' @param pdf.scale.bar.width The width, in substitutions per site, of the scale bar in PDF output
+#' @param pdf.w The width of the output PDF file, in inches
+#' @param pdf.hm The height, in inches per tip, of the output PDF file
+#' @importFrom ggtree ggtree geom_point2 geom_tiplab geom_treescale
+#' @import ggplot2
+#' @import ape
+#' @export write.annotated.tree
+write.annotated.tree <- function(phyloscanner.tree, file.name, format = c("pdf", "nexus"), pdf.scale.bar.width = 0.01, pdf.w = 50, pdf.hm = 0.15){
+  tree <- phyloscanner.tree$tree
+  
+  if(format == "pdf"){
+    tree.display <- ggtree(tree, aes(color=BRANCH_COLOURS)) +
+      geom_point2(aes(subset=SUBGRAPH_MRCA, color=INDIVIDUAL), shape = 23, size = 3, fill="white") +
+      geom_point2(aes(color=INDIVIDUAL), shape=16, size=1) +
+      scale_fill_hue(na.value = "black", drop=F) +
+      scale_color_hue(na.value = "black", drop=F) +
+      theme(legend.position="none") +
+      geom_tiplab(aes(col=INDIVIDUAL)) +
+      geom_treescale(width=pdf.scale.bar.width, y=-5, offset=1.5)
+    x.max <- ggplot_build(tree.display)$layout$panel_ranges[[1]]$x.range[2]
+    tree.display <- tree.display + ggplot2::xlim(0, 1.1*x.max)
+    tree.display
+    ggsave(file.name, device="pdf", height = pdf.hm*length(tree$tip.label), width = pdf.w, limitsize = F)
+  } else if(format == "nexus"){
+    write.ann.nexus(tree, file=file.name, annotations = c("INDIVIDUAL", "SPLIT"))
+  }
+}
+
