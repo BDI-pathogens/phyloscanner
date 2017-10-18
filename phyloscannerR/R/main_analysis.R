@@ -252,9 +252,6 @@ phyloscanner.analyse.trees <- function(
     })
   }, simplify = F, USE.NAMES = T)
   
-  attr(all.tree.info, 'readable.coords') <- readable.coords
-  attr(all.tree.info, 'match.mode')      <- match.mode
-  
   # more single file issues
   
   # if(!readable.coords & !single.file){
@@ -410,8 +407,6 @@ phyloscanner.analyse.trees <- function(
     warning("Read counts are not present in some trees; ignoring them throughout.\n")
   }
   has.read.counts <- all(read.counts.check)
-  
-  attr(all.tree.info, 'has.read.counts') <- has.read.counts
   
   # 6. Root tree, collapse multifurcations, get host for each tip
   
@@ -1066,6 +1061,11 @@ phyloscanner.analyse.trees <- function(
       tree.info
     }, simplify = F, USE.NAMES = T)
   }
+  
+  attr(all.tree.info, 'readable.coords') <- readable.coords
+  attr(all.tree.info, 'match.mode')      <- match.mode
+  attr(all.tree.info, 'has.read.counts') <- has.read.counts
+  
   
   all.tree.info
 }
