@@ -812,7 +812,7 @@ convert.to.columns <- function(matrix, names){
   return(a.df)
 }
 
-merge.classifications <- function(all.tree.info, allow.mt = T){
+merge.classifications <- function(all.tree.info, allow.mt = T, verbose = F){
   tt	<-	lapply(all.tree.info, function(tree.info){
     
     if(is.null(tree.info$classification.results$classification) & is.null(tree.info$classification.file.name)){
@@ -904,7 +904,7 @@ merge.classifications <- function(all.tree.info, allow.mt = T){
 
 summarise.classifications <- function(all.tree.info, min.threshold, dist.threshold, allow.mt = T, verbose = F, contiguous = F){
   
-  tt <- merge.classifications(all.tree.info, allow.mt)
+  tt <- merge.classifications(all.tree.info, allow.mt, verbose)
   
   if (verbose) cat("Making summary output table...\n")
   
@@ -971,7 +971,7 @@ summarise.classifications <- function(all.tree.info, min.threshold, dist.thresho
 simplify.summary <- function(summary, arrow.threshold, total.trees, plot = F){
   
   done <- rep(FALSE, nrow(summary))
-
+  
   for(line in 1:nrow(summary)){
     if(!done[line]){
       forwards.rows <- which(summary$host.1 == summary$host.1[line] & summary$host.2 == summary$host.2[line])
