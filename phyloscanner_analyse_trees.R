@@ -1,15 +1,9 @@
 #!/usr/bin/env Rscript
 
-list.of.packages <- c("argparse", "data.table", "ape", "ff", "phangorn", "phytools", "scales", "RColorBrewer", "gtable", "grid", "gridExtra", "kimisc", "GGally", "network", "sna")
-new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-if(length(new.packages)){
-  cat("Missing dependencies; replacing the path below appropriately, run\n[path to your phyloscanner code]/tools/package_install.R\nthen try again.\n")
-  quit(save="no", status=1)
-}
-
 options("warn"=1)
 
 suppressMessages(require(argparse, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(phyloscannerR, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(ape, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(phangorn, quietly=TRUE, warn.conflicts=FALSE))
@@ -47,7 +41,6 @@ arg_parser$add_argument("-ph", "--pdfRelHeight", action="store", default=0.15, h
 arg_parser$add_argument("-psb", "--pdfScaleBarWidth", action="store", default=0.01, help="Width of the scale bar in the PDF output (in branch length units)")
 arg_parser$add_argument("-rda", "--outputRDA", action="store_true", help="Write the final R workspace image to file.")
 arg_parser$add_argument("-sd", "--seed", action="store_true", help="Random number seed; used by the downsampling process, and also ties in some parsimony reconstructions can be broken randomly.")
-arg_parser$add_argument("-D", "--toolsDir", action="store", help="Full path of the /tools/ directory.")
 arg_parser$add_argument("-ow", "--overwrite", action="store_true", help="Overwrite existing output files with the same names.")
 
 # Normalisation options
@@ -261,27 +254,6 @@ if(dist.threshold == -1){
   dist.threshold      <- Inf
 }
 allow.mt              <- args$allowMultiTrans
-
-if(!is.null(args$toolsDir)){
-  tools.dir           <- args$toolsDir
-} else {
-  tools.dir           <- paste0(dirname(thisfile()),"/tools")
-  if(!dir.exists(tools.dir)){
-    stop("Cannot detect the location of the /phyloscanner/tools directory. Please specify it at the command line with -D.")
-  }
-}
-
-source(file.path(tools.dir, "general_functions.R"))
-source(file.path(tools.dir, "normalisation_functions.R"))
-source(file.path(tools.dir, "tree_utility_functions.R"))
-source(file.path(tools.dir, "blacklist_functions.R"))
-source(file.path(tools.dir, "parsimony_reconstruction_methods.R"))
-source(file.path(tools.dir, "collapsed_tree_methods.R"))
-source(file.path(tools.dir, "write_annotated_trees.R"))
-source(file.path(tools.dir, "clade_functions.R"))
-source(file.path(tools.dir, "summary_stats_functions.R"))
-source(file.path(tools.dir, "plotting_functions.R"))
-source(file.path(tools.dir, "downsampling_functions.R"))
 
 # todo All functions that get passed tree info should check that the lists have what they need. If they have file names but not the contents, they should load the contents in.
 
@@ -761,7 +733,7 @@ if(do.par.blacklisting){
     
     hosts <- hosts[order(hosts)]
     
-    results <- sapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, outgroup.name, bl.raw.threshold, bl.ratio.threshold, "s", par.blacklisting.k, 0, T, no.read.counts, verbose), simplify = F, USE.NAMES = T)
+    results <- sapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, outgroup.name, bl.raw.threshold, bl.ratio.threshold, "s", par.blacklisting.k, 0, T, no.read.counts, tip.regex, verbose), simplify = F, USE.NAMES = T)
     
     contaminant                                 <- unlist(lapply(results, "[[", 2))
     contaminant.nos                             <- which(tree.info$tree$tip.label %in% contaminant)
@@ -851,7 +823,7 @@ if(do.dual.blacklisting){
 
 if(downsample){
   all.tree.info <- sapply(all.tree.info, function(tree.info){
-    tree.info <- downsample.tree(tree.info, NULL, downsampling.limit, T, blacklist.ur, no.read.counts, seed, verbose)
+    tree.info <- downsample.tree(tree.info, NULL, downsampling.limit, T, blacklist.ur, no.read.counts, tip.regex, seed, verbose)
     tree.info$hosts.for.tips[tree.info$blacklist] <- NA 
     
     tree.info
@@ -999,7 +971,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
   tree.info
 }, simplify = F, USE.NAMES = T)
 
-pat.stats <- lapply(all.tree.info, function(x) calc.all.stats.in.window(x, hosts, tip.regex, verbose))
+pat.stats <- lapply(all.tree.info, function(x) calc.all.stats.in.window(x, hosts, tip.regex, !no.read.counts, verbose))
 pat.stats <- rbindlist(pat.stats)
 
 read.proportions <- lapply(all.tree.info, function(y) sapply(hosts, function(x) get.read.proportions(x, y$suffix, y$splits.table), simplify = F, USE.NAMES = T))
@@ -1130,7 +1102,12 @@ if(!single.file & length(hosts)>1){
   }
 }
 
-# 19. Workspace image
+
+# 19. For compatibility with phyloscannerR
+
+class(all.tree.info) <- append(class(all.tree.info), "phyloscanner.trees")
+
+# 20. Workspace image
 
 if(output.rda){
   if (verbose) cat('Saving R workspace image to file', paste0("workspace_",output.string,".rda"),'\n')
