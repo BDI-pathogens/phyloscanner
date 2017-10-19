@@ -1,9 +1,7 @@
 #!/usr/bin/env Rscript
 
-list.of.packages <- c("prodlim", "reshape2", "kimisc")
-new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-if(length(new.packages)) install.packages(new.packages, dependencies = TRUE, repos="http://cran.ma.imperial.ac.uk/")
 suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(phyloscannerR, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(kimisc, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
 
@@ -14,29 +12,15 @@ arg_parser$add_argument("-s", "--summaryFile", action="store", help="The full ou
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="csv", help="The file extension for table files (default .csv).")
 arg_parser$add_argument("inputFiles", action="store", help="Either a list of all input files (output from classify_relationships.R), separated by colons, or a single string that begins every input file name.")
 arg_parser$add_argument("outputFile", action="store", help="A .csv file to write the output to.")
-arg_parser$add_argument("-D", "--scriptDir", action="store", help="Full path of the /tools directory.")
 arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what I'm doing.")
 
 args <- arg_parser$parse_args()
-
-if(!is.null(args$scriptDir)){
-  script.dir          <- args$scriptDir
-} else {
-  script.dir          <- dirname(thisfile())
-  if(!dir.exists(script.dir)){
-    stop("Cannot detect the location of the /phyloscanner/tools directory. Please specify it at the command line with -D.")
-  }
-}
 
 summary.file             <- args$summaryFile
 output.file              <- args$outputFile
 verbose                  <- args$verbose
 csv.fe                   <- args$csvFileExtension
 input.file.name          <- args$inputFiles
-
-source(file.path(script.dir, "tree_utility_functions.R"))
-source(file.path(script.dir, "general_functions.R"))
-source(file.path(script.dir, "collapsed_tree_methods.R"))
 
 input.files <- list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name)), full.names=TRUE)
 
