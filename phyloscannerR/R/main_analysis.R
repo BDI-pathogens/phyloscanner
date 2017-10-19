@@ -189,8 +189,6 @@ phyloscanner.analyse.trees <- function(
   
   all.tree.info <- list()
   
-  class(all.tree.info) <- append(class(all.tree.info), "phyloscanner.trees")
-  
   full.tree.file.names <- list.files.mod(tree.directory, pattern=tree.file.regex, full.names=TRUE)
   tree.file.names <- list.files.mod(tree.directory,  pattern=tree.file.regex)
   
@@ -938,6 +936,8 @@ phyloscanner.analyse.trees <- function(
   attr(all.tree.info, 'readable.coords') <- readable.coords
   attr(all.tree.info, 'match.mode')      <- match.mode
   attr(all.tree.info, 'has.read.counts') <- has.read.counts
+  
+  class(all.tree.info) <- append(class(all.tree.info), "phyloscanner.trees")
   
   all.tree.info
 }

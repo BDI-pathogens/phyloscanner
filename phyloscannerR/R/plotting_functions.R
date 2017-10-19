@@ -105,8 +105,8 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, x.lim
   pdf(file=file.name, width=width, height=height)
   
   for (i in seq(1, length(hosts))) {
-    host = hosts[i]
-   tryCatch({
+    host <- hosts[i]
+    tryCatch({
       if(i!=1){
         grid.newpage()
       }
