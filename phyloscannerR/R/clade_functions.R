@@ -1,3 +1,6 @@
+#' @keywords internal
+#' @export checkArgs
+
 checkArgs <- function(args) {
   # Quits with an error message if the wrong number of args is given.
 	if (length(args) < 6) {
@@ -12,6 +15,9 @@ checkArgs <- function(args) {
 	}
 }
 
+#' @keywords internal
+#' @export checkArgs2
+
 checkArgs2 <- function(args) {
   # Quits with an error message if the wrong number of args is given.
 	if (length(args) < 2) {
@@ -22,6 +28,9 @@ checkArgs2 <- function(args) {
 	}
 }
 
+#' @keywords internal
+#' @export checkTreeFiles
+
 checkTreeFiles <- function(tree.files) {
   # Check files exist
 	for (tree.file in tree.files) {
@@ -31,6 +40,9 @@ checkTreeFiles <- function(tree.files) {
 		}
 	}
 }
+
+#' @keywords internal
+#' @export checkTreeFileNames
 
 checkTreeFileNames <- function(tree.files.basenames, tree.file.regex) {
   # Check that tree files are named as expected, so that we know how to extract
@@ -44,6 +56,9 @@ checkTreeFileNames <- function(tree.files.basenames, tree.file.regex) {
     }
   }
 }
+
+#' @keywords internal
+#' @export colourTree
 
 colourTree <- function(tree, tip.regex, id.colours, tree.file.basename,
 output.dir, font.size, line.width, ids, colour.edges, clade.mrcas.by.patient,
@@ -125,6 +140,8 @@ ladderise.trees) {
 	par <- opar
 }
 
+#' @keywords internal
+#' @export resolveTreeIntoPatientClades
 
 resolveTreeIntoPatientClades <- function(tree, ids, tip.regex, blacklisted.tips = vector(), no.read.counts = T) {
   
@@ -220,6 +237,8 @@ resolveTreeIntoPatientClades <- function(tree, ids, tip.regex, blacklisted.tips 
   return(list(clades.by.patient=clades.by.patient, clade.mrcas.by.patient=clade.mrcas.by.patient))
 }
 
+#' @keywords internal
+#' @export summariseClades
 
 summariseClades <- function(tree, clades, num.clades.for.output, tip.regex, no.read.counts, whose.code) {
   # TODO: auto indent this function!
@@ -320,6 +339,9 @@ summariseClades <- function(tree, clades, num.clades.for.output, tip.regex, no.r
     root.to.tip.per.clade=root.to.tip.per.clade))
 }
 
+#' @keywords internal
+#' @export printSortedClades
+
 printSortedClades <- function(clades, tip.regex, num.clades.for.output) {
   # Order each clade by the read number of the tips, and the set of clades by
   # their smallest read number. This is unique (unlike read count sorting) so
@@ -346,6 +368,9 @@ printSortedClades <- function(clades, tip.regex, num.clades.for.output) {
   cat('\n\n')
 }
 
+#' @keywords internal
+#' @export calcMeanRootToTip
+
 calcMeanRootToTip <- function(tree, read.counts.per.tip) {
   if(is.null(read.counts.per.tip)){
     read.counts.per.tip <- rep(1, length(tree$tip.label))
@@ -368,336 +393,3 @@ calcMeanRootToTip <- function(tree, read.counts.per.tip) {
 	}
 	return(root.to.tip)
 }
-
-
-
-################################################################################
-# All functions below deprecated, for backward compatibility...
-################################################################################
-
-makeSingleTipTree <- function(tip.label, read.counts.per.tip) {
-	# creates a clade object based on a single tip label
-	# read.counts.per.tip is a named vector of all number of reads for all labels
-	return(list(tree = tip.label, is.a.tip = T,
-   num.reads = read.counts.per.tip[tip.label]))
-}
-	
-getLargestClade <- function(patient.subtree, tree, read.counts.per.tip) {
-	# from a 'patient.subtree' of 'tree', this function returns the largest
-	# monophyletic subtree, as a clade object.
-	# Clade objects can be a single tip.
-  # This function only currently works if the patient.subtree is a tree (not
-	# a clade object). This could be modified, which might simplify the main
-	# code for finding all monophyletic subclades
-	subtrees <- subtrees(patient.subtree)
-	subtrees[[length(subtrees) + 1]] <- patient.subtree
-	subtrees.monophyletic <- sapply(subtrees, function(x) is.monophyletic(tree,
-  tips = x$tip.label))
-	monophyletic.subtrees <- subtrees[subtrees.monophyletic == T]
-		
-	num.reads.largest.clade <- 0
-	if (length(monophyletic.subtrees) > 0) {
-		# if there is a monphyletic subtree
-		for (subtree in monophyletic.subtrees) {
-			num.reads.sub <- 0
-			for (tip in subtree$tip.label) {
-				num.reads.sub <- num.reads.sub + read.counts.per.tip[tip]
-			}
-			if (num.reads.sub > num.reads.largest.clade) {
-				num.reads.largest.clade <- num.reads.sub
-				largest.mononophyletic.clade <- subtree
-				largest.mononophyletic.clade.is.a.tip <- F
-			}
-		}
-	}
-	for (tip in patient.subtree$tip.label) {
-		# this will either find the most common tip if there isn't a monophyletic
-		# subtree, or find a tip which isn't in the monophyletic subtree which is
-		# more common than that the sum of all the reads in that tree.
-		# For that second option to work, this loop must come after the one above.
-		num.reads.sub <- read.counts.per.tip[tip]
-		if (num.reads.sub > num.reads.largest.clade) {
-			num.reads.largest.clade <- num.reads.sub
-			largest.mononophyletic.clade <- tip
-			largest.mononophyletic.clade.is.a.tip <- T
-		}
-	}
-	return(list(tree = largest.mononophyletic.clade,
-   is.a.tip = largest.mononophyletic.clade.is.a.tip,
-   num.reads = unname(num.reads.largest.clade)))
-}
-	
-calcMeanRootToTipChristophe <- function(clade, read.counts.per.tip) {
-	# Mean root-to-tip distance, weighted by the number of reads associated with
-	# each tip. Returns 0 if the clade is a single tip.
-	# Input is a clade object (a named list), with three items:
-	# $is.a.tip is a logical, indicating whether the tree is a single tip of a
-	# 'proper' tree
-	# $tree is either the tree, or the label of the tip
-	# $num.reads is the number of reads associated with the whole clade
-	# The second input is read.counts.per.tip, a vector with named entries, which
-	# returns the number of reads associated with each tip label in the tree
-	root.to.tip <- 0
-	if (clade$is.a.tip == F) {
-		for (i in 1:length(clade$tree$tip.label)) {
-			root.to.tip <- root.to.tip + nodeheight(clade$tree, i) * 
-			read.counts.per.tip[clade$tree$tip.label[i]]
-		}
-		root.to.tip <- root.to.tip/clade$num.reads
-	}
-	return(unname(root.to.tip))
-}
-
-getIdFromTip <- function(tip.label, id.delimiter) {
-  # Gets the part of a tip name that will be the patient id for patient tips.
-  return(unlist(strsplit(tip.label, id.delimiter))[1])
-}
-# calculate this once for all tips...
-
-resolveTreeIntoPatientCladesChris <- function(tree, first.call=TRUE, num.tips=NULL, node=NULL) {
-  # Resolves a tree into a list (indexed by patient ID) of lists; each entry in
-  # in one of the latter lists is a monophyletic set of tips for that patient, 
-  # collected into a vector.
-
-  # This function calls itself iteratively. If this is the first call, set the 
-  # node to be the tree root and find the number of tips (used repeatedly).
-  if (first.call) {
-    node <- findMRCA(tree, tree$tip.label, type="node")
-    num.tips <- length(tree$tip.label)
-  }
-
-  # This function shouldn't be called on a 'node' that's actually a tip.
-  stopifnot(node > num.tips)
-
-  # Create a list, indexed by patient ids, of empty lists.
-	clades.at.this.level <- list()
-	for (id in ids) clades.at.this.level[[id]] <- list()
-
-  # If all tips descending from this node are from one patient, add their names
-  # to this patient's list.
-  descendant.tips <- Descendants(tree, node=node, type="tips")
-  descendant.tips <- rapply(descendant.tips,c)
-  first.id <- NULL
-  all.one.patient <- TRUE
-  for (tip.number in descendant.tips) {
-    tip.name <- tree$tip.label[tip.number]
-    id <- getIdFromTip(tip.name, id.delimter)
-    if (! id %in% ids) {
-      all.one.patient <- FALSE
-      break
-    } else if (is.null(first.id)) {
-      first.id <- id
-    } else if (id != first.id) {
-      all.one.patient <- FALSE
-      break
-    }
-  }
-  if (all.one.patient) {
-    clades.at.this.level[[first.id]][[1]] <- tree$tip.label[descendant.tips]
-  } else {
-    # Iterate through the immediate children of this node.
-    children <- Descendants(tree, node=node, type="children")
-    for (child in children) {
-      if (child <= num.tips) {
-        # The child is a tip.
-        # If it's a patient tip, add it to that patient's vector.
-        tip.name <- tree$tip.label[child]
-        id <- getIdFromTip(tip.name, id.delimter)
-        if (id %in% ids) {
-          clades.at.this.level[[id]][length(clades.at.this.level[[id]])+1] <-
-          c(tip.name)
-        }
-      } else {
-        # The child is a node. Merge clades.at.this.level with the result of
-        # applying this function to the child.
-        clades.at.this.level <- Map(c, clades.at.this.level,
-        resolveTreeIntoPatientCladesChris(tree, FALSE, num.tips, child))
-      }
-    }
-  }
-  return(clades.at.this.level)
-}
-
-
-
-findOnePatientsClades <-
-function(tree, id, first.call=TRUE, num.tips=NULL, node=NULL) {
-  # From a tree, returns a list in which each entry is a monophyletic set of
-  # tips for the named patient, collected into a vector.
-
-  # This function calls itself iteratively. If this is the first call, set the 
-  # node to be the patient's mrca and find the number of tips (used repeatedly).
-  if (first.call) {
-    their.tips <- patient.tips[[id]]
-    node <- findMRCA(tree, their.tips, type="node")
-    num.tips <- length(tree$tip.label)
-  }
-
-	clades.at.this.level <- list()
-
-  # Are all the tips that descend from this node from this patient?
-  descendant.tips <- Descendants(tree, node=node, type="tips")[[1]]
-  all.this.patient <- TRUE
-  for (tip.number in descendant.tips) {
-    if (getIdFromTip(tree$tip.label[tip.number]) != id) {
-      all.this.patient <- FALSE
-      break
-    }
-  }
-  if (all.this.patient) {
-    clades.at.this.level[[1]] <- tree$tip.label[descendant.tips]
-  } else {
-    # Iterate through the immediate children of this node.
-    children <- Descendants(tree, node=node, type="children")
-    for (child in children) {
-      if (child <= num.tips) {
-        # The child is a tip.
-        # If it's a tip from our patient, add it to our list.
-        tip.name <- tree$tip.label[child]
-        if (getIdFromTip(tip.name, id.delimter) == id) {
-          clades.at.this.level[length(clades.at.this.level)+1] <- c(tip.name)
-        }
-      } else {
-        # The child is a node. Merge clades.at.this.level with the result of
-        # applying this function to the child.
-        clades.at.this.level <- c(clades.at.this.level,
-        findOnePatientsClades(tree, id, FALSE, num.tips, child))
-      }
-    }
-  }
-  return(clades.at.this.level)
-}
-
-
-
-
-analyseCladesChristophe <- function(id, patient.tips, tree, test.clade.ordering.only) {
-	# For each patient:
-	# Determine all the distinct monophyletic clades that the patient's tips make.
-	# (NB a single isolated read is considered a type of monophyletic clade.)
-	# Count the number of reads associated with each clade. ordered.clades is a
-	# list of these clades, ordered by decreasing number of reads.
-  # Compute the overall root-to-tip distance for all reads associated with
-	# a patient and for each of the monophyletic subclades.
-	# (Root to tip distance is considered zero for single isolated read.)
-	# Record details for the five largest subclades in the summary statistic data
-  # frame.
-
-    # TODO: auto-indent this function
-		num.tips <- length(patient.tips[[id]])
-		read.counts.per.tip <- list()
-		for (tip in patient.tips[[id]]) {
-      read.counts.per.tip[[tip]] <- as.numeric(unlist(strsplit(tip,
-      "count_"))[2])
-    }
-		read.counts.per.tip <- unlist(read.counts.per.tip)
-		num.reads.total <- sum(read.counts.per.tip)
-
-		ordered.clades <- list()
-		current.clade <- 1
-		if (num.tips > 0) {
-			if (num.tips == 1) {
-				ordered.clades[[current.clade]] <- makeSingleTipTree(tip,
-        read.counts.per.tip)
-				overall.root.to.tip <- 0
-			} else {
-				# define the subtree of all tips associated with the patient
-				patient.subtree <- drop.tip(phy = tree,
-						tip = tree$tip.label[!(tree$tip.label %in% patient.tips[[id]])])
-				patient.clade <- list(tree = patient.subtree, is.a.tip = F,
-        num.reads = num.reads.total)
-				overall.root.to.tip <- calcMeanRootToTipChristophe(patient.clade,
-        read.counts.per.tip)
-				ordered.clades[[current.clade]] <- getLargestClade(patient.subtree,
-        tree, read.counts.per.tip)
-				# first find the largest sub clade
-				
-				done <- F
-				while (done == F) {
-					# Then find all the other subclades, in order
-					# It would probably be much more efficient to find all of the
-					# subclades in one go, and then order them.
-					if (ordered.clades[[current.clade]]$is.a.tip) {
-						test.length <- 1
-						tips <- ordered.clades[[current.clade]]$tree
-					} else {
-						test.length <-
-            length(ordered.clades[[current.clade]]$tree$tip.label)
-						tips <- ordered.clades[[current.clade]]$tree$tip.label
-					}
-					
-					if (test.length < (length(patient.subtree$tip.label) - 1)) {
-						patient.subtree <- drop.tip(patient.subtree,
-            tip = patient.subtree$tip.label[(
-            patient.subtree$tip.label %in% tips)])
-						current.clade <- current.clade + 1
-						next.clade <- getLargestClade(patient.subtree, tree,
-            read.counts.per.tip)
-						ordered.clades <- c(ordered.clades, list(next.clade))
-					} else if (test.length == (length(patient.subtree$tip.label) - 1)) {
-						tip.label <-patient.subtree$tip.label[which(!(
-            patient.subtree$tip.label %in% tips))]
-						current.clade <- current.clade + 1
-						ordered.clades <- c(ordered.clades,
-								list(makeSingleTipTree(tip.label, read.counts.per.tip)))
-						done <- T
-					} else {
-						done <- T
-					}
-				}
-			}
-			num.clades <- length(ordered.clades)
-			# The patient subtree has now been split into num.clades clades
-
-
-			prop.reads.per.clade <- root.to.tip.per.clade <- vector(length = 5)
-			# We only compute data on the five largest clades
-			root.to.tip.per.clade
-			for (i in 1:5) {
-				if (i > num.clades) {
-					prop.reads.per.clade[i] <- 0
-					root.to.tip.per.clade[i] <- NA
-					# zeros are plotted, NAs are ommitted
-				} else {
-					prop.reads.per.clade[i] <-
-							ordered.clades[[i]]$num.reads/num.reads.total
-					root.to.tip.per.clade[i] <-
-							calcMeanRootToTipChristophe(ordered.clades[[i]], read.counts.per.tip)
-				}
-			}
-
-    # Order each clade by the read number of the tips, and the set of clades by
-    # their smallest read number. This is unique (unlike read count sorting) so
-    # helps test clade finding algorithms.
-    if (test.clade.ordering.only) {
-      clades.as.list <- list()
-      current.clade <- 0
-      for (clade in ordered.clades) {
-        current.clade <- current.clade + 1
-        if (clade$is.a.tip) {
-          clades.as.list[[current.clade]] <- clade$tree
-        } else {
-          clades.as.list[[current.clade]] <- clade$tree$tip.label
-        }
-      }
-      sorted.clades <- printSortedClades(clades.as.list, tip.regex,
-      num.clades.for.output)
-      print(id)
-      print(sorted.clades)
-      cat('\n\n')
-    }
-
-		} else { # if there are no reads for this patient in this window
-			num.clades <- NA
-			ordered.clades <- NA
-			overall.root.to.tip <- NA
-			prop.reads.per.clade <- rep(NA, 5)
-			root.to.tip.per.clade <- rep(NA, 5)
-		}
-
-  return(list(num.reads.total=num.reads.total, num.tips=num.tips,
-  num.clades=num.clades, overall.root.to.tip=overall.root.to.tip,
-  prop.reads.per.clade=prop.reads.per.clade,
-  root.to.tip.per.clade=root.to.tip.per.clade))
-}
-

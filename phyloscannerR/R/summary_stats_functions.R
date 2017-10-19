@@ -1,5 +1,8 @@
 # Collects a variety of statistics about a single patient in a single tree
 
+#' @keywords internal
+#' @export calc.subtree.stats
+
 calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table, tip.regex, no.read.counts, verbose = F){
 
   if(verbose) cat("Calculating statistics for host ",id,".\n", sep="")
@@ -106,6 +109,9 @@ calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table
 
 # Calculates all statistics (apart from read proportions) for all patients in a given window
 
+#' @keywords internal
+#' @export calc.all.stats.in.window
+
 calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, has.read.counts, verbose = F){
 
   if(verbose) cat("Calculating host statistics for tree suffix ",tree.info$suffix,"\n",sep="")
@@ -209,6 +215,9 @@ calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, has.read.count
 }
 
 # Get the proportion of reads from a given patient in each of its subgraphs in a single tree
+
+#' @keywords internal
+#' @export get.read.proportions
 
 get.read.proportions <- function(id, suffix, splits.table){
   

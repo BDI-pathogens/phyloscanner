@@ -1,5 +1,8 @@
 # This returns the ones to get rid of (i.e. blacklist) per host for a given tree
 
+#' @keywords internal
+#' @export downsample.host
+
 downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, exclude.underrepresented = F, no.read.counts = T, name = NA, verbose=F){
   if(verbose) cat("Downsampling tips for host ", host, "...\n", sep="")
   
@@ -94,7 +97,11 @@ downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, e
 }
 
 # This returns the ones to get rid of (i.e. blacklist) for a given tree
-downsample.tree<- function(tree.info, hosts.to.include, max.reads, rename = F, exclude.underrepresented = F, no.read.counts = T, tip.regex, seed=NA, verbose=F) {
+
+#' @keywords internal
+#' @export downsample.tree
+
+downsample.tree <- function(tree.info, hosts.to.include, max.reads, rename = F, exclude.underrepresented = F, no.read.counts = T, tip.regex, seed=NA, verbose=F) {
   
   if(verbose){
     cat("Downsampling reads on tree ",tree.info$input.file.name," to ",max.reads," per host...\n",sep = "")

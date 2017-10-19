@@ -1,11 +1,17 @@
 
 # Get the tip number of this label
 
+#' @keywords internal
+#' @export get.tip.no
+
 get.tip.no <- function(tree, name) {
   return(match(name, tree$tip.label))
 }
 
 # Get all tips associated with a host
+
+#' @keywords internal
+#' @export get.tips.for.host
 
 get.tips.for.host <-
   function(tree, host.string, host.ids, blacklist) {
@@ -16,12 +22,18 @@ get.tips.for.host <-
     return(node.numbers)
   }
 
+#' @keywords internal
+#' @export get.tips.for.sample
+
 get.tips.for.sample <-
   function(tree, sample.string){
     return(which(grepl(paste0('^',sample.string),tree$tip.label)))
   }
 
 # Edge length by node number (probably in some library somewhere)
+
+#' @keywords internal
+#' @export get.edge.length
 
 get.edge.length <- function(tree, node) {
   index <- which(tree$edge[,2] == node)
@@ -30,17 +42,26 @@ get.edge.length <- function(tree, node) {
 
 # Node is a tip (likewise)
 
+#' @keywords internal
+#' @export is.tip
+
 is.tip <- function(tree, node) {
   return(node <= length(tree$tip.label))
 }
 
 # Node is root (likewise)
 
+#' @keywords internal
+#' @export is.root
+
 is.root <- function(tree, node) {
   return(Ancestors(tree, node, type = "parent") == 0)
 }
 
 # Get the sequence of ancestors from one node to the other
+
+#' @keywords internal
+#' @export get.ancestral.sequence
 
 get.ancestral.sequence <- function(tree, desc, anc) {
   if (!(anc %in% Ancestors(tree, desc, type = "all"))) {
@@ -61,6 +82,9 @@ get.ancestral.sequence <- function(tree, desc, anc) {
 # Output the host that this tip belongs to. The vector host.ids 
 # records hosts in the same order as the tips in the tree
 
+#' @keywords internal
+#' @export get.host.from.tip
+
 get.host.from.tip <- function(tree, node, host.ids) {
   # is it a tip?
   if (!(is.tip(tree, node))) {
@@ -73,6 +97,9 @@ get.host.from.tip <- function(tree, node, host.ids) {
 
 # Output the set of hosts whose tips are descended from a node 
 # (or the host of the node itself if a tip)
+
+#' @keywords internal
+#' @export get.hosts.from.this.clade
 
 get.hosts.from.this.clade <- function(tree, node, host.ids) {
   if (is.tip(tree,node)) {
@@ -95,6 +122,9 @@ get.hosts.from.this.clade <- function(tree, node, host.ids) {
 # mrca.list is a list of MRCA nodes indexed by host
 # tip.list is a list of vectors of tips indexed by host
 
+#' @keywords internal
+#' @export is.descendant.of
+
 is.descendant.of <- function(tree, desc, anc, mrca.list, tip.list) {
   mrca.desc <- mrca.list[[desc]]
   mrca.anc <- mrca.list[[anc]]
@@ -113,6 +143,9 @@ is.descendant.of <- function(tree, desc, anc, mrca.list, tip.list) {
 
 # Is the intersection between vectors x and y empty?
 
+#' @keywords internal
+#' @export nonempty.intersection
+
 nonempty.intersection <- function(x,y) {
   return(length(intersect(x,y)) > 0)
 }
@@ -122,6 +155,9 @@ nonempty.intersection <- function(x,y) {
 # the other and an ancestor of at least one tip from the other
 # mrca.list is a list of MRCA nodes indexed by host
 # tip.list is a list of vectors of tips indexed by host
+
+#' @keywords internal
+#' @export are.intermingled
 
 are.intermingled <-
   function(tree, pat.1, pat.2, mrca.list, tip.list) {
@@ -156,6 +192,9 @@ are.intermingled <-
 # either a common source of both infections, or that the transmission chain passed through
 # it to get from the common source to either host.
 
+#' @keywords internal
+#' @export are.siblings
+
 are.siblings <-
   function(tree, pat.1, pat.2, mrca.list, tip.list, zero.length.tips.count =
              TRUE) {
@@ -186,6 +225,9 @@ are.siblings <-
 
 # This returns the distance along the branches from the TMRCA of one host to the TMRCA
 # of the other, if the hosts are siblings
+
+#' @keywords internal
+#' @export sibling.distance
 
 sibling.distance <- function(tree, pat.1, pat.2, mrca.list, tip.list, zero.length.tips.count){
   
@@ -218,6 +260,9 @@ sibling.distance <- function(tree, pat.1, pat.2, mrca.list, tip.list, zero.lengt
 
 # Output the set of hosts whose mrca is this node
 
+#' @keywords internal
+#' @export get.hosts.with.these.mrcas
+
 get.hosts.with.these.mrcas <-
   function(tree, node, host.mrcas) {
     out <- vector()
@@ -230,6 +275,9 @@ get.hosts.with.these.mrcas <-
 
 # Get the distance between the MRCA nodes of these two hosts
 
+#' @keywords internal
+#' @export get.mrca.distance
+
 get.mrca.distance <- function(tree, pat.1, pat.2, mrca.list) {
   mrca.1 <- mrca.list[[pat.1]]
   mrca.2 <- mrca.list[[pat.2]]
@@ -239,6 +287,9 @@ get.mrca.distance <- function(tree, pat.1, pat.2, mrca.list) {
 }
 
 # Get the distance between these two nodes
+
+#' @keywords internal
+#' @export total.length.between
 
 total.length.between <- function(tree, node.1, node.2) {
   if (node.1 == node.2) {
@@ -272,6 +323,9 @@ total.length.between <- function(tree, node.1, node.2) {
 
 # mrca.phylo applied to a tip only will not return that tip. This function will.
 
+#' @keywords internal
+#' @export mrca.phylo.or.unique.tip
+
 mrca.phylo.or.unique.tip <-
   function(tree, node, zero.length.tips.count = FALSE) {
     if (length(node) == 1) {
@@ -300,6 +354,9 @@ mrca.phylo.or.unique.tip <-
 # This function returns TRUE wherever elements are the same, including NA's, and false 
 # everywhere else.
 
+#' @keywords internal
+#' @export compareNA
+
 compareNA <- function(v1,v2) {
   same <- (v1 == v2)  |  (is.na(v1) & is.na(v2))
   same[is.na(same)] <- FALSE
@@ -308,10 +365,16 @@ compareNA <- function(v1,v2) {
 
 # Last element in a vector
 
+#' @keywords internal
+#' @export get.last
+
 get.last <- function(vec)
   return(vec[length(vec)])
 
 # Get host id from tip label
+
+#' @keywords internal
+#' @export host.from.label
 
 host.from.label <- function(label, regexp){
   if(length(grep(regexp, label)>0)) {
@@ -323,6 +386,9 @@ host.from.label <- function(label, regexp){
 
 # Get read count from label
 
+#' @keywords internal
+#' @export read.count.from.label
+
 read.count.from.label <- function(label, regexp){
   if(length(grep(regexp, label)>0)) {
     return(as.numeric(sub(regexp, "\\3", label)))
@@ -333,6 +399,9 @@ read.count.from.label <- function(label, regexp){
 
 # Starting at node 1, determine whether the path to node 2 is blocked by node 3
 # Should work on both rooted and unrooted trees I _hope_.
+
+#' @keywords internal
+#' @export path.exists
 
 path.exists <- function(tree, node.1, node.2, node.3, last.node = -1){
   #  cat(node.1," ")
@@ -363,6 +432,9 @@ path.exists <- function(tree, node.1, node.2, node.3, last.node = -1){
   return(FALSE)
 }
 
+#' @keywords internal
+#' @export tips.reachable
+
 tips.reachable <- function(tree, node, blocking.edges, last.node = -1){
   out <- vector()
   if(is.tip(tree, node)){
@@ -380,6 +452,9 @@ tips.reachable <- function(tree, node, blocking.edges, last.node = -1){
   return(out)
 }
 
+#' @keywords internal
+#' @export neighbouring.nodes
+
 neighbouring.nodes <- function(tree, node){
   part.1 <- tree$edge[which(tree$edge[,2]==node), 1]
   part.2 <- tree$edge[which(tree$edge[,1]==node), 2]
@@ -388,6 +463,9 @@ neighbouring.nodes <- function(tree, node){
 
 
 # Drop a set of tips and return a vector which maps nodes from the full tree to the subtree
+
+#' @keywords internal
+#' @export drop.tip.get.map
 
 drop.tip.get.map <- function(phy, tip){
   if(length(unique(tree$tip.label))!=length(tree$tip.label)){
@@ -416,6 +494,9 @@ drop.tip.get.map <- function(phy, tip){
   return(list(tree = phy.2, reference=reference))
 }
 
+#' @keywords internal
+#' @export extract.subtrees.for.hosts
+
 extract.subtrees.for.hosts <- function(tree, hosts, splits){
   labels.to.keep <- splits$tip.names[which(splits$orig.hosts %in% hosts)]
   
@@ -423,6 +504,9 @@ extract.subtrees.for.hosts <- function(tree, hosts, splits){
   
   return(pruned.tree)
 }
+
+#' @keywords internal
+#' @export prop.internal.longer.than.root
 
 prop.internal.longer.than.root <- function(tree, split, splits){
   tips <- splits$tip.names[which(splits$host.splits==split)]
@@ -446,6 +530,9 @@ prop.internal.longer.than.root <- function(tree, split, splits){
   
   return(sum(edges > dist.to.root)/length(edges))
 }
+
+#' @keywords internal
+#' @export process.tree
 
 process.tree <- function(tree, root.name=NULL, m.thresh=-1, blacklist.for.pruning = vector(), normalisation.constant = 1) {
   

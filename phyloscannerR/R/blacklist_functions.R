@@ -1,5 +1,8 @@
 # Blacklister for exact duplicates. The entries argument is a list, the entries of each being groups of tips whose reads are identical.
 
+#' @keywords internal
+#' @export blacklist.exact.duplicates
+
 blacklist.exact.duplicates <- function(tree.info, raw.threshold, ratio.threshold, tip.regex, verbose = F){
   
   if(is.null(tree.info$duplicate.tips)){
@@ -64,6 +67,9 @@ blacklist.exact.duplicates <- function(tree.info, raw.threshold, ratio.threshold
 
 
 # Strip the tree down to just reads from one host and an outgroup. Do a parsimony reconstruction on that tree and return the subgraphs.
+
+#' @keywords internal
+#' @export get.splits.for.host
 
 get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold, ratio.threshold, sankoff.method = "s", sankoff.k, sankoff.p = 0, check.duals, no.read.counts = T, tip.regex, verbose=F, just.report.counts=F){
   if (verbose) cat("Identifying splits for host ", host, "\n", sep="")
@@ -235,6 +241,9 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
 
 # Return whether the number of reads in this split is below one of the thresholds
 
+#' @keywords internal
+#' @export check.read.count.for.split
+
 check.read.count.for.split <- function(split, tips.for.splits, raw.threshold, ratio.threshold, reads.per.tip, total.reads){
   # get the read counts
   
@@ -247,7 +256,8 @@ check.read.count.for.split <- function(split, tips.for.splits, raw.threshold, ra
 }
 
 
-# This 
+#' @keywords internal
+#' @export blacklist.all.reads.for.dual.host
 
 blacklist.all.reads.for.dual.host <- function(host, tree.info){
   for(info in tree.info){
@@ -257,6 +267,9 @@ blacklist.all.reads.for.dual.host <- function(host, tree.info){
     info$blacklist <- c(info$blacklist, labels.to.go)
   }
 }
+
+#' @keywords internal
+#' @export blacklist.small.subgraphs.for.dual.host
 
 blacklist.small.subgraphs.for.dual.host <- function(host, tree.info, max.reads){
   for(info in tree.info){

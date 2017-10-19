@@ -1,6 +1,7 @@
 # This is borrowed from ape with minor modifications
 
-library(ape)
+#' @keywords internal
+#' @export write.ann.tree
 
 write.ann.tree <-
   function(phy, file = "", annotations = NULL, append = FALSE, digits = 10, tree.names = FALSE)
@@ -151,6 +152,9 @@ process.annotations <- function(tree, index, ann.names){
   return(NA)
 }
 
+#' @keywords internal
+#' @export quote.if.char
+
 quote.if.char <- function(x){
   if(is.numeric(x)){
     return(x)
@@ -158,6 +162,9 @@ quote.if.char <- function(x){
     return(paste("\"", x, "\"", sep=""))
   }
 }
+
+#' @keywords internal
+#' @export write.ann.nexus
 
 write.ann.nexus <- function(..., annotations = NULL, file = "", translate = TRUE)
 {

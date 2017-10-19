@@ -1,5 +1,8 @@
 # Align the graph output
 
+#' @keywords internal
+#' @export AlignPlots
+
 AlignPlots <- function(...) {
   LegendWidth <- function(x) x$grobs[[15]]$grobs[[1]]$widths[[4]]
   
@@ -24,6 +27,9 @@ AlignPlots <- function(...) {
 }
 
 # Add coloured rectangles to the graphs to represent areas with no coverage
+
+#' @keywords internal
+#' @export add.no.data.rectangles
 
 add.no.data.rectangles <- function(graph, rectangle.coords, log = F, y.limits = NULL){
   
@@ -50,6 +56,9 @@ add.no.data.rectangles <- function(graph, rectangle.coords, log = F, y.limits = 
 # missing.coords are x-coordinates of windows with no coverage. 
 # all.coords is the  full list of window coordinates.
 
+#' @keywords internal
+#' @export form.rectangles
+
 form.rectangles <- function(missing.coords, all.coords, colour = "grey"){
   if(length(missing.coords)>0){
     gap <-  unique(all.coords[2:length(all.coords)] - all.coords[1:length(all.coords)-1])
@@ -69,6 +78,9 @@ form.rectangles <- function(missing.coords, all.coords, colour = "grey"){
 }
 
 # Try to detect if the windows are evenly spaced. If they aren't, skip the rectangle-drawing, it's too complex.
+
+#' @keywords internal
+#' @export find.gaps
 
 find.gaps <- function(xcoords){
   gaps <- xcoords[2:length(xcoords)]-xcoords[1:length(xcoords)-1]
@@ -100,6 +112,9 @@ find.gaps <- function(xcoords){
   
 }
 
+#' @keywords internal
+#' @export produce.pdf.graphs
+
 produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, x.limits, missing.window.rects, bar.width, regular.gaps = F, width=8.26772, height=11.6929, readable.coords = F, verbose = F){
   
   pdf(file=file.name, width=width, height=height)
@@ -118,6 +133,9 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, x.lim
   
   never.mind <- dev.off()
 }
+
+#' @keywords internal
+#' @export produce.host.graphs
 
 produce.host.graphs <- function(host.statistics, host, xcoords, x.limits, missing.window.rects, bar.width, regular.gaps = F, readable.coords = F, verbose = F){
   

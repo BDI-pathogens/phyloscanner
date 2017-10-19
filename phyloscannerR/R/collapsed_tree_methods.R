@@ -2,6 +2,9 @@
 
 # The parent of a node in the collapsed tree
 
+#' @keywords internal
+#' @export get.tt.parent
+
 get.tt.parent <- function(tt, label){
   if(length(which(tt$unique.splits==label))>0){
     return(tt$parent.splits[which(tt$unique.splits==label)])
@@ -11,6 +14,9 @@ get.tt.parent <- function(tt, label){
 }
 
 # All ancestors of a node in the collapsed tree.
+
+#' @keywords internal
+#' @export get.tt.ancestors
 
 get.tt.ancestors <- function(tt, label){
   out <- vector()
@@ -24,17 +30,26 @@ get.tt.ancestors <- function(tt, label){
 
 # All children of a node in the collapsed tree
 
+#' @keywords internal
+#' @export get.tt.children
+
 get.tt.children <- function(tt, label){
   return(tt$unique.splits[which(tt$parent.splits==label)])
 }
 
 # All adjacent nodes of a node in the collapsed tree (parent and children)
 
+#' @keywords internal
+#' @export get.tt.adjacent
+
 get.tt.adjacent <- function(tt, label){
   return(c(get.tt.children(tt, label), get.tt.parent(tt, label)))
 }
 
 # The grandparent of a node in the collapsed tree
+
+#' @keywords internal
+#' @export get.tt.parent.host
 
 get.tt.parent.host <- function(tt, label){
   if(length(which(tt$unique.splits==label))>0){
@@ -45,6 +60,9 @@ get.tt.parent.host <- function(tt, label){
 }
 
 # MRCA of a pair of nodes in the collapsed tree
+
+#' @keywords internal
+#' @export get.tt.mrca
 
 get.tt.mrca <- function(tt, label1, label2){
   # sanity check
@@ -62,6 +80,9 @@ get.tt.mrca <- function(tt, label1, label2){
 
 # The host corresponding to the MRCA of two nodes
 
+#' @keywords internal
+#' @export get.tt.mrca.host
+
 get.tt.mrca.host <- function(tt, label1, label2){
   node <- intersect(c(label1,get.tt.ancestors(tt, label1)), c(label2, get.tt.ancestors(tt, label2)))[1]
   
@@ -69,6 +90,9 @@ get.tt.mrca.host <- function(tt, label1, label2){
 }
 
 # The path from one node in the collapsed tree to another
+
+#' @keywords internal
+#' @export get.tt.path
 
 get.tt.path <- function(tt, label1, label2){
   mrca <- get.tt.mrca(tt, label1, label2)
@@ -113,6 +137,9 @@ get.tt.path <- function(tt, label1, label2){
 }
 
 # Output the collapsed tree from a phylogeny and its node associations
+
+#' @keywords internal
+#' @export output.trans.tree
 
 output.trans.tree <- function(tree, assocs){
   # find the association of each node
@@ -196,6 +223,9 @@ output.trans.tree <- function(tree, assocs){
   return(tt.table)
 }
 
+#' @keywords internal
+#' @export prune.unsampled.tips
+
 prune.unsampled.tips <- function(tt.table){
   
   for.output <- tt.table[,1:6]
@@ -225,6 +255,9 @@ prune.unsampled.tips <- function(tt.table){
   
   return(for.output)
 }
+
+#' @keywords internal
+#' @export check.contiguous
 
 check.contiguous <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
   if(length(hosts)!=2){
@@ -262,6 +295,9 @@ check.contiguous <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
   
   return(OK)
 }
+
+#' @keywords internal
+#' @export check.uninterrupted
 
 check.uninterrupted <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
   # this could certainly be faster
@@ -321,6 +357,9 @@ check.uninterrupted <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
   return(any.contiguity & !any.interruption)
 }
 
+#' @keywords internal
+#' @export extract.tt.subgraph
+
 extract.tt.subgraph <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
   # for now, at least
   
@@ -349,6 +388,9 @@ extract.tt.subgraph <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
 }
 
 # every distance between subgraphs
+
+#' @keywords internal
+#' @export all.subgraph.distances
 
 all.subgraph.distances <- function(tree, tt, splits, assocs, slow=F, total.pairs, verbose){
   
@@ -435,6 +477,9 @@ all.subgraph.distances <- function(tree, tt, splits, assocs, slow=F, total.pairs
   return(temp)
 }
 
+#' @keywords internal
+#' @export pat.dist
+
 pat.dist <- function(tree, depths, node.1, node.2){
   node.1.chain <- Ancestors(tree, node.1, type="all")
   node.2.chain <- Ancestors(tree, node.2, type="all")
@@ -452,6 +497,9 @@ pat.dist <- function(tree, depths, node.1, node.2){
 }
 
 # are each pair of subgraphs adjacent? If !none.matters then two nodes separated only by "none" are still adjacent
+
+#' @keywords internal
+#' @export subgraphs.adjacent
 
 subgraphs.adjacent <- function(tt, splits, none.matters = F){
   out <- matrix(ncol = length(splits), nrow=length(splits))
@@ -486,6 +534,9 @@ subgraphs.adjacent <- function(tt, splits, none.matters = F){
 }
 
 # are pairs of subgraphs from two hosts not separated by any other subgraphs from either of those hosts?
+
+#' @keywords internal
+#' @export subgraphs.unblocked
 
 subgraphs.unblocked <- function(tt, splits, total.pairs, verbose = F){
 
@@ -536,6 +587,10 @@ subgraphs.unblocked <- function(tt, splits, total.pairs, verbose = F){
   return(out)
 }
 
+
+#' @keywords internal
+#' @export check.adjacency
+
 check.adjacency <- function(tt, hosts, splits.for.hosts){
   # this could certainly be faster
   if(length(hosts)!=2){
@@ -557,6 +612,9 @@ check.adjacency <- function(tt, hosts, splits.for.hosts){
   
   return(F)
 }
+
+#' @keywords internal
+#' @export check.tt.node.adjacency
 
 check.tt.node.adjacency <- function(tt, label1, label2, allow.unsampled = F){
   path <- get.tt.path(tt, label1, label2)
@@ -586,6 +644,9 @@ check.tt.node.adjacency <- function(tt, label1, label2, allow.unsampled = F){
   return(substr(path[2], 1, 16) == "unsampled_region")
   
 }
+
+#' @keywords internal
+#' @export classify
 
 classify <- function(tree.info, verbose = F) {	
   
@@ -812,6 +873,9 @@ convert.to.columns <- function(matrix, names){
   return(a.df)
 }
 
+#' @keywords internal
+#' @export merge.classifications
+
 merge.classifications <- function(all.tree.info, allow.mt = T, verbose = F){
   tt	<-	lapply(all.tree.info, function(tree.info){
     
@@ -902,6 +966,9 @@ merge.classifications <- function(all.tree.info, allow.mt = T, verbose = F){
   return(tt)
 }
 
+#' @keywords internal
+#' @export summarise.classifications
+
 summarise.classifications <- function(all.tree.info, min.threshold, dist.threshold, allow.mt = T, verbose = F, contiguous = F){
   
   tt <- merge.classifications(all.tree.info, allow.mt, verbose)
@@ -967,6 +1034,9 @@ summarise.classifications <- function(all.tree.info, min.threshold, dist.thresho
   
   return(subset(tt.close, any.relationship.tree.count>min.threshold))
 }
+
+#' @keywords internal
+#' @export simplify.summary
 
 simplify.summary <- function(summary, arrow.threshold, total.trees, plot = F){
   

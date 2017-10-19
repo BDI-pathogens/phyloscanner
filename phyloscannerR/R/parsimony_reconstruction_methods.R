@@ -1,3 +1,6 @@
+#' @keywords internal
+#' @export split.hosts.to.subgraphs
+
 split.hosts.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff.k, sankoff.p, useff, count.reads, m.thresh = 0, host.master.list=NULL, verbose = F){
   
   if (verbose) cat("Getting tip read counts...\n")
@@ -509,6 +512,9 @@ annotate.tips <- function(tree, patients, patient.tips){
 
 # Used to find every connected subtree in the whole tree by finding the earliest node in them
 
+#' @keywords internal
+#' @export count.splits
+
 count.splits <- function(tree, node, assocs, patients, counts.vec, first.nodes.list){
   
   for(child in Children(tree, node)){
@@ -539,6 +545,9 @@ count.splits <- function(tree, node, assocs, patients, counts.vec, first.nodes.l
 
 # Takes splits and annotates the tree with them
 
+#' @keywords internal
+#' @export assign.splits.down
+
 assign.splits.down <- function(node, tree, unsplit.assocs, split.assocs){
   for(child in Children(tree, node)){
     if(unsplit.assocs[[child]] == unsplit.assocs[[node]]){
@@ -550,6 +559,9 @@ assign.splits.down <- function(node, tree, unsplit.assocs, split.assocs){
 }
 
 # Does the RS classification
+
+#' @keywords internal
+#' @export classify.down
 
 classify.down <- function(node, tree, tip.assocs, temp.assocs, patient.mrcas){
   
@@ -599,6 +611,9 @@ classify.down <- function(node, tree, tip.assocs, temp.assocs, patient.mrcas){
 # classification is done, they can be converted to having assigned nodes if the ancestor of the
 # earliest node is a possible host for all nodes in the run
 
+#' @keywords internal
+#' @export get.star.runs
+
 get.star.runs <- function(tree, assocs){
   out <- list()
   for(int.node in seq(length(tree$tip.label) + 1,  length(tree$tip.label) + tree$Nnode)){
@@ -629,6 +644,9 @@ get.star.runs <- function(tree, assocs){
 # SANKOFF METHODS
 
 # Make the full Sankoff cost matrix
+
+#' @keywords internal
+#' @export make.cost.matrix
 
 make.cost.matrix <- function(node, tree, patients, tip.patients, individual.costs, current.matrix, k, tip.read.counts, progress.bar=NULL, verbose = F){
   # if(verbose){
@@ -679,9 +697,15 @@ make.cost.matrix <- function(node, tree, patients, tip.patients, individual.cost
   return(current.matrix)
 }
 
+#' @keywords internal
+#' @export node.cost
+
 node.cost <- function(tree, patient.index, patients, current.matrix, individual.costs, k, child.nos, tip.read.counts){
   return(sum(vapply(child.nos, function (x) child.min.cost(tree, x, patients, patient.index, current.matrix, individual.costs, k, tip.read.counts), 0)))
 }
+
+#' @keywords internal
+#' @export child.min.cost
 
 child.min.cost <- function(tree, child.index, patients, top.patient.no, current.matrix, individual.costs, k, tip.read.counts){
   if(is.tip(tree, child.index)){
@@ -702,6 +726,9 @@ child.min.cost <- function(tree, child.index, patients, top.patient.no, current.
 
 # Submethods of the above
 
+#' @keywords internal
+#' @export child.cost
+
 child.cost <- function(tree, child.index, patients, top.patient.no, bottom.patient.no, current.matrix, individual.costs, k, multiplier=1){
   if(top.patient.no == bottom.patient.no) {
     out <- current.matrix[child.index, bottom.patient.no]
@@ -718,6 +745,9 @@ child.cost <- function(tree, child.index, patients, top.patient.no, bottom.patie
 }
 
 # Reconstruct node states based on the cost matrix. 
+
+#' @keywords internal
+#' @export reconstruct
 
 reconstruct <- function(tree, node, node.state, node.assocs, tip.patients, patients, full.cost.matrix, node.cost.matrix, k, p, tip.read.counts, verbose=F){
   node.assocs[[node]] <- node.state
@@ -779,6 +809,9 @@ reconstruct <- function(tree, node, node.state, node.assocs, tip.patients, patie
 
 # Submethods of the above
 
+#' @keywords internal
+#' @export calc.costs
+
 calc.costs <- function(patient.no, patients, node.state, child.node, node.cost.matrix, full.cost.matrix, k, multiplier=1){
   patient <- patients[patient.no]
   
@@ -797,6 +830,9 @@ calc.costs <- function(patient.no, patients, node.state, child.node, node.cost.m
   }
   return(out)
 }
+
+#' @keywords internal
+#' @export cost.of.subtree
 
 cost.of.subtree <- function(tree, node, patient, tip.patients, finite.cost.col, results, progress.bar = NULL){
   if(is.tip(tree, node)){
@@ -818,6 +854,9 @@ cost.of.subtree <- function(tree, node, patient, tip.patients, finite.cost.col, 
 
 
 # Reconstruct node states based on the cost matrix. 
+
+#' @keywords internal
+#' @export make.cost.matrix.fi
 
 make.cost.matrix.fi <- function(node, tree, patients, tip.assocs, current.matrix, k, us.penalty, finite.costs, tip.read.counts, progress.bar = NULL, verbose = F){
   # if(verbose){
@@ -869,9 +908,15 @@ make.cost.matrix.fi <- function(node, tree, patients, tip.assocs, current.matrix
   return(current.matrix)
 }
 
+#' @keywords internal
+#' @export node.cost.fi
+
 node.cost.fi <- function(tree, child.nos, patient.index, patients, current.matrix, k, us.penalty, finite.costs, tip.read.counts){
   return(sum(vapply(child.nos, function (x) child.min.cost.fi(tree, x, patient.index, patients, current.matrix, k, us.penalty, finite.costs, tip.read.counts), 0)))
 }
+
+#' @keywords internal
+#' @export child.min.cost.fi
 
 child.min.cost.fi <- function(tree, child.index, top.patient.no, patients, current.matrix, k, us.penalty, finite.costs, tip.read.counts){
 
@@ -894,6 +939,9 @@ child.min.cost.fi <- function(tree, child.index, top.patient.no, patients, curre
 
 # Submethods of the above
 
+#' @keywords internal
+#' @export child.cost.fi
+
 child.cost.fi <- function(tree, child.index, patients, top.patient.no, bottom.patient.no, current.matrix, k, us.penalty, multiplier = 1){
   bl <- get.edge.length(tree, child.index)
   out <- current.matrix[child.index, bottom.patient.no]
@@ -914,6 +962,9 @@ child.cost.fi <- function(tree, child.index, patients, top.patient.no, bottom.pa
   }
   return(out)
 }
+
+#' @keywords internal
+#' @export reconstruct.fi
 
 reconstruct.fi <- function(tree, node, node.state, node.assocs, tip.assocs, patients, full.cost.matrix, finite.costs, k, penalty, tip.read.counts, verbose=F){
   node.assocs[[node]] <- node.state
@@ -957,6 +1008,9 @@ reconstruct.fi <- function(tree, node, node.state, node.assocs, tip.assocs, pati
   }
   return(node.assocs)
 }
+
+#' @keywords internal
+#' @export calc.costs.fi
 
 calc.costs.fi <- function(child.patient.no, patients, parent.patient, child.node, bl, full.cost.matrix, k, penalty, multiplier=1){
   patient <- patients[child.patient.no]
