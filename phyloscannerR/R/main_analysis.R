@@ -1148,6 +1148,7 @@ write.annotated.tree <- function(phyloscanner.tree, file.name, format = c("pdf",
 #' @return A \code{data.table}, every line of which counts the number of pairwise relationships of a particular type between a pair of hosts
 #' @importFrom data.table copy setkey setcolorder
 #' @export transmission.summary
+
 transmission.summary <- function(phyloscanner.trees, win.threshold=0, dist.threshold=Inf, allow.mt=T, close.sib.only = F, verbose = F){
   if(length(phyloscanner.trees)==1){
     stop("Can't summarise transmission information on a single tree. Use the collapsed tree instead?")
@@ -1162,6 +1163,7 @@ transmission.summary <- function(phyloscanner.trees, win.threshold=0, dist.thres
 #' @param plot If TRUE, the returned list has an item called \code{simp.diagram}, a \code{ggplot} object plotting the simplified relationship diagram.
 #' @importFrom GGally ggnet2
 #' @export simplified.transmission.summary
+
 simplified.transmission.summary <- function(phyloscanner.trees, transmission.summary, arrow.threshold, plot = F){
   total.trees <- length(phyloscanner.trees)
   

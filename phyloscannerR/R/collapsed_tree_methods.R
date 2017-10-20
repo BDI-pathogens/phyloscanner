@@ -989,9 +989,9 @@ summarise.classifications <- function(all.tree.info, min.threshold, dist.thresho
     }
   } else {
     if(!contiguous){
-      tt.close <- tt[which(tt$ADJACENT & (tt.close$type != "none" | tt$PATRISTIC_DISTANCE < dist.threshold)),]
+      tt.close <- tt[which(tt$ADJACENT & (tt$TYPE != "none" | tt$PATRISTIC_DISTANCE < dist.threshold)),]
     } else {
-      tt.close <- tt[which(tt$CONTIGUOUS & (tt.close$type != "none" | tt$PATRISTIC_DISTANCE < dist.threshold)),]
+      tt.close <- tt[which(tt$CONTIGUOUS & (tt$TYPE != "none" | tt$PATRISTIC_DISTANCE < dist.threshold)),]
     }
   }
   
