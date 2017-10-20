@@ -969,7 +969,7 @@ merge.classifications <- function(all.tree.info, allow.mt = T, verbose = F){
 #' @keywords internal
 #' @export summarise.classifications
 
-summarise.classifications <- function(all.tree.info, min.threshold, dist.threshold, allow.mt = T, allow.sib = T, verbose = F, contiguous = F){
+summarise.classifications <- function(all.tree.info, min.threshold, dist.threshold, allow.mt = T, close.sib.only = F, verbose = F, contiguous = F){
   
   tt <- merge.classifications(all.tree.info, allow.mt, verbose)
   
@@ -981,25 +981,28 @@ summarise.classifications <- function(all.tree.info, min.threshold, dist.thresho
   
   tt <- merge(tt, existence.counts, by=c('HOST.1', 'HOST.2'))
   
-  if(!contiguous){
-    tt.close <- tt[which(tt$ADJACENT & tt$PATRISTIC_DISTANCE < dist.threshold ),]
+  if(!close.sib.only){
+    if(!contiguous){
+      tt.close <- tt[which(tt$ADJACENT & tt$PATRISTIC_DISTANCE < dist.threshold ),]
+    } else {
+      tt.close <- tt[which(tt$CONTIGUOUS & tt$PATRISTIC_DISTANCE < dist.threshold ),]
+    }
   } else {
-    tt.close <- tt[which(tt$CONTIGUOUS & tt$PATRISTIC_DISTANCE < dist.threshold ),]
+    if(!contiguous){
+      tt.close <- tt[which(tt$ADJACENT & (tt.close$type != "none" | tt$PATRISTIC_DISTANCE < dist.threshold)),]
+    } else {
+      tt.close <- tt[which(tt$CONTIGUOUS & (tt.close$type != "none" | tt$PATRISTIC_DISTANCE < dist.threshold)),]
+    }
   }
-  
-  tt.close$NOT.SIBLINGS <- tt.close$ADJACENT & (tt.close$PATRISTIC_DISTANCE < dist.threshold) & tt.close$TYPE!="none"
   
   # How many windows have this relationship, ADJACENT and PATRISTIC_DISTANCE below the threshold?
   type.counts	<- tt.close[, list(trees.with.this.relationship=length(SUFFIX)), by=c('HOST.1','HOST.2','TYPE')]
   # How many windows have ADJACENT and PATRISTIC_DISTANCE below the threshold?
   any.counts  <- tt.close[, list(trees.with.any.relationship=length(SUFFIX)), by=c('HOST.1','HOST.2')]
-  # How many windows have a relationship other than "none", ADJACENT and PATRISTIC_DISTANCE below the threshold?
-  #  ns.counts  <- tt.close[, list(trees.with.any.ancestral.relationship=length(which(NOT.SIBLINGS))), by=c('HOST.1','HOST.2')]
-  
+
   tt.close		<- merge(tt.close, type.counts, by=c('HOST.1','HOST.2','TYPE'))
   tt.close		<- merge(tt.close, any.counts, by=c('HOST.1','HOST.2'))
-  #  tt.close		<- merge(tt.close, ns.counts, by=c('HOST.1','HOST.2'))
-  
+
   tt.close[, fraction:=paste(trees.with.this.relationship,'/',both.exist,sep='')]
   
   #	convert "anc_12" and "ans_21" to "anc" depending on direction
@@ -1022,7 +1025,7 @@ summarise.classifications <- function(all.tree.info, min.threshold, dist.thresho
   
   tt.close[, DUMMY:=NULL]
   
-  set(tt.close, NULL, c('SUFFIX', 'ADJACENT','PATRISTIC_DISTANCE', "CONTIGUOUS", "nodes1", "nodes2", "NOT.SIBLINGS"), NULL)
+  set(tt.close, NULL, c('SUFFIX', 'ADJACENT','PATRISTIC_DISTANCE', "CONTIGUOUS", "nodes1", "nodes2"), NULL)
   tt.close <- tt.close[!duplicated(tt.close),]
   
   setkey(tt.close, HOST.1, HOST.2, TYPE)

@@ -1088,7 +1088,7 @@ if(length(hosts)>1){
 # 18. Transmission summary
 
 if(!single.file & length(hosts)>1){
-  results <- summarise.classifications(all.tree.info, win.threshold*length(all.tree.info), dist.threshold, allow.mt, verbose, F)
+  results <- summarise.classifications(all.tree.info, win.threshold*length(all.tree.info), dist.threshold, allow.mt, F, verbose, F)
   
   if (verbose) cat('Writing summary to file', paste0(output.string,"_hostRelationshipSummary.",csv.fe),'\n')
   write.csv(results, file=file.path(output.dir, paste0(output.string,"_hostRelationshipSummary.",csv.fe)), row.names=FALSE, quote=FALSE)

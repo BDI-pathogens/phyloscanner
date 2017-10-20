@@ -5,7 +5,7 @@
 \title{Summarise the pairwise host relationships across all trees}
 \usage{
 transmission.summary(phyloscanner.trees, win.threshold = 0,
-  dist.threshold = Inf, allow.mt = T, verbose = F)
+  dist.threshold = Inf, allow.mt = T, close.sib.only = F, verbose = F)
 }
 \arguments{
 \item{phyloscanner.trees}{A list of class \code{phyloscanner.trees}}
@@ -15,6 +15,8 @@ transmission.summary(phyloscanner.trees, win.threshold = 0,
 \item{dist.threshold}{The patristic distance within which the subgraphs from two hosts need to be in order for them to be declared related (default is infinity, so adjacent hosts are always related).}
 
 \item{allow.mt}{If FALSE, directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative.}
+
+\item{close.sib.only}{If TRUE, then the distance threshold applies only to hosts on sibiling clades. Any ancestry is automatically a relationship.}
 
 \item{verbose}{Give verbose output}
 }
