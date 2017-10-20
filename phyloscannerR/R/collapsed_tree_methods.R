@@ -969,7 +969,7 @@ merge.classifications <- function(all.tree.info, allow.mt = T, verbose = F){
 #' @keywords internal
 #' @export summarise.classifications
 
-summarise.classifications <- function(all.tree.info, min.threshold, dist.threshold, allow.mt = T, verbose = F, contiguous = F){
+summarise.classifications <- function(all.tree.info, min.threshold, dist.threshold, allow.mt = T, allow.sib = T, verbose = F, contiguous = F){
   
   tt <- merge.classifications(all.tree.info, allow.mt, verbose)
   

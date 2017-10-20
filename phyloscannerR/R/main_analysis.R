@@ -1143,15 +1143,16 @@ write.annotated.tree <- function(phyloscanner.tree, file.name, format = c("pdf",
 #' @param win.threshold The proportion of windows that a pair of hosts need to be related (adjacent and within \code{dist.threshold} of each other) in order for them to appear in the summary.
 #' @param dist.threshold The patristic distance within which the subgraphs from two hosts need to be in order for them to be declared related (default is infinity, so adjacent hosts are always related).
 #' @param allow.mt If FALSE, directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative.
+#' @param allow.sb If FALSE, hosts on sibling clades are not related.
 #' @param verbose Give verbose output
 #' @return A \code{data.table}, every line of which counts the number of pairwise relationships of a particular type between a pair of hosts
 #' @importFrom data.table copy setkey setcolorder
 #' @export transmission.summary
-transmission.summary <- function(phyloscanner.trees, win.threshold=0, dist.threshold=Inf, allow.mt=T, verbose = F){
+transmission.summary <- function(phyloscanner.trees, win.threshold=0, dist.threshold=Inf, allow.mt=T, allow.sb = T, verbose = F){
   if(length(phyloscanner.trees)==1){
     stop("Can't summarise transmission information on a single tree. Use the collapsed tree instead?")
   }
-  summarise.classifications(phyloscanner.trees, win.threshold*length(phyloscanner.trees), dist.threshold, allow.mt, verbose)
+  summarise.classifications(phyloscanner.trees, win.threshold*length(phyloscanner.trees), dist.threshold, allow.mt, allow.sb, verbose, F)
 }
 
 #' Simplfy and visually display the pairwise host relationships across all trees
