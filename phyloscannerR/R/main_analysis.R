@@ -113,7 +113,7 @@ phyloscanner.analyse.tree <- function(
 #' @param read.counts.matter.on.zero.length.tips If TRUE, read counts on tips will be taken into account in parsimony reconstructions at the parents of zero-length terminal branches. Not applicable for the Romero-Severson-like reconstruction method.
 #' @param verbose Give verbose output.
 #' @return A list of class \code{phyloscanner.trees}.
-#' @importFrom ape read.tree di2multi root node.depth.edgelength
+#' @importFrom ape read.tree read.nexus di2multi root node.depth.edgelength
 #' @importFrom data.table data.table as.data.table set setnames
 #' @importFrom ff ff
 #' @importFrom phangorn Ancestors Descendants Children mrca.phylo getRoot
@@ -355,20 +355,6 @@ phyloscanner.analyse.trees <- function(
     
     all.tree.info[[suffix]] <- tree.info
   }, simplify = F, USE.NAMES = T)
-  
-  # todo clear up the matter of single input
-  
-  # single.input <- length(all.tree.info) == 1
-  # 
-  # 
-  # if(length(all.tree.info)==1 & !single.input){
-  #   warning("Only a single input tree file detected, summary statistics will not be plotted and transmission summary will be skipped.")
-  # }
-  
-  # single.file is TRUE if there is just one input file, whereas single.input is if the user specified just one file (they might have 
-  # specified a tree prefix which matches just one file)
-  
-  # single.file <- single.input | length(all.tree.info)==1
   
   # 4. Read the trees
   
