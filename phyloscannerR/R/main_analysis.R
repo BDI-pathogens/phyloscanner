@@ -154,10 +154,7 @@ phyloscanner.analyse.trees <- function(
 {
   
   splits.rule <- match.arg(splits.rule)
-  
-  # todo - split into phyloscanner.analyse.tree and phyloscanner.analyse.trees. At present this is for multiple trees. 
-  # You can make the former call the latter by just fiddling with the directory and regex.
-  
+
   use.m.thresh          <- multifurcation.threshold > 0 | guess.multifurcation.threshold
   
   if(guess.multifurcation.threshold & multifurcation.threshold > 0){
@@ -1131,6 +1128,7 @@ multipage.summary.statistics <- function(phyloscanner.trees, sum.stats, hosts = 
 #' @param pdf.hm The height, in inches per tip, of the output PDF file
 #' @importFrom ggtree ggtree geom_point2 geom_tiplab geom_treescale
 #' @import ggplot2
+#' @import ggtree
 #' @import ape
 #' @export write.annotated.tree
 write.annotated.tree <- function(phyloscanner.tree, file.name, format = c("pdf", "nexus"), pdf.scale.bar.width = 0.01, pdf.w = 50, pdf.hm = 0.15){
