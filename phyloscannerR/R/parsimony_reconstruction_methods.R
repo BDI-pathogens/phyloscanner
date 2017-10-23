@@ -13,6 +13,7 @@ split.hosts.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff.k,
         warning("You specified --readCountsMatterOnZeroLengthBranches but there are no zero-length branches in this tree. Consider setting a multifurcation threshold.")
       }
       m.thresh <- 0
+      
     }
     
     tip.read.counts <- sapply(tree$tip.label, function(x) read.count.from.label(x, tip.regex))

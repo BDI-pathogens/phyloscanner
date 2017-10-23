@@ -540,7 +540,7 @@ subgraphs.adjacent <- function(tt, splits, none.matters = F){
 
 subgraphs.unblocked <- function(tt, splits, total.pairs, verbose = F){
 
-  if (verbose) progress.bar <- txtProgressBar(width=50, style=3)
+    if (verbose) progress.bar <- txtProgressBar(width=50, style=3)
   count <- 0
   
   out <- matrix(ncol = length(splits), nrow=length(splits))
@@ -713,7 +713,8 @@ classify <- function(tree.info, verbose = F) {
   
   hosts.included <- hosts
   
-  total.pairs <- (length(hosts.included) ^ 2 - length(hosts.included))/2
+  total.split.pairs <- (length(all.splits) ^ 2 - length(all.splits))/2
+  total.host.pairs <- length(hosts)
   
   if (verbose) cat("Collapsing subgraphs...\n")
   
@@ -721,7 +722,7 @@ classify <- function(tree.info, verbose = F) {
   
   if (verbose) cat("Identifying pairs of unblocked splits...\n")
   
-  collapsed.adjacent <- subgraphs.unblocked(tt, all.splits, total.pairs, verbose)
+  collapsed.adjacent <- subgraphs.unblocked(tt, all.splits, total.split.pairs, verbose)
   
   if (verbose) cat("Calculating pairwise distances between splits...\n")
   
@@ -729,7 +730,7 @@ classify <- function(tree.info, verbose = F) {
     all.subgraph.distances(tree, tt, all.splits, assocs, FALSE, total.pairs, verbose), warning=function(w){return(NULL)}, error=function(e){return(NULL)})
   
   if(is.null(split.distances)){
-    split.distances <- all.subgraph.distances(tree, tt, all.splits, assocs, TRUE, total.pairs, verbose)
+    split.distances <- all.subgraph.distances(tree, tt, all.splits, assocs, TRUE, total.split.pairs, verbose)
   }
   
   if (verbose) cat("Testing pairs...\n")
@@ -746,7 +747,7 @@ classify <- function(tree.info, verbose = F) {
   dir.21.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
   min.distance.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
   
-  if(total.pairs==0 & verbose){
+  if(total.host.pairs==0 & verbose){
     setTxtProgressBar(progress.bar, 1)
   } else {
     
@@ -825,7 +826,7 @@ classify <- function(tree.info, verbose = F) {
           min.distance.matrix[pat.1, pat.2] <- min(pairwise.distances)
           
           if (verbose) {
-            setTxtProgressBar(progress.bar, count/total.pairs)
+            setTxtProgressBar(progress.bar, count/total.host.pairs)
           }
         }
       }
