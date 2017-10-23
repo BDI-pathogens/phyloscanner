@@ -466,7 +466,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info){
   
   new.tree <- process.tree(tree, outgroup.name, m.thresh)
   
-  tree.info$tree <- new.tree
+  tree.info$tree                      <- new.tree
   tree.info$multifurcation.threshold  <- m.thresh
   tree.info$original.tip.labels       <- new.tree$tip.label
   

@@ -5,7 +5,16 @@ split.hosts.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff.k,
   
   if (verbose) cat("Getting tip read counts...\n")
   
+  # If no multifurcation-collapsing occurred, the minimum branch length is taken to be zero
+  
   if(count.reads){
+    if(m.thresh == -1){
+      if(min(tree$edge.length)!=0){
+        warning("You specified --readCountsMatterOnZeroLengthBranches but there are no zero-length branches in this tree. Consider setting a multifurcation threshold.")
+      }
+      m.thresh <- 0
+    }
+    
     tip.read.counts <- sapply(tree$tip.label, function(x) read.count.from.label(x, tip.regex))
     tip.read.counts[is.na(tip.read.counts)] <- 1
     tip.read.counts[blacklist] <- 1
