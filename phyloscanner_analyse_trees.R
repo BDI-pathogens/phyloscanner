@@ -467,6 +467,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info){
   new.tree <- process.tree(tree, outgroup.name, m.thresh)
   
   tree.info$tree <- new.tree
+  tree.info$multifurcation.threshold  <- m.thresh
   tree.info$original.tip.labels       <- new.tree$tip.label
   
   hosts.for.tips                      <- sapply(tree$tip.label, function(x) host.from.label(x, tip.regex))
@@ -718,7 +719,6 @@ if(do.dup.blacklisting){
   }, simplify = F, USE.NAMES = T)
 }
 
-
 # 10. Parsimony blacklisting
 
 if(do.par.blacklisting){
@@ -897,7 +897,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
     if(verbose) cat("Reconstructing internal node hosts\n", sep="")
   }
   
-  tmp					     <- split.hosts.to.subgraphs(tree.info$tree, tree.info$blacklist, reconstruction.mode, tip.regex, sankoff.k, sankoff.p, useff, read.counts.matter, hosts, verbose)
+  tmp					     <- split.hosts.to.subgraphs(tree.info$tree, tree.info$blacklist, reconstruction.mode, tip.regex, sankoff.k, sankoff.p, useff, read.counts.matter, tree.info$m.thresh, hosts, verbose)
   tree					   <- tmp[['tree']]	
   
   # trees are annotated from now on
