@@ -382,11 +382,15 @@ if args.output_dir != None:
     else:
       HaveMadeOutputDir = True
 
-# Check only one merging type is specified
+# Check only one merging type is specified. Thereafter use its threshold.
 if MergeReadsA and MergeReadsB:
   print('You cannot specify both --merging-threshold-a and',
   '--merging-threshold-b. Quitting.', file=sys.stderr)
   exit(1)
+if MergeReadsA:
+  MergingThreshold = args.merging_threshold_a
+elif MergeReadsB:
+  MergingThreshold = args.merging_threshold_b
 
 # Check that window coords have been specified either manually or automatically,
 # or we're exploring window widths
@@ -1011,9 +1015,9 @@ WindowAsStr):
 
   # Merge similar reads if desired
   if MergeReadsA:
-    ReadDict = pf.MergeSimilarStringsA(ReadDict, args.merging_threshold_a)
+    ReadDict = pf.MergeSimilarStringsA(ReadDict, MergingThreshold)
   if MergeReadsB:
-    ReadDict = pf.MergeSimilarStringsB(ReadDict, args.merging_threshold_b)
+    ReadDict = pf.MergeSimilarStringsB(ReadDict, MergingThreshold)
 
 
   # Implement the minimum read count
@@ -1095,12 +1099,10 @@ def ReMergeAlignedReads(alignment):
   for SampleName in SampleReadCounts:
     if MergeReadsA:
       SampleReadCounts[SampleName] = \
-      pf.MergeSimilarStringsA(SampleReadCounts[SampleName],
-      args.merging_threshold_a)
+      pf.MergeSimilarStringsA(SampleReadCounts[SampleName], MergingThreshold)
     if MergeReadsB:
       SampleReadCounts[SampleName] = \
-      pf.MergeSimilarStringsB(SampleReadCounts[SampleName],
-      args.merging_threshold_b)
+      pf.MergeSimilarStringsB(SampleReadCounts[SampleName], MergingThreshold)
     for k, (read, count) in enumerate(sorted(
     SampleReadCounts[SampleName].items(), key=lambda x: x[1], reverse=True)):
       ID = SampleName+'_read_'+str(k+1)+'_count_'+str(count)
