@@ -743,6 +743,10 @@ def MergeSimilarStringsB(DictOfStringCounts, SimilarityThreshold=1):
     "containing values of types that cannot be added together.\nQuitting.",
     file=sys.stderr)
     exit(1)
+
+  # Nothing needs to be done if the SimilarityThreshold is zero
+  if SimilarityThreshold == 0:
+    return DictOfStringCounts
       
   # Nothing needs to be done to dicts with fewer than two entries.
   NumberOfUniqueStrings = len(DictOfStringCounts)
@@ -1020,6 +1024,10 @@ def MergeSimilarStringsA(DictOfStringCounts, SimilarityThreshold=1):
     "containing values of types that cannot be added together.\nQuitting.",
     file=sys.stderr)
     exit(1)
+
+  # Nothing needs to be done if the SimilarityThreshold is zero
+  if SimilarityThreshold == 0:
+    return DictOfStringCounts
       
   # Nothing needs to be done to dicts with fewer than two entries.
   NumberOfUniqueStrings = len(DictOfStringCounts)
