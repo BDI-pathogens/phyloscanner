@@ -1090,19 +1090,20 @@ def RemovePureGapCols(alignment):
       alignment = alignment[:, :column] + alignment[:, column+1:]
   return alignment
 
-def ReMergeAlignedReads(alignment):
+def ReMergeAlignedReads(alignment, ForceNoMerging=False):
   '''Splits an alignment object into reads and refs, re-merges the reads,
   renames them, and removes pure-gap columns.'''
 
   SampleReadCounts, RefSeqsHere = ReadAlignedReadsIntoDicts(alignment)
   NewAlignment = AlignIO.MultipleSeqAlignment([])
   for SampleName in SampleReadCounts:
-    if MergeReadsA:
-      SampleReadCounts[SampleName] = \
-      pf.MergeSimilarStringsA(SampleReadCounts[SampleName], MergingThreshold)
-    if MergeReadsB:
-      SampleReadCounts[SampleName] = \
-      pf.MergeSimilarStringsB(SampleReadCounts[SampleName], MergingThreshold)
+    if not ForceNoMerging:
+      if MergeReadsA:
+        SampleReadCounts[SampleName] = \
+        pf.MergeSimilarStringsA(SampleReadCounts[SampleName], MergingThreshold)
+      if MergeReadsB:
+        SampleReadCounts[SampleName] = \
+        pf.MergeSimilarStringsB(SampleReadCounts[SampleName], MergingThreshold)
     for k, (read, count) in enumerate(sorted(
     SampleReadCounts[SampleName].items(), key=lambda x: x[1], reverse=True)):
       ID = SampleName+'_read_'+str(k+1)+'_count_'+str(count)
@@ -1795,11 +1796,10 @@ for window in range(NumCoords / 2):
         SeqAlignmentHere[:, :pos-1] + SeqAlignmentHere[:, pos:]
 
       # Excising positions may have made some sequences identical within a
-      # sample, which need to be merged even if the merging parameter is 0. If
-      # it's greater than 0, we also need to re-merge, rename, and re-excise
-      # pure-gap columns.
+      # sample, which need to be merged even if the merging parameter is 0.
       try:
-        SeqAlignmentHere = ReMergeAlignedReads(SeqAlignmentHere)
+        SeqAlignmentHere = ReMergeAlignedReads(SeqAlignmentHere,
+        ForceNoMerging=True)
       except:
         print('Problem encountered while analysing', FileForAlnReadsHere + \
         '. Quitting.', file=sys.stderr)
