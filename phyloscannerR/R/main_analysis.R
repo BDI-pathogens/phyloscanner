@@ -1115,7 +1115,6 @@ multipage.summary.statistics <- function(phyloscanner.trees, sum.stats, hosts = 
 #' @importFrom ggtree ggtree geom_point2 geom_tiplab geom_treescale
 #' @import ggplot2
 #' @import ggtree
-#' @import ape
 #' @export write.annotated.tree
 write.annotated.tree <- function(phyloscanner.tree, file.name, format = c("pdf", "nexus"), pdf.scale.bar.width = 0.01, pdf.w = 50, pdf.hm = 0.15){
   tree <- phyloscanner.tree$tree
