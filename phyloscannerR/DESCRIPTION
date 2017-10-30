@@ -4,7 +4,7 @@ Version: 1.3.0
 Authors@R: c(person("Matthew", "Hall", email = "matthew.hall@bdi.ox.ac.uk", role = c("aut", "cre")), person("Chris", "Wymant", email = "matthew.hall@bdi.ox.ac.uk", role = c("aut")), person("Oliver", "Ratmann", email = "matthew.hall@bdi.ox.ac.uk", role = c("aut")))
 Description: An R package for the second half of phyloscanner (tree analysis).
 Depends: R (>= 3.4.0)
-Imports: ape, data.table (>= 10.10.4-3), dplyr, dtplyr, ff, GGally, ggplot2, ggtree, grid, gridExtra, gtable, kimisc, network, pegas, phangorn, phytools, prodlim, RColorBrewer, reshape2, scales, sna
+Imports: ape, data.table (>= 1.10.4-3), dplyr, dtplyr, ff, GGally, ggplot2, ggtree, grid, gridExtra, gtable, kimisc, network, pegas, phangorn, phytools, prodlim, RColorBrewer, reshape2, scales, sna
 License: GPL
 Encoding: UTF-8
 LazyData: true
