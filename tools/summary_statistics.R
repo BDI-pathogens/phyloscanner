@@ -294,6 +294,8 @@ for(suffix in suffixes){
       if(nrow(blacklisted.tips)>0){
         blacklist <- sapply(blacklisted.tips, get.tip.no, tree=tree)
         all.tree.info[[suffix]]$blacklist <- blacklist
+      } else {
+        blacklist <- vector()
       }
     }
   }
