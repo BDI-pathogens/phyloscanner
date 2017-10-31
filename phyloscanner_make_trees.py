@@ -328,10 +328,11 @@ action='store_true',
 help='''By default, when calculating Hamming distances for the recombination
 metric, positions with gaps are ignored. With this option, the gap character
 counts as a fifth base.''')
-DeprecatedArgs.add_argument('-RD', '--recombination-dont-norm-diversity',
+DeprecatedArgs.add_argument('-RD', '--recombination-norm-diversity',
 action='store_true', help='''By default, the normalising constant for the
-recombination metric is half the number of informative sites; with this option
-it's half the number of sites.''')
+recombination metric is half the number of sites in the window; with this option
+it's half the number of sites in the window that are polymorphic for that bam
+file.''')
 
 args = parser.parse_args()
 
@@ -353,7 +354,7 @@ MergeReadsA = args.merging_threshold_a > 0
 MergeReadsB = args.merging_threshold_b > 0
 MergeReads = MergeReadsA or MergeReadsB
 PrintInfo = not args.quiet
-RecombNormToDiv = not args.recombination_dont_norm_diversity
+RecombNormToDiv = args.recombination_norm_diversity
 
 # Print how this script was called, for logging purposes.
 print('phyloscanner was called thus:\n' + ' '.join(sys.argv))
@@ -1904,7 +1905,7 @@ for window in range(NumCoords / 2):
       ListOfReadPosInAln)
       #(metric, ParentSeq1, ParentSeq2, RecombinantSeq) = \
       result = (alias, ) + pf.CalculateRecombinationMetric(ThisAliasAln,
-      args.recombination_gap_aware, NormaliseToDiversity=RecombNormToDiv)
+      RecombNormToDiv, IncludeGaps=args.recombination_gap_aware)
       RecombinationResults.append(result)
     FileForRecombinantReads = FileForRecombinantReads_basename + \
     ThisWindowSuffix + '.csv'

@@ -826,8 +826,7 @@ def GenerateRandomSequence(length, bases='ACGT'):
   return ''.join(random.choice(bases) for _ in range(length))
 
 
-def CalculateRecombinationMetric(SeqAlignment, IncludeGaps=False,
-NormaliseToDiversity=True):
+def CalculateRecombinationMetric(SeqAlignment, NormaliseToDiversity, IncludeGaps=False):
   '''Considers all triplets of seqs and finds the maximum recombination signal.
   
   For each possible set of three seqs in the alignment, one seq is considered
@@ -841,7 +840,7 @@ NormaliseToDiversity=True):
   the recombinant look like different parents. We maximise the difference
   between d_L and d_R (over all possible sets of three sequences and all
   possible break points) and take the smaller of the two absolute values.
-  With the default value NormaliseToDiversity=True, we normalise by dividing by
+  If NormaliseToDiversity=True, we normalise by dividing by
   half the number of informative sites (i.e. ignoring sites where all sequences
   have the same base). This means that the maximum possible score of 1 is
   obtained if and only the two parents disagree at every informative site, the
