@@ -1931,6 +1931,14 @@ for window in range(NumCoords / 2):
   if args.no_trees:
     continue
 
+  # Check that there are at least 4 seqs before calling RAxML.
+  if len(SeqAlignmentHere) < 4:
+    print('Warning: the file of aligned reads in this window,', FileForTrees,
+    ', contains only ', len(SeqAlignmentHere), ' sequences; at least 4 are ',
+    'needed to make a tree. Skipping to the next window.', sep='',
+    file=sys.stderr)
+    continue
+
   # Create the ML tree
   if PrintInfo:
     print('Running RAxML on the processed & aligned reads in window',
