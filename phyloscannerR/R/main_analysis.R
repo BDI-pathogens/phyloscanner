@@ -932,7 +932,7 @@ phyloscanner.analyse.trees <- function(
 
 #' Make a \code{data.table} of per-window host statistics
 #'
-#' This function performs a parsimony reconstruction and classification of pairwise host relationships.
+#' This function collects per-window statistics on hosts
 #' @param phyloscanner.trees A list of class \code{phyloscanner.trees}
 #' @param hosts A list of hosts to record statistics for. If not specified, every identifiable host in \code{phyloscanner.trees}
 #' @param tip.regex Regular expression identifying tips from the dataset. This expects up to three capture groups, for host ID, read ID, and read count (in that order). If the latter two groups are missing then read information will not be used. The default matches input from the phyloscanner pipeline where the host ID is the BAM file name.
