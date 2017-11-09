@@ -1109,6 +1109,10 @@ if(!single.file & length(hosts)>1){
 
 class(all.tree.info) <- append(class(all.tree.info), "phyloscanner.trees")
 
+attr(all.tree.info, 'readable.coords') <- readable.coords
+attr(all.tree.info, 'has.read.counts') <- !no.read.counts
+
+
 # 20. Workspace image
 
 if(output.rda){
