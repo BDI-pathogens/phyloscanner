@@ -21,5 +21,5 @@ gather.summary.statistics(phyloscanner.trees,
 A \code{data.table}
 }
 \description{
-This function performs a parsimony reconstruction and classification of pairwise host relationships.
+This function collects per-window statistics on hosts
 }
