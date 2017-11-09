@@ -71,7 +71,7 @@ blacklist.exact.duplicates <- function(tree.info, raw.threshold, ratio.threshold
 #' @keywords internal
 #' @export get.splits.for.host
 
-get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold, ratio.threshold, sankoff.method = "s", sankoff.k, sankoff.p = 0, check.duals, no.read.counts = T, tip.regex, verbose=F, just.report.counts=F){
+get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold, ratio.threshold, sankoff.method = "s", sankoff.k, sankoff.p = 0, check.duals, no.read.counts = T, tip.regex, verbose=F, no.progress.bars = F, just.report.counts=F){
   if (verbose) cat("Identifying splits for host ", host, "\n", sep="")
   
   blacklist.items <- vector()
@@ -119,7 +119,7 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
     
     # Perform split.and.annotate; get a list of splits
     
-    split.results <- split.and.annotate(subtree, c(host, "unsampled"), tip.hosts, host.tips, NULL, vector(), tip.regex, sankoff.method, rep(1, length(subtree$tip.label)), sankoff.k, sankoff.p, useff = F, verbose)
+    split.results <- split.and.annotate(subtree, c(host, "unsampled"), tip.hosts, host.tips, NULL, vector(), tip.regex, sankoff.method, rep(1, length(subtree$tip.label)), sankoff.k, sankoff.p, useff = F, verbose, no.progress.bars)
      
     # vector of of split IDs
     

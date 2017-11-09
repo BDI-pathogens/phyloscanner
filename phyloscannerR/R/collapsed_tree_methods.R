@@ -392,9 +392,9 @@ extract.tt.subgraph <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
 #' @keywords internal
 #' @export all.subgraph.distances
 
-all.subgraph.distances <- function(tree, tt, splits, assocs, slow=F, total.pairs, verbose){
+all.subgraph.distances <- function(tree, tt, splits, assocs, slow=F, total.pairs, verbose = F, no.progress.bars = F){
   
-  if (verbose) progress.bar <- txtProgressBar(width=50, style=3)
+  if (verbose & !no.progress.bars) progress.bar <- txtProgressBar(width=50, style=3)
   
   if(!slow){
     tree.dist <- dist.nodes(tree)
@@ -406,7 +406,7 @@ all.subgraph.distances <- function(tree, tt, splits, assocs, slow=F, total.pairs
   
   temp <- matrix(ncol = length(splits), nrow=length(splits))
   
-  if(total.pairs==0 & verbose){
+  if(total.pairs==0 & verbose & !no.progress.bars){
     setTxtProgressBar(progress.bar, 1)
   } else {
     for(spt.1.no in 1:length(splits)){
@@ -462,7 +462,7 @@ all.subgraph.distances <- function(tree, tt, splits, assocs, slow=F, total.pairs
           
           count <- count + 1
           
-          if(verbose){
+          if(verbose & !no.progress.bars){
             setTxtProgressBar(progress.bar, count/total.pairs)
           }
           temp[spt.2.no, spt.1.no] <- temp[spt.1.no, spt.2.no]
@@ -471,7 +471,7 @@ all.subgraph.distances <- function(tree, tt, splits, assocs, slow=F, total.pairs
     }
   }
   
-  if(verbose) close(progress.bar)
+  if(verbose & !no.progress.bars) close(progress.bar)
   colnames(temp) <- splits
   rownames(temp) <- splits
   return(temp)
@@ -538,13 +538,13 @@ subgraphs.adjacent <- function(tt, splits, none.matters = F){
 #' @keywords internal
 #' @export subgraphs.unblocked
 
-subgraphs.unblocked <- function(tt, splits, total.pairs, verbose = F){
+subgraphs.unblocked <- function(tt, splits, total.pairs, verbose = F, no.progress.bars = F){
 
-    if (verbose) progress.bar <- txtProgressBar(width=50, style=3)
+  if (verbose & !no.progress.bars) progress.bar <- txtProgressBar(width=50, style=3)
   count <- 0
   
   out <- matrix(ncol = length(splits), nrow=length(splits))
-  if(total.pairs==0 & verbose){
+  if(total.pairs==0 & verbose & !no.progress.bars){
     setTxtProgressBar(progress.bar, 1)
   } else {
     
@@ -572,14 +572,14 @@ subgraphs.unblocked <- function(tt, splits, total.pairs, verbose = F){
             out[spt.2.no, spt.1.no] <- adj
           } 
           count <- count + 1
-          if (verbose) {
+          if (verbose & !no.progress.bars) {
             setTxtProgressBar(progress.bar, count/total.pairs)
           }
         }
       }
     }
   }
-  if (verbose) close(progress.bar)
+  if (verbose & !no.progress.bars) close(progress.bar)
   
   colnames(out) <- splits
   rownames(out) <- splits
@@ -648,7 +648,7 @@ check.tt.node.adjacency <- function(tt, label1, label2, allow.unsampled = F){
 #' @keywords internal
 #' @export classify
 
-classify <- function(tree.info, verbose = F) {	
+classify <- function(tree.info, verbose = F, no.progress.bars = F) {	
   
   if(is.null(tree.info[["tree"]])){
     
@@ -722,20 +722,22 @@ classify <- function(tree.info, verbose = F) {
   
   if (verbose) cat("Identifying pairs of unblocked splits...\n")
   
-  collapsed.adjacent <- subgraphs.unblocked(tt, all.splits, total.split.pairs, verbose)
+  collapsed.adjacent <- subgraphs.unblocked(tt, all.splits, total.split.pairs, verbose, no.progress.bars)
   
   if (verbose) cat("Calculating pairwise distances between splits...\n")
   
   split.distances <- tryCatch(
-    all.subgraph.distances(tree, tt, all.splits, assocs, FALSE, total.pairs, verbose), warning=function(w){return(NULL)}, error=function(e){return(NULL)})
+    all.subgraph.distances(tree, tt, all.splits, assocs, FALSE, total.pairs, verbose, no.progress.bars), warning=function(w){return(NULL)}, error=function(e){return(NULL)})
   
   if(is.null(split.distances)){
-    split.distances <- all.subgraph.distances(tree, tt, all.splits, assocs, TRUE, total.split.pairs, verbose)
+    split.distances <- all.subgraph.distances(tree, tt, all.splits, assocs, TRUE, total.split.pairs, verbose, no.progress.bars)
   }
   
   if (verbose) cat("Testing pairs...\n")
   
-  if (verbose) progress.bar <- txtProgressBar(width=50, style=3)
+  progress.bar <- NULL
+  
+  if (verbose & !no.progress.bars) progress.bar <- txtProgressBar(width=50, style=3)
   
   count <- 0
   adjacency.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
@@ -747,7 +749,7 @@ classify <- function(tree.info, verbose = F) {
   dir.21.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
   min.distance.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
   
-  if(total.host.pairs==0 & verbose){
+  if(total.host.pairs==0 & verbose & !no.progress.bars){
     setTxtProgressBar(progress.bar, 1)
   } else {
     
@@ -825,7 +827,7 @@ classify <- function(tree.info, verbose = F) {
           
           min.distance.matrix[pat.1, pat.2] <- min(pairwise.distances)
           
-          if (verbose) {
+          if (verbose & !no.progress.bars) {
             setTxtProgressBar(progress.bar, count/total.host.pairs)
           }
         }
@@ -833,7 +835,7 @@ classify <- function(tree.info, verbose = F) {
     }
   }
   
-  if (verbose) close(progress.bar)
+  if (verbose & !no.progress.bars) close(progress.bar)
   
   normalisation.constant <- tree.info$normalisation.constant
   

@@ -28,6 +28,7 @@
 #' @param prune.blacklist If TRUE, all blacklisted and reference tips (except the outgroup) are pruned away before starting parsimony-based reconstruction.
 #' @param read.counts.matter.on.zero.length.tips If TRUE, read counts on tips will be taken into account in parsimony reconstructions at the parents of zero-length terminal branches. Not applicable for the Romero-Severson-like reconstruction method.
 #' @param verbose Give verbose output.
+#' @param no.progress.bars Hide the progress bars from verbose output.
 #' @return A list of class \code{phyloscanner.trees} with a single item of class \code{phyloscanner.tree}.
 #' @importFrom ape read.tree di2multi root node.depth.edgelength
 #' @importFrom data.table data.table as.data.table set setnames
@@ -62,7 +63,8 @@ phyloscanner.analyse.tree <- function(
   use.ff = F,
   prune.blacklist = F,
   read.counts.matter.on.zero.length.tips = T,
-  verbose = F){
+  verbose = F,
+  no.progress.bars = F){
   
   tree.directory <- dirname(tree.file.name)
   user.blacklist.directory <- if(!is.null(user.blacklist.file.name)) dirname(user.blacklist.file.name) else NULL
@@ -75,7 +77,7 @@ phyloscanner.analyse.tree <- function(
                              basename(duplicate.file.name), recombination.file.directory, basename(recombination.file.name), tip.regex, 
                              file.name.regex, seed, norm.ref.file.name, norm.standardise.gag.pol, norm.constants, parsimony.blacklist.k, 
                              raw.blacklist.threshold, ratio.blacklist.threshold, do.dual.blacklisting, max.reads.per.host, 
-                             blacklist.underrepresented, use.ff, prune.blacklist, read.counts.matter.on.zero.length.tips, verbose)
+                             blacklist.underrepresented, use.ff, prune.blacklist, read.counts.matter.on.zero.length.tips, verbose, no.progress.bars)
 }
 
 #' Perform a phyloscanner analysis on a set of trees
@@ -112,6 +114,7 @@ phyloscanner.analyse.tree <- function(
 #' @param prune.blacklist If TRUE, all blacklisted and reference tips (except the outgroup) are pruned away before starting parsimony-based reconstruction.
 #' @param read.counts.matter.on.zero.length.tips If TRUE, read counts on tips will be taken into account in parsimony reconstructions at the parents of zero-length terminal branches. Not applicable for the Romero-Severson-like reconstruction method.
 #' @param verbose Give verbose output.
+#' @param no.progress.bars Hide the progress bars from verbose output.
 #' @return A list of class \code{phyloscanner.trees}.
 #' @importFrom ape read.tree read.nexus di2multi root node.depth.edgelength
 #' @importFrom data.table data.table as.data.table set setnames
@@ -150,7 +153,8 @@ phyloscanner.analyse.trees <- function(
   use.ff = F,
   prune.blacklist = F,
   read.counts.matter.on.zero.length.tips = T,
-  verbose = F)
+  verbose = F,
+  no.progress.bars = F)
 {
   
   splits.rule <- match.arg(splits.rule)
@@ -628,7 +632,7 @@ phyloscanner.analyse.trees <- function(
     }, simplify = F, USE.NAMES = T)
   }
   
-  # 10. Apply the normalisation constants
+  # 9. Apply the normalisation constants
   
   all.tree.info <- sapply(all.tree.info, function(tree.info) {
     tree              <- tree.info$tree
@@ -638,7 +642,7 @@ phyloscanner.analyse.trees <- function(
   }, simplify = F, USE.NAMES = T)
   
   
-  # 11. Duplicate blacklisting
+  # 10. Duplicate blacklisting
   
   if(do.dup.blacklisting){
     all.tree.info <- sapply(all.tree.info, function(tree.info) {
@@ -683,7 +687,7 @@ phyloscanner.analyse.trees <- function(
   }
   
   
-  # 12. Parsimony blacklisting
+  # 11. Parsimony blacklisting
   
   if(do.par.blacklisting){
     
@@ -741,7 +745,7 @@ phyloscanner.analyse.trees <- function(
     }, simplify = F, USE.NAMES = T)
   }
   
-  # 13. Dual blacklisting
+  # 12. Dual blacklisting
   
   if(do.dual.blacklisting){
     hosts.that.are.duals <- lapply(all.tree.info, function(tree.info){
@@ -783,7 +787,7 @@ phyloscanner.analyse.trees <- function(
   }
   
   
-  # 14. Downsampling
+  # 13. Downsampling
   
   if(downsample){
     all.tree.info <- sapply(all.tree.info, function(tree.info){
@@ -794,7 +798,7 @@ phyloscanner.analyse.trees <- function(
     }, simplify = F, USE.NAMES = T)
   }
   
-  # 15. All IDs can be safely gathered and mapped now. Windows with no patients should be removed.
+  # 14. All IDs can be safely gathered and mapped now. Windows with no patients should be removed.
   
   if(verbose) cat("Gathering host IDs...\n")
   
@@ -825,7 +829,7 @@ phyloscanner.analyse.trees <- function(
     stop("All hosts have been blacklisted from all trees; nothing to do.")
   }
   
-  # 16. Prune away the blacklist if so requested
+  # 15. Prune away the blacklist if so requested
   
   if(prune.blacklist){
     all.tree.info <- sapply(all.tree.info, function(tree.info) {
@@ -842,7 +846,7 @@ phyloscanner.analyse.trees <- function(
   }
   
   
-  # 17. Parsimony reconstruction
+  # 16. Parsimony reconstruction
   
   sankoff.p <- NA
   
@@ -857,7 +861,7 @@ phyloscanner.analyse.trees <- function(
     
     if(verbose) cat("Reconstructing internal node hosts on tree ID ",tree.info$suffix, "\n", sep="")
     
-    tmp					     <- split.hosts.to.subgraphs(tree.info$tree, tree.info$blacklist, splits.rule, tip.regex, sankoff.k, sankoff.p, use.ff, read.counts.matter.on.zero.length.tips, multifurcation.threshold, hosts, verbose)
+    tmp					     <- split.hosts.to.subgraphs(tree.info$tree, tree.info$blacklist, splits.rule, tip.regex, sankoff.k, sankoff.p, use.ff, read.counts.matter.on.zero.length.tips, multifurcation.threshold, hosts, verbose, no.progress.bars)
     tree					   <- tmp[['tree']]	
     
     # trees are annotated from now on
@@ -890,7 +894,7 @@ phyloscanner.analyse.trees <- function(
   }, simplify = F, USE.NAMES = T)
   
   
-  # 19. For summary statistics
+  # 17. For summary statistics
   
   
   all.tree.info <- sapply(all.tree.info, function(tree.info) {
@@ -902,7 +906,7 @@ phyloscanner.analyse.trees <- function(
     tree.info
   }, simplify = F, USE.NAMES = T)
   
-  # 19. Individual window classifications
+  # 18. Individual window classifications
   
   if(length(hosts)>1){
     all.tree.info <- sapply(all.tree.info, function(tree.info) {
@@ -910,7 +914,7 @@ phyloscanner.analyse.trees <- function(
       
       if(verbose) cat("Classifying pairwise host relationships for tree ID ",tree.info$suffix, ".\n", sep="")
       
-      tree.info$classification.results <- classify(tree.info, verbose)
+      tree.info$classification.results <- classify(tree.info, verbose, no.progress.bars)
       
       tree.info
     }, simplify = F, USE.NAMES = T)

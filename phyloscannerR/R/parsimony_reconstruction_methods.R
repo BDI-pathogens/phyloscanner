@@ -1,7 +1,7 @@
 #' @keywords internal
 #' @export split.hosts.to.subgraphs
 
-split.hosts.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff.k, sankoff.p, useff, count.reads, m.thresh = 0, host.master.list=NULL, verbose = F){
+split.hosts.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff.k, sankoff.p, useff, count.reads, m.thresh = 0, host.master.list=NULL, verbose = F, no.progress.bars = F){
   
   if (verbose) cat("Getting tip read counts...\n")
   
@@ -89,7 +89,8 @@ split.hosts.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff.k,
                                 sankoff.k, 
                                 sankoff.p, 
                                 useff, 
-                                verbose)
+                                verbose,
+                                no.progress.bars)
   
   # Where to put the node shapes that display subgraph MRCAs
   
@@ -137,7 +138,7 @@ split.hosts.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff.k,
   list(tree=tree, rs.subgraphs=rs.subgraphs)
 }
 
-split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patient.mrcas, blacklist, tip.regex, method="r", tip.read.counts, k=NA, p = 0, useff=F, verbose=F){
+split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patient.mrcas, blacklist, tip.regex, method="r", tip.read.counts, k=NA, p = 0, useff=F, verbose=F, no.progress.bars = F){
   
   if (method == "r") {
     
@@ -314,11 +315,13 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
       cost.matrix <- matrix(NA, nrow=length(tree$tip.label) + tree$Nnode, ncol=length(patients))
     }
     
-    if(verbose) progress.bar <- txtProgressBar(width=50, style=3) else progress.bar <- NULL
+    progress.bar <- NULL
+    
+    if(verbose & !no.progress.bars) progress.bar <- txtProgressBar(width=50, style=3) else progress.bar <- NULL
 
     cost.matrix <- make.cost.matrix(getRoot(tree), tree, patients, tip.patients, individual.costs, cost.matrix, k, tip.read.counts, progress.bar, verbose)
     
-    if(verbose) close(progress.bar)
+    if(verbose & !no.progress.bars) close(progress.bar)
     
     if (verbose) cat("Reconstructing...\n")
     

@@ -32,6 +32,7 @@ arg_parser$add_argument("-b", "--blacklist", action="store", help="A path and st
 
 arg_parser$add_argument("-od", "--outputDir", action="store", help="All output will be written to this directory. If absent, current working directory.")
 arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what the script is doing.")
+arg_parser$add_argument("-npb", "--noProgressBars", action="store_true", default=FALSE, help="If --verbose, do not display progress bars")
 arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. This expects up to three capture groups, for host ID, read ID, and read count (in that order). If the latter two groups are missing then read information will not be used. If absent, the default is '^(.*)_read_([0-9]+)_count_([0-9]+)$', which matches input from the phyloscanner pipeline where the host ID is the BAM file name.")
 arg_parser$add_argument("-y", "--fileNameRegex", action="store", default="^\\D*([0-9]+)_to_([0-9]+)\\D*$", help="Regular expression identifying window coordinates. Two capture groups: start and end; if the latter is missing then the first group is a single numerical identifier for the window. If absent, input will be assumed to be from the phyloscanner pipeline, and the host ID will be the BAM file name.")
 arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default="tree", help="The file extension for tree files (default tree).")
@@ -94,6 +95,7 @@ arg_parser$add_argument("-sks", "--skipSummaryGraph", action="store_true", help=
 args                  <- arg_parser$parse_args()
 
 verbose               <- args$verbose
+no.progress.bars      <- args$noProgressBars
 
 overwrite             <- args$overwrite
 
@@ -733,7 +735,7 @@ if(do.par.blacklisting){
     
     hosts <- hosts[order(hosts)]
     
-    results <- sapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, outgroup.name, bl.raw.threshold, bl.ratio.threshold, "s", par.blacklisting.k, 0, T, no.read.counts, tip.regex, verbose), simplify = F, USE.NAMES = T)
+    results <- sapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, outgroup.name, bl.raw.threshold, bl.ratio.threshold, "s", par.blacklisting.k, 0, T, no.read.counts, tip.regex, verbose, no.progress.bars), simplify = F, USE.NAMES = T)
     
     contaminant                                 <- unlist(lapply(results, "[[", 2))
     contaminant.nos                             <- which(tree.info$tree$tip.label %in% contaminant)
@@ -897,7 +899,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
     if(verbose) cat("Reconstructing internal node hosts\n", sep="")
   }
   
-  tmp					     <- split.hosts.to.subgraphs(tree.info$tree, tree.info$blacklist, reconstruction.mode, tip.regex, sankoff.k, sankoff.p, useff, read.counts.matter, tree.info$multifurcation.thresh, hosts, verbose)
+  tmp					     <- split.hosts.to.subgraphs(tree.info$tree, tree.info$blacklist, reconstruction.mode, tip.regex, sankoff.k, sankoff.p, useff, read.counts.matter, tree.info$multifurcation.thresh, hosts, verbose, no.progress.bars)
   tree					   <- tmp[['tree']]	
   
   # trees are annotated from now on
@@ -1069,7 +1071,7 @@ if(length(hosts)>1){
       if(verbose) cat("Classifying pairwise host relationships.\n", sep="")
     }
     
-    tree.info$classification.results <- classify(tree.info, verbose)
+    tree.info$classification.results <- classify(tree.info, verbose, no.progress.bars)
     
     if(do.collapsed){
       tree.info$collapsed.file.name <- file.path(output.dir, paste0("CollapsedTree_",tree.info$output.string,".",csv.fe))

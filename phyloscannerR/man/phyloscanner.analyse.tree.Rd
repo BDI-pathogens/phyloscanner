@@ -18,7 +18,7 @@ phyloscanner.analyse.tree(tree.file.name, splits.rule = c("s", "r", "f"),
   ratio.blacklist.threshold = 0, do.dual.blacklisting = F,
   max.reads.per.host = Inf, blacklist.underrepresented = F, use.ff = F,
   prune.blacklist = F, read.counts.matter.on.zero.length.tips = T,
-  verbose = F)
+  verbose = F, no.progress.bars = F)
 }
 \arguments{
 \item{tree.file.name}{The name of the tree file (Newick or NEXUS format).}
@@ -74,6 +74,8 @@ phyloscanner.analyse.tree(tree.file.name, splits.rule = c("s", "r", "f"),
 \item{read.counts.matter.on.zero.length.tips}{If TRUE, read counts on tips will be taken into account in parsimony reconstructions at the parents of zero-length terminal branches. Not applicable for the Romero-Severson-like reconstruction method.}
 
 \item{verbose}{Give verbose output.}
+
+\item{no.progress.bars}{Hide the progress bars from verbose output.}
 }
 \value{
 A list of class \code{phyloscanner.trees} with a single item of class \code{phyloscanner.tree}.
