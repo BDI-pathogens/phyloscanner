@@ -1,5 +1,35 @@
 
-name.tbc <- function(phyloscanner.trees, tip.regex, allow.mt = F, trmw.min.reads=0, trmw.min.tips=0, verbose=F){
+
+#' @title Calculate parameters of the posterior density for pairwise host relationships
+#' @export
+#' @param phyloscanner.trees A list of class \code{phyloscanner.trees} produced by \code{phyloscanner.analyse.trees}.
+#' @param close.threshold The (potentially normalised) patristic threshold used to determine if two patients' subgraphs are "close"
+#' @param tip.regex The regular expression used to identify host IDs in tip names
+#' @param allow.mt If FALSE, directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative.
+#' @param min.reads The minimum number of reads from a host in a window needed in order for that window to count in determining relationships involving that patient
+#' @param min.reads The minimum number of tips from a host in a window needed in order for that window to count in determining relationships involving that patient
+#' @param distant.threshold If present, a second distance threshold determines hosts that are "distant" from each other, with those lying between \code{close.threshold} and \code{dist.threshold} classed as "intermediate". The default is the same as \code{close.threshold}, so the intermediate class does not exist.
+#' @param verbose Verbose output
+#' @return A list with two items: \code{dwin} giving information on the genome windows for each pair of hosts, and \code{rplkl} giving information on phylogenetic relationships between each pair of hosts.
+multinomial.calculations <- function(phyloscanner.trees, 
+                                     close.threshold,
+                                     prior.keff = 3,
+                                     prior.neff = 4,
+                                     prior.keff.dir = 2,
+                                     prior.neff.dir = 3,
+                                     prior.calibrated.prob = 0.66,
+                                     tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$", 
+                                     allow.mt = F, 
+                                     min.reads = 0, 
+                                     min.tips = 0, 
+                                     distant.threshold = close.threshold,
+                                     relationship.types	= c('TYPE_PAIR_DI2','TYPE_PAIR_TO','TYPE_PAIR_TODI2x2','TYPE_PAIR_TODI2','TYPE_DIR_TODI2','TYPE_NETWORK_SCORES','TYPE_CHAIN_TODI'),
+                                     verbose=F){
+  
+  if(!attr(phyloscanner.trees, "readable.coords")){
+    stop("No window cooardinates detected in this tree set, cannot do multinomial calculations.")
+  }
+  
   mc <- merge.classifications(phyloscanner.trees, allow.mt, verbose)
   ss <- gather.summary.statistics(phyloscanner.trees, tip.regex = tip.regex, verbose = verbose)
   
@@ -32,12 +62,12 @@ name.tbc <- function(phyloscanner.trees, tip.regex, allow.mt = F, trmw.min.reads
     }
   })
   
-  if(verbose) cat('\nReducing transmission window stats to windows with at least',trmw.min.reads,'reads and at least',trmw.min.tips,'tips ...')
-  dwin	<- subset(dwin, ID1_R>=trmw.min.reads & ID2_R>=trmw.min.reads & ID1_L>=trmw.min.tips & ID2_L>=trmw.min.tips)
+  if(verbose) cat('\nReducing transmission window stats to windows with at least',min.reads,'reads and at least',min.tips,'tips ...')
+  dwin	<- subset(dwin, ID1_R>=min.reads & ID2_R>=min.reads & ID1_L>=min.tips & ID2_L>=min.tips)
   if(verbose) cat('\nTotal number of windows with trm assignments is',nrow(dwin),'...')		
   
   if(verbose) cat('\nCalculate basic pairwise relationships for windows n=',nrow(dwin),'...')
-  dwin	<- categoriser(dwin, "TYPE_BASIC", "other",
+  dwin	<- categorise(dwin, "TYPE_BASIC", "other",
                       list(CONTIGUOUS=TRUE, ADJACENT=TRUE, TYPE=c("anc_12", "multi_anc_12"), label="trans12_contiguous"),
                       list(CONTIGUOUS=FALSE, ADJACENT=TRUE, TYPE=c("anc_12", "multi_anc_12"), label="trans12_noncontiguous"),
                       list(CONTIGUOUS=TRUE, ADJACENT=TRUE, TYPE=c("anc_21", "multi_anc_21"), label="trans21_contiguous"),
@@ -48,7 +78,7 @@ name.tbc <- function(phyloscanner.trees, tip.regex, allow.mt = F, trmw.min.reads
                       list(CONTIGUOUS=FALSE, ADJACENT=TRUE, TYPE="complex", label="complex_noncontiguous")
   )
   
-  dwin	<- categoriser(dwin, "TYPE_BASIC", "OTHER",
+  dwin	<- categorise(dwin, "TYPE_BASIC", "OTHER",
                       list(CATDISTANCE = "close", label="close"),
                       list(CATDISTANCE = "distant", label="distant"),
                       list(CATDISTANCE = "intermediate", label="intermediate"))
@@ -82,13 +112,14 @@ name.tbc <- function(phyloscanner.trees, tip.regex, allow.mt = F, trmw.min.reads
 #' @param df data.table to which new columns of relationship groups will be added. Must contain a column with name TYPE_BASIC. This column contains fundamental relationship states for every window, from which other relationships are derived. 
 #' @param get.groups names of relationship groups  
 #' @param make.pretty.labels Logical   
+#' @keywords internal
 #' @return input data.table with new columns. Each new column defines relationship states for a specific relationship group. 
 phsc.get.pairwise.relationships<- function(df, get.groups=c('TYPE_PAIR_DI2','TYPE_PAIR_TO','TYPE_PAIR_TODI2x2','TYPE_PAIR_TODI2','TYPE_DIR_TODI2','TYPE_NETWORK_SCORES','TYPE_CHAIN_TODI','TYPE_ADJ_NETWORK_SCORES','TYPE_ADJ_DIR_TODI2'))
 {
 
   if('TYPE_PAIR_DI2' %in% get.groups)
   {
-    df	<- categoriser(df, "TYPE_PAIR_DI2", "not.close",
+    df	<- categorise(df, "TYPE_PAIR_DI2", "not.close",
                       list(CATDISTANCE = "close", label="close"))
   }	
   #	
@@ -96,7 +127,7 @@ phsc.get.pairwise.relationships<- function(df, get.groups=c('TYPE_PAIR_DI2','TYP
   #	
   if('TYPE_PAIR_TO' %in% get.groups)
   {
-    df	<- categoriser(df, "TYPE_PAIR_TO", "other",
+    df	<- categorise(df, "TYPE_PAIR_TO", "other",
                       list(CONTIGUOUS = TRUE, TYPE = c("trans_12", "trans_21", "multi_trans_12", "multi_trans_21", "complex"), label = "trans.or.complex"))
   }
 
@@ -105,7 +136,7 @@ phsc.get.pairwise.relationships<- function(df, get.groups=c('TYPE_PAIR_DI2','TYP
   #
   if('TYPE_PAIR_TODI2x2' %in% get.groups)
   {		
-    df	<- categoriser(df, "TYPE_PAIR_TODI2x2", "not.close.other",
+    df	<- categorise(df, "TYPE_PAIR_TODI2x2", "not.close.other",
                       list(CONTIGUOUS = TRUE, CATDISTANCE = "close", label = "contiguous_close"),
                       list(CONTIGUOUS = TRUE, CATDISTANCE = c("intermediate", "distant"), label = "contiguous_not.close"),
                       list(CONTIGUOUS = FALSE, CATDISTANCE = "close", label = "noncontiguous_close"))
@@ -115,7 +146,7 @@ phsc.get.pairwise.relationships<- function(df, get.groups=c('TYPE_PAIR_DI2','TYP
   #
   if('TYPE_PAIR_TODI2' %in% get.groups)
   {
-    df	<- categoriser(df, "TYPE_PAIR_TODI2", "not.close.or.noncontiguous",
+    df	<- categorise(df, "TYPE_PAIR_TODI2", "not.close.or.noncontiguous",
                       list(CONTIGUOUS = TRUE, CATDISTANCE = "close", label="close_contiguous"))
   }	
   #
@@ -124,7 +155,7 @@ phsc.get.pairwise.relationships<- function(df, get.groups=c('TYPE_PAIR_DI2','TYP
   #
   if('TYPE_DIR_TODI2' %in% get.groups)
   {
-    df	<- categoriser(df, "TYPE_DIR_TODI2", NA_character_,
+    df	<- categorise(df, "TYPE_DIR_TODI2", NA_character_,
                       list(CONTIGUOUS = TRUE, TYPE=c("trans_12", "multi_trans_12"), CATDISTANCE = "close", label="12"),
                       list(CONTIGUOUS = TRUE, TYPE=c("trans_21", "multi_trans_21"), CATDISTANCE = "close", label="21"))
   }
@@ -134,7 +165,7 @@ phsc.get.pairwise.relationships<- function(df, get.groups=c('TYPE_PAIR_DI2','TYP
   #
   if('TYPE_ADJ_DIR_TODI2' %in% get.groups)
   {
-    df	<- categoriser(df, "TYPE_ADJ_DIR_TODI2", NA_character_,
+    df	<- categorise(df, "TYPE_ADJ_DIR_TODI2", NA_character_,
                       list(ADJACENT = TRUE, TYPE=c("trans_12", "multi_trans_12"), CATDISTANCE = "close", label="12"),
                       list(ADJACENT = TRUE, TYPE=c("trans_21", "multi_trans_21"), CATDISTANCE = "close", label="21"))
   }
@@ -144,7 +175,7 @@ phsc.get.pairwise.relationships<- function(df, get.groups=c('TYPE_PAIR_DI2','TYP
   #
   if('TYPE_NETWORK_SCORES'%in%get.groups)
   {				
-    df	<- categoriser(df, "TYPE_NETWORK_SCORES", "not.close.or.noncontiguous",
+    df	<- categorise(df, "TYPE_NETWORK_SCORES", "not.close.or.noncontiguous",
                       list(CONTIGUOUS = TRUE, TYPE=c("trans_12", "multi_trans_12"), CATDISTANCE = "close", label = "12"),
                       list(CONTIGUOUS = TRUE, TYPE=c("trans_21", "multi_trans_21"), CATDISTANCE = "close", label = "21"),
                       list(CONTIGUOUS = TRUE, TYPE=c("none", "complex"), CATDISTANCE = "close", label = "complex.or.no.ancestry"))
@@ -155,7 +186,7 @@ phsc.get.pairwise.relationships<- function(df, get.groups=c('TYPE_PAIR_DI2','TYP
   #
   if('TYPE_ADJ_NETWORK_SCORES' %in% get.groups)
   {				
-    df	<- categoriser(df, "TYPE_ADJ_NETWORK_SCORES", "not.close.or.noncontiguous",
+    df	<- categorise(df, "TYPE_ADJ_NETWORK_SCORES", "not.close.or.noncontiguous",
                       list(ADJACENT = TRUE, TYPE=c("trans_12", "multi_trans_12"), CATDISTANCE = "close", label = "12"),
                       list(ADJACENT = TRUE, TYPE=c("trans_21", "multi_trans_21"), CATDISTANCE = "close", label = "21"),
                       list(ADJACENT = TRUE, TYPE=c("none", "complex"), CATDISTANCE = "close", label = "complex.or.no.ancestry"))
@@ -165,7 +196,7 @@ phsc.get.pairwise.relationships<- function(df, get.groups=c('TYPE_PAIR_DI2','TYP
   #	
   if('TYPE_CHAIN_TODI' %in% get.groups)
   {
-    df	<- categoriser(df, "TYPE_CHAIN_TODI", "distant",
+    df	<- categorise(df, "TYPE_CHAIN_TODI", "distant",
                       list(CATDISTANCE = "close", label = "close"))
   }
   df
@@ -175,6 +206,7 @@ phsc.get.pairwise.relationships<- function(df, get.groups=c('TYPE_PAIR_DI2','TYP
 #' @title Count observed relationship states
 #' @description This function counts for each pair of individuals their relationship states across all windows (KEFF), and the total number of windows (NEFF). Since windows can be overlapping, the count is a real value.
 #' @export    
+#' @keywords internal
 #' @param df data.table with basic relationship types for paired individuals across windows. Must contain columns 'ID1','ID2','W_FROM','W_TO','TYPE_BASIC'. 
 #' @param get.groups names of relationship groups  
 #' @return new data.table with columns ID1 ID2 GROUP TYPE K KEFF N NEFF. 
@@ -250,6 +282,7 @@ phsc.get.pairwise.relationships.keff.and.neff<- function(df, get.groups)
 #' @param n.obs Calibration parameter for the prior: total number of windows. 
 #' @param confidence.cut Calibration parameter for the prior: confidence cut off.  
 #' @return Input data.table with two additional columns POSTERIOR_ALPHA and POSTERIOR_BETA
+#' @keywords internal
 phsc.get.pairwise.relationships.posterior<- function(df, n.type=2, n.obs=3, n.type.dir=n.type, n.obs.dir=n.obs, confidence.cut=0.5)
 {
   stopifnot(c('GROUP')%in%colnames(df))
@@ -267,7 +300,16 @@ phsc.get.pairwise.relationships.posterior<- function(df, n.type=2, n.obs=3, n.ty
   df
 }
 
-categoriser <- function(df, name, no.match.result = NA_character_, ...){
+
+#' @export
+#' @keywords internal
+#' @title Generate a new column, or append to an existing column, in a \code{data.table} which determines whether each row belongs to one or more categories determiend by other columns in the table.
+#' @param df A data.table
+#' @param name The name of the column to be added or appended to
+#' @param no.match.result A stringt that will identify rows that do not match any of the categories.
+#' @param ... One or more lists. Each entry in each list, except \code{label} should take the name of a column in \code{df} and a value or vector of values which are the acceptable values for that column in this category. The \code{label} item gives the name for this category, which will be automatically generated in a long-winded fashion if \code{label} is absent. Categories must be mutually exclusive. 
+#' @return If \code{name} is not an existing column in \code{df}, then \code{df} with a new column \code{name} which contains the category names. If \code{name} does exist, then its entries are appended with the category names following an underscore.
+categorise <- function(df, name, no.match.result = NA_character_, ...){
   conditions <- list(...)
   df <- dwin
   adding.column <- !(name %in% colnames(df))
@@ -353,6 +395,7 @@ categoriser <- function(df, name, no.match.result = NA_character_, ...){
 #' @param n.states Number of relationship states.
 #' @param n.obs Minimum number of windows to select a pair of individuals with confidence at least confidence.cut. 
 #' @param confidence.cut Confidence cut off.  
+#' @keywords internal
 #' @return Prior parameter n0 
 phsc.get.prior.parameter.n0<- function(n.states, keff=2, neff=3, confidence.cut=0.66)
 {
