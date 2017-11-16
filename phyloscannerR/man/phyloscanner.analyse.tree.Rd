@@ -7,7 +7,7 @@
 phyloscanner.analyse.tree(tree.file.name, splits.rule = c("s", "r", "f"),
   sankoff.k = 0, sankoff.unsampled.switch.threshold = 0,
   continuation.unsampled.proximity.cost = 1000, outgroup.name = NULL,
-  multifurcation.threshold = 0, guess.multifurcation.threshold = F,
+  multifurcation.threshold = -1, guess.multifurcation.threshold = F,
   user.blacklist.file.name = NULL, duplicate.file.name = NULL,
   recombination.file.name = NULL,
   tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
