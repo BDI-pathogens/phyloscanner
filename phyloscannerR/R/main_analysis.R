@@ -856,7 +856,7 @@ remove.blacklist.from.alignment <- function(
       }
     }
     if(!setequal(tree.identifiers, alignment.identifiers)){
-      warning("Tree files and alignment files do not entirely match. Alignment files with no tree files will be ignored; tree files with no alignment file will have no tips blacklisted.")
+      warning("Tree files and alignment files do not entirely match. Alignment files with no tree files will be ignored; if no alignment file exists then it will not be cleaned.")
     }
   }
   
