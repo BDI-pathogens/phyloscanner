@@ -114,7 +114,7 @@ if(!overwrite & file.exists(paste0(output.dir, "/", output.string,"_patStats.csv
 
 outgroup.name         <- args$outgroupName
 
-if(is.null(output.string)){
+if(is.null(outgroup.name)){
   warning("No outgroup name provided. Trees are assumed to be correctly rooted.")
 }
 
