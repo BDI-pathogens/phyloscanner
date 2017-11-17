@@ -1098,9 +1098,13 @@ if(!single.file & length(hosts)>1){
   results$ancestry <- as.character(results$ancestry)
   
   if(do.simplified.graph){
-    simplified.graph <- simplify.summary(results, arrow.threshold, length(all.tree.info), plot = T)
-    simplified.graph$simp.diagram
-    ggsave(file = file.path(output.dir, paste0(output.string,"_simplifiedRelationshipGraph.pdf")), width=simp.plot.dim, height=simp.plot.dim)
+    if(nrow(results)==0){
+      cat("No relationships exist in the required proportion of windows (",win.threshold,"); skipping simplified relationship summary.", sep="")
+    } else {
+      simplified.graph <- simplify.summary(results, arrow.threshold, length(all.tree.info), plot = T)
+      simplified.graph$simp.diagram
+      ggsave(file = file.path(output.dir, paste0(output.string,"_simplifiedRelationshipGraph.pdf")), width=simp.plot.dim, height=simp.plot.dim)
+    }
   }
 }
 
