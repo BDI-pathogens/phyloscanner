@@ -186,7 +186,7 @@ success <- remove.blacklist.from.alignment(
   file.name.regex,
   seed,
   norm.ref.file.name,
-  norm.standardise.gag.pol,
+  norm.standardise.gp,
   norm.constants.input,
   par.blacklisting.k,
   bl.raw.threshold,

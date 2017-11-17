@@ -237,7 +237,7 @@ phyloscanner.analyse.trees <- function(
   
   all.tree.info <- sapply(all.tree.info, function(tree.info) identify.window.coords(tree.info, file.name.regex), simplify = F, USE.NAMES = T)
   
-  readable.coords <- all(sapply(all.tree.info, function(x) !is.null(x$window.coords))) 
+  readable.coords <- all(sapply(all.tree.info, function(x) !is.null(x$window.coords)))
   
   # 3. Attach blacklist and recombination files
   
@@ -776,9 +776,9 @@ remove.blacklist.from.alignment <- function(
     all.tree.info[[suffix]]       <- tree.info
   }
   
-  # This is irrelevant
+  all.tree.info <- sapply(all.tree.info, function(tree.info) identify.window.coords(tree.info, file.name.regex), simplify = F, USE.NAMES = T)
   
-  readable.coords <- F
+  readable.coords <- all(sapply(all.tree.info, function(x) !is.null(x$window.coords)))
   
   # 2. Attach files
   
