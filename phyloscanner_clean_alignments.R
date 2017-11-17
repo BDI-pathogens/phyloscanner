@@ -193,7 +193,7 @@ success <- remove.blacklist.from.alignment(
   bl.ratio.threshold,
   do.dual.blacklisting,
   downsampling.limit,
-  blacklist.underrepresented,
+  blacklist.ur,
   output.string,
   verbose,
   T)

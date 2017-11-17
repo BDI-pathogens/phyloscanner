@@ -505,7 +505,7 @@ phyloscanner.analyse.trees <- function(
   # 15. Downsampling
   
   if(downsample){
-    all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.random.downsample(tree.info, max.reads.per.post, blacklist.underrepresented, has.read.counts, tip.regex, seed, verbose), simplify = F, USE.NAMES = T)
+    all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.random.downsample(tree.info, max.reads.per.host, blacklist.underrepresented, has.read.counts, tip.regex, seed, verbose), simplify = F, USE.NAMES = T)
   }
   
   # 16. All IDs can be safely gathered and mapped now. Windows with no patients should be removed.
@@ -702,8 +702,6 @@ remove.blacklist.from.alignment <- function(
   output.file.id = "CleanedAlignment_InWindow_",
   verbose = F,
   no.progress.bars = T){
-  
-  print(max.reads.per.host)
   
   use.m.thresh          <- multifurcation.threshold > 0 | guess.multifurcation.threshold
   
@@ -1040,7 +1038,7 @@ remove.blacklist.from.alignment <- function(
   # 12. Downsampling
   
   if(downsample){
-    all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.random.downsample(tree.info, max.reads.per.post, blacklist.underrepresented, has.read.counts, tip.regex, seed, verbose), simplify = F, USE.NAMES = T)
+    all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.random.downsample(tree.info, max.reads.per.host, blacklist.underrepresented, has.read.counts, tip.regex, seed, verbose), simplify = F, USE.NAMES = T)
   }
   
   sapply(all.tree.info, function(tree.info){
@@ -1659,7 +1657,7 @@ blacklist.from.duals.list <- function(tree.info, dual.results, verbose) {
 #' @export
 #' @keywords internal
 
-blacklist.from.random.downsample <- function(tree.info, max.reads.per.post, blacklist.underrepresented, has.read.counts, tip.regex, seed, verbose){
+blacklist.from.random.downsample <- function(tree.info, max.reads.per.host, blacklist.underrepresented, has.read.counts, tip.regex, seed, verbose){
   tree.info <- downsample.tree(tree.info, NULL, max.reads.per.host, T, blacklist.underrepresented, !has.read.counts, tip.regex, seed, verbose)
   tree.info$hosts.for.tips[tree.info$blacklist] <- NA 
   
