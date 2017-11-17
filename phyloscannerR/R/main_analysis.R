@@ -703,6 +703,8 @@ remove.blacklist.from.alignment <- function(
   verbose = F,
   no.progress.bars = T){
   
+  print(max.reads.per.host)
+  
   use.m.thresh          <- multifurcation.threshold > 0 | guess.multifurcation.threshold
   
   if(guess.multifurcation.threshold & multifurcation.threshold >= 0){
@@ -856,7 +858,7 @@ remove.blacklist.from.alignment <- function(
       }
     }
     if(!setequal(tree.identifiers, alignment.identifiers)){
-      warning("Tree files and alignment files do not entirely match. Blacklist files with no tree files will be ignored; tree files with no blacklist file will have no tips blacklisted.")
+      warning("Tree files and alignment files do not entirely match. Alignment files with no tree files will be ignored; tree files with no alignment file will have no tips blacklisted.")
     }
   }
   
@@ -1635,7 +1637,7 @@ blacklist.from.duals.list <- function(tree.info, dual.results, verbose) {
     
     newly.blacklisted                           <- setdiff(dual.nos, tree.info$blacklist) 
     
-    if(verbose & length(newly.blacklisted)>0) cat(length(newly.blacklisted), " tips blacklisted for belonging to minor subgraphs in tree suffix ",tree.info$suffix, "\n", sep="")
+    if(verbose & length(newly.blacklisted)>0) cat(length(newly.blacklisted), " tips blacklisted for belonging to minor subgraphs in tree ID ",tree.info$suffix, "\n", sep="")
     
     tree.info$hosts.for.tips[newly.blacklisted] <- NA
     
