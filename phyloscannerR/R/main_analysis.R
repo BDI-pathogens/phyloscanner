@@ -714,7 +714,10 @@ remove.blacklist.from.alignment <- function(
   }
   
   do.dup.blacklisting   <- !is.null(duplicate.file.directory)
-  do.par.blacklisting   <- parsimony.blacklist.k > 0
+  do.par.blacklisting   <- !is.null(parsimony.blacklist.k)
+  if(do.par.blacklisting){
+    do.par.blacklisting   <- parsimony.blacklist.k > 0
+  }
   
   if(do.dual.blacklisting & !do.par.blacklisting){
     warning("Dual blacklisting requires parsimony blacklisting. Turning dual blacklisting off.")
@@ -858,7 +861,7 @@ remove.blacklist.from.alignment <- function(
   }
   
   all.tree.info <- sapply(all.tree.info, function(tree.info) attach.file.names(tree.info, full.alignment.file.names, alignment.identifiers, "alignment.file.name"), simplify = F, USE.NAMES = T)
-
+  
   # 3. Read the trees
   
   all.tree.info <- sapply(all.tree.info, function(tree.info) attach.tree(tree.info, verbose), simplify = F, USE.NAMES = T)
@@ -1039,14 +1042,22 @@ remove.blacklist.from.alignment <- function(
   }
   
   sapply(all.tree.info, function(tree.info){
-    seqs     <- read.dna(tree.info$alignment.file.name, format="fasta")
-    new.seqs <- seqs[which(!(labels(seqs) %in% tree.info$original.tip.names[tree.info$blacklist])),]
-    new.afn  <- paste0("CleanedAlignment_InWindow_",tree.info$suffix, ".fasta")
-    write.dna(new.seqs, new.afn, format="fasta")
+ 
+    if(!is.null(tree.info$alignment.file.name)){
+    
+      seqs     <- read.dna(tree.info$alignment.file.name, format="fasta")
+      new.seqs <- seqs[which(!(labels(seqs) %in% tree.info$original.tip.labels[tree.info$blacklist])),]
+      new.afn  <- paste0(output.file.id, tree.info$suffix, ".fasta")
+      
+      if(verbose) cat("Writing cleaned alignment to ",new.afn, "\n", sep="")
+      write.dna(new.seqs, new.afn, format="fasta")
+    } else {
+      if(verbose) cat("No alignment file found for tree ID ",tree.info$suffix, "\n", sep="")
+    }
     
   })
   
-  
+  TRUE
 }
 
 
