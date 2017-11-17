@@ -643,8 +643,8 @@ phyloscanner.analyse.trees <- function(
 #'
 #' This function performs all the blacklisting steps of a phyloscanner analysis and then produces new alignment files with blacklisted sequences removed
 #' @param tree.directory The directory containing all input trees.
-#' @param tree.file.regex A regular expression identifying every file in \code{tree.directory} that is to be included in the analysis. The first capture group, if present, gives a unique string identifying each tree. If this is NULL then \code{phyloscanner} will attempt to open every file in \code{tree.directory}.
 #' @param alignment.directory The directory containing the alignments. 
+#' @param tree.file.regex A regular expression identifying every file in \code{tree.directory} that is to be included in the analysis. The first capture group, if present, gives a unique string identifying each tree. If this is NULL then \code{phyloscanner} will attempt to open every file in \code{tree.directory}.
 #' @param alignment.file.regex A regular expression identifying every file in \code{alignment.directory} that is an alignment. If a capture group is specified then its contents will uniquely identify the tree it belongs to, which must matches the IDs found by \code{tree.file.regex}. If these IDs cannot be identified then matching will be attempted using genome window coordinates.
 #' @param outgroup.name The name of the tip in the phylogeny/phylogenies to be used as outgroup (if unspecified, trees will be assumed to be already rooted). This should be sufficiently distant to any sequence obtained from a host that it can be assumed that the MRCA of the entire tree was not a lineage present in any sampled individual.
 #' @param multifurcation.threshold If specified, branches shorter than this in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. 
@@ -667,6 +667,7 @@ phyloscanner.analyse.trees <- function(
 #' @param do.dual.blacklisting Blacklist all reads from the minor subgraphs for all hosts established as dual by parsimony blacklisting (which must have been done for this to do anything).
 #' @param max.reads.per.host Used to turn on downsampling. If given, reads will be blacklisted such that read counts (or tip counts if no read counts are identified) from each host are equal (although see \code{blacklist.underrepresented}.
 #' @param blacklist.underrepresented If TRUE and \code{max.reads.per.host} is given, blacklist hosts from trees where their total tip count does not reach the maximum.
+#' @param output.file.id A string identifying the cleaned alignments
 #' @param verbose Give verbose output.
 #' @param no.progress.bars Hide the progress bars from verbose output.
 #' @importFrom ape read.tree read.nexus di2multi root node.depth.edgelength
@@ -676,8 +677,8 @@ phyloscanner.analyse.trees <- function(
 
 remove.blacklist.from.alignment <- function(
   tree.directory,
-  tree.file.regex = "^RAxML_bestTree.InWindow_([0-9]+_to_[0-9]+)\\.tree$",
   alignment.directory,
+  tree.file.regex = "^RAxML_bestTree.InWindow_([0-9]+_to_[0-9]+)\\.tree$",
   alignment.file.regex ="^AlignedReadsInWindow_([0-9]+_to_[0-9]+)\\.fasta$",
   outgroup.name = NULL,
   multifurcation.threshold = -1,
@@ -698,6 +699,7 @@ remove.blacklist.from.alignment <- function(
   do.dual.blacklisting = F,
   max.reads.per.host = Inf,
   blacklist.underrepresented = F,
+  output.file.id = "CleanedAlignment_InWindow_",
   verbose = F,
   no.progress.bars = T){
   
