@@ -114,7 +114,7 @@ if(!overwrite & file.exists(paste0(output.dir, "/", output.string,"_patStats.csv
 
 outgroup.name         <- args$outgroupName
 
-if(is.null(output.string)){
+if(is.null(outgroup.name)){
   warning("No outgroup name provided. Trees are assumed to be correctly rooted.")
 }
 
@@ -726,54 +726,58 @@ if(do.dup.blacklisting){
 if(do.par.blacklisting){
   
   all.tree.info <- sapply(all.tree.info, function(tree.info){
-    
+  
     tree <- tree.info$tree
     tip.hosts <- sapply(tree$tip.label, function(x) host.from.label(x, tip.regex))
-    tip.hosts[tree.info$blacklist] <- NA
     
+    tip.hosts[tree.info$blacklist] <- NA
+
     hosts <- unique(na.omit(tip.hosts))
     
-    hosts <- hosts[order(hosts)]
+    if(length(hosts)>0){
     
-    results <- sapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, outgroup.name, bl.raw.threshold, bl.ratio.threshold, "s", par.blacklisting.k, 0, T, no.read.counts, tip.regex, verbose, no.progress.bars), simplify = F, USE.NAMES = T)
-    
-    contaminant                                 <- unlist(lapply(results, "[[", 2))
-    contaminant.nos                             <- which(tree.info$tree$tip.label %in% contaminant)
-    
-    newly.blacklisted                           <- setdiff(contaminant.nos, tree.info$blacklist) 
-    
-    if(verbose & length(newly.blacklisted)>0) cat(length(newly.blacklisted), " tips blacklisted as probable contaminants by parsimony reconstruction for tree suffix ",tree.info$suffix, "\n", sep="")
-    
-    tree.info$hosts.for.tips[newly.blacklisted] <- NA
-    
-    old.tip.labels                              <- tree.info$tree$tip.label
-    
-    if(length(newly.blacklisted)>0){
-      new.tip.labels                            <- old.tip.labels
-      new.tip.labels[newly.blacklisted]         <- paste0(new.tip.labels[newly.blacklisted], "_X_CONTAMINANT")
-      tree$tip.label                            <- new.tip.labels
-      tree.info$tree                            <- tree
-    }
-    
-    tree.info$blacklist                         <- unique(c(tree.info$blacklist, contaminant.nos))
-    tree.info$blacklist                         <- tree.info$blacklist[order(tree.info$blacklist)]
-    
-    which.are.duals                             <- which(unlist(lapply(results, "[[", 6)))
-    mi.count                                    <- unlist(lapply(results, "[[", 7))
-    
-    multiplicity.table                          <- data.frame(host = hosts, count = mi.count, stringsAsFactors = F)
-    tree.info$dual.detection.splits             <- multiplicity.table
-    
-    if(length(which.are.duals) > 0) {
-      mi.df                                     <- data.frame(host = unlist(sapply(results[which.are.duals], function (x) rep(x$id, length(x$tip.names)) )), 
-                                                              tip.name = unlist(lapply(results[which.are.duals], "[[", 3)),
-                                                              reads.in.subtree = unlist(lapply(results[which.are.duals], "[[", 4)),
-                                                              tips.in.subtree = unlist(lapply(results[which.are.duals], "[[", 5)), 
-                                                              stringsAsFactors = F
-      )
+      hosts <- hosts[order(hosts)]
       
-      tree.info$duals.info <- mi.df
-    } 
+      results <- sapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, outgroup.name, bl.raw.threshold, bl.ratio.threshold, "s", par.blacklisting.k, 0, T, no.read.counts, tip.regex, verbose, no.progress.bars), simplify = F, USE.NAMES = T)
+      
+      contaminant                                 <- unlist(lapply(results, "[[", 2))
+      contaminant.nos                             <- which(tree.info$tree$tip.label %in% contaminant)
+      
+      newly.blacklisted                           <- setdiff(contaminant.nos, tree.info$blacklist) 
+      
+      if(verbose & length(newly.blacklisted)>0) cat(length(newly.blacklisted), " tips blacklisted as probable contaminants by parsimony reconstruction for tree suffix ",tree.info$suffix, "\n", sep="")
+      
+      tree.info$hosts.for.tips[newly.blacklisted] <- NA
+      
+      old.tip.labels                              <- tree.info$tree$tip.label
+      
+      if(length(newly.blacklisted)>0){
+        new.tip.labels                            <- old.tip.labels
+        new.tip.labels[newly.blacklisted]         <- paste0(new.tip.labels[newly.blacklisted], "_X_CONTAMINANT")
+        tree$tip.label                            <- new.tip.labels
+        tree.info$tree                            <- tree
+      }
+      
+      tree.info$blacklist                         <- unique(c(tree.info$blacklist, contaminant.nos))
+      tree.info$blacklist                         <- tree.info$blacklist[order(tree.info$blacklist)]
+      
+      which.are.duals                             <- which(unlist(lapply(results, "[[", 6)))
+      mi.count                                    <- unlist(lapply(results, "[[", 7))
+      
+      multiplicity.table                          <- data.frame(host = hosts, count = mi.count, stringsAsFactors = F)
+      tree.info$dual.detection.splits             <- multiplicity.table
+      
+      if(length(which.are.duals) > 0) {
+        mi.df                                     <- data.frame(host = unlist(sapply(results[which.are.duals], function (x) rep(x$id, length(x$tip.names)) )), 
+                                                                tip.name = unlist(lapply(results[which.are.duals], "[[", 3)),
+                                                                reads.in.subtree = unlist(lapply(results[which.are.duals], "[[", 4)),
+                                                                tips.in.subtree = unlist(lapply(results[which.are.duals], "[[", 5)), 
+                                                                stringsAsFactors = F
+        )
+        
+        tree.info$duals.info <- mi.df
+      } 
+    }
     
     tree.info
   }, simplify = F, USE.NAMES = T)
@@ -1098,9 +1102,13 @@ if(!single.file & length(hosts)>1){
   results$ancestry <- as.character(results$ancestry)
   
   if(do.simplified.graph){
-    simplified.graph <- simplify.summary(results, arrow.threshold, length(all.tree.info), plot = T)
-    simplified.graph$simp.diagram
-    ggsave(file = file.path(output.dir, paste0(output.string,"_simplifiedRelationshipGraph.pdf")), width=simp.plot.dim, height=simp.plot.dim)
+    if(nrow(results)==0){
+      cat("No relationships exist in the required proportion of windows (",win.threshold,"); skipping simplified relationship summary.", sep="")
+    } else {
+      simplified.graph <- simplify.summary(results, arrow.threshold, length(all.tree.info), plot = T)
+      simplified.graph$simp.diagram
+      ggsave(file = file.path(output.dir, paste0(output.string,"_simplifiedRelationshipGraph.pdf")), width=simp.plot.dim, height=simp.plot.dim)
+    }
   }
 }
 

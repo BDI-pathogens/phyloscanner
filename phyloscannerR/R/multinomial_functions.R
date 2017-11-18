@@ -72,7 +72,7 @@ multinomial.calculations <- function(phyloscanner.trees,
                       list(CONTIGUOUS=FALSE, ADJACENT=TRUE, TYPE=c("anc_21", "multi_anc_21"), label="trans21_noncontiguous"),
                       list(CONTIGUOUS=TRUE, ADJACENT=TRUE, TYPE="none", label="noancestry_contiguous"),
                       list(CONTIGUOUS=FALSE, ADJACENT=TRUE, TYPE="none", label="noancestry_noncontiguous"),
-                      list(CONTIGUOUS=TRUE, ADJACENT=TRUE, TYPE="complex", label="complex_noncontiguous"),
+                      list(CONTIGUOUS=TRUE, ADJACENT=TRUE, TYPE="complex", label="complex_contiguous"),
                       list(CONTIGUOUS=FALSE, ADJACENT=TRUE, TYPE="complex", label="complex_noncontiguous")
   )
   
@@ -89,17 +89,6 @@ multinomial.calculations <- function(phyloscanner.trees,
   
   if(verbose) cat('\nCalculate posterior state probabilities for pairs and relationship groups n=',nrow(rplkl),'...')
   rplkl	<- phsc.get.pairwise.relationships.posterior(rplkl, n.type=prior.keff, n.obs=prior.neff, n.type.dir=prior.keff.dir, n.obs.dir=prior.neff.dir, confidence.cut=prior.calibrated.prob)
-  
-  #
-  #	make TYPE_BASIC labels nice
-  #
-  tmp		<- rplkl[, which(GROUP=='TYPE_BASIC')]
-  set(rplkl, tmp, 'TYPE', rplkl[tmp, gsub('other_withintermediate_distant','other_distant',gsub('other_withintermediate_close','other_close',gsub('other_withintermediate$','other',gsub('other_nointermediate$','other',gsub('other_nointermediate_distant','other_distant',TYPE)))))])	
-  set(rplkl, tmp, 'TYPE', rplkl[tmp, gsub('other_no','other\nno',gsub('([ho])intermediate','\\1 intermediate',gsub('intermediate_','intermediate\n',gsub('intermingled_','intermingled\n',gsub('(chain_[fm][mf])_','\\1\n',gsub('(chain_[12][21])_','\\1\n',TYPE))))))])
-  set(rplkl, tmp, 'TYPE', rplkl[tmp, gsub('_',' ',TYPE)])
-  set(dwin, NULL, 'TYPE_BASIC', dwin[, gsub('other_withintermediate_distant','other_distant',gsub('other_withintermediate_close','other_close',gsub('other_withintermediate$','other',gsub('other_nointermediate$','other',gsub('other_nointermediate_distant','other_distant',TYPE_BASIC)))))])	
-  set(dwin, NULL, 'TYPE_BASIC', dwin[, gsub('other_no','other\nno',gsub('([ho])intermediate','\\1 intermediate',gsub('intermediate_','intermediate\n',gsub('intermingled_','intermingled\n',gsub('(chain_[fm][mf])_','\\1\n',gsub('(chain_[12][21])_','\\1\n',TYPE_BASIC))))))])
-  set(dwin, NULL, 'TYPE_BASIC', dwin[, gsub('_',' ',TYPE_BASIC)])
   
   list(dwin=dwin, rplkl=rplkl)
 }
@@ -238,8 +227,9 @@ phsc.get.pairwise.relationships.keff.and.neff<- function(df, get.groups)
   df		<- merge(df,tmp,by=c('ID1','ID2','CHUNK','W_FROM','W_TO'))	
   
   categorisation <- df[,c('TYPE_BASIC', get.groups), with=F]
-  setkey(dt)
+  setkey(categorisation)
   categorisation <- unique(categorisation)
+  setkey(categorisation, "TYPE_BASIC")
   
   #	for each chunk, count: windows by type and effective length of chunk
   #	then sum chunks
@@ -248,8 +238,9 @@ phsc.get.pairwise.relationships.keff.and.neff<- function(df, get.groups)
   #
   #	add relationship types
   #
-  rplkl	<- phsc.get.pairwise.relationships(rplkl, get.groups=get.groups)
-
+  setkey(rplkl, "TYPE_BASIC")
+  rplkl <- rplkl[categorisation]
+  
   #	melt relationship groups
   rplkl	<- melt(rplkl, measure.vars=c(get.groups,'TYPE_BASIC'), variable.name='GROUP', value.name='TYPE')
   rplkl	<- subset(rplkl, !is.na(TYPE))
