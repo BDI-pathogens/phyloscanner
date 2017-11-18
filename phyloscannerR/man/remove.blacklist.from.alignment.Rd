@@ -4,9 +4,8 @@
 \alias{remove.blacklist.from.alignment}
 \title{Perform blacklisting and clean the input alignments of blacklisted sequences without doing any further phyloscanner analysis}
 \usage{
-remove.blacklist.from.alignment(tree.directory,
+remove.blacklist.from.alignment(tree.directory, alignment.directory,
   tree.file.regex = "^RAxML_bestTree.InWindow_([0-9]+_to_[0-9]+)\\\\.tree$",
-  alignment.directory,
   alignment.file.regex = "^AlignedReadsInWindow_([0-9]+_to_[0-9]+)\\\\.fasta$",
   outgroup.name = NULL, multifurcation.threshold = -1,
   guess.multifurcation.threshold = F, user.blacklist.directory = NULL,
@@ -18,15 +17,16 @@ remove.blacklist.from.alignment(tree.directory,
   norm.standardise.gag.pol = F, norm.constants = NULL,
   parsimony.blacklist.k = 0, raw.blacklist.threshold = 0,
   ratio.blacklist.threshold = 0, do.dual.blacklisting = F,
-  max.reads.per.host = Inf, blacklist.underrepresented = F, verbose = F,
+  max.reads.per.host = Inf, blacklist.underrepresented = F,
+  output.file.id = "CleanedAlignment_InWindow_", verbose = F,
   no.progress.bars = T)
 }
 \arguments{
 \item{tree.directory}{The directory containing all input trees.}
 
-\item{tree.file.regex}{A regular expression identifying every file in \code{tree.directory} that is to be included in the analysis. The first capture group, if present, gives a unique string identifying each tree. If this is NULL then \code{phyloscanner} will attempt to open every file in \code{tree.directory}.}
-
 \item{alignment.directory}{The directory containing the alignments.}
+
+\item{tree.file.regex}{A regular expression identifying every file in \code{tree.directory} that is to be included in the analysis. The first capture group, if present, gives a unique string identifying each tree. If this is NULL then \code{phyloscanner} will attempt to open every file in \code{tree.directory}.}
 
 \item{alignment.file.regex}{A regular expression identifying every file in \code{alignment.directory} that is an alignment. If a capture group is specified then its contents will uniquely identify the tree it belongs to, which must matches the IDs found by \code{tree.file.regex}. If these IDs cannot be identified then matching will be attempted using genome window coordinates.}
 
@@ -67,6 +67,8 @@ remove.blacklist.from.alignment(tree.directory,
 \item{max.reads.per.host}{Used to turn on downsampling. If given, reads will be blacklisted such that read counts (or tip counts if no read counts are identified) from each host are equal (although see \code{blacklist.underrepresented}.}
 
 \item{blacklist.underrepresented}{If TRUE and \code{max.reads.per.host} is given, blacklist hosts from trees where their total tip count does not reach the maximum.}
+
+\item{output.file.id}{A string identifying the cleaned alignments}
 
 \item{verbose}{Give verbose output.}
 

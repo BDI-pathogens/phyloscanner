@@ -51,9 +51,9 @@ multinomial.calculations <- function(phyloscanner.trees,
   set(dwin, NULL, 'W_TO', dwin[, as.integer(gsub('[^0-9]*([0-9]+)_to_([0-9]+).*','\\2', SUFFIX))])
   
   dwin$CATDISTANCE <- sapply(dwin$PATRISTIC_DISTANCE, function(x){
-    if(x < trmw.close.brl){
+    if(x < close.threshold){
       "close"
-    } else if(x >= trmw.distant.brl){
+    } else if(x >= distant.threshold){
       "distant"
     } else {
       "intermediate"
@@ -88,7 +88,7 @@ multinomial.calculations <- function(phyloscanner.trees,
   rplkl	<- phsc.get.pairwise.relationships.keff.and.neff(dwin, relationship.types)
   
   if(verbose) cat('\nCalculate posterior state probabilities for pairs and relationship groups n=',nrow(rplkl),'...')
-  rplkl	<- phsc.get.pairwise.relationships.posterior(rplkl, n.type=prior.keff, n.obs=prior.neff, n.type.dir=prior.keff.dir, n.obs.dir=prior.neff.dir, confidence.cut=prior.calibrated.prob)
+  rplkl	<- phsc.get.pairwise.relationships.posterior(rplkl, n.type=prior.keff, n.obs=prior.neff, confidence.cut=prior.calibrated.prob)
   
   list(dwin=dwin, rplkl=rplkl)
 }
@@ -195,7 +195,8 @@ phsc.get.pairwise.relationships<- function(df, get.groups=c('TYPE_PAIR_DI2','TYP
 #' @export    
 #' @keywords internal
 #' @param df data.table with basic relationship types for paired individuals across windows. Must contain columns 'ID1','ID2','W_FROM','W_TO','TYPE_BASIC'. 
-#' @param get.groups names of relationship groups  
+#' @param get.groups names of relationship groups
+#' @import data.table  
 #' @return new data.table with columns ID1 ID2 GROUP TYPE K KEFF N NEFF. 
 phsc.get.pairwise.relationships.keff.and.neff<- function(df, get.groups)
 {
@@ -300,7 +301,6 @@ phsc.get.pairwise.relationships.posterior<- function(df, n.type=2, n.obs=3, n.ty
 #' @return If \code{name} is not an existing column in \code{df}, then \code{df} with a new column \code{name} which contains the category names. If \code{name} does exist, then its entries are appended with the category names following an underscore.
 categorise <- function(df, name, no.match.result = NA_character_, ...){
   conditions <- list(...)
-  df <- dwin
   adding.column <- !(name %in% colnames(df))
   
   if(adding.column){
