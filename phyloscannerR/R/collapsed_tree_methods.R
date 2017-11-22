@@ -1070,7 +1070,14 @@ simplify.summary <- function(summary, arrow.threshold, total.trees, plot = F){
   
   summary.wide[is.na(summary.wide)] <- 0
 
-  summary.wide$total.equiv <- summary.wide$ancestry.tree.count.none + summary.wide$ancestry.tree.count.complex
+  summary.wide$total.equiv <- 0
+  
+  if("ancestry.tree.count.none" %in% colnames(summary.wide)){
+    summary.wide$total.equiv <- summary.wide$total.equiv + summary.wide$ancestry.tree.count.none
+  }
+  if("ancestry.tree.count.complex" %in% colnames(summary.wide)){
+    summary.wide$total.equiv <- summary.wide$total.equiv + summary.wide$ancestry.tree.count.complex
+  }
   
   if("ancestry.tree.count.trans12" %in% colnames(summary.wide)){
     summary.wide$total.12 <- summary.wide$ancestry.tree.count.trans12
