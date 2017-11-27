@@ -26,7 +26,7 @@ arg_parser$add_argument("outputString", action="store", help="A string that will
 
 arg_parser$add_argument("-og", "--outgroupName", action="store", help="The name of the tip in the phylogeny/phylogenies to be used as outgroup (if unspecified, trees will be assumed to be already rooted).")
 arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, short branches in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. If a number, this number will be used as the threshold, with all branches strictly smaller collapsed. If 'g', it will be guessed from the branch lengths and the width of the genomic window (if appropriate). It is recommended that trees are examined by eye to check that they do appear to have multifurcations if 'g' is used.")
-arg_parser$add_argument("-b", "--blacklist", action="store", help="A path and string that begins all the file names for pre-existing blacklist files.")
+arg_parser$add_argument("-b", "--userBlacklist", action="store", help="A path and string that begins all the file names for pre-existing blacklist files.")
 
 # General, bland options
 
@@ -66,7 +66,7 @@ arg_parser$add_argument("-dsb", "--blacklistUnderrepresented", action="store_tru
 # Parsimony reconstruction
 
 arg_parser$add_argument("-ff", "--useff", action="store_true", default=FALSE, help="Use ff to store parsimony reconstruction matrices. Use if you run out of memory.")
-arg_parser$add_argument("splitsRule", action="store", help="The rules by which the sets of hosts are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. This takes one string as an argument which is itself a variable number of arguments, comma-separated. The first dictates the algorithm: s=Sankoff with optional within-host diversity penalty (slow, rigorous, recommended), r=Romero-Severson (quick, less rigorous with >2 hosts), f=Sankoff with continuation costs (experimental). For 'r' no further arguments are expected. For 's' and 'f' the k parameter in the Sankoff reconstruction, which penalises within-host diversity, must also be given. There is an optional third argument for 's' and 'f'. For 's' this is the branch length threshold at which a lineage reconstructed as infecting a host will transition to the unsampled state. For 'f' this is the branch length at which an node is reconstructed as unsampled if all its neighbouring nodes are a greater distance away. Both defaults are 0.")
+arg_parser$add_argument("splitsRule", action="store", help="The rules by which the sets of hosts are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. This takes one string as an argument which is itself a variable number of arguments, comma-separated. The first dictates the algorithm: s=Sankoff with optional within-host diversity penalty (slow, rigorous, recommended), r=Romero-Severson (quick, less rigorous with >2 hosts). For 'r' no further arguments are expected. For 's' the k parameter in the Sankoff reconstruction, which penalises within-host diversity, must also be given.")
 arg_parser$add_argument("-P", "--pruneBlacklist", action="store_true", help="If present, all blacklisted and references tips (except the outgroup) are pruned away before starting parsimony-based reconstruction")
 arg_parser$add_argument("-rcm", "--readCountsMatterOnZeroLengthBranches", default = FALSE, action="store_true", help="If present, read counts will be taken into account in parsimony reconstructions at the parents of zero-length branches. Not applicable for the Romero-Severson-like reconstruction method.")
 arg_parser$add_argument("-tn", "--outputNexusTree", action="store_true", help="Standard output of annotated trees are in PDF format. If this option is present, output them as NEXUS instead.")
@@ -184,7 +184,7 @@ reconst.mode.arg      <- args$splitsRule
 
 reconst.mode.arg      <- unlist(strsplit(reconst.mode.arg, ","))
 
-if(!(reconst.mode.arg[1] %in% c("r", "s", "f"))){
+if(!(reconst.mode.arg[1] %in% c("r", "s"))){
   stop(paste("Unknown split classifier: ", reconst.mode.arg[1], "\n", sep=""))
 }
 
@@ -194,22 +194,14 @@ if(reconstruction.mode == "r" & length(reconst.mode.arg)>1){
   warning("Romero-Severson reconstuction takes no additional arguments; ignoring everything after 'r'")
 }
 
-if(reconstruction.mode!="r" & length(reconst.mode.arg)==1){
+if(reconstruction.mode=="s" & length(reconst.mode.arg)==1){
   stop("At least one additional argument is required for Sankoff reconstruction")
 }
 
-if(reconstruction.mode!="r"){
+if(reconstruction.mode=="s"){
   sankoff.k             <- as.numeric(reconst.mode.arg[2])
-  if(sankoff.k == 0 & reconstruction.mode=="f"){
-    stop("k=0 for continuation costs parsimony is not supported (for simple parsimony use 's,0')")
-  }
-  
-  if(length(reconst.mode.arg) > 2){
-    sankoff.p           <- as.numeric(reconst.mode.arg[3])
-  } else {
-    sankoff.p           <- 0
-  }
-  
+  sankoff.p           <- 0
+ 
   if(is.na(sankoff.k) | is.na(sankoff.p)){
     stop("Expected numerical arguments for reconstruction algorithm parameters.")
   }
