@@ -15,13 +15,13 @@ multinomial.calculations <- function(phyloscanner.trees,
                                      close.threshold,
                                      prior.keff = 3,
                                      prior.neff = 4,
-                                     prior.calibrated.prob = 0.66,
+                                     prior.calibrated.prob = 0.5,
                                      tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$", 
                                      allow.mt = F, 
                                      min.reads = 0, 
                                      min.tips = 0, 
                                      distant.threshold = close.threshold,
-                                     relationship.types	= c('TYPE_PAIR_DI2','TYPE_PAIR_TO','TYPE_PAIR_TODI2x2','TYPE_PAIR_TODI2','TYPE_DIR_TODI2','TYPE_NETWORK_SCORES','TYPE_CHAIN_TODI'),
+                                     relationship.types	= c('TYPE_PAIR_DI2','TYPE_PAIR_TO','TYPE_PAIR_TODI2x2','TYPE_PAIR_TODI2','TYPE_DIR_TODI2','TYPE_NETWORK_SCORES','TYPE_ADJ_NETWORK_SCORES','TYPE_CHAIN_TODI'),
                                      verbose=F){
   
   if(!attr(phyloscanner.trees, "readable.coords")){
@@ -29,17 +29,17 @@ multinomial.calculations <- function(phyloscanner.trees,
   }
   
   mc <- merge.classifications(phyloscanner.trees, allow.mt, verbose)
-  ss <- gather.summary.statistics(phyloscanner.trees, tip.regex = tip.regex, verbose = verbose)
   
-  sskeep <- ss[,.(id, file.suffix, tips, reads)]
-  
-  setkey(sskeep, id, file.suffix)
+  ss <- lapply(phyloscanner.trees, function(x) get.tip.and.read.counts(x, all.hosts.from.trees(phyloscanner.trees), tip.regex, attr(phyloscanner.trees, 'has.read.counts'), verbose))
+  ss <- rbindlist(ss)
+
+  setkey(ss, id, file.suffix)
   setkey(mc, HOST.1, SUFFIX)
-  merge.tab.1 <- mc[sskeep, nomatch=0]
+  merge.tab.1 <- mc[ss, nomatch=0]
   setnames(merge.tab.1, c('tips', 'reads'), c('tips.1', 'reads.1'))
   
   setkey(merge.tab.1, HOST.2, SUFFIX)
-  merge.tab.2 <- merge.tab.1[sskeep, nomatch=0]
+  merge.tab.2 <- merge.tab.1[ss, nomatch=0]
   setnames(merge.tab.2, c('tips', 'reads'), c('tips.2', 'reads.2'))
   
   dwin <- merge.tab.2
@@ -76,6 +76,7 @@ multinomial.calculations <- function(phyloscanner.trees,
                       list(CONTIGUOUS=FALSE, ADJACENT=TRUE, TYPE="complex", label="complex_noncontiguous")
   )
   
+
   dwin	<- categorise(dwin, "TYPE_BASIC", "OTHER",
                       list(CATDISTANCE = "close", label="close"),
                       list(CATDISTANCE = "distant", label="distant"),
@@ -83,7 +84,7 @@ multinomial.calculations <- function(phyloscanner.trees,
   
   if(verbose) cat('\nCalculate derived pairwise relationships for windows n=',nrow(dwin),'...')
   dwin	<- phsc.get.pairwise.relationships(dwin, get.groups=relationship.types)
-  
+
   if(verbose) cat('\nCalculate KEFF and NEFF for windows n=',nrow(dwin),'...')
   rplkl	<- phsc.get.pairwise.relationships.keff.and.neff(dwin, relationship.types)
   
@@ -98,7 +99,6 @@ multinomial.calculations <- function(phyloscanner.trees,
 #' @export    
 #' @param df data.table to which new columns of relationship groups will be added. Must contain a column with name TYPE_BASIC. This column contains fundamental relationship states for every window, from which other relationships are derived. 
 #' @param get.groups names of relationship groups  
-#' @param make.pretty.labels Logical   
 #' @keywords internal
 #' @return input data.table with new columns. Each new column defines relationship states for a specific relationship group. 
 phsc.get.pairwise.relationships<- function(df, get.groups=c('TYPE_PAIR_DI2','TYPE_PAIR_TO','TYPE_PAIR_TODI2x2','TYPE_PAIR_TODI2','TYPE_DIR_TODI2','TYPE_NETWORK_SCORES','TYPE_CHAIN_TODI','TYPE_ADJ_NETWORK_SCORES','TYPE_ADJ_DIR_TODI2'))
@@ -115,7 +115,7 @@ phsc.get.pairwise.relationships<- function(df, get.groups=c('TYPE_PAIR_DI2','TYP
   if('TYPE_PAIR_TO' %in% get.groups)
   {
     df	<- categorise(df, "TYPE_PAIR_TO", "other",
-                      list(CONTIGUOUS = TRUE, TYPE = c("trans_12", "trans_21", "multi_trans_12", "multi_trans_21", "complex"), label = "trans.or.complex"))
+                      list(CONTIGUOUS = TRUE, TYPE = c("anc_12", "anc_21", "multi_anc_12", "multi_anc_21", "complex"), label = "anc.or.complex"))
   }
 
   #
@@ -143,8 +143,8 @@ phsc.get.pairwise.relationships<- function(df, get.groups=c('TYPE_PAIR_DI2','TYP
   if('TYPE_DIR_TODI2' %in% get.groups)
   {
     df	<- categorise(df, "TYPE_DIR_TODI2", NA_character_,
-                      list(CONTIGUOUS = TRUE, TYPE=c("trans_12", "multi_trans_12"), CATDISTANCE = "close", label="12"),
-                      list(CONTIGUOUS = TRUE, TYPE=c("trans_21", "multi_trans_21"), CATDISTANCE = "close", label="21"))
+                      list(CONTIGUOUS = TRUE, TYPE=c("anc_12", "multi_anc_12"), CATDISTANCE = "close", label="12"),
+                      list(CONTIGUOUS = TRUE, TYPE=c("anc_21", "multi_anc_21"), CATDISTANCE = "close", label="21"))
   }
   #
   #	group to determine direction of transmission in likely pairs
@@ -153,8 +153,8 @@ phsc.get.pairwise.relationships<- function(df, get.groups=c('TYPE_PAIR_DI2','TYP
   if('TYPE_ADJ_DIR_TODI2' %in% get.groups)
   {
     df	<- categorise(df, "TYPE_ADJ_DIR_TODI2", NA_character_,
-                      list(ADJACENT = TRUE, TYPE=c("trans_12", "multi_trans_12"), CATDISTANCE = "close", label="12"),
-                      list(ADJACENT = TRUE, TYPE=c("trans_21", "multi_trans_21"), CATDISTANCE = "close", label="21"))
+                      list(ADJACENT = TRUE, TYPE=c("anc_12", "multi_anc_12"), CATDISTANCE = "close", label="12"),
+                      list(ADJACENT = TRUE, TYPE=c("anc_21", "multi_anc_21"), CATDISTANCE = "close", label="21"))
   }
   #
   #	group to determine probabilities for transmission networks
@@ -163,8 +163,8 @@ phsc.get.pairwise.relationships<- function(df, get.groups=c('TYPE_PAIR_DI2','TYP
   if('TYPE_NETWORK_SCORES'%in%get.groups)
   {				
     df	<- categorise(df, "TYPE_NETWORK_SCORES", "not.close.or.noncontiguous",
-                      list(CONTIGUOUS = TRUE, TYPE=c("trans_12", "multi_trans_12"), CATDISTANCE = "close", label = "12"),
-                      list(CONTIGUOUS = TRUE, TYPE=c("trans_21", "multi_trans_21"), CATDISTANCE = "close", label = "21"),
+                      list(CONTIGUOUS = TRUE, TYPE=c("anc_12", "multi_anc_12"), CATDISTANCE = "close", label = "12"),
+                      list(CONTIGUOUS = TRUE, TYPE=c("anc_21", "multi_anc_21"), CATDISTANCE = "close", label = "21"),
                       list(CONTIGUOUS = TRUE, TYPE=c("none", "complex"), CATDISTANCE = "close", label = "complex.or.no.ancestry"))
   }
   #
@@ -174,8 +174,8 @@ phsc.get.pairwise.relationships<- function(df, get.groups=c('TYPE_PAIR_DI2','TYP
   if('TYPE_ADJ_NETWORK_SCORES' %in% get.groups)
   {				
     df	<- categorise(df, "TYPE_ADJ_NETWORK_SCORES", "not.close.or.noncontiguous",
-                      list(ADJACENT = TRUE, TYPE=c("trans_12", "multi_trans_12"), CATDISTANCE = "close", label = "12"),
-                      list(ADJACENT = TRUE, TYPE=c("trans_21", "multi_trans_21"), CATDISTANCE = "close", label = "21"),
+                      list(ADJACENT = TRUE, TYPE=c("anc_12", "multi_anc_12"), CATDISTANCE = "close", label = "12"),
+                      list(ADJACENT = TRUE, TYPE=c("anc_21", "multi_anc_21"), CATDISTANCE = "close", label = "21"),
                       list(ADJACENT = TRUE, TYPE=c("none", "complex"), CATDISTANCE = "close", label = "complex.or.no.ancestry"))
   }		
   #
@@ -198,22 +198,25 @@ phsc.get.pairwise.relationships<- function(df, get.groups=c('TYPE_PAIR_DI2','TYP
 #' @param get.groups names of relationship groups
 #' @import data.table  
 #' @return new data.table with columns ID1 ID2 GROUP TYPE K KEFF N NEFF. 
-phsc.get.pairwise.relationships.keff.and.neff<- function(df, get.groups)
+phsc.get.pairwise.relationships.keff.and.neff<- function(df, get.groups, w.slide=NA)
 {
   stopifnot(c('ID1','ID2','W_FROM','W_TO','TYPE_BASIC')%in%colnames(df))
   #
   #	identify chunks of contiguous windows
   #	
   setkey(df, ID1, ID2, W_FROM)
-  w.slide	<- df[, {
-    ans	<- NA_integer_
-    tmp	<- diff(W_FROM)
-    if(length(tmp))
-      ans	<- min(tmp)
-    list(W_SLIDE=ans)
-  }, by=c('ID1','ID2')]
-  w.slide	<- subset(w.slide, !is.na(W_SLIDE))
-  w.slide	<- ifelse(nrow(w.slide), w.slide[, min(W_SLIDE)], 1L)
+  if(is.na(w.slide))
+  {
+    w.slide	<- df[, {
+      ans	<- NA_integer_
+      tmp	<- diff(W_FROM)
+      if(length(tmp))
+        ans	<- min(tmp)
+      list(W_SLIDE=ans)
+    }, by=c('ID1','ID2')]
+    w.slide	<- subset(w.slide, !is.na(W_SLIDE))
+    w.slide	<- ifelse(nrow(w.slide), w.slide[, min(W_SLIDE)], 1L)		
+  }
   #	define chunks
   setkey(df, ID1, ID2, W_FROM)
   tmp		<- df[, {
@@ -225,11 +228,12 @@ phsc.get.pairwise.relationships.keff.and.neff<- function(df, get.groups)
   tmp		<- df[, {
     list(W_FROM=W_FROM, W_TO=W_TO, CHUNK_L=(max(W_TO+1L)-min(W_FROM))/(W_TO[1]+1L-W_FROM[1]), CHUNK_N=length(W_FROM))
   }, by=c('ID1','ID2','CHUNK')]
-  df		<- merge(df,tmp,by=c('ID1','ID2','CHUNK','W_FROM','W_TO'))	
+  df		<- merge(df,tmp,by=c('ID1','ID2','CHUNK','W_FROM','W_TO'))
   
   categorisation <- df[,c('TYPE_BASIC', get.groups), with=F]
   setkey(categorisation)
   categorisation <- unique(categorisation)
+  
   setkey(categorisation, "TYPE_BASIC")
   
   #	for each chunk, count: windows by type and effective length of chunk
@@ -239,6 +243,7 @@ phsc.get.pairwise.relationships.keff.and.neff<- function(df, get.groups)
   #
   #	add relationship types
   #
+
   setkey(rplkl, "TYPE_BASIC")
   rplkl <- rplkl[categorisation]
   
@@ -285,6 +290,7 @@ phsc.get.pairwise.relationships.posterior<- function(df, n.type=2, n.obs=3, n.ty
     list(PAR_PRIOR=z)
   }, by=c('GROUP','N_TYPE')]
   df		<- merge(df, tmp, by=c('GROUP'))
+  # df[, POSTERIOR_ALPHA:= PAR_PRIOR/N_TYPE+KEFF]
   df[, POSTERIOR_ALPHA:= PAR_PRIOR/N_TYPE+KEFF]
   df[, POSTERIOR_BETA:= PAR_PRIOR*(1-1/N_TYPE)+NEFF-KEFF]	
   df
@@ -388,10 +394,15 @@ categorise <- function(df, name, no.match.result = NA_character_, ...){
 #' @return Prior parameter n0 
 phsc.get.prior.parameter.n0<- function(n.states, keff=2, neff=3, confidence.cut=0.66)
 {
+  #phsc.find.n0.aux<- function(n0, n.states, keff, neff, confidence.cut)
+  #{
+  #	abs( (n0+n.states*(keff-1))/ (n.states*(neff+n0-2)) - confidence.cut )
+  #}
   phsc.find.n0.aux<- function(n0, n.states, keff, neff, confidence.cut)
   {
-    abs( (n0+n.states*(keff-1))/ (n.states*(neff+n0-2)) - confidence.cut )
+    abs( (n0+n.states*keff)/ (n.states*(neff+n0)) - confidence.cut )
   }	
+  
   ans	<- optimize(phsc.find.n0.aux, c(.001,1e2), n.states=n.states, keff=keff, neff=neff, confidence.cut=confidence.cut)
   ans	<- round(ans$minimum, d=4)
   ans

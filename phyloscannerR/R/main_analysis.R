@@ -4,8 +4,8 @@
 #' @param tree.file.name The name of the tree file (Newick or NEXUS format).
 #' @param splits.rule The rules by which the sets of hosts are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. Options: s=Sankoff with optional within-host diversity penalty (slow, rigorous, recommended), r=Romero-Severson (quick, less rigorous with >2 hosts), f=Sankoff with continuation costs (experimental).
 #' @param sankoff.k For \code{splits.rule = s} or \code{f} only. The \emph{k} parameter in the Sankoff reconstruction, representing the within-host diversity penalty.
-#' @param sankoff.unsampled.switch.threshold For \code{splits.rule = s} only. Threshold at which a lineage reconstructed as infecting a host will transition to the unsampled state, if it would be equally parsimonious to remain in that host.
-#' @param continuation.unsampled.proximity.cost For \code{splits.rule = f} only. The branch length at which an node is reconstructed as unsampled if all its neighbouring nodes are a greater distance away. The default is 1000, intended to be effectively infinite, such a node will never normally receive the unsampled state.
+#' @param sankoff.unassigned.switch.threshold For \code{splits.rule = s} only. Threshold at which a lineage reconstructed as infecting a host will transition to the unassigned state, if it would be equally parsimonious to remain in that host.
+#' @param continuation.unassigned.proximity.cost For \code{splits.rule = f} only. The branch length at which an node is reconstructed as unassigned if all its neighbouring nodes are a greater distance away. The default is 1000, intended to be effectively infinite, such a node will never normally receive the unassigned state.
 #' @param outgroup.name The name of the tip in the phylogeny/phylogenies to be used as outgroup (if unspecified, trees will be assumed to be already rooted). This should be sufficiently distant to any sequence obtained from a host that it can be assumed that the MRCA of the entire tree was not a lineage present in any sampled individual.
 #' @param multifurcation.threshold If specified, branches shorter than this in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. 
 #' @param guess.multifurcation.threshold Whether to guess the multifurcation threshold from the branch lengths of the trees and the width of the genomic window (if that information is available). It is recommended that trees are examined by eye to check that they do appear to have multifurcations if using this option.
@@ -40,8 +40,8 @@ phyloscanner.analyse.tree <- function(
   tree.file.name,
   splits.rule = c("s", "r", "f"),
   sankoff.k = 0,
-  sankoff.unsampled.switch.threshold = 0,
-  continuation.unsampled.proximity.cost = 1000,
+  sankoff.unassigned.switch.threshold = 0,
+  continuation.unassigned.proximity.cost = 1000,
   outgroup.name = NULL,
   multifurcation.threshold = -1,
   guess.multifurcation.threshold = F,
@@ -71,8 +71,8 @@ phyloscanner.analyse.tree <- function(
   duplicate.file.directory <- if(!is.null(duplicate.file.name)) dirname(duplicate.file.name) else NULL
   recombination.file.directory <- if(!is.null(recombination.file.name)) dirname(recombination.file.name) else NULL
   
-  phyloscanner.analyse.trees(tree.directory, basename(tree.file.name), splits.rule, sankoff.k, sankoff.unsampled.switch.threshold,
-                             continuation.unsampled.proximity.cost, outgroup.name, multifurcation.threshold, guess.multifurcation.threshold, 
+  phyloscanner.analyse.trees(tree.directory, basename(tree.file.name), splits.rule, sankoff.k, sankoff.unassigned.switch.threshold,
+                             continuation.unassigned.proximity.cost, outgroup.name, multifurcation.threshold, guess.multifurcation.threshold, 
                              user.blacklist.directory, basename(user.blacklist.file.name), duplicate.file.directory, 
                              basename(duplicate.file.name), recombination.file.directory, basename(recombination.file.name), tip.regex, 
                              file.name.regex, seed, norm.ref.file.name, norm.standardise.gag.pol, norm.constants, parsimony.blacklist.k, 
@@ -87,8 +87,8 @@ phyloscanner.analyse.tree <- function(
 #' @param tree.file.regex A regular expression identifying every file in \code{tree.directory} that is to be included in the analysis. The first capture group, if present, gives a unique string identifying each tree. If this is NULL then \code{phyloscanner} will attempt to open every file in \code{tree.directory}.
 #' @param splits.rule The rules by which the sets of hosts are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. Options: s=Sankoff with optional within-host diversity penalty (slow, rigorous, recommended), r=Romero-Severson (quick, less rigorous with >2 hosts), f=Sankoff with continuation costs (experimental).
 #' @param sankoff.k For \code{splits.rule = s} or \code{f} only. The \emph{k} parameter in the Sankoff reconstruction, representing the within-host diversity penalty.
-#' @param sankoff.unsampled.switch.threshold For \code{splits.rule = s} only. Threshold at which a lineage reconstructed as infecting a host will transition to the unsampled state, if it would be equally parsimonious to remain in that host.
-#' @param continuation.unsampled.proximity.cost For \code{splits.rule = f} only. The branch length at which an node is reconstructed as unsampled if all its neighbouring nodes are a greater distance away. The default is 1000, intended to be effectively infinite, such a node will never normally receive the unsampled state.
+#' @param sankoff.unassigned.switch.threshold For \code{splits.rule = s} only. Threshold at which a lineage reconstructed as infecting a host will transition to the unassigned state, if it would be equally parsimonious to remain in that host.
+#' @param continuation.unassigned.proximity.cost For \code{splits.rule = f} only. The branch length at which an node is reconstructed as unassigned if all its neighbouring nodes are a greater distance away. The default is 1000, intended to be effectively infinite, such a node will never normally receive the unassigned state.
 #' @param outgroup.name The name of the tip in the phylogeny/phylogenies to be used as outgroup (if unspecified, trees will be assumed to be already rooted). This should be sufficiently distant to any sequence obtained from a host that it can be assumed that the MRCA of the entire tree was not a lineage present in any sampled individual.
 #' @param multifurcation.threshold If specified, branches shorter than this in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. 
 #' @param guess.multifurcation.threshold Whether to guess the multifurcation threshold from the branch lengths of the trees and the width of the genomic window (if that information is available). It is recommended that trees are examined by eye to check that they do appear to have multifurcations if using this option.
@@ -127,8 +127,8 @@ phyloscanner.analyse.trees <- function(
   tree.file.regex = "^RAxML_bestTree.InWindow_([0-9]+_to_[0-9]+)\\.tree$",
   splits.rule = c("s", "r", "f"),
   sankoff.k = 0,
-  sankoff.unsampled.switch.threshold = 0,
-  continuation.unsampled.proximity.cost = 1000,
+  sankoff.unassigned.switch.threshold = 0,
+  continuation.unassigned.proximity.cost = 1000,
   outgroup.name = NULL,
   multifurcation.threshold = -1,
   guess.multifurcation.threshold = F,
@@ -176,7 +176,7 @@ phyloscanner.analyse.trees <- function(
     do.dual.blacklisting <- F
   }
   
-  if(splits.rule == "r" & (sankoff.k > 0 | sankoff.unsampled.switch.threshold > 0 | continuation.unsampled.proximity.cost < Inf)){
+  if(splits.rule == "r" & (sankoff.k > 0 | sankoff.unassigned.switch.threshold > 0 | continuation.unassigned.proximity.cost < Inf)){
     warning("Romero-Severson reconstuction has no parameters; specified values will be ignored.")
   }
   
@@ -561,9 +561,9 @@ phyloscanner.analyse.trees <- function(
   sankoff.p <- NA
   
   if(splits.rule == "s"){
-    sankoff.p <- sankoff.unsampled.switch.threshold
+    sankoff.p <- sankoff.unassigned.switch.threshold
   } else if(splits.rule == "f"){
-    sankoff.p <- continuation.unsampled.proximity.cost
+    sankoff.p <- continuation.unassigned.proximity.cost
   } 
   
   all.tree.info <- sapply(all.tree.info, function(tree.info) {

@@ -115,11 +115,11 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
     host.tips[[host]] <- setdiff(1:length(subtree$tip.label), st.outgroup.no)
     
     tip.hosts <- rep(host, length(subtree$tip.label))
-    tip.hosts[st.outgroup.no] <- "unsampled"
+    tip.hosts[st.outgroup.no] <- "unassigned"
     
     # Perform split.and.annotate; get a list of splits
     
-    split.results <- split.and.annotate(subtree, c(host, "unsampled"), tip.hosts, host.tips, NULL, vector(), tip.regex, sankoff.method, rep(1, length(subtree$tip.label)), sankoff.k, sankoff.p, useff = F, verbose, no.progress.bars)
+    split.results <- split.and.annotate(subtree, c(host, "unassigned"), tip.hosts, host.tips, NULL, vector(), tip.regex, sankoff.method, rep(1, length(subtree$tip.label)), sankoff.k, sankoff.p, useff = F, verbose, no.progress.bars)
      
     # vector of of split IDs
     

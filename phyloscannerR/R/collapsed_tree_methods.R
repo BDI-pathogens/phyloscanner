@@ -154,7 +154,7 @@ output.trans.tree <- function(tree, assocs){
       assocs.vec[node.no] <- "none"
     } else if (is.na(assocs[[node.no]])){
       assocs.vec[node.no] <- "none"
-    } else if (assocs[[node.no]] %in% c("*", "unsampled")) {
+    } else if (assocs[[node.no]] %in% c("*", "unassigned")) {
       assocs.vec[node.no] <- "none"
     } else {
       if(length(assocs[[node.no]])>1){
@@ -177,10 +177,10 @@ output.trans.tree <- function(tree, assocs){
   
   splits.vec <- assocs.vec
   
-  unsampled.roots <- which(splits.vec=="none" & first.of.split)
+  unassigned.roots <- which(splits.vec=="none" & first.of.split)
   
-  splits.vec[unsampled.roots] <- 
-    paste("unsampled_region-SPLIT", 1:length(unsampled.roots), sep="")
+  splits.vec[unassigned.roots] <- 
+    paste("unassigned_region-SPLIT", 1:length(unassigned.roots), sep="")
   
   for(node.no in seq(1, tree$Nnode + length(tree$tip.label))){
     if(assocs.vec[node.no]=="none" & !first.of.split[node.no]){
@@ -188,8 +188,8 @@ output.trans.tree <- function(tree, assocs){
       while(!first.of.split[current.node.no]){
         current.node.no <- Ancestors(tree, current.node.no, type="parent")
       }
-      if(!grepl("^unsampled_region", splits.vec[current.node.no])){      
-        stop("Parent of unsampled node is not one of the unsampled subgraph roots")
+      if(!grepl("^unassigned_region", splits.vec[current.node.no])){      
+        stop("Parent of unassigned node is not one of the unassigned subgraph roots")
       }
       splits.vec[node.no] <- splits.vec[current.node.no]
     }
@@ -224,34 +224,34 @@ output.trans.tree <- function(tree, assocs){
 }
 
 #' @keywords internal
-#' @export prune.unsampled.tips
+#' @export prune.unassigned.tips
 
-prune.unsampled.tips <- function(tt.table){
+prune.unassigned.tips <- function(tt.table){
   
   for.output <- tt.table[,1:6]
   
-  unsampled.tips <- which(grepl("unsampled",for.output$unique.splits) &
+  unassigned.tips <- which(grepl("unassigned",for.output$unique.splits) &
                             !(for.output$unique.splits %in% for.output$parent.splits))
   
-  if(length(unsampled.tips) > 0){
-    for.output <- for.output[-unsampled.tips,]
+  if(length(unassigned.tips) > 0){
+    for.output <- for.output[-unassigned.tips,]
   }
   #renumber
-  unsampled.rows <- which(grepl("^unsampled_region",for.output$unique.splits))
+  unassigned.rows <- which(grepl("^unassigned_region",for.output$unique.splits))
   
-  unsampled.labels <- for.output$unique.splits[which(grepl("^unsampled_region",for.output$unique.splits))]
+  unassigned.labels <- for.output$unique.splits[which(grepl("^unassigned_region",for.output$unique.splits))]
   
-  for(x in 1:length(unsampled.rows)) {
-    old.label <- unsampled.labels[x]
-    new.label <- paste("UnsampledRegion-SPLIT",x,sep="")
-    for.output$unique.splits[unsampled.rows[x]] <- new.label
+  for(x in 1:length(unassigned.rows)) {
+    old.label <- unassigned.labels[x]
+    new.label <- paste("UnassignedRegion-SPLIT",x,sep="")
+    for.output$unique.splits[unassigned.rows[x]] <- new.label
     for.output$parent.splits[which(for.output$parent.splits==old.label)] <- new.label
   } 
   
   
-  for.output$hosts[which(grepl("^unsampled_region",for.output$hosts))] <- "UnsampledRegion"
+  for.output$hosts[which(grepl("^unassigned_region",for.output$hosts))] <- "UnassignedRegion"
   
-  for.output$parent.hosts[which(grepl("^unsampled_region",for.output$parent.hosts))] <- "UnsampledRegion"
+  for.output$parent.hosts[which(grepl("^unassigned_region",for.output$parent.hosts))] <- "UnassignedRegion"
   
   return(for.output)
 }
@@ -276,7 +276,7 @@ check.contiguous <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
         node.2.id <- all.nodes[node.2]
         path <- get.tt.path(tt, node.1.id, node.2.id)
         for(node in path){
-          if(!grepl("^unsampled_region",node)){
+          if(!grepl("^unassigned_region",node)){
             if(!(hosts.for.splits[[node]] %in% c(pat.1.id, pat.2.id))){
               OK <- FALSE
               break
@@ -315,7 +315,7 @@ check.uninterrupted <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
   
   for(node.1 in nodes.1){
     current.node <- get.tt.parent(tt, node.1)
-    while(current.node!="root" & (grepl("^unsampled_region",current.node) | (if(is.null(hosts.for.splits[[current.node]])) {T} else {hosts.for.splits[[current.node]]==pat.1.id}))){
+    while(current.node!="root" & (grepl("^unassigned_region",current.node) | (if(is.null(hosts.for.splits[[current.node]])) {T} else {hosts.for.splits[[current.node]]==pat.1.id}))){
       
       current.node <- get.tt.parent(tt, current.node)
     }
@@ -336,7 +336,7 @@ check.uninterrupted <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
   if(!any.interruption){
     for(node.2 in nodes.2){
       current.node <- get.tt.parent(tt, node.2)
-      while(current.node!="root" & (grepl("unsampled_region",current.node) | (if(is.null(hosts.for.splits[[current.node]])) {T} else {hosts.for.splits[[current.node]]==pat.2.id}))){
+      while(current.node!="root" & (grepl("unassigned_region",current.node) | (if(is.null(hosts.for.splits[[current.node]])) {T} else {hosts.for.splits[[current.node]]==pat.2.id}))){
         current.node <- get.tt.parent(tt, current.node)
       }
       if(current.node != "root"){
@@ -377,10 +377,10 @@ extract.tt.subgraph <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
   pat.2.splts <- splits.for.hosts[[pat.2.id]]
   
   sub.tt <- tt[which(tt$unique.splits %in% c(pat.1.splts, pat.2.splts)),]
-  unsampled.below <- tt[which(tt$hosts == "unsampled_region" & (tt$parent.splits %in% c(pat.1.splts, pat.2.splts))),]
-  unsampled.above <- tt[which(tt$hosts == "unsampled_region" & (tt$unique.splits %in% sub.tt$parent.splits)),]
+  unassigned.below <- tt[which(tt$hosts == "unassigned_region" & (tt$parent.splits %in% c(pat.1.splts, pat.2.splts))),]
+  unassigned.above <- tt[which(tt$hosts == "unassigned_region" & (tt$unique.splits %in% sub.tt$parent.splits)),]
   
-  none.but.maybe.relevant <- c(unsampled.above$unique.splits, unsampled.below$unique.splits)
+  none.but.maybe.relevant <- c(unassigned.above$unique.splits, unassigned.below$unique.splits)
   
   adjacent.relevance.count <- sapply(none.but.maybe.relevant, function(x) length(intersect(c(pat.1.splts, pat.2.splts), get.tt.adjacent(tt, x) ) ))
   
@@ -517,7 +517,7 @@ subgraphs.adjacent <- function(tt, splits, none.matters = F){
         } else if(!none.matters) {
           path <- get.tt.path(tt, spt.1, spt.2)
           internal.path <- path[2:(length(path)-1)]
-          adj <- length(internal.path)==1 & grepl("unsampled_region",internal.path[1])
+          adj <- length(internal.path)==1 & grepl("unassigned_region",internal.path[1])
           out[spt.1.no, spt.2.no] <- adj
           out[spt.2.no, spt.1.no] <- adj
         } else {
@@ -616,10 +616,10 @@ check.adjacency <- function(tt, hosts, splits.for.hosts){
 #' @keywords internal
 #' @export check.tt.node.adjacency
 
-check.tt.node.adjacency <- function(tt, label1, label2, allow.unsampled = F){
+check.tt.node.adjacency <- function(tt, label1, label2, allow.unassigned = F){
   path <- get.tt.path(tt, label1, label2)
   
-  if(!allow.unsampled){
+  if(!allow.unassigned){
     return(length(path)==2)
   }
   
@@ -629,19 +629,19 @@ check.tt.node.adjacency <- function(tt, label1, label2, allow.unsampled = F){
   }
   
   if(length(path)>3){
-    # they can't be - a path length greater than 2 can only go through an unsampled region, and adjacent unsampled regions are not allowed
+    # they can't be - a path length greater than 2 can only go through an unassigned region, and adjacent unassigned regions are not allowed
     return(F)
   }
 
   # #START TEMPORARY BIT - if the middle node is the region around the root this adjacency is not interesting
   # 
-  # if(substr(path[2], 1, 16) == "unsampled_region" & get.tt.parent(tt, path[2])=="root"){
+  # if(substr(path[2], 1, 16) == "unassigned_region" & get.tt.parent(tt, path[2])=="root"){
   #   return(F)
   # }
   # 
   # #END TEMPORARY BIT
   
-  return(substr(path[2], 1, 16) == "unsampled_region")
+  return(substr(path[2], 1, 16) == "unassigned_region")
   
 }
 
@@ -694,16 +694,16 @@ classify <- function(tree.info, verbose = F, no.progress.bars = F) {
   
   hosts <- unique(splits$host)
   
-  hosts <- hosts[hosts!="unsampled"]
+  hosts <- hosts[hosts!="unassigned"]
   
   all.splits <- unique(splits$subgraph)
-  all.splits <- all.splits[all.splits!="unsampled"]
+  all.splits <- all.splits[all.splits!="unassigned"]
   
   in.order <- match(seq(1, length(tree$tip.label) + tree$Nnode), annotations$node)
   
   assocs <- annotations$SPLIT[in.order]
   assocs <- lapply(assocs, function(x) replace(x, is.na(x), "none"))
-  assocs <- lapply(assocs, function(x) replace(x, x=="unsampled", "none"))
+  assocs <- lapply(assocs, function(x) replace(x, x=="unassigned", "none"))
   
   splits.for.hosts <- lapply(hosts, function(x) unique(splits$subgraph[which(splits$host==x)] ))
   names(splits.for.hosts) <- hosts

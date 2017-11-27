@@ -80,9 +80,9 @@ downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, e
       gsub(new.tip.regex, paste0("\\1", sample[x], "\\3"), labels.from.host[x])
     })
     
-    unsampled.tips <- which(sample==0)
+    never.selected.tips <- which(sample==0)
     
-    label.map[unsampled.tips] <- paste0(label.map[unsampled.tips],"_X_DOWNSAMPLED")
+    label.map[never.selected.tips] <- paste0(label.map[never.selected.tips],"_X_DOWNSAMPLED")
 
     names(label.map) <- labels.from.host
     
