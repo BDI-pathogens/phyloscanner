@@ -1122,11 +1122,10 @@ simplify.summary <- function(summary, arrow.threshold, total.trees, plot = F){
   out <- list(simp.table = out.table)
   
   if(plot){
+    network.obj <- as.network.matrix(out.table[,c(1,2)], matrix.type = "edgelist")
+    
+    arrangement <- ggnet2(network.obj)$data[,c("label", "x", "y")]
 
-    # okay so we're doing this
-    
-    arrangement <- ggnet2(out.table[,c(1,2)])$data[,c("label", "x", "y")]
-    
     out.table$x.start <- sapply(out.table$host.1, function(x) arrangement$x[match(x, arrangement$label)]) 
     out.table$y.start <- sapply(out.table$host.1, function(x) arrangement$y[match(x, arrangement$label)]) 
     out.table$x.end <- sapply(out.table$host.2, function(x) arrangement$x[match(x, arrangement$label)]) 

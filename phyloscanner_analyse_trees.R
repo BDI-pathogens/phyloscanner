@@ -100,7 +100,7 @@ no.progress.bars      <- args$noProgressBars
 overwrite             <- args$overwrite
 
 tree.input            <- args$tree
-blacklist.input       <- args$blacklist
+blacklist.input       <- args$userBlacklist
 
 output.dir            <- args$outputDir
 if(is.null(output.dir)){
@@ -1094,10 +1094,13 @@ if(!single.file & length(hosts)>1){
   results$ancestry <- as.character(results$ancestry)
   
   if(do.simplified.graph){
+    if (verbose) cat('Drawing simplified summary diagram to file', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'\n')
+    
     if(nrow(results)==0){
       cat("No relationships exist in the required proportion of windows (",win.threshold,"); skipping simplified relationship summary.", sep="")
     } else {
       simplified.graph <- simplify.summary(results, arrow.threshold, length(all.tree.info), plot = T)
+      
       simplified.graph$simp.diagram
       ggsave(file = file.path(output.dir, paste0(output.string,"_simplifiedRelationshipGraph.pdf")), width=simp.plot.dim, height=simp.plot.dim)
     }
