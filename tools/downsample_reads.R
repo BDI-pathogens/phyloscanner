@@ -1,14 +1,9 @@
 #!/usr/bin/env Rscript
 
-list.of.packages <- c("argparse", "phangorn", "kimisc")
-new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-if(length(new.packages)){
-  cat("Missing dependencies; replacing the path below appropriately, run\n[path to your phyloscanner code]/tools/package_install.R\nthen try again.\n")
-  quit(save="no", status=1)
-}
 options("warn"=1)
 
 suppressMessages(library(argparse))
+suppressMessages(library(phyloscannerR))
 suppressMessages(library(phangorn))
 suppressMessages(library(kimisc))
 
@@ -24,21 +19,11 @@ arg_parser$add_argument("-e", "--excludeUnderrepresented", action="store_true", 
 arg_parser$add_argument("maxReadsPerHost", type="double", action="store", help="The upper limit for the number of reads to be included from each host")
 arg_parser$add_argument("inputFile", metavar="inputTreeFileName", help="Tree file name. Alternatively, a base name that identifies a group of tree file names can be specified. Tree files are assumed to end in .tree.")  
 arg_parser$add_argument("outputFile", metavar="outputFileName", help="The file to write the output to, a list of tips to be blacklisted.")  
-arg_parser$add_argument("-D", "--scriptDir", action="store", help="Full path of the script directory.")
 arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what the script is doing.")
 arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default="tree", help="The file extension for tree files (default .tree).")
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="csv", help="The file extension for table files (default .csv).")
 
 args <- arg_parser$parse_args()
-
-if(!is.null(args$scriptDir)){
-  script.dir          <- args$scriptDir
-} else {
-  script.dir          <- dirname(thisfile())
-  if(!dir.exists(script.dir)){
-    stop("Cannot detect the location of the /phyloscanner/tools directory. Please specify it at the command line with -D.")
-  }
-}
 
 tip.regex <- args$tipRegex
 input.file.name <- args$inputFile
@@ -57,10 +42,6 @@ tree.fe <- args$treeFileExtension
 csv.fe <- args$csvFileExtension
 
 verbose <- args$verbose
-source(file.path(script.dir, "tree_utility_functions.R"))
-source(file.path(script.dir, "parsimony_reconstruction_methods.R"))
-source(file.path(script.dir, "downsampling_functions.R"))
-source(file.path(script.dir, "general_functions.R"))
 
 all.tree.info <- list()
 

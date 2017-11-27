@@ -1,8 +1,21 @@
-split.hosts.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff.k, sankoff.p, useff, count.reads, host.master.list=NULL, verbose = F){
+#' @keywords internal
+#' @export split.hosts.to.subgraphs
+
+split.hosts.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff.k, sankoff.p, useff, count.reads, m.thresh = 0, host.master.list=NULL, verbose = F, no.progress.bars = F){
   
   if (verbose) cat("Getting tip read counts...\n")
   
+  # If no multifurcation-collapsing occurred, the minimum branch length is taken to be zero
+  
   if(count.reads){
+    if(m.thresh == -1){
+      if(min(tree$edge.length)!=0){
+        warning("You specified --readCountsMatterOnZeroLengthBranches but there are no zero-length branches in this tree. Consider setting a multifurcation threshold.")
+      }
+      m.thresh <- 0
+      
+    }
+    
     tip.read.counts <- sapply(tree$tip.label, function(x) read.count.from.label(x, tip.regex))
     tip.read.counts[is.na(tip.read.counts)] <- 1
     tip.read.counts[blacklist] <- 1
@@ -22,9 +35,9 @@ split.hosts.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff.k,
   tip.hosts <- sapply(tip.labels, function(x) host.from.label(x, tip.regex))
 
   non.host.tips <- which(is.na(sapply(tree$tip.label, function(name) host.from.label(name, tip.regex))))
-  tip.hosts[c(non.host.tips, blacklist)] <- "unsampled"
+  tip.hosts[c(non.host.tips, blacklist)] <- "unassigned"
   
-  if(!any(tip.hosts != "unsampled")){
+  if(!any(tip.hosts != "unassigned")){
     cat("No hosts identified amongst the tips of this tree. Skipping parsimony reconstruction.\n")
     return(list(tree=tree, r.subgraphs=NULL))
   }
@@ -41,8 +54,8 @@ split.hosts.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff.k,
   
   hosts <- hosts[order(hosts)]
   
-  if(!("unsampled" %in% hosts)){
-    hosts <- c(hosts, "unsampled")
+  if(!("unassigned" %in% hosts)){
+    hosts <- c(hosts, "unassigned")
   }
   
   if(length(hosts)==0){
@@ -77,20 +90,21 @@ split.hosts.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff.k,
                                 sankoff.k, 
                                 sankoff.p, 
                                 useff, 
-                                verbose)
+                                verbose,
+                                no.progress.bars)
   
   # Where to put the node shapes that display subgraph MRCAs
   
   first.nodes <- rep(FALSE, length(tree$tip.label) + tree$Nnode)
   first.nodes[unlist(results$first.nodes)] <- TRUE
   
-  # For display purposes. "unsampled" nodes should have NA as annotations
+  # For display purposes. "unassigned" nodes should have NA as annotations
   
   split.annotation <- rep(NA, length(tree$tip.label) + tree$Nnode)
   
   for(item in seq(1, length(results$assocs))){
     if(!is.null(results$assocs[[item]])){
-      if(!(results$assocs[[item]] %in% c("*", "unsampled", "unsampled.rt", "unsampled.int"))) {
+      if(!(results$assocs[[item]] %in% c("*", "unassigned", "unassigned.rt", "unassigned.int"))) {
         split.annotation[item] <- results$assocs[[item]]
       }
     }
@@ -125,7 +139,7 @@ split.hosts.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff.k,
   list(tree=tree, rs.subgraphs=rs.subgraphs)
 }
 
-split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patient.mrcas, blacklist, tip.regex, method="r", tip.read.counts, k=NA, p = 0, useff=F, verbose=F){
+split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patient.mrcas, blacklist, tip.regex, method="r", tip.read.counts, k=NA, p = 0, useff=F, verbose=F, no.progress.bars = F){
   
   if (method == "r") {
     
@@ -291,7 +305,7 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
       individual.costs[,pat.no] <- cost.of.subtree(tree, getRoot(tree), patients[pat.no], tip.patients, finite.cost[,pat.no], start.col)
     }
   
-    # The rows of the cost matrix are nodes. The columns are patients; the last column is the unsampled
+    # The rows of the cost matrix are nodes. The columns are patients; the last column is the unassigned
     # state
     
     if (verbose) cat("Building full cost matrix...\n")
@@ -302,21 +316,23 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
       cost.matrix <- matrix(NA, nrow=length(tree$tip.label) + tree$Nnode, ncol=length(patients))
     }
     
-    if(verbose) progress.bar <- txtProgressBar(width=50, style=3) else progress.bar <- NULL
+    progress.bar <- NULL
+    
+    if(verbose & !no.progress.bars) progress.bar <- txtProgressBar(width=50, style=3) else progress.bar <- NULL
 
     cost.matrix <- make.cost.matrix(getRoot(tree), tree, patients, tip.patients, individual.costs, cost.matrix, k, tip.read.counts, progress.bar, verbose)
     
-    if(verbose) close(progress.bar)
+    if(verbose & !no.progress.bars) close(progress.bar)
     
     if (verbose) cat("Reconstructing...\n")
     
-    full.assocs <- reconstruct(tree, getRoot(tree), "unsampled", list(), tip.patients, patients, cost.matrix, individual.costs, k, p, tip.read.counts, verbose)
+    full.assocs <- reconstruct(tree, getRoot(tree), "unassigned", list(), tip.patients, patients, cost.matrix, individual.costs, k, p, tip.read.counts, verbose)
     
     temp.ca <- rep(NA, length(tree$tip.label) + tree$Nnode)
     
     for(item in seq(1, length(full.assocs))){
       if(!is.null(full.assocs[[item]])){
-        if(full.assocs[[item]] != "unsampled"){
+        if(full.assocs[[item]] != "unassigned"){
           temp.ca[item] <- full.assocs[[item]]
         }
       }
@@ -324,7 +340,7 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
     
     # Now the splits. A new split is where you encounter a node with a different association to its parent
     
-    actual.patients <- patients[which(patients!="unsampled")]
+    actual.patients <- patients[which(patients!="unassigned")]
     
     if (verbose) cat("Identifying split hosts...\n")
     
@@ -408,7 +424,7 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
     #   }
     # }
     # 
-    finite.cost[,which(patients=="unsampled")] <- TRUE
+    finite.cost[,which(patients=="unassigned")] <- TRUE
     
     if (verbose) cat("Building full cost matrix...\n")
     
@@ -421,18 +437,18 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
     if(verbose) progress.bar <- txtProgressBar(width=50, style=3)
     
     cost.matrix <- make.cost.matrix.fi(getRoot(tree), tree, patients, tip.patients, cost.matrix, k, p, finite.cost, tip.read.counts, progress.bar, verbose)
-
+    
     close(progress.bar)
     
     if (verbose) cat("Reconstructing...\n")
   
-    full.assocs <- reconstruct.fi(tree, getRoot(tree), "unsampled", list(), tip.patients, patients, cost.matrix, finite.cost, k, p, tip.read.counts, verbose)
+    full.assocs <- reconstruct.fi(tree, getRoot(tree), "unassigned", list(), tip.patients, patients, cost.matrix, finite.cost, k, p, tip.read.counts, verbose)
 
     temp.ca <- rep(NA, length(tree$tip.label) + tree$Nnode)
     
     for(item in seq(1, length(full.assocs))){
       if(!is.null(full.assocs[[item]])){
-        if(!(full.assocs[[item]] %in% c("unsampled.int", "unsampled.rt", "unsampled"))){
+        if(!(full.assocs[[item]] %in% c("unassigned.int", "unassigned.rt", "unassigned"))){
           temp.ca[item] <- full.assocs[[item]]
         }
       }
@@ -440,7 +456,7 @@ split.and.annotate <- function(tree, patients, tip.patients, patient.tips, patie
     
     # Now the splits. A new split is where you encounter a node with a different association to its parent
     
-    actual.patients <- patients[which(!(patients %in% c("unsampled")))]
+    actual.patients <- patients[which(!(patients %in% c("unassigned")))]
     
     if (verbose) cat("Identifying split hosts...\n")
     
@@ -510,6 +526,9 @@ annotate.tips <- function(tree, patients, patient.tips){
 
 # Used to find every connected subtree in the whole tree by finding the earliest node in them
 
+#' @keywords internal
+#' @export count.splits
+
 count.splits <- function(tree, node, assocs, patients, counts.vec, first.nodes.list){
   
   for(child in Children(tree, node)){
@@ -527,7 +546,7 @@ count.splits <- function(tree, node, assocs, patients, counts.vec, first.nodes.l
     change <- T
   }
   
-  if(!(assocs[[node]] %in% c("*", "unsampled", "unsampled.rt", "unsampled.int"))){
+  if(!(assocs[[node]] %in% c("*", "unassigned", "unassigned.rt", "unassigned.int"))){
     if(change){
       patient <- assocs[[node]]
       pat.index <- which(patients == patient)
@@ -540,6 +559,9 @@ count.splits <- function(tree, node, assocs, patients, counts.vec, first.nodes.l
 
 # Takes splits and annotates the tree with them
 
+#' @keywords internal
+#' @export assign.splits.down
+
 assign.splits.down <- function(node, tree, unsplit.assocs, split.assocs){
   for(child in Children(tree, node)){
     if(unsplit.assocs[[child]] == unsplit.assocs[[node]]){
@@ -551,6 +573,9 @@ assign.splits.down <- function(node, tree, unsplit.assocs, split.assocs){
 }
 
 # Does the RS classification
+
+#' @keywords internal
+#' @export classify.down
 
 classify.down <- function(node, tree, tip.assocs, temp.assocs, patient.mrcas){
   
@@ -600,6 +625,9 @@ classify.down <- function(node, tree, tip.assocs, temp.assocs, patient.mrcas){
 # classification is done, they can be converted to having assigned nodes if the ancestor of the
 # earliest node is a possible host for all nodes in the run
 
+#' @keywords internal
+#' @export get.star.runs
+
 get.star.runs <- function(tree, assocs){
   out <- list()
   for(int.node in seq(length(tree$tip.label) + 1,  length(tree$tip.label) + tree$Nnode)){
@@ -630,6 +658,9 @@ get.star.runs <- function(tree, assocs){
 # SANKOFF METHODS
 
 # Make the full Sankoff cost matrix
+
+#' @keywords internal
+#' @export make.cost.matrix
 
 make.cost.matrix <- function(node, tree, patients, tip.patients, individual.costs, current.matrix, k, tip.read.counts, progress.bar=NULL, verbose = F){
   # if(verbose){
@@ -680,9 +711,15 @@ make.cost.matrix <- function(node, tree, patients, tip.patients, individual.cost
   return(current.matrix)
 }
 
+#' @keywords internal
+#' @export node.cost
+
 node.cost <- function(tree, patient.index, patients, current.matrix, individual.costs, k, child.nos, tip.read.counts){
   return(sum(vapply(child.nos, function (x) child.min.cost(tree, x, patients, patient.index, current.matrix, individual.costs, k, tip.read.counts), 0)))
 }
+
+#' @keywords internal
+#' @export child.min.cost
 
 child.min.cost <- function(tree, child.index, patients, top.patient.no, current.matrix, individual.costs, k, tip.read.counts){
   if(is.tip(tree, child.index)){
@@ -693,7 +730,7 @@ child.min.cost <- function(tree, child.index, patients, top.patient.no, current.
 
   scores <- rep(Inf, length(patients))
   
-  finite.scores <- unique(c(top.patient.no, which(patients=="unsampled"), which(is.finite(individual.costs[child.index,]))))
+  finite.scores <- unique(c(top.patient.no, which(patients=="unassigned"), which(is.finite(individual.costs[child.index,]))))
   finite.scores <- finite.scores[order(finite.scores)]
   
   scores[finite.scores] <- vapply(finite.scores, function(x) child.cost(tree, child.index, patients, top.patient.no, x, current.matrix, individual.costs, k, multiplier), 0)
@@ -703,22 +740,28 @@ child.min.cost <- function(tree, child.index, patients, top.patient.no, current.
 
 # Submethods of the above
 
+#' @keywords internal
+#' @export child.cost
+
 child.cost <- function(tree, child.index, patients, top.patient.no, bottom.patient.no, current.matrix, individual.costs, k, multiplier=1){
   if(top.patient.no == bottom.patient.no) {
     out <- current.matrix[child.index, bottom.patient.no]
-  } else if (patients[bottom.patient.no] != "unsampled") {
+  } else if (patients[bottom.patient.no] != "unassigned") {
     out <- current.matrix[child.index, bottom.patient.no] + multiplier + k*individual.costs[child.index, bottom.patient.no]
     if(is.nan(out)) {
       out <- Inf
     }
   } else {
-    # No cost for transition to unsampled
+    # No cost for transition to unassigned
     out <- current.matrix[child.index, bottom.patient.no]
   }
   return(out)
 }
 
 # Reconstruct node states based on the cost matrix. 
+
+#' @keywords internal
+#' @export reconstruct
 
 reconstruct <- function(tree, node, node.state, node.assocs, tip.patients, patients, full.cost.matrix, node.cost.matrix, k, p, tip.read.counts, verbose=F){
   node.assocs[[node]] <- node.state
@@ -751,13 +794,13 @@ reconstruct <- function(tree, node, node.state, node.assocs, tip.patients, patie
         # if(verbose){
         #   cat("Tie at node ",node," between ",cat(patients[which(costs == min.cost)], sep=" "),"...", sep="")
         # }
-        if("unsampled" %in% patients[which(costs == min.cost)] & node.state %in% patients[which(costs == min.cost)]){
+        if("unassigned" %in% patients[which(costs == min.cost)] & node.state %in% patients[which(costs == min.cost)]){
           child.branch.length <- get.edge.length(tree, child)
           if(child.branch.length > p){
             # if(verbose){
-            #   cat("broken in favour of unsampled\n")
+            #   cat("broken in favour of unassigned\n")
             # }
-            decision <- "unsampled"
+            decision <- "unassigned"
           } else {
             # if(verbose){
             #   cat("broken in favour of",node.state,"\n")
@@ -780,14 +823,17 @@ reconstruct <- function(tree, node, node.state, node.assocs, tip.patients, patie
 
 # Submethods of the above
 
+#' @keywords internal
+#' @export calc.costs
+
 calc.costs <- function(patient.no, patients, node.state, child.node, node.cost.matrix, full.cost.matrix, k, multiplier=1){
   patient <- patients[patient.no]
   
   if(patient == node.state){
     # No cost for the transition because it doesn't happen here
     out <- full.cost.matrix[child.node, patient.no]
-  } else if(patient == "unsampled"){
-    # "unsampled" - no cost for the infection
+  } else if(patient == "unassigned"){
+    # "unassigned" - no cost for the infection
     out <- full.cost.matrix[child.node, patient.no]
   } else {
     # the cost of "patient" being at the child plus the cost of "patient" being infected along this branch 
@@ -798,6 +844,9 @@ calc.costs <- function(patient.no, patients, node.state, child.node, node.cost.m
   }
   return(out)
 }
+
+#' @keywords internal
+#' @export cost.of.subtree
 
 cost.of.subtree <- function(tree, node, patient, tip.patients, finite.cost.col, results, progress.bar = NULL){
   if(is.tip(tree, node)){
@@ -819,6 +868,9 @@ cost.of.subtree <- function(tree, node, patient, tip.patients, finite.cost.col, 
 
 
 # Reconstruct node states based on the cost matrix. 
+
+#' @keywords internal
+#' @export make.cost.matrix.fi
 
 make.cost.matrix.fi <- function(node, tree, patients, tip.assocs, current.matrix, k, us.penalty, finite.costs, tip.read.counts, progress.bar = NULL, verbose = F){
   # if(verbose){
@@ -870,9 +922,15 @@ make.cost.matrix.fi <- function(node, tree, patients, tip.assocs, current.matrix
   return(current.matrix)
 }
 
+#' @keywords internal
+#' @export node.cost.fi
+
 node.cost.fi <- function(tree, child.nos, patient.index, patients, current.matrix, k, us.penalty, finite.costs, tip.read.counts){
   return(sum(vapply(child.nos, function (x) child.min.cost.fi(tree, x, patient.index, patients, current.matrix, k, us.penalty, finite.costs, tip.read.counts), 0)))
 }
+
+#' @keywords internal
+#' @export child.min.cost.fi
 
 child.min.cost.fi <- function(tree, child.index, top.patient.no, patients, current.matrix, k, us.penalty, finite.costs, tip.read.counts){
 
@@ -884,7 +942,7 @@ child.min.cost.fi <- function(tree, child.index, top.patient.no, patients, curre
   
   scores <- rep(Inf, length(patients))
   
-  finite.scores <- unique(c(top.patient.no, which(patients=="unsampled"), which(finite.costs[child.index,])))
+  finite.scores <- unique(c(top.patient.no, which(patients=="unassigned"), which(finite.costs[child.index,])))
 
   finite.scores <- finite.scores[order(finite.scores)]
   
@@ -895,17 +953,20 @@ child.min.cost.fi <- function(tree, child.index, top.patient.no, patients, curre
 
 # Submethods of the above
 
+#' @keywords internal
+#' @export child.cost.fi
+
 child.cost.fi <- function(tree, child.index, patients, top.patient.no, bottom.patient.no, current.matrix, k, us.penalty, multiplier = 1){
   bl <- get.edge.length(tree, child.index)
   out <- current.matrix[child.index, bottom.patient.no]
-  if(patients[top.patient.no] == "unsampled"){
-    if(patients[bottom.patient.no] == "unsampled"){
+  if(patients[top.patient.no] == "unassigned"){
+    if(patients[bottom.patient.no] == "unassigned"){
       out <- out + us.penalty
     } else {
       out <- out + ((1/k)-us.penalty)*multiplier
     }
   } else {
-    if(patients[bottom.patient.no] == "unsampled"){
+    if(patients[bottom.patient.no] == "unassigned"){
       out <- out + us.penalty
     } else if(top.patient.no == bottom.patient.no){
       out <- out + bl
@@ -915,6 +976,9 @@ child.cost.fi <- function(tree, child.index, patients, top.patient.no, bottom.pa
   }
   return(out)
 }
+
+#' @keywords internal
+#' @export reconstruct.fi
 
 reconstruct.fi <- function(tree, node, node.state, node.assocs, tip.assocs, patients, full.cost.matrix, finite.costs, k, penalty, tip.read.counts, verbose=F){
   node.assocs[[node]] <- node.state
@@ -936,9 +1000,10 @@ reconstruct.fi <- function(tree, node, node.state, node.assocs, tip.assocs, pati
       
       bl <- get.edge.length(tree, child)
       costs <- rep(Inf, length(patients))
-      costs.that.are.finite <- unique(c(which(patients=="unsampled"), which(patients==node.state), which(finite.costs[child,])))
+      costs.that.are.finite <- unique(c(which(patients=="unassigned"), which(patients==node.state), which(finite.costs[child,])))
       costs[costs.that.are.finite] <- vapply(costs.that.are.finite, function(x) calc.costs.fi(x, patients, node.state, child, bl, full.cost.matrix, k, penalty, multiplier), 0)
       min.cost <- min(costs)
+      
       if(length(which(costs == min.cost))==1){
         decision <- patients[which(costs == min.cost)]
         # if(verbose){
@@ -958,17 +1023,20 @@ reconstruct.fi <- function(tree, node, node.state, node.assocs, tip.assocs, pati
   return(node.assocs)
 }
 
+#' @keywords internal
+#' @export calc.costs.fi
+
 calc.costs.fi <- function(child.patient.no, patients, parent.patient, child.node, bl, full.cost.matrix, k, penalty, multiplier=1){
   patient <- patients[child.patient.no]
   out <- full.cost.matrix[child.node, child.patient.no]
-  if(parent.patient=="unsampled"){
-    if(patient=="unsampled"){
+  if(parent.patient=="unassigned"){
+    if(patient=="unassigned"){
       out <- out + penalty
     } else {
       out <- out + ((1/k)-penalty)*multiplier
     }
   } else {
-    if(patient=="unsampled"){
+    if(patient=="unassigned"){
       out <- out + penalty
     } else if(patient == parent.patient){
       out <- out + bl

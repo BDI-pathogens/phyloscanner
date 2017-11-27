@@ -2,6 +2,9 @@
 
 # The parent of a node in the collapsed tree
 
+#' @keywords internal
+#' @export get.tt.parent
+
 get.tt.parent <- function(tt, label){
   if(length(which(tt$unique.splits==label))>0){
     return(tt$parent.splits[which(tt$unique.splits==label)])
@@ -11,6 +14,9 @@ get.tt.parent <- function(tt, label){
 }
 
 # All ancestors of a node in the collapsed tree.
+
+#' @keywords internal
+#' @export get.tt.ancestors
 
 get.tt.ancestors <- function(tt, label){
   out <- vector()
@@ -24,17 +30,26 @@ get.tt.ancestors <- function(tt, label){
 
 # All children of a node in the collapsed tree
 
+#' @keywords internal
+#' @export get.tt.children
+
 get.tt.children <- function(tt, label){
   return(tt$unique.splits[which(tt$parent.splits==label)])
 }
 
 # All adjacent nodes of a node in the collapsed tree (parent and children)
 
+#' @keywords internal
+#' @export get.tt.adjacent
+
 get.tt.adjacent <- function(tt, label){
   return(c(get.tt.children(tt, label), get.tt.parent(tt, label)))
 }
 
 # The grandparent of a node in the collapsed tree
+
+#' @keywords internal
+#' @export get.tt.parent.host
 
 get.tt.parent.host <- function(tt, label){
   if(length(which(tt$unique.splits==label))>0){
@@ -45,6 +60,9 @@ get.tt.parent.host <- function(tt, label){
 }
 
 # MRCA of a pair of nodes in the collapsed tree
+
+#' @keywords internal
+#' @export get.tt.mrca
 
 get.tt.mrca <- function(tt, label1, label2){
   # sanity check
@@ -62,6 +80,9 @@ get.tt.mrca <- function(tt, label1, label2){
 
 # The host corresponding to the MRCA of two nodes
 
+#' @keywords internal
+#' @export get.tt.mrca.host
+
 get.tt.mrca.host <- function(tt, label1, label2){
   node <- intersect(c(label1,get.tt.ancestors(tt, label1)), c(label2, get.tt.ancestors(tt, label2)))[1]
   
@@ -69,6 +90,9 @@ get.tt.mrca.host <- function(tt, label1, label2){
 }
 
 # The path from one node in the collapsed tree to another
+
+#' @keywords internal
+#' @export get.tt.path
 
 get.tt.path <- function(tt, label1, label2){
   mrca <- get.tt.mrca(tt, label1, label2)
@@ -114,6 +138,9 @@ get.tt.path <- function(tt, label1, label2){
 
 # Output the collapsed tree from a phylogeny and its node associations
 
+#' @keywords internal
+#' @export output.trans.tree
+
 output.trans.tree <- function(tree, assocs){
   # find the association of each node
   
@@ -127,7 +154,7 @@ output.trans.tree <- function(tree, assocs){
       assocs.vec[node.no] <- "none"
     } else if (is.na(assocs[[node.no]])){
       assocs.vec[node.no] <- "none"
-    } else if (assocs[[node.no]] %in% c("*", "unsampled")) {
+    } else if (assocs[[node.no]] %in% c("*", "unassigned")) {
       assocs.vec[node.no] <- "none"
     } else {
       if(length(assocs[[node.no]])>1){
@@ -150,10 +177,10 @@ output.trans.tree <- function(tree, assocs){
   
   splits.vec <- assocs.vec
   
-  unsampled.roots <- which(splits.vec=="none" & first.of.split)
+  unassigned.roots <- which(splits.vec=="none" & first.of.split)
   
-  splits.vec[unsampled.roots] <- 
-    paste("unsampled_region-SPLIT", 1:length(unsampled.roots), sep="")
+  splits.vec[unassigned.roots] <- 
+    paste("unassigned_region-SPLIT", 1:length(unassigned.roots), sep="")
   
   for(node.no in seq(1, tree$Nnode + length(tree$tip.label))){
     if(assocs.vec[node.no]=="none" & !first.of.split[node.no]){
@@ -161,8 +188,8 @@ output.trans.tree <- function(tree, assocs){
       while(!first.of.split[current.node.no]){
         current.node.no <- Ancestors(tree, current.node.no, type="parent")
       }
-      if(!grepl("^unsampled_region", splits.vec[current.node.no])){      
-        stop("Parent of unsampled node is not one of the unsampled subgraph roots")
+      if(!grepl("^unassigned_region", splits.vec[current.node.no])){      
+        stop("Parent of unassigned node is not one of the unassigned subgraph roots")
       }
       splits.vec[node.no] <- splits.vec[current.node.no]
     }
@@ -196,35 +223,41 @@ output.trans.tree <- function(tree, assocs){
   return(tt.table)
 }
 
-prune.unsampled.tips <- function(tt.table){
+#' @keywords internal
+#' @export prune.unassigned.tips
+
+prune.unassigned.tips <- function(tt.table){
   
   for.output <- tt.table[,1:6]
   
-  unsampled.tips <- which(grepl("unsampled",for.output$unique.splits) &
+  unassigned.tips <- which(grepl("unassigned",for.output$unique.splits) &
                             !(for.output$unique.splits %in% for.output$parent.splits))
   
-  if(length(unsampled.tips) > 0){
-    for.output <- for.output[-unsampled.tips,]
+  if(length(unassigned.tips) > 0){
+    for.output <- for.output[-unassigned.tips,]
   }
   #renumber
-  unsampled.rows <- which(grepl("^unsampled_region",for.output$unique.splits))
+  unassigned.rows <- which(grepl("^unassigned_region",for.output$unique.splits))
   
-  unsampled.labels <- for.output$unique.splits[which(grepl("^unsampled_region",for.output$unique.splits))]
+  unassigned.labels <- for.output$unique.splits[which(grepl("^unassigned_region",for.output$unique.splits))]
   
-  for(x in 1:length(unsampled.rows)) {
-    old.label <- unsampled.labels[x]
-    new.label <- paste("UnsampledRegion-SPLIT",x,sep="")
-    for.output$unique.splits[unsampled.rows[x]] <- new.label
+  for(x in 1:length(unassigned.rows)) {
+    old.label <- unassigned.labels[x]
+    new.label <- paste("UnassignedRegion-SPLIT",x,sep="")
+    for.output$unique.splits[unassigned.rows[x]] <- new.label
     for.output$parent.splits[which(for.output$parent.splits==old.label)] <- new.label
   } 
   
   
-  for.output$hosts[which(grepl("^unsampled_region",for.output$hosts))] <- "UnsampledRegion"
+  for.output$hosts[which(grepl("^unassigned_region",for.output$hosts))] <- "UnassignedRegion"
   
-  for.output$parent.hosts[which(grepl("^unsampled_region",for.output$parent.hosts))] <- "UnsampledRegion"
+  for.output$parent.hosts[which(grepl("^unassigned_region",for.output$parent.hosts))] <- "UnassignedRegion"
   
   return(for.output)
 }
+
+#' @keywords internal
+#' @export check.contiguous
 
 check.contiguous <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
   if(length(hosts)!=2){
@@ -243,7 +276,7 @@ check.contiguous <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
         node.2.id <- all.nodes[node.2]
         path <- get.tt.path(tt, node.1.id, node.2.id)
         for(node in path){
-          if(!grepl("^unsampled_region",node)){
+          if(!grepl("^unassigned_region",node)){
             if(!(hosts.for.splits[[node]] %in% c(pat.1.id, pat.2.id))){
               OK <- FALSE
               break
@@ -263,6 +296,9 @@ check.contiguous <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
   return(OK)
 }
 
+#' @keywords internal
+#' @export check.uninterrupted
+
 check.uninterrupted <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
   # this could certainly be faster
   if(length(hosts)!=2){
@@ -279,7 +315,7 @@ check.uninterrupted <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
   
   for(node.1 in nodes.1){
     current.node <- get.tt.parent(tt, node.1)
-    while(current.node!="root" & (grepl("^unsampled_region",current.node) | (if(is.null(hosts.for.splits[[current.node]])) {T} else {hosts.for.splits[[current.node]]==pat.1.id}))){
+    while(current.node!="root" & (grepl("^unassigned_region",current.node) | (if(is.null(hosts.for.splits[[current.node]])) {T} else {hosts.for.splits[[current.node]]==pat.1.id}))){
       
       current.node <- get.tt.parent(tt, current.node)
     }
@@ -300,7 +336,7 @@ check.uninterrupted <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
   if(!any.interruption){
     for(node.2 in nodes.2){
       current.node <- get.tt.parent(tt, node.2)
-      while(current.node!="root" & (grepl("unsampled_region",current.node) | (if(is.null(hosts.for.splits[[current.node]])) {T} else {hosts.for.splits[[current.node]]==pat.2.id}))){
+      while(current.node!="root" & (grepl("unassigned_region",current.node) | (if(is.null(hosts.for.splits[[current.node]])) {T} else {hosts.for.splits[[current.node]]==pat.2.id}))){
         current.node <- get.tt.parent(tt, current.node)
       }
       if(current.node != "root"){
@@ -321,6 +357,9 @@ check.uninterrupted <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
   return(any.contiguity & !any.interruption)
 }
 
+#' @keywords internal
+#' @export extract.tt.subgraph
+
 extract.tt.subgraph <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
   # for now, at least
   
@@ -338,10 +377,10 @@ extract.tt.subgraph <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
   pat.2.splts <- splits.for.hosts[[pat.2.id]]
   
   sub.tt <- tt[which(tt$unique.splits %in% c(pat.1.splts, pat.2.splts)),]
-  unsampled.below <- tt[which(tt$hosts == "unsampled_region" & (tt$parent.splits %in% c(pat.1.splts, pat.2.splts))),]
-  unsampled.above <- tt[which(tt$hosts == "unsampled_region" & (tt$unique.splits %in% sub.tt$parent.splits)),]
+  unassigned.below <- tt[which(tt$hosts == "unassigned_region" & (tt$parent.splits %in% c(pat.1.splts, pat.2.splts))),]
+  unassigned.above <- tt[which(tt$hosts == "unassigned_region" & (tt$unique.splits %in% sub.tt$parent.splits)),]
   
-  none.but.maybe.relevant <- c(unsampled.above$unique.splits, unsampled.below$unique.splits)
+  none.but.maybe.relevant <- c(unassigned.above$unique.splits, unassigned.below$unique.splits)
   
   adjacent.relevance.count <- sapply(none.but.maybe.relevant, function(x) length(intersect(c(pat.1.splts, pat.2.splts), get.tt.adjacent(tt, x) ) ))
   
@@ -350,9 +389,12 @@ extract.tt.subgraph <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
 
 # every distance between subgraphs
 
-all.subgraph.distances <- function(tree, tt, splits, assocs, slow=F, total.pairs, verbose){
+#' @keywords internal
+#' @export all.subgraph.distances
+
+all.subgraph.distances <- function(tree, tt, splits, assocs, slow=F, total.pairs, verbose = F, no.progress.bars = F){
   
-  if (verbose) progress.bar <- txtProgressBar(width=50, style=3)
+  if (verbose & !no.progress.bars) progress.bar <- txtProgressBar(width=50, style=3)
   
   if(!slow){
     tree.dist <- dist.nodes(tree)
@@ -364,7 +406,7 @@ all.subgraph.distances <- function(tree, tt, splits, assocs, slow=F, total.pairs
   
   temp <- matrix(ncol = length(splits), nrow=length(splits))
   
-  if(total.pairs==0 & verbose){
+  if(total.pairs==0 & verbose & !no.progress.bars){
     setTxtProgressBar(progress.bar, 1)
   } else {
     for(spt.1.no in 1:length(splits)){
@@ -420,7 +462,7 @@ all.subgraph.distances <- function(tree, tt, splits, assocs, slow=F, total.pairs
           
           count <- count + 1
           
-          if(verbose){
+          if(verbose & !no.progress.bars){
             setTxtProgressBar(progress.bar, count/total.pairs)
           }
           temp[spt.2.no, spt.1.no] <- temp[spt.1.no, spt.2.no]
@@ -429,11 +471,14 @@ all.subgraph.distances <- function(tree, tt, splits, assocs, slow=F, total.pairs
     }
   }
   
-  if(verbose) close(progress.bar)
+  if(verbose & !no.progress.bars) close(progress.bar)
   colnames(temp) <- splits
   rownames(temp) <- splits
   return(temp)
 }
+
+#' @keywords internal
+#' @export pat.dist
 
 pat.dist <- function(tree, depths, node.1, node.2){
   node.1.chain <- Ancestors(tree, node.1, type="all")
@@ -453,6 +498,9 @@ pat.dist <- function(tree, depths, node.1, node.2){
 
 # are each pair of subgraphs adjacent? If !none.matters then two nodes separated only by "none" are still adjacent
 
+#' @keywords internal
+#' @export subgraphs.adjacent
+
 subgraphs.adjacent <- function(tt, splits, none.matters = F){
   out <- matrix(ncol = length(splits), nrow=length(splits))
   for(spt.1.no in 1:length(splits)){
@@ -469,7 +517,7 @@ subgraphs.adjacent <- function(tt, splits, none.matters = F){
         } else if(!none.matters) {
           path <- get.tt.path(tt, spt.1, spt.2)
           internal.path <- path[2:(length(path)-1)]
-          adj <- length(internal.path)==1 & grepl("unsampled_region",internal.path[1])
+          adj <- length(internal.path)==1 & grepl("unassigned_region",internal.path[1])
           out[spt.1.no, spt.2.no] <- adj
           out[spt.2.no, spt.1.no] <- adj
         } else {
@@ -487,13 +535,16 @@ subgraphs.adjacent <- function(tt, splits, none.matters = F){
 
 # are pairs of subgraphs from two hosts not separated by any other subgraphs from either of those hosts?
 
-subgraphs.unblocked <- function(tt, splits, total.pairs, verbose = F){
+#' @keywords internal
+#' @export subgraphs.unblocked
 
-  if (verbose) progress.bar <- txtProgressBar(width=50, style=3)
+subgraphs.unblocked <- function(tt, splits, total.pairs, verbose = F, no.progress.bars = F){
+
+  if (verbose & !no.progress.bars) progress.bar <- txtProgressBar(width=50, style=3)
   count <- 0
   
   out <- matrix(ncol = length(splits), nrow=length(splits))
-  if(total.pairs==0 & verbose){
+  if(total.pairs==0 & verbose & !no.progress.bars){
     setTxtProgressBar(progress.bar, 1)
   } else {
     
@@ -521,20 +572,24 @@ subgraphs.unblocked <- function(tt, splits, total.pairs, verbose = F){
             out[spt.2.no, spt.1.no] <- adj
           } 
           count <- count + 1
-          if (verbose) {
+          if (verbose & !no.progress.bars) {
             setTxtProgressBar(progress.bar, count/total.pairs)
           }
         }
       }
     }
   }
-  if (verbose) close(progress.bar)
+  if (verbose & !no.progress.bars) close(progress.bar)
   
   colnames(out) <- splits
   rownames(out) <- splits
   
   return(out)
 }
+
+
+#' @keywords internal
+#' @export check.adjacency
 
 check.adjacency <- function(tt, hosts, splits.for.hosts){
   # this could certainly be faster
@@ -558,10 +613,13 @@ check.adjacency <- function(tt, hosts, splits.for.hosts){
   return(F)
 }
 
-check.tt.node.adjacency <- function(tt, label1, label2, allow.unsampled = F){
+#' @keywords internal
+#' @export check.tt.node.adjacency
+
+check.tt.node.adjacency <- function(tt, label1, label2, allow.unassigned = F){
   path <- get.tt.path(tt, label1, label2)
   
-  if(!allow.unsampled){
+  if(!allow.unassigned){
     return(length(path)==2)
   }
   
@@ -571,23 +629,26 @@ check.tt.node.adjacency <- function(tt, label1, label2, allow.unsampled = F){
   }
   
   if(length(path)>3){
-    # they can't be - a path length greater than 2 can only go through an unsampled region, and adjacent unsampled regions are not allowed
+    # they can't be - a path length greater than 2 can only go through an unassigned region, and adjacent unassigned regions are not allowed
     return(F)
   }
 
   # #START TEMPORARY BIT - if the middle node is the region around the root this adjacency is not interesting
   # 
-  # if(substr(path[2], 1, 16) == "unsampled_region" & get.tt.parent(tt, path[2])=="root"){
+  # if(substr(path[2], 1, 16) == "unassigned_region" & get.tt.parent(tt, path[2])=="root"){
   #   return(F)
   # }
   # 
   # #END TEMPORARY BIT
   
-  return(substr(path[2], 1, 16) == "unsampled_region")
+  return(substr(path[2], 1, 16) == "unassigned_region")
   
 }
 
-classify <- function(tree.info, verbose = F) {	
+#' @keywords internal
+#' @export classify
+
+classify <- function(tree.info, verbose = F, no.progress.bars = F) {	
   
   if(is.null(tree.info[["tree"]])){
     
@@ -633,16 +694,16 @@ classify <- function(tree.info, verbose = F) {
   
   hosts <- unique(splits$host)
   
-  hosts <- hosts[hosts!="unsampled"]
+  hosts <- hosts[hosts!="unassigned"]
   
   all.splits <- unique(splits$subgraph)
-  all.splits <- all.splits[all.splits!="unsampled"]
+  all.splits <- all.splits[all.splits!="unassigned"]
   
   in.order <- match(seq(1, length(tree$tip.label) + tree$Nnode), annotations$node)
   
   assocs <- annotations$SPLIT[in.order]
   assocs <- lapply(assocs, function(x) replace(x, is.na(x), "none"))
-  assocs <- lapply(assocs, function(x) replace(x, x=="unsampled", "none"))
+  assocs <- lapply(assocs, function(x) replace(x, x=="unassigned", "none"))
   
   splits.for.hosts <- lapply(hosts, function(x) unique(splits$subgraph[which(splits$host==x)] ))
   names(splits.for.hosts) <- hosts
@@ -652,7 +713,8 @@ classify <- function(tree.info, verbose = F) {
   
   hosts.included <- hosts
   
-  total.pairs <- (length(hosts.included) ^ 2 - length(hosts.included))/2
+  total.split.pairs <- (length(all.splits) ^ 2 - length(all.splits))/2
+  total.host.pairs <- length(hosts)
   
   if (verbose) cat("Collapsing subgraphs...\n")
   
@@ -660,20 +722,22 @@ classify <- function(tree.info, verbose = F) {
   
   if (verbose) cat("Identifying pairs of unblocked splits...\n")
   
-  collapsed.adjacent <- subgraphs.unblocked(tt, all.splits, total.pairs, verbose)
+  collapsed.adjacent <- subgraphs.unblocked(tt, all.splits, total.split.pairs, verbose, no.progress.bars)
   
   if (verbose) cat("Calculating pairwise distances between splits...\n")
   
   split.distances <- tryCatch(
-    all.subgraph.distances(tree, tt, all.splits, assocs, FALSE, total.pairs, verbose), warning=function(w){return(NULL)}, error=function(e){return(NULL)})
+    all.subgraph.distances(tree, tt, all.splits, assocs, FALSE, total.pairs, verbose, no.progress.bars), warning=function(w){return(NULL)}, error=function(e){return(NULL)})
   
   if(is.null(split.distances)){
-    split.distances <- all.subgraph.distances(tree, tt, all.splits, assocs, TRUE, total.pairs, verbose)
+    split.distances <- all.subgraph.distances(tree, tt, all.splits, assocs, TRUE, total.split.pairs, verbose, no.progress.bars)
   }
   
   if (verbose) cat("Testing pairs...\n")
   
-  if (verbose) progress.bar <- txtProgressBar(width=50, style=3)
+  progress.bar <- NULL
+  
+  if (verbose & !no.progress.bars) progress.bar <- txtProgressBar(width=50, style=3)
   
   count <- 0
   adjacency.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
@@ -685,7 +749,7 @@ classify <- function(tree.info, verbose = F) {
   dir.21.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
   min.distance.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
   
-  if(total.pairs==0 & verbose){
+  if(total.host.pairs==0 & verbose & !no.progress.bars){
     setTxtProgressBar(progress.bar, 1)
   } else {
     
@@ -763,15 +827,15 @@ classify <- function(tree.info, verbose = F) {
           
           min.distance.matrix[pat.1, pat.2] <- min(pairwise.distances)
           
-          if (verbose) {
-            setTxtProgressBar(progress.bar, count/total.pairs)
+          if (verbose & !no.progress.bars) {
+            setTxtProgressBar(progress.bar, count/total.host.pairs)
           }
         }
       }
     }
   }
   
-  if (verbose) close(progress.bar)
+  if (verbose & !no.progress.bars) close(progress.bar)
   
   normalisation.constant <- tree.info$normalisation.constant
   
@@ -812,7 +876,10 @@ convert.to.columns <- function(matrix, names){
   return(a.df)
 }
 
-merge.classifications <- function(all.tree.info, allow.mt = T){
+#' @keywords internal
+#' @export merge.classifications
+
+merge.classifications <- function(all.tree.info, allow.mt = T, verbose = F){
   tt	<-	lapply(all.tree.info, function(tree.info){
     
     if(is.null(tree.info$classification.results$classification) & is.null(tree.info$classification.file.name)){
@@ -902,9 +969,12 @@ merge.classifications <- function(all.tree.info, allow.mt = T){
   return(tt)
 }
 
-summarise.classifications <- function(all.tree.info, min.threshold, dist.threshold, allow.mt = T, verbose = F, contiguous = F){
+#' @keywords internal
+#' @export summarise.classifications
+
+summarise.classifications <- function(all.tree.info, min.threshold, dist.threshold, allow.mt = T, close.sib.only = F, verbose = F, contiguous = F){
   
-  tt <- merge.classifications(all.tree.info, allow.mt)
+  tt <- merge.classifications(all.tree.info, allow.mt, verbose)
   
   if (verbose) cat("Making summary output table...\n")
   
@@ -914,25 +984,28 @@ summarise.classifications <- function(all.tree.info, min.threshold, dist.thresho
   
   tt <- merge(tt, existence.counts, by=c('HOST.1', 'HOST.2'))
   
-  if(!contiguous){
-    tt.close <- tt[which(tt$ADJACENT & tt$PATRISTIC_DISTANCE < dist.threshold ),]
+  if(!close.sib.only){
+    if(!contiguous){
+      tt.close <- tt[which(tt$ADJACENT & tt$PATRISTIC_DISTANCE < dist.threshold ),]
+    } else {
+      tt.close <- tt[which(tt$CONTIGUOUS & tt$PATRISTIC_DISTANCE < dist.threshold ),]
+    }
   } else {
-    tt.close <- tt[which(tt$CONTIGUOUS & tt$PATRISTIC_DISTANCE < dist.threshold ),]
+    if(!contiguous){
+      tt.close <- tt[which(tt$ADJACENT & (tt$TYPE != "none" | tt$PATRISTIC_DISTANCE < dist.threshold)),]
+    } else {
+      tt.close <- tt[which(tt$CONTIGUOUS & (tt$TYPE != "none" | tt$PATRISTIC_DISTANCE < dist.threshold)),]
+    }
   }
-  
-  tt.close$NOT.SIBLINGS <- tt.close$ADJACENT & (tt.close$PATRISTIC_DISTANCE < dist.threshold) & tt.close$TYPE!="none"
   
   # How many windows have this relationship, ADJACENT and PATRISTIC_DISTANCE below the threshold?
   type.counts	<- tt.close[, list(trees.with.this.relationship=length(SUFFIX)), by=c('HOST.1','HOST.2','TYPE')]
   # How many windows have ADJACENT and PATRISTIC_DISTANCE below the threshold?
   any.counts  <- tt.close[, list(trees.with.any.relationship=length(SUFFIX)), by=c('HOST.1','HOST.2')]
-  # How many windows have a relationship other than "none", ADJACENT and PATRISTIC_DISTANCE below the threshold?
-  #  ns.counts  <- tt.close[, list(trees.with.any.ancestral.relationship=length(which(NOT.SIBLINGS))), by=c('HOST.1','HOST.2')]
-  
+
   tt.close		<- merge(tt.close, type.counts, by=c('HOST.1','HOST.2','TYPE'))
   tt.close		<- merge(tt.close, any.counts, by=c('HOST.1','HOST.2'))
-  #  tt.close		<- merge(tt.close, ns.counts, by=c('HOST.1','HOST.2'))
-  
+
   tt.close[, fraction:=paste(trees.with.this.relationship,'/',both.exist,sep='')]
   
   #	convert "anc_12" and "ans_21" to "anc" depending on direction
@@ -955,7 +1028,7 @@ summarise.classifications <- function(all.tree.info, min.threshold, dist.thresho
   
   tt.close[, DUMMY:=NULL]
   
-  set(tt.close, NULL, c('SUFFIX', 'ADJACENT','PATRISTIC_DISTANCE', "CONTIGUOUS", "nodes1", "nodes2", "NOT.SIBLINGS"), NULL)
+  set(tt.close, NULL, c('SUFFIX', 'ADJACENT','PATRISTIC_DISTANCE', "CONTIGUOUS", "nodes1", "nodes2"), NULL)
   tt.close <- tt.close[!duplicated(tt.close),]
   
   setkey(tt.close, HOST.1, HOST.2, TYPE)
@@ -968,10 +1041,13 @@ summarise.classifications <- function(all.tree.info, min.threshold, dist.thresho
   return(subset(tt.close, any.relationship.tree.count>min.threshold))
 }
 
+#' @keywords internal
+#' @export simplify.summary
+
 simplify.summary <- function(summary, arrow.threshold, total.trees, plot = F){
   
   done <- rep(FALSE, nrow(summary))
-
+  
   for(line in 1:nrow(summary)){
     if(!done[line]){
       forwards.rows <- which(summary$host.1 == summary$host.1[line] & summary$host.2 == summary$host.2[line])
@@ -994,7 +1070,14 @@ simplify.summary <- function(summary, arrow.threshold, total.trees, plot = F){
   
   summary.wide[is.na(summary.wide)] <- 0
 
-  summary.wide$total.equiv <- summary.wide$ancestry.tree.count.none + summary.wide$ancestry.tree.count.complex
+  summary.wide$total.equiv <- 0
+  
+  if("ancestry.tree.count.none" %in% colnames(summary.wide)){
+    summary.wide$total.equiv <- summary.wide$total.equiv + summary.wide$ancestry.tree.count.none
+  }
+  if("ancestry.tree.count.complex" %in% colnames(summary.wide)){
+    summary.wide$total.equiv <- summary.wide$total.equiv + summary.wide$ancestry.tree.count.complex
+  }
   
   if("ancestry.tree.count.trans12" %in% colnames(summary.wide)){
     summary.wide$total.12 <- summary.wide$ancestry.tree.count.trans12
@@ -1039,11 +1122,10 @@ simplify.summary <- function(summary, arrow.threshold, total.trees, plot = F){
   out <- list(simp.table = out.table)
   
   if(plot){
+    network.obj <- as.network.matrix(out.table[,c(1,2)], matrix.type = "edgelist")
+    
+    arrangement <- ggnet2(network.obj)$data[,c("label", "x", "y")]
 
-    # okay so we're doing this
-    
-    arrangement <- ggnet2(out.table[,c(1,2)])$data[,c("label", "x", "y")]
-    
     out.table$x.start <- sapply(out.table$host.1, function(x) arrangement$x[match(x, arrangement$label)]) 
     out.table$y.start <- sapply(out.table$host.1, function(x) arrangement$y[match(x, arrangement$label)]) 
     out.table$x.end <- sapply(out.table$host.2, function(x) arrangement$x[match(x, arrangement$label)]) 

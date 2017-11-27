@@ -1,13 +1,8 @@
 #!/usr/bin/env Rscript
 
-list.of.packages <- c("prodlim", "reshape2", "kimisc")
-new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-if(length(new.packages)){
-  cat("Missing dependencies; replacing the path below appropriately, run\n[path to your phyloscanner code]/tools/package_install.R\nthen try again.\n")
-  quit(save="no", status=1)
-}
 
 suppressMessages(library(prodlim, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(library(phyloscannerR, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(reshape2, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(gdata, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(ggplot2, quietly=TRUE, warn.conflicts=FALSE))
@@ -23,19 +18,9 @@ arg_parser$add_argument("-p", "--allowMultiTrans", action="store_true", default=
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="csv", help="The file extension for table files (default .csv).")
 arg_parser$add_argument("inputFiles", action="store", help="Either a list of all input files (output from classify_relationships.R), separated by colons, or a single string that begins every input file name.")
 arg_parser$add_argument("outputFile", action="store", help="A .csv file to write the output to.")
-arg_parser$add_argument("-D", "--scriptDir", action="store", help="Full path of the /tools directory.")
 arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what I'm doing.")
 
 args <- arg_parser$parse_args()
-
-if(!is.null(args$scriptDir)){
-  script.dir          <- args$scriptDir
-} else {
-  script.dir          <- dirname(thisfile())
-  if(!dir.exists(script.dir)){
-    stop("Cannot detect the location of the /phyloscanner/tools directory. Please specify it at the command line with -D.")
-  }
-}
 
 output.file              <- args$outputFile
 verbose                  <- args$verbose
@@ -50,10 +35,6 @@ if(is.null(min.threshold)){
 }
 allow.mt                 <- args$allowMultiTrans
 input.file.name          <- args$inputFiles
-
-source(file.path(script.dir, "tree_utility_functions.R"))
-source(file.path(script.dir, "general_functions.R"))
-source(file.path(script.dir, "collapsed_tree_methods.R"))
 
 input.files <- list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name)), full.names=TRUE)
 
@@ -73,7 +54,7 @@ for(file in input.files){
   all.tree.info[[file]] <- tree.info
 }
 
-results <- summarise.classifications(all.tree.info, min.threshold*length(all.tree.info), dist.threshold, allow.mt, verbose)
+results <- summarise.classifications(all.tree.info, min.threshold*length(all.tree.info), dist.threshold, allow.mt, F, verbose)
 
 if (verbose) cat('Writing summary to file',output.file,'\n')
 write.csv(results, file=output.file, row.names=FALSE, quote=FALSE)

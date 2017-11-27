@@ -1,15 +1,9 @@
 #!/usr/bin/env Rscript
 
-list.of.packages <- c("argparse", "data.table", "ape", "ff", "phangorn", "phytools", "scales", "RColorBrewer", "gtable", "grid", "gridExtra", "kimisc", "GGally", "network", "sna")
-new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-if(length(new.packages)){
-  cat("Missing dependencies; replacing the path below appropriately, run\n[path to your phyloscanner code]/tools/package_install.R\nthen try again.\n")
-  quit(save="no", status=1)
-}
-
 options("warn"=1)
 
 suppressMessages(require(argparse, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(phyloscannerR, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(ape, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(phangorn, quietly=TRUE, warn.conflicts=FALSE))
@@ -32,22 +26,22 @@ arg_parser$add_argument("outputString", action="store", help="A string that will
 
 arg_parser$add_argument("-og", "--outgroupName", action="store", help="The name of the tip in the phylogeny/phylogenies to be used as outgroup (if unspecified, trees will be assumed to be already rooted). This should be sufficiently distant to any sequence obtained from a host that it can be assumed that the MRCA of the entire tree was not a lineage present in any sampled individual.")
 arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, short branches in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. If a number, this number will be used as the threshold, with all branches strictly smaller collapsed. If 'g', it will be guessed from the branch lengths and the width of the genomic window (if appropriate). It is recommended that trees are examined by eye to check that they do appear to have multifurcations if 'g' is used.")
-arg_parser$add_argument("-b", "--blacklist", action="store", help="A path and string that begins all the file names for pre-existing blacklist files.")
+arg_parser$add_argument("-b", "--userBlacklist", action="store", help="A path and string that begins all the file names for pre-existing blacklist files.")
 
 # General, bland options
 
 arg_parser$add_argument("-od", "--outputDir", action="store", help="All output will be written to this directory. If absent, current working directory.")
 arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what the script is doing.")
-arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. This expects up to three capture groups, for host ID, read ID, and read count (in that order). If the latter two groups are missing then read information will not be used. The default is '^(.*)_read_([0-9]+)_count_([0-9]+)$', which matches input from the phyloscanner pipeline where the host ID is the BAM file name.")
-arg_parser$add_argument("-y", "--fileNameRegex", action="store", default="^\\D*([0-9]+)_to_([0-9]+)\\D*$", help="Regular expression identifying window coordinates. Two capture groups: start and end; if the latter is missing then the first group is a single numerical identifier for the window. The default is '^(.*)_read_([0-9]+)_count_([0-9]+)$', which matches input from the phyloscanner pipeline.")
+arg_parser$add_argument("-npb", "--noProgressBars", action="store_true", default=FALSE, help="If --verbose, do not display progress bars")
+arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. This expects up to three capture groups, for host ID, read ID, and read count (in that order). If the latter two groups are missing then read information will not be used. If absent, the default is '^(.*)_read_([0-9]+)_count_([0-9]+)$', which matches input from the phyloscanner pipeline where the host ID is the BAM file name.")
+arg_parser$add_argument("-y", "--fileNameRegex", action="store", default="^\\D*([0-9]+)_to_([0-9]+)\\D*$", help="Regular expression identifying window coordinates. Two capture groups: start and end; if the latter is missing then the first group is a single numerical identifier for the window. If absent, input will be assumed to be from the phyloscanner pipeline, and the host ID will be the BAM file name.")
 arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default="tree", help="The file extension for tree files (default tree).")
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="csv", help="The file extension for table files (default csv).")
 arg_parser$add_argument("-pw", "--pdfWidth", action="store", default=50, help="Width of tree PDF in inches.")
 arg_parser$add_argument("-ph", "--pdfRelHeight", action="store", default=0.15, help="Relative height of tree PDF")
 arg_parser$add_argument("-psb", "--pdfScaleBarWidth", action="store", default=0.01, help="Width of the scale bar in the PDF output (in branch length units)")
 arg_parser$add_argument("-rda", "--outputRDA", action="store_true", help="Write the final R workspace image to file.")
-arg_parser$add_argument("-sd", "--seed", action="store_true", help="Random number seed; used by the downsampling process, and also ties in some parsimony reconstructions can be broken randomly.")
-arg_parser$add_argument("-D", "--toolsDir", action="store", help="Full path of the /tools/ directory.")
+arg_parser$add_argument("-sd", "--seed", action="store", help="Random number seed; used by the downsampling process, and also ties in some parsimony reconstructions can be broken randomly.")
 arg_parser$add_argument("-ow", "--overwrite", action="store_true", help="Overwrite existing output files with the same names.")
 
 # Normalisation options
@@ -72,9 +66,9 @@ arg_parser$add_argument("-dsb", "--blacklistUnderrepresented", action="store_tru
 # Parsimony reconstruction
 
 arg_parser$add_argument("-ff", "--useff", action="store_true", default=FALSE, help="Use ff to store parsimony reconstruction matrices. Use if you run out of memory.")
-arg_parser$add_argument("splitsRule", action="store", help="The rules by which the sets of hosts are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. This takes one string as an argument which is itself a variable number of arguments, comma-separated. The first dictates the algorithm: s=Sankoff with optional within-host diversity penalty (slow, rigorous, recommended), r=Romero-Severson (quick, less rigorous with >2 hosts), f=Sankoff with continuation costs (experimental). For 'r' no further arguments are expected. For 's' and 'f' the k parameter in the Sankoff reconstruction, which penalises within-host diversity, must also be given. There is an optional third argument for 's' and 'f'. For 's' this is the branch length threshold at which a lineage reconstructed as infecting a host will transition to the unsampled state. For 'f' this is the branch length at which an node is reconstructed as unsampled if all its neighbouring nodes are a greater distance away. Both defaults are 0.")
-arg_parser$add_argument("-P", "--pruneBlacklist", action="store_true", help="If present, all blacklisted and reference tips (except the outgroup) are pruned away before starting parsimony-based reconstruction.")
-arg_parser$add_argument("-rcm", "--readCountsMatterOnZeroLengthBranches", default = FALSE, action="store_true", help="If present, read counts will be taken into account in parsimony reconstructions at the parents of zero-length terminal branches. Not applicable for the Romero-Severson-like reconstruction method.")
+arg_parser$add_argument("splitsRule", action="store", help="The rules by which the sets of hosts are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. This takes one string as an argument which is itself a variable number of arguments, comma-separated. The first dictates the algorithm: s=Sankoff with optional within-host diversity penalty (slow, rigorous, recommended), r=Romero-Severson (quick, less rigorous with >2 hosts). For 'r' no further arguments are expected. For 's' the k parameter in the Sankoff reconstruction, which penalises within-host diversity, must also be given.")
+arg_parser$add_argument("-P", "--pruneBlacklist", action="store_true", help="If present, all blacklisted and references tips (except the outgroup) are pruned away before starting parsimony-based reconstruction")
+arg_parser$add_argument("-rcm", "--readCountsMatterOnZeroLengthBranches", default = FALSE, action="store_true", help="If present, read counts will be taken into account in parsimony reconstructions at the parents of zero-length branches. Not applicable for the Romero-Severson-like reconstruction method.")
 arg_parser$add_argument("-tn", "--outputNexusTree", action="store_true", help="Standard output of annotated trees are in PDF format. If this option is present, output them as NEXUS instead.")
 
 # Summary statistics
@@ -101,11 +95,12 @@ arg_parser$add_argument("-sks", "--skipSummaryGraph", action="store_true", help=
 args                  <- arg_parser$parse_args()
 
 verbose               <- args$verbose
+no.progress.bars      <- args$noProgressBars
 
 overwrite             <- args$overwrite
 
 tree.input            <- args$tree
-blacklist.input       <- args$blacklist
+blacklist.input       <- args$userBlacklist
 
 output.dir            <- args$outputDir
 if(is.null(output.dir)){
@@ -119,7 +114,7 @@ if(!overwrite & file.exists(paste0(output.dir, "/", output.string,"_patStats.csv
 
 outgroup.name         <- args$outgroupName
 
-if(is.null(output.string)){
+if(is.null(outgroup.name)){
   warning("No outgroup name provided. Trees are assumed to be correctly rooted.")
 }
 
@@ -132,6 +127,13 @@ pdf.w                 <- as.numeric(args$pdfWidth)
 pdf.scale.bar.width   <- as.numeric(args$pdfScaleBarWidth)
 
 seed                  <- args$seed
+if(is.null(seed)){
+  seed <- sample.int(1000000000, 1)
+} else {
+  seed <- as.numeric(seed)
+}
+if(verbose) cat("Random number seed is",seed,"\n")
+set.seed(seed)
 
 output.rda            <- args$outputRDA
 
@@ -189,7 +191,7 @@ reconst.mode.arg      <- args$splitsRule
 
 reconst.mode.arg      <- unlist(strsplit(reconst.mode.arg, ","))
 
-if(!(reconst.mode.arg[1] %in% c("r", "s", "f"))){
+if(!(reconst.mode.arg[1] %in% c("r", "s"))){
   stop(paste("Unknown split classifier: ", reconst.mode.arg[1], "\n", sep=""))
 }
 
@@ -199,22 +201,14 @@ if(reconstruction.mode == "r" & length(reconst.mode.arg)>1){
   warning("Romero-Severson reconstuction takes no additional arguments; ignoring everything after 'r'")
 }
 
-if(reconstruction.mode!="r" & length(reconst.mode.arg)==1){
+if(reconstruction.mode=="s" & length(reconst.mode.arg)==1){
   stop("At least one additional argument is required for Sankoff reconstruction")
 }
 
-if(reconstruction.mode!="r"){
+if(reconstruction.mode=="s"){
   sankoff.k             <- as.numeric(reconst.mode.arg[2])
-  if(sankoff.k == 0 & reconstruction.mode=="f"){
-    stop("k=0 for continuation costs parsimony is not supported (for simple parsimony use 's,0')")
-  }
-  
-  if(length(reconst.mode.arg) > 2){
-    sankoff.p           <- as.numeric(reconst.mode.arg[3])
-  } else {
-    sankoff.p           <- 0
-  }
-  
+  sankoff.p             <- 0
+ 
   if(is.na(sankoff.k) | is.na(sankoff.p)){
     stop("Expected numerical arguments for reconstruction algorithm parameters.")
   }
@@ -261,27 +255,6 @@ if(dist.threshold == -1){
   dist.threshold      <- Inf
 }
 allow.mt              <- args$allowMultiTrans
-
-if(!is.null(args$toolsDir)){
-  tools.dir           <- args$toolsDir
-} else {
-  tools.dir           <- paste0(dirname(thisfile()),"/tools")
-  if(!dir.exists(tools.dir)){
-    stop("Cannot detect the location of the /phyloscanner/tools directory. Please specify it at the command line with -D.")
-  }
-}
-
-source(file.path(tools.dir, "general_functions.R"))
-source(file.path(tools.dir, "normalisation_functions.R"))
-source(file.path(tools.dir, "tree_utility_functions.R"))
-source(file.path(tools.dir, "blacklist_functions.R"))
-source(file.path(tools.dir, "parsimony_reconstruction_methods.R"))
-source(file.path(tools.dir, "collapsed_tree_methods.R"))
-source(file.path(tools.dir, "write_annotated_trees.R"))
-source(file.path(tools.dir, "clade_functions.R"))
-source(file.path(tools.dir, "summary_stats_functions.R"))
-source(file.path(tools.dir, "plotting_functions.R"))
-source(file.path(tools.dir, "downsampling_functions.R"))
 
 # todo All functions that get passed tree info should check that the lists have what they need. If they have file names but not the contents, they should load the contents in.
 
@@ -474,7 +447,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info){
           m.thresh                    <- minimum.bl*1.0001
         }
       }
-
+      
     } else {
       warning("Attempting to guess a branch length threshold for multifurcations from the tree. Please ensure that the tree has multifurcations before using the results of this analysis.")
       if(verbose){
@@ -494,7 +467,8 @@ all.tree.info <- sapply(all.tree.info, function(tree.info){
   
   new.tree <- process.tree(tree, outgroup.name, m.thresh)
   
-  tree.info$tree <- new.tree
+  tree.info$tree                      <- new.tree
+  tree.info$multifurcation.threshold  <- m.thresh
   tree.info$original.tip.labels       <- new.tree$tip.label
   
   hosts.for.tips                      <- sapply(tree$tip.label, function(x) host.from.label(x, tip.regex))
@@ -550,7 +524,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
       
       tree.info$blacklist                 <- blacklist
     } else {
-      cat(paste("WARNING: File ",tree.info$blacklist.input," does not exist; skipping.\n",sep=""))
+      cat(paste("WARNING: Specified existing blacklist file ",tree.info$prexisting.blacklist.file.name," does not exist; skipping.\n",sep=""))
     }
   } 
   
@@ -592,7 +566,7 @@ if(!is.null(norm.constants.input)){
       tree.info
     }, simplify = F, USE.NAMES = T)
   } else if(file.exists(norm.constants.input)){
-
+    
     nc.df   <- read.csv(norm.constants.input, stringsAsFactors = F, header = F)
     all.tree.info <- sapply(all.tree.info, function(tree.info) {
       rows  <- which(nc.df[,1]==basename(tree.info$tree.file.name))
@@ -746,60 +720,63 @@ if(do.dup.blacklisting){
   }, simplify = F, USE.NAMES = T)
 }
 
-
 # 10. Parsimony blacklisting
 
 if(do.par.blacklisting){
   
   all.tree.info <- sapply(all.tree.info, function(tree.info){
-    
+  
     tree <- tree.info$tree
     tip.hosts <- sapply(tree$tip.label, function(x) host.from.label(x, tip.regex))
+    
     tip.hosts[tree.info$blacklist] <- NA
-    
-    hosts <- unique(na.omit(tip.hosts))
-    
-    hosts <- hosts[order(hosts)]
-    
-    results <- sapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, outgroup.name, bl.raw.threshold, bl.ratio.threshold, "s", par.blacklisting.k, 0, T, no.read.counts, verbose), simplify = F, USE.NAMES = T)
 
-    contaminant                                 <- unlist(lapply(results, "[[", 2))
-    contaminant.nos                             <- which(tree.info$tree$tip.label %in% contaminant)
+    hosts <- unique(na.omit(tip.hosts))
+
+    if(length(hosts)>0){
     
-    newly.blacklisted                           <- setdiff(contaminant.nos, tree.info$blacklist) 
-    
-    if(verbose & length(newly.blacklisted)>0) cat(length(newly.blacklisted), " tips blacklisted as probable contaminants by parsimony reconstruction for tree suffix ",tree.info$suffix, "\n", sep="")
-    
-    tree.info$hosts.for.tips[newly.blacklisted] <- NA
-    
-    old.tip.labels                              <- tree.info$tree$tip.label
-    
-    if(length(newly.blacklisted)>0){
-      new.tip.labels                            <- old.tip.labels
-      new.tip.labels[newly.blacklisted]         <- paste0(new.tip.labels[newly.blacklisted], "_X_CONTAMINANT")
-      tree$tip.label                            <- new.tip.labels
-      tree.info$tree                            <- tree
-    }
-    
-    tree.info$blacklist                         <- unique(c(tree.info$blacklist, contaminant.nos))
-    tree.info$blacklist                         <- tree.info$blacklist[order(tree.info$blacklist)]
-    
-    which.are.duals                             <- which(unlist(lapply(results, "[[", 6)))
-    mi.count                                    <- unlist(lapply(results, "[[", 7))
-    
-    multiplicity.table                          <- data.frame(host = hosts, count = mi.count, stringsAsFactors = F)
-    tree.info$dual.detection.splits             <- multiplicity.table
-    
-    if(length(which.are.duals) > 0) {
-      mi.df                                     <- data.frame(host = unlist(sapply(results[which.are.duals], function (x) rep(x$id, length(x$tip.names)) )), 
-                                                              tip.name = unlist(lapply(results[which.are.duals], "[[", 3)),
-                                                              reads.in.subtree = unlist(lapply(results[which.are.duals], "[[", 4)),
-                                                              tips.in.subtree = unlist(lapply(results[which.are.duals], "[[", 5)), 
-                                                              stringsAsFactors = F
-      )
+      hosts <- hosts[order(hosts)]
       
-      tree.info$duals.info <- mi.df
-    } 
+      results <- sapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, outgroup.name, bl.raw.threshold, bl.ratio.threshold, "s", par.blacklisting.k, 0, T, no.read.counts, tip.regex, verbose, no.progress.bars), simplify = F, USE.NAMES = T)
+      
+      contaminant                                 <- unlist(lapply(results, "[[", 2))
+      contaminant.nos                             <- which(tree.info$tree$tip.label %in% contaminant)
+      
+      newly.blacklisted                           <- setdiff(contaminant.nos, tree.info$blacklist) 
+      
+      if(verbose & length(newly.blacklisted)>0) cat(length(newly.blacklisted), " tips blacklisted as probable contaminants by parsimony reconstruction for tree suffix ",tree.info$suffix, "\n", sep="")
+      
+      tree.info$hosts.for.tips[newly.blacklisted] <- NA
+      
+      old.tip.labels                              <- tree.info$tree$tip.label
+      
+      if(length(newly.blacklisted)>0){
+        new.tip.labels                            <- old.tip.labels
+        new.tip.labels[newly.blacklisted]         <- paste0(new.tip.labels[newly.blacklisted], "_X_CONTAMINANT")
+        tree$tip.label                            <- new.tip.labels
+        tree.info$tree                            <- tree
+      }
+      
+      tree.info$blacklist                         <- unique(c(tree.info$blacklist, contaminant.nos))
+      tree.info$blacklist                         <- tree.info$blacklist[order(tree.info$blacklist)]
+      
+      which.are.duals                             <- which(unlist(lapply(results, "[[", 6)))
+      mi.count                                    <- unlist(lapply(results, "[[", 7))
+      
+      multiplicity.table                          <- data.frame(host = hosts, count = mi.count, stringsAsFactors = F)
+      tree.info$dual.detection.splits             <- multiplicity.table
+      
+      if(length(which.are.duals) > 0) {
+        mi.df                                     <- data.frame(host = unlist(sapply(results[which.are.duals], function (x) rep(x$id, length(x$tip.names)) )), 
+                                                                tip.name = unlist(lapply(results[which.are.duals], "[[", 3)),
+                                                                reads.in.subtree = unlist(lapply(results[which.are.duals], "[[", 4)),
+                                                                tips.in.subtree = unlist(lapply(results[which.are.duals], "[[", 5)), 
+                                                                stringsAsFactors = F
+        )
+        
+        tree.info$duals.info <- mi.df
+      } 
+    }
     
     tree.info
   }, simplify = F, USE.NAMES = T)
@@ -817,7 +794,7 @@ if(do.dual.blacklisting){
   dual.results <- blacklist.duals(all.tree.info, hosts.that.are.duals, summary.file = NULL, verbose)
   
   all.tree.info <- sapply(all.tree.info, function(tree.info) {
-
+    
     tree <- tree.info$tree
     
     if(!is.null(dual.results[[tree.info$suffix]])){
@@ -851,7 +828,7 @@ if(do.dual.blacklisting){
 
 if(downsample){
   all.tree.info <- sapply(all.tree.info, function(tree.info){
-    tree.info <- downsample.tree(tree.info, NULL, downsampling.limit, T, blacklist.ur, no.read.counts, seed, verbose)
+    tree.info <- downsample.tree(tree.info, NULL, downsampling.limit, T, blacklist.ur, no.read.counts, tip.regex, NA, verbose)
     tree.info$hosts.for.tips[tree.info$blacklist] <- NA 
     
     tree.info
@@ -925,7 +902,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
     if(verbose) cat("Reconstructing internal node hosts\n", sep="")
   }
   
-  tmp					     <- split.hosts.to.subgraphs(tree.info$tree, tree.info$blacklist, reconstruction.mode, tip.regex, sankoff.k, sankoff.p, useff, read.counts.matter, hosts, verbose)
+  tmp					     <- split.hosts.to.subgraphs(tree.info$tree, tree.info$blacklist, reconstruction.mode, tip.regex, sankoff.k, sankoff.p, useff, read.counts.matter, tree.info$multifurcation.thresh, hosts, verbose, no.progress.bars)
   tree					   <- tmp[['tree']]	
   
   # trees are annotated from now on
@@ -999,7 +976,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
   tree.info
 }, simplify = F, USE.NAMES = T)
 
-pat.stats <- lapply(all.tree.info, function(x) calc.all.stats.in.window(x, hosts, tip.regex, verbose))
+pat.stats <- lapply(all.tree.info, function(x) calc.all.stats.in.window(x, hosts, tip.regex, !no.read.counts, verbose))
 pat.stats <- rbindlist(pat.stats)
 
 read.proportions <- lapply(all.tree.info, function(y) sapply(hosts, function(x) get.read.proportions(x, y$suffix, y$splits.table), simplify = F, USE.NAMES = T))
@@ -1097,7 +1074,7 @@ if(length(hosts)>1){
       if(verbose) cat("Classifying pairwise host relationships.\n", sep="")
     }
     
-    tree.info$classification.results <- classify(tree.info, verbose)
+    tree.info$classification.results <- classify(tree.info, verbose, no.progress.bars)
     
     if(do.collapsed){
       tree.info$collapsed.file.name <- file.path(output.dir, paste0("CollapsedTree_",tree.info$output.string,".",csv.fe))
@@ -1116,7 +1093,7 @@ if(length(hosts)>1){
 # 18. Transmission summary
 
 if(!single.file & length(hosts)>1){
-  results <- summarise.classifications(all.tree.info, win.threshold*length(all.tree.info), dist.threshold, allow.mt, verbose)
+  results <- summarise.classifications(all.tree.info, win.threshold*length(all.tree.info), dist.threshold, allow.mt, F, verbose, F)
   
   if (verbose) cat('Writing summary to file', paste0(output.string,"_hostRelationshipSummary.",csv.fe),'\n')
   write.csv(results, file=file.path(output.dir, paste0(output.string,"_hostRelationshipSummary.",csv.fe)), row.names=FALSE, quote=FALSE)
@@ -1124,13 +1101,29 @@ if(!single.file & length(hosts)>1){
   results$ancestry <- as.character(results$ancestry)
   
   if(do.simplified.graph){
-    simplified.graph <- simplify.summary(results, arrow.threshold, length(all.tree.info), plot = T)
-    simplified.graph$simp.diagram
-    ggsave(file = file.path(output.dir, paste0(output.string,"_simplifiedRelationshipGraph.pdf")), width=simp.plot.dim, height=simp.plot.dim)
+    if (verbose) cat('Drawing simplified summary diagram to file', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'\n')
+    
+    if(nrow(results)==0){
+      cat("No relationships exist in the required proportion of windows (",win.threshold,"); skipping simplified relationship summary.", sep="")
+    } else {
+      simplified.graph <- simplify.summary(results, arrow.threshold, length(all.tree.info), plot = T)
+      
+      simplified.graph$simp.diagram
+      ggsave(file = file.path(output.dir, paste0(output.string,"_simplifiedRelationshipGraph.pdf")), width=simp.plot.dim, height=simp.plot.dim)
+    }
   }
 }
 
-# 19. Workspace image
+
+# 19. For compatibility with phyloscannerR
+
+class(all.tree.info) <- append(class(all.tree.info), "phyloscanner.trees")
+
+attr(all.tree.info, 'readable.coords') <- readable.coords
+attr(all.tree.info, 'has.read.counts') <- !no.read.counts
+
+
+# 20. Workspace image
 
 if(output.rda){
   if (verbose) cat('Saving R workspace image to file', paste0("workspace_",output.string,".rda"),'\n')

@@ -2,14 +2,8 @@
 
 options("warn"=1)
 
-list.of.packages <- c("argparse", "kimisc")
-new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-if(length(new.packages)){
-  cat("Missing dependencies; replacing the path below appropriately, run\n[path to your phyloscanner code]/tools/package_install.R\nthen try again.\n")
-  quit(save="no", status=1)
-}
-
 suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(library(phyloscannerR, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(kimisc, quietly=TRUE, warn.conflicts=FALSE))
 
 arg_parser = ArgumentParser(description="Identify phylogeny tips for blacklisting as representing suspected contaminants, based on being exact duplicates of more numerous reads from other hosts")
@@ -21,7 +15,6 @@ arg_parser$add_argument("rawThreshold", action="store", type="double", help="Raw
 arg_parser$add_argument("ratioThreshold", action="store", type="double", help="Ratio threshold; tips will be blacklisted if the ratio of their tip count to that of another, identical tip from another host is less than this value.")
 arg_parser$add_argument("inputFileName", action="store", help="A file (comma-separated) outlining groups of tips that have identical sequences, each forming a single line.")
 arg_parser$add_argument("outputFileName", action="store", help="The file to write the output to, a list of tips to be blacklisted.")
-arg_parser$add_argument("-D", "--scriptDir", action="store", help="Full path of the /tools directory.")
 arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what the script doing.")
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="csv", help="The file extension for table files (default .csv).")
 
@@ -47,12 +40,6 @@ tip.regex            <- args$tipRegex
 input.string         <- args$inputFileName
 output.string        <- args$outputFileName
 blacklist.input      <- args$blacklist
-
-# Load necessary functions
-
-source(file.path(script.dir, "tree_utility_functions.R"))
-source(file.path(script.dir, "general_functions.R"))
-source(file.path(script.dir, "blacklist_functions.R"))
 
 # Decide if we're in single or batch mode
 

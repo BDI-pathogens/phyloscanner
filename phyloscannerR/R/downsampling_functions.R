@@ -1,6 +1,9 @@
 # This returns the ones to get rid of (i.e. blacklist) per host for a given tree
 
-downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, exclude.underrepresented = F, no.read.counts = T, verbose=F){
+#' @keywords internal
+#' @export downsample.host
+
+downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, exclude.underrepresented = F, no.read.counts = T, name = NA, verbose=F){
   if(verbose) cat("Downsampling tips for host ", host, "...\n", sep="")
   
   tips.from.host <- which(host.ids==host)
@@ -18,10 +21,10 @@ downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, e
   
   if(total.reads < number){
     if(!exclude.underrepresented){
-      warning("Insufficient reads for downsampling host ",host," at a count of ",number,", returning all.\n", sep="")
+      warning("Insufficient reads for downsampling host ",host," at a count of ",number," in tree ",name,", returning all.\n", sep="")
       return(list(blacklist=vector(), map=NULL))
     } else {
-      warning("Insufficient reads for downsampling host ",host," at a count of ",number,", blacklisting this host.\n", sep="")
+      warning("Insufficient reads for downsampling host ",host," at a count of ",number," in tree ",name,", blacklisting this host.\n", sep="")
       
       if(rename){
         label.map <- lapply(1:length(labels.from.host), function(x){
@@ -77,9 +80,9 @@ downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, e
       gsub(new.tip.regex, paste0("\\1", sample[x], "\\3"), labels.from.host[x])
     })
     
-    unsampled.tips <- which(sample==0)
+    never.selected.tips <- which(sample==0)
     
-    label.map[unsampled.tips] <- paste0(label.map[unsampled.tips],"_X_DOWNSAMPLED")
+    label.map[never.selected.tips] <- paste0(label.map[never.selected.tips],"_X_DOWNSAMPLED")
 
     names(label.map) <- labels.from.host
     
@@ -94,10 +97,14 @@ downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, e
 }
 
 # This returns the ones to get rid of (i.e. blacklist) for a given tree
-downsample.tree<- function(tree.info, hosts.to.include, max.reads, rename = F, exclude.underrepresented = F, no.read.counts = T, seed=NA, verbose=F) {
+
+#' @keywords internal
+#' @export downsample.tree
+
+downsample.tree <- function(tree.info, hosts.to.include, max.reads, rename = F, exclude.underrepresented = F, no.read.counts = T, tip.regex, seed=NA, verbose=F) {
   
   if(verbose){
-    cat("Downsampling reads on tree ",tree.info$input.file.name," to ",max.reads," per host...\n",sep = "")
+    cat("Downsampling reads on tree ",tree.info$suffix," to ",max.reads," per host...\n",sep = "")
   }
 
   if(!is.na(seed))
@@ -155,7 +162,7 @@ downsample.tree<- function(tree.info, hosts.to.include, max.reads, rename = F, e
   
   new.tip.labels <- tree$tip.label
   excluded <- unlist(lapply(hosts.to.include, function(x){
-    result <- downsample.host(x, tree=tree.1, number = max.reads, tip.regex=tip.regex, host.ids=host.ids, rename, exclude.underrepresented, no.read.counts, verbose)
+    result <- downsample.host(x, tree=tree.1, number = max.reads, tip.regex=tip.regex, host.ids=host.ids, rename, exclude.underrepresented, no.read.counts, name = tree.info$suffix, verbose)
     if(rename & !is.null(result$map)){
       new.tip.labels <<- sapply(new.tip.labels, function(y){
         if(y %in% names(result$map)){

@@ -1,18 +1,13 @@
 #!/usr/bin/env Rscript
 
-list.of.packages <- c("argparse", "ape", "phangorn", "kimisc")
-new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-if(length(new.packages)){
-  cat("Missing dependencies; replacing the path below appropriately, run\n[path to your phyloscanner code]/tools/package_install.R\nthen try again.\n")
-  quit(save="no", status=1)
-}
-
 suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(library(phyloscannerR, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(library(phylosc, quietly=TRUE, warn.conflicts=FALSE))
+
 # Define arguments
 
 arg_parser = ArgumentParser(description="Identify phylogeny tips for blacklisting as representing suspected contaminants, based on a Sankoff parsimony reconstruction. Input and output file name arguments are either a single file, or the root name for a group of files, in which case all files matching that root will be processed, and matching output files generated.")
 arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. Three capture groups, in order: host ID, read ID, and read count. If absent, input will be assumed to be from the phyloscanner pipeline, and the host ID will be the BAM file name.")
-arg_parser$add_argument("-D", "--scriptDir", action="store", help="Full path of the /tools directory.")
 arg_parser$add_argument("-r", "--outgroupName", action="store", help="Label of tip to be used as outgroup (if unspecified, tree will be assumed to be already rooted).")
 arg_parser$add_argument("-b", "--blacklist", action="store", help="A blacklist to be applied before this script is run.")
 arg_parser$add_argument("-c", "--noReadCounts", action="store_true", help="If present, read counts are not taken from tip labels and each tip is assumed to represent one read")
@@ -34,16 +29,6 @@ arg_parser$add_argument("blacklistOutputFileName", action="store", help="The fil
 
 # Parse arguments
 args                   <- arg_parser$parse_args()
-
-if(!is.null(args$scriptDir)){
-  script.dir          <- args$scriptDir
-} else {
-  suppressMessages(library(kimisc, quietly=TRUE, warn.conflicts=FALSE))
-  script.dir          <- dirname(thisfile())
-  if(!dir.exists(script.dir)){
-    stop("Cannot detect the location of the /phyloscanner/tools directory. Please specify it at the command line with -D.")
-  }
-}
 
 raw.threshold          <- args$rawThreshold
 ratio.threshold        <- args$ratioThreshold
@@ -85,11 +70,6 @@ suppressMessages(library(ape, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(phangorn, quietly=TRUE, warn.conflicts=FALSE))
 
 if(verbose) cat("Reading functions...\n")
-
-source(file.path(script.dir, "tree_utility_functions.R"))
-source(file.path(script.dir, "parsimony_reconstruction_methods.R"))
-source(file.path(script.dir, "general_functions.R"))
-source(file.path(script.dir, "blacklist_functions.R"))
 
 if(is.null(root.name)){
   cat("No outgroup name given; will assume the tree is rooted and use a random other tip as an outgroup for each host\n")
