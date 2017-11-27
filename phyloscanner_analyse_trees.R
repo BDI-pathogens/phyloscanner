@@ -127,6 +127,10 @@ pdf.w                 <- as.numeric(args$pdfWidth)
 pdf.scale.bar.width   <- as.numeric(args$pdfScaleBarWidth)
 
 seed                  <- args$seed
+if(!is.null(seed)){
+  seed <- sample.int(10000000000)
+}
+set.seed(seed)
 
 output.rda            <- args$outputRDA
 
@@ -821,7 +825,7 @@ if(do.dual.blacklisting){
 
 if(downsample){
   all.tree.info <- sapply(all.tree.info, function(tree.info){
-    tree.info <- downsample.tree(tree.info, NULL, downsampling.limit, T, blacklist.ur, no.read.counts, tip.regex, seed, verbose)
+    tree.info <- downsample.tree(tree.info, NULL, downsampling.limit, T, blacklist.ur, no.read.counts, tip.regex, NA, verbose)
     tree.info$hosts.for.tips[tree.info$blacklist] <- NA 
     
     tree.info
