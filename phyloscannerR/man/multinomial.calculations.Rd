@@ -5,12 +5,12 @@
 \title{Calculate parameters of the posterior density for pairwise host relationships}
 \usage{
 multinomial.calculations(phyloscanner.trees, close.threshold, prior.keff = 3,
-  prior.neff = 4, prior.calibrated.prob = 0.66,
+  prior.neff = 4, prior.calibrated.prob = 0.5,
   tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$", allow.mt = F,
   min.reads = 0, min.tips = 0, distant.threshold = close.threshold,
   relationship.types = c("TYPE_PAIR_DI2", "TYPE_PAIR_TO", "TYPE_PAIR_TODI2x2",
   "TYPE_PAIR_TODI2", "TYPE_DIR_TODI2", "TYPE_NETWORK_SCORES",
-  "TYPE_CHAIN_TODI"), verbose = F)
+  "TYPE_ADJ_NETWORK_SCORES", "TYPE_CHAIN_TODI"), verbose = F)
 }
 \arguments{
 \item{phyloscanner.trees}{A list of class \code{phyloscanner.trees} produced by \code{phyloscanner.analyse.trees}.}

@@ -13,8 +13,6 @@ phsc.get.pairwise.relationships(df, get.groups = c("TYPE_PAIR_DI2",
 \item{df}{data.table to which new columns of relationship groups will be added. Must contain a column with name TYPE_BASIC. This column contains fundamental relationship states for every window, from which other relationships are derived.}
 
 \item{get.groups}{names of relationship groups}
-
-\item{make.pretty.labels}{Logical}
 }
 \value{
 input data.table with new columns. Each new column defines relationship states for a specific relationship group.
