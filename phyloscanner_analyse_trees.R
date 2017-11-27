@@ -41,7 +41,7 @@ arg_parser$add_argument("-pw", "--pdfWidth", action="store", default=50, help="W
 arg_parser$add_argument("-ph", "--pdfRelHeight", action="store", default=0.15, help="Relative height of tree PDF")
 arg_parser$add_argument("-psb", "--pdfScaleBarWidth", action="store", default=0.01, help="Width of the scale bar in the PDF output (in branch length units)")
 arg_parser$add_argument("-rda", "--outputRDA", action="store_true", help="Write the final R workspace image to file.")
-arg_parser$add_argument("-sd", "--seed", action="store_true", help="Random number seed; used by the downsampling process, and also ties in some parsimony reconstructions can be broken randomly.")
+arg_parser$add_argument("-sd", "--seed", action="store", help="Random number seed; used by the downsampling process, and also ties in some parsimony reconstructions can be broken randomly.")
 arg_parser$add_argument("-ow", "--overwrite", action="store_true", help="Overwrite existing output files with the same names.")
 
 # Normalisation options
@@ -129,7 +129,10 @@ pdf.scale.bar.width   <- as.numeric(args$pdfScaleBarWidth)
 seed                  <- args$seed
 if(is.null(seed)){
   seed <- sample.int(1000000000, 1)
+} else {
+  seed <- as.numeric(seed)
 }
+if(verbose) cat("Random number seed is",seed,"\n")
 set.seed(seed)
 
 output.rda            <- args$outputRDA
