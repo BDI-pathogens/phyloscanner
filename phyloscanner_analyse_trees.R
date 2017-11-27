@@ -207,7 +207,7 @@ if(reconstruction.mode=="s" & length(reconst.mode.arg)==1){
 
 if(reconstruction.mode=="s"){
   sankoff.k             <- as.numeric(reconst.mode.arg[2])
-  sankoff.p           <- 0
+  sankoff.p             <- 0
  
   if(is.na(sankoff.k) | is.na(sankoff.p)){
     stop("Expected numerical arguments for reconstruction algorithm parameters.")
