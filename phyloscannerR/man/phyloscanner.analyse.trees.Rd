@@ -7,8 +7,8 @@
 phyloscanner.analyse.trees(tree.directory,
   tree.file.regex = "^RAxML_bestTree.InWindow_([0-9]+_to_[0-9]+)\\\\.tree$",
   splits.rule = c("s", "r", "f"), sankoff.k = 0,
-  sankoff.unsampled.switch.threshold = 0,
-  continuation.unsampled.proximity.cost = 1000, outgroup.name = NULL,
+  sankoff.unassigned.switch.threshold = 0,
+  continuation.unassigned.proximity.cost = 1000, outgroup.name = NULL,
   multifurcation.threshold = -1, guess.multifurcation.threshold = F,
   user.blacklist.directory = NULL, user.blacklist.file.regex = NULL,
   duplicate.file.directory = NULL,
@@ -34,9 +34,9 @@ phyloscanner.analyse.trees(tree.directory,
 
 \item{sankoff.k}{For \code{splits.rule = s} or \code{f} only. The \emph{k} parameter in the Sankoff reconstruction, representing the within-host diversity penalty.}
 
-\item{sankoff.unsampled.switch.threshold}{For \code{splits.rule = s} only. Threshold at which a lineage reconstructed as infecting a host will transition to the unsampled state, if it would be equally parsimonious to remain in that host.}
+\item{sankoff.unassigned.switch.threshold}{For \code{splits.rule = s} only. Threshold at which a lineage reconstructed as infecting a host will transition to the unassigned state, if it would be equally parsimonious to remain in that host.}
 
-\item{continuation.unsampled.proximity.cost}{For \code{splits.rule = f} only. The branch length at which an node is reconstructed as unsampled if all its neighbouring nodes are a greater distance away. The default is 1000, intended to be effectively infinite, such a node will never normally receive the unsampled state.}
+\item{continuation.unassigned.proximity.cost}{For \code{splits.rule = f} only. The branch length at which an node is reconstructed as unassigned if all its neighbouring nodes are a greater distance away. The default is 1000, intended to be effectively infinite, such a node will never normally receive the unassigned state.}
 
 \item{outgroup.name}{The name of the tip in the phylogeny/phylogenies to be used as outgroup (if unspecified, trees will be assumed to be already rooted). This should be sufficiently distant to any sequence obtained from a host that it can be assumed that the MRCA of the entire tree was not a lineage present in any sampled individual.}
 
