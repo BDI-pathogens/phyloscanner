@@ -524,7 +524,7 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
       
       tree.info$blacklist                 <- blacklist
     } else {
-      cat(paste("WARNING: File ",tree.info$blacklist.input," does not exist; skipping.\n",sep=""))
+      cat(paste("WARNING: Specified existing blacklist file ",tree.info$prexisting.blacklist.file.name," does not exist; skipping.\n",sep=""))
     }
   } 
   
