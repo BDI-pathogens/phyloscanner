@@ -127,8 +127,8 @@ pdf.w                 <- as.numeric(args$pdfWidth)
 pdf.scale.bar.width   <- as.numeric(args$pdfScaleBarWidth)
 
 seed                  <- args$seed
-if(!is.null(seed)){
-  seed <- sample.int(10000000000)
+if(is.null(seed)){
+  seed <- sample.int(1000000000, 1)
 }
 set.seed(seed)
 

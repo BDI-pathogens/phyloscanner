@@ -288,11 +288,17 @@ blacklist.small.subgraphs.for.dual.host <- function(host, tree.info, max.reads){
 
 # This takes a tree, a blacklist, and a string, appends that string to the blacklisted tips of the tree
 
+#' @keywords internal
+#' @export blacklist.tip.rename
+
 blacklist.tip.rename <- function(tree, blacklist, reason){
   tree$tip.label[blacklist] <- paste0(tree$tip.label[blacklist], "_", reason)
   
   return(tree)
 }
+
+#' @keywords internal
+#' @export blacklist.duals
 
 blacklist.duals <- function(all.tree.info, hosts, threshold = 1, summary.file=NULL, verbose=F){
   
