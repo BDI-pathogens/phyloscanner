@@ -24,7 +24,7 @@ arg_parser		     <- ArgumentParser()
 arg_parser$add_argument("tree", action="store", help="A string that begins the file names (including the path) of all input trees. e.g. path/to/RAxML_bestTree.InWindow_")
 arg_parser$add_argument("outputString", action="store", help="A string that will be used to label all output files.")
 
-arg_parser$add_argument("-og", "--outgroupName", action="store", help="The name of the tip in the phylogeny/phylogenies to be used as outgroup (if unspecified, trees will be assumed to be already rooted).")
+arg_parser$add_argument("-og", "--outgroupName", action="store", help="The name of the tip in the phylogeny/phylogenies to be used as outgroup (if unspecified, trees will be assumed to be already rooted). This should be sufficiently distant to any sequence obtained from a host that it can be assumed that the MRCA of the entire tree was not a lineage present in any sampled individual.")
 arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, short branches in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. If a number, this number will be used as the threshold, with all branches strictly smaller collapsed. If 'g', it will be guessed from the branch lengths and the width of the genomic window (if appropriate). It is recommended that trees are examined by eye to check that they do appear to have multifurcations if 'g' is used.")
 arg_parser$add_argument("-b", "--userBlacklist", action="store", help="A path and string that begins all the file names for pre-existing blacklist files.")
 
@@ -32,9 +32,14 @@ arg_parser$add_argument("-b", "--userBlacklist", action="store", help="A path an
 
 arg_parser$add_argument("-od", "--outputDir", action="store", help="All output will be written to this directory. If absent, current working directory.")
 arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what the script is doing.")
+<<<<<<< HEAD
 arg_parser$add_argument("-npb", "--noProgressBars", action="store_true", default=FALSE, help="If --verbose, do not display progress bars")
 arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. This expects up to three capture groups, for host ID, read ID, and read count (in that order). If the latter two groups are missing then read information will not be used. If absent, the default is '^(.*)_read_([0-9]+)_count_([0-9]+)$', which matches input from the phyloscanner pipeline where the host ID is the BAM file name.")
 arg_parser$add_argument("-y", "--fileNameRegex", action="store", default="^\\D*([0-9]+)_to_([0-9]+)\\D*$", help="Regular expression identifying window coordinates. Two capture groups: start and end; if the latter is missing then the first group is a single numerical identifier for the window. If absent, input will be assumed to be from the phyloscanner pipeline, and the host ID will be the BAM file name.")
+=======
+arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. This expects up to three capture groups, for host ID, read ID, and read count (in that order). If the latter two groups are missing then read information will not be used. The default is '^(.*)_read_([0-9]+)_count_([0-9]+)$', which matches input from the phyloscanner pipeline where the host ID is the BAM file name.")
+arg_parser$add_argument("-y", "--fileNameRegex", action="store", default="^\\D*([0-9]+)_to_([0-9]+)\\D*$", help="Regular expression identifying window coordinates. Two capture groups: start and end; if the latter is missing then the first group is a single numerical identifier for the window. The default is '^(.*)_read_([0-9]+)_count_([0-9]+)$', which matches input from the phyloscanner pipeline.")
+>>>>>>> upstream/master
 arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default="tree", help="The file extension for tree files (default tree).")
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="csv", help="The file extension for table files (default csv).")
 arg_parser$add_argument("-pw", "--pdfWidth", action="store", default=50, help="Width of tree PDF in inches.")
@@ -47,28 +52,34 @@ arg_parser$add_argument("-ow", "--overwrite", action="store_true", help="Overwri
 # Normalisation options
 
 arg_parser$add_argument("-nr", "--normRefFileName", action="store", help="Name of a file giving a normalisation constant for every genome position. Cannot be used simultaneously with -nc. If both -nr and -nc are absent then no normalisation will be performed.")
-arg_parser$add_argument("-ns", "--normStandardiseGagPol", action="store_true", default=FALSE, help="An HIV-specific option: if true, the normalising constants are standardised so that the average on gag+pol equals 1. Otherwise they are standardised so the average on the whole genome equals 1.")
+arg_parser$add_argument("-ns", "--normStandardiseGagPol", action="store_true", default=FALSE, help="Use in conjunction with -nr only. An HIV-specific option: if true, the normalising constants are standardised so that the average on gag+pol equals 1. Otherwise they are standardised so the average on the whole genome equals 1.")
 arg_parser$add_argument("-nc", "--normalisationConstants", action="store", help="Either a CSV file listing the file name for each tree (column 1) and the normalisation constant (column 2) or a single numerical normalisation constant to be applied to each window. If both -nr and -nc are absent then no normalisation will be performed.")
 
 # Blacklisting
 
 arg_parser$add_argument("-db", "--duplicateBlacklist", action="store", help="Perform blacklisting for likely contamination between samples in this data set, suggested by exact duplicate reads found in different samples. Use this option to specify a string that begins the file names (including their path) of the duplication data produced by phyloscanner_make_trees.py. For example, 'path/to/DuplicateReadCountsProcessed_InWindow_'. This option must be used in conjunction with the --rawBlacklistThreshold and/or --ratioBlacklistThreshold option.")
 arg_parser$add_argument("-pbk", "--parsimonyBlacklistK", action="store", type="double", help="Perform parsimony-based blacklisting for likely contaminant sequences (including those originating from a sample outside the current data set). Use this option to specify the value of the within-host diversity penalty used (corresponding to the k parameter in the Sankoff option of the splitsRule argument). This option must be used in conjunction with the --rawBlacklistThreshold and/or --ratioBlacklistThreshold option.")
-arg_parser$add_argument("-rwt", "--rawBlacklistThreshold", action="store", default=0, help="Used to specify a read count to be used as a raw threshold for blacklisting. --parsimonyBlacklistK and/or --duplicateBlacklist must also be used. If --parsimonyBlacklistK is used, we will blacklist any subgraph with a read count strictly less than this threshold. If --duplicateBlacklist is used, we will black list any duplicate read with a count strictly less than this threshold. The default value of 0 means nothing is blacklisted.")
-arg_parser$add_argument("-rtt", "--ratioBlacklistThreshold", action="store", default=0, help="Used to specify a read count ratio (between 0 and 1) to be used as a threshold for blacklisting. --parsimonyBlacklistK and/or --duplicateBlacklist must also be used. If --parsimonyBlacklistK is used, we will blacklist a subgraph if the ratio of its read count to the total read count from the same host is strictly less than this threshold. If --duplicateBlacklist is used, we will black list a duplicate read if the ratio of its count to the count of the duplicate (from another host) is strictly less than this threshold.")
+arg_parser$add_argument("-rwt", "--rawBlacklistThreshold", action="store", default=0, help="Used to specify a read count to be used as a raw threshold for blacklisting. --parsimonyBlacklistK and/or --duplicateBlacklist must also be used. If --parsimonyBlacklistK is used, subgraph with a read count strictly less than this threshold will be blacklisted. If --duplicateBlacklist is used, duplicate reads with a count strictly less than this threshold will be blacklisted. The default value of 0 means nothing is blacklisted.")
+arg_parser$add_argument("-rtt", "--ratioBlacklistThreshold", action="store", default=0, help="Used to specify a read count ratio (between 0 and 1) to be used as a threshold for blacklisting. --parsimonyBlacklistK and/or --duplicateBlacklist must also be used. If --parsimonyBlacklistK is used, subgraphs will be blacklisted if the ratio of its read count to the total read count from the same host is strictly less than this threshold. If --duplicateBlacklist is used, duplicate reads will be blacklisted if the ratio of their count to the count of the duplicate (from another host) is strictly less than this threshold.")
 arg_parser$add_argument("-ub", "--dualBlacklist", action="store_true", default=F, help="Blacklist all reads from the minor subgraphs for all hosts established as dual by parsimony blacklisting.")
 
 # Downsampling
 
-arg_parser$add_argument("-dsl", "--maxReadsPerHost", action="store", type="integer", help="If given, blacklist to downsample read counts from each host to this number.")
+arg_parser$add_argument("-dsl", "--maxReadsPerHost", action="store", type="integer", help="If given, blacklist to downsample read counts (or tip counts if no read counts are identified) from each host to this number.")
 arg_parser$add_argument("-dsb", "--blacklistUnderrepresented", action="store_true", help="If present and -dsl is given, blacklist hosts from trees where their total tip count does not reach the maximum.")
 
 # Parsimony reconstruction
 
 arg_parser$add_argument("-ff", "--useff", action="store_true", default=FALSE, help="Use ff to store parsimony reconstruction matrices. Use if you run out of memory.")
+<<<<<<< HEAD
 arg_parser$add_argument("splitsRule", action="store", help="The rules by which the sets of hosts are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. This takes one string as an argument which is itself a variable number of arguments, comma-separated. The first dictates the algorithm: s=Sankoff with optional within-host diversity penalty (slow, rigorous, recommended), r=Romero-Severson (quick, less rigorous with >2 hosts). For 'r' no further arguments are expected. For 's' the k parameter in the Sankoff reconstruction, which penalises within-host diversity, must also be given.")
 arg_parser$add_argument("-P", "--pruneBlacklist", action="store_true", help="If present, all blacklisted and references tips (except the outgroup) are pruned away before starting parsimony-based reconstruction")
 arg_parser$add_argument("-rcm", "--readCountsMatterOnZeroLengthBranches", default = FALSE, action="store_true", help="If present, read counts will be taken into account in parsimony reconstructions at the parents of zero-length branches. Not applicable for the Romero-Severson-like reconstruction method.")
+=======
+arg_parser$add_argument("splitsRule", action="store", help="The rules by which the sets of hosts are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. This takes one string as an argument which is itself a variable number of arguments, comma-separated. The first dictates the algorithm: s=Sankoff with optional within-host diversity penalty (slow, rigorous, recommended), r=Romero-Severson (quick, less rigorous with >2 hosts), f=Sankoff with continuation costs (experimental). For 'r' no further arguments are expected. For 's' and 'f' the k parameter in the Sankoff reconstruction, which penalises within-host diversity, must also be given. There is an optional third argument for 's' and 'f'. For 's' this is the branch length threshold at which a lineage reconstructed as infecting a host will transition to the unsampled state. For 'f' this is the branch length at which an node is reconstructed as unsampled if all its neighbouring nodes are a greater distance away. Both defaults are 0.")
+arg_parser$add_argument("-P", "--pruneBlacklist", action="store_true", help="If present, all blacklisted and reference tips (except the outgroup) are pruned away before starting parsimony-based reconstruction.")
+arg_parser$add_argument("-rcm", "--readCountsMatterOnZeroLengthBranches", default = FALSE, action="store_true", help="If present, read counts will be taken into account in parsimony reconstructions at the parents of zero-length terminal branches. Not applicable for the Romero-Severson-like reconstruction method.")
+>>>>>>> upstream/master
 arg_parser$add_argument("-tn", "--outputNexusTree", action="store_true", help="Standard output of annotated trees are in PDF format. If this option is present, output them as NEXUS instead.")
 
 # Summary statistics
@@ -403,7 +414,7 @@ if(!readable.coords & !single.file){
 
 # 4. Root tree, collapse multifurcations, get host for each tip
 
-if(is.na(m.thresh)){
+if(use.m.thresh & is.na(m.thresh)){
   warning("Attempting to guess a branch length threshold for multifurcations from the tree. Please visually examine the tree or trees for multifurcations before using the results of this analysis.")
 }
 
@@ -732,7 +743,7 @@ if(do.par.blacklisting){
     tip.hosts[tree.info$blacklist] <- NA
 
     hosts <- unique(na.omit(tip.hosts))
-    
+
     if(length(hosts)>0){
     
       hosts <- hosts[order(hosts)]

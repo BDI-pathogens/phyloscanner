@@ -328,10 +328,11 @@ action='store_true',
 help='''By default, when calculating Hamming distances for the recombination
 metric, positions with gaps are ignored. With this option, the gap character
 counts as a fifth base.''')
-DeprecatedArgs.add_argument('-RD', '--recombination-dont-norm-diversity',
+DeprecatedArgs.add_argument('-RD', '--recombination-norm-diversity',
 action='store_true', help='''By default, the normalising constant for the
-recombination metric is half the number of informative sites; with this option
-it's half the number of sites.''')
+recombination metric is half the number of sites in the window; with this option
+it's half the number of sites in the window that are polymorphic for that bam
+file.''')
 
 args = parser.parse_args()
 
@@ -353,7 +354,7 @@ MergeReadsA = args.merging_threshold_a > 0
 MergeReadsB = args.merging_threshold_b > 0
 MergeReads = MergeReadsA or MergeReadsB
 PrintInfo = not args.quiet
-RecombNormToDiv = not args.recombination_dont_norm_diversity
+RecombNormToDiv = args.recombination_norm_diversity
 
 # Print how this script was called, for logging purposes.
 print('phyloscanner was called thus:\n' + ' '.join(sys.argv))
@@ -382,11 +383,15 @@ if args.output_dir != None:
     else:
       HaveMadeOutputDir = True
 
-# Check only one merging type is specified
+# Check only one merging type is specified. Thereafter use its threshold.
 if MergeReadsA and MergeReadsB:
   print('You cannot specify both --merging-threshold-a and',
   '--merging-threshold-b. Quitting.', file=sys.stderr)
   exit(1)
+if MergeReadsA:
+  MergingThreshold = args.merging_threshold_a
+elif MergeReadsB:
+  MergingThreshold = args.merging_threshold_b
 
 # Check that window coords have been specified either manually or automatically,
 # or we're exploring window widths
@@ -1011,9 +1016,9 @@ WindowAsStr):
 
   # Merge similar reads if desired
   if MergeReadsA:
-    ReadDict = pf.MergeSimilarStringsA(ReadDict, args.merging_threshold_a)
+    ReadDict = pf.MergeSimilarStringsA(ReadDict, MergingThreshold)
   if MergeReadsB:
-    ReadDict = pf.MergeSimilarStringsB(ReadDict, args.merging_threshold_b)
+    ReadDict = pf.MergeSimilarStringsB(ReadDict, MergingThreshold)
 
 
   # Implement the minimum read count
@@ -1086,21 +1091,20 @@ def RemovePureGapCols(alignment):
       alignment = alignment[:, :column] + alignment[:, column+1:]
   return alignment
 
-def ReMergeAlignedReads(alignment):
+def ReMergeAlignedReads(alignment, ForceNoMerging=False):
   '''Splits an alignment object into reads and refs, re-merges the reads,
   renames them, and removes pure-gap columns.'''
 
   SampleReadCounts, RefSeqsHere = ReadAlignedReadsIntoDicts(alignment)
   NewAlignment = AlignIO.MultipleSeqAlignment([])
   for SampleName in SampleReadCounts:
-    if MergeReadsA:
-      SampleReadCounts[SampleName] = \
-      pf.MergeSimilarStringsA(SampleReadCounts[SampleName],
-      args.merging_threshold_a)
-    if MergeReadsB:
-      SampleReadCounts[SampleName] = \
-      pf.MergeSimilarStringsB(SampleReadCounts[SampleName],
-      args.merging_threshold_b)
+    if not ForceNoMerging:
+      if MergeReadsA:
+        SampleReadCounts[SampleName] = \
+        pf.MergeSimilarStringsA(SampleReadCounts[SampleName], MergingThreshold)
+      if MergeReadsB:
+        SampleReadCounts[SampleName] = \
+        pf.MergeSimilarStringsB(SampleReadCounts[SampleName], MergingThreshold)
     for k, (read, count) in enumerate(sorted(
     SampleReadCounts[SampleName].items(), key=lambda x: x[1], reverse=True)):
       ID = SampleName+'_read_'+str(k+1)+'_count_'+str(count)
@@ -1793,11 +1797,10 @@ for window in range(NumCoords / 2):
         SeqAlignmentHere[:, :pos-1] + SeqAlignmentHere[:, pos:]
 
       # Excising positions may have made some sequences identical within a
-      # sample, which need to be merged even if the merging parameter is 0. If
-      # it's greater than 0, we also need to re-merge, rename, and re-excise
-      # pure-gap columns.
+      # sample, which need to be merged even if the merging parameter is 0.
       try:
-        SeqAlignmentHere = ReMergeAlignedReads(SeqAlignmentHere)
+        SeqAlignmentHere = ReMergeAlignedReads(SeqAlignmentHere,
+        ForceNoMerging=True)
       except:
         print('Problem encountered while analysing', FileForAlnReadsHere + \
         '. Quitting.', file=sys.stderr)
@@ -1902,7 +1905,7 @@ for window in range(NumCoords / 2):
       ListOfReadPosInAln)
       #(metric, ParentSeq1, ParentSeq2, RecombinantSeq) = \
       result = (alias, ) + pf.CalculateRecombinationMetric(ThisAliasAln,
-      args.recombination_gap_aware, NormaliseToDiversity=RecombNormToDiv)
+      RecombNormToDiv, IncludeGaps=args.recombination_gap_aware)
       RecombinationResults.append(result)
     FileForRecombinantReads = FileForRecombinantReads_basename + \
     ThisWindowSuffix + '.csv'
@@ -1926,6 +1929,14 @@ for window in range(NumCoords / 2):
       'finished. Number of seconds taken: ', LastStepTime)
 
   if args.no_trees:
+    continue
+
+  # Check that there are at least 4 seqs before calling RAxML.
+  if len(SeqAlignmentHere) < 4:
+    print('Warning: the file of aligned reads in this window,', FileForTrees,
+    ', contains only ', len(SeqAlignmentHere), ' sequences; at least 4 are ',
+    'needed to make a tree. Skipping to the next window.', sep='',
+    file=sys.stderr)
     continue
 
   # Create the ML tree
