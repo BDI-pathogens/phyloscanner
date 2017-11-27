@@ -37,7 +37,7 @@ split.hosts.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff.k,
   non.host.tips <- which(is.na(sapply(tree$tip.label, function(name) host.from.label(name, tip.regex))))
   tip.hosts[c(non.host.tips, blacklist)] <- "unassigned"
   
-  if(!any(tip.hosts != "unsampled")){
+  if(!any(tip.hosts != "unassigned")){
     cat("No hosts identified amongst the tips of this tree. Skipping parsimony reconstruction.\n")
     return(list(tree=tree, r.subgraphs=NULL))
   }
