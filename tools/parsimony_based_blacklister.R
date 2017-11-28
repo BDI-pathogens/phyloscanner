@@ -245,7 +245,7 @@ for(tree.info in all.tree.info){
   
   tree <- process.tree(tree, root.name, m.thresh)
   
-  results <- lapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, root.name, raw.threshold, ratio.threshold, sankoff.method, sankoff.k, sankoff.p, !is.null(tree.info$duals.output), no.read.counts, verbose, just.report.counts))
+  results <- lapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, root.name, raw.threshold, ratio.threshold, F, sankoff.method, sankoff.k, sankoff.p, !is.null(tree.info$duals.output), no.read.counts, verbose, just.report.counts))
 
   if (just.report.counts) {
     names(results) <- hosts

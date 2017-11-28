@@ -484,7 +484,7 @@ phyloscanner.analyse.trees <- function(
   # 13. Parsimony blacklisting
   
   if(do.par.blacklisting){
-    all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.using.parsimony(tree.info, tip.regex, outgroup.name, raw.blacklist.threshold, ratio.blacklist.threshold, parsimony.blacklist.k, has.read.counts, verbose), simplify = F, USE.NAMES = T)
+    all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.using.parsimony(tree.info, tip.regex, outgroup.name, raw.blacklist.threshold, ratio.blacklist.threshold, parsimony.blacklist.k, has.read.counts, read.counts.matter.on.zero.length.tips, verbose), simplify = F, USE.NAMES = T)
   }
   
   # 14. Dual blacklisting
@@ -1017,7 +1017,7 @@ remove.blacklist.from.alignment <- function(
   # 10. Parsimony blacklisting
   
   if(do.par.blacklisting){
-    all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.using.parsimony(tree.info, tip.regex, outgroup.name, raw.blacklist.threshold, ratio.blacklist.threshold, parsimony.blacklist.k, has.read.counts, verbose), simplify = F, USE.NAMES = T)
+    all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.using.parsimony(tree.info, tip.regex, outgroup.name, raw.blacklist.threshold, ratio.blacklist.threshold, parsimony.blacklist.k, has.read.counts, read.counts.matter.on.zero.length.tips, verbose), simplify = F, USE.NAMES = T)
   }
   
   # 11. Dual blacklisting
@@ -1570,7 +1570,7 @@ blacklist.from.duplicates.vector <- function(tree.info, verbose) {
 #' @export
 #' @keywords internal
 
-blacklist.using.parsimony <- function(tree.info, tip.regex, outgroup.name, raw.blacklist.threshold, ratio.blacklist.threshold, parsimony.blacklist.k, has.read.counts, verbose){
+blacklist.using.parsimony <- function(tree.info, tip.regex, outgroup.name, raw.blacklist.threshold, ratio.blacklist.threshold, parsimony.blacklist.k, has.read.counts, read.counts.matter, verbose){
   
   tree <- tree.info$tree
   tip.hosts <- sapply(tree$tip.label, function(x) host.from.label(x, tip.regex))
@@ -1580,7 +1580,7 @@ blacklist.using.parsimony <- function(tree.info, tip.regex, outgroup.name, raw.b
   
   hosts <- hosts[order(hosts)]
   
-  results <- sapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, outgroup.name, raw.blacklist.threshold, ratio.blacklist.threshold, "s", parsimony.blacklist.k, 0, T, !has.read.counts, tip.regex, verbose), simplify = F, USE.NAMES = T)
+  results <- sapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, outgroup.name, raw.blacklist.threshold, ratio.blacklist.threshold, "s", parsimony.blacklist.k, 0, read.counts.matter, T, !has.read.counts, tip.regex, verbose), simplify = F, USE.NAMES = T)
   
   contaminant                                 <- unlist(lapply(results, "[[", 2))
   contaminant.nos                             <- which(tree.info$tree$tip.label %in% contaminant)
