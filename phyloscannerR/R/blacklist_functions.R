@@ -73,7 +73,7 @@ blacklist.exact.duplicates <- function(tree.info, raw.threshold, ratio.threshold
 
 get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold, ratio.threshold, sankoff.method = "s", sankoff.k, sankoff.p = 0, check.duals, no.read.counts = T, tip.regex, verbose=F, no.progress.bars = F, just.report.counts=F){
   if (verbose) cat("Identifying splits for host ", host, "\n", sep="")
-  
+
   blacklist.items <- vector()
   
   dual <- F
@@ -121,6 +121,8 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
     
     split.results <- split.and.annotate(subtree, c(host, "unassigned"), tip.hosts, host.tips, NULL, vector(), tip.regex, sankoff.method, rep(1, length(subtree$tip.label)), sankoff.k, sankoff.p, useff = F, verbose, no.progress.bars)
      
+    # print(split.results)
+    
     # vector of of split IDs
     
     host.split.ids <- split.results$split.hosts

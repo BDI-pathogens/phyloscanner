@@ -727,6 +727,7 @@ if(do.par.blacklisting){
   all.tree.info <- sapply(all.tree.info, function(tree.info){
   
     tree <- tree.info$tree
+
     tip.hosts <- sapply(tree$tip.label, function(x) host.from.label(x, tip.regex))
     
     tip.hosts[tree.info$blacklist] <- NA
@@ -736,7 +737,7 @@ if(do.par.blacklisting){
     if(length(hosts)>0){
     
       hosts <- hosts[order(hosts)]
-      
+  
       results <- sapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, outgroup.name, bl.raw.threshold, bl.ratio.threshold, "s", par.blacklisting.k, 0, T, no.read.counts, tip.regex, verbose, no.progress.bars), simplify = F, USE.NAMES = T)
       
       contaminant                                 <- unlist(lapply(results, "[[", 2))
@@ -895,7 +896,7 @@ if(prune.blacklist){
 
 all.tree.info <- sapply(all.tree.info, function(tree.info) {
   # Do the reconstruction
-  
+
   if(!single.file){
     if(verbose) cat("Reconstructing internal node hosts on tree suffix ",tree.info$suffix, "\n", sep="")
   } else {
