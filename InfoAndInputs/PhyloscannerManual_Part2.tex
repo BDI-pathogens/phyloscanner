@@ -11,7 +11,17 @@ In order, the following steps are performed:
 \item Summarise these pairwise relationships over all trees (if more than one tree was given).
 \end{enumerate}
 
-The code forms an \c{R} package entitled \c{phyloscannerR} which appears as a subfolder in the \p directory. The package manual can also be found in this directory and users who prefer to perform the analysis within \c{R} itself may wish to consult that. This package and its dependencies must be installed prior to use, either within \c{R} or at the UNIX command line; all dependencies are available in \href{http://cran.r-project.org/}{CRAN} except for \c{ggtree}~\cite{MEE3:MEE312628}, which is part of \href{http://bioconductor.org/}{Bioconductor}.
+The code forms an \c{R} package entitled \c{phyloscannerR} which appears as a subfolder in the \p directory. The package manual can also be found in this directory and users who prefer to perform the analysis within \c{R} itself may wish to consult that. This package and its dependencies must be installed prior to use, whether within \c{R} or at the UNIX command line; all dependencies are available in \href{http://cran.r-project.org/}{CRAN} except for \c{ggtree}~\cite{MEE3:MEE312628}, which is part of \href{http://bioconductor.org/}{Bioconductor}.
+
+To install \c{phyloscannerR} (and \c{ggtree}), use the command line to navigate to the ``phyloscannerR'' subdirectory of the ``phyloscanner'' directory, then start \c{R} and enter the following commands:
+\begin{verbatim}
+> library(devtools)
+> source("https://bioconductor.org/biocLite.R")
+> biocLite("ggtree")
+> install("../phyloscannerR", dependencies = T)
+\end{verbatim}
+(Obviously if you have already installed \c{ggtree} then the second and third lines can be skipped.) 
+
 
 A single command line script, \pat, can be used to perform a full analysis.
 Each step identified above also has its own standalone script, which can be used to, for example, analyse multiple trees in parallel on a cluster.
