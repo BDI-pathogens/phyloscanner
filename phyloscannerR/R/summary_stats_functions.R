@@ -1,7 +1,10 @@
 # Collects a variety of statistics about a single patient in a single tree
 
-calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table, no.read.counts, verbose = F){
+#' @keywords internal
+#' @export calc.subtree.stats
 
+calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table, tip.regex, no.read.counts, verbose = F){
+  
   if(verbose) cat("Calculating statistics for host ",id,".\n", sep="")
   
   subgraphs <- length(unique(splits.table$subgraph[which(splits.table$host==id)]))
@@ -11,7 +14,7 @@ calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table
   subtree.all <- NULL
   
   if(length(all.tips)>1){
-
+    
     subtree.all <- drop.tip(tree, tip=tree$tip.label[!(tree$tip.label %in% all.tips)])
     
     # just in case pruning changes the tip order
@@ -43,9 +46,9 @@ calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table
       subgraph.mean.pat.distance <- global.mean.pat.distance
       largest.rtt <- overall.rtt
     } else {
-
+      
       relevant.reads <- splits.table[which(splits.table$host==id),]
-
+      
       splits <- unique(relevant.reads$subgraph)
       
       reads.per.split <- sapply(splits, function(x) sum(splits.table$reads[which(splits.table$subgraph==x)] ) )
@@ -99,15 +102,66 @@ calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table
       largest.rtt <- NA
     }
   }
-
+  
   return(list(overall.rtt = overall.rtt, largest.rtt = largest.rtt, max.branch.length = max.branch.length, max.pat.distance = max.pat.distance, 
               global.mean.pat.distance=global.mean.pat.distance, subgraph.mean.pat.distance = subgraph.mean.pat.distance))
 }
 
-# Calculates all statistics (apart from read proportions) for all patients in a given window
+# Calculates tip and read counts for all patients in a given window
 
-calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, verbose = F){
+#' @keywords internal
+#' @export get.tip.and.read.counts
 
+get.tip.and.read.counts <- function(tree.info, hosts, tip.regex, has.read.counts, verbose = F){
+  
+  if(verbose) cat("Calculating tip and read counts for tree suffix ",tree.info$suffix,"\n",sep="")
+  
+  suffix <- tree.info$suffix
+  
+  tree <- tree.info$tree
+  blacklist <- tree.info$blacklist
+  
+  # A vector of patients for each tip
+  
+  hosts.for.tips <- sapply(tree$tip.label, function(x) host.from.label(x, tip.regex))
+  hosts.for.tips[blacklist] <- NA
+  
+  # If no patients from the input file are actually here, give a warning
+  
+  hosts.present <- intersect(hosts, unique(hosts.for.tips))
+  if(length(hosts.present)==0){
+    warning(paste("No listed hosts appear in tree ",tree.info$suffix,"\n",sep=""))
+  }
+  
+  # A list of tips for each patient 
+  
+  tips.for.hosts <- lapply(setNames(hosts, hosts), function(x) tree$tip.label[which(hosts.for.tips==x)])
+  
+  # Make the data.table
+  
+  window.table <- data.table(id=hosts)
+  window.table <- window.table[, file.suffix := suffix]
+  window.table <- window.table[, tips :=  sapply(hosts, function(x) as.numeric(length(tips.for.hosts[[x]])))]
+  window.table <- window.table[, reads :=  sapply(hosts, function(x){
+    if(length(tips.for.hosts[[x]])==0){
+      return(0)
+    } else {
+      if(has.read.counts){
+        return(sum(sapply(tips.for.hosts[[x]], function(y) as.numeric(read.count.from.label(y, tip.regex)))))
+      } else {
+        return(as.numeric(length(tips.for.hosts[[x]])))
+      }
+    }
+  } 
+  )]
+  window.table
+}
+
+#' @keywords internal
+#' @export calc.all.stats.in.window
+
+calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, has.read.counts, verbose = F){
+  
   if(verbose) cat("Calculating host statistics for tree suffix ",tree.info$suffix,"\n",sep="")
   
   suffix <- tree.info$suffix
@@ -135,7 +189,7 @@ calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, verbose = F){
   if(length(hosts.present)==0){
     warning(paste("No listed hosts appear in tree ",tree.info$suffix,"\n",sep=""))
   }
-
+  
   # A list of tips for each patient 
   
   tips.for.hosts <- lapply(setNames(hosts, hosts), function(x) tree$tip.label[which(hosts.for.tips==x)])
@@ -150,7 +204,7 @@ calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, verbose = F){
     if(length(tips.for.hosts[[x]])==0){
       return(0)
     } else {
-      if(!no.read.counts){
+      if(has.read.counts){
         return(sum(sapply(tips.for.hosts[[x]], function(y) as.numeric(read.count.from.label(y, tip.regex)))))
       } else {
         return(as.numeric(length(tips.for.hosts[[x]])))
@@ -161,18 +215,18 @@ calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, verbose = F){
   window.table <- window.table[, subgraphs := sapply(hosts, function(x) length(unique(splits.table[which(splits.table$host==x),]$subgraph)))]
   window.table <- window.table[, clades := sapply(hosts, function(x) length(clades.by.host[[x]]))  ]
   
-  new.cols <- sapply(hosts, function(x) calc.subtree.stats(x, suffix, tree, tips.for.hosts, splits.table, no.read.counts, verbose))
+  new.cols <- sapply(hosts, function(x) calc.subtree.stats(x, suffix, tree, tips.for.hosts, splits.table, tip.regex, !has.read.counts, verbose))
   
   new.cols <- as.data.table(t(new.cols))
   
   new.cols <- new.cols[, lapply(.SD, as.numeric)]
   
   window.table <- cbind(window.table, new.cols) 
-
+  
   recomb.file.name <- tree.info$recombination.file.name
   
   if (!is.null(recomb.file.name)) {
-
+    
     recomb.df <- read.csv(recomb.file.name, stringsAsFactors = F)
     col.names <- colnames(recomb.df)
     for (expected.col.name in c("Bam.file","Recombination.metric")) {
@@ -204,11 +258,14 @@ calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, verbose = F){
     window.table$solo.dual.count <- tree.info$dual.detection.splits$count[match(window.table$id, tree.info$dual.detection.splits$host)]
     
   }
-
+  
   window.table
 }
 
 # Get the proportion of reads from a given patient in each of its subgraphs in a single tree
+
+#' @keywords internal
+#' @export get.read.proportions
 
 get.read.proportions <- function(id, suffix, splits.table){
   

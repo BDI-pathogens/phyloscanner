@@ -1,14 +1,7 @@
 #!/usr/bin/env Rscript
 
-list.of.packages <- c("argparse", "ggplot2", "ff", "ggtree", "phangorn", "ape", "kimisc")
-new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-
-if(length(new.packages)){
-  cat("Missing dependencies; replacing the path below appropriately, run\n[path to your phyloscanner code]/tools/package_install.R\nthen try again.\n")
-  quit(save="no", status=1)
-}
-
 suppressMessages(library(phangorn, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(library(phyloscannerR, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(ggplot2, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(ggtree, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(data.table, quietly=TRUE, warn.conflicts=FALSE))
@@ -27,7 +20,6 @@ arg_parser$add_argument("-i", "--idFile", action="store", help="Optionally, a fu
 arg_parser$add_argument("-R", "--readCountsMatterOnZeroBranches", help="If present, read counts will be taken into account in parsimony reconstructions at the parents of zero-length branches. Not applicable for the Romero-Severson-like reconstruction method.", default = FALSE, action="store_true")
 arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, short branches in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. If a number, this number will be used as the threshold. If 'g', it will be guessed from the branch lengths (use this only if you've checked by eye that the tree does indeed have multifurcations).")
 arg_parser$add_argument("-n", "--branchLengthNormalisation", default = 1, action="store", help="If present and a number, a normalising constant for all branch lengths in the tree or trees. If present and a file, the path to a .csv file with two columns: tree file name and normalising constant")
-arg_parser$add_argument("-D", "--scriptDir", action="store", help="Full path of the /tools directory.")
 arg_parser$add_argument("-OD", "--outputdir", action="store", help="Full path of the directory for output; if absent, current working directory")
 arg_parser$add_argument("-pw", "--pdfwidth", action="store", default=100, help="Width of tree pdf in inches.")
 arg_parser$add_argument("-ph", "--pdfrelheight", action="store", default=0.15, help="Relative height of tree pdf.")
@@ -41,14 +33,6 @@ arg_parser$add_argument("outputFileID", action="store", help="A string shared by
 
 args <- arg_parser$parse_args()
 
-if(!is.null(args$scriptDir)){
-  script.dir          <- args$scriptDir
-} else {
-  script.dir          <- dirname(thisfile())
-  if(!dir.exists(script.dir)){
-    stop("Cannot detect the location of the /phyloscanner/tools directory. Please specify it at the command line with -D.")
-  }
-}
 
 tree.file.name         <- args$inputFile
 sankoff.k              <- as.numeric(args$kParam)
@@ -94,12 +78,6 @@ if(!use.m.thresh & read.counts.matter){
 if(is.null(root.name)){
   cat("No outgroup name given; will assume the tree is already rooted\n")
 }
-
-source(file.path(script.dir, "tree_utility_functions.R"))
-source(file.path(script.dir, "parsimony_reconstruction_methods.R"))
-source(file.path(script.dir, "collapsed_tree_methods.R"))
-source(file.path(script.dir, "write_annotated_trees.R"))
-source(file.path(script.dir, "general_functions.R"))
 
 if(useff){
   suppressMessages(library(ff, quietly=TRUE, warn.conflicts=FALSE))
@@ -244,8 +222,9 @@ for(i in all.tree.info){
   }
 
   tree <- process.tree(tree, root.name, m.thresh, tips.to.go, i$normalisation.constant)
+ 
+  tmp					    <- split.hosts.to.subgraphs(tree, blacklist, mode, tip.regex, sankoff.k, sankoff.p, useff, read.counts.matter, m.thresh, host.master.list, verbose)
 
-  tmp					    <- split.hosts.to.subgraphs(tree, blacklist, mode, tip.regex, sankoff.k, sankoff.p, useff, read.counts.matter, host.master.list, verbose)
   tree					  <- tmp[['tree']]	
   rs.subgraphs		<- tmp[['rs.subgraphs']]
   

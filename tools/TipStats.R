@@ -2,15 +2,6 @@
 
 command.line <- T
 
-list.of.packages <- c("phangorn", "argparse", "phytools")
-new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
-if(length(new.packages)) install.packages(new.packages, dependencies = T, repos="http://cran.ma.imperial.ac.uk/")
-
-if(!("ggtree" %in% installed.packages()[,"Package"])){
-  source("https://bioconductor.org/biocLite.R")
-  biocLite("ggtree")
-}
-
 if(command.line){
   suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
   
@@ -40,14 +31,13 @@ if(command.line){
 }
 
 suppressMessages(library(phytools, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(library(phyloscannerR, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(phangorn, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(ggtree, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(data.table, quietly=TRUE, warn.conflicts=FALSE))
 #
 #	load external functions
 #
-source(file.path(script.dir, "TreeUtilityFunctions.R"))
-source(file.path(script.dir, "ParsimonyReconstructionMethods.R"))
 #
 #	define internal functions
 #
