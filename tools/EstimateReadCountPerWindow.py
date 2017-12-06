@@ -54,6 +54,9 @@ PatientB.bam,PatientB_ref.fasta,B''')
 parser.add_argument('-O', '--out-filename', help="We'll append '.csv' for the "
 "output data file, and '.pdf' for the plot. The default is "
 "'EstimatedReadCountsPerWindow'.", default='EstimatedReadCountsPerWindow')
+parser.add_argument('-OIS', '--overlapping-insert-sizes', action='store_true',
+help='''Just record the insert size distribution for each bam, restricted to
+inserts where the mates overlap.''')
 parser.add_argument('-DB', '--dont-plot', action='store_true',
 help="Don't plot the results.")
 parser.add_argument('-MC', '--min-read-count', type=float, help='''Used to
@@ -83,6 +86,8 @@ parser.add_argument('--x-samtools', default='samtools', help=\
 'Used to specify the command required to run samtools, if it is needed to index'
 ' the bam files (by default: samtools).')
 args = parser.parse_args()
+
+InsertSizesOnly = args.overlapping_insert_sizes
 
 def GetIntPair(arg, ArgName):
   MinMax = arg.split(',')
@@ -147,6 +152,7 @@ def FindReadCountAsFuncOfWindowWidth(ReadSizeCountDict, RefLength):
 
 ReadLengthCountsByBam = collections.OrderedDict()
 InsertSizeCountsByBam = collections.OrderedDict()
+InsertSizesOnlyByBam  = collections.OrderedDict()
 for i, BamFileName in enumerate(BamFiles):
 
   alias = aliases[i]
@@ -248,10 +254,22 @@ for i, BamFileName in enumerate(BamFiles):
     print('Warning: no reads found in', BamFileName + '. Skipping.')
     continue
 
+  if InsertSizesOnly:
+    InsertSizesOnlyByBam[alias] = InsertSizeCounts
+
   ReadLengthCountsByBam[alias] = \
   FindReadCountAsFuncOfWindowWidth(ReadLengthCounts, RefLength)
   InsertSizeCountsByBam[alias] = \
   FindReadCountAsFuncOfWindowWidth(InsertSizeCounts, RefLength)
+
+if InsertSizesOnly:
+  with open(args.out_filename + '.csv', 'w') as f:
+    f.write('Bam file,Size of overlapping read pair or length of read in ' + \
+    'non-overlapping pair,Count\n')
+    for alias, InsertSizesOnly in InsertSizesOnlyByBam.items():
+      for size, count in sorted(InsertSizesOnly.items(), key=lambda x:x[0]):
+        f.write(alias + ',' + str(size) + ',' + str(count) + '\n')
+  exit(0)  
 
 # Make a matrix for which the first column is every window size we need to
 # consider, in order, and subsequent columns list the number of reads (and
