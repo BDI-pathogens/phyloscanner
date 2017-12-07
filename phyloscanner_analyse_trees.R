@@ -11,6 +11,7 @@ suppressMessages(require(scales, quietly=TRUE, warn.conflicts=FALSE))
 
 arg_parser		     <- ArgumentParser()
 
+
 arg_parser$add_argument("tree", action="store", help="A string that begins the file names (including the path) of all input trees. e.g. path/to/RAxML_bestTree.InWindow_")
 arg_parser$add_argument("outputString", action="store", help="A string that will be used to label all output files.")
 
@@ -297,7 +298,7 @@ do.simplified.graph            <- !args$skipSummaryGraph
 simp.plot.dim                  <- args$summaryPlotDimensions
 
 if(file.exists(tree.input)){
-    phyloscanner.analyse.tree(
+    phyloscanner.trees <- phyloscanner.analyse.tree(
     tree.input,
     reconstruction.mode,
     sankoff.k,
@@ -405,7 +406,7 @@ if(length(phyloscanner.trees)>1){
         if (verbose) cat('Drawing simplified summary diagram to file', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'\n')
 
         if(nrow(ts)==0){
-            cat("No relationships exist in the required proportion of windows (",win.threshold,"); skipping simplified relationship summary.", sep="")
+            cat("No relationships exist in the required proportion of windows (",win.threshold,"); skipping simplified relationship summary.\n", sep="")
         } else {
             simplified.graph <- simplify.summary(ts, arrow.threshold, length(phyloscanner.trees), plot = T)
 
