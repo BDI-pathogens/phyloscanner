@@ -70,6 +70,7 @@ blacklist.exact.duplicates <- function(tree.info, raw.threshold, ratio.threshold
 
 #' @keywords internal
 #' @export get.splits.for.host
+#' @importFrom ape root
 
 get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold, ratio.threshold, sankoff.method = "s", sankoff.k, sankoff.p = 0, count.reads.in.parsimony, check.duals, no.read.counts = T, tip.regex, verbose=F, no.progress.bars = F, just.report.counts=F){
   if (verbose) cat("Identifying splits for host ", host, "\n", sep="")
@@ -268,7 +269,7 @@ check.read.count.for.split <- function(split, tips.for.splits, raw.threshold, ra
 #' @keywords internal
 #' @export blacklist.all.reads.for.dual.host
 
-blacklist.all.reads.for.dual.host <- function(host, tree.info){
+blacklist.all.reads.for.dual.host <- function(host, tree.info, tip.regex){
   for(info in tree.info){
     labels <- info$tree$tip.label
     hosts <- sapply(labels, function(x) host.from.label(x, tip.regex))
@@ -364,7 +365,7 @@ blacklist.duals <- function(all.tree.info, hosts, threshold = 1, summary.file=NU
   
   if(!is.null(summary.file)) {
 
-    output <- lapply(hosts, function(x) c(fractions[[x]][1]/fractions[[a.host]][2], fractions[[x]][1]))
+    output <- lapply(hosts, function(x) c(fractions[[x]][1]/fractions[[x]][2], fractions[[x]][1]))
     
     proportions <- unlist(lapply(output, "[[", 1))
     counts <- unlist(lapply(output, "[[", 2))
