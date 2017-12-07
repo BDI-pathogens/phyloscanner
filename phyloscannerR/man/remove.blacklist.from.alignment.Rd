@@ -18,8 +18,8 @@ remove.blacklist.from.alignment(tree.directory, alignment.directory,
   parsimony.blacklist.k = 0, raw.blacklist.threshold = 0,
   ratio.blacklist.threshold = 0, do.dual.blacklisting = F,
   max.reads.per.host = Inf, blacklist.underrepresented = F,
-  output.file.id = "CleanedAlignment_InWindow_", verbose = F,
-  no.progress.bars = T)
+  read.counts.matter.on.zero.length.tips = F,
+  output.file.id = "CleanedAlignment_InWindow_", verbose = F)
 }
 \arguments{
 \item{tree.directory}{The directory containing all input trees.}
@@ -72,11 +72,11 @@ remove.blacklist.from.alignment(tree.directory, alignment.directory,
 
 \item{verbose}{Give verbose output.}
 
-\item{no.progress.bars}{Hide the progress bars from verbose output.}
-
 \item{recombination.file.directory}{An optional path for a folder containing results of the \code{phyloscanner_make_trees.py} recombination metric analysis.}
 
 \item{recombination.file.regex}{A regular expression identifying every file in \code{recombination.file.directory} that contains a recombination file. If a capture group is specified then its contents will uniquely identify the tree it belongs to, which must matches the IDs found by \code{tree.file.regex}. If these IDs cannot be identified then matching will be attempted using genome window coordinates.}
+
+\item{no.progress.bars}{Hide the progress bars from verbose output.}
 }
 \description{
 This function performs all the blacklisting steps of a phyloscanner analysis and then produces new alignment files with blacklisted sequences removed
