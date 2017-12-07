@@ -94,3 +94,29 @@ resolveTreeIntoPatientClades <- function(tree, ids, tip.regex, blacklisted.tips 
 
   return(list(clades.by.patient=clades.by.patient, clade.mrcas.by.patient=clade.mrcas.by.patient))
 }
+
+#' @keywords internal
+#' @export calcMeanRootToTip
+
+calcMeanRootToTip <- function(tree, read.counts.per.tip) {
+  if(is.null(read.counts.per.tip)){
+    read.counts.per.tip <- rep(1, length(tree$tip.label))
+  }
+  # Mean root-to-tip distance, optionally weighted by the number of reads associated with
+  # each tip. Returns 0 if the clade is a single tip.
+  # The second input is read.counts.per.tip, a vector with named entries, which
+  # returns the number of reads associated with each tip label in the tree.
+  root.to.tip <- 0
+  num.tips <- length(tree$tip.label)
+  if (num.tips > 1) {
+    num.reads.total <- 0
+    for (tip.number in 1:length(tree$tip.label)) {
+      tip.count <- read.counts.per.tip[tree$tip.label[tip.number]]
+      root.to.tip <- root.to.tip + nodeheight(tree, tip.number) * tip.count
+      num.reads.total <- num.reads.total + tip.count
+    }
+    stopifnot(num.reads.total > 0)
+    root.to.tip <- root.to.tip / num.reads.total
+  }
+  return(root.to.tip)
+}
