@@ -96,7 +96,7 @@ downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, e
   return(list(blacklist = setdiff(labels.from.host, sampled.names), map=label.map))
 }
 
-# This returns the ones to get rid of (i.e. blacklist) for a given tree
+# This returns the ones to get rid of (i.e. the blacklist) for a given tree
 
 #' @keywords internal
 #' @export downsample.tree
@@ -115,7 +115,7 @@ downsample.tree <- function(tree.info, hosts.to.include, max.reads, rename = F, 
       cat("Loading tree...\n",sep = "")
     }
   
-    tree <- read.tree(input.file.name)
+    tree <- read.tree(tree.info$tree.file.name)
 
   } else {
     tree <- tree.info$tree
@@ -152,7 +152,7 @@ downsample.tree <- function(tree.info, hosts.to.include, max.reads, rename = F, 
     }
     
     if(length(setdiff(hosts.to.include, hosts.present)) > 0){
-      warning(paste("Not all hosts in file ", hosts.file.name, " are present in the tree", sep=""))
+      warning(paste("Not all hosts in file requested are present in the tree", sep=""))
     }
     hosts.to.include <- intersect(hosts.to.include, hosts.present)
     

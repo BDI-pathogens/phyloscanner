@@ -903,8 +903,8 @@ all.tree.info <- sapply(all.tree.info, function(tree.info) {
     if(verbose) cat("Reconstructing internal node hosts\n", sep="")
   }
   
-  tmp					     <- split.hosts.to.subgraphs(tree.info$tree, tree.info$blacklist, reconstruction.mode, tip.regex, sankoff.k, sankoff.p, useff, read.counts.matter, tree.info$multifurcation.thresh, hosts, verbose, no.progress.bars)
-  tree					   <- tmp[['tree']]	
+  tmp					     <- split.hosts.to.subgraphs(tree.info$tree, tree.info$blacklist, reconstruction.mode, tip.regex, sankoff.k, sankoff.p, useff, read.counts.matter, tree.info$multifurcation.thresh, hosts, tree.info$suffix, verbose, no.progress.bars)
+  tree					     <- tmp[['tree']]
   
   # trees are annotated from now on
   

@@ -391,6 +391,7 @@ extract.tt.subgraph <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
 
 #' @keywords internal
 #' @export all.subgraph.distances
+#' @importFrom ape dist.nodes node.depth.edgelength
 
 all.subgraph.distances <- function(tree, tt, splits, assocs, slow=F, total.pairs, verbose = F, no.progress.bars = F){
   
@@ -727,7 +728,7 @@ classify <- function(tree.info, verbose = F, no.progress.bars = F) {
   if (verbose) cat("Calculating pairwise distances between splits...\n")
   
   split.distances <- tryCatch(
-    all.subgraph.distances(tree, tt, all.splits, assocs, FALSE, total.pairs, verbose, no.progress.bars), warning=function(w){return(NULL)}, error=function(e){return(NULL)})
+    all.subgraph.distances(tree, tt, all.splits, assocs, FALSE, total.split.pairs, verbose, no.progress.bars), warning=function(w){return(NULL)}, error=function(e){return(NULL)})
   
   if(is.null(split.distances)){
     split.distances <- all.subgraph.distances(tree, tt, all.splits, assocs, TRUE, total.split.pairs, verbose, no.progress.bars)

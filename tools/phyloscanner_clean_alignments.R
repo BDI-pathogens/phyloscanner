@@ -36,7 +36,7 @@ arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_
 arg_parser$add_argument("-y", "--fileNameRegex", action="store", default="^\\D*([0-9]+)_to_([0-9]+)\\D*$", help="Regular expression identifying window coordinates. Two capture groups: start and end; if the latter is missing then the first group is a single numerical identifier for the window. If absent, input will be assumed to be from the phyloscanner pipeline, and the host ID will be the BAM file name.")
 arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default="tree", help="The file extension for tree files (default tree).")
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="csv", help="The file extension for table files (default csv).")
-arg_parser$add_argument("-sd", "--seed", action="store_true", help="Random number seed; used by the downsampling process, and also ties in some parsimony reconstructions can be broken randomly.")
+arg_parser$add_argument("-sd", "--seed", action="store", help="Random number seed; used by the downsampling process, and also ties in some parsimony reconstructions can be broken randomly.")
 arg_parser$add_argument("-ow", "--overwrite", action="store_true", help="Overwrite existing output files with the same names.")
 
 # Normalisation options
@@ -52,6 +52,7 @@ arg_parser$add_argument("-pbk", "--parsimonyBlacklistK", action="store", type="d
 arg_parser$add_argument("-rwt", "--rawBlacklistThreshold", action="store", default=0, help="Used to specify a read count to be used as a raw threshold for blacklisting. --parsimonyBlacklistK and/or --duplicateBlacklist must also be used. If --parsimonyBlacklistK is used, we will blacklist any subgraph with a read count strictly less than this threshold. If --duplicateBlacklist is used, we will black list any duplicate read with a count strictly less than this threshold. The default value of 0 means nothing is blacklisted.")
 arg_parser$add_argument("-rtt", "--ratioBlacklistThreshold", action="store", default=0, help="Used to specify a read count ratio (between 0 and 1) to be used as a threshold for blacklisting. --parsimonyBlacklistK and/or --duplicateBlacklist must also be used. If --parsimonyBlacklistK is used, we will blacklist a subgraph if the ratio of its read count to the total read count from the same host is strictly less than this threshold. If --duplicateBlacklist is used, we will black list a duplicate read if the ratio of its count to the count of the duplicate (from another host) is strictly less than this threshold.")
 arg_parser$add_argument("-ub", "--dualBlacklist", action="store_true", default=F, help="Blacklist all reads from the minor subgraphs for all hosts established as dual by parsimony blacklisting.")
+arg_parser$add_argument("-rcm", "--readCountsMatterOnZeroLengthBranches", default = FALSE, action="store_true", help="If present, read counts at tips will be taken into account in parsimony reconstructions at the parents of zero-length branches.")
 
 # Downsampling
 
@@ -66,19 +67,22 @@ overwrite                     <- args$overwrite
 
 tree.input                    <- args$tree
 
+tree.fe                       <- args$treeFileExtension
+csv.fe                        <- args$csvFileExtension
+
 tree.directory                <- dirname(tree.input)
-tree.file.regex               <- paste0("^", basename(tree.input), "(.*)\\.[A-Za-z]+$$")
+tree.file.regex               <- paste0("^", basename(tree.input), "(.*)\\.",tree.fe,"$")
 
 alignment.input               <- args$alignment
 
 alignment.directory           <- dirname(alignment.input)
-alignment.file.regex          <- paste0("^", basename(alignment.input), "(.*)\\.[A-Za-z]+$$")
+alignment.file.regex          <- paste0("^", basename(alignment.input), "(.*)\\.[A-Za-z]+$")
 
 blacklist.input               <- args$blacklist
 
 if(!is.null(blacklist.input)){
   user.blacklist.directory    <- dirname(blacklist.input)
-  user.blacklist.file.regex   <- paste0("^", basename(blacklist.input), "(.*)\\.[A-Za-z]+$")
+  user.blacklist.file.regex   <- paste0("^", basename(blacklist.input), "(.*)\\.",csv.fe,"$")
 } else {
   user.blacklist.directory    <- NULL
   user.blacklist.file.regex   <- NULL
@@ -99,14 +103,19 @@ outgroup.name                 <- args$outgroupName
 
 if(is.null(outgroup.name)){
   warning("No outgroup name provided. Trees are assumed to be correctly rooted.")
-  outgroup.name               <- NULL
 }
 
 use.m.thresh                  <- !is.null(args$multifurcationThreshold)
-tree.fe                       <- args$treeFileExtension
-csv.fe                        <- args$csvFileExtension
 
 seed                          <- args$seed
+
+if(is.null(seed)){
+  seed                        <- sample.int(1000000000, 1)
+} else {
+  seed                        <- as.numeric(seed)
+}
+if(verbose) cat("Random number seed is",seed,"\n")
+set.seed(seed)
 
 if(use.m.thresh){
   if(args$multifurcationThreshold=="g"){
@@ -170,6 +179,8 @@ if(is.null(downsampling.limit)){
 }
 blacklist.ur          <- args$blacklistUnderrepresented
 
+read.counts.matter    <- args$readCountsMatterOnZeroLengthBranches
+
 success <- remove.blacklist.from.alignment(
   tree.directory,
   alignment.directory,
@@ -194,6 +205,6 @@ success <- remove.blacklist.from.alignment(
   do.dual.blacklisting,
   downsampling.limit,
   blacklist.ur,
+  read.counts.matter,
   output.string,
-  verbose,
-  T)
+  verbose)

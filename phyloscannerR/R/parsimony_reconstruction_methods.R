@@ -1,7 +1,7 @@
 #' @keywords internal
 #' @export split.hosts.to.subgraphs
 
-split.hosts.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff.k, sankoff.p, useff, count.reads, m.thresh = 0, host.master.list=NULL, verbose = F, no.progress.bars = F){
+split.hosts.to.subgraphs <- function(tree, blacklist, mode, tip.regex, sankoff.k, sankoff.p, useff, count.reads, m.thresh = 0, host.master.list=NULL, tree.file.name = NULL, verbose = F, no.progress.bars = F){
   
   if (verbose) cat("Getting tip read counts...\n")
   
@@ -139,6 +139,9 @@ split.hosts.to.subgraphs<- function(tree, blacklist, mode, tip.regex, sankoff.k,
   list(tree=tree, rs.subgraphs=rs.subgraphs)
 }
 
+#' @keywords internal
+#' @export split.and.annotate
+
 split.and.annotate <- function(tree, hosts, tip.hosts, host.tips, host.mrcas, blacklist, tip.regex, method="r", tip.read.counts, k=NA, p = 0, useff=F, verbose=F, no.progress.bars = F){
 
   if (method == "r") {
@@ -242,7 +245,7 @@ split.and.annotate <- function(tree, hosts, tip.hosts, host.tips, host.mrcas, bl
     
     # No need for the stars anymore
     
-    return(list(assocs = split.assocs, split.hosts = host.copy, split.tips = host.tips.copy, 
+    return(list(assocs = split.assocs, split.hosts = hosts.copy, split.tips = host.tips.copy,
                 first.nodes = first.nodes.by.hosts))
     
     
@@ -514,6 +517,9 @@ split.and.annotate <- function(tree, hosts, tip.hosts, host.tips, host.mrcas, bl
 # ROMERO-SEVERSON METHODS
 
 # Annotate just the tips with their hosts
+
+#' @keywords internal
+#' @export annotate.tips
 
 annotate.tips <- function(tree, hosts, host.tips){
   node.assocs <- list()
