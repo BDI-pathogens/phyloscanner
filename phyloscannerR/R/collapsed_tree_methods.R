@@ -1043,6 +1043,7 @@ summarise.classifications <- function(all.tree.info, min.threshold, dist.thresho
 }
 
 #' @keywords internal
+#' @importFrom network as.network.matrix
 #' @export simplify.summary
 
 simplify.summary <- function(summary, arrow.threshold, total.trees, plot = F){
