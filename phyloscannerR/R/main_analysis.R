@@ -555,6 +555,7 @@ no.progress.bars = F){
     }
 
 
+
     # 18. Parsimony reconstruction
 
     sankoff.p <- NA
@@ -1014,6 +1015,7 @@ verbose = F){
 
     if(do.par.blacklisting){
         all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.using.parsimony(tree.info, tip.regex, outgroup.name, raw.blacklist.threshold, ratio.blacklist.threshold, parsimony.blacklist.k, has.read.counts, read.counts.matter.on.zero.length.tips, verbose), simplify = F, USE.NAMES = T)
+
     }
 
     # 11. Dual blacklisting
@@ -1557,6 +1559,7 @@ blacklist.from.duplicates.vector <- function(tree.info, raw.blacklist.threshold,
 
 blacklist.using.parsimony <- function(tree.info, tip.regex, outgroup.name, raw.blacklist.threshold, ratio.blacklist.threshold, parsimony.blacklist.k, has.read.counts, read.counts.matter, verbose){
 
+
     tree      <- tree.info$tree
     tip.hosts <- sapply(tree$tip.label, function(x) host.from.label(x, tip.regex))
     tip.hosts[tree.info$blacklist] <- NA
@@ -1564,6 +1567,7 @@ blacklist.using.parsimony <- function(tree.info, tip.regex, outgroup.name, raw.b
     hosts   <- unique(na.omit(tip.hosts))
 
     hosts   <- hosts[order(hosts)]
+
 
     results <- sapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, outgroup.name, raw.blacklist.threshold, ratio.blacklist.threshold, "s", parsimony.blacklist.k, 0, read.counts.matter, T, !has.read.counts, tip.regex, verbose), simplify = F, USE.NAMES = T)
 
