@@ -168,6 +168,7 @@ quote.if.char <- function(x){
 
 #' @keywords internal
 #' @export write.ann.nexus
+#' @importFrom ape .compressTipLabel .uncompressTipLabel is.rooted checkLabel
 
 write.ann.nexus <- function(..., annotations = NULL, file = "", translate = TRUE)
 {

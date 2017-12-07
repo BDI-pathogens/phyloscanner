@@ -4,7 +4,7 @@
 \alias{write.annotated.tree}
 \title{Write the phylogeny with reconstructed host annotations to file}
 \usage{
-write.annotated.tree(phyloscanner.tree, file.name, format = c("pdf", "nexus"),
+write.annotated.tree(phyloscanner.tree, file.name, format = c("pdf", "nex"),
   pdf.scale.bar.width = 0.01, pdf.w = 50, pdf.hm = 0.15, verbose = F)
 }
 \arguments{

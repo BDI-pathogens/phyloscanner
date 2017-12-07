@@ -219,7 +219,7 @@ split.and.annotate <- function(tree, hosts, tip.hosts, host.tips, host.mrcas, bl
           subtree.roots <- first.nodes.by.hosts[[host]]
           while(!(current.node %in% subtree.roots)){
             if(current.node == 0){
-              stop("Reached the root?!")
+              stop("R-S reconstruction reached the root - was this tree rooted so the MRCA would not be infecting a sampled host?")
             }
             current.node <- Ancestors(tree, current.node, type="parent")
           }
@@ -231,7 +231,7 @@ split.and.annotate <- function(tree, hosts, tip.hosts, host.tips, host.mrcas, bl
           
           while(current.node != subtree.roots[split.index]){
             if(current.node == 0){
-              stop("Reached the root?!")
+              stop("R-S reconstruction reached the root - was this tree rooted so the MRCA would not be infecting a sampled host?")
             }
             split.assocs[[current.node]] <- new.name
             current.node <- Ancestors(tree, current.node, type="parent")

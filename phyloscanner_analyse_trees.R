@@ -4,20 +4,10 @@ options("warn"=1)
 
 suppressMessages(require(argparse, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(phyloscannerR, quietly=TRUE, warn.conflicts=FALSE))
-# suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
-# suppressMessages(require(ape, quietly=TRUE, warn.conflicts=FALSE))
-# suppressMessages(require(phangorn, quietly=TRUE, warn.conflicts=FALSE))
-# suppressMessages(require(ggtree, quietly=TRUE, warn.conflicts=FALSE))
-# suppressMessages(require(phytools, quietly=TRUE, warn.conflicts=FALSE))
-# suppressMessages(require(network, quietly=TRUE, warn.conflicts=FALSE))
-# suppressMessages(require(scales, quietly=TRUE, warn.conflicts=FALSE))
-# suppressMessages(require(RColorBrewer, quietly=TRUE, warn.conflicts=FALSE))
-# suppressMessages(require(gtable, quietly=TRUE, warn.conflicts=FALSE))
-# suppressMessages(require(grid, quietly=TRUE, warn.conflicts=FALSE))
-# suppressMessages(require(gridExtra, quietly=TRUE, warn.conflicts=FALSE))
-# suppressMessages(require(kimisc, quietly=TRUE, warn.conflicts=FALSE))
-# suppressMessages(require(GGally, quietly=TRUE, warn.conflicts=FALSE))
-# suppressMessages(require(sna, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(network, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(ggplot2, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(sna, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(scales, quietly=TRUE, warn.conflicts=FALSE))
 
 arg_parser		     <- ArgumentParser()
 
@@ -56,7 +46,7 @@ arg_parser$add_argument("-db", "--duplicateBlacklist", action="store", help="Per
 arg_parser$add_argument("-pbk", "--parsimonyBlacklistK", action="store", type="double", help="Perform parsimony-based blacklisting for likely contaminant sequences (including those originating from a sample outside the current data set). Use this option to specify the value of the within-host diversity penalty used (corresponding to the k parameter in the Sankoff option of the splitsRule argument). This option must be used in conjunction with the --rawBlacklistThreshold and/or --ratioBlacklistThreshold option.")
 arg_parser$add_argument("-rwt", "--rawBlacklistThreshold", action="store", default=0, help="Used to specify a read count to be used as a raw threshold for blacklisting. --parsimonyBlacklistK and/or --duplicateBlacklist must also be used. If --parsimonyBlacklistK is used, subgraph with a read count strictly less than this threshold will be blacklisted. If --duplicateBlacklist is used, duplicate reads with a count strictly less than this threshold will be blacklisted. The default value of 0 means nothing is blacklisted.")
 arg_parser$add_argument("-rtt", "--ratioBlacklistThreshold", action="store", default=0, help="Used to specify a read count ratio (between 0 and 1) to be used as a threshold for blacklisting. --parsimonyBlacklistK and/or --duplicateBlacklist must also be used. If --parsimonyBlacklistK is used, subgraphs will be blacklisted if the ratio of its read count to the total read count from the same host is strictly less than this threshold. If --duplicateBlacklist is used, duplicate reads will be blacklisted if the ratio of their count to the count of the duplicate (from another host) is strictly less than this threshold.")
-arg_parser$add_argument("-ub", "--dualBlacklist", action="store_true", default=F, help="Blacklist all reads from the minor subgraphs for all hosts established as dual by parsimony blacklisting.")
+arg_parser$add_argument("-ub", "--dualBlacklist", action="store_true", help="Blacklist all reads from the minor subgraphs for all hosts established as dual by parsimony blacklisting.")
 
 # Downsampling
 
@@ -103,16 +93,19 @@ csv.fe                        <- args$csvFileExtension
 
 # tree input
 tree.input                    <- args$tree
-tree.directory                <- dirname(tree.input)
-tree.file.regex               <- paste0("^", basename(tree.input), "(.*)\\.", tree.fe, "$")
-
+if(!file.exists(tree.input)){
+    tree.directory            <- dirname(tree.input)
+    tree.file.regex           <- paste0("^", basename(tree.input), "(.*)\\.", tree.fe, "$")
+}
 
 # user blacklist
 blacklist.input               <- args$userBlacklist
 
 if(!is.null(blacklist.input)){
-    user.blacklist.directory    <- dirname(blacklist.input)
-    user.blacklist.file.regex   <- paste0("^", basename(blacklist.input), "(.*)\\.",csv.fe,"$")
+    if(!file.exists(blacklist.input)){
+        user.blacklist.directory    <- dirname(blacklist.input)
+        user.blacklist.file.regex   <- paste0("^", basename(blacklist.input), "(.*)\\.",csv.fe,"$")
+    }
 } else {
     user.blacklist.directory    <- NULL
     user.blacklist.file.regex   <- NULL
@@ -121,7 +114,7 @@ if(!is.null(blacklist.input)){
 # output files
 output.dir                    <- args$outputDir
 if(is.null(output.dir)){
-    output.dir                  <- getwd()
+    output.dir                <- getwd()
 }
 setwd(output.dir)
 output.string                 <- args$outputString
@@ -187,20 +180,21 @@ file.name.regex               <- args$fileNameRegex
 do.dup.blacklisting           <- !is.null(args$duplicateBlacklist)
 dup.input.file.name           <- args$duplicateBlacklist
 if(!is.null(dup.input.file.name)){
-    duplicate.file.directory    <- dirname(dup.input.file.name)
-    duplicate.file.regex        <- paste0("^", basename(dup.input.file.name), "(.*)\\.[A-Za-z]+$")
+    if(!file.exists(dup.input.file.name)){
+        duplicate.file.directory    <- dirname(dup.input.file.name)
+        duplicate.file.regex        <- paste0("^", basename(dup.input.file.name), "(.*)\\.[A-Za-z]+$")
+    }
 } else {
     duplicate.file.directory    <- NULL
     duplicate.file.regex        <- NULL
 }
+
 do.par.blacklisting           <- !is.null(args$parsimonyBlacklistK)
 par.blacklisting.k            <- args$parsimonyBlacklistK
-do.dual.blacklisting          <- args$dualBlacklist
-
-if(do.dual.blacklisting & !do.par.blacklisting){
-    warning("Dual blacklisting requires parsimony blacklisting. Turning dual blacklisting off.")
-    do.dual.blacklisting        <- F
+if(is.null(par.blacklisting.k)){
+    par.blacklisting.k        <- 0
 }
+do.dual.blacklisting          <- args$dualBlacklist
 
 bl.raw.threshold              <- as.numeric(args$rawBlacklistThreshold)
 bl.ratio.threshold            <- as.numeric(args$ratioBlacklistThreshold)
@@ -263,7 +257,7 @@ if(reconstruction.mode=="s"){
 
 # Whether to output trees
 if(args$outputNexusTree){
-    tree.output.format         <- "nexus"
+    tree.output.format         <- "nex"
 } else {
     tree.output.format         <- "pdf"
 }
@@ -271,8 +265,10 @@ if(args$outputNexusTree){
 recomb.input                   <- args$recombinationFiles
 do.recomb                      <- !is.null(recomb.input)
 if(do.recomb){
-    recomb.file.directory      <- dirname(recomb.input )
-    recomb.file.regex          <- paste0("^", basename(recomb.input), "(.*)\\.[A-Za-z]+$")
+    if(!file.exists(recomb.input)){
+        recomb.file.directory      <- dirname(recomb.input )
+        recomb.file.regex          <- paste0("^", basename(recomb.input), "(.*)\\.[A-Za-z]+$")
+    }
 } else {
     recomb.file.directory      <- NULL
     recomb.file.regex          <- NULL
@@ -300,7 +296,38 @@ allow.mt                       <- args$allowMultiTrans
 do.simplified.graph            <- !args$skipSummaryGraph
 simp.plot.dim                  <- args$summaryPlotDimensions
 
-phyloscanner.trees <- phyloscanner.analyse.trees(
+if(file.exists(tree.input)){
+    phyloscanner.analyse.tree(
+    tree.input,
+    reconstruction.mode,
+    sankoff.k,
+    sankoff.unassigned.switch.threshold = 0,
+    continuation.unassigned.proximity.cost = 1000,
+    outgroup.name,
+    m.thresh,
+    is.na(m.thresh),
+    blacklist.input,
+    dup.input.file.name,
+    recomb.input,
+    tip.regex,
+    file.name.regex,
+    seed,
+    norm.ref.file.name,
+    norm.standardise.gp,
+    norm.constants.input,
+    par.blacklisting.k,
+    bl.raw.threshold,
+    bl.ratio.threshold,
+    do.dual.blacklisting,
+    downsampling.limit,
+    blacklist.ur,
+    useff,
+    prune.blacklist,
+    read.counts.matter,
+    verbose ,
+    no.progress.bars)
+} else {
+    phyloscanner.trees <- phyloscanner.analyse.trees(
     tree.directory,
     tree.file.regex,
     reconstruction.mode,
@@ -320,9 +347,9 @@ phyloscanner.trees <- phyloscanner.analyse.trees(
     file.name.regex,
     seed,
     norm.ref.file.name,
-    norm.standardise.gp ,
+    norm.standardise.gp,
     norm.constants.input,
-    par.blacklisting.k ,
+    par.blacklisting.k,
     bl.raw.threshold,
     bl.ratio.threshold,
     do.dual.blacklisting,
@@ -333,15 +360,17 @@ phyloscanner.trees <- phyloscanner.analyse.trees(
     read.counts.matter,
     verbose,
     no.progress.bars)
+}
 
-sapply(phyloscanner.trees, function(tree.info){
+
+silent <- sapply(phyloscanner.trees, function(tree.info){
     file.name <- paste0("Processed_Tree_", output.string, "_", tree.info$suffix, ".", tree.output.format)
-    write.annotated.tree(tree.info, file.name, tree.output.format, pdf.scale.bar.width, pdf.hm, pdf.w, verbose)
+    write.annotated.tree(tree.info, file.name, tree.output.format, pdf.scale.bar.width, pdf.w, pdf.hm, verbose)
 
 }, simplify = F, USE.NAMES = T)
 
 if(do.collapsed){
-    sapply(phyloscanner.trees, function(tree.info){
+    silent <- sapply(phyloscanner.trees, function(tree.info){
         file.name <- paste0("Collapsed_Tree_", output.string, "_", tree.info$suffix, ".", csv.fe)
         if(verbose) cat("Writing collapsed tree for tree ID ",tree.info$suffix," to file ",file.name, "\n")
         write.csv(tree.info$classification.results$collapsed[,1:4], file.name, quote=F, row.names=F)
@@ -351,7 +380,7 @@ if(do.collapsed){
 
 
 if(do.class.detail){
-    sapply(phyloscanner.trees, function(tree.info){
+    silent <- sapply(phyloscanner.trees, function(tree.info){
         file.name <- paste0("Classification_", output.string, "_", tree.info$suffix, ".", csv.fe)
         if(verbose) cat("Writing relationship classifications for tree ID ",tree.info$suffix," to file ",file.name, "\n")
         write.csv(tree.info$classification.results$classification, file.name, quote=F, row.names=F)
@@ -359,30 +388,34 @@ if(do.class.detail){
     }, simplify = F, USE.NAMES = T)
 }
 
-summary.stats <- gather.summary.statistics(phyloscanner.trees, tip.regex = tip.regex, verbose = verbose)
-write.csv(summary.stats, paste0(output.string,"_patStats.",csv.fe), quote=F, row.names=F)
+if(length(phyloscanner.trees)>1){
+    summary.stats <- gather.summary.statistics(phyloscanner.trees, tip.regex = tip.regex, verbose = verbose)
+    write.csv(summary.stats, paste0(output.string,"_patStats.",csv.fe), quote=F, row.names=F)
 
-ss.graphs.fn <- paste0(output.string,"_patStats.pdf")
-multipage.summary.statistics(phyloscanner.trees, summary.stats, file.name = ss.graphs.fn, verbose = verbose)
+    ss.graphs.fn <- paste0(output.string,"_patStats.pdf")
+    silent <- multipage.summary.statistics(phyloscanner.trees, summary.stats, file.name = ss.graphs.fn, verbose = verbose)
 
-ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, allow.mt, close.sib.only = F, verbose)
-if (verbose) cat('Writing summary to file', paste0(output.string,"_hostRelationshipSummary.",csv.fe),'\n')
-write.csv(ts, file=paste0(output.string,"_hostRelationshipSummary.",csv.fe), row.names=FALSE, quote=FALSE)
+    ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, allow.mt, close.sib.only = F, verbose)
+    if (verbose) cat('Writing summary to file', paste0(output.string,"_hostRelationshipSummary.",csv.fe),'\n')
+    write.csv(ts, file=paste0(output.string,"_hostRelationshipSummary.",csv.fe), row.names=FALSE, quote=FALSE)
 
-if(do.simplified.graph){
-    if (verbose) cat('Drawing simplified summary diagram to file', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'\n')
+    ts$ancestry <- as.character(ts$ancestry)
 
-    if(nrow(ts)==0){
-        cat("No relationships exist in the required proportion of windows (",win.threshold,"); skipping simplified relationship summary.", sep="")
-    } else {
-        simplified.graph <- simplify.summary(ts, arrow.threshold, length(phyloscanner.trees), plot = T)
+    if(do.simplified.graph){
+        if (verbose) cat('Drawing simplified summary diagram to file', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'\n')
 
-        simplified.graph$simp.diagram
-        ggsave(file = paste0(output.string,"_simplifiedRelationshipGraph.pdf"), width=simp.plot.dim, height=simp.plot.dim)
+        if(nrow(ts)==0){
+            cat("No relationships exist in the required proportion of windows (",win.threshold,"); skipping simplified relationship summary.", sep="")
+        } else {
+            simplified.graph <- simplify.summary(ts, arrow.threshold, length(phyloscanner.trees), plot = T)
+
+            simplified.graph$simp.diagram
+            ggsave(file = paste0(output.string,"_simplifiedRelationshipGraph.pdf"), width=simp.plot.dim, height=simp.plot.dim)
+        }
     }
-}
 
-if(output.rda){
-    if (verbose) cat('Saving R workspace image to file', paste0("workspace_",output.string,".rda"),'\n')
-    save.image(file=paste0("workspace_",output.string,".rda"))
+    if(output.rda){
+        if (verbose) cat('Saving R workspace image to file', paste0("workspace_",output.string,".rda"),'\n')
+        save.image(file=paste0("workspace_",output.string,".rda"))
+    }
 }
