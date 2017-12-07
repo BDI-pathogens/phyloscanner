@@ -1,7 +1,6 @@
-# Phyloscanner's analysis of phylogenies with within- and between-host diversity, achived with the
-# phyloscanner_analyse_trees.R command, requires first of all an up-to-date installation of the R
-# language.
-# BEWARE: unfortunately, updating the R language itself can cause problems with
+# Phyloscanner's analysis of phylogenies with within- and between-host diversity is achived with the
+# phyloscanner_analyse_trees.R command. Having an up-to-date installation of the R language can
+# avoid some runtime errors; however BEWARE: updating the R language itself can cause problems with
 # packages you have in your current R installation - they may need to be reinstalled. 
 
 ############################################################
@@ -23,7 +22,7 @@ sudo apt-get update
 sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9
 # That may fail, for example due to firewall issues. In that case, consult the section
 # 'Secure APT' at https://cran.r-project.org/bin/linux/ubuntu/README.html.
-# Once you've managed to add the key, rerun the sudo apt-get update command. Then,
+# Once you've managed to add the key, rerun the 'sudo apt-get update' command. Then,
 sudo apt-get install r-base
 sudo apt-get install r-base-dev
 ############################################################
@@ -33,21 +32,13 @@ sudo apt-get install r-base-dev
 ???? TODO
 ############################################################
 
-# Next, install the packages needed for phyloscanner_analyse_trees.R, by running the installation
-# script.
-# If you don't have sudo priviledges on your system (e.g. you're using a computing cluster), 
-# instead of executing the command below, try entering an interactive R session by typing 'R' at
-# the command line, then running the commands contained inside the package_install.R file one
-# by one. (R should then prompt you to install things in your home directory, where you have
-# permission.)
-sudo Rscript ~/phyloscanner/tools/package_install.R
-# If ggtree fails to install, this could be because of an out of date BiocInstaller package.
-# Removing it worked for me: entering an interactive R session and running
-remove.packages("BiocInstaller")
-# exiting the R session (Ctrl+D), then rerunning
-sudo Rscript ~/phyloscanner/tools/package_install.R
-
-# Finally, ensuring all installed R packages are up-to-date can help: enter an interactive R
-# session and run
-library(rvcheck)
-update_all()
+# Next, install the packages needed for phyloscanner_analyse_trees.R
+# Change directory to the 'phyloscannerR' subdirectory of the main phyloscanner code directory,
+# e.g. cd ~/phyloscanner/phyloscannerR/, then run
+sudo R
+# Inside the interactive R console, run
+install.packages("devtools")
+library(devtools)
+source("https://bioconductor.org/biocLite.R")
+biocLite("ggtree")
+install("../phyloscannerR", dependencies = T)
