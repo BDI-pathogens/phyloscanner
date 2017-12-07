@@ -171,8 +171,11 @@ no.progress.bars = F){
         do.dual.blacklisting <- F
     }
 
-    if(splits.rule == "r" & (sankoff.k > 0 | sankoff.unassigned.switch.threshold > 0 | continuation.unassigned.proximity.cost < Inf)){
-        warning("Romero-Severson reconstuction has no parameters; specified values will be ignored.")
+
+    if(splits.rule == "r"){
+        if ((!is.na(sankoff.k) & sankoff.k > 0) | sankoff.unassigned.switch.threshold > 0 | continuation.unassigned.proximity.cost < 1000){
+            warning("Romero-Severson reconstuction has no parameters; specified values will be ignored.")
+        }
     }
 
     downsample            <- max.reads.per.host < Inf
@@ -473,7 +476,7 @@ no.progress.bars = F){
     if(do.dup.blacklisting){
         all.tree.info <- sapply(all.tree.info, find.duplicate.tips, simplify = F, USE.NAMES = T)
 
-        all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.duplicates.vector(tree.info, verbose), simplify = F, USE.NAMES = T)
+        all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.duplicates.vector(tree.info, raw.blacklist.threshold, ratio.blacklist.threshold, tip.regex, verbose), simplify = F, USE.NAMES = T)
     }
 
 
@@ -550,6 +553,7 @@ no.progress.bars = F){
 
         }, simplify = F, USE.NAMES = T)
     }
+
 
 
     # 18. Parsimony reconstruction
@@ -1011,6 +1015,7 @@ verbose = F){
 
     if(do.par.blacklisting){
         all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.using.parsimony(tree.info, tip.regex, outgroup.name, raw.blacklist.threshold, ratio.blacklist.threshold, parsimony.blacklist.k, has.read.counts, read.counts.matter.on.zero.length.tips, verbose), simplify = F, USE.NAMES = T)
+
     }
 
     # 11. Dual blacklisting
@@ -1554,13 +1559,15 @@ blacklist.from.duplicates.vector <- function(tree.info, raw.blacklist.threshold,
 
 blacklist.using.parsimony <- function(tree.info, tip.regex, outgroup.name, raw.blacklist.threshold, ratio.blacklist.threshold, parsimony.blacklist.k, has.read.counts, read.counts.matter, verbose){
 
-    tree <- tree.info$tree
+
+    tree      <- tree.info$tree
     tip.hosts <- sapply(tree$tip.label, function(x) host.from.label(x, tip.regex))
     tip.hosts[tree.info$blacklist] <- NA
 
-    hosts <- unique(na.omit(tip.hosts))
+    hosts   <- unique(na.omit(tip.hosts))
 
-    hosts <- hosts[order(hosts)]
+    hosts   <- hosts[order(hosts)]
+
 
     results <- sapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, outgroup.name, raw.blacklist.threshold, ratio.blacklist.threshold, "s", parsimony.blacklist.k, 0, read.counts.matter, T, !has.read.counts, tip.regex, verbose), simplify = F, USE.NAMES = T)
 
@@ -1576,10 +1583,10 @@ blacklist.using.parsimony <- function(tree.info, tip.regex, outgroup.name, raw.b
     old.tip.labels                              <- tree.info$tree$tip.label
 
     if(length(newly.blacklisted)>0){
-        new.tip.labels                            <- old.tip.labels
-        new.tip.labels[newly.blacklisted]         <- paste0(new.tip.labels[newly.blacklisted], "_X_CONTAMINANT")
-        tree$tip.label                            <- new.tip.labels
-        tree.info$tree                            <- tree
+        new.tip.labels                          <- old.tip.labels
+        new.tip.labels[newly.blacklisted]       <- paste0(new.tip.labels[newly.blacklisted], "_X_CONTAMINANT")
+        tree$tip.label                          <- new.tip.labels
+        tree.info$tree                          <- tree
     }
 
     tree.info$blacklist                         <- unique(c(tree.info$blacklist, contaminant.nos))
@@ -1592,7 +1599,8 @@ blacklist.using.parsimony <- function(tree.info, tip.regex, outgroup.name, raw.b
     tree.info$dual.detection.splits             <- multiplicity.table
 
     if(length(which.are.duals) > 0) {
-        mi.df                                     <- data.frame(host = unlist(sapply(results[which.are.duals], function (x) rep(x$id, length(x$tip.names)) )),
+        repeat.column <- as.vector(unlist(sapply(results[which.are.duals], function (x) rep(x$id, length(x$tip.names)) )))
+        mi.df                                   <- data.frame(host = repeat.column,
         tip.name = unlist(lapply(results[which.are.duals], "[[", 3)),
         reads.in.subtree = unlist(lapply(results[which.are.duals], "[[", 4)),
         tips.in.subtree = unlist(lapply(results[which.are.duals], "[[", 5)),
