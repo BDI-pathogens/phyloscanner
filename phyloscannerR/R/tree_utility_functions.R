@@ -187,77 +187,6 @@ are.intermingled <-
     return(FALSE)
   }
 
-# Test if two hosts form sibling clades (MM in Romero-Severson terminology). This also
-# requires that there is no third host whose position in the tree suggests that it was
-# either a common source of both infections, or that the transmission chain passed through
-# it to get from the common source to either host.
-
-#' @keywords internal
-#' @export are.siblings
-
-are.siblings <-
-  function(tree, pat.1, pat.2, mrca.list, tip.list, zero.length.tips.count =
-             TRUE) {
-    mrca.1 <- mrca.list[[pat.1]]
-    mrca.2 <- mrca.list[[pat.2]]
-    
-    if (mrca.1 == mrca.2) {
-      return(F)
-    }
-    if (mrca.1 %in% Ancestors(tree, mrca.2, type = "all")) {
-      return(F)
-    }
-    if (mrca.2 %in% Ancestors(tree, mrca.1, type = "all")) {
-      return(F)
-    }
-    
-    mrca.mrca <- mrca.phylo(tree, c(mrca.1, mrca.2))
-    
-    anc.sequence.1 <- get.ancestral.sequence(tree, mrca.1, mrca.mrca)
-    anc.sequence.2 <- get.ancestral.sequence(tree, mrca.2, mrca.mrca)
-    
-    return(
-      test.direct.ancestry(tree, anc.sequence.1, pat.1, zero.length.tips.count) &
-        test.direct.ancestry(tree, anc.sequence.2, pat.2, zero.length.tips.count)
-    )
-    
-  }
-
-# This returns the distance along the branches from the TMRCA of one host to the TMRCA
-# of the other, if the hosts are siblings
-
-#' @keywords internal
-#' @export sibling.distance
-
-sibling.distance <- function(tree, pat.1, pat.2, mrca.list, tip.list, zero.length.tips.count){
-  
-  mrca.1 <- mrca.list[[pat.1]]
-  mrca.2 <- mrca.list[[pat.2]]
-  
-  if (!are.siblings(tree, pat.1, pat.2, mrca.list, tip.list, zero.length.tips.count)){
-    stop("Not siblings")
-  }
-  
-  mrca.mrca = mrca.phylo(tree, c(mrca.1, mrca.2))
-  
-  dist.1 <- 0
-  current.node <- mrca.1
-  while(current.node != mrca.mrca){
-    dist.1 <- dist.1 + get.edge.length(tree, current.node)
-    current.node <- Ancestors(tree, current.node, type="parent")
-  }
-  
-  dist.2 <- 0
-  current.node <- mrca.2
-  while(current.node != mrca.mrca){
-    dist.2 <- dist.2 + get.edge.length(tree, current.node)
-    current.node <- Ancestors(tree, current.node, type="parent")
-  }
-  
-  return(dist.1+dist.2)
-  
-}
-
 # Output the set of hosts whose mrca is this node
 
 #' @keywords internal
@@ -533,6 +462,7 @@ prop.internal.longer.than.root <- function(tree, split, splits){
 
 #' @keywords internal
 #' @export process.tree
+#' @importFrom ape di2multi root
 
 process.tree <- function(tree, root.name=NULL, m.thresh=-1, blacklist.for.pruning = vector(), normalisation.constant = 1) {
   
