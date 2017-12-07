@@ -1,17 +1,3 @@
-#' @export
-#' @keywords internal
-identify.window.coords <- function(tree.info, file.name.regex) {
-    tryCatch({
-        coords                  <- get.window.coords(tree.info$suffix, file.name.regex)
-        tree.info$window.coords <- coords
-        tree.info$xcoord        <- (coords$end + coords$start)/2
-        tree.info
-    }, error = function(e){
-        tree.info$xcoord        <- which(names(all.tree.info) == tree.info$suffix)
-        tree.info
-    })
-}
-
 
 #' Perform a phyloscanner analysis on a single tree
 #'
@@ -244,6 +230,7 @@ phyloscanner.analyse.trees <- function(
     
     tree.info$suffix              <- suffix
     tree.info$tree.file.name      <- full.tree.file.names[id.no]
+    tree.info$index               <- id.no
     
     all.tree.info[[suffix]]       <- tree.info
   }
@@ -714,9 +701,9 @@ remove.blacklist.from.alignment <- function(
   do.dual.blacklisting = F,
   max.reads.per.host = Inf,
   blacklist.underrepresented = F,
+  read.counts.matter.on.zero.length.tips = F,
   output.file.id = "CleanedAlignment_InWindow_",
-  verbose = F,
-  no.progress.bars = T){
+  verbose = F){
   
   use.m.thresh          <- multifurcation.threshold > 0 | guess.multifurcation.threshold
   
@@ -896,7 +883,7 @@ remove.blacklist.from.alignment <- function(
     warning("Attempting to guess a branch length threshold for multifurcations from the tree. Please visually examine the tree or trees for multifurcations before using the results of this analysis.")
   }
 
-  all.tree.info <- sapply(all.tree.info, function(tree.info) prepare.tree(tree.info, outgroup.name, tip.regex, guess.multifurcation.threshold, multifurcation.threshold, verbose), 
+  all.tree.info <- sapply(all.tree.info, function(tree.info) prepare.tree(tree.info, outgroup.name, tip.regex, guess.multifurcation.threshold, readable.coords, multifurcation.threshold, verbose),
                             simplify = F, USE.NAMES = T)
   
   all.tree.info[sapply(all.tree.info, is.null)] <- NULL
@@ -1025,7 +1012,7 @@ remove.blacklist.from.alignment <- function(
   if(do.dup.blacklisting){
     all.tree.info <- sapply(all.tree.info, find.duplicate.tips, simplify = F, USE.NAMES = T)
     
-    all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.duplicates.vector(tree.info, verbose), simplify = F, USE.NAMES = T)
+    all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.duplicates.vector(tree.info, raw.blacklist.threshold, ratio.blacklist.threshold, tip.regex, verbose), simplify = F, USE.NAMES = T)
   }
   
   
@@ -1403,7 +1390,7 @@ check.read.counts <- function(tree.info, tip.regex){
 #' @export
 #' @keywords internal
 
-prepare.tree <- function(tree.info, outgroup.name, tip.regex, guess.multifurcation.threshold, multifurcation.threshold = -1, verbose = F){
+prepare.tree <- function(tree.info, outgroup.name, tip.regex, guess.multifurcation.threshold, readable.coords = F, multifurcation.threshold = -1, verbose = F){
   if(verbose){
     cat("Processing tree ID ",tree.info$suffix,"...\n", sep="")
   }
@@ -1537,7 +1524,7 @@ find.duplicate.tips <- function(tree.info) {
 #' @export
 #' @keywords internal
 
-blacklist.from.duplicates.vector <- function(tree.info, verbose) {
+blacklist.from.duplicates.vector <- function(tree.info, raw.blacklist.threshold, ratio.blacklist.threshold, tip.regex, verbose = F) {
   tree <- tree.info$tree
 
   if(!is.null(tree.info$duplicate.tips)){
@@ -1663,4 +1650,18 @@ blacklist.from.random.downsample <- function(tree.info, max.reads.per.host, blac
   tree.info$hosts.for.tips[tree.info$blacklist] <- NA
 
   tree.info
+}
+
+#' @export
+#' @keywords internal
+identify.window.coords <- function(tree.info, file.name.regex) {
+    tryCatch({
+        coords                  <- get.window.coords(tree.info$suffix, file.name.regex)
+        tree.info$window.coords <- coords
+        tree.info$xcoord        <- (coords$end + coords$start)/2
+        tree.info
+    }, error = function(e){
+        tree.info$xcoord        <- tree.info$index
+        tree.info
+    })
 }
