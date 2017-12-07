@@ -573,7 +573,7 @@ phyloscanner.analyse.trees <- function(
     
     if(verbose) cat("Reconstructing internal node hosts on tree ID ",tree.info$suffix, "\n", sep="")
     
-    tmp					     <- split.hosts.to.subgraphs(tree.info$tree, tree.info$blacklist, splits.rule, tip.regex, sankoff.k, sankoff.p, use.ff, read.counts.matter.on.zero.length.tips, multifurcation.threshold, hosts, verbose, no.progress.bars)
+    tmp					     <- split.hosts.to.subgraphs(tree.info$tree, tree.info$blacklist, splits.rule, tip.regex, sankoff.k, sankoff.p, use.ff, read.counts.matter.on.zero.length.tips, multifurcation.threshold, hosts, tree.info$suffix, verbose, no.progress.bars)
     tree					   <- tmp[['tree']]	
     
     # trees are annotated from now on

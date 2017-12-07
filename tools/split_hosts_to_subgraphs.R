@@ -51,7 +51,6 @@ pdf.w                  <- as.numeric(args$pdfwidth)
 useff                  <- args$useff
 tree.fe                <- args$treeFileExtension
 csv.fe                 <- args$csvFileExtension
-has.normalisation      <- !is.null(args$branchLengthNormalisation)
 normalisation.argument <- args$branchLengthNormalisation
 
 if(!is.null(args$outputdir)){
@@ -223,10 +222,10 @@ for(i in all.tree.info){
 
   tree <- process.tree(tree, root.name, m.thresh, tips.to.go, i$normalisation.constant)
  
-  tmp					    <- split.hosts.to.subgraphs(tree, blacklist, mode, tip.regex, sankoff.k, sankoff.p, useff, read.counts.matter, m.thresh, host.master.list, verbose)
+  tmp					    <- split.hosts.to.subgraphs(tree, blacklist, mode, tip.regex, sankoff.k, sankoff.p, useff, read.counts.matter, m.thresh, host.master.list, verbose = verbose)
 
-  tree					  <- tmp[['tree']]	
-  rs.subgraphs		<- tmp[['rs.subgraphs']]
+  tree					    <- tmp[['tree']]
+  rs.subgraphs		        <- tmp[['rs.subgraphs']]
   
   # reconvert the tree to starting branch lengths
   
