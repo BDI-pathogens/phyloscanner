@@ -1,3 +1,18 @@
+#' @export
+#' @keywords internal
+identify.window.coords <- function(tree.info, file.name.regex) {
+    tryCatch({
+        coords                  <- get.window.coords(tree.info$suffix, file.name.regex)
+        tree.info$window.coords <- coords
+        tree.info$xcoord        <- (coords$end + coords$start)/2
+        tree.info
+    }, error = function(e){
+        tree.info$xcoord        <- which(names(all.tree.info) == tree.info$suffix)
+        tree.info
+    })
+}
+
+
 #' Perform a phyloscanner analysis on a single tree
 #'
 #' This function performs a parsimony reconstruction and classification of pairwise host relationships.
@@ -670,7 +685,7 @@ phyloscanner.analyse.trees <- function(
 #' @param output.file.id A string identifying the cleaned alignments
 #' @param verbose Give verbose output.
 #' @param no.progress.bars Hide the progress bars from verbose output.
-#' @importFrom ape read.tree read.nexus di2multi root node.depth.edgelength
+#' @importFrom ape read.tree read.nexus di2multi root node.depth.edgelength write.dna
 #' @importFrom data.table data.table as.data.table set setnames
 #' @importFrom phangorn Ancestors Descendants Children mrca.phylo getRoot
 #' @export remove.blacklist.from.alignment 
@@ -1308,20 +1323,6 @@ simplified.transmission.summary <- function(phyloscanner.trees, transmission.sum
 
 #' @export
 #' @keywords internal
-identify.window.coords <- function(tree.info, file.name.regex) {
-  tryCatch({
-    coords                  <- get.window.coords(tree.info$suffix, file.name.regex)
-    tree.info$window.coords <- coords
-    tree.info$xcoord        <- (coords$end + coords$start)/2
-    tree.info
-  }, error = function(e){
-    tree.info$xcoord        <- which(names(all.tree.info) == tree.info$suffix)
-    tree.info
-  })
-}
-
-#' @export
-#' @keywords internal
 
 attach.file.names <- function(tree.info, paths, identifiers, item.name){
 
@@ -1333,10 +1334,10 @@ attach.file.names <- function(tree.info, paths, identifiers, item.name){
   tree.info
 }
 
-# attach.file.names <- function(tree.info, 
-#                               full.user.blacklist.file.names = NULL, 
-#                               full.recombination.file.names = NULL, 
-#                               full.duplicate.file.names = NULL, 
+# attach.file.names <- function(tree.info,
+#                               full.user.blacklist.file.names = NULL,
+#                               full.recombination.file.names = NULL,
+#                               full.duplicate.file.names = NULL,
 #                               full.alignment.file.names = NULL) {
 #   if(!is.null(full.user.blacklist.file.names)){
 #     expected.user.blacklist.file.name  <- full.user.blacklist.file.names[which(user.blacklist.identifiers==tree.info$suffix)]
@@ -1344,28 +1345,28 @@ attach.file.names <- function(tree.info, paths, identifiers, item.name){
 #       tree.info$user.blacklist.file.name <- expected.user.blacklist.file.name
 #     }
 #   }
-#   
+#
 #   if(!is.null(full.recombination.file.names)){
 #     expected.recomb.file.name  <- full.recombination.file.names[which(recomb.identifiers==tree.info$suffix)]
 #     if(length(expected.recomb.file.name)!=0){
 #       tree.info$recombination.file.name <- expected.recomb.file.name
 #     }
 #   }
-#   
+#
 #   if(!is.null(full.duplicate.file.names)){
 #     expected.duplicate.file.name  <- full.duplicate.file.names[which(duplicate.identifiers==tree.info$suffix)]
 #     if(length(expected.duplicate.file.name)!=0){
 #       tree.info$duplicate.file.name <- expected.duplicate.file.name
 #     }
 #   }
-#   
+#
 #   if(!is.null(full.alignment.file.names)){
 #     expected.alignment.file.name  <- full.alignment.file.names[which(alignment.identifiers==tree.info$suffix)]
 #     if(length(expected.alignment.file.name)!=0){
 #       tree.info$alignment.file.name <- expected.alignment.file.name
 #     }
 #   }
-#   
+#
 #   tree.info
 # }
 
@@ -1376,17 +1377,17 @@ attach.tree <- function(tree.info, verbose) {
   if(verbose){
     cat("Reading tree file",tree.info$tree.file.name,'\n')
   }
-  
+
   first.line                     <- readLines(tree.info$tree.file.name, n=1)
-  
+
   if(first.line == "#NEXUS"){
     tree                         <- read.nexus(tree.info$tree.file.name)
   } else {
     tree                         <- read.tree(tree.info$tree.file.name)
   }
-  
+
   tree.info$tree                 <- tree
-  
+
   tree.info
 }
 
@@ -1406,15 +1407,15 @@ prepare.tree <- function(tree.info, outgroup.name, tip.regex, guess.multifurcati
   if(verbose){
     cat("Processing tree ID ",tree.info$suffix,"...\n", sep="")
   }
-  
+
   tree <- tree.info$tree
-  
+
   if(guess.multifurcation.threshold){
     minimum.bl                        <- min(tree$edge.length)
     if(readable.coords){
       window.width = tree.info$window.coords$end - tree.info$window.coords$start + 1
       one.snp <- 1/window.width
-      
+
       if(minimum.bl > 0.25*one.snp){
         if(verbose){
           cat("In tree ID ",tree.info$suffix," the minimum branch length is ",minimum.bl,", which is equivalent to ",minimum.bl/one.snp," SNPs. Assuming this tree has no multifurcations.\n", sep="")
@@ -1430,12 +1431,12 @@ prepare.tree <- function(tree.info, outgroup.name, tip.regex, guess.multifurcati
           multifurcation.threshold                    <- minimum.bl*1.0001
         }
       }
-      
+
     } else {
       warning("Attempting to guess a branch length threshold for multifurcations from the tree. Please ensure that the tree has multifurcations before using the results of this analysis.")
       if(verbose){
         cat("In tree ID ",tree.info$suffix," the minimum branch length is ",minimum.bl,". Using this as a multifurcation threshold.\n", sep="")
-      } 
+      }
       if(minimum.bl==0){
         multifurcation.threshold                    <- 1E-9
       } else {
@@ -1443,15 +1444,15 @@ prepare.tree <- function(tree.info, outgroup.name, tip.regex, guess.multifurcati
       }
     }
   }
-  
+
   new.tree <- process.tree(tree, outgroup.name, multifurcation.threshold)
-  
+
   tree.info$tree                      <- new.tree
   tree.info$original.tip.labels       <- new.tree$tip.label
-  
+
   hosts.for.tips                      <- sapply(tree$tip.label, function(x) host.from.label(x, tip.regex))
   tree.info$hosts.for.tips            <- hosts.for.tips
-  
+
   tree.info
 }
 
@@ -1471,19 +1472,19 @@ read.blacklist <- function(tree.info, verbose = F) {
         warning("Some tips listed in blacklist file ",tree.info$user.blacklist.file.name," are not tips of tree ",tree.info$tree.file.name, sep="")
       }
       blacklist <- blacklist[!is.na(blacklist)]
-      
-      tree.info$hosts.for.tips[blacklist] <- NA 
-      
+
+      tree.info$hosts.for.tips[blacklist] <- NA
+
       if(verbose & length(blacklist)>0) {
         cat(length(blacklist), " tips pre-blacklisted for tree ID ",tree.info$suffix, ".\n", sep="")
       }
-      
+
       tree.info$blacklist                 <- blacklist
     } else {
       cat(paste("WARNING: File ",tree.info$blacklist.input," does not exist; skipping.\n",sep=""))
     }
-  } 
-  
+  }
+
   tree.info
 }
 
@@ -1491,13 +1492,13 @@ read.blacklist <- function(tree.info, verbose = F) {
 #' @keywords internal
 
 rename.user.blacklist.tips <- function(tree.info) {
-  
+
   tree <- tree.info$tree
-  
+
   if(is.null(tree.info$tree)){
     stop("No tree for suffix ",tree.info$suffix,"\n")
   }
-  
+
   if(!is.null(tree.info$blacklist)){
     old.tip.labels                         <- tree$tip.label
     if(length(tree.info$blacklist)>0){
@@ -1505,7 +1506,7 @@ rename.user.blacklist.tips <- function(tree.info) {
       new.tip.labels[tree.info$blacklist]  <- paste0(new.tip.labels[tree.info$blacklist], "_X_USER")
       tree$tip.label                       <- new.tip.labels
       tree.info$tree                       <- tree
-      
+
     }
   }
   tree.info
@@ -1538,29 +1539,29 @@ find.duplicate.tips <- function(tree.info) {
 
 blacklist.from.duplicates.vector <- function(tree.info, verbose) {
   tree <- tree.info$tree
-  
+
   if(!is.null(tree.info$duplicate.tips)){
-    
+
     duplicated                                   <- blacklist.exact.duplicates(tree.info, raw.blacklist.threshold, ratio.blacklist.threshold, tip.regex, verbose)
-    
+
     duplicate.nos                                <- which(tree.info$original.tip.labels %in% duplicated)
-    
-    newly.blacklisted                            <- setdiff(duplicate.nos, tree.info$blacklist) 
-    
+
+    newly.blacklisted                            <- setdiff(duplicate.nos, tree.info$blacklist)
+
     if(verbose & length(newly.blacklisted > 0)) cat(length(newly.blacklisted), " tips blacklisted as duplicates for tree ID ",tree.info$suffix, "\n", sep="")
-    
+
     tree.info$hosts.for.tips[newly.blacklisted]  <- NA
-    
+
     old.tip.labels    <- tree.info$tree$tip.label
-    
+
     if(length(newly.blacklisted)>0){
       new.tip.labels                             <- old.tip.labels
       new.tip.labels[newly.blacklisted]          <- paste0(new.tip.labels[newly.blacklisted], "_X_DUPLICATE")
       tree$tip.label                             <- new.tip.labels
       tree.info$tree                             <- tree
     }
-    
-    
+
+
     tree.info$blacklist <- unique(c(tree.info$blacklist, duplicate.nos))
     tree.info$blacklist <- tree.info$blacklist[order(tree.info$blacklist)]
   }
@@ -1571,55 +1572,55 @@ blacklist.from.duplicates.vector <- function(tree.info, verbose) {
 #' @keywords internal
 
 blacklist.using.parsimony <- function(tree.info, tip.regex, outgroup.name, raw.blacklist.threshold, ratio.blacklist.threshold, parsimony.blacklist.k, has.read.counts, read.counts.matter, verbose){
-  
+
   tree <- tree.info$tree
   tip.hosts <- sapply(tree$tip.label, function(x) host.from.label(x, tip.regex))
   tip.hosts[tree.info$blacklist] <- NA
-  
+
   hosts <- unique(na.omit(tip.hosts))
-  
+
   hosts <- hosts[order(hosts)]
-  
+
   results <- sapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, outgroup.name, raw.blacklist.threshold, ratio.blacklist.threshold, "s", parsimony.blacklist.k, 0, read.counts.matter, T, !has.read.counts, tip.regex, verbose), simplify = F, USE.NAMES = T)
-  
+
   contaminant                                 <- unlist(lapply(results, "[[", 2))
   contaminant.nos                             <- which(tree.info$tree$tip.label %in% contaminant)
-  
-  newly.blacklisted                           <- setdiff(contaminant.nos, tree.info$blacklist) 
-  
+
+  newly.blacklisted                           <- setdiff(contaminant.nos, tree.info$blacklist)
+
   if(verbose & length(newly.blacklisted)>0) cat(length(newly.blacklisted), " tips blacklisted as probable contaminants by parsimony reconstruction for tree suffix ",tree.info$suffix, "\n", sep="")
-  
+
   tree.info$hosts.for.tips[newly.blacklisted] <- NA
-  
+
   old.tip.labels                              <- tree.info$tree$tip.label
-  
+
   if(length(newly.blacklisted)>0){
     new.tip.labels                            <- old.tip.labels
     new.tip.labels[newly.blacklisted]         <- paste0(new.tip.labels[newly.blacklisted], "_X_CONTAMINANT")
     tree$tip.label                            <- new.tip.labels
     tree.info$tree                            <- tree
   }
-  
+
   tree.info$blacklist                         <- unique(c(tree.info$blacklist, contaminant.nos))
   tree.info$blacklist                         <- tree.info$blacklist[order(tree.info$blacklist)]
-  
+
   which.are.duals                             <- which(unlist(lapply(results, "[[", 6)))
   mi.count                                    <- unlist(lapply(results, "[[", 7))
-  
+
   multiplicity.table                          <- data.frame(host = hosts, count = mi.count, stringsAsFactors = F)
   tree.info$dual.detection.splits             <- multiplicity.table
-  
+
   if(length(which.are.duals) > 0) {
-    mi.df                                     <- data.frame(host = unlist(sapply(results[which.are.duals], function (x) rep(x$id, length(x$tip.names)) )), 
+    mi.df                                     <- data.frame(host = unlist(sapply(results[which.are.duals], function (x) rep(x$id, length(x$tip.names)) )),
                                                             tip.name = unlist(lapply(results[which.are.duals], "[[", 3)),
                                                             reads.in.subtree = unlist(lapply(results[which.are.duals], "[[", 4)),
-                                                            tips.in.subtree = unlist(lapply(results[which.are.duals], "[[", 5)), 
+                                                            tips.in.subtree = unlist(lapply(results[which.are.duals], "[[", 5)),
                                                             stringsAsFactors = F
     )
-    
+
     tree.info$duals.info <- mi.df
-  } 
-  
+  }
+
   tree.info
 }
 
@@ -1628,26 +1629,26 @@ blacklist.using.parsimony <- function(tree.info, tip.regex, outgroup.name, raw.b
 
 blacklist.from.duals.list <- function(tree.info, dual.results, verbose) {
   tree <- tree.info$tree
-  
+
   if(!is.null(dual.results[[tree.info$suffix]])){
     dual                                        <- dual.results[[tree.info$suffix]]
     dual.nos                                    <- which(tree.info$original.tip.labels %in% dual)
-    
-    newly.blacklisted                           <- setdiff(dual.nos, tree.info$blacklist) 
-    
+
+    newly.blacklisted                           <- setdiff(dual.nos, tree.info$blacklist)
+
     if(verbose & length(newly.blacklisted)>0) cat(length(newly.blacklisted), " tips blacklisted for belonging to minor subgraphs in tree ID ",tree.info$suffix, "\n", sep="")
-    
+
     tree.info$hosts.for.tips[newly.blacklisted] <- NA
-    
+
     old.tip.labels                              <- tree.info$tree$tip.label
-    
+
     if(length(newly.blacklisted)>0){
       new.tip.labels                            <- old.tip.labels
       new.tip.labels[newly.blacklisted]         <- paste0(new.tip.labels[newly.blacklisted], "_X_DUAL")
       tree$tip.label                            <- new.tip.labels
       tree.info$tree                            <- tree
     }
-    
+
     tree.info$blacklist                         <- unique(c(tree.info$blacklist, dual.nos))
     tree.info$blacklist                         <- tree.info$blacklist[order(tree.info$blacklist)]
   }
@@ -1659,7 +1660,7 @@ blacklist.from.duals.list <- function(tree.info, dual.results, verbose) {
 
 blacklist.from.random.downsample <- function(tree.info, max.reads.per.host, blacklist.underrepresented, has.read.counts, tip.regex, seed, verbose){
   tree.info <- downsample.tree(tree.info, NULL, max.reads.per.host, T, blacklist.underrepresented, !has.read.counts, tip.regex, seed, verbose)
-  tree.info$hosts.for.tips[tree.info$blacklist] <- NA 
-  
+  tree.info$hosts.for.tips[tree.info$blacklist] <- NA
+
   tree.info
 }
