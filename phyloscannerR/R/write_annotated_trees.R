@@ -29,6 +29,9 @@ write.ann.tree <-
     else cat(res, file = file, append = append, sep = "\n")
   }
 
+#' @keywords internal
+#' @export .write.ann.tree2
+
 .write.ann.tree2 <- function(phy, annotations = NULL, digits = 10, tree.prefix = "")
 {
   brl <- !is.null(phy$edge.length)
