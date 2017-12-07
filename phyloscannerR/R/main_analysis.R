@@ -573,7 +573,7 @@ phyloscanner.analyse.trees <- function(
     
     if(verbose) cat("Reconstructing internal node hosts on tree ID ",tree.info$suffix, "\n", sep="")
     
-    tmp					     <- split.hosts.to.subgraphs(tree.info$tree, tree.info$blacklist, splits.rule, tip.regex, sankoff.k, sankoff.p, use.ff, read.counts.matter.on.zero.length.tips, multifurcation.threshold, hosts, tree.info$suffix, verbose, no.progress.bars)
+    tmp					       <- split.hosts.to.subgraphs(tree.info$tree, tree.info$blacklist, splits.rule, tip.regex, sankoff.k, sankoff.p, use.ff, read.counts.matter.on.zero.length.tips, multifurcation.threshold, hosts, tree.info$suffix, verbose, no.progress.bars)
     tree					   <- tmp[['tree']]	
     
     # trees are annotated from now on
@@ -607,8 +607,7 @@ phyloscanner.analyse.trees <- function(
   
   
   # 19. For summary statistics
-  
-  
+
   all.tree.info <- sapply(all.tree.info, function(tree.info) {
     clade.results                 <- resolveTreeIntoPatientClades(tree.info$tree, hosts, tip.regex, tree.info$blacklist, !has.read.counts)
     
@@ -1239,7 +1238,7 @@ multipage.summary.statistics <- function(phyloscanner.trees, sum.stats, hosts = 
   rectangles.for.missing.windows <- missing.window.data$rectangles.for.missing.windows
   bar.width <- missing.window.data$width
   
-  produce.pdf.graphs(file.name, sum.stats, hosts, xcoords, x.limits, rectangles.for.missing.windows, bar.width, regular.gaps = F, width, height, readable.coords = F, verbose = F)
+  produce.pdf.graphs(file.name, sum.stats, hosts, xcoords, x.limits, rectangles.for.missing.windows, bar.width, regular.gaps, width, height, readable.coords, verbose)
 }
 
 #' Write the phylogeny with reconstructed host annotations to file
@@ -1249,13 +1248,15 @@ multipage.summary.statistics <- function(phyloscanner.trees, sum.stats, hosts = 
 #' @param pdf.scale.bar.width The width, in substitutions per site, of the scale bar in PDF output
 #' @param pdf.w The width of the output PDF file, in inches
 #' @param pdf.hm The height, in inches per tip, of the output PDF file
+#' @param verbose Verbose output
 #' @importFrom ggtree ggtree geom_point2 geom_tiplab geom_treescale
 #' @import ggplot2
 #' @import ggtree
 #' @export write.annotated.tree
-write.annotated.tree <- function(phyloscanner.tree, file.name, format = c("pdf", "nexus"), pdf.scale.bar.width = 0.01, pdf.w = 50, pdf.hm = 0.15){
+write.annotated.tree <- function(phyloscanner.tree, file.name, format = c("pdf", "nexus"), pdf.scale.bar.width = 0.01, pdf.w = 50, pdf.hm = 0.15, verbose = F){
   tree <- phyloscanner.tree$tree
-  
+  if(verbose) cat(paste0("Writing ",format," tree to file ",file.name,"\n"))
+
   if(format == "pdf"){
     tree.display <- ggtree(tree, aes(color=BRANCH_COLOURS)) +
       geom_point2(aes(subset=SUBGRAPH_MRCA, color=INDIVIDUAL), shape = 23, size = 3, fill="white") +

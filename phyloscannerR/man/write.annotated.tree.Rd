@@ -5,7 +5,7 @@
 \title{Write the phylogeny with reconstructed host annotations to file}
 \usage{
 write.annotated.tree(phyloscanner.tree, file.name, format = c("pdf", "nexus"),
-  pdf.scale.bar.width = 0.01, pdf.w = 50, pdf.hm = 0.15)
+  pdf.scale.bar.width = 0.01, pdf.w = 50, pdf.hm = 0.15, verbose = F)
 }
 \arguments{
 \item{phyloscanner.tree}{A list of class \code{phyloscanner.tree} (usually an item in a list of class \code{phyloscanner.trees})}
@@ -19,6 +19,8 @@ write.annotated.tree(phyloscanner.tree, file.name, format = c("pdf", "nexus"),
 \item{pdf.w}{The width of the output PDF file, in inches}
 
 \item{pdf.hm}{The height, in inches per tip, of the output PDF file}
+
+\item{verbose}{Verbose output}
 }
 \description{
 Write the phylogeny with reconstructed host annotations to file
