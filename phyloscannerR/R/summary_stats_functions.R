@@ -2,6 +2,7 @@
 
 #' @keywords internal
 #' @export calc.subtree.stats
+#' @importFrom ape unroot
 
 calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table, tip.regex, no.read.counts, verbose = F){
   
