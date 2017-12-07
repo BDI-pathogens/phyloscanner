@@ -52,6 +52,7 @@ arg_parser$add_argument("-pbk", "--parsimonyBlacklistK", action="store", type="d
 arg_parser$add_argument("-rwt", "--rawBlacklistThreshold", action="store", default=0, help="Used to specify a read count to be used as a raw threshold for blacklisting. --parsimonyBlacklistK and/or --duplicateBlacklist must also be used. If --parsimonyBlacklistK is used, we will blacklist any subgraph with a read count strictly less than this threshold. If --duplicateBlacklist is used, we will black list any duplicate read with a count strictly less than this threshold. The default value of 0 means nothing is blacklisted.")
 arg_parser$add_argument("-rtt", "--ratioBlacklistThreshold", action="store", default=0, help="Used to specify a read count ratio (between 0 and 1) to be used as a threshold for blacklisting. --parsimonyBlacklistK and/or --duplicateBlacklist must also be used. If --parsimonyBlacklistK is used, we will blacklist a subgraph if the ratio of its read count to the total read count from the same host is strictly less than this threshold. If --duplicateBlacklist is used, we will black list a duplicate read if the ratio of its count to the count of the duplicate (from another host) is strictly less than this threshold.")
 arg_parser$add_argument("-ub", "--dualBlacklist", action="store_true", default=F, help="Blacklist all reads from the minor subgraphs for all hosts established as dual by parsimony blacklisting.")
+arg_parser$add_argument("-rcm", "--readCountsMatterOnZeroLengthBranches", default = FALSE, action="store_true", help="If present, read counts at tips will be taken into account in parsimony reconstructions at the parents of zero-length branches.")
 
 # Downsampling
 
@@ -170,6 +171,8 @@ if(is.null(downsampling.limit)){
 }
 blacklist.ur          <- args$blacklistUnderrepresented
 
+read.counts.matter    <- args$readCountsMatterOnZeroLengthBranches
+
 success <- remove.blacklist.from.alignment(
   tree.directory,
   alignment.directory,
@@ -194,6 +197,6 @@ success <- remove.blacklist.from.alignment(
   do.dual.blacklisting,
   downsampling.limit,
   blacklist.ur,
+  read.counts.matter,
   output.string,
-  verbose,
-  T)
+  verbose)
