@@ -1567,8 +1567,7 @@ blacklist.using.parsimony <- function(tree.info, tip.regex, outgroup.name, raw.b
     hosts   <- unique(na.omit(tip.hosts))
 
     hosts   <- hosts[order(hosts)]
-
-
+    
     results <- sapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, outgroup.name, raw.blacklist.threshold, ratio.blacklist.threshold, "s", parsimony.blacklist.k, 0, read.counts.matter, T, !has.read.counts, tip.regex, verbose), simplify = F, USE.NAMES = T)
 
     contaminant                                 <- unlist(lapply(results, "[[", 2))

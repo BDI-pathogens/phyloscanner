@@ -636,7 +636,7 @@ check.tt.node.adjacency <- function(tt, label1, label2, allow.unassigned = F){
 
   # #START TEMPORARY BIT - if the middle node is the region around the root this adjacency is not interesting
   # 
-  # if(substr(path[2], 1, 16) == "unassigned_region" & get.tt.parent(tt, path[2])=="root"){
+  # if(substr(path[2], 1, 17) == "unassigned_region" & get.tt.parent(tt, path[2])=="root"){
   #   return(F)
   # }
   # 
