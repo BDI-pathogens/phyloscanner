@@ -66,7 +66,6 @@ prune.blacklist = F,
 read.counts.matter.on.zero.length.tips = T,
 verbose = F,
 no.progress.bars = F){
-
     tree.directory <- dirname(tree.file.name)
     user.blacklist.directory <- if(!is.null(user.blacklist.file.name)) dirname(user.blacklist.file.name) else NULL
     duplicate.file.directory <- if(!is.null(duplicate.file.name)) dirname(duplicate.file.name) else NULL
@@ -156,6 +155,13 @@ prune.blacklist = F,
 read.counts.matter.on.zero.length.tips = T,
 verbose = F,
 no.progress.bars = F){
+  
+    full.tree.file.names <- list.files.mod(tree.directory, pattern=tree.file.regex, full.names=TRUE)
+    tree.file.names <- list.files.mod(tree.directory,  pattern=tree.file.regex)
+    
+    if(length(tree.file.names)==0){
+      stop("No tree files found.")
+    }
 
     splits.rule <- match.arg(splits.rule)
 
@@ -186,13 +192,6 @@ no.progress.bars = F){
     # 1. Make the big list.
 
     all.tree.info <- list()
-
-    full.tree.file.names <- list.files.mod(tree.directory, pattern=tree.file.regex, full.names=TRUE)
-    tree.file.names <- list.files.mod(tree.directory,  pattern=tree.file.regex)
-
-    if(length(tree.file.names)==0){
-        stop("No tree files found.")
-    }
 
     # There are two ways to match files - to the "suffixes" - which no longer literally have to be suffixes - and to window coordinates.
 
