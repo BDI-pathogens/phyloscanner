@@ -117,7 +117,6 @@ output.dir                    <- args$outputDir
 if(is.null(output.dir)){
     output.dir                <- getwd()
 }
-setwd(output.dir)
 output.string                 <- args$outputString
 
 
@@ -366,7 +365,7 @@ if(file.exists(tree.input)){
 
 silent <- sapply(phyloscanner.trees, function(tree.info){
     file.name <- paste0("Processed_Tree_", output.string, "_", tree.info$suffix, ".", tree.output.format)
-    write.annotated.tree(tree.info, file.name, tree.output.format, pdf.scale.bar.width, pdf.w, pdf.hm, verbose)
+    write.annotated.tree(tree.info, file=file.path(output.dir, file.name), tree.output.format, pdf.scale.bar.width, pdf.w, pdf.hm, verbose)
 
 }, simplify = F, USE.NAMES = T)
 
@@ -374,7 +373,7 @@ if(do.collapsed){
     silent <- sapply(phyloscanner.trees, function(tree.info){
         file.name <- paste0("Collapsed_Tree_", output.string, "_", tree.info$suffix, ".", csv.fe)
         if(verbose) cat("Writing collapsed tree for tree ID ",tree.info$suffix," to file ",file.name, "\n")
-        write.csv(tree.info$classification.results$collapsed[,1:4], file.name, quote=F, row.names=F)
+        write.csv(tree.info$classification.results$collapsed[,1:4], file=file.path(output.dir, file.name), quote=F, row.names=F)
 
     }, simplify = F, USE.NAMES = T)
 }
@@ -384,7 +383,7 @@ if(do.class.detail){
     silent <- sapply(phyloscanner.trees, function(tree.info){
         file.name <- paste0("Classification_", output.string, "_", tree.info$suffix, ".", csv.fe)
         if(verbose) cat("Writing relationship classifications for tree ID ",tree.info$suffix," to file ",file.name, "\n")
-        write.csv(tree.info$classification.results$classification, file.name, quote=F, row.names=F)
+        write.csv(tree.info$classification.results$classification, file=file.path(output.dir, file.name), quote=F, row.names=F)
 
     }, simplify = F, USE.NAMES = T)
 }
@@ -398,7 +397,7 @@ if(length(phyloscanner.trees)>1){
 
     ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, allow.mt, close.sib.only = F, verbose)
     if (verbose) cat('Writing summary to file', paste0(output.string,"_hostRelationshipSummary.",csv.fe),'\n')
-    write.csv(ts, file=paste0(output.string,"_hostRelationshipSummary.",csv.fe), row.names=FALSE, quote=FALSE)
+    write.csv(ts, file=file.path(output.dir, paste0(output.string,"_hostRelationshipSummary.",csv.fe)), row.names=FALSE, quote=FALSE)
 
     ts$ancestry <- as.character(ts$ancestry)
 
@@ -417,6 +416,6 @@ if(length(phyloscanner.trees)>1){
 
     if(output.rda){
         if (verbose) cat('Saving R workspace image to file', paste0("workspace_",output.string,".rda"),'\n')
-        save.image(file=paste0("workspace_",output.string,".rda"))
+        save.image(file=file.path(output.dir, paste0("workspace_",output.string,".rda")))
     }
 }
