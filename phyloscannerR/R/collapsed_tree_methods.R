@@ -642,7 +642,7 @@ check.tt.node.adjacency <- function(tt, label1, label2, allow.unassigned = F){
   # 
   # #END TEMPORARY BIT
   
-  return(substr(path[2], 1, 16) == "unassigned_region")
+  return(substr(path[2], 1, 17) == "unassigned_region")
   
 }
 
@@ -864,7 +864,7 @@ classify <- function(tree.info, verbose = F, no.progress.bars = F) {
   }
   
   colnames(classification) <- column.names
-  return (list(classification = classification, collapsed=tt))
+  return(list(classification = classification, collapsed=tt))
 }
 
 convert.to.columns <- function(matrix, names){
