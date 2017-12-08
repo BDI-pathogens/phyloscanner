@@ -642,7 +642,7 @@ check.tt.node.adjacency <- function(tt, label1, label2, allow.unassigned = F){
   # 
   # #END TEMPORARY BIT
   
-  return(!grepl("^unassigned_region",path[2]) == "unassigned_region")
+  return(grepl("^unassigned_region",path[2]) == "unassigned_region")
   
 }
 
