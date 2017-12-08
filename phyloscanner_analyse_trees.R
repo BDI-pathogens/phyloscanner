@@ -396,7 +396,7 @@ if(length(phyloscanner.trees)>1){
     write.csv(summary.stats, file.path(output.dir, paste0(output.string,"_patStats.",csv.fe)), quote=F, row.names=F)
 
     ss.graphs.fn <- paste0(output.string,"_patStats.pdf")
-    silent <- multipage.summary.statistics(phyloscanner.trees, summary.stats, file.name = ss.graphs.fn, verbose = verbose)
+    silent <- multipage.summary.statistics(phyloscanner.trees, summary.stats, file.name = file.path(output.dir, ss.graphs.fn), verbose = verbose)
 
     ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, allow.mt, close.sib.only = F, verbose)
     if (verbose) cat('Writing summary to file', paste0(output.string,"_hostRelationshipSummary.",csv.fe),'\n')
@@ -413,7 +413,7 @@ if(length(phyloscanner.trees)>1){
             simplified.graph <- simplify.summary(ts, arrow.threshold, length(phyloscanner.trees), plot = T)
 
             simplified.graph$simp.diagram
-            ggsave(file = paste0(output.string,"_simplifiedRelationshipGraph.pdf"), width=simp.plot.dim, height=simp.plot.dim)
+            ggsave(file = file.path(output.dir, paste0(output.string,"_simplifiedRelationshipGraph.pdf")), width=simp.plot.dim, height=simp.plot.dim)
         }
     }
 
