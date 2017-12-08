@@ -715,7 +715,7 @@ classify <- function(tree.info, verbose = F, no.progress.bars = F) {
   hosts.included <- hosts
   
   total.split.pairs <- (length(all.splits) ^ 2 - length(all.splits))/2
-  total.host.pairs <- length(hosts)
+  total.host.pairs <- (length(hosts)^2 - length(hosts))/2
   
   if (verbose) cat("Collapsing subgraphs...\n")
   
