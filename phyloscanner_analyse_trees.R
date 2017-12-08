@@ -281,6 +281,9 @@ do.class.detail                <- args$allClassifications
 # Thresholds for summaries
 win.threshold                  <- args$windowThreshold
 dist.threshold                 <- args$distanceThreshold
+if(dist.threshold == -1){
+  dist.threshold <- Inf
+}
 arrow.threshold                <- args$directionThreshold
 
 if(arrow.threshold >= win.threshold){
