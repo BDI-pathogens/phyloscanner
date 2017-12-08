@@ -390,7 +390,7 @@ if(do.class.detail){
 
 if(length(phyloscanner.trees)>1){
     summary.stats <- gather.summary.statistics(phyloscanner.trees, tip.regex = tip.regex, verbose = verbose)
-    write.csv(summary.stats, paste0(output.string,"_patStats.",csv.fe), quote=F, row.names=F)
+    write.csv(summary.stats, file.path(output.dir, paste0(output.string,"_patStats.",csv.fe)), quote=F, row.names=F)
 
     ss.graphs.fn <- paste0(output.string,"_patStats.pdf")
     silent <- multipage.summary.statistics(phyloscanner.trees, summary.stats, file.name = ss.graphs.fn, verbose = verbose)
