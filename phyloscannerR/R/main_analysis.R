@@ -196,7 +196,7 @@ no.progress.bars = F){
     # There are two ways to match files - to the "suffixes" - which no longer literally have to be suffixes - and to window coordinates.
 
     match.mode <<- NA
-
+    
     if(!is.null(tree.file.regex)){
         tree.identifiers <- sapply(tree.file.names, function(x) sub(tree.file.regex, "\\1", x))
         if(all(tree.identifiers!="")){
