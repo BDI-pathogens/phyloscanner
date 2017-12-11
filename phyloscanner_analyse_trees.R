@@ -416,9 +416,9 @@ if(length(phyloscanner.trees)>1){
             ggsave(file = file.path(output.dir, paste0(output.string,"_simplifiedRelationshipGraph.pdf")), width=simp.plot.dim, height=simp.plot.dim)
         }
     }
+}
 
-    if(output.rda){
-        if (verbose) cat('Saving R workspace image to file', paste0("workspace_",output.string,".rda"),'\n')
-        save.image(file=file.path(output.dir, paste0("workspace_",output.string,".rda")))
-    }
+if(output.rda){
+  if (verbose) cat('Saving R workspace image to file', paste0("workspace_",output.string,".rda"),'\n')
+  save.image(file=file.path(output.dir, paste0("workspace_",output.string,".rda")))
 }
