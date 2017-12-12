@@ -1286,7 +1286,9 @@ transmission.summary <- function(phyloscanner.trees, win.threshold=0, dist.thres
     if(length(phyloscanner.trees)==1){
         stop("Can't summarise transmission information on a single tree. Use the collapsed tree instead?")
     }
-    summarise.classifications(phyloscanner.trees, win.threshold*length(phyloscanner.trees), dist.threshold, allow.mt, close.sib.only, verbose, F)
+    out <- summarise.classifications(phyloscanner.trees, win.threshold*length(phyloscanner.trees), dist.threshold, allow.mt, close.sib.only, verbose, F)
+    out$ancestry <- as.character(out$ancestry)
+    out
 }
 
 #' Simplfy and visually display the pairwise host relationships across all trees

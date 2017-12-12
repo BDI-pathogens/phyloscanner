@@ -402,8 +402,6 @@ if(length(phyloscanner.trees)>1){
     if (verbose) cat('Writing summary to file', paste0(output.string,"_hostRelationshipSummary.",csv.fe),'\n')
     write.csv(ts, file=file.path(output.dir, paste0(output.string,"_hostRelationshipSummary.",csv.fe)), row.names=FALSE, quote=FALSE)
 
-    ts$ancestry <- as.character(ts$ancestry)
-
     if(do.simplified.graph){
         if (verbose) cat('Drawing simplified summary diagram to file', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'\n')
 
