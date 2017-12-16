@@ -85,7 +85,7 @@ if(file.exists(input.file.name)){
   all.tree.info[[input.file.name]] <- tree.info
 } else {
   #	option 2: input.file.name specifies a root name for several input files
-
+  
   input.file.names <- sort(list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name),'.*\\.', tree.fe,'$',sep=''), full.names=TRUE))
 
   if(length(input.file.names)==0){
@@ -150,7 +150,7 @@ if(!is.null(hosts.file.name)){
 }
 
 for(tree.info in all.tree.info){
-  tree.info <- downsample.tree(tree.info, hosts, max.reads, rename, exclude.underrepresented, no.read.counts, seed, verbose)
+  tree.info <- downsample.tree(tree.info, hosts, max.reads, rename, exclude.underrepresented, no.read.counts, tip.regex,  seed, verbose)
   
   if(rename){
     if(verbose){
@@ -167,3 +167,4 @@ for(tree.info in all.tree.info){
   
 }
 
+save.image(file="debug.rda")

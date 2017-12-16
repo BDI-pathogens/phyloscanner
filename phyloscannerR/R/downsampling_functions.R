@@ -107,8 +107,9 @@ downsample.tree <- function(tree.info, hosts.to.include, max.reads, rename = F, 
     cat("Downsampling reads on tree ",tree.info$suffix," to ",max.reads," per host...\n",sep = "")
   }
 
-  if(!is.na(seed))
+  if(!is.na(seed)){
     set.seed(seed)
+  }
   
   if(is.null(tree.info$tree)){
     if(verbose){
@@ -186,3 +187,4 @@ downsample.tree <- function(tree.info, hosts.to.include, max.reads, rename = F, 
   
   tree.info
 }
+
