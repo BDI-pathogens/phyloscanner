@@ -17,7 +17,7 @@ arg_parser$add_argument("-nrc", "--noReadCounts", action="store_true", help="If 
 arg_parser$add_argument("-R", "--rename", action="store", help="If present, tip labels will be rewritten to include the number of reads that were sampled, not the total in the starting data. A new tree file will be output to this argument or, if there are multiple tree files, to this base name. This is recommended if this script is used and the -R option is used in split_hosts_to_subtrees.R, which should then be given the relabelled tree as input.")
 arg_parser$add_argument("-e", "--excludeUnderrepresented", action="store_true", help="If present, hosts without enough reads will be blacklisted entirely from this tree. If absent, all reads from that host will be included.")
 arg_parser$add_argument("maxReadsPerHost", type="double", action="store", help="The upper limit for the number of reads to be included from each host")
-arg_parser$add_argument("inputFile", metavar="inputTreeFileName", help="Tree file name. Alternatively, a base name that identifies a group of tree file names can be specified. Tree files are assumed to end in .tree.")  
+arg_parser$add_argument("inputFile", metavar="inputTreeFileName", help="Tree file name. Alternatively, a base name that identifies a group of tree file names can be specified.")  
 arg_parser$add_argument("outputFile", metavar="outputFileName", help="The file to write the output to, a list of tips to be blacklisted.")  
 arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what the script is doing.")
 arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default="tree", help="The file extension for tree files (default .tree).")
