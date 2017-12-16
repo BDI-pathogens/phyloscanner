@@ -503,7 +503,7 @@ no.progress.bars = F){
     # 15. Downsampling
 
     if(downsample){
-        all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.random.downsample(tree.info, max.reads.per.host, blacklist.underrepresented, has.read.counts, tip.regex, seed, verbose), simplify = F, USE.NAMES = T)
+        all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.random.downsample(tree.info, max.reads.per.host, blacklist.underrepresented, has.read.counts, tip.regex, NA, verbose), simplify = F, USE.NAMES = T)
     }
 
     # 16. All IDs can be safely gathered and mapped now. Windows with no patients should be removed.
@@ -1035,7 +1035,7 @@ verbose = F){
     # 12. Downsampling
 
     if(downsample){
-        all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.random.downsample(tree.info, max.reads.per.host, blacklist.underrepresented, has.read.counts, tip.regex, seed, verbose), simplify = F, USE.NAMES = T)
+        all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.random.downsample(tree.info, max.reads.per.host, blacklist.underrepresented, has.read.counts, tip.regex, NA, verbose), simplify = F, USE.NAMES = T)
     }
 
     sapply(all.tree.info, function(tree.info){
