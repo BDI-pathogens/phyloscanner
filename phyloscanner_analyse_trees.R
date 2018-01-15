@@ -299,7 +299,9 @@ allow.mt                       <- args$allowMultiTrans
 do.simplified.graph            <- !args$skipSummaryGraph
 simp.plot.dim                  <- args$summaryPlotDimensions
 
-if(file.exists(tree.input)){
+single.tree <- file.exists(tree.input)
+
+if(single.tree){
   phyloscanner.trees <- phyloscanner.analyse.tree(
     tree.input,
     reconstruction.mode,
@@ -330,7 +332,6 @@ if(file.exists(tree.input)){
     verbose ,
     no.progress.bars)
 } else {
-  print("hi")
   phyloscanner.trees <- phyloscanner.analyse.trees(
     tree.directory,
     tree.file.regex,
@@ -368,14 +369,21 @@ if(file.exists(tree.input)){
 
 
 silent <- sapply(phyloscanner.trees, function(tree.info){
-  file.name <- paste0("Processed_Tree_", output.string, "_", tree.info$suffix, ".", tree.output.format)
+  if(single.tree){
+    file.name <- paste0("Processed_Tree_", output.string, ".", tree.output.format)
+  } else {
+    file.name <- paste0("Processed_Tree_", output.string, "_", tree.info$suffix, ".", tree.output.format)
+  }
   write.annotated.tree(tree.info, file=file.path(output.dir, file.name), tree.output.format, pdf.scale.bar.width, pdf.w, pdf.hm, verbose)
-  
 }, simplify = F, USE.NAMES = T)
 
 if(do.collapsed){
   silent <- sapply(phyloscanner.trees, function(tree.info){
-    file.name <- paste0("Collapsed_Tree_", output.string, "_", tree.info$suffix, ".", csv.fe)
+    if(single.tree){
+      file.name <- paste0("Collapsed_Tree_", output.string, ".", csv.fe)
+    } else {
+      file.name <- paste0("Collapsed_Tree_", output.string, "_", tree.info$suffix, ".", csv.fe)
+    }
     if(verbose) cat("Writing collapsed tree for tree ID",tree.info$suffix,"to file",file.name, "\n")
     write.csv(tree.info$classification.results$collapsed[,1:4], file=file.path(output.dir, file.name), quote=F, row.names=F)
     
@@ -385,7 +393,11 @@ if(do.collapsed){
 
 if(do.class.detail){
   silent <- sapply(phyloscanner.trees, function(tree.info){
-    file.name <- paste0("Classification_", output.string, "_", tree.info$suffix, ".", csv.fe)
+    if(single.tree){
+      file.name <- paste0("Classification_", output.string, ".", csv.fe)
+    } else {
+      file.name <- paste0("Classification_", output.string, "_", tree.info$suffix, ".", csv.fe)
+    }
     if(verbose) cat("Writing relationship classifications for tree ID",tree.info$suffix,"to file",file.name, "\n")
     write.csv(tree.info$classification.results$classification, file=file.path(output.dir, file.name), quote=F, row.names=F)
     

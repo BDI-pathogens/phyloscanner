@@ -66,6 +66,7 @@ prune.blacklist = F,
 read.counts.matter.on.zero.length.tips = T,
 verbose = F,
 no.progress.bars = F){
+  
     tree.directory <- dirname(tree.file.name)
     user.blacklist.directory <- if(!is.null(user.blacklist.file.name)) dirname(user.blacklist.file.name) else NULL
     duplicate.file.directory <- if(!is.null(duplicate.file.name)) dirname(duplicate.file.name) else NULL
@@ -217,7 +218,7 @@ no.progress.bars = F){
     if(length(unique(tree.identifiers)) != length(tree.identifiers)){
         stop("Some trees have duplicate IDs.")
     }
-
+    
     for(id.no in 1:length(tree.identifiers)){
         suffix                        <- tree.identifiers[id.no]
 
