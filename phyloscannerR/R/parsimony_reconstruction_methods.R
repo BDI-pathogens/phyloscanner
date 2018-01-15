@@ -28,7 +28,7 @@ split.hosts.to.subgraphs <- function(tree, blacklist, mode, tip.regex, sankoff.k
 
   tip.labels <- tree$tip.label
   
-  if (verbose) cat("Identifying tips with host...\n")
+  if (verbose) cat("Identifying tips with hosts...\n")
   
   # Find host IDs from each tip
   
@@ -44,7 +44,7 @@ split.hosts.to.subgraphs <- function(tree, blacklist, mode, tip.regex, sankoff.k
   
   # Find the complete list of hosts present in this tree minus blacklisting
   
-  if (verbose) cat("Finding list of hosts...\n")
+  if (verbose) cat("Constructing list of hosts...\n")
   
   if(length(blacklist)>0){
     hosts <- unique(na.omit(tip.hosts[-blacklist]))
