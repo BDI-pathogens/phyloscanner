@@ -313,8 +313,11 @@ no.progress.bars = F){
                     })
                 }
             }
+            if(length(intersect(tree.identifiers, duplicate.identifiers))==0){
+              stop("Tree files identifiers and duplicate file identifiers do not match at all. Check file prefixes are correct.")
+            }
             if(!setequal(tree.identifiers, duplicate.identifiers)){
-                stop("Tree files and duplicate files do not match.")
+              warning("Tree files identifiers and duplicate file identifiers do not entirely match.")
             }
         }
 
@@ -1521,10 +1524,14 @@ apply.normalisation.constants <- function(tree.info) {
 #' @keywords internal
 
 find.duplicate.tips <- function(tree.info) {
-    if(file.exists(tree.info$duplicate.file.name)){
-        tree.info$duplicate.tips <- strsplit(readLines(tree.info$duplicate.file.name, warn=F),",")
+    if(!is.null(tree.info$duplicate.file.name)){
+      if(file.exists(tree.info$duplicate.file.name)){
+          tree.info$duplicate.tips <- strsplit(readLines(tree.info$duplicate.file.name, warn=F),",")
+      } else {
+          warning("No duplicates file found for tree suffix ", tree.info$suffix, "; skipping duplicate blacklisting.")
+      }
     } else {
-        warning("No duplicates file found for tree suffix ",tree.info$suffix, "; skipping duplicate blacklisting.")
+      warning("No duplicates file found for tree suffix ", tree.info$suffix, "; skipping duplicate blacklisting.")
     }
     tree.info
 }
