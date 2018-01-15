@@ -394,7 +394,11 @@ no.progress.bars = F){
             }, simplify = F, USE.NAMES = T)
 
         } else {
-            warning("Cannot parse -nc argument; tree branch lengths will not be normalised.\n")
+            all.tree.info <- sapply(all.tree.info, function(tree.info) {
+              tree.info$normalisation.constant  <- 1
+              tree.info
+            }, simplify = F, USE.NAMES = T)
+            warning(paste0("Normalisation file ",norm.constants," not found. Tree branch lengths will not be normalised.\n"))
         }
     } else if(!is.null(norm.ref.file.name)){
         if(readable.coords){
@@ -890,7 +894,6 @@ verbose = F){
 
     all.tree.info <- sapply(all.tree.info, function(tree.info) read.blacklist(tree.info, verbose), simplify = F, USE.NAMES = T)
 
-
     # 7. Get the normalisation constants
 
     if(!is.null(norm.constants)){
@@ -925,7 +928,11 @@ verbose = F){
             }, simplify = F, USE.NAMES = T)
 
         } else {
-            warning("Cannot parse -nc argument; tree branch lengths will not be normalised.\n")
+            all.tree.info <- sapply(all.tree.info, function(tree.info) {
+              tree.info$normalisation.constant  <- 1
+              tree.info
+            }, simplify = F, USE.NAMES = T)
+            warning(paste0("Normalisation file ",norm.constants," not found. Tree branch lengths will not be normalised.\n"))
         }
     } else if(!is.null(norm.ref.file.name)){
         if(readable.coords){

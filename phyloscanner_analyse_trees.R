@@ -95,55 +95,55 @@ csv.fe                        <- args$csvFileExtension
 # tree input
 tree.input                    <- args$tree
 if(!file.exists(tree.input)){
-    tree.directory            <- dirname(tree.input)
-    tree.file.regex           <- paste0("^", basename(tree.input), "(.*)\\.", tree.fe, "$")
+  tree.directory            <- dirname(tree.input)
+  tree.file.regex           <- paste0("^", basename(tree.input), "(.*)\\.", tree.fe, "$")
 }
 
 # user blacklist
 blacklist.input               <- args$userBlacklist
 
 if(!is.null(blacklist.input)){
-    if(!file.exists(blacklist.input)){
-        user.blacklist.directory    <- dirname(blacklist.input)
-        user.blacklist.file.regex   <- paste0("^", basename(blacklist.input), "(.*)\\.",csv.fe,"$")
-    }
+  if(!file.exists(blacklist.input)){
+    user.blacklist.directory    <- dirname(blacklist.input)
+    user.blacklist.file.regex   <- paste0("^", basename(blacklist.input), "(.*)\\.",csv.fe,"$")
+  }
 } else {
-    user.blacklist.directory    <- NULL
-    user.blacklist.file.regex   <- NULL
+  user.blacklist.directory    <- NULL
+  user.blacklist.file.regex   <- NULL
 }
 
 # output files
 output.dir                    <- args$outputDir
 if(is.null(output.dir)){
-    output.dir                <- getwd()
+  output.dir                <- getwd()
 }
 output.string                 <- args$outputString
 
 
 if(!overwrite & length(list.files(path=output.dir, pattern=paste0("^", output.string, ".*")))>0 ){
-    stop("Previous output with this output string (",output.string,") detected. Please re-run with --overwrite if you wish to overwrite this.")
+  stop("Previous output with this output string (",output.string,") detected. Please re-run with --overwrite if you wish to overwrite this.")
 }
 
 # outgroup name
 outgroup.name                 <- args$outgroupName
 
 if(is.null(outgroup.name)){
-    warning("No outgroup name provided. Trees are assumed to be correctly rooted.")
+  warning("No outgroup name provided. Trees are assumed to be correctly rooted.")
 }
 
 # multifurcation threshold
 use.m.thresh                  <- !is.null(args$multifurcationThreshold)
 
 if(use.m.thresh){
-    if(args$multifurcationThreshold=="g"){
-        m.thresh                  <- NA
-    } else if(!is.na(as.numeric(args$multifurcationThreshold))){
-        m.thresh                  <- as.numeric(args$multifurcationThreshold)
-    } else {
-        stop("Unknown argument for --multifurcationThreshold specified\n")
-    }
+  if(args$multifurcationThreshold=="g"){
+    m.thresh                  <- NA
+  } else if(!is.na(as.numeric(args$multifurcationThreshold))){
+    m.thresh                  <- as.numeric(args$multifurcationThreshold)
+  } else {
+    stop("Unknown argument for --multifurcationThreshold specified\n")
+  }
 } else {
-    m.thresh                    <- -1
+  m.thresh                    <- -1
 }
 
 # PDF tree dimensions
@@ -154,9 +154,9 @@ pdf.scale.bar.width           <- as.numeric(args$pdfScaleBarWidth)
 # Random number seed
 seed                          <- args$seed
 if(is.null(seed)){
-    seed                        <- sample.int(1000000000, 1)
+  seed                        <- sample.int(1000000000, 1)
 } else {
-    seed                        <- as.numeric(seed)
+  seed                        <- as.numeric(seed)
 }
 if(verbose) cat("Random number seed is",seed,"\n")
 set.seed(seed)
@@ -169,7 +169,7 @@ norm.ref.file.name            <- args$normRefFileName
 norm.standardise.gp           <- args$normStandardiseGagPol
 norm.constants.input          <- args$normalisationConstants
 if(!is.null(norm.ref.file.name) & !is.null(norm.constants.input)){
-    warning("Normalisation reference file name and predetermined normalisation constants both specified. Only the latter will be used.")
+  warning("Normalisation reference file name and predetermined normalisation constants both specified. Only the latter will be used.")
 }
 
 # Regexes for suffixes and window coordinates
@@ -180,19 +180,19 @@ file.name.regex               <- args$fileNameRegex
 do.dup.blacklisting           <- !is.null(args$duplicateBlacklist)
 dup.input.file.name           <- args$duplicateBlacklist
 if(!is.null(dup.input.file.name)){
-    if(!file.exists(dup.input.file.name)){
-        duplicate.file.directory    <- dirname(dup.input.file.name)
-        duplicate.file.regex        <- paste0("^", basename(dup.input.file.name), "(.*)\\.[A-Za-z]+$")
-    }
+  if(!file.exists(dup.input.file.name)){
+    duplicate.file.directory    <- dirname(dup.input.file.name)
+    duplicate.file.regex        <- paste0("^", basename(dup.input.file.name), "(.*)\\.[A-Za-z]+$")
+  }
 } else {
-    duplicate.file.directory    <- NULL
-    duplicate.file.regex        <- NULL
+  duplicate.file.directory    <- NULL
+  duplicate.file.regex        <- NULL
 }
 
 do.par.blacklisting           <- !is.null(args$parsimonyBlacklistK)
 par.blacklisting.k            <- args$parsimonyBlacklistK
 if(is.null(par.blacklisting.k)){
-    par.blacklisting.k        <- 0
+  par.blacklisting.k        <- 0
 }
 do.dual.blacklisting          <- args$dualBlacklist
 
@@ -200,12 +200,12 @@ bl.raw.threshold              <- as.numeric(args$rawBlacklistThreshold)
 bl.ratio.threshold            <- as.numeric(args$ratioBlacklistThreshold)
 
 if(do.par.blacklisting & bl.raw.threshold == 0 & bl.ratio.threshold == 0){
-    stop("Parsimony blacklisting requested but no thresholds specified with -rwt or -rtt")
+  stop("Parsimony blacklisting requested but no thresholds specified with -rwt or -rtt")
 }
 
 
 if(do.dup.blacklisting & bl.raw.threshold == 0 & bl.ratio.threshold == 0){
-    stop("Duplicate blacklisting requested but no thresholds specified with -rwt or -rtt")
+  stop("Duplicate blacklisting requested but no thresholds specified with -rwt or -rtt")
 }
 
 # Slow runs using less memory
@@ -217,7 +217,7 @@ useff                         <- args$useff
 # Downsampling
 downsampling.limit            <- args$maxReadsPerHost
 if(is.null(downsampling.limit)){
-    downsampling.limit        <- Inf
+  downsampling.limit        <- Inf
 }
 blacklist.ur                  <- args$blacklistUnderrepresented
 
@@ -230,48 +230,48 @@ reconst.mode.arg              <- args$splitsRule
 reconst.mode.arg              <- unlist(strsplit(reconst.mode.arg, ","))
 
 if(!(reconst.mode.arg[1] %in% c("r", "s"))){
-    stop(paste("Unknown split classifier: ", reconst.mode.arg[1], "\n", sep=""))
+  stop(paste("Unknown split classifier: ", reconst.mode.arg[1], "\n", sep=""))
 }
 
 reconstruction.mode           <- reconst.mode.arg[1]
 
 if(reconstruction.mode == "r" & length(reconst.mode.arg)>1){
-    warning("Romero-Severson reconstuction takes no additional arguments; ignoring everything after 'r'")
+  warning("Romero-Severson reconstuction takes no additional arguments; ignoring everything after 'r'")
 }
 
 if(reconstruction.mode=="s" & length(reconst.mode.arg)==1){
-    stop("One additional argument is required for Sankoff reconstruction")
+  stop("One additional argument is required for Sankoff reconstruction")
 }
 
 if(reconstruction.mode=="s"){
-    sankoff.k                  <- as.numeric(reconst.mode.arg[2])
-    sankoff.p                  <- 0
-
-    if(is.na(sankoff.k)){
-        stop("Expected numerical arguments for reconstruction algorithm parameters.")
-    }
+  sankoff.k                  <- as.numeric(reconst.mode.arg[2])
+  sankoff.p                  <- 0
+  
+  if(is.na(sankoff.k)){
+    stop("Expected numerical arguments for reconstruction algorithm parameters.")
+  }
 } else {
-    sankoff.k                  <- NA
-    sankoff.p                  <- NA
+  sankoff.k                  <- NA
+  sankoff.p                  <- NA
 }
 
 # Whether to output trees
 if(args$outputNexusTree){
-    tree.output.format         <- "nex"
+  tree.output.format         <- "nex"
 } else {
-    tree.output.format         <- "pdf"
+  tree.output.format         <- "pdf"
 }
 
 recomb.input                   <- args$recombinationFiles
 do.recomb                      <- !is.null(recomb.input)
 if(do.recomb){
-    if(!file.exists(recomb.input)){
-        recomb.file.directory      <- dirname(recomb.input )
-        recomb.file.regex          <- paste0("^", basename(recomb.input), "(.*)\\.[A-Za-z]+$")
-    }
+  if(!file.exists(recomb.input)){
+    recomb.file.directory      <- dirname(recomb.input )
+    recomb.file.regex          <- paste0("^", basename(recomb.input), "(.*)\\.[A-Za-z]+$")
+  }
 } else {
-    recomb.file.directory      <- NULL
-    recomb.file.regex          <- NULL
+  recomb.file.directory      <- NULL
+  recomb.file.regex          <- NULL
 }
 
 # Output classification and collapsed tree files?
@@ -287,11 +287,11 @@ if(dist.threshold == -1){
 arrow.threshold                <- args$directionThreshold
 
 if(arrow.threshold >= win.threshold){
-    stop("Direction threshold cannot be larger than window threshold")
+  stop("Direction threshold cannot be larger than window threshold")
 }
 
 if(dist.threshold == -1){
-    dist.threshold             <- Inf
+  dist.threshold             <- Inf
 }
 allow.mt                       <- args$allowMultiTrans
 
@@ -300,7 +300,7 @@ do.simplified.graph            <- !args$skipSummaryGraph
 simp.plot.dim                  <- args$summaryPlotDimensions
 
 if(file.exists(tree.input)){
-    phyloscanner.trees <- phyloscanner.analyse.tree(
+  phyloscanner.trees <- phyloscanner.analyse.tree(
     tree.input,
     reconstruction.mode,
     sankoff.k,
@@ -330,7 +330,8 @@ if(file.exists(tree.input)){
     verbose ,
     no.progress.bars)
 } else {
-    phyloscanner.trees <- phyloscanner.analyse.trees(
+  print("hi")
+  phyloscanner.trees <- phyloscanner.analyse.trees(
     tree.directory,
     tree.file.regex,
     reconstruction.mode,
@@ -367,53 +368,53 @@ if(file.exists(tree.input)){
 
 
 silent <- sapply(phyloscanner.trees, function(tree.info){
-    file.name <- paste0("Processed_Tree_", output.string, "_", tree.info$suffix, ".", tree.output.format)
-    write.annotated.tree(tree.info, file=file.path(output.dir, file.name), tree.output.format, pdf.scale.bar.width, pdf.w, pdf.hm, verbose)
-
+  file.name <- paste0("Processed_Tree_", output.string, "_", tree.info$suffix, ".", tree.output.format)
+  write.annotated.tree(tree.info, file=file.path(output.dir, file.name), tree.output.format, pdf.scale.bar.width, pdf.w, pdf.hm, verbose)
+  
 }, simplify = F, USE.NAMES = T)
 
 if(do.collapsed){
-    silent <- sapply(phyloscanner.trees, function(tree.info){
-        file.name <- paste0("Collapsed_Tree_", output.string, "_", tree.info$suffix, ".", csv.fe)
-        if(verbose) cat("Writing collapsed tree for tree ID",tree.info$suffix,"to file",file.name, "\n")
-        write.csv(tree.info$classification.results$collapsed[,1:4], file=file.path(output.dir, file.name), quote=F, row.names=F)
-
-    }, simplify = F, USE.NAMES = T)
+  silent <- sapply(phyloscanner.trees, function(tree.info){
+    file.name <- paste0("Collapsed_Tree_", output.string, "_", tree.info$suffix, ".", csv.fe)
+    if(verbose) cat("Writing collapsed tree for tree ID",tree.info$suffix,"to file",file.name, "\n")
+    write.csv(tree.info$classification.results$collapsed[,1:4], file=file.path(output.dir, file.name), quote=F, row.names=F)
+    
+  }, simplify = F, USE.NAMES = T)
 }
 
 
 if(do.class.detail){
-    silent <- sapply(phyloscanner.trees, function(tree.info){
-        file.name <- paste0("Classification_", output.string, "_", tree.info$suffix, ".", csv.fe)
-        if(verbose) cat("Writing relationship classifications for tree ID",tree.info$suffix,"to file",file.name, "\n")
-        write.csv(tree.info$classification.results$classification, file=file.path(output.dir, file.name), quote=F, row.names=F)
-
-    }, simplify = F, USE.NAMES = T)
+  silent <- sapply(phyloscanner.trees, function(tree.info){
+    file.name <- paste0("Classification_", output.string, "_", tree.info$suffix, ".", csv.fe)
+    if(verbose) cat("Writing relationship classifications for tree ID",tree.info$suffix,"to file",file.name, "\n")
+    write.csv(tree.info$classification.results$classification, file=file.path(output.dir, file.name), quote=F, row.names=F)
+    
+  }, simplify = F, USE.NAMES = T)
 }
 
 if(length(phyloscanner.trees)>1){
-    summary.stats <- gather.summary.statistics(phyloscanner.trees, tip.regex = tip.regex, verbose = verbose)
-    write.csv(summary.stats, file.path(output.dir, paste0(output.string,"_patStats.",csv.fe)), quote=F, row.names=F)
-
-    ss.graphs.fn <- paste0(output.string,"_patStats.pdf")
-    silent <- multipage.summary.statistics(phyloscanner.trees, summary.stats, file.name = file.path(output.dir, ss.graphs.fn), verbose = verbose)
-
-    ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, allow.mt, close.sib.only = F, verbose)
-    if (verbose) cat('Writing summary to file', paste0(output.string,"_hostRelationshipSummary.",csv.fe),'\n')
-    write.csv(ts, file=file.path(output.dir, paste0(output.string,"_hostRelationshipSummary.",csv.fe)), row.names=FALSE, quote=FALSE)
-
-    if(do.simplified.graph){
-        if (verbose) cat('Drawing simplified summary diagram to file', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'\n')
-
-        if(nrow(ts)==0){
-            cat("No relationships exist in the required proportion of windows (",win.threshold,"); skipping simplified relationship summary.\n", sep="")
-        } else {
-            simplified.graph <- simplify.summary(ts, arrow.threshold, length(phyloscanner.trees), plot = T)
-
-            simplified.graph$simp.diagram
-            ggsave(file = file.path(output.dir, paste0(output.string,"_simplifiedRelationshipGraph.pdf")), width=simp.plot.dim, height=simp.plot.dim)
-        }
+  summary.stats <- gather.summary.statistics(phyloscanner.trees, tip.regex = tip.regex, verbose = verbose)
+  write.csv(summary.stats, file.path(output.dir, paste0(output.string,"_patStats.",csv.fe)), quote=F, row.names=F)
+  
+  ss.graphs.fn <- paste0(output.string,"_patStats.pdf")
+  silent <- multipage.summary.statistics(phyloscanner.trees, summary.stats, file.name = file.path(output.dir, ss.graphs.fn), verbose = verbose)
+  
+  ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, allow.mt, close.sib.only = F, verbose)
+  if (verbose) cat('Writing summary to file', paste0(output.string,"_hostRelationshipSummary.",csv.fe),'\n')
+  write.csv(ts, file=file.path(output.dir, paste0(output.string,"_hostRelationshipSummary.",csv.fe)), row.names=FALSE, quote=FALSE)
+  
+  if(do.simplified.graph){
+    if (verbose) cat('Drawing simplified summary diagram to file', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'\n')
+    
+    if(nrow(ts)==0){
+      cat("No relationships exist in the required proportion of windows (",win.threshold,"); skipping simplified relationship summary.\n", sep="")
+    } else {
+      simplified.graph <- simplify.summary(ts, arrow.threshold, length(phyloscanner.trees), plot = T)
+      
+      simplified.graph$simp.diagram
+      ggsave(file = file.path(output.dir, paste0(output.string,"_simplifiedRelationshipGraph.pdf")), width=simp.plot.dim, height=simp.plot.dim)
     }
+  }
 }
 
 if(output.rda){

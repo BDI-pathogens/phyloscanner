@@ -788,7 +788,6 @@ reconstruct <- function(tree, node, node.state, node.assocs, tip.hosts, hosts, f
         multiplier <- 1
       }
       
-      
       costs <- vapply(seq(1, length(hosts)), function(x) calc.costs(x, hosts, node.state, child, node.cost.matrix, full.cost.matrix, k, multiplier), 0)
       
       min.cost <- min(costs)
@@ -815,6 +814,7 @@ reconstruct <- function(tree, node, node.state, node.assocs, tip.hosts, hosts, f
             decision <- node.state
           }
         } else {
+
           decision <- hosts[sample(which(costs == min.cost), 1)]
           # if(verbose){
           #   cat("broken in favour of", decision, '\n')
