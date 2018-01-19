@@ -13,7 +13,7 @@ To make phylogenies from mapped reads, phyloscanner requires [samtools](http://w
 To set up the part of phyloscanner that analyses these phylogenies (or others), follow [these instructions](InfoAndInputs/InstallationNotesForAnalysingTrees.sh). 
 
 Info and help:
-* The phyloscanner preprint, discussing the method and its scientific context, is [here](http://www.biorxiv.org/content/early/2017/06/30/157768).  
+* The phyloscanner publication, discussing the method and its scientific context, is [here](https://academic.oup.com/mbe/advance-article/doi/10.1093/molbev/msx304/4653772).  
 * The code's manual is [here](InfoAndInputs/PhyloscannerManual.pdf).  
 * Instructions and example data for a practical on using phyloscanner are [here](https://tinyurl.com/PhyloscannerPractical).
 * Problem with the code? Create a [New Issue](https://github.com/BDI-pathogens/phyloscanner/issues).  
