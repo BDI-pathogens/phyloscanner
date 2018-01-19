@@ -2,7 +2,6 @@
 
 suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(phyloscannerR, quietly=TRUE, warn.conflicts=FALSE))
-suppressMessages(library(phylosc, quietly=TRUE, warn.conflicts=FALSE))
 
 # Define arguments
 
