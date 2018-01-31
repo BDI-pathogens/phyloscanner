@@ -1277,7 +1277,7 @@ write.annotated.tree <- function(phyloscanner.tree, file.name, format = c("pdf",
         tree.display <- tree.display + ggplot2::xlim(0, 1.1*x.max)
         tree.display
         ggsave(file.name, device="pdf", height = pdf.hm*length(tree$tip.label), width = pdf.w, limitsize = F)
-    } else if(format == "nexus"){
+    } else if(format == "nex"){
         write.ann.nexus(tree, file=file.name, annotations = c("INDIVIDUAL", "SPLIT"))
     }
 }
