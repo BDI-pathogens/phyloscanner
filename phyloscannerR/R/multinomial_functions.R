@@ -15,7 +15,7 @@ multinomial.calculations <- function(phyloscanner.trees,
                                      close.threshold,
                                      prior.keff = 3,
                                      prior.neff = 4,
-                                     prior.calibrated.prob = 0.5,
+                                     prior.calibrated.prob = 0.66,
                                      tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$", 
                                      allow.mt = F, 
                                      min.reads = 0, 
@@ -62,9 +62,9 @@ multinomial.calculations <- function(phyloscanner.trees,
   
   if(verbose) cat('\nReducing transmission window stats to windows with at least',min.reads,'reads and at least',min.tips,'tips ...')
   dwin	<- subset(dwin, ID1_R>=min.reads & ID2_R>=min.reads & ID1_L>=min.tips & ID2_L>=min.tips)
-  if(verbose) cat('\nTotal number of windows with trm assignments is',nrow(dwin),'...')		
+  if(verbose) cat('\nTotal number of windows with transmission assignments is',nrow(dwin),'...')		
   
-  if(verbose) cat('\nCalculate basic pairwise relationships for windows n=',nrow(dwin),'...')
+  if(verbose) cat('\nCalculating basic pairwise relationships for windows n=',nrow(dwin),'...')
   dwin	<- categorise(dwin, "TYPE_BASIC", "other",
                       list(CONTIGUOUS=TRUE, ADJACENT=TRUE, TYPE=c("anc_12", "multi_anc_12"), label="trans12_contiguous"),
                       list(CONTIGUOUS=FALSE, ADJACENT=TRUE, TYPE=c("anc_12", "multi_anc_12"), label="trans12_noncontiguous"),
@@ -82,20 +82,20 @@ multinomial.calculations <- function(phyloscanner.trees,
                       list(CATDISTANCE = "distant", label="distant"),
                       list(CATDISTANCE = "intermediate", label="intermediate"))
   
-  if(verbose) cat('\nCalculate derived pairwise relationships for windows n=',nrow(dwin),'...')
+  if(verbose) cat('\nCalculating derived pairwise relationships for windows n=',nrow(dwin),'...')
   dwin	<- phsc.get.pairwise.relationships(dwin, get.groups=relationship.types)
 
-  if(verbose) cat('\nCalculate KEFF and NEFF for windows n=',nrow(dwin),'...')
+  if(verbose) cat('\nCalculating KEFF and NEFF for windows n=',nrow(dwin),'...')
   rplkl	<- phsc.get.pairwise.relationships.keff.and.neff(dwin, relationship.types)
   
-  if(verbose) cat('\nCalculate posterior state probabilities for pairs and relationship groups n=',nrow(rplkl),'...')
+  if(verbose) cat('\nCalculating posterior state probabilities for pairs and relationship groups n=',nrow(rplkl),'...')
   rplkl	<- phsc.get.pairwise.relationships.posterior(rplkl, n.type=prior.keff, n.obs=prior.neff, confidence.cut=prior.calibrated.prob)
   
   list(dwin=dwin, rplkl=rplkl)
 }
 
 #' @title Calculate pairwise relationships
-#' @description This function calculates pairwise relationships of two individuals in any window. Several different relationship groups can be calculated, for example just using pairwise distance, or using both pairwise distance and topology to define likely pairs.
+#' @description This function calculates pairwise relationships between each pair of two individuals in any window. Several different relationship groups can be calculated, for example just using pairwise distance, or using both pairwise distance and topology to define likely pairs.
 #' @export    
 #' @param df data.table to which new columns of relationship groups will be added. Must contain a column with name TYPE_BASIC. This column contains fundamental relationship states for every window, from which other relationships are derived. 
 #' @param get.groups names of relationship groups  
@@ -283,11 +283,12 @@ phsc.get.pairwise.relationships.posterior<- function(df, n.type=2, n.obs=3, n.ty
   stopifnot(c('GROUP')%in%colnames(df))
   tmp		<- phsc.get.pairwise.relationships.numbers()	
   tmp		<- tmp[, {
-    if(!grepl('_DIR',GROUP))
-      z<- phsc.get.prior.parameter.n0(N_TYPE, keff=n.type, neff=n.obs, confidence.cut=confidence.cut)
-    if(grepl('_DIR',GROUP))
-      z<- phsc.get.prior.parameter.n0(N_TYPE, keff=n.type.dir, neff=n.obs.dir, confidence.cut=confidence.cut)
-    list(PAR_PRIOR=z)
+    #if(!grepl('_DIR',GROUP))
+    #	z<- phsc.get.prior.parameter.n0(N_TYPE, keff=n.type, neff=n.obs, confidence.cut=confidence.cut)
+    #if(grepl('_DIR',GROUP))
+    #	z<- phsc.get.prior.parameter.n0(N_TYPE, keff=n.type.dir, neff=n.obs.dir, confidence.cut=confidence.cut)
+    #list(PAR_PRIOR=z)
+    list(PAR_PRIOR=N_TYPE)
   }, by=c('GROUP','N_TYPE')]
   df		<- merge(df, tmp, by=c('GROUP'))
   # df[, POSTERIOR_ALPHA:= PAR_PRIOR/N_TYPE+KEFF]

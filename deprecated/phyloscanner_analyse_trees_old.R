@@ -1058,10 +1058,10 @@ if(!single.file){
   produce.pdf.graphs(tmp, pat.stats, hosts, xcoords, x.limits, rectangles.for.missing.windows, bar.width, regular.gaps, readable.coords = readable.coords, verbose = verbose)
 }
 
-# for(tree.info in all.tree.info){
-#   splits.file.name <- file.path(output.dir, paste0("Splits_",tree.info$output.string,".",csv.fe))
-#   write.csv(tree.info$splits.table, splits.file.name, quote=F, row.names = F)
-# }
+for(tree.info in all.tree.info){
+  splits.file.name <- file.path(output.dir, paste0("Splits_",output.string, "_", tree.info$suffix,".",csv.fe))
+  write.csv(tree.info$splits.table, splits.file.name, quote=F, row.names = F)
+}
 
 
 # 17. Individual window classifications
