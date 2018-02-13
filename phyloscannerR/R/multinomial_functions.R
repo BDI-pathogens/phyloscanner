@@ -294,6 +294,7 @@ phsc.get.pairwise.relationships.posterior<- function(df, n.type=2, n.obs=3, n.ty
   # df[, POSTERIOR_ALPHA:= PAR_PRIOR/N_TYPE+KEFF]
   df[, POSTERIOR_ALPHA:= PAR_PRIOR/N_TYPE+KEFF]
   df[, POSTERIOR_BETA:= PAR_PRIOR*(1-1/N_TYPE)+NEFF-KEFF]	
+  df[, POSTERIOR_SCORE:= (POSTERIOR_ALPHA-1) / (POSTERIOR_ALPHA+POSTERIOR_BETA-N_TYPE)]
   df
 }
 
