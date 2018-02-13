@@ -182,6 +182,12 @@ downsample.tree <- function(tree.info, hosts.to.include, max.reads, rename = F, 
   
   excluded.nos  <- which(tree$tip.label %in% excluded) 
   
+  if(length(excluded.nos)>0){
+    new.rows                                    <- data.frame(tip = tree.info$original.tip.labels[excluded.nos], reason="downsampled")
+    tree.info$bl.report                  <- rbind(tree.info$bl.report, new.rows)
+  }
+  
+  
   new.blacklist <- c(blacklist, excluded.nos)
   tree.info$blacklist <- new.blacklist
   

@@ -229,6 +229,8 @@ no.progress.bars = F){
         tree.info$tree.file.name      <- full.tree.file.names[id.no]
         tree.info$index               <- id.no
 
+        tree.info$bl.report    <- data.frame(tip = character(), reason = character())
+        
         all.tree.info[[suffix]]       <- tree.info
     }
 
@@ -353,16 +355,13 @@ no.progress.bars = F){
         stop("Cannot find any hosts on any tree that match this regular expression. Please check that it is correct.")
     }
 
-
     # 8. Read the blacklists
 
     all.tree.info <- sapply(all.tree.info, function(tree.info) read.blacklist(tree.info, verbose), simplify = F, USE.NAMES = T)
 
-
     # 9. Rename tips from the prexisting blacklist
 
     all.tree.info <- sapply(all.tree.info, function(tree.info) rename.user.blacklist.tips(tree.info), simplify = F, USE.NAMES = T)
-
 
     # 10. Get the normalisation constants
 
@@ -1477,6 +1476,9 @@ read.blacklist <- function(tree.info, verbose = F) {
                 cat(length(blacklist), " tips pre-blacklisted for tree ID ",tree.info$suffix, ".\n", sep="")
             }
 
+            new.rows                            <- data.frame(tip = tree.info$original.tip.labels[blacklist], reason="user_specified")
+            tree.info$bl.report          <- rbind(tree.info$bl.report, new.rows)
+            
             tree.info$blacklist                 <- blacklist
         } else {
             cat(paste("WARNING: File ",tree.info$blacklist.input," does not exist; skipping.\n",sep=""))
@@ -1490,7 +1492,6 @@ read.blacklist <- function(tree.info, verbose = F) {
 #' @keywords internal
 
 rename.user.blacklist.tips <- function(tree.info) {
-
     tree <- tree.info$tree
 
     if(is.null(tree.info$tree)){
@@ -1562,7 +1563,11 @@ blacklist.from.duplicates.vector <- function(tree.info, raw.blacklist.threshold,
             tree$tip.label                             <- new.tip.labels
             tree.info$tree                             <- tree
         }
-
+        
+        if(length(duplicate.nos)>0){
+          new.rows                            <- data.frame(tip = tree.info$original.tip.labels[duplicate.nos], reason="duplicate")
+          tree.info$bl.report          <- rbind(tree.info$bl.report, new.rows)
+        }
 
         tree.info$blacklist <- unique(c(tree.info$blacklist, duplicate.nos))
         tree.info$blacklist <- tree.info$blacklist[order(tree.info$blacklist)]
@@ -1574,7 +1579,6 @@ blacklist.from.duplicates.vector <- function(tree.info, raw.blacklist.threshold,
 #' @keywords internal
 
 blacklist.using.parsimony <- function(tree.info, tip.regex, outgroup.name, raw.blacklist.threshold, ratio.blacklist.threshold, parsimony.blacklist.k, has.read.counts, read.counts.matter, verbose){
-
 
     tree      <- tree.info$tree
     tip.hosts <- sapply(tree$tip.label, function(x) host.from.label(x, tip.regex))
@@ -1604,6 +1608,11 @@ blacklist.using.parsimony <- function(tree.info, tip.regex, outgroup.name, raw.b
         tree.info$tree                          <- tree
     }
 
+    if(length(contaminant.nos)>0){
+      new.rows                                    <- data.frame(tip = tree.info$original.tip.labels[contaminant.nos], reason="parsimony_contaminant")
+      tree.info$bl.report                  <- rbind(tree.info$bl.report, new.rows)
+    }
+    
     tree.info$blacklist                         <- unique(c(tree.info$blacklist, contaminant.nos))
     tree.info$blacklist                         <- tree.info$blacklist[order(tree.info$blacklist)]
 
@@ -1647,10 +1656,15 @@ blacklist.from.duals.list <- function(tree.info, dual.results, verbose) {
         old.tip.labels                              <- tree.info$tree$tip.label
 
         if(length(newly.blacklisted)>0){
-            new.tip.labels                            <- old.tip.labels
-            new.tip.labels[newly.blacklisted]         <- paste0(new.tip.labels[newly.blacklisted], "_X_DUAL")
-            tree$tip.label                            <- new.tip.labels
-            tree.info$tree                            <- tree
+            new.tip.labels                          <- old.tip.labels
+            new.tip.labels[newly.blacklisted]       <- paste0(new.tip.labels[newly.blacklisted], "_X_DUAL")
+            tree$tip.label                          <- new.tip.labels
+            tree.info$tree                          <- tree
+        }
+        
+        if(length(dual.nos)>0){
+          new.rows                                    <- data.frame(tip = tree.info$original.tip.labels[dual.nos], reason="dual_infection_minor_subgraph")
+          tree.info$bl.report                  <- rbind(tree.info$bl.report, new.rows)
         }
 
         tree.info$blacklist                         <- unique(c(tree.info$blacklist, dual.nos))

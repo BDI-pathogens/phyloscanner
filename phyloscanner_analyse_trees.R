@@ -54,6 +54,10 @@ arg_parser$add_argument("-ub", "--dualBlacklist", action="store_true", help="Bla
 arg_parser$add_argument("-dsl", "--maxReadsPerHost", action="store", type="integer", help="If given, blacklist to downsample read counts (or tip counts if no read counts are identified) from each host to this number.")
 arg_parser$add_argument("-dsb", "--blacklistUnderrepresented", action="store_true", help="If present and -dsl is given, blacklist hosts from trees where their total tip count does not reach the maximum.")
 
+# Blacklisting report
+
+arg_parser$add_argument("-blr", "--blacklistReport", action="store_true", help="If present, output a CSV file of blacklisted tips from each tree.")
+
 # Parsimony reconstruction
 
 arg_parser$add_argument("-ff", "--useff", action="store_true", default=FALSE, help="Use ff to store parsimony reconstruction matrices. Use if you run out of memory.")
@@ -83,24 +87,24 @@ arg_parser$add_argument("-sat", "--directionThreshold", action="store", default=
 arg_parser$add_argument("-spd", "--summaryPlotDimensions", action="store", default=25, type="double", help="Width and height of the simplified graph PDF file in inches. Default is 25. If this output is too crowded, try increaing this.")
 arg_parser$add_argument("-sks", "--skipSummaryGraph", action="store_true", help="If present, do not output a simplified relationship graph")
 
-args                  <- arg_parser$parse_args()
+args                            <- arg_parser$parse_args()
 
 # basics
-verbose                       <- args$verbose
-no.progress.bars              <- args$noProgressBars
-overwrite                     <- args$overwrite
-tree.fe                       <- args$treeFileExtension
-csv.fe                        <- args$csvFileExtension
+verbose                         <- args$verbose
+no.progress.bars                <- args$noProgressBars
+overwrite                       <- args$overwrite
+tree.fe                         <- args$treeFileExtension
+csv.fe                          <- args$csvFileExtension
 
 # tree input
-tree.input                    <- args$tree
+tree.input                      <- args$tree
 if(!file.exists(tree.input)){
-  tree.directory            <- dirname(tree.input)
-  tree.file.regex           <- paste0("^", basename(tree.input), "(.*)\\.", tree.fe, "$")
+  tree.directory                <- dirname(tree.input)
+  tree.file.regex               <- paste0("^", basename(tree.input), "(.*)\\.", tree.fe, "$")
 }
 
 # user blacklist
-blacklist.input               <- args$userBlacklist
+blacklist.input                 <- args$userBlacklist
 
 if(!is.null(blacklist.input)){
   if(!file.exists(blacklist.input)){
@@ -108,16 +112,16 @@ if(!is.null(blacklist.input)){
     user.blacklist.file.regex   <- paste0("^", basename(blacklist.input), "(.*)\\.",csv.fe,"$")
   }
 } else {
-  user.blacklist.directory    <- NULL
-  user.blacklist.file.regex   <- NULL
+  user.blacklist.directory      <- NULL
+  user.blacklist.file.regex     <- NULL
 }
 
 # output files
-output.dir                    <- args$outputDir
+output.dir                      <- args$outputDir
 if(is.null(output.dir)){
-  output.dir                <- getwd()
+  output.dir                    <- getwd()
 }
-output.string                 <- args$outputString
+output.string                   <- args$outputString
 
 
 if(!overwrite & length(list.files(path=output.dir, pattern=paste0("^", output.string, ".*")))>0 ){
@@ -125,25 +129,25 @@ if(!overwrite & length(list.files(path=output.dir, pattern=paste0("^", output.st
 }
 
 # outgroup name
-outgroup.name                 <- args$outgroupName
+outgroup.name                   <- args$outgroupName
 
 if(is.null(outgroup.name)){
   warning("No outgroup name provided. Trees are assumed to be correctly rooted.")
 }
 
 # multifurcation threshold
-use.m.thresh                  <- !is.null(args$multifurcationThreshold)
+use.m.thresh                    <- !is.null(args$multifurcationThreshold)
 
 if(use.m.thresh){
   if(args$multifurcationThreshold=="g"){
-    m.thresh                  <- NA
+    m.thresh                    <- NA
   } else if(!is.na(as.numeric(args$multifurcationThreshold))){
-    m.thresh                  <- as.numeric(args$multifurcationThreshold)
+    m.thresh                    <- as.numeric(args$multifurcationThreshold)
   } else {
     stop("Unknown argument for --multifurcationThreshold specified\n")
   }
 } else {
-  m.thresh                    <- -1
+  m.thresh                      <- -1
 }
 
 # PDF tree dimensions
@@ -195,6 +199,8 @@ if(is.null(par.blacklisting.k)){
   par.blacklisting.k        <- 0
 }
 do.dual.blacklisting          <- args$dualBlacklist
+
+output.blacklisting.report    <-args$blacklistReport
 
 bl.raw.threshold              <- as.numeric(args$rawBlacklistThreshold)
 bl.ratio.threshold            <- as.numeric(args$ratioBlacklistThreshold)
@@ -429,7 +435,25 @@ if(length(phyloscanner.trees)>1){
   }
 }
 
+if(output.blacklisting.report){
+  if (verbose) cat('Saving blacklisting report to file', paste0(output.string,"_blacklistReport.csv"),'\n')
+  
+  dfs <- lapply(phyloscanner.trees, function(x) {
+    window.df <- x$bl.report
+    if(nrow(window.df)>0){
+      window.df$suffix <- x$suffix
+      window.df <- window.df[,c(3,1,2)]
+    }
+    window.df
+    }
+  )
+  
+  output.bl.report <- do.call(rbind, dfs)
+  
+  write.csv(output.bl.report, file = file.path(output.dir, paste0(output.string,"_blacklistReport.csv")), quote=F, row.names=F)
+}
+
 if(output.rda){
-  if (verbose) cat('Saving R workspace image to file', paste0("workspace_",output.string,".rda"),'\n')
-  save.image(file=file.path(output.dir, paste0("workspace_",output.string,".rda")))
+  if (verbose) cat('Saving R workspace image to file', paste0(output.string,"_workspace.rda"),'\n')
+  save.image(file=file.path(output.dir, paste0(output.string,"_workspace.rda")))
 }
