@@ -7,7 +7,7 @@
 #' @param tip.regex The regular expression used to identify host IDs in tip names
 #' @param allow.mt If FALSE, directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative.
 #' @param min.reads The minimum number of reads from a host in a window needed in order for that window to count in determining relationships involving that patient
-#' @param min.reads The minimum number of tips from a host in a window needed in order for that window to count in determining relationships involving that patient
+#' @param min.tips The minimum number of tips from a host in a window needed in order for that window to count in determining relationships involving that patient
 #' @param distant.threshold If present, a second distance threshold determines hosts that are "distant" from each other, with those lying between \code{close.threshold} and \code{dist.threshold} classed as "intermediate". The default is the same as \code{close.threshold}, so the intermediate class does not exist.
 #' @param verbose Verbose output
 #' @return A list with two items: \code{dwin} giving information on the genome windows for each pair of hosts, and \code{rplkl} giving information on phylogenetic relationships between each pair of hosts.
