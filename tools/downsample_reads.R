@@ -47,6 +47,7 @@ all.tree.info <- list()
 
 
 if(file.exists(input.file.name)){
+
   
   #	option 1: input.file.name specifies a single input file
   
@@ -58,6 +59,8 @@ if(file.exists(input.file.name)){
   
   tree.info$tree <- tree
   
+  tree.info$original.tip.labels <- tree$tip.label
+  
   tree.info$blacklist.input <- blacklist.file.name
   
   blacklist <- vector()
@@ -66,8 +69,16 @@ if(file.exists(input.file.name)){
     if(file.exists(blacklist.file.name)){
       if(verbose) cat("Reading existing blacklist file",blacklist.file.name,'\n')
       blacklisted.tips <- read.table(blacklist.file.name, sep=",", header=F, stringsAsFactors = F, col.names="read")
+    
       if(nrow(blacklisted.tips)>0){
-        blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
+        
+        newly.bl <- sapply(blacklisted.tips, get.tip.no, tree=tree)
+        if(any(is.na(newly.bl))){
+          warning("File ",blacklist.file.name," contains tips not present in tree ",input.file.name,".\n")
+          newly.bl <- newly.bl[which(!is.na(newly.bl))]
+        }
+        
+        blacklist <- c(blacklist, newly.bl)
       }
     } else {
       warning("File ",blacklist.file.name," does not exist; skipping.",paste="")
@@ -87,7 +98,7 @@ if(file.exists(input.file.name)){
   #	option 2: input.file.name specifies a root name for several input files
   
   input.file.names <- sort(list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name),'.*\\.', tree.fe,'$',sep=''), full.names=TRUE))
-
+  
   if(length(input.file.names)==0){
     cat("No tree files found.\nQuitting.\n")
     quit(save="no", status=1)
@@ -118,6 +129,8 @@ if(file.exists(input.file.name)){
     if(verbose) cat("Reading tree ", tree.info$tree.input, "\n", sep="")
     tree <- read.tree(tree.info$tree.input)
     
+    tree.info$original.tip.labels <- tree$tip.label
+    
     blacklist <- vector()
     
     if(!is.null(tree.info$blacklist.input)){
@@ -125,8 +138,15 @@ if(file.exists(input.file.name)){
       if(file.exists(tree.info$blacklist.input)){
         if(verbose) cat("Reading existing blacklist file",tree.info$blacklist.input,'\n')
         blacklisted.tips <- read.table(tree.info$blacklist.input, sep=",", header=F, stringsAsFactors = F, col.names="read")
+        
+        newly.bl <- sapply(blacklisted.tips, get.tip.no, tree=tree)
+        if(any(is.na(newly.bl))){
+          warning("File ",blacklist.file.name," contains tips not present in tree ",input.file.name,".\n")
+          newly.bl <- newly.bl[which(!is.na(newly.bl))]
+        }
+        
         if(nrow(blacklisted.tips)>0){
-          blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
+          blacklist <- c(blacklist, newly.bl)
         }
       } else {
         warning(paste("File ",tree.info$blacklist.input," does not exist; skipping.",paste=""))
@@ -150,6 +170,7 @@ if(!is.null(hosts.file.name)){
 }
 
 for(tree.info in all.tree.info){
+  
   tree.info <- downsample.tree(tree.info, hosts, max.reads, rename, exclude.underrepresented, no.read.counts, tip.regex,  seed, verbose)
   
   if(rename){

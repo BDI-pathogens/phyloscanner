@@ -125,12 +125,12 @@ downsample.tree <- function(tree.info, hosts.to.include, max.reads, rename = F, 
   if(!is.null(tree.info$blacklist)){
     blacklist <- tree.info$blacklist
   } else if(!is.null(tree.info$blacklist.file.name)){
-  
     blacklist <- vector()
   
     if(file.exists(tree.info$blacklist.file.name)){
       if(verbose) cat("Reading existing blacklist file",tree.info$blacklist.file.name,'\n')
       blacklisted.tips <- read.table(tree.info$blacklist.file.name, sep=",", header=F, stringsAsFactors = F, col.names="read")
+       
       if(nrow(blacklisted.tips)>0){
         blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
       }
@@ -140,6 +140,7 @@ downsample.tree <- function(tree.info, hosts.to.include, max.reads, rename = F, 
   } else {
     blacklist <- vector()
   }
+
   
   tree.1 <- drop.tip(tree, blacklist)
   
@@ -183,10 +184,9 @@ downsample.tree <- function(tree.info, hosts.to.include, max.reads, rename = F, 
   excluded.nos  <- which(tree$tip.label %in% excluded) 
   
   if(length(excluded.nos)>0){
-    new.rows                                    <- data.frame(tip = tree.info$original.tip.labels[excluded.nos], reason="downsampled")
+    new.rows                             <- data.frame(tip = tree.info$original.tip.labels[excluded.nos], reason="downsampled")
     tree.info$bl.report                  <- rbind(tree.info$bl.report, new.rows)
   }
-  
   
   new.blacklist <- c(blacklist, excluded.nos)
   tree.info$blacklist <- new.blacklist
