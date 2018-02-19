@@ -45,9 +45,7 @@ downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, e
   
   
   sample <- rmvhyper(nn=1, n = read.counts, k = number)
-  
-  print(sample)
-  
+
   if(rename){
     if(verbose) cat("Renaming tree tips with new read counts...\n", sep="")
     
