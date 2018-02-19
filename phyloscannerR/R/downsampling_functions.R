@@ -1,6 +1,7 @@
 # This returns the ones to get rid of (i.e. blacklist) per host for a given tree
 
 #' @keywords internal
+#' @importFrom extraDistr rmvhyper
 #' @export downsample.host
 
 downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, exclude.underrepresented = F, no.read.counts = T, name = NA, verbose=F){
@@ -21,10 +22,10 @@ downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, e
   
   if(total.reads < number){
     if(!exclude.underrepresented){
-      warning("Insufficient reads for downsampling host ",host," at a count of ",number," in tree ",name,", returning all.\n", sep="")
+      # warning("Insufficient reads for downsampling host ",host," at a count of ",number," in tree ",name,", returning all.\n", sep="")
       return(list(blacklist=vector(), map=NULL))
     } else {
-      warning("Insufficient reads for downsampling host ",host," at a count of ",number," in tree ",name,", blacklisting this host.\n", sep="")
+      # warning("Insufficient reads for downsampling host ",host," at a count of ",number," in tree ",name,", blacklisting this host.\n", sep="")
       
       if(rename){
         label.map <- lapply(1:length(labels.from.host), function(x){
@@ -42,9 +43,10 @@ downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, e
     }
   }
   
-  tip.props <- read.counts/total.reads
   
-  sample <- rmultinom(1, size = number, prob = tip.props)
+  sample <- rmvhyper(nn=1, n = read.counts, k = number)
+  
+  print(sample)
   
   if(rename){
     if(verbose) cat("Renaming tree tips with new read counts...\n", sep="")
@@ -92,6 +94,10 @@ downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, e
   }
   
   sampled.names <- labels.from.host[which(sample > 0)]
+  
+  if(verbose){
+    cat("Blacklisting ",length(setdiff(labels.from.host, sampled.names))," tips from host ",host,".\n",sep="")
+  }
 
   return(list(blacklist = setdiff(labels.from.host, sampled.names), map=label.map))
 }
