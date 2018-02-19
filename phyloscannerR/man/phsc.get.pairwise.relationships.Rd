@@ -18,6 +18,6 @@ phsc.get.pairwise.relationships(df, get.groups = c("TYPE_PAIR_DI2",
 input data.table with new columns. Each new column defines relationship states for a specific relationship group.
 }
 \description{
-This function calculates pairwise relationships of two individuals in any window. Several different relationship groups can be calculated, for example just using pairwise distance, or using both pairwise distance and topology to define likely pairs.
+This function calculates pairwise relationships between each pair of two individuals in any window. Several different relationship groups can be calculated, for example just using pairwise distance, or using both pairwise distance and topology to define likely pairs.
 }
 \keyword{internal}

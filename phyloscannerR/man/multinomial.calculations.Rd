@@ -5,7 +5,7 @@
 \title{Calculate parameters of the posterior density for pairwise host relationships}
 \usage{
 multinomial.calculations(phyloscanner.trees, close.threshold, prior.keff = 3,
-  prior.neff = 4, prior.calibrated.prob = 0.5,
+  prior.neff = 4, prior.calibrated.prob = 0.66,
   tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$", allow.mt = F,
   min.reads = 0, min.tips = 0, distant.threshold = close.threshold,
   relationship.types = c("TYPE_PAIR_DI2", "TYPE_PAIR_TO", "TYPE_PAIR_TODI2x2",
@@ -23,11 +23,11 @@ multinomial.calculations(phyloscanner.trees, close.threshold, prior.keff = 3,
 
 \item{min.reads}{The minimum number of reads from a host in a window needed in order for that window to count in determining relationships involving that patient}
 
+\item{min.tips}{The minimum number of tips from a host in a window needed in order for that window to count in determining relationships involving that patient}
+
 \item{distant.threshold}{If present, a second distance threshold determines hosts that are "distant" from each other, with those lying between \code{close.threshold} and \code{dist.threshold} classed as "intermediate". The default is the same as \code{close.threshold}, so the intermediate class does not exist.}
 
 \item{verbose}{Verbose output}
-
-\item{min.reads}{The minimum number of tips from a host in a window needed in order for that window to count in determining relationships involving that patient}
 }
 \value{
 A list with two items: \code{dwin} giving information on the genome windows for each pair of hosts, and \code{rplkl} giving information on phylogenetic relationships between each pair of hosts.
