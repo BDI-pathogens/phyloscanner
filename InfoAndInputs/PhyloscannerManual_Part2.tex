@@ -191,6 +191,8 @@ The script does all blacklisting internally, but other scripts in the \c{tools} 
 The various types of blacklisting are listed below.
 All, except user blacklisting, assume that the tree tips are annotated with read counts.
 
+A CSV file listing every tip that was blacklisted in every tree, and why, will be output if the \c{--blacklistReport} option is given to \pat.
+
 \subsection{Duplicate blacklisting} \label{sec:DupBlacklisting}
 
 This procedure blacklists reads from one host which are identical to reads from another, but are present in sufficiently small numbers that it would be suspected that they are merely contaminants.
@@ -359,7 +361,7 @@ The order does not signify anything on its own but is relevant to interpretation
 This is similar to adjacent but a little stronger.
 \item paths12, paths21: paths12 is the number of nodes from host.2 in the collapsed tree which have an ancestor that is from host.1, and paths21 is the opposite.
 \item nodes1, nodes2: these are the number of collapsed tree nodes for host.1 and host.2 respectively.
-\item path.classification: this describes the topological relationship between the two hosts in the collapsed tree: \begin{itemize}                                                                                                                    
+\item path.classification: this describes the topological relationship between the two hosts in the cablollapsed tree: \begin{itemize}                                                                                                                    
 \item ``none'' indicates that no nodes from host.1 are ancestral to nodes from host.2 or vice versa
 \item ``anc'' indicates that there is only one node from host.2 and it is a descendant of a node from host.1
 \item ``desc'' indicates that there is only one node from host.1 and it is a descendant of a node from host.2
