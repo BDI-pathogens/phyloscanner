@@ -376,9 +376,9 @@ if(single.tree){
 
 silent <- sapply(phyloscanner.trees, function(tree.info){
   if(single.tree){
-    file.name <- paste0("Processed_Tree_", output.string, ".", tree.output.format)
+    file.name <- paste0(output.string, "_processedTree.", tree.output.format)
   } else {
-    file.name <- paste0("Processed_Tree_", output.string, "_", tree.info$suffix, ".", tree.output.format)
+    file.name <- paste0(output.string, "_processedTree_", tree.info$suffix, ".", tree.output.format)
   }
   write.annotated.tree(tree.info, file=file.path(output.dir, file.name), tree.output.format, pdf.scale.bar.width, pdf.w, pdf.hm, verbose)
 }, simplify = F, USE.NAMES = T)
@@ -386,9 +386,9 @@ silent <- sapply(phyloscanner.trees, function(tree.info){
 if(do.collapsed){
   silent <- sapply(phyloscanner.trees, function(tree.info){
     if(single.tree){
-      file.name <- paste0("Collapsed_Tree_", output.string, ".", csv.fe)
+      file.name <- paste0(output.string, "_collapsedTree.", csv.fe)
     } else {
-      file.name <- paste0("Collapsed_Tree_", output.string, "_", tree.info$suffix, ".", csv.fe)
+      file.name <- paste0(output.string, "_collapsedTree_", tree.info$suffix, ".", csv.fe)
     }
     if(verbose) cat("Writing collapsed tree for tree ID",tree.info$suffix,"to file",file.name, "\n")
     write.csv(tree.info$classification.results$collapsed[,1:4], file=file.path(output.dir, file.name), quote=F, row.names=F)
@@ -400,9 +400,9 @@ if(do.collapsed){
 if(do.class.detail){
   silent <- sapply(phyloscanner.trees, function(tree.info){
     if(single.tree){
-      file.name <- paste0("Classification_", output.string, ".", csv.fe)
+      file.name <- paste0(output.string, "_classification.", csv.fe)
     } else {
-      file.name <- paste0("Classification_", output.string, "_", tree.info$suffix, ".", csv.fe)
+      file.name <- paste0(output.string, "_classification_", tree.info$suffix, ".", csv.fe)
     }
     if(verbose) cat("Writing relationship classifications for tree ID",tree.info$suffix,"to file",file.name, "\n")
     write.csv(tree.info$classification.results$classification, file=file.path(output.dir, file.name), quote=F, row.names=F)
