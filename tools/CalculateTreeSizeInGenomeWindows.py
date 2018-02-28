@@ -130,12 +130,13 @@ except:
   print('Problem reading in', args.alignment + '. Quitting.', file=sys.stderr)
   raise
 AlignmentLength = alignment.get_alignment_length()
-ChosenSeq = None
+ChosenSeqFound = False
 for seq in alignment:
   if seq.id == args.ChosenSeqName:
     ChosenSeq = seq
+    ChosenSeqFound = True
     break
-if ChosenSeq == None:
+if not ChosenSeqFound:
   print('Did not find', args.ChosenSeqName, 'in', args.alignment +
   '. Quitting.', file=sys.stderr)
   exit(1)
@@ -150,7 +151,8 @@ if ChosenSeqLen == 0:
   exit(1)
 
 # Set the end point if not specified
-if args.end == None:
+EndNotSpecified = args.end == None
+if EndNotSpecified:
   args.end = ChosenSeqLen
 
 # Sanity checks on the int parameters
@@ -164,9 +166,15 @@ if not args.start < args.end <= ChosenSeqLen:
   ' length of your chosen sequence (', ChosenSeqLen, '). Quitting.', sep='',
   file=sys.stderr)
   exit(1)
-if not 0 < args.WindowWidth < ChosenSeqLen:
-  print('The window width should be greater than zero and at most equal to',
-  '(end + 1 - start). Quitting.', file=sys.stderr)
+if not 0 < args.WindowWidth < args.end - args.start + 2:
+  message = 'The window width should be greater than zero and at most equal to'\
+  ' (end - start + 1), where '
+  if EndNotSpecified:
+    message += 'end is the length of your chosen sequence: ' + str(ChosenSeqLen)
+  else:
+    message += 'you specifed an end value of ' + str(args.end)
+  message += '. Quitting.'
+  print(message, file=sys.stderr)
   exit(1)
 if args.increment == None:
   args.increment = max(args.WindowWidth / 10, 1)
