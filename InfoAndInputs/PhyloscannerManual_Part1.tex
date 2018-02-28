@@ -227,7 +227,7 @@ Subsequent integers are window widths to try.
 For example, if you specified 1000,100,150,200 we would count the number of unique reads in windows 1000-1099, 1100-1199, 1200-1299, ... and in 1000-1149, 1150-1299, 1300-1449 ... and in 1000-1199, 1200-1399, 1400-1599, ... where the dots denote continuation to the end of the genome.
 Output is written to the file specified with the \c{--explore-window-width-file} option.
 \item \c{--explore-window-width-file}: used to specify an output file for window width data, when the \c{--explore-window-widths} option is used.
-Output is in in csv format.
+Output is in csv format.
 \end{itemize}
 
 \subsection{Recommended options} \label{sec:RecArgs}
@@ -240,6 +240,7 @@ The full set of processed, unaligned reads extracted from each window are aligne
 \item \c{--pairwise-align-to}: by default, \pmt figures out where corresponding windows are in different bam files by creating a multiple sequence alignment containing all of the mapping references used to create the bam files (plus any extra references included with \c{--alignment-of-other-refs}), and window coordinates are interpreted with respect to this alignment.
 However using this option, the mapping references used to create the bam files are each separately pairwise aligned to one of the extra references included with \c{--alignment-of-other-refs}, and window coordinates are interpreted with respect to this reference.
 The reference to use should be specified after this option.
+Using this option is necessary if you want to run the \c{tools/CalculateTreeSizeInGenomeWindows.py} script and feed its output into \pat via its \c{--normRefFileName} option (see )
 \item \c{--x-raxml}: use this option to tell \pmt how to run \R, including both the executable (with the path to it if needed), and the options.
 If you do not specify anything, we will try to find the fastest \R exectuable available (first \c{raxmlHPC-AVX}, then \c{raxmlHPC-SSE3}, then \c{raxmlHPC}) and use the options \c{-m GTRCAT -p 1 --no-seq-check}.
 You will need to specify something if the path to your \R executable is not contained in your \c{PATH} environment variable (i.e. if you need to specify the path to the executable in order to run it), or if you want to use different \R options.
