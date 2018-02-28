@@ -499,11 +499,17 @@ no.progress.bars = F){
             tree.info$duals.info$host
         })
         hosts.that.are.duals <- unique(unlist(hosts.that.are.duals))
-        hosts.that.are.duals <- hosts.that.are.duals[order(hosts.that.are.duals)]
-
-        dual.results <- blacklist.duals(all.tree.info, hosts.that.are.duals, summary.file = NULL, verbose)
-
-        all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.duals.list(tree.info, dual.results, verbose), simplify = F, USE.NAMES = T)
+        
+        if(!is.null(hosts.that.are.duals)){
+        
+          hosts.that.are.duals <- hosts.that.are.duals[order(hosts.that.are.duals)]
+  
+          dual.results <- blacklist.duals(all.tree.info, hosts.that.are.duals, summary.file = NULL, verbose)
+  
+          all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.duals.list(tree.info, dual.results, verbose), simplify = F, USE.NAMES = T)
+        } else {
+          if(verbose) cat("No dual infections identified in any tree.\n")
+        }
     }
 
 
@@ -513,7 +519,7 @@ no.progress.bars = F){
         all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.random.downsample(tree.info, max.reads.per.host, blacklist.underrepresented, has.read.counts, tip.regex, NA, verbose), simplify = F, USE.NAMES = T)
     }
 
-    # 16. All IDs can be safely gathered and mapped now. Windows with no patients should be removed.
+    # 16. All IDs can be safely gathered and mapped now, and read counts calculated. Windows with no patients should be removed.
 
     if(verbose) cat("Gathering host IDs...\n")
 
@@ -521,6 +527,13 @@ no.progress.bars = F){
 
     if(length(hosts)==1){
         warning("Only one host detected in any tree, will skip classification of topological relationships between hosts.")
+    }
+    
+    if(verbose){
+      cat("The full list of host IDs in this analysis follows. If this is not what you intended, check your --tipRegex\n")
+      for(host in hosts){
+        cat(host, "\n")
+      }
     }
 
     all.tree.info <- sapply(all.tree.info, function(tree.info){
@@ -533,7 +546,17 @@ no.progress.bars = F){
                 which(tree.info$hosts.for.tips == x)
 
             }, simplify = F, USE.NAMES = T)
+            
             tree.info$tips.for.hosts <- tips.for.hosts
+            if(has.read.counts){
+              read.counts <- sapply(tree.info$tree$tip.label, function(x) as.numeric(read.count.from.label(x, tip.regex)))
+            } else {
+              read.counts <- rep(1, length(tree.info$tree$tip.label))
+            }
+            read.counts[tree.info$blacklist] <- NA
+            
+            tree.info$read.counts <- read.counts
+            
             tree.info
         }
     }, simplify = F, USE.NAMES = T)
@@ -577,7 +600,7 @@ no.progress.bars = F){
 
         if(verbose) cat("Reconstructing internal node hosts on tree ID ",tree.info$suffix, "\n", sep="")
 
-        tmp					       <- split.hosts.to.subgraphs(tree.info$tree, tree.info$blacklist, splits.rule, tip.regex, sankoff.k, sankoff.p, use.ff, read.counts.matter.on.zero.length.tips, multifurcation.threshold, hosts, tree.info$suffix, verbose, no.progress.bars)
+        tmp					     <- split.hosts.to.subgraphs(tree.info$tree, tree.info$blacklist, splits.rule, tip.regex, sankoff.k, sankoff.p, use.ff, read.counts.matter.on.zero.length.tips, multifurcation.threshold, hosts, tree.info$suffix, verbose, no.progress.bars)
         tree					   <- tmp[['tree']]
 
         # trees are annotated from now on
@@ -599,7 +622,7 @@ no.progress.bars = F){
             } else {
                 rs.subgraphs$reads <- 1
             }
-            #
+            
             tree.info$splits.table  <- rs.subgraphs
         }
 
@@ -1261,14 +1284,26 @@ multipage.summary.statistics <- function(phyloscanner.trees, sum.stats, hosts = 
 #' @export write.annotated.tree
 write.annotated.tree <- function(phyloscanner.tree, file.name, format = c("pdf", "nex"), pdf.scale.bar.width = 0.01, pdf.w = 50, pdf.hm = 0.15, verbose = F){
     tree <- phyloscanner.tree$tree
+    read.counts <- phyloscanner.tree$read.counts
+    
+    attr(tree, 'BLACKLISTED') <- c(is.na(read.counts), rep(FALSE, tree$Nnode) )
+    
+    read.counts <- c(read.counts, rep(1, tree$Nnode))
+    read.counts[which(is.na(read.counts))] <- 1
+    
+    attr(tree, 'READ_COUNT') <- read.counts
+    
+  
     if(verbose) cat(paste0("Writing .",format," tree to file ",file.name,"\n"))
 
     if(format == "pdf"){
         tree.display <- ggtree(tree, aes(color=BRANCH_COLOURS)) +
             geom_point2(aes(subset=SUBGRAPH_MRCA, color=INDIVIDUAL), shape = 23, size = 3, fill="white") +
-            geom_point2(aes(color=INDIVIDUAL), shape=16, size=1) +
+            geom_point2(aes(color=INDIVIDUAL, shape=BLACKLISTED), size=1) +
+            geom_point2(aes(color=INDIVIDUAL, size=READ_COUNT, shape=BLACKLISTED), alpha=0.5) +
             scale_fill_hue(na.value = "black", drop=F) +
             scale_color_hue(na.value = "black", drop=F) +
+            scale_shape_manual(values=c(16, 4)) +
             theme(legend.position="none") +
             geom_tiplab(aes(col=INDIVIDUAL)) +
             geom_treescale(width=pdf.scale.bar.width, y=-5, offset=1.5)
@@ -1277,7 +1312,7 @@ write.annotated.tree <- function(phyloscanner.tree, file.name, format = c("pdf",
         tree.display
         ggsave(file.name, device="pdf", height = pdf.hm*length(tree$tip.label), width = pdf.w, limitsize = F)
     } else if(format == "nex"){
-        write.ann.nexus(tree, file=file.name, annotations = c("INDIVIDUAL", "SPLIT"))
+        write.ann.nexus(tree, file=file.name, annotations = c("INDIVIDUAL", "SPLIT", "READ_COUNT"))
     }
 }
 
