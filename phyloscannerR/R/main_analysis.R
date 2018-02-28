@@ -1293,20 +1293,23 @@ write.annotated.tree <- function(phyloscanner.tree, file.name, format = c("pdf",
     
     attr(tree, 'READ_COUNT') <- read.counts
     
-  
     if(verbose) cat(paste0("Writing .",format," tree to file ",file.name,"\n"))
 
     if(format == "pdf"){
         tree.display <- ggtree(tree, aes(color=BRANCH_COLOURS)) +
             geom_point2(aes(subset=SUBGRAPH_MRCA, color=INDIVIDUAL), shape = 23, size = 3, fill="white") +
             geom_point2(aes(color=INDIVIDUAL, shape=BLACKLISTED), size=1) +
-            geom_point2(aes(color=INDIVIDUAL, size=READ_COUNT, shape=BLACKLISTED), alpha=0.5) +
             scale_fill_hue(na.value = "black", drop=F) +
             scale_color_hue(na.value = "black", drop=F) +
             scale_shape_manual(values=c(16, 4)) +
             theme(legend.position="none") +
             geom_tiplab(aes(col=INDIVIDUAL)) +
             geom_treescale(width=pdf.scale.bar.width, y=-5, offset=1.5)
+        
+        if(any(read.counts!=1 & !is.na(read.counts))){
+          tree.display <- tree.display + geom_point2(aes(color=INDIVIDUAL, size=READ_COUNT, shape=BLACKLISTED), alpha=0.5)
+        }
+        
         x.max <- ggplot_build(tree.display)$layout$panel_ranges[[1]]$x.range[2]
         tree.display <- tree.display + ggplot2::xlim(0, 1.1*x.max)
         tree.display
