@@ -113,6 +113,8 @@ To remedy this, \pat can be asked to normalise branch lengths across windows.
 One approach to generating appropriate normalisation values over the genome is implemented by the script \c{tools/CalculateTreeSizeInGenomeWindows.py}.
 Run from the command line (see it's \c{--help} option for details on how) taking a whole-genome alignment of existing reference sequences as input, it infers phylogenies in sliding windows, and characterises the size of the tree by taking the median of the set of patristic distances between all pairs of references.
 One such value is obtained per window; one value is then assigned to each integer position in the genome by taking the mean of the values from those windows spanning this position (with windows chosen to overlap, so that multiple values for each position should smooth some stochasticity in phylogenetic inference).
+Note that you must specify one sequence in the alignment whose coordinates will be used to define genomic position; this sequence must match the one you specified with \c{--pairwise-align-to} in \pmt if we are to use this information for branch length normalisation.
+This ensures that the coordinates in the output of \c{tools/CalculateTreeSizeInGenomeWindows.py} and the coordinates in the output of \pmt (e.g. in the per-window file names) mean the same thing.
 
 Q: what alignment of existing reference sequences should you use for this?
 A: ideally, one which is in some sense representative of between-host diversity.
@@ -124,9 +126,9 @@ This will scale all normalisation constants by the same factor such that their m
 A normalisation constant is then determined for each window by taking the mean of the values for all positions in the window.
 This constant for the window is used to scale all branch lengths in the tree for subsequent processing by \pat.
 The similar option \c{--normStandardiseGagPol}, specific to HIV genomes, instead scales normalisation constants so that the mean of the constants on the {\it gag} and {\it pol} genes is 1; distances anywhere in the genome are then interpretable as standard distances in {\it gag/pol}.
-Both of these options assume that window coordinates are present in file suffixes.
-Note that the genomic coordinates specified here must mean the same thing as the window coordinates in the file suffixes.
-As discussed in section~\ref{sec:CoordMeaning}, window coordinates in tree file names output by \pmt may mean one of two things -- they may be with respect to a named sequence or with respect to an alignment.
+%Both of these options assume that window coordinates are present in file suffixes.
+%Note that the genomic coordinates specified here must mean the same thing as the window coordinates in the file suffixes.
+%As discussed in section~\ref{sec:CoordMeaning}, window coordinates in tree file names output by \pmt may mean one of two things -- they may be with respect to a named sequence or with respect to an alignment.
 
 The \c{--normalisationConstants} option is used to directly specify the normalisation to be used for each tree file.
 If the argument is numerical, it is used as a normalising constant for every tree.

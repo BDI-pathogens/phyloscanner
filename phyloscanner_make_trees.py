@@ -148,7 +148,11 @@ references used to create the bam files (plus any extra references included with
 However using this option, the mapping references used to create the bam files
 are each separately pairwise aligned to one of the extra references included
 with -A, and window coordinates are interpreted with respect to this
-reference. Specify the name of the reference to use after this option.''')
+reference. Specify the name of the reference to use after this option. Using
+this option is necessary if you want to run the
+tools/CalculateTreeSizeInGenomeWindows.py script and feed its output into
+phyloscanner_analyse_trees.R via its --normRefFileName option (see the manual
+for more details).''')
 RAxMLdefaultOptions = "-m GTRCAT -p 1 --no-seq-check"
 RaxmlHelp ='''Use this option to specify how RAxML is to be run, including
 both the executable (with the path to it if needed), and the options. If you do
