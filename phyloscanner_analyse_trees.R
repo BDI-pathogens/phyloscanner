@@ -91,6 +91,11 @@ args                            <- arg_parser$parse_args()
 
 # basics
 verbosity                       <- args$verbose
+
+if(!(verbosity %in% 1:3)){
+  stop("Invalid verbosity option: ",verbosity)
+}
+
 no.progress.bars                <- args$noProgressBars
 overwrite                       <- args$overwrite
 tree.fe                         <- args$treeFileExtension
