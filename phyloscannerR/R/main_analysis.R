@@ -394,7 +394,7 @@ phyloscanner.analyse.trees <- function(
   # 8. Read the blacklists
   
   if(existing.bl & verbosity!=0){
-    cat("Reading user blacklists...")
+    cat("Reading user blacklists...\n")
   }
   
   all.tree.info <- sapply(all.tree.info, function(tree.info) read.blacklist(tree.info, verbosity==2), simplify = F, USE.NAMES = T)
