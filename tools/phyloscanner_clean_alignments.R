@@ -31,7 +31,7 @@ arg_parser$add_argument("-b", "--blacklist", action="store", help="A path and st
 # General, bland options
 
 arg_parser$add_argument("-od", "--outputDir", action="store", help="All output will be written to this directory. If absent, current working directory.")
-arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what the script is doing.")
+arg_parser$add_argument("-v", "--verbose", action="store", default=1, help="The level of verbosity in command line output. 0=none, 1=minimal, 2=detailed")
 arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. This expects up to three capture groups, for host ID, read ID, and read count (in that order). If the latter two groups are missing then read information will not be used. If absent, the default is '^(.*)_read_([0-9]+)_count_([0-9]+)$', which matches input from the phyloscanner pipeline where the host ID is the BAM file name.")
 arg_parser$add_argument("-y", "--fileNameRegex", action="store", default="^\\D*([0-9]+)_to_([0-9]+)\\D*$", help="Regular expression identifying window coordinates. Two capture groups: start and end; if the latter is missing then the first group is a single numerical identifier for the window. If absent, input will be assumed to be from the phyloscanner pipeline, and the host ID will be the BAM file name.")
 arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default="tree", help="The file extension for tree files (default tree).")
@@ -61,7 +61,7 @@ arg_parser$add_argument("-dsb", "--blacklistUnderrepresented", action="store_tru
 
 args                          <- arg_parser$parse_args()
 
-verbose                       <- args$verbose
+verbosity                     <- args$verbose
 
 overwrite                     <- args$overwrite
 
@@ -114,7 +114,7 @@ if(is.null(seed)){
 } else {
   seed                        <- as.numeric(seed)
 }
-if(verbose) cat("Random number seed is",seed,"\n")
+if(verbosity!=0) cat("Random number seed is",seed,"\n")
 set.seed(seed)
 
 if(use.m.thresh){
@@ -207,4 +207,4 @@ success <- remove.blacklist.from.alignment(
   blacklist.ur,
   read.counts.matter,
   output.string,
-  verbose)
+  verbosity)

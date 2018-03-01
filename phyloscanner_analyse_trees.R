@@ -22,7 +22,7 @@ arg_parser$add_argument("-b", "--userBlacklist", action="store", help="A path an
 # General, bland options
 
 arg_parser$add_argument("-od", "--outputDir", action="store", help="All output will be written to this directory. If absent, current working directory.")
-arg_parser$add_argument("-v", "--verbose", action="store_true", default=FALSE, help="Talk about what the script is doing.")
+arg_parser$add_argument("-v", "--verbose", action="store", type="integer", default=1, help="The level of verbosity in command line output. 0=none, 1=minimal, 2=detailed")
 arg_parser$add_argument("-npb", "--noProgressBars", action="store_true", default=FALSE, help="If --verbose, do not display progress bars")
 arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. This expects up to three capture groups, for host ID, read ID, and read count (in that order). If the latter two groups are missing then read information will not be used. If absent, the default is '^(.*)_read_([0-9]+)_count_([0-9]+)$', which matches input from the phyloscanner pipeline where the host ID is the BAM file name.")
 arg_parser$add_argument("-y", "--fileNameRegex", action="store", default="^\\D*([0-9]+)_to_([0-9]+)\\D*$", help="Regular expression identifying window coordinates. Two capture groups: start and end; if the latter is missing then the first group is a single numerical identifier for the window. If absent, input will be assumed to be from the phyloscanner pipeline, and the host ID will be the BAM file name.")
@@ -90,7 +90,7 @@ arg_parser$add_argument("-sks", "--skipSummaryGraph", action="store_true", help=
 args                            <- arg_parser$parse_args()
 
 # basics
-verbose                         <- args$verbose
+verbosity                       <- args$verbose
 no.progress.bars                <- args$noProgressBars
 overwrite                       <- args$overwrite
 tree.fe                         <- args$treeFileExtension
@@ -162,7 +162,7 @@ if(is.null(seed)){
 } else {
   seed                        <- as.numeric(seed)
 }
-if(verbose) cat("Random number seed is",seed,"\n")
+if(verbosity!=0) cat("Random number seed is",seed,"\n")
 set.seed(seed)
 
 # Output RDA?
@@ -200,7 +200,7 @@ if(is.null(par.blacklisting.k)){
 }
 do.dual.blacklisting          <- args$dualBlacklist
 
-output.blacklisting.report    <-args$blacklistReport
+output.blacklisting.report    <- args$blacklistReport
 
 bl.raw.threshold              <- as.numeric(args$rawBlacklistThreshold)
 bl.ratio.threshold            <- as.numeric(args$ratioBlacklistThreshold)
@@ -335,7 +335,7 @@ if(single.tree){
     useff,
     prune.blacklist,
     read.counts.matter,
-    verbose ,
+    verbosity,
     no.progress.bars)
 } else {
   phyloscanner.trees <- phyloscanner.analyse.trees(
@@ -369,10 +369,13 @@ if(single.tree){
     useff,
     prune.blacklist,
     read.counts.matter,
-    verbose,
+    verbosity,
     no.progress.bars)
 }
 
+if(verbosity!=0){
+  cat("Writing annotated trees in .",tree.output.format," format.\n", sep="")
+}
 
 silent <- sapply(phyloscanner.trees, function(tree.info){
   if(single.tree){
@@ -380,17 +383,21 @@ silent <- sapply(phyloscanner.trees, function(tree.info){
   } else {
     file.name <- paste0(output.string, "_processedTree_", tree.info$suffix, ".", tree.output.format)
   }
-  write.annotated.tree(tree.info, file=file.path(output.dir, file.name), tree.output.format, pdf.scale.bar.width, pdf.w, pdf.hm, verbose)
+  write.annotated.tree(tree.info, file=file.path(output.dir, file.name), tree.output.format, pdf.scale.bar.width, pdf.w, pdf.hm, verbosity == 2)
 }, simplify = F, USE.NAMES = T)
 
 if(do.collapsed){
+  if(verbosity!=0){
+    cat("Writing collapsed trees to .csv files.\n", sep="")
+  }
+  
   silent <- sapply(phyloscanner.trees, function(tree.info){
     if(single.tree){
       file.name <- paste0(output.string, "_collapsedTree.", csv.fe)
     } else {
       file.name <- paste0(output.string, "_collapsedTree_", tree.info$suffix, ".", csv.fe)
     }
-    if(verbose) cat("Writing collapsed tree for tree ID",tree.info$suffix,"to file",file.name, "\n")
+    if(verbosity==2) cat("Writing collapsed tree for tree ID",tree.info$suffix,"to file",file.name, "\n")
     write.csv(tree.info$classification.results$collapsed[,1:4], file=file.path(output.dir, file.name), quote=F, row.names=F)
     
   }, simplify = F, USE.NAMES = T)
@@ -398,31 +405,52 @@ if(do.collapsed){
 
 
 if(do.class.detail){
+  if(verbosity!=0){
+    cat("Writing host pairwise classifications to .csv files.\n", sep="")
+  }
+  
   silent <- sapply(phyloscanner.trees, function(tree.info){
     if(single.tree){
       file.name <- paste0(output.string, "_classification.", csv.fe)
     } else {
       file.name <- paste0(output.string, "_classification_", tree.info$suffix, ".", csv.fe)
     }
-    if(verbose) cat("Writing relationship classifications for tree ID",tree.info$suffix,"to file",file.name, "\n")
+    if(verbosity==2) cat("Writing relationship classifications for tree ID",tree.info$suffix,"to file",file.name, "\n")
     write.csv(tree.info$classification.results$classification, file=file.path(output.dir, file.name), quote=F, row.names=F)
     
   }, simplify = F, USE.NAMES = T)
 }
 
 if(length(phyloscanner.trees)>1){
-  summary.stats <- gather.summary.statistics(phyloscanner.trees, tip.regex = tip.regex, verbose = verbose)
-  write.csv(summary.stats, file.path(output.dir, paste0(output.string,"_patStats.",csv.fe)), quote=F, row.names=F)
+  
+  if(verbosity!=0){
+    cat("Calculating per-host summary statistics...\n", sep="")
+  }
+  
+  summary.stats <- gather.summary.statistics(phyloscanner.trees, tip.regex = tip.regex, verbose = verbosity==2)
+  
+  ss.csv.fn <- paste0(output.string,"_patStats.",csv.fe)
+  
+  if(verbosity!=0){
+    cat("Writing summary statistics to file ",ss.csv.fn,"\n", sep="")
+  }
+  
+  write.csv(summary.stats, file.path(output.dir, ss.csv.fn), quote=F, row.names=F)
   
   ss.graphs.fn <- paste0(output.string,"_patStats.pdf")
-  silent <- multipage.summary.statistics(phyloscanner.trees, summary.stats, file.name = file.path(output.dir, ss.graphs.fn), verbose = verbose)
   
-  ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, allow.mt, close.sib.only = F, verbose)
-  if (verbose) cat('Writing summary to file', paste0(output.string,"_hostRelationshipSummary.",csv.fe),'\n')
+  if(verbosity!=0){
+    cat("Graphing summary statistics to file ",ss.graphs.fn,"\n", sep="")
+  }
+  
+  silent <- multipage.summary.statistics(phyloscanner.trees, summary.stats, file.name = file.path(output.dir, ss.graphs.fn), verbose = verbosity==2)
+  
+  ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, allow.mt, close.sib.only = F, verbosity==2)
+  if (verbosity!=0) cat('Writing summary to file', paste0(output.string,"_hostRelationshipSummary.",csv.fe),'\n')
   write.csv(ts, file=file.path(output.dir, paste0(output.string,"_hostRelationshipSummary.",csv.fe)), row.names=FALSE, quote=FALSE)
   
   if(do.simplified.graph){
-    if (verbose) cat('Drawing simplified summary diagram to file', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'\n')
+    if (verbosity!=0) cat('Drawing simplified summary diagram to file', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'\n')
     
     if(nrow(ts)==0){
       cat("No relationships exist in the required proportion of windows (",win.threshold,"); skipping simplified relationship summary.\n", sep="")
@@ -436,7 +464,7 @@ if(length(phyloscanner.trees)>1){
 }
 
 if(output.blacklisting.report){
-  if (verbose) cat('Saving blacklisting report to file', paste0(output.string,"_blacklistReport.csv"),'\n')
+  if (verbosity!=0) cat('Saving blacklisting report to file', paste0(output.string,"_blacklistReport.csv"),'\n')
   
   dfs <- lapply(phyloscanner.trees, function(x) {
     window.df <- x$bl.report
@@ -454,6 +482,8 @@ if(output.blacklisting.report){
 }
 
 if(output.rda){
-  if (verbose) cat('Saving R workspace image to file', paste0(output.string,"_workspace.rda"),'\n')
+  if (verbosity!=0) cat('Saving R workspace image to file', paste0(output.string,"_workspace.rda"),'\n')
   save.image(file=file.path(output.dir, paste0(output.string,"_workspace.rda")))
 }
+
+if(verbosity!=0) cat("Finished.")

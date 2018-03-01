@@ -28,7 +28,7 @@
 #' @param use.ff Use the \code{ff} package to store parsimony reconstruction matrices. Use if you run out of memory.
 #' @param prune.blacklist If TRUE, all blacklisted and reference tips (except the outgroup) are pruned away before starting parsimony-based reconstruction.
 #' @param read.counts.matter.on.zero.length.tips If TRUE, read counts on tips will be taken into account in parsimony reconstructions at the parents of zero-length terminal branches. Not applicable for the Romero-Severson-like reconstruction method.
-#' @param verbose Give verbose output.
+#' @param verbosity The type of verbose output. 0=none, 1=minimal, 2=complete
 #' @param no.progress.bars Hide the progress bars from verbose output.
 #' @return A list of class \code{phyloscanner.trees} with a single item of class \code{phyloscanner.tree}.
 #' @importFrom ape read.tree di2multi root node.depth.edgelength
@@ -38,47 +38,47 @@
 #' @export phyloscanner.analyse.tree
 
 phyloscanner.analyse.tree <- function(
-tree.file.name,
-splits.rule = c("s", "r", "f"),
-sankoff.k = 0,
-sankoff.unassigned.switch.threshold = 0,
-continuation.unassigned.proximity.cost = 1000,
-outgroup.name = NULL,
-multifurcation.threshold = -1,
-guess.multifurcation.threshold = F,
-user.blacklist.file.name = NULL,
-duplicate.file.name = NULL,
-recombination.file.name = NULL,
-tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
-file.name.regex = "^\\D*([0-9]+)_to_([0-9]+)\\D*$",
-seed = sample(1:10000000,1),
-norm.ref.file.name = NULL,
-norm.standardise.gag.pol = F,
-norm.constants = NULL,
-parsimony.blacklist.k = 0,
-raw.blacklist.threshold = 0,
-ratio.blacklist.threshold = 0,
-do.dual.blacklisting = F,
-max.reads.per.host = Inf,
-blacklist.underrepresented = F,
-use.ff = F,
-prune.blacklist = F,
-read.counts.matter.on.zero.length.tips = T,
-verbose = F,
-no.progress.bars = F){
+  tree.file.name,
+  splits.rule = c("s", "r", "f"),
+  sankoff.k = 0,
+  sankoff.unassigned.switch.threshold = 0,
+  continuation.unassigned.proximity.cost = 1000,
+  outgroup.name = NULL,
+  multifurcation.threshold = -1,
+  guess.multifurcation.threshold = F,
+  user.blacklist.file.name = NULL,
+  duplicate.file.name = NULL,
+  recombination.file.name = NULL,
+  tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
+  file.name.regex = "^\\D*([0-9]+)_to_([0-9]+)\\D*$",
+  seed = sample(1:10000000,1),
+  norm.ref.file.name = NULL,
+  norm.standardise.gag.pol = F,
+  norm.constants = NULL,
+  parsimony.blacklist.k = 0,
+  raw.blacklist.threshold = 0,
+  ratio.blacklist.threshold = 0,
+  do.dual.blacklisting = F,
+  max.reads.per.host = Inf,
+  blacklist.underrepresented = F,
+  use.ff = F,
+  prune.blacklist = F,
+  read.counts.matter.on.zero.length.tips = T,
+  verbosity = 0,
+  no.progress.bars = F){
   
-    tree.directory <- dirname(tree.file.name)
-    user.blacklist.directory <- if(!is.null(user.blacklist.file.name)) dirname(user.blacklist.file.name) else NULL
-    duplicate.file.directory <- if(!is.null(duplicate.file.name)) dirname(duplicate.file.name) else NULL
-    recombination.file.directory <- if(!is.null(recombination.file.name)) dirname(recombination.file.name) else NULL
-
-    phyloscanner.analyse.trees(tree.directory, basename(tree.file.name), splits.rule, sankoff.k, sankoff.unassigned.switch.threshold,
-    continuation.unassigned.proximity.cost, outgroup.name, multifurcation.threshold, guess.multifurcation.threshold,
-    user.blacklist.directory, basename(user.blacklist.file.name), duplicate.file.directory,
-    basename(duplicate.file.name), recombination.file.directory, basename(recombination.file.name), tip.regex,
-    file.name.regex, seed, norm.ref.file.name, norm.standardise.gag.pol, norm.constants, parsimony.blacklist.k,
-    raw.blacklist.threshold, ratio.blacklist.threshold, do.dual.blacklisting, max.reads.per.host,
-    blacklist.underrepresented, use.ff, prune.blacklist, read.counts.matter.on.zero.length.tips, verbose, no.progress.bars)
+  tree.directory <- dirname(tree.file.name)
+  user.blacklist.directory <- if(!is.null(user.blacklist.file.name)) dirname(user.blacklist.file.name) else NULL
+  duplicate.file.directory <- if(!is.null(duplicate.file.name)) dirname(duplicate.file.name) else NULL
+  recombination.file.directory <- if(!is.null(recombination.file.name)) dirname(recombination.file.name) else NULL
+  
+  phyloscanner.analyse.trees(tree.directory, basename(tree.file.name), splits.rule, sankoff.k, sankoff.unassigned.switch.threshold,
+                             continuation.unassigned.proximity.cost, outgroup.name, multifurcation.threshold, guess.multifurcation.threshold,
+                             user.blacklist.directory, basename(user.blacklist.file.name), duplicate.file.directory,
+                             basename(duplicate.file.name), recombination.file.directory, basename(recombination.file.name), tip.regex,
+                             file.name.regex, seed, norm.ref.file.name, norm.standardise.gag.pol, norm.constants, parsimony.blacklist.k,
+                             raw.blacklist.threshold, ratio.blacklist.threshold, do.dual.blacklisting, max.reads.per.host,
+                             blacklist.underrepresented, use.ff, prune.blacklist, read.counts.matter.on.zero.length.tips, verbosity, no.progress.bars)
 }
 
 #' Perform a phyloscanner analysis on a set of trees
@@ -114,7 +114,7 @@ no.progress.bars = F){
 #' @param use.ff Use the \code{ff} package to store parsimony reconstruction matrices. Use if you run out of memory.
 #' @param prune.blacklist If TRUE, all blacklisted and reference tips (except the outgroup) are pruned away before starting parsimony-based reconstruction.
 #' @param read.counts.matter.on.zero.length.tips If TRUE, read counts on tips will be taken into account in parsimony reconstructions at the parents of zero-length terminal branches. Not applicable for the Romero-Severson-like reconstruction method.
-#' @param verbose Give verbose output.
+#' @param verbosity The type of verbose output. 0=none, 1=minimal, 2=complete
 #' @param no.progress.bars Hide the progress bars from verbose output.
 #' @return A list of class \code{phyloscanner.trees}.
 #' @importFrom ape read.tree read.nexus di2multi root node.depth.edgelength
@@ -124,548 +124,616 @@ no.progress.bars = F){
 #' @export phyloscanner.analyse.trees 
 
 phyloscanner.analyse.trees <- function(
-tree.directory,
-tree.file.regex = "^RAxML_bestTree.InWindow_([0-9]+_to_[0-9]+)\\.tree$",
-splits.rule = c("s", "r", "f"),
-sankoff.k = 0,
-sankoff.unassigned.switch.threshold = 0,
-continuation.unassigned.proximity.cost = 1000,
-outgroup.name = NULL,
-multifurcation.threshold = -1,
-guess.multifurcation.threshold = F,
-user.blacklist.directory = NULL,
-user.blacklist.file.regex = NULL,
-duplicate.file.directory = NULL,
-duplicate.file.regex = "^DuplicateReadCountsProcessed_InWindow_([0-9]+_to_[0-9]+).csv$",
-recombination.file.directory = NULL,
-recombination.file.regex = "^RecombinantReads_InWindow_([0-9]+_to_[0-9]+).csv$",
-tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
-file.name.regex = "^\\D*([0-9]+)_to_([0-9]+)\\D*$",
-seed = sample(1:10000000,1),
-norm.ref.file.name = NULL,
-norm.standardise.gag.pol = F,
-norm.constants = NULL,
-parsimony.blacklist.k = 0,
-raw.blacklist.threshold = 0,
-ratio.blacklist.threshold = 0,
-do.dual.blacklisting = F,
-max.reads.per.host = Inf,
-blacklist.underrepresented = F,
-use.ff = F,
-prune.blacklist = F,
-read.counts.matter.on.zero.length.tips = T,
-verbose = F,
-no.progress.bars = F){
+  tree.directory,
+  tree.file.regex = "^RAxML_bestTree.InWindow_([0-9]+_to_[0-9]+)\\.tree$",
+  splits.rule = c("s", "r", "f"),
+  sankoff.k = 0,
+  sankoff.unassigned.switch.threshold = 0,
+  continuation.unassigned.proximity.cost = 1000,
+  outgroup.name = NULL,
+  multifurcation.threshold = -1,
+  guess.multifurcation.threshold = F,
+  user.blacklist.directory = NULL,
+  user.blacklist.file.regex = NULL,
+  duplicate.file.directory = NULL,
+  duplicate.file.regex = "^DuplicateReadCountsProcessed_InWindow_([0-9]+_to_[0-9]+).csv$",
+  recombination.file.directory = NULL,
+  recombination.file.regex = "^RecombinantReads_InWindow_([0-9]+_to_[0-9]+).csv$",
+  tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
+  file.name.regex = "^\\D*([0-9]+)_to_([0-9]+)\\D*$",
+  seed = sample(1:10000000,1),
+  norm.ref.file.name = NULL,
+  norm.standardise.gag.pol = F,
+  norm.constants = NULL,
+  parsimony.blacklist.k = 0,
+  raw.blacklist.threshold = 0,
+  ratio.blacklist.threshold = 0,
+  do.dual.blacklisting = F,
+  max.reads.per.host = Inf,
+  blacklist.underrepresented = F,
+  use.ff = F,
+  prune.blacklist = F,
+  read.counts.matter.on.zero.length.tips = T,
+  verbosity = 0,
+  no.progress.bars = F){
   
-    full.tree.file.names <- list.files.mod(tree.directory, pattern=tree.file.regex, full.names=TRUE)
-    tree.file.names <- list.files.mod(tree.directory,  pattern=tree.file.regex)
+  if(verbosity!=0){
+    cat("Preparing analysis...\n")
+  }
+  
+  full.tree.file.names <- list.files.mod(tree.directory, pattern=tree.file.regex, full.names=TRUE)
+  tree.file.names <- list.files.mod(tree.directory,  pattern=tree.file.regex)
+  
+  if(length(tree.file.names)==0){
+    stop("No tree files found.")
+  }
+  
+  splits.rule <- match.arg(splits.rule)
+  
+  if(!is.null(norm.ref.file.name) & !is.null(norm.constants)){
+    stop("Please either ask for calculation of normalisation constants, provide your own, or neither.")
+  }
+  
+  do.dup.blacklisting   <- !is.null(duplicate.file.directory)
+  do.par.blacklisting   <- parsimony.blacklist.k > 0
+  
+  if(do.dual.blacklisting & !do.par.blacklisting){
+    warning("Dual blacklisting requires parsimony blacklisting. Turning dual blacklisting off.")
+    do.dual.blacklisting <- F
+  }
+  
+  
+  if(splits.rule == "r"){
+    if ((!is.na(sankoff.k) & sankoff.k > 0) | sankoff.unassigned.switch.threshold > 0 | continuation.unassigned.proximity.cost < 1000){
+      warning("Romero-Severson reconstuction has no parameters; specified values will be ignored.")
+    }
+  }
+  
+  downsample            <- max.reads.per.host < Inf
+  
+  existing.bl           <- !is.null(user.blacklist.directory)
+  do.recomb             <- !is.null(recombination.file.directory)
+  
+  # 1. Make the big list.
+  
+  all.tree.info <- list()
+  
+  # There are two ways to match files - to the "suffixes" - which no longer literally have to be suffixes - and to window coordinates.
+  
+  match.mode <<- NA
+  
+  if(!is.null(tree.file.regex)){
+    tree.identifiers <- sapply(tree.file.names, function(x) sub(tree.file.regex, "\\1", x))
+    if(all(tree.identifiers!="")){
+      match.mode <<- "suffix"
+    }
+  }
+  
+  if(is.na(match.mode)){
+    match.mode <<- "coords"
+    tree.identifiers <- tryCatch({
+      sapply(tree.file.names, function(x) get.window.coords.string(x, file.name.regex))},
+      error = function(e){
+        match.mode <<- "none"
+        tree.file.names
+      })
+  }
+  
+  if(length(unique(tree.identifiers)) != length(tree.identifiers)){
+    stop("Some trees have duplicate IDs.")
+  }
+  
+  for(id.no in 1:length(tree.identifiers)){
+    suffix                        <- tree.identifiers[id.no]
     
-    if(length(tree.file.names)==0){
-      stop("No tree files found.")
-    }
-
-    splits.rule <- match.arg(splits.rule)
-
-    if(!is.null(norm.ref.file.name) & !is.null(norm.constants)){
-        stop("Please either ask for calculation of normalisation constants, provide your own, or neither.")
-    }
-
-    do.dup.blacklisting   <- !is.null(duplicate.file.directory)
-    do.par.blacklisting   <- parsimony.blacklist.k > 0
-
-    if(do.dual.blacklisting & !do.par.blacklisting){
-        warning("Dual blacklisting requires parsimony blacklisting. Turning dual blacklisting off.")
-        do.dual.blacklisting <- F
-    }
-
-
-    if(splits.rule == "r"){
-        if ((!is.na(sankoff.k) & sankoff.k > 0) | sankoff.unassigned.switch.threshold > 0 | continuation.unassigned.proximity.cost < 1000){
-            warning("Romero-Severson reconstuction has no parameters; specified values will be ignored.")
-        }
-    }
-
-    downsample            <- max.reads.per.host < Inf
-
-    existing.bl           <- !is.null(user.blacklist.directory)
-    do.recomb             <- !is.null(recombination.file.directory)
-
-    # 1. Make the big list.
-
-    all.tree.info <- list()
-
-    # There are two ways to match files - to the "suffixes" - which no longer literally have to be suffixes - and to window coordinates.
-
-    match.mode <<- NA
+    tree.info                     <- list()
+    class(tree.info)              <- append(class(tree.info), "phyloscanner.tree")
     
-    if(!is.null(tree.file.regex)){
-        tree.identifiers <- sapply(tree.file.names, function(x) sub(tree.file.regex, "\\1", x))
-        if(all(tree.identifiers!="")){
-            match.mode <<- "suffix"
-        }
-    }
-
-    if(is.na(match.mode)){
-        match.mode <<- "coords"
-        tree.identifiers <- tryCatch({
-            sapply(tree.file.names, function(x) get.window.coords.string(x, file.name.regex))},
-        error = function(e){
-            match.mode <<- "none"
-            tree.file.names
-        })
-    }
-
-    if(length(unique(tree.identifiers)) != length(tree.identifiers)){
-        stop("Some trees have duplicate IDs.")
-    }
+    tree.info$suffix              <- suffix
+    tree.info$tree.file.name      <- full.tree.file.names[id.no]
+    tree.info$index               <- id.no
     
-    for(id.no in 1:length(tree.identifiers)){
-        suffix                        <- tree.identifiers[id.no]
-
-        tree.info                     <- list()
-        class(tree.info)              <- append(class(tree.info), "phyloscanner.tree")
-
-        tree.info$suffix              <- suffix
-        tree.info$tree.file.name      <- full.tree.file.names[id.no]
-        tree.info$index               <- id.no
-
-        tree.info$bl.report    <- data.frame(tip = character(), reason = character())
-        
-        all.tree.info[[suffix]]       <- tree.info
-    }
-
-    # 2. Coordinates.
-
-    all.tree.info <- sapply(all.tree.info, function(tree.info) identify.window.coords(tree.info, file.name.regex), simplify = F, USE.NAMES = T)
-
-    readable.coords <- all(sapply(all.tree.info, function(x) !is.null(x$window.coords)))
-
-    # 3. Attach blacklist and recombination files
-
-    if(existing.bl){
-        user.blacklist.file.names <- list.files.mod(user.blacklist.directory, pattern=user.blacklist.file.regex)
-        full.user.blacklist.file.names <- list.files.mod(user.blacklist.directory, pattern=user.blacklist.file.regex, full.names=TRUE)
-        if(length(tree.file.names == 1) & length(user.blacklist.file.names)==1){
-            user.blacklist.identifiers <- tree.identifiers
-        } else {
-            if(match.mode == "suffix"){
-                user.blacklist.identifiers <- sapply(user.blacklist.file.names, function(x) sub(user.blacklist.file.regex, "\\1", x))
-            } else {
-                if(match.mode != "coords"){
-                    stop("Cannot match blacklist files with tree files using the information given.")
-                } else {
-                    tryCatch({
-                        user.blacklist.identifiers <- sapply(user.blacklist.file.names, function(x) get.window.coords.string(x, file.name.regex))},
-                    error = function(e){
-                        stop("Cannot match blacklist files with tree files using the information given.")
-                    })
-                }
-            }
-            if(!setequal(tree.identifiers, user.blacklist.identifiers)){
-                warning("Tree files and blacklist files do not entirely match. Blacklist files with no tree files will be ignored; tree files with no blacklist file will have no tips blacklisted.")
-            }
-        }
-
-        all.tree.info <- sapply(all.tree.info, function(tree.info) attach.file.names(tree.info, full.user.blacklist.file.names, user.blacklist.identifiers, "user.blacklist.file.name"), simplify = F, USE.NAMES = T)
-    }
-
-    if(do.recomb){
-        recombination.file.names <- list.files.mod(recombination.file.directory, pattern=recombination.file.regex)
-        full.recombination.file.names <- list.files.mod(recombination.file.directory, pattern=recombination.file.regex, full.names=TRUE)
-        if(length(tree.file.names == 1) & length(recombination.file.names)==1){
-            recomb.identifiers <- tree.identifiers
-        } else {
-            if(match.mode=="suffix"){
-                recomb.identifiers <- sapply(recombination.file.names, function(x) sub(recombination.file.regex, "\\1", x))
-            } else {
-                if(match.mode != "coords"){
-                    stop("Cannot match recombination files with tree files using the information given.")
-                } else {
-                    tryCatch({
-                        recomb.identifiers <- sapply(recombination.file.names, function(x) get.window.coords.string(x, file.name.regex))},
-                    error = function(e){
-                        stop("Cannot match recombination files with tree files using the information given.")
-                    })
-                }
-            }
-            if(!setequal(tree.identifiers, recomb.identifiers)){
-                stop("Tree files and recombination files do not match.")
-            }
-        }
-
-        all.tree.info <- sapply(all.tree.info, function(tree.info) attach.file.names(tree.info, full.recombination.file.names, recomb.identifiers, "recombination.file.name"), simplify = F, USE.NAMES = T)
-    }
-
-    if(do.dup.blacklisting){
-        duplicate.file.names <- list.files.mod(duplicate.file.directory, pattern=duplicate.file.regex)
-        full.duplicate.file.names <- list.files.mod(duplicate.file.directory, pattern=duplicate.file.regex, full.names=TRUE)
-        if(length(tree.file.names == 1) & length(duplicate.file.names)==1){
-            duplicate.identifiers <- tree.identifiers
-        } else {
-            if(match.mode=="suffix"){
-                duplicate.identifiers <- sapply(duplicate.file.names, function(x) sub(duplicate.file.regex, "\\1", x))
-            } else {
-                if(match.mode != "coords"){
-                    stop("Cannot match duplicate files with tree files using the information given.")
-                } else {
-                    tryCatch({
-                        duplicate.identifiers <- sapply(duplicate.file.names, function(x) get.window.coords.string(x, file.name.regex))},
-                    error = function(e){
-                        stop("Cannot match duplicate files with tree files using the information given.")
-                    })
-                }
-            }
-            if(length(intersect(tree.identifiers, duplicate.identifiers))==0){
-              stop("Tree files identifiers and duplicate file identifiers do not match at all. Check file prefixes are correct.")
-            }
-            if(!setequal(tree.identifiers, duplicate.identifiers)){
-              warning("Tree files identifiers and duplicate file identifiers do not entirely match.")
-            }
-        }
-
-        all.tree.info <- sapply(all.tree.info, function(tree.info) attach.file.names(tree.info, full.duplicate.file.names, duplicate.identifiers, "duplicate.file.name"), simplify = F, USE.NAMES = T)
-    }
-
-    # 4. Read the trees
-
-    all.tree.info <- sapply(all.tree.info, function(tree.info) attach.tree(tree.info, verbose), simplify = F, USE.NAMES = T)
-
-    # 5. Are there read counts at the tips?
-
-    read.counts.check <- sapply(all.tree.info, function(tree.info) check.read.counts(tree.info, tip.regex))
-
-    if(any(read.counts.check) & !all(read.counts.check)){
-        warning("Read counts are not present in some trees; ignoring them throughout.\n")
-    }
-    has.read.counts <- all(read.counts.check)
-
-    # 6. Root tree, collapse multifurcations, get host for each tip
-
-    if(guess.multifurcation.threshold){
-        warning("Attempting to guess a branch length threshold for multifurcations from the tree. Please visually examine the tree or trees for multifurcations before using the results of this analysis.")
-    }
-
-
-    all.tree.info <- sapply(all.tree.info, function(tree.info) prepare.tree(tree.info, outgroup.name, tip.regex, guess.multifurcation.threshold, readable.coords, multifurcation.threshold, verbose),
-    simplify = F, USE.NAMES = T)
-
-    all.tree.info[sapply(all.tree.info, is.null)] <- NULL
-
-    if(length(all.tree.info)==0){
-        stop("Cannot find any hosts on any tree that match this regular expression. Please check that it is correct.")
-    }
-
-    # 8. Read the blacklists
-
-    all.tree.info <- sapply(all.tree.info, function(tree.info) read.blacklist(tree.info, verbose), simplify = F, USE.NAMES = T)
-
-    # 9. Rename tips from the prexisting blacklist
-
-    all.tree.info <- sapply(all.tree.info, function(tree.info) rename.user.blacklist.tips(tree.info), simplify = F, USE.NAMES = T)
-
-    # 10. Get the normalisation constants
-
-    if(!is.null(norm.constants)){
-        if(!is.na(suppressWarnings(as.numeric(norm.constants)))){
-            nc <- as.numeric(norm.constants)
-            all.tree.info <- sapply(all.tree.info, function(tree.info) {
-                tree.info$normalisation.constant  <- nc
-                tree.info
-            }, simplify = F, USE.NAMES = T)
-        } else if(file.exists(norm.constants)){
-
-            nc.df   <- read.csv(norm.constants, stringsAsFactors = F, header = F)
-            all.tree.info <- sapply(all.tree.info, function(tree.info) {
-                rows  <- which(nc.df[,1]==basename(tree.info$tree.file.name))
-
-                if(length(rows)>0){
-                    # Take the first appearance of the file name
-
-                    row <- rows[1]
-                    nc  <- as.numeric(nc.df[row, 2])
-                    if(is.na(nc)){
-                        warning("Tree with suffix ",tree.info$suffix," given a normalisation constant in file ",norm.constants," which cannot be processed as a number; this tree will not have normalised branch lengths\n")
-                        nc <- 1
-                    }
-                } else {
-                    warning("Tree with suffix ",tree.info$suffix," has no normalisation constant in this lookup file and will not have normalised branch lengths\n")
-                    nc <- 1
-                }
-
-                tree.info$normalisation.constant  <- nc
-                tree.info
-            }, simplify = F, USE.NAMES = T)
-
-        } else {
-            all.tree.info <- sapply(all.tree.info, function(tree.info) {
-              tree.info$normalisation.constant  <- 1
-              tree.info
-            }, simplify = F, USE.NAMES = T)
-            warning(paste0("Normalisation file ",norm.constants," not found. Tree branch lengths will not be normalised.\n"))
-        }
-    } else if(!is.null(norm.ref.file.name)){
-        if(readable.coords){
-            if (verbose) cat('Loading normalising constants reference file ', norm.ref.file.name, "\n", sep="")
-
-            if(grepl(paste0("csv", "$"), norm.ref.file.name)){
-                norm.table	<- as.data.table(read.csv(norm.ref.file.name, stringsAsFactors=FALSE))
-
-                if(ncol(norm.table)!=2){
-                    stop(paste0(norm.ref.file.name," is not formatted as expected for a normalisation lookup file; expecting two columns.\n"))
-                } else {
-                    setnames(norm.table, 1, 'POSITION')
-                    setnames(norm.table, 2, 'NORM_CONST')
-
-                    if(norm.standardise.gag.pol){
-                        #	Standardize to mean of 1 on gag+pol ( prot + first part of RT in total 1300bp )
-
-                        #790 - 3385
-                        if (verbose) cat('Standardising normalising constants to 1 on the gag+pol (prot + first part of RT in total 1300bp pol) region\n')
-
-                        tmp		<- subset(norm.table, POSITION>=790L & POSITION<=3385L)
-
-                        if(nrow(tmp)<=0){
-                            stop(paste0("No positions from gag+pol present in file ",norm.ref.file.name,"; unable to standardise"))
-                        }
-
-                        tmp		<- tmp[, mean(NORM_CONST)]
-
-                        if(!is.finite(tmp)){
-                            stop(paste0("Standardising constant is not finite"))
-                        }
-
-                        set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
-                    } else {
-                        if (verbose) cat('Standardising normalising constants to 1 on the whole genome\n')
-
-                        tmp		<- norm.table[, mean(NORM_CONST)]
-                        if(!is.finite(tmp)){
-                            stop(paste0("Standardising constant is not finite"))
-                        }
-
-                        set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
-                    }
-
-                    all.tree.info <- sapply(all.tree.info, function(tree.info){
-                        tree.info$normalisation.constant <- lookup.normalisation.for.tree(tree.info, norm.table, lookup.column = "NORM_CONST")
-                        tree.info
-                    }, simplify = F, USE.NAMES = T)
-                }
-            } else {
-                warning(paste0("Unknown input file format for normalisation file; tree branch lengths will not be normalised.\n"))
-                all.tree.info <- sapply(all.tree.info, function(tree.info) {
-                    tree.info$normalisation.constant  <- 1
-                    tree.info
-                }, simplify = F, USE.NAMES = T)
-            }
-        } else {
-            warning(paste0("Cannot normalise branch lengths from file without window cooardinates in file suffixes; tree branch lengths will not be normalised.\n"))
-            all.tree.info <- sapply(all.tree.info, function(tree.info) {
-                tree.info$normalisation.constant  <- 1
-                tree.info
-            }, simplify = F, USE.NAMES = T)
-        }
+    tree.info$bl.report           <- data.frame(tip = character(), reason = character())
+    
+    all.tree.info[[suffix]]       <- tree.info
+  }
+  
+  # 2. Coordinates.
+  
+  if(verbosity!=0){
+    cat("Checking for window cooardinates in file names...")
+  }
+  
+  all.tree.info <- sapply(all.tree.info, function(tree.info) identify.window.coords(tree.info, file.name.regex), simplify = F, USE.NAMES = T)
+  
+  readable.coords <- all(sapply(all.tree.info, function(x) !is.null(x$window.coords)))
+  
+  if(verbosity!=0){
+    if(readable.coords){
+      cat("found\n")
     } else {
-        all.tree.info <- sapply(all.tree.info, function(tree.info) {
-            tree.info$normalisation.constant  <- 1
-            tree.info
-        }, simplify = F, USE.NAMES = T)
+      cat("not found\n")
     }
-
-    # 11. Apply the normalisation constants
-
-    all.tree.info <- sapply(all.tree.info, function(tree.info) apply.normalisation.constants(tree.info), simplify = F, USE.NAMES = T)
-
-
-    # 12. Duplicate blacklisting
-
-    if(do.dup.blacklisting){
-        all.tree.info <- sapply(all.tree.info, find.duplicate.tips, simplify = F, USE.NAMES = T)
-
-        all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.duplicates.vector(tree.info, raw.blacklist.threshold, ratio.blacklist.threshold, tip.regex, verbose), simplify = F, USE.NAMES = T)
-    }
-
-
-    # 13. Parsimony blacklisting
-
-    if(do.par.blacklisting){
-        all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.using.parsimony(tree.info, tip.regex, outgroup.name, raw.blacklist.threshold, ratio.blacklist.threshold, parsimony.blacklist.k, has.read.counts, read.counts.matter.on.zero.length.tips, verbose), simplify = F, USE.NAMES = T)
-    }
-
-    # 14. Dual blacklisting
-
-    if(do.dual.blacklisting){
-        hosts.that.are.duals <- lapply(all.tree.info, function(tree.info){
-            tree.info$duals.info$host
-        })
-        hosts.that.are.duals <- unique(unlist(hosts.that.are.duals))
-        
-        if(!is.null(hosts.that.are.duals)){
-        
-          hosts.that.are.duals <- hosts.that.are.duals[order(hosts.that.are.duals)]
+  }
   
-          dual.results <- blacklist.duals(all.tree.info, hosts.that.are.duals, summary.file = NULL, verbose)
+  # 3. Attach blacklist and recombination files
   
-          all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.duals.list(tree.info, dual.results, verbose), simplify = F, USE.NAMES = T)
-        } else {
-          if(verbose) cat("No dual infections identified in any tree.\n")
-        }
-    }
-
-
-    # 15. Downsampling
-
-    if(downsample){
-        all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.random.downsample(tree.info, max.reads.per.host, blacklist.underrepresented, has.read.counts, tip.regex, NA, verbose), simplify = F, USE.NAMES = T)
-    }
-
-    # 16. All IDs can be safely gathered and mapped now, and read counts calculated. Windows with no patients should be removed.
-
-    if(verbose) cat("Gathering host IDs...\n")
-
-    hosts <- all.hosts.from.trees(all.tree.info)
-
-    if(length(hosts)==1){
-        warning("Only one host detected in any tree, will skip classification of topological relationships between hosts.")
-    }
+  if(existing.bl){
     
-    if(verbose){
-      cat("The full list of host IDs in this analysis follows. If this is not what you intended, check your --tipRegex\n")
-      for(host in hosts){
-        cat(host, "\n")
+    user.blacklist.file.names <- list.files.mod(user.blacklist.directory, pattern=user.blacklist.file.regex)
+    full.user.blacklist.file.names <- list.files.mod(user.blacklist.directory, pattern=user.blacklist.file.regex, full.names=TRUE)
+    if(length(tree.file.names == 1) & length(user.blacklist.file.names)==1){
+      user.blacklist.identifiers <- tree.identifiers
+    } else {
+      if(match.mode == "suffix"){
+        user.blacklist.identifiers <- sapply(user.blacklist.file.names, function(x) sub(user.blacklist.file.regex, "\\1", x))
+      } else {
+        if(match.mode != "coords"){
+          stop("Cannot match blacklist files with tree files using the information given.")
+        } else {
+          tryCatch({
+            user.blacklist.identifiers <- sapply(user.blacklist.file.names, function(x) get.window.coords.string(x, file.name.regex))},
+            error = function(e){
+              stop("Cannot match blacklist files with tree files using the information given.")
+            })
+        }
+      }
+      if(!setequal(tree.identifiers, user.blacklist.identifiers)){
+        warning("Tree files and blacklist files do not entirely match. Blacklist files with no tree files will be ignored; tree files with no blacklist file will have no tips blacklisted.")
       }
     }
-
-    all.tree.info <- sapply(all.tree.info, function(tree.info){
-        if(all(is.na(tree.info$hosts.for.tips))){
-            warning("For tree suffix ",tree.info$suffix," no non-blacklisted tips remain; this window will be removed from the analysis.")
-            NULL
+    
+    all.tree.info <- sapply(all.tree.info, function(tree.info) attach.file.names(tree.info, full.user.blacklist.file.names, user.blacklist.identifiers, "user.blacklist.file.name"), simplify = F, USE.NAMES = T)
+  }
+  
+  if(do.recomb){
+    recombination.file.names <- list.files.mod(recombination.file.directory, pattern=recombination.file.regex)
+    full.recombination.file.names <- list.files.mod(recombination.file.directory, pattern=recombination.file.regex, full.names=TRUE)
+    if(length(tree.file.names == 1) & length(recombination.file.names)==1){
+      recomb.identifiers <- tree.identifiers
+    } else {
+      if(match.mode=="suffix"){
+        recomb.identifiers <- sapply(recombination.file.names, function(x) sub(recombination.file.regex, "\\1", x))
+      } else {
+        if(match.mode != "coords"){
+          stop("Cannot match recombination files with tree files using the information given.")
         } else {
-            tips.for.hosts <- sapply(hosts, function(x){
-
-                which(tree.info$hosts.for.tips == x)
-
-            }, simplify = F, USE.NAMES = T)
-            
-            tree.info$tips.for.hosts <- tips.for.hosts
-            if(has.read.counts){
-              read.counts <- sapply(tree.info$tree$tip.label, function(x) as.numeric(read.count.from.label(x, tip.regex)))
-            } else {
-              read.counts <- rep(1, length(tree.info$tree$tip.label))
-            }
-            read.counts[tree.info$blacklist] <- NA
-            
-            tree.info$read.counts <- read.counts
-            
-            tree.info
+          tryCatch({
+            recomb.identifiers <- sapply(recombination.file.names, function(x) get.window.coords.string(x, file.name.regex))},
+            error = function(e){
+              stop("Cannot match recombination files with tree files using the information given.")
+            })
         }
-    }, simplify = F, USE.NAMES = T)
-
-    all.tree.info[sapply(all.tree.info, is.null)] <- NULL
-
-    if(length(all.tree.info)==0){
-        stop("All hosts have been blacklisted from all trees; nothing to do.")
+      }
+      if(!setequal(tree.identifiers, recomb.identifiers)){
+        stop("Tree files and recombination files do not match.")
+      }
     }
-
-    # 17. Prune away the blacklist if so requested
-
-    if(prune.blacklist){
-        all.tree.info <- sapply(all.tree.info, function(tree.info) {
-            tree                <- tree.info$tree
-
-            new.tree            <- process.tree(tree, outgroup.name, m.thresh = -1, tree.info$blacklist)
-
-            tree.info$tree      <- new.tree
-            tree.info$blacklist <- vector()
-
-            tree.info
-
-        }, simplify = F, USE.NAMES = T)
-    }
-
-
-
-    # 18. Parsimony reconstruction
-
-    sankoff.p <- NA
-
-    if(splits.rule == "s"){
-        sankoff.p <- sankoff.unassigned.switch.threshold
-    } else if(splits.rule == "f"){
-        sankoff.p <- continuation.unassigned.proximity.cost
-    }
-
-    all.tree.info <- sapply(all.tree.info, function(tree.info) {
-        # Do the reconstruction
-
-        if(verbose) cat("Reconstructing internal node hosts on tree ID ",tree.info$suffix, "\n", sep="")
-
-        tmp					     <- split.hosts.to.subgraphs(tree.info$tree, tree.info$blacklist, splits.rule, tip.regex, sankoff.k, sankoff.p, use.ff, read.counts.matter.on.zero.length.tips, multifurcation.threshold, hosts, tree.info$suffix, verbose, no.progress.bars)
-        tree					   <- tmp[['tree']]
-
-        # trees are annotated from now on
-
-        rs.subgraphs		 <- tmp[['rs.subgraphs']]
-
-        if(is.null(rs.subgraphs)){
-            warning("No non-blacklisted tips for suffix ",tree.info$suffix,"; this window will not be analysed further.")
+    
+    all.tree.info <- sapply(all.tree.info, function(tree.info) attach.file.names(tree.info, full.recombination.file.names, recomb.identifiers, "recombination.file.name"), simplify = F, USE.NAMES = T)
+  }
+  
+  if(do.dup.blacklisting){
+    duplicate.file.names <- list.files.mod(duplicate.file.directory, pattern=duplicate.file.regex)
+    full.duplicate.file.names <- list.files.mod(duplicate.file.directory, pattern=duplicate.file.regex, full.names=TRUE)
+    if(length(tree.file.names == 1) & length(duplicate.file.names)==1){
+      duplicate.identifiers <- tree.identifiers
+    } else {
+      if(match.mode=="suffix"){
+        duplicate.identifiers <- sapply(duplicate.file.names, function(x) sub(duplicate.file.regex, "\\1", x))
+      } else {
+        if(match.mode != "coords"){
+          stop("Cannot match duplicate files with tree files using the information given.")
+        } else {
+          tryCatch({
+            duplicate.identifiers <- sapply(duplicate.file.names, function(x) get.window.coords.string(x, file.name.regex))},
+            error = function(e){
+              stop("Cannot match duplicate files with tree files using the information given.")
+            })
         }
-
-        # Convert back to unnormalised branch lengths for output
-
-        tree$edge.length <- tree$edge.length * tree.info$normalisation.constant
-
-        if(!is.null(rs.subgraphs)){
-
-            if(has.read.counts){
-                rs.subgraphs$reads <- sapply(rs.subgraphs$tip, function(x) as.numeric(read.count.from.label(x, tip.regex)))
-            } else {
-                rs.subgraphs$reads <- 1
-            }
-            
-            tree.info$splits.table  <- rs.subgraphs
-        }
-
-        tree.info$tree <- tree
-
+      }
+      if(length(intersect(tree.identifiers, duplicate.identifiers))==0){
+        stop("Tree files identifiers and duplicate file identifiers do not match at all. Check file prefixes are correct.")
+      }
+      if(!setequal(tree.identifiers, duplicate.identifiers)){
+        warning("Tree files identifiers and duplicate file identifiers do not entirely match.")
+      }
+    }
+    
+    all.tree.info <- sapply(all.tree.info, function(tree.info) attach.file.names(tree.info, full.duplicate.file.names, duplicate.identifiers, "duplicate.file.name"), simplify = F, USE.NAMES = T)
+  }
+  
+  # 4. Read the trees
+  
+  if(verbosity!=0){
+    cat("Reading trees...\n")
+  }
+  
+  all.tree.info <- sapply(all.tree.info, function(tree.info) attach.tree(tree.info, verbosity==2), simplify = F, USE.NAMES = T)
+  
+  # 5. Are there read counts at the tips?
+  
+  if(verbosity!=0){
+    cat("Checking for read counts in tip names...")
+  }  
+  
+  read.counts.check <- sapply(all.tree.info, function(tree.info) check.read.counts(tree.info, tip.regex))
+  
+  if(any(read.counts.check) & !all(read.counts.check)){
+    warning("Read counts are not present in some trees; ignoring them throughout.\n")
+  }
+  has.read.counts <- all(read.counts.check)
+  
+  if(verbosity!=0){
+    if(has.read.counts){
+      cat("found\n")
+    } else {
+      cat("not found\n")
+    }
+  }  
+  
+  # 6. Root tree, collapse multifurcations, get host for each tip
+  
+  if(guess.multifurcation.threshold){
+    warning("Attempting to guess a branch length threshold for multifurcations from the tree. Please visually examine the tree or trees for multifurcations before using the results of this analysis.")
+  }
+  
+  if(verbosity!=0){
+    cat("Preparing trees...\n")
+  }
+  
+  all.tree.info <- sapply(all.tree.info, function(tree.info) prepare.tree(tree.info, outgroup.name, tip.regex, guess.multifurcation.threshold, readable.coords, multifurcation.threshold, verbosity==2),
+                          simplify = F, USE.NAMES = T)
+  
+  all.tree.info[sapply(all.tree.info, is.null)] <- NULL
+  
+  if(length(all.tree.info)==0){
+    stop("Cannot find any hosts on any tree that match this regular expression. Please check that it is correct.")
+  }
+  
+  # 8. Read the blacklists
+  
+  if(existing.bl & verbosity!=0){
+    cat("Reading user blacklists...")
+  }
+  
+  all.tree.info <- sapply(all.tree.info, function(tree.info) read.blacklist(tree.info, verbosity==2), simplify = F, USE.NAMES = T)
+  
+  # 9. Rename tips from the prexisting blacklist
+  
+  all.tree.info <- sapply(all.tree.info, function(tree.info) rename.user.blacklist.tips(tree.info), simplify = F, USE.NAMES = T)
+  
+  # 10. Get the normalisation constants
+  
+  if(!is.null(norm.constants)){
+    
+    if(!is.na(suppressWarnings(as.numeric(norm.constants)))){
+      nc <- as.numeric(norm.constants)
+      
+      if (verbosity!=0) cat('Normalising branch lengths using specified constant (', nc, ")...\n", sep="")
+      
+      all.tree.info <- sapply(all.tree.info, function(tree.info) {
+        tree.info$normalisation.constant  <- nc
         tree.info
-
-    }, simplify = F, USE.NAMES = T)
-
-
-    # 19. For summary statistics
-
-    all.tree.info <- sapply(all.tree.info, function(tree.info) {
-        clade.results                 <- resolveTreeIntoPatientClades(tree.info$tree, hosts, tip.regex, tree.info$blacklist, !has.read.counts)
-
-        tree.info$clades.by.host      <- clade.results$clades.by.patient
-        tree.info$clade.mrcas.by.host <- clade.results$clade.mrcas.by.patient
-
+      }, simplify = F, USE.NAMES = T)
+    } else if(file.exists(norm.constants)){
+      
+      if (verbosity!=0) cat('Normalising branch lengths using contents of file ', norm.constants, "...\n", sep="")
+      
+      
+      nc.df   <- read.csv(norm.constants, stringsAsFactors = F, header = F)
+      all.tree.info <- sapply(all.tree.info, function(tree.info) {
+        rows  <- which(nc.df[,1]==basename(tree.info$tree.file.name))
+        
+        if(length(rows)>0){
+          # Take the first appearance of the file name
+          
+          row <- rows[1]
+          nc  <- as.numeric(nc.df[row, 2])
+          if(is.na(nc)){
+            warning("Tree with suffix ",tree.info$suffix," given a normalisation constant in file ",norm.constants," which cannot be processed as a number; this tree will not have normalised branch lengths\n")
+            nc <- 1
+          }
+        } else {
+          warning("Tree with suffix ",tree.info$suffix," has no normalisation constant in this lookup file and will not have normalised branch lengths\n")
+          nc <- 1
+        }
+        
+        tree.info$normalisation.constant  <- nc
         tree.info
-    }, simplify = F, USE.NAMES = T)
-
-    # 20. Individual window classifications
-
-    if(length(hosts)>1){
-        all.tree.info <- sapply(all.tree.info, function(tree.info) {
-
-
-            if(verbose) cat("Classifying pairwise host relationships for tree ID ",tree.info$suffix, ".\n", sep="")
-
-            tree.info$classification.results <- classify(tree.info, verbose, no.progress.bars)
-
-            tree.info
-        }, simplify = F, USE.NAMES = T)
+      }, simplify = F, USE.NAMES = T)
+      
+    } else {
+      all.tree.info <- sapply(all.tree.info, function(tree.info) {
+        tree.info$normalisation.constant  <- 1
+        tree.info
+      }, simplify = F, USE.NAMES = T)
+      warning(paste0("Normalisation file ",norm.constants," not found. Tree branch lengths will not be normalised.\n"))
     }
-
-    attr(all.tree.info, 'readable.coords') <- readable.coords
-    attr(all.tree.info, 'match.mode')      <- match.mode
-    attr(all.tree.info, 'has.read.counts') <- has.read.counts
-
-    class(all.tree.info) <- append(class(all.tree.info), "phyloscanner.trees")
-
-    all.tree.info
+  } else if(!is.null(norm.ref.file.name)){
+    if(readable.coords){
+      if (verbosity!=0) cat('Calculating normalisation constants from file ', norm.ref.file.name, "...\n", sep="")
+      
+      if(grepl(paste0("csv", "$"), norm.ref.file.name)){
+        norm.table	<- as.data.table(read.csv(norm.ref.file.name, stringsAsFactors=FALSE))
+        
+        if(ncol(norm.table)!=2){
+          stop(paste0(norm.ref.file.name," is not formatted as expected for a normalisation lookup file; expecting two columns.\n"))
+        } else {
+          setnames(norm.table, 1, 'POSITION')
+          setnames(norm.table, 2, 'NORM_CONST')
+          
+          if(norm.standardise.gag.pol){
+            #	Standardize to mean of 1 on gag+pol ( prot + first part of RT in total 1300bp )
+            
+            #790 - 3385
+            if (verbosity==2) cat('Standardising normalising constants to 1 on the gag+pol (prot + first part of RT in total 1300bp pol) region\n')
+            
+            tmp		<- subset(norm.table, POSITION>=790L & POSITION<=3385L)
+            
+            if(nrow(tmp)<=0){
+              stop(paste0("No positions from gag+pol present in file ",norm.ref.file.name,"; unable to standardise"))
+            }
+            
+            tmp		<- tmp[, mean(NORM_CONST)]
+            
+            if(!is.finite(tmp)){
+              stop(paste0("Standardising constant is not finite"))
+            }
+            
+            set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
+          } else {
+            if (verbosity==2) cat('Standardising normalising constants to 1 on the whole genome\n')
+            
+            tmp		<- norm.table[, mean(NORM_CONST)]
+            if(!is.finite(tmp)){
+              stop(paste0("Standardising constant is not finite"))
+            }
+            
+            set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
+          }
+          
+          all.tree.info <- sapply(all.tree.info, function(tree.info){
+            tree.info$normalisation.constant <- lookup.normalisation.for.tree(tree.info, norm.table, lookup.column = "NORM_CONST")
+            tree.info
+          }, simplify = F, USE.NAMES = T)
+        }
+      } else {
+        warning(paste0("Unknown input file format for normalisation file; tree branch lengths will not be normalised.\n"))
+        all.tree.info <- sapply(all.tree.info, function(tree.info) {
+          tree.info$normalisation.constant  <- 1
+          tree.info
+        }, simplify = F, USE.NAMES = T)
+      }
+    } else {
+      warning(paste0("Cannot normalise branch lengths from file without window cooardinates in file suffixes; tree branch lengths will not be normalised.\n"))
+      all.tree.info <- sapply(all.tree.info, function(tree.info) {
+        tree.info$normalisation.constant  <- 1
+        tree.info
+      }, simplify = F, USE.NAMES = T)
+    }
+  } else {
+    
+    
+    all.tree.info <- sapply(all.tree.info, function(tree.info) {
+      tree.info$normalisation.constant  <- 1
+      tree.info
+    }, simplify = F, USE.NAMES = T)
+  }
+  
+  # 11. Apply the normalisation constants
+  
+  all.tree.info <- sapply(all.tree.info, function(tree.info) apply.normalisation.constants(tree.info), simplify = F, USE.NAMES = T)
+  
+  # 12. Duplicate blacklisting
+  
+  if(do.dup.blacklisting){
+    if (verbosity!=0) cat("Blacklisting duplicates from input files...\n", sep="")
+    
+    all.tree.info <- sapply(all.tree.info, find.duplicate.tips, simplify = F, USE.NAMES = T)
+    
+    all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.duplicates.vector(tree.info, raw.blacklist.threshold, ratio.blacklist.threshold, tip.regex, verbosity==2), simplify = F, USE.NAMES = T)
+  }
+  
+  
+  # 13. Parsimony blacklisting
+  
+  if(do.par.blacklisting){
+    if (verbosity!=0) cat("Blacklisting probable contaminants using parsimony...\n", sep="")
+    
+    all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.using.parsimony(tree.info, tip.regex, outgroup.name, raw.blacklist.threshold, ratio.blacklist.threshold, parsimony.blacklist.k, has.read.counts, read.counts.matter.on.zero.length.tips, verbosity==2), simplify = F, USE.NAMES = T)
+  }
+  
+  # 14. Dual blacklisting
+  
+  if(do.dual.blacklisting){
+    if (verbosity!=0) cat("Blacklisting minor subgraphs in probable dual infections...\n", sep="")
+    
+    hosts.that.are.duals <- lapply(all.tree.info, function(tree.info){
+      tree.info$duals.info$host
+    })
+    hosts.that.are.duals <- unique(unlist(hosts.that.are.duals))
+    
+    if(!is.null(hosts.that.are.duals)){
+      
+      hosts.that.are.duals <- hosts.that.are.duals[order(hosts.that.are.duals)]
+      
+      dual.results <- blacklist.duals(all.tree.info, hosts.that.are.duals, summary.file = NULL, verbosity==2)
+      
+      all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.duals.list(tree.info, dual.results, verbosity==2), simplify = F, USE.NAMES = T)
+    } else {
+      if(verbosity!=0) cat("No dual infections identified in any tree.\n")
+    }
+  }
+  
+  
+  # 15. Downsampling
+  
+  if(downsample){
+    if (verbosity!=0) cat("Downsampling to equalise read counts across hosts...\n", sep="")
+    
+    all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.random.downsample(tree.info, max.reads.per.host, blacklist.underrepresented, has.read.counts, tip.regex, NA, verbosity==2), simplify = F, USE.NAMES = T)
+  }
+  
+  # 16. All IDs can be safely gathered and mapped now, and read counts calculated. Windows with no patients should be removed.
+  
+  if(verbosity!=0) cat("Gathering host IDs...\n")
+  
+  hosts <- all.hosts.from.trees(all.tree.info)
+  
+  if(length(hosts)==1){
+    warning("Only one host detected in any tree, will skip classification of topological relationships between hosts.")
+  }
+  
+  if(verbosity!=0){
+    cat("***The full list of host IDs that will be used in this analysis follows. If this is not what you intended, check your --tipRegex***\n")
+    for(host in hosts){
+      cat(host, "\n")
+    }
+  }
+  
+  all.tree.info <- sapply(all.tree.info, function(tree.info){
+    if(all(is.na(tree.info$hosts.for.tips))){
+      warning("For tree suffix ",tree.info$suffix," no non-blacklisted tips remain; this window will be removed from the analysis.")
+      NULL
+    } else {
+      tips.for.hosts <- sapply(hosts, function(x){
+        
+        which(tree.info$hosts.for.tips == x)
+        
+      }, simplify = F, USE.NAMES = T)
+      
+      tree.info$tips.for.hosts <- tips.for.hosts
+      if(has.read.counts){
+        read.counts <- sapply(tree.info$tree$tip.label, function(x) as.numeric(read.count.from.label(x, tip.regex)))
+      } else {
+        read.counts <- rep(1, length(tree.info$tree$tip.label))
+      }
+      read.counts[tree.info$blacklist] <- NA
+      
+      tree.info$read.counts <- read.counts
+      
+      tree.info
+    }
+  }, simplify = F, USE.NAMES = T)
+  
+  all.tree.info[sapply(all.tree.info, is.null)] <- NULL
+  
+  if(length(all.tree.info)==0){
+    stop("All hosts have been blacklisted from all trees; nothing to do.")
+  }
+  
+  # 17. Prune away the blacklist if so requested
+  
+  if(prune.blacklist){
+    if(verbosity!=0) cat("Pruning away all blacklisted tips (except the outgroup)...\n")
+    
+    all.tree.info <- sapply(all.tree.info, function(tree.info) {
+      tree                <- tree.info$tree
+      
+      new.tree            <- process.tree(tree, outgroup.name, m.thresh = -1, tree.info$blacklist)
+      
+      tree.info$tree      <- new.tree
+      tree.info$blacklist <- vector()
+      
+      tree.info
+      
+    }, simplify = F, USE.NAMES = T)
+  }
+  
+  
+  
+  # 18. Parsimony reconstruction
+  
+  sankoff.p <- NA
+  
+  if(splits.rule == "s"){
+    sankoff.p <- sankoff.unassigned.switch.threshold
+  } else if(splits.rule == "f"){
+    sankoff.p <- continuation.unassigned.proximity.cost
+  }
+  
+  if(verbosity==2) cat("Performing the parsimony reconstruction...\n", sep="")
+  
+  
+  all.tree.info <- sapply(all.tree.info, function(tree.info) {
+    # Do the reconstruction
+    
+    if(verbosity==2) cat("Reconstructing internal node hosts on tree ID ",tree.info$suffix, "\n", sep="")
+    
+    tmp					     <- split.hosts.to.subgraphs(tree.info$tree, tree.info$blacklist, splits.rule, tip.regex, sankoff.k, sankoff.p, use.ff, read.counts.matter.on.zero.length.tips, multifurcation.threshold, hosts, tree.info$suffix, verbosity==2, no.progress.bars)
+    tree					   <- tmp[['tree']]
+    
+    # trees are annotated from now on
+    
+    rs.subgraphs		 <- tmp[['rs.subgraphs']]
+    
+    if(is.null(rs.subgraphs)){
+      warning("No non-blacklisted tips for suffix ",tree.info$suffix,"; this window will not be analysed further.")
+    }
+    
+    # Convert back to unnormalised branch lengths for output
+    
+    tree$edge.length <- tree$edge.length * tree.info$normalisation.constant
+    
+    if(!is.null(rs.subgraphs)){
+      
+      if(has.read.counts){
+        rs.subgraphs$reads <- sapply(rs.subgraphs$tip, function(x) as.numeric(read.count.from.label(x, tip.regex)))
+      } else {
+        rs.subgraphs$reads <- 1
+      }
+      
+      tree.info$splits.table  <- rs.subgraphs
+    }
+    
+    tree.info$tree <- tree
+    
+    tree.info
+    
+  }, simplify = F, USE.NAMES = T)
+  
+  
+  # 19. For summary statistics
+  
+  if(verbosity!=0) cat("Finding host MRCAs for summary statistics...\n", sep="")
+  
+  all.tree.info <- sapply(all.tree.info, function(tree.info) {
+    clade.results                 <- resolveTreeIntoPatientClades(tree.info$tree, hosts, tip.regex, tree.info$blacklist, !has.read.counts)
+    
+    tree.info$clades.by.host      <- clade.results$clades.by.patient
+    tree.info$clade.mrcas.by.host <- clade.results$clade.mrcas.by.patient
+    
+    tree.info
+  }, simplify = F, USE.NAMES = T)
+  
+  # 20. Individual window classifications
+  
+  if(length(hosts)>1){
+    if(verbosity!=0) cat("Classifying pairwise host relationships...\n", sep="")
+    
+    all.tree.info <- sapply(all.tree.info, function(tree.info) {
+      
+      if(verbosity==2) cat("Classifying host relationships for tree ID ",tree.info$suffix, ".\n", sep="")
+      
+      tree.info$classification.results <- classify(tree.info, verbosity==2, no.progress.bars)
+      
+      tree.info
+    }, simplify = F, USE.NAMES = T)
+  }
+  
+  if(verbosity!=0) cat("Annotating phyloscanner.trees list...\n", sep="")
+  
+  attr(all.tree.info, 'readable.coords') <- readable.coords
+  attr(all.tree.info, 'match.mode')      <- match.mode
+  attr(all.tree.info, 'has.read.counts') <- has.read.counts
+  
+  class(all.tree.info) <- append(class(all.tree.info), "phyloscanner.trees")
+  
+  all.tree.info
 }
+
+# Code duplication here is repulsive. Requires a major rethink at some point.
 
 #' Perform blacklisting and clean the input alignments of blacklisted sequences without doing any further phyloscanner analysis
 #'
@@ -696,7 +764,7 @@ no.progress.bars = F){
 #' @param max.reads.per.host Used to turn on downsampling. If given, reads will be blacklisted such that read counts (or tip counts if no read counts are identified) from each host are equal (although see \code{blacklist.underrepresented}.
 #' @param blacklist.underrepresented If TRUE and \code{max.reads.per.host} is given, blacklist hosts from trees where their total tip count does not reach the maximum.
 #' @param output.file.id A string identifying the cleaned alignments
-#' @param verbose Give verbose output.
+#' @param verbosity The type of verbose output. 0=none, 1=minimal, 2=complete
 #' @param no.progress.bars Hide the progress bars from verbose output.
 #' @importFrom ape read.tree read.nexus di2multi root node.depth.edgelength write.dna
 #' @importFrom data.table data.table as.data.table set setnames
@@ -704,390 +772,390 @@ no.progress.bars = F){
 #' @export remove.blacklist.from.alignment 
 
 remove.blacklist.from.alignment <- function(
-tree.directory,
-alignment.directory,
-tree.file.regex = "^RAxML_bestTree.InWindow_([0-9]+_to_[0-9]+)\\.tree$",
-alignment.file.regex ="^AlignedReadsInWindow_([0-9]+_to_[0-9]+)\\.fasta$",
-outgroup.name = NULL,
-multifurcation.threshold = -1,
-guess.multifurcation.threshold = F,
-user.blacklist.directory = NULL,
-user.blacklist.file.regex = NULL,
-duplicate.file.directory = NULL,
-duplicate.file.regex = "^DuplicateReadCountsProcessed_InWindow_([0-9]+_to_[0-9]+).csv$",
-tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
-file.name.regex = "^\\D*([0-9]+)_to_([0-9]+)\\D*$",
-seed = sample(1:10000000,1),
-norm.ref.file.name = NULL,
-norm.standardise.gag.pol = F,
-norm.constants = NULL,
-parsimony.blacklist.k = 0,
-raw.blacklist.threshold = 0,
-ratio.blacklist.threshold = 0,
-do.dual.blacklisting = F,
-max.reads.per.host = Inf,
-blacklist.underrepresented = F,
-read.counts.matter.on.zero.length.tips = F,
-output.file.id = "CleanedAlignment_InWindow_",
-verbose = F){
-
-    if(guess.multifurcation.threshold & multifurcation.threshold >= 0){
-        stop("Please either specify a multifurcation threshold, ask for a guess, or neither.")
+  tree.directory,
+  alignment.directory,
+  tree.file.regex = "^RAxML_bestTree.InWindow_([0-9]+_to_[0-9]+)\\.tree$",
+  alignment.file.regex ="^AlignedReadsInWindow_([0-9]+_to_[0-9]+)\\.fasta$",
+  outgroup.name = NULL,
+  multifurcation.threshold = -1,
+  guess.multifurcation.threshold = F,
+  user.blacklist.directory = NULL,
+  user.blacklist.file.regex = NULL,
+  duplicate.file.directory = NULL,
+  duplicate.file.regex = "^DuplicateReadCountsProcessed_InWindow_([0-9]+_to_[0-9]+).csv$",
+  tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
+  file.name.regex = "^\\D*([0-9]+)_to_([0-9]+)\\D*$",
+  seed = sample(1:10000000,1),
+  norm.ref.file.name = NULL,
+  norm.standardise.gag.pol = F,
+  norm.constants = NULL,
+  parsimony.blacklist.k = 0,
+  raw.blacklist.threshold = 0,
+  ratio.blacklist.threshold = 0,
+  do.dual.blacklisting = F,
+  max.reads.per.host = Inf,
+  blacklist.underrepresented = F,
+  read.counts.matter.on.zero.length.tips = F,
+  output.file.id = "CleanedAlignment_InWindow_",
+  verbosity = 0){
+  
+  if(guess.multifurcation.threshold & multifurcation.threshold >= 0){
+    stop("Please either specify a multifurcation threshold, ask for a guess, or neither.")
+  }
+  
+  if(!is.null(norm.ref.file.name) & !is.null(norm.constants)){
+    stop("Please either ask for calculation of normalisation constants, provide your own, or neither.")
+  }
+  
+  do.dup.blacklisting   <- !is.null(duplicate.file.directory)
+  do.par.blacklisting   <- !is.null(parsimony.blacklist.k)
+  if(do.par.blacklisting){
+    do.par.blacklisting   <- parsimony.blacklist.k > 0
+  }
+  
+  if(do.dual.blacklisting & !do.par.blacklisting){
+    warning("Dual blacklisting requires parsimony blacklisting. Turning dual blacklisting off.")
+    do.dual.blacklisting <- F
+  }
+  
+  downsample            <- max.reads.per.host < Inf
+  
+  existing.bl           <- !is.null(user.blacklist.directory)
+  
+  # 1. Make the big list.
+  
+  all.tree.info <- list()
+  
+  full.tree.file.names <- list.files.mod(tree.directory, pattern=tree.file.regex, full.names=TRUE)
+  tree.file.names <- list.files.mod(tree.directory,  pattern=tree.file.regex)
+  
+  if(length(tree.file.names)==0){
+    stop("No tree files found.")
+  }
+  
+  # There are two ways to match files - to the "suffixes" - which no longer literally have to be suffixes - and to window coordinates.
+  
+  match.mode <<- NA
+  
+  if(!is.null(tree.file.regex)){
+    tree.identifiers <- sapply(tree.file.names, function(x) sub(tree.file.regex, "\\1", x))
+    if(all(tree.identifiers!="")){
+      match.mode <<- "suffix"
     }
-
-    if(!is.null(norm.ref.file.name) & !is.null(norm.constants)){
-        stop("Please either ask for calculation of normalisation constants, provide your own, or neither.")
-    }
-
-    do.dup.blacklisting   <- !is.null(duplicate.file.directory)
-    do.par.blacklisting   <- !is.null(parsimony.blacklist.k)
-    if(do.par.blacklisting){
-        do.par.blacklisting   <- parsimony.blacklist.k > 0
-    }
-
-    if(do.dual.blacklisting & !do.par.blacklisting){
-        warning("Dual blacklisting requires parsimony blacklisting. Turning dual blacklisting off.")
-        do.dual.blacklisting <- F
-    }
-
-    downsample            <- max.reads.per.host < Inf
-
-    existing.bl           <- !is.null(user.blacklist.directory)
-
-    # 1. Make the big list.
-
-    all.tree.info <- list()
-
-    full.tree.file.names <- list.files.mod(tree.directory, pattern=tree.file.regex, full.names=TRUE)
-    tree.file.names <- list.files.mod(tree.directory,  pattern=tree.file.regex)
-
-    if(length(tree.file.names)==0){
-        stop("No tree files found.")
-    }
-
-    # There are two ways to match files - to the "suffixes" - which no longer literally have to be suffixes - and to window coordinates.
-
-    match.mode <<- NA
-
-    if(!is.null(tree.file.regex)){
-        tree.identifiers <- sapply(tree.file.names, function(x) sub(tree.file.regex, "\\1", x))
-        if(all(tree.identifiers!="")){
-            match.mode <<- "suffix"
-        }
-    }
-
-    if(is.na(match.mode)){
-        match.mode <<- "coords"
-        tree.identifiers <- tryCatch({
-            sapply(tree.file.names, function(x) get.window.coords.string(x, file.name.regex))},
-        error = function(e){
-            match.mode <<- "none"
-            tree.file.names
-        })
-    }
-
-    if(length(unique(tree.identifiers)) != length(tree.identifiers)){
-        stop("Some trees have duplicate IDs.")
-    }
-
-    for(id.no in 1:length(tree.identifiers)){
-        suffix                        <- tree.identifiers[id.no]
-
-        tree.info                     <- list()
-        class(tree.info)              <- append(class(tree.info), "phyloscanner.tree")
-
-        tree.info$suffix              <- suffix
-        tree.info$tree.file.name      <- full.tree.file.names[id.no]
-
-        all.tree.info[[suffix]]       <- tree.info
-    }
-
-    all.tree.info <- sapply(all.tree.info, function(tree.info) identify.window.coords(tree.info, file.name.regex), simplify = F, USE.NAMES = T)
-
-    readable.coords <- all(sapply(all.tree.info, function(x) !is.null(x$window.coords)))
-
-    # 2. Attach files
-
-    if(existing.bl){
-        user.blacklist.file.names <- list.files.mod(user.blacklist.directory, pattern=user.blacklist.file.regex)
-        full.user.blacklist.file.names <- list.files.mod(user.blacklist.directory, pattern=user.blacklist.file.regex, full.names=TRUE)
-        if(length(tree.file.names == 1) & length(user.blacklist.file.names)==1){
-            user.blacklist.identifiers <- tree.identifiers
-        } else {
-            if(match.mode == "suffix"){
-                user.blacklist.identifiers <- sapply(user.blacklist.file.names, function(x) sub(user.blacklist.file.regex, "\\1", x))
-            } else {
-                if(match.mode != "coords"){
-                    stop("Cannot match blacklist files with tree files using the information given.")
-                } else {
-                    tryCatch({
-                        user.blacklist.identifiers <- sapply(user.blacklist.file.names, function(x) get.window.coords.string(x, file.name.regex))},
-                    error = function(e){
-                        stop("Cannot match blacklist files with tree files using the information given.")
-                    })
-                }
-            }
-            if(!setequal(tree.identifiers, user.blacklist.identifiers)){
-                warning("Tree files and blacklist files do not entirely match. Blacklist files with no tree files will be ignored; tree files with no blacklist file will have no tips blacklisted.")
-            }
-        }
-
-        all.tree.info <- sapply(all.tree.info, function(tree.info) attach.file.names(tree.info, full.user.blacklist.file.names, user.blacklist.identifiers, "user.blacklist.file.name"), simplify = F, USE.NAMES = T)
-    }
-
-    if(do.dup.blacklisting){
-        duplicate.file.names <- list.files.mod(duplicate.file.directory, pattern=duplicate.file.regex)
-        full.duplicate.file.names <- list.files.mod(duplicate.file.directory, pattern=duplicate.file.regex, full.names=TRUE)
-        if(length(tree.file.names == 1) & length(duplicate.file.names)==1){
-            duplicate.identifiers <- tree.identifiers
-        } else {
-            if(match.mode=="suffix"){
-                duplicate.identifiers <- sapply(duplicate.file.names, function(x) sub(duplicate.file.regex, "\\1", x))
-            } else {
-                if(match.mode != "coords"){
-                    stop("Cannot match duplicate files with tree files using the information given.")
-                } else {
-                    tryCatch({
-                        duplicate.identifiers <- sapply(duplicate.file.names, function(x) get.window.coords.string(x, file.name.regex))},
-                    error = function(e){
-                        stop("Cannot match duplicate files with tree files using the information given.")
-                    })
-                }
-            }
-            if(!setequal(tree.identifiers, duplicate.identifiers)){
-                stop("Tree files and duplicate files do not match.")
-            }
-        }
-
-        all.tree.info <- sapply(all.tree.info, function(tree.info) attach.file.names(tree.info, full.duplicate.file.names, duplicate.identifiers, "duplicate.file.name"), simplify = F, USE.NAMES = T)
-    }
-
-
-    alignment.file.names <- list.files.mod(alignment.directory, pattern=alignment.file.regex)
-    full.alignment.file.names <- list.files.mod(alignment.directory, pattern=alignment.file.regex, full.names=TRUE)
-    if(length(tree.file.names == 1) & length(alignment.file.names)==1){
-        alignment.identifiers <- tree.identifiers
+  }
+  
+  if(is.na(match.mode)){
+    match.mode <<- "coords"
+    tree.identifiers <- tryCatch({
+      sapply(tree.file.names, function(x) get.window.coords.string(x, file.name.regex))},
+      error = function(e){
+        match.mode <<- "none"
+        tree.file.names
+      })
+  }
+  
+  if(length(unique(tree.identifiers)) != length(tree.identifiers)){
+    stop("Some trees have duplicate IDs.")
+  }
+  
+  for(id.no in 1:length(tree.identifiers)){
+    suffix                        <- tree.identifiers[id.no]
+    
+    tree.info                     <- list()
+    class(tree.info)              <- append(class(tree.info), "phyloscanner.tree")
+    
+    tree.info$suffix              <- suffix
+    tree.info$tree.file.name      <- full.tree.file.names[id.no]
+    
+    all.tree.info[[suffix]]       <- tree.info
+  }
+  
+  all.tree.info <- sapply(all.tree.info, function(tree.info) identify.window.coords(tree.info, file.name.regex), simplify = F, USE.NAMES = T)
+  
+  readable.coords <- all(sapply(all.tree.info, function(x) !is.null(x$window.coords)))
+  
+  # 2. Attach files
+  
+  if(existing.bl){
+    user.blacklist.file.names <- list.files.mod(user.blacklist.directory, pattern=user.blacklist.file.regex)
+    full.user.blacklist.file.names <- list.files.mod(user.blacklist.directory, pattern=user.blacklist.file.regex, full.names=TRUE)
+    if(length(tree.file.names == 1) & length(user.blacklist.file.names)==1){
+      user.blacklist.identifiers <- tree.identifiers
     } else {
-        if(match.mode == "suffix"){
-            alignment.identifiers <- sapply(alignment.file.names, function(x) sub(alignment.file.regex, "\\1", x))
+      if(match.mode == "suffix"){
+        user.blacklist.identifiers <- sapply(user.blacklist.file.names, function(x) sub(user.blacklist.file.regex, "\\1", x))
+      } else {
+        if(match.mode != "coords"){
+          stop("Cannot match blacklist files with tree files using the information given.")
         } else {
-            if(match.mode != "coords"){
-                stop("Cannot match alignment files with tree files using the information given.")
-            } else {
-                tryCatch({
-                    alignment.identifiers <- sapply(alignment.file.names, function(x) get.window.coords.string(x, file.name.regex))},
-                error = function(e){
-                    stop("Cannot match blacklist files with tree files using the information given.")
-                })
-            }
+          tryCatch({
+            user.blacklist.identifiers <- sapply(user.blacklist.file.names, function(x) get.window.coords.string(x, file.name.regex))},
+            error = function(e){
+              stop("Cannot match blacklist files with tree files using the information given.")
+            })
         }
-        if(!setequal(tree.identifiers, alignment.identifiers)){
-            warning("Tree files and alignment files do not entirely match. Alignment files with no tree files will be ignored; if no alignment file exists then it will not be cleaned.")
-        }
+      }
+      if(!setequal(tree.identifiers, user.blacklist.identifiers)){
+        warning("Tree files and blacklist files do not entirely match. Blacklist files with no tree files will be ignored; tree files with no blacklist file will have no tips blacklisted.")
+      }
     }
-
-    all.tree.info <- sapply(all.tree.info, function(tree.info) attach.file.names(tree.info, full.alignment.file.names, alignment.identifiers, "alignment.file.name"), simplify = F, USE.NAMES = T)
-
-    # 3. Read the trees
-
-    all.tree.info <- sapply(all.tree.info, function(tree.info) attach.tree(tree.info, verbose), simplify = F, USE.NAMES = T)
-
-    # 4. Are there read counts at the tips?
-
-    read.counts.check <- sapply(all.tree.info, function(tree.info) check.read.counts(tree.info, tip.regex))
-
-    if(any(read.counts.check) & !all(read.counts.check)){
-        warning("Read counts are not present in some trees; ignoring them throughout.\n")
-    }
-    has.read.counts <- all(read.counts.check)
-
-    # 5. Root tree, collapse multifurcations, get host for each tip
-
-    if(guess.multifurcation.threshold){
-        warning("Attempting to guess a branch length threshold for multifurcations from the tree. Please visually examine the tree or trees for multifurcations before using the results of this analysis.")
-    }
-
-    all.tree.info <- sapply(all.tree.info, function(tree.info) prepare.tree(tree.info, outgroup.name, tip.regex, guess.multifurcation.threshold, readable.coords, multifurcation.threshold, verbose),
-    simplify = F, USE.NAMES = T)
-
-    all.tree.info[sapply(all.tree.info, is.null)] <- NULL
-
-    if(length(all.tree.info)==0){
-        stop("Cannot find any hosts on any tree that match this regular expression. Please check that it is correct.")
-    }
-
-    # 6. Read the blacklists
-
-    all.tree.info <- sapply(all.tree.info, function(tree.info) read.blacklist(tree.info, verbose), simplify = F, USE.NAMES = T)
-
-    # 7. Get the normalisation constants
-
-    if(!is.null(norm.constants)){
-        if(!is.na(suppressWarnings(as.numeric(norm.constants)))){
-            nc <- as.numeric(norm.constants)
-            all.tree.info <- sapply(all.tree.info, function(tree.info) {
-                tree.info$normalisation.constant  <- nc
-                tree.info
-            }, simplify = F, USE.NAMES = T)
-        } else if(file.exists(norm.constants)){
-
-            nc.df   <- read.csv(norm.constants, stringsAsFactors = F, header = F)
-            all.tree.info <- sapply(all.tree.info, function(tree.info) {
-                rows  <- which(nc.df[,1]==basename(tree.info$tree.file.name))
-
-                if(length(rows)>0){
-                    # Take the first appearance of the file name
-
-                    row <- rows[1]
-                    nc  <- as.numeric(nc.df[row, 2])
-                    if(is.na(nc)){
-                        warning("Tree with suffix ",tree.info$suffix," given a normalisation constant in file ",norm.constants," which cannot be processed as a number; this tree will not have normalised branch lengths\n")
-                        nc <- 1
-                    }
-                } else {
-                    warning("Tree with suffix ",tree.info$suffix," has no normalisation constant in this lookup file and will not have normalised branch lengths\n")
-                    nc <- 1
-                }
-
-                tree.info$normalisation.constant  <- nc
-                tree.info
-            }, simplify = F, USE.NAMES = T)
-
-        } else {
-            all.tree.info <- sapply(all.tree.info, function(tree.info) {
-              tree.info$normalisation.constant  <- 1
-              tree.info
-            }, simplify = F, USE.NAMES = T)
-            warning(paste0("Normalisation file ",norm.constants," not found. Tree branch lengths will not be normalised.\n"))
-        }
-    } else if(!is.null(norm.ref.file.name)){
-        if(readable.coords){
-            if (verbose) cat('Loading normalising constants reference file ', norm.ref.file.name, "\n", sep="")
-
-            if(grepl(paste0("csv", "$"), norm.ref.file.name)){
-                norm.table	<- as.data.table(read.csv(norm.ref.file.name, stringsAsFactors=FALSE))
-
-                if(ncol(norm.table)!=2){
-                    stop(paste0(norm.ref.file.name," is not formatted as expected for a normalisation lookup file; expecting two columns.\n"))
-                } else {
-                    setnames(norm.table, 1, 'POSITION')
-                    setnames(norm.table, 2, 'NORM_CONST')
-
-                    if(norm.standardise.gag.pol){
-                        #	Standardize to mean of 1 on gag+pol ( prot + first part of RT in total 1300bp )
-
-                        #790 - 3385
-                        if (verbose) cat('Standardising normalising constants to 1 on the gag+pol (prot + first part of RT in total 1300bp pol) region\n')
-
-                        tmp		<- subset(norm.table, POSITION>=790L & POSITION<=3385L)
-
-                        if(nrow(tmp)<=0){
-                            stop(paste0("No positions from gag+pol present in file ",norm.ref.file.name,"; unable to standardise"))
-                        }
-
-                        tmp		<- tmp[, mean(NORM_CONST)]
-
-                        if(!is.finite(tmp)){
-                            stop(paste0("Standardising constant is not finite"))
-                        }
-
-                        set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
-                    } else {
-                        if (verbose) cat('Standardising normalising constants to 1 on the whole genome\n')
-
-                        tmp		<- norm.table[, mean(NORM_CONST)]
-                        if(!is.finite(tmp)){
-                            stop(paste0("Standardising constant is not finite"))
-                        }
-
-                        set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
-                    }
-
-                    all.tree.info <- sapply(all.tree.info, function(tree.info){
-                        tree.info$normalisation.constant <- lookup.normalisation.for.tree(tree.info, norm.table, lookup.column = "NORM_CONST")
-                        tree.info
-                    }, simplify = F, USE.NAMES = T)
-                }
-            } else {
-                warning(paste0("Unknown input file format for normalisation file; tree branch lengths will not be normalised.\n"))
-                all.tree.info <- sapply(all.tree.info, function(tree.info) {
-                    tree.info$normalisation.constant  <- 1
-                    tree.info
-                }, simplify = F, USE.NAMES = T)
-            }
-        } else {
-            warning(paste0("Cannot normalise branch lengths from file without window cooardinates in file suffixes; tree branch lengths will not be normalised.\n"))
-            all.tree.info <- sapply(all.tree.info, function(tree.info) {
-                tree.info$normalisation.constant  <- 1
-                tree.info
-            }, simplify = F, USE.NAMES = T)
-        }
+    
+    all.tree.info <- sapply(all.tree.info, function(tree.info) attach.file.names(tree.info, full.user.blacklist.file.names, user.blacklist.identifiers, "user.blacklist.file.name"), simplify = F, USE.NAMES = T)
+  }
+  
+  if(do.dup.blacklisting){
+    duplicate.file.names <- list.files.mod(duplicate.file.directory, pattern=duplicate.file.regex)
+    full.duplicate.file.names <- list.files.mod(duplicate.file.directory, pattern=duplicate.file.regex, full.names=TRUE)
+    if(length(tree.file.names == 1) & length(duplicate.file.names)==1){
+      duplicate.identifiers <- tree.identifiers
     } else {
-        all.tree.info <- sapply(all.tree.info, function(tree.info) {
-            tree.info$normalisation.constant  <- 1
+      if(match.mode=="suffix"){
+        duplicate.identifiers <- sapply(duplicate.file.names, function(x) sub(duplicate.file.regex, "\\1", x))
+      } else {
+        if(match.mode != "coords"){
+          stop("Cannot match duplicate files with tree files using the information given.")
+        } else {
+          tryCatch({
+            duplicate.identifiers <- sapply(duplicate.file.names, function(x) get.window.coords.string(x, file.name.regex))},
+            error = function(e){
+              stop("Cannot match duplicate files with tree files using the information given.")
+            })
+        }
+      }
+      if(!setequal(tree.identifiers, duplicate.identifiers)){
+        stop("Tree files and duplicate files do not match.")
+      }
+    }
+    
+    all.tree.info <- sapply(all.tree.info, function(tree.info) attach.file.names(tree.info, full.duplicate.file.names, duplicate.identifiers, "duplicate.file.name"), simplify = F, USE.NAMES = T)
+  }
+  
+  
+  alignment.file.names <- list.files.mod(alignment.directory, pattern=alignment.file.regex)
+  full.alignment.file.names <- list.files.mod(alignment.directory, pattern=alignment.file.regex, full.names=TRUE)
+  if(length(tree.file.names == 1) & length(alignment.file.names)==1){
+    alignment.identifiers <- tree.identifiers
+  } else {
+    if(match.mode == "suffix"){
+      alignment.identifiers <- sapply(alignment.file.names, function(x) sub(alignment.file.regex, "\\1", x))
+    } else {
+      if(match.mode != "coords"){
+        stop("Cannot match alignment files with tree files using the information given.")
+      } else {
+        tryCatch({
+          alignment.identifiers <- sapply(alignment.file.names, function(x) get.window.coords.string(x, file.name.regex))},
+          error = function(e){
+            stop("Cannot match blacklist files with tree files using the information given.")
+          })
+      }
+    }
+    if(!setequal(tree.identifiers, alignment.identifiers)){
+      warning("Tree files and alignment files do not entirely match. Alignment files with no tree files will be ignored; if no alignment file exists then it will not be cleaned.")
+    }
+  }
+  
+  all.tree.info <- sapply(all.tree.info, function(tree.info) attach.file.names(tree.info, full.alignment.file.names, alignment.identifiers, "alignment.file.name"), simplify = F, USE.NAMES = T)
+  
+  # 3. Read the trees
+  
+  all.tree.info <- sapply(all.tree.info, function(tree.info) attach.tree(tree.info, verbosity==2), simplify = F, USE.NAMES = T)
+  
+  # 4. Are there read counts at the tips?
+  
+  read.counts.check <- sapply(all.tree.info, function(tree.info) check.read.counts(tree.info, tip.regex))
+  
+  if(any(read.counts.check) & !all(read.counts.check)){
+    warning("Read counts are not present in some trees; ignoring them throughout.\n")
+  }
+  has.read.counts <- all(read.counts.check)
+  
+  # 5. Root tree, collapse multifurcations, get host for each tip
+  
+  if(guess.multifurcation.threshold){
+    warning("Attempting to guess a branch length threshold for multifurcations from the tree. Please visually examine the tree or trees for multifurcations before using the results of this analysis.")
+  }
+  
+  all.tree.info <- sapply(all.tree.info, function(tree.info) prepare.tree(tree.info, outgroup.name, tip.regex, guess.multifurcation.threshold, readable.coords, multifurcation.threshold, verbosity==2),
+                          simplify = F, USE.NAMES = T)
+  
+  all.tree.info[sapply(all.tree.info, is.null)] <- NULL
+  
+  if(length(all.tree.info)==0){
+    stop("Cannot find any hosts on any tree that match this regular expression. Please check that it is correct.")
+  }
+  
+  # 6. Read the blacklists
+  
+  all.tree.info <- sapply(all.tree.info, function(tree.info) read.blacklist(tree.info, verbosity==2), simplify = F, USE.NAMES = T)
+  
+  # 7. Get the normalisation constants
+  
+  if(!is.null(norm.constants)){
+    if(!is.na(suppressWarnings(as.numeric(norm.constants)))){
+      nc <- as.numeric(norm.constants)
+      all.tree.info <- sapply(all.tree.info, function(tree.info) {
+        tree.info$normalisation.constant  <- nc
+        tree.info
+      }, simplify = F, USE.NAMES = T)
+    } else if(file.exists(norm.constants)){
+      
+      nc.df   <- read.csv(norm.constants, stringsAsFactors = F, header = F)
+      all.tree.info <- sapply(all.tree.info, function(tree.info) {
+        rows  <- which(nc.df[,1]==basename(tree.info$tree.file.name))
+        
+        if(length(rows)>0){
+          # Take the first appearance of the file name
+          
+          row <- rows[1]
+          nc  <- as.numeric(nc.df[row, 2])
+          if(is.na(nc)){
+            warning("Tree with suffix ",tree.info$suffix," given a normalisation constant in file ",norm.constants," which cannot be processed as a number; this tree will not have normalised branch lengths\n")
+            nc <- 1
+          }
+        } else {
+          warning("Tree with suffix ",tree.info$suffix," has no normalisation constant in this lookup file and will not have normalised branch lengths\n")
+          nc <- 1
+        }
+        
+        tree.info$normalisation.constant  <- nc
+        tree.info
+      }, simplify = F, USE.NAMES = T)
+      
+    } else {
+      all.tree.info <- sapply(all.tree.info, function(tree.info) {
+        tree.info$normalisation.constant  <- 1
+        tree.info
+      }, simplify = F, USE.NAMES = T)
+      warning(paste0("Normalisation file ",norm.constants," not found. Tree branch lengths will not be normalised.\n"))
+    }
+  } else if(!is.null(norm.ref.file.name)){
+    if(readable.coords){
+      if (verbosity!=0) cat('Loading normalising constants reference file ', norm.ref.file.name, "\n", sep="")
+      
+      if(grepl(paste0("csv", "$"), norm.ref.file.name)){
+        norm.table	<- as.data.table(read.csv(norm.ref.file.name, stringsAsFactors=FALSE))
+        
+        if(ncol(norm.table)!=2){
+          stop(paste0(norm.ref.file.name," is not formatted as expected for a normalisation lookup file; expecting two columns.\n"))
+        } else {
+          setnames(norm.table, 1, 'POSITION')
+          setnames(norm.table, 2, 'NORM_CONST')
+          
+          if(norm.standardise.gag.pol){
+            #	Standardize to mean of 1 on gag+pol ( prot + first part of RT in total 1300bp )
+            
+            #790 - 3385
+            if (verbosity!=0) cat('Standardising normalising constants to 1 on the gag+pol (prot + first part of RT in total 1300bp pol) region\n')
+            
+            tmp		<- subset(norm.table, POSITION>=790L & POSITION<=3385L)
+            
+            if(nrow(tmp)<=0){
+              stop(paste0("No positions from gag+pol present in file ",norm.ref.file.name,"; unable to standardise"))
+            }
+            
+            tmp		<- tmp[, mean(NORM_CONST)]
+            
+            if(!is.finite(tmp)){
+              stop(paste0("Standardising constant is not finite"))
+            }
+            
+            set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
+          } else {
+            if (verbosity!=0) cat('Standardising normalising constants to 1 on the whole genome\n')
+            
+            tmp		<- norm.table[, mean(NORM_CONST)]
+            if(!is.finite(tmp)){
+              stop(paste0("Standardising constant is not finite"))
+            }
+            
+            set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
+          }
+          
+          all.tree.info <- sapply(all.tree.info, function(tree.info){
+            tree.info$normalisation.constant <- lookup.normalisation.for.tree(tree.info, norm.table, lookup.column = "NORM_CONST")
             tree.info
-        }, simplify = F, USE.NAMES = T)
-    }
-
-    # 8. Apply the normalisation constants
-
-    all.tree.info <- sapply(all.tree.info, function(tree.info) apply.normalisation.constants(tree.info), simplify = F, USE.NAMES = T)
-
-
-    # 9. Duplicate blacklisting
-
-    if(do.dup.blacklisting){
-        all.tree.info <- sapply(all.tree.info, find.duplicate.tips, simplify = F, USE.NAMES = T)
-
-        all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.duplicates.vector(tree.info, raw.blacklist.threshold, ratio.blacklist.threshold, tip.regex, verbose), simplify = F, USE.NAMES = T)
-    }
-
-
-    # 10. Parsimony blacklisting
-
-    if(do.par.blacklisting){
-        all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.using.parsimony(tree.info, tip.regex, outgroup.name, raw.blacklist.threshold, ratio.blacklist.threshold, parsimony.blacklist.k, has.read.counts, read.counts.matter.on.zero.length.tips, verbose), simplify = F, USE.NAMES = T)
-
-    }
-
-    # 11. Dual blacklisting
-
-    if(do.dual.blacklisting){
-        hosts.that.are.duals <- lapply(all.tree.info, function(tree.info){
-            tree.info$duals.info$host
-        })
-        hosts.that.are.duals <- unique(unlist(hosts.that.are.duals))
-        hosts.that.are.duals <- hosts.that.are.duals[order(hosts.that.are.duals)]
-
-        dual.results <- blacklist.duals(all.tree.info, hosts.that.are.duals, summary.file = NULL, verbose)
-
-        all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.duals.list(tree.info, dual.results, verbose), simplify = F, USE.NAMES = T)
-    }
-
-
-    # 12. Downsampling
-
-    if(downsample){
-        all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.random.downsample(tree.info, max.reads.per.host, blacklist.underrepresented, has.read.counts, tip.regex, NA, verbose), simplify = F, USE.NAMES = T)
-    }
-
-    sapply(all.tree.info, function(tree.info){
-
-        if(!is.null(tree.info$alignment.file.name)){
-
-            seqs     <- read.dna(tree.info$alignment.file.name, format="fasta")
-            new.seqs <- seqs[which(!(labels(seqs) %in% tree.info$original.tip.labels[tree.info$blacklist])),]
-            new.afn  <- paste0(output.file.id, tree.info$suffix, ".fasta")
-
-            if(verbose) cat("Writing cleaned alignment to ",new.afn, "\n", sep="")
-            write.dna(new.seqs, new.afn, format="fasta")
-        } else {
-            if(verbose) cat("No alignment file found for tree ID ",tree.info$suffix, "\n", sep="")
+          }, simplify = F, USE.NAMES = T)
         }
-
+      } else {
+        warning(paste0("Unknown input file format for normalisation file; tree branch lengths will not be normalised.\n"))
+        all.tree.info <- sapply(all.tree.info, function(tree.info) {
+          tree.info$normalisation.constant  <- 1
+          tree.info
+        }, simplify = F, USE.NAMES = T)
+      }
+    } else {
+      warning(paste0("Cannot normalise branch lengths from file without window cooardinates in file suffixes; tree branch lengths will not be normalised.\n"))
+      all.tree.info <- sapply(all.tree.info, function(tree.info) {
+        tree.info$normalisation.constant  <- 1
+        tree.info
+      }, simplify = F, USE.NAMES = T)
+    }
+  } else {
+    all.tree.info <- sapply(all.tree.info, function(tree.info) {
+      tree.info$normalisation.constant  <- 1
+      tree.info
+    }, simplify = F, USE.NAMES = T)
+  }
+  
+  # 8. Apply the normalisation constants
+  
+  all.tree.info <- sapply(all.tree.info, function(tree.info) apply.normalisation.constants(tree.info), simplify = F, USE.NAMES = T)
+  
+  
+  # 9. Duplicate blacklisting
+  
+  if(do.dup.blacklisting){
+    all.tree.info <- sapply(all.tree.info, find.duplicate.tips, simplify = F, USE.NAMES = T)
+    
+    all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.duplicates.vector(tree.info, raw.blacklist.threshold, ratio.blacklist.threshold, tip.regex, verbosity==2), simplify = F, USE.NAMES = T)
+  }
+  
+  
+  # 10. Parsimony blacklisting
+  
+  if(do.par.blacklisting){
+    all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.using.parsimony(tree.info, tip.regex, outgroup.name, raw.blacklist.threshold, ratio.blacklist.threshold, parsimony.blacklist.k, has.read.counts, read.counts.matter.on.zero.length.tips, verbosity==2), simplify = F, USE.NAMES = T)
+    
+  }
+  
+  # 11. Dual blacklisting
+  
+  if(do.dual.blacklisting){
+    hosts.that.are.duals <- lapply(all.tree.info, function(tree.info){
+      tree.info$duals.info$host
     })
-
-    TRUE
+    hosts.that.are.duals <- unique(unlist(hosts.that.are.duals))
+    hosts.that.are.duals <- hosts.that.are.duals[order(hosts.that.are.duals)]
+    
+    dual.results <- blacklist.duals(all.tree.info, hosts.that.are.duals, summary.file = NULL, verbosity==2)
+    
+    all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.duals.list(tree.info, dual.results, verbosity==2), simplify = F, USE.NAMES = T)
+  }
+  
+  
+  # 12. Downsampling
+  
+  if(downsample){
+    all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.random.downsample(tree.info, max.reads.per.host, blacklist.underrepresented, has.read.counts, tip.regex, NA, verbosity==2), simplify = F, USE.NAMES = T)
+  }
+  
+  sapply(all.tree.info, function(tree.info){
+    
+    if(!is.null(tree.info$alignment.file.name)){
+      
+      seqs     <- read.dna(tree.info$alignment.file.name, format="fasta")
+      new.seqs <- seqs[which(!(labels(seqs) %in% tree.info$original.tip.labels[tree.info$blacklist])),]
+      new.afn  <- paste0(output.file.id, tree.info$suffix, ".fasta")
+      
+      if(verbosity!=0) cat("Writing cleaned alignment to ",new.afn, "\n", sep="")
+      write.dna(new.seqs, new.afn, format="fasta")
+    } else {
+      if(verbosity!=0) cat("No alignment file found for tree ID ",tree.info$suffix, "\n", sep="")
+    }
+    
+  })
+  
+  TRUE
 }
 
 
@@ -1105,47 +1173,47 @@ verbose = F){
 #' @export gather.summary.statistics
 
 gather.summary.statistics <- function(phyloscanner.trees, hosts = all.hosts.from.trees(phyloscanner.trees), tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$", verbose = F){
-
-    has.read.counts <- attr(phyloscanner.trees, 'has.read.counts')
-
-    pat.stats <- lapply(phyloscanner.trees, function(x) calc.all.stats.in.window(x, hosts, tip.regex, has.read.counts, verbose))
-    pat.stats <- rbindlist(pat.stats)
-
-    read.proportions <- lapply(phyloscanner.trees, function(y) sapply(hosts, function(x) get.read.proportions(x, y$suffix, y$splits.table), simplify = F, USE.NAMES = T))
-
-    # Get the max split count over every window and host (the exact number of columns depends on this)
-
-    max.splits <- max(sapply(read.proportions, function(x) max(sapply(x, function(y) length(y)))))
-
-    read.prop.columns <- lapply(phyloscanner.trees, function(x){
-        window.props <- read.proportions[[x$suffix]]
-        out <- lapply(hosts, function(y){
-
-            result <- window.props[[y]]
-
-            if(is.na(result[1])){
-                result <- rep(NA, max.splits)
-
-            } else {
-                if(length(result)<max.splits){
-                    result[(length(result)+1):max.splits] <- 0
-                }
-            }
-
-            result
-        })
-        out <- as.data.table(do.call(rbind, out))
-        colnames(out) <- paste("prop.gp.",seq(1,max.splits),sep="")
-        out
+  
+  has.read.counts <- attr(phyloscanner.trees, 'has.read.counts')
+  
+  pat.stats <- lapply(phyloscanner.trees, function(x) calc.all.stats.in.window(x, hosts, tip.regex, has.read.counts, verbose))
+  pat.stats <- rbindlist(pat.stats)
+  
+  read.proportions <- lapply(phyloscanner.trees, function(y) sapply(hosts, function(x) get.read.proportions(x, y$suffix, y$splits.table), simplify = F, USE.NAMES = T))
+  
+  # Get the max split count over every window and host (the exact number of columns depends on this)
+  
+  max.splits <- max(sapply(read.proportions, function(x) max(sapply(x, function(y) length(y)))))
+  
+  read.prop.columns <- lapply(phyloscanner.trees, function(x){
+    window.props <- read.proportions[[x$suffix]]
+    out <- lapply(hosts, function(y){
+      
+      result <- window.props[[y]]
+      
+      if(is.na(result[1])){
+        result <- rep(NA, max.splits)
+        
+      } else {
+        if(length(result)<max.splits){
+          result[(length(result)+1):max.splits] <- 0
+        }
+      }
+      
+      result
     })
-
-    read.prop.columns <- rbindlist(read.prop.columns)
-
-    pat.stats         <- cbind(pat.stats, read.prop.columns)
-
-    pat.stats$tips    <- as.numeric(pat.stats$tips)
-
-    pat.stats
+    out <- as.data.table(do.call(rbind, out))
+    colnames(out) <- paste("prop.gp.",seq(1,max.splits),sep="")
+    out
+  })
+  
+  read.prop.columns <- rbindlist(read.prop.columns)
+  
+  pat.stats         <- cbind(pat.stats, read.prop.columns)
+  
+  pat.stats$tips    <- as.numeric(pat.stats$tips)
+  
+  pat.stats
 }
 
 
@@ -1165,51 +1233,51 @@ gather.summary.statistics <- function(phyloscanner.trees, hosts = all.hosts.from
 #' @export draw.summary.statistics
 
 draw.summary.statistics <- function(phyloscanner.trees, sum.stats, host, verbose = F){
-
-    readable.coords <- attr(phyloscanner.trees, 'readable.coords')
-
-    if(length(unique(sum.stats$file.suffix))==1){
-        stop("Only one tree, cannot draw summary statistics graph.")
-    }
-
-    if(!(host %in% sum.stats$id)){
-        stop("Cannot find this host in this summary statistics table.")
-    }
-
+  
+  readable.coords <- attr(phyloscanner.trees, 'readable.coords')
+  
+  if(length(unique(sum.stats$file.suffix))==1){
+    stop("Only one tree, cannot draw summary statistics graph.")
+  }
+  
+  if(!(host %in% sum.stats$id)){
+    stop("Cannot find this host in this summary statistics table.")
+  }
+  
+  coordinates <- lapply(phyloscanner.trees, "[[" , "window.coords")
+  
+  if(readable.coords){
     coordinates <- lapply(phyloscanner.trees, "[[" , "window.coords")
-
-    if(readable.coords){
-        coordinates <- lapply(phyloscanner.trees, "[[" , "window.coords")
-        starts <- sapply(coordinates, "[[", "start")
-        ends <- sapply(coordinates, "[[", "end")
-        ews <- min(starts)
-        lwe <- max(ends)
-
-    } else {
-        coordinates <- sapply(phyloscanner.trees, "[[" , "xcoord")
-        range <- max(coordinates) - min(coordinates)
-        increment <- range/length(coordinates)
-
-        ews <- min(coordinates) - 0.45*increment
-        lwe <- max(coordinates) + 0.45*increment
-    }
-
-    x.limits <- c(ews, lwe)
-
-    # Set up the boundaries of each window's region on the x-axis
-
-    xcoords <- unique(sum.stats$xcoord)
-    xcoords <- xcoords[order(xcoords)]
-
-    missing.window.data <- find.gaps(xcoords)
-
-    xcoords <- missing.window.data$x.coordinates
-    regular.gaps <- missing.window.data$regular.gaps
-    rectangles.for.missing.windows <- missing.window.data$rectangles.for.missing.windows
-    bar.width <- missing.window.data$width
-
-    produce.host.graphs(sum.stats, host, xcoords, x.limits, rectangles.for.missing.windows, bar.width, regular.gaps, readable.coords = readable.coords, verbose = verbose)
-
+    starts <- sapply(coordinates, "[[", "start")
+    ends <- sapply(coordinates, "[[", "end")
+    ews <- min(starts)
+    lwe <- max(ends)
+    
+  } else {
+    coordinates <- sapply(phyloscanner.trees, "[[" , "xcoord")
+    range <- max(coordinates) - min(coordinates)
+    increment <- range/length(coordinates)
+    
+    ews <- min(coordinates) - 0.45*increment
+    lwe <- max(coordinates) + 0.45*increment
+  }
+  
+  x.limits <- c(ews, lwe)
+  
+  # Set up the boundaries of each window's region on the x-axis
+  
+  xcoords <- unique(sum.stats$xcoord)
+  xcoords <- xcoords[order(xcoords)]
+  
+  missing.window.data <- find.gaps(xcoords)
+  
+  xcoords <- missing.window.data$x.coordinates
+  regular.gaps <- missing.window.data$regular.gaps
+  rectangles.for.missing.windows <- missing.window.data$rectangles.for.missing.windows
+  bar.width <- missing.window.data$width
+  
+  produce.host.graphs(sum.stats, host, xcoords, x.limits, rectangles.for.missing.windows, bar.width, regular.gaps, readable.coords = readable.coords, verbose = verbose)
+  
 }
 
 #' Draw summary statistics to file for many hosts as a multipage file
@@ -1229,45 +1297,45 @@ draw.summary.statistics <- function(phyloscanner.trees, sum.stats, host, verbose
 #' @importFrom scales pretty_breaks
 #' @export multipage.summary.statistics
 multipage.summary.statistics <- function(phyloscanner.trees, sum.stats, hosts = all.hosts.from.trees(phyloscanner.trees), file.name, height=11.6929, width=8.26772, verbose = F){
-    readable.coords <- attr(phyloscanner.trees, 'readable.coords')
-
-    if(length(unique(sum.stats$file.suffix))==1){
-        stop("Only one tree, cannot draw summary statistics graph.")
-    }
-
+  readable.coords <- attr(phyloscanner.trees, 'readable.coords')
+  
+  if(length(unique(sum.stats$file.suffix))==1){
+    stop("Only one tree, cannot draw summary statistics graph.")
+  }
+  
+  coordinates <- lapply(phyloscanner.trees, "[[" , "window.coords")
+  
+  if(readable.coords){
     coordinates <- lapply(phyloscanner.trees, "[[" , "window.coords")
-
-    if(readable.coords){
-        coordinates <- lapply(phyloscanner.trees, "[[" , "window.coords")
-        starts <- sapply(coordinates, "[[", "start")
-        ends <- sapply(coordinates, "[[", "end")
-        ews <- min(starts)
-        lwe <- max(ends)
-
-    } else {
-        coordinates <- sapply(phyloscanner.trees, "[[" , "xcoord")
-        range <- max(coordinates) - min(coordinates)
-        increment <- range/length(coordinates)
-
-        ews <- min(coordinates) - 0.45*increment
-        lwe <- max(coordinates) + 0.45*increment
-    }
-
-    x.limits <- c(ews, lwe)
-
-    # Set up the boundaries of each window's region on the x-axis
-
-    xcoords <- unique(sum.stats$xcoord)
-    xcoords <- xcoords[order(xcoords)]
-
-    missing.window.data <- find.gaps(xcoords)
-
-    xcoords <- missing.window.data$x.coordinates
-    regular.gaps <- missing.window.data$regular.gaps
-    rectangles.for.missing.windows <- missing.window.data$rectangles.for.missing.windows
-    bar.width <- missing.window.data$width
-
-    produce.pdf.graphs(file.name, sum.stats, hosts, xcoords, x.limits, rectangles.for.missing.windows, bar.width, regular.gaps, width, height, readable.coords, verbose)
+    starts <- sapply(coordinates, "[[", "start")
+    ends <- sapply(coordinates, "[[", "end")
+    ews <- min(starts)
+    lwe <- max(ends)
+    
+  } else {
+    coordinates <- sapply(phyloscanner.trees, "[[" , "xcoord")
+    range <- max(coordinates) - min(coordinates)
+    increment <- range/length(coordinates)
+    
+    ews <- min(coordinates) - 0.45*increment
+    lwe <- max(coordinates) + 0.45*increment
+  }
+  
+  x.limits <- c(ews, lwe)
+  
+  # Set up the boundaries of each window's region on the x-axis
+  
+  xcoords <- unique(sum.stats$xcoord)
+  xcoords <- xcoords[order(xcoords)]
+  
+  missing.window.data <- find.gaps(xcoords)
+  
+  xcoords <- missing.window.data$x.coordinates
+  regular.gaps <- missing.window.data$regular.gaps
+  rectangles.for.missing.windows <- missing.window.data$rectangles.for.missing.windows
+  bar.width <- missing.window.data$width
+  
+  produce.pdf.graphs(file.name, sum.stats, hosts, xcoords, x.limits, rectangles.for.missing.windows, bar.width, regular.gaps, width, height, readable.coords, verbose)
 }
 
 #' Write the phylogeny with reconstructed host annotations to file
@@ -1283,40 +1351,40 @@ multipage.summary.statistics <- function(phyloscanner.trees, sum.stats, hosts = 
 #' @import ggtree
 #' @export write.annotated.tree
 write.annotated.tree <- function(phyloscanner.tree, file.name, format = c("pdf", "nex"), pdf.scale.bar.width = 0.01, pdf.w = 50, pdf.hm = 0.15, verbose = F){
-    tree <- phyloscanner.tree$tree
-    read.counts <- phyloscanner.tree$read.counts
+  tree <- phyloscanner.tree$tree
+  read.counts <- phyloscanner.tree$read.counts
+  
+  attr(tree, 'BLACKLISTED') <- c(is.na(read.counts), rep(FALSE, tree$Nnode) )
+  
+  read.counts <- c(read.counts, rep(1, tree$Nnode))
+  read.counts[which(is.na(read.counts))] <- 1
+  
+  attr(tree, 'READ_COUNT') <- read.counts
+  
+  if(verbose) cat(paste0("Writing .",format," tree to file ",file.name,"\n"))
+  
+  if(format == "pdf"){
+    tree.display <- ggtree(tree, aes(color=BRANCH_COLOURS)) +
+      geom_point2(aes(subset=SUBGRAPH_MRCA, color=INDIVIDUAL), shape = 23, size = 3, fill="white") +
+      geom_point2(aes(color=INDIVIDUAL, shape=BLACKLISTED), size=1) +
+      scale_fill_hue(na.value = "black", drop=F) +
+      scale_color_hue(na.value = "black", drop=F) +
+      scale_shape_manual(values=c(16, 4)) +
+      theme(legend.position="none") +
+      geom_tiplab(aes(col=INDIVIDUAL)) +
+      geom_treescale(width=pdf.scale.bar.width, y=-5, offset=1.5)
     
-    attr(tree, 'BLACKLISTED') <- c(is.na(read.counts), rep(FALSE, tree$Nnode) )
-    
-    read.counts <- c(read.counts, rep(1, tree$Nnode))
-    read.counts[which(is.na(read.counts))] <- 1
-    
-    attr(tree, 'READ_COUNT') <- read.counts
-    
-    if(verbose) cat(paste0("Writing .",format," tree to file ",file.name,"\n"))
-
-    if(format == "pdf"){
-        tree.display <- ggtree(tree, aes(color=BRANCH_COLOURS)) +
-            geom_point2(aes(subset=SUBGRAPH_MRCA, color=INDIVIDUAL), shape = 23, size = 3, fill="white") +
-            geom_point2(aes(color=INDIVIDUAL, shape=BLACKLISTED), size=1) +
-            scale_fill_hue(na.value = "black", drop=F) +
-            scale_color_hue(na.value = "black", drop=F) +
-            scale_shape_manual(values=c(16, 4)) +
-            theme(legend.position="none") +
-            geom_tiplab(aes(col=INDIVIDUAL)) +
-            geom_treescale(width=pdf.scale.bar.width, y=-5, offset=1.5)
-        
-        if(any(read.counts!=1 & !is.na(read.counts))){
-          tree.display <- tree.display + geom_point2(aes(color=INDIVIDUAL, size=READ_COUNT, shape=BLACKLISTED), alpha=0.5)
-        }
-        
-        x.max <- ggplot_build(tree.display)$layout$panel_ranges[[1]]$x.range[2]
-        tree.display <- tree.display + ggplot2::xlim(0, 1.1*x.max)
-        tree.display
-        ggsave(file.name, device="pdf", height = pdf.hm*length(tree$tip.label), width = pdf.w, limitsize = F)
-    } else if(format == "nex"){
-        write.ann.nexus(tree, file=file.name, annotations = c("INDIVIDUAL", "SPLIT", "READ_COUNT"))
+    if(any(read.counts!=1 & !is.na(read.counts))){
+      tree.display <- tree.display + geom_point2(aes(color=INDIVIDUAL, size=READ_COUNT, shape=BLACKLISTED), alpha=0.5)
     }
+    
+    x.max <- ggplot_build(tree.display)$layout$panel_ranges[[1]]$x.range[2]
+    tree.display <- tree.display + ggplot2::xlim(0, 1.1*x.max)
+    tree.display
+    ggsave(file.name, device="pdf", height = pdf.hm*length(tree$tip.label), width = pdf.w, limitsize = F)
+  } else if(format == "nex"){
+    write.ann.nexus(tree, file=file.name, annotations = c("INDIVIDUAL", "SPLIT", "READ_COUNT"))
+  }
 }
 
 #' Summarise the pairwise host relationships across all trees
@@ -1331,12 +1399,12 @@ write.annotated.tree <- function(phyloscanner.tree, file.name, format = c("pdf",
 #' @export transmission.summary
 
 transmission.summary <- function(phyloscanner.trees, win.threshold=0, dist.threshold=Inf, allow.mt=T, close.sib.only = F, verbose = F){
-    if(length(phyloscanner.trees)==1){
-        stop("Can't summarise transmission information on a single tree. Use the collapsed tree instead?")
-    }
-    out <- summarise.classifications(phyloscanner.trees, win.threshold*length(phyloscanner.trees), dist.threshold, allow.mt, close.sib.only, verbose, F)
-    out$ancestry <- as.character(out$ancestry)
-    out
+  if(length(phyloscanner.trees)==1){
+    stop("Can't summarise transmission information on a single tree. Use the collapsed tree instead?")
+  }
+  out <- summarise.classifications(phyloscanner.trees, win.threshold*length(phyloscanner.trees), dist.threshold, allow.mt, close.sib.only, verbose, F)
+  out$ancestry <- as.character(out$ancestry)
+  out
 }
 
 #' Simplfy and visually display the pairwise host relationships across all trees
@@ -1348,24 +1416,24 @@ transmission.summary <- function(phyloscanner.trees, win.threshold=0, dist.thres
 #' @export simplified.transmission.summary
 
 simplified.transmission.summary <- function(phyloscanner.trees, transmission.summary, arrow.threshold, plot = F){
-    total.trees <- length(phyloscanner.trees)
-
-    transmission.summary$ancestry <- as.character(transmission.summary$ancestry)
-
-    simplify.summary(transmission.summary, arrow.threshold, total.trees, plot)
+  total.trees <- length(phyloscanner.trees)
+  
+  transmission.summary$ancestry <- as.character(transmission.summary$ancestry)
+  
+  simplify.summary(transmission.summary, arrow.threshold, total.trees, plot)
 }
 
 #' @export
 #' @keywords internal
 
 attach.file.names <- function(tree.info, paths, identifiers, item.name){
-
-    expected.file.name  <- paths[which(identifiers==tree.info$suffix)]
-    if(length(expected.file.name)!=0){
-        tree.info[[item.name]] <- expected.file.name
-    }
-
-    tree.info
+  
+  expected.file.name  <- paths[which(identifiers==tree.info$suffix)]
+  if(length(expected.file.name)!=0){
+    tree.info[[item.name]] <- expected.file.name
+  }
+  
+  tree.info
 }
 
 # attach.file.names <- function(tree.info,
@@ -1408,329 +1476,329 @@ attach.file.names <- function(tree.info, paths, identifiers, item.name){
 #' @keywords internal
 
 attach.tree <- function(tree.info, verbose) {
-    if(verbose){
-        cat("Reading tree file",tree.info$tree.file.name,'\n')
-    }
-
-    first.line                     <- readLines(tree.info$tree.file.name, n=1)
-
-    if(first.line == "#NEXUS"){
-        tree                         <- read.nexus(tree.info$tree.file.name)
-    } else {
-        tree                         <- read.tree(tree.info$tree.file.name)
-    }
-
-    tree.info$tree                 <- tree
-
-    tree.info
+  if(verbose){
+    cat("Reading tree file",tree.info$tree.file.name,'\n')
+  }
+  
+  first.line                     <- readLines(tree.info$tree.file.name, n=1)
+  
+  if(first.line == "#NEXUS"){
+    tree                         <- read.nexus(tree.info$tree.file.name)
+  } else {
+    tree                         <- read.tree(tree.info$tree.file.name)
+  }
+  
+  tree.info$tree                 <- tree
+  
+  tree.info
 }
 
 #' @export
 #' @keywords internal
 
 check.read.counts <- function(tree.info, tip.regex){
-    tip.labels   <- tree.info$tree$tip.label
-    read.counts  <- sapply(tip.labels, read.count.from.label, tip.regex)
-    return(!all(is.na(read.counts)))
+  tip.labels   <- tree.info$tree$tip.label
+  read.counts  <- sapply(tip.labels, read.count.from.label, tip.regex)
+  return(!all(is.na(read.counts)))
 }
 
 #' @export
 #' @keywords internal
 
 prepare.tree <- function(tree.info, outgroup.name, tip.regex, guess.multifurcation.threshold, readable.coords = F, multifurcation.threshold = -1, verbose = F){
-
-    if(verbose){
-        cat("Processing tree ID ",tree.info$suffix,"...\n", sep="")
-    }
-
-    tree <- tree.info$tree
-
-    if(guess.multifurcation.threshold){
-        minimum.bl                        <- min(tree$edge.length)
-        if(readable.coords){
-            window.width = tree.info$window.coords$end - tree.info$window.coords$start + 1
-            one.snp <- 1/window.width
-
-            if(minimum.bl > 0.25*one.snp){
-                if(verbose){
-                    cat("In tree ID ",tree.info$suffix," the minimum branch length is ",minimum.bl,", which is equivalent to ",minimum.bl/one.snp," SNPs. Assuming this tree has no multifurcations.\n", sep="")
-                }
-                multifurcation.threshold                      <- -1
-            } else {
-                if(verbose) {
-                    cat("In tree ID ",tree.info$suffix," the minimum branch length is ",minimum.bl,", which is equivalent to ",minimum.bl/one.snp," SNPs. Using this branch length as a multifurcation threshold.\n", sep="")
-                }
-                if(minimum.bl==0){
-                    multifurcation.threshold                    <- 1E-9
-                } else {
-                    multifurcation.threshold                    <- minimum.bl*1.0001
-                }
-            }
-
-        } else {
-            warning("Attempting to guess a branch length threshold for multifurcations from the tree. Please ensure that the tree has multifurcations before using the results of this analysis.")
-            if(verbose){
-                cat("In tree ID ",tree.info$suffix," the minimum branch length is ",minimum.bl,". Using this as a multifurcation threshold.\n", sep="")
-            }
-            if(minimum.bl==0){
-                multifurcation.threshold                    <- 1E-9
-            } else {
-                multifurcation.threshold                    <- minimum.bl*1.0001
-            }
+  
+  if(verbose){
+    cat("Processing tree ID ",tree.info$suffix,"...\n", sep="")
+  }
+  
+  tree <- tree.info$tree
+  
+  if(guess.multifurcation.threshold){
+    minimum.bl                        <- min(tree$edge.length)
+    if(readable.coords){
+      window.width = tree.info$window.coords$end - tree.info$window.coords$start + 1
+      one.snp <- 1/window.width
+      
+      if(minimum.bl > 0.25*one.snp){
+        if(verbose){
+          cat("In tree ID ",tree.info$suffix," the minimum branch length is ",minimum.bl,", which is equivalent to ",minimum.bl/one.snp," SNPs. Assuming this tree has no multifurcations.\n", sep="")
         }
+        multifurcation.threshold                      <- -1
+      } else {
+        if(verbose) {
+          cat("In tree ID ",tree.info$suffix," the minimum branch length is ",minimum.bl,", which is equivalent to ",minimum.bl/one.snp," SNPs. Using this branch length as a multifurcation threshold.\n", sep="")
+        }
+        if(minimum.bl==0){
+          multifurcation.threshold                    <- 1E-9
+        } else {
+          multifurcation.threshold                    <- minimum.bl*1.0001
+        }
+      }
+      
+    } else {
+      warning("Attempting to guess a branch length threshold for multifurcations from the tree. Please ensure that the tree has multifurcations before using the results of this analysis.")
+      if(verbose){
+        cat("In tree ID ",tree.info$suffix," the minimum branch length is ",minimum.bl,". Using this as a multifurcation threshold.\n", sep="")
+      }
+      if(minimum.bl==0){
+        multifurcation.threshold                    <- 1E-9
+      } else {
+        multifurcation.threshold                    <- minimum.bl*1.0001
+      }
     }
-
-    new.tree <- process.tree(tree, outgroup.name, multifurcation.threshold)
-
-    tree.info$tree                      <- new.tree
-    tree.info$original.tip.labels       <- new.tree$tip.label
-
-    hosts.for.tips                      <- sapply(tree$tip.label, function(x) host.from.label(x, tip.regex))
-    tree.info$hosts.for.tips            <- hosts.for.tips
-
-    tree.info
+  }
+  
+  new.tree <- process.tree(tree, outgroup.name, multifurcation.threshold)
+  
+  tree.info$tree                      <- new.tree
+  tree.info$original.tip.labels       <- new.tree$tip.label
+  
+  hosts.for.tips                      <- sapply(tree$tip.label, function(x) host.from.label(x, tip.regex))
+  tree.info$hosts.for.tips            <- hosts.for.tips
+  
+  tree.info
 }
 
 #' @export
 #' @keywords internal
 
 read.blacklist <- function(tree.info, verbose = F) {
-    if(!is.null(tree.info$user.blacklist.file.name)){
-        if(file.exists(tree.info$user.blacklist.file.name)){
-            if (verbose) cat("Reading blacklist file ",tree.info$user.blacklist.file.name,'\n',sep="")
-            blacklisted.tips                    <- read.table(tree.info$user.blacklist.file.name, sep=",", header=F, stringsAsFactors = F, col.names="read")
-            blacklist                           <- vector()
-            if(nrow(blacklisted.tips)>0){
-                blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree.info$tree))
-            }
-            if(any(is.na(blacklist))){
-                warning("Some tips listed in blacklist file ",tree.info$user.blacklist.file.name," are not tips of tree ",tree.info$tree.file.name, sep="")
-            }
-            blacklist <- blacklist[!is.na(blacklist)]
-
-            tree.info$hosts.for.tips[blacklist] <- NA
-
-            if(verbose & length(blacklist)>0) {
-                cat(length(blacklist), " tips pre-blacklisted for tree ID ",tree.info$suffix, ".\n", sep="")
-            }
-
-            new.rows                            <- data.frame(tip = tree.info$original.tip.labels[blacklist], reason="user_specified")
-            tree.info$bl.report          <- rbind(tree.info$bl.report, new.rows)
-            
-            tree.info$blacklist                 <- blacklist
-        } else {
-            cat(paste("WARNING: File ",tree.info$blacklist.input," does not exist; skipping.\n",sep=""))
-        }
+  if(!is.null(tree.info$user.blacklist.file.name)){
+    if(file.exists(tree.info$user.blacklist.file.name)){
+      if (verbose) cat("Reading blacklist file ",tree.info$user.blacklist.file.name,'\n',sep="")
+      blacklisted.tips                    <- read.table(tree.info$user.blacklist.file.name, sep=",", header=F, stringsAsFactors = F, col.names="read")
+      blacklist                           <- vector()
+      if(nrow(blacklisted.tips)>0){
+        blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree.info$tree))
+      }
+      if(any(is.na(blacklist))){
+        warning("Some tips listed in blacklist file ",tree.info$user.blacklist.file.name," are not tips of tree ",tree.info$tree.file.name, sep="")
+      }
+      blacklist <- blacklist[!is.na(blacklist)]
+      
+      tree.info$hosts.for.tips[blacklist] <- NA
+      
+      if(verbose & length(blacklist)>0) {
+        cat(length(blacklist), " tips pre-blacklisted for tree ID ",tree.info$suffix, ".\n", sep="")
+      }
+      
+      new.rows                            <- data.frame(tip = tree.info$original.tip.labels[blacklist], reason="user_specified")
+      tree.info$bl.report          <- rbind(tree.info$bl.report, new.rows)
+      
+      tree.info$blacklist                 <- blacklist
+    } else {
+      cat(paste("WARNING: File ",tree.info$blacklist.input," does not exist; skipping.\n",sep=""))
     }
-
-    tree.info
+  }
+  
+  tree.info
 }
 
 #' @export
 #' @keywords internal
 
 rename.user.blacklist.tips <- function(tree.info) {
-    tree <- tree.info$tree
-
-    if(is.null(tree.info$tree)){
-        stop("No tree for suffix ",tree.info$suffix,"\n")
+  tree <- tree.info$tree
+  
+  if(is.null(tree.info$tree)){
+    stop("No tree for suffix ",tree.info$suffix,"\n")
+  }
+  
+  if(!is.null(tree.info$blacklist)){
+    old.tip.labels                         <- tree$tip.label
+    if(length(tree.info$blacklist)>0){
+      new.tip.labels                       <- old.tip.labels
+      new.tip.labels[tree.info$blacklist]  <- paste0(new.tip.labels[tree.info$blacklist], "_X_USER")
+      tree$tip.label                       <- new.tip.labels
+      tree.info$tree                       <- tree
+      
     }
-
-    if(!is.null(tree.info$blacklist)){
-        old.tip.labels                         <- tree$tip.label
-        if(length(tree.info$blacklist)>0){
-            new.tip.labels                       <- old.tip.labels
-            new.tip.labels[tree.info$blacklist]  <- paste0(new.tip.labels[tree.info$blacklist], "_X_USER")
-            tree$tip.label                       <- new.tip.labels
-            tree.info$tree                       <- tree
-
-        }
-    }
-    tree.info
+  }
+  tree.info
 }
 
 #' @export
 #' @keywords internal
 
 apply.normalisation.constants <- function(tree.info) {
-    tree              <- tree.info$tree
-    tree$edge.length  <- tree$edge.length/tree.info$normalisation.constant
-    tree.info$tree    <- tree
-    tree.info
+  tree              <- tree.info$tree
+  tree$edge.length  <- tree$edge.length/tree.info$normalisation.constant
+  tree.info$tree    <- tree
+  tree.info
 }
 
 #' @export
 #' @keywords internal
 
 find.duplicate.tips <- function(tree.info) {
-    if(!is.null(tree.info$duplicate.file.name)){
-      if(file.exists(tree.info$duplicate.file.name)){
-          tree.info$duplicate.tips <- strsplit(readLines(tree.info$duplicate.file.name, warn=F),",")
-      } else {
-          warning("No duplicates file found for tree suffix ", tree.info$suffix, "; skipping duplicate blacklisting.")
-      }
+  if(!is.null(tree.info$duplicate.file.name)){
+    if(file.exists(tree.info$duplicate.file.name)){
+      tree.info$duplicate.tips <- strsplit(readLines(tree.info$duplicate.file.name, warn=F),",")
     } else {
       warning("No duplicates file found for tree suffix ", tree.info$suffix, "; skipping duplicate blacklisting.")
     }
-    tree.info
+  } else {
+    warning("No duplicates file found for tree suffix ", tree.info$suffix, "; skipping duplicate blacklisting.")
+  }
+  tree.info
 }
 
 #' @export
 #' @keywords internal
 
 blacklist.from.duplicates.vector <- function(tree.info, raw.blacklist.threshold, ratio.blacklist.threshold, tip.regex, verbose = F) {
-    tree <- tree.info$tree
-
-    if(!is.null(tree.info$duplicate.tips)){
-
-        duplicated                                   <- blacklist.exact.duplicates(tree.info, raw.blacklist.threshold, ratio.blacklist.threshold, tip.regex, verbose)
-
-        duplicate.nos                                <- which(tree.info$original.tip.labels %in% duplicated)
-
-        newly.blacklisted                            <- setdiff(duplicate.nos, tree.info$blacklist)
-
-        if(verbose & length(newly.blacklisted > 0)) cat(length(newly.blacklisted), " tips blacklisted as duplicates for tree ID ",tree.info$suffix, "\n", sep="")
-
-        tree.info$hosts.for.tips[newly.blacklisted]  <- NA
-
-        old.tip.labels    <- tree.info$tree$tip.label
-
-        if(length(newly.blacklisted)>0){
-            new.tip.labels                             <- old.tip.labels
-            new.tip.labels[newly.blacklisted]          <- paste0(new.tip.labels[newly.blacklisted], "_X_DUPLICATE")
-            tree$tip.label                             <- new.tip.labels
-            tree.info$tree                             <- tree
-        }
-        
-        if(length(duplicate.nos)>0){
-          new.rows                            <- data.frame(tip = tree.info$original.tip.labels[duplicate.nos], reason="duplicate")
-          tree.info$bl.report          <- rbind(tree.info$bl.report, new.rows)
-        }
-
-        tree.info$blacklist <- unique(c(tree.info$blacklist, duplicate.nos))
-        tree.info$blacklist <- tree.info$blacklist[order(tree.info$blacklist)]
+  tree <- tree.info$tree
+  
+  if(!is.null(tree.info$duplicate.tips)){
+    
+    duplicated                                   <- blacklist.exact.duplicates(tree.info, raw.blacklist.threshold, ratio.blacklist.threshold, tip.regex, verbose)
+    
+    duplicate.nos                                <- which(tree.info$original.tip.labels %in% duplicated)
+    
+    newly.blacklisted                            <- setdiff(duplicate.nos, tree.info$blacklist)
+    
+    if(verbose & length(newly.blacklisted > 0)) cat(length(newly.blacklisted), " tips blacklisted as duplicates for tree ID ",tree.info$suffix, "\n", sep="")
+    
+    tree.info$hosts.for.tips[newly.blacklisted]  <- NA
+    
+    old.tip.labels    <- tree.info$tree$tip.label
+    
+    if(length(newly.blacklisted)>0){
+      new.tip.labels                             <- old.tip.labels
+      new.tip.labels[newly.blacklisted]          <- paste0(new.tip.labels[newly.blacklisted], "_X_DUPLICATE")
+      tree$tip.label                             <- new.tip.labels
+      tree.info$tree                             <- tree
     }
-    tree.info
+    
+    if(length(duplicate.nos)>0){
+      new.rows                            <- data.frame(tip = tree.info$original.tip.labels[duplicate.nos], reason="duplicate")
+      tree.info$bl.report          <- rbind(tree.info$bl.report, new.rows)
+    }
+    
+    tree.info$blacklist <- unique(c(tree.info$blacklist, duplicate.nos))
+    tree.info$blacklist <- tree.info$blacklist[order(tree.info$blacklist)]
+  }
+  tree.info
 }
 
 #' @export
 #' @keywords internal
 
 blacklist.using.parsimony <- function(tree.info, tip.regex, outgroup.name, raw.blacklist.threshold, ratio.blacklist.threshold, parsimony.blacklist.k, has.read.counts, read.counts.matter, verbose){
-
-    tree      <- tree.info$tree
-    tip.hosts <- sapply(tree$tip.label, function(x) host.from.label(x, tip.regex))
-    tip.hosts[tree.info$blacklist] <- NA
-
-    hosts   <- unique(na.omit(tip.hosts))
-
-    hosts   <- hosts[order(hosts)]
+  
+  tree      <- tree.info$tree
+  tip.hosts <- sapply(tree$tip.label, function(x) host.from.label(x, tip.regex))
+  tip.hosts[tree.info$blacklist] <- NA
+  
+  hosts   <- unique(na.omit(tip.hosts))
+  
+  hosts   <- hosts[order(hosts)]
+  
+  results <- sapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, outgroup.name, raw.blacklist.threshold, ratio.blacklist.threshold, "s", parsimony.blacklist.k, 0, read.counts.matter, T, !has.read.counts, tip.regex, verbose), simplify = F, USE.NAMES = T)
+  
+  contaminant                                 <- unlist(lapply(results, "[[", 2))
+  contaminant.nos                             <- which(tree.info$tree$tip.label %in% contaminant)
+  
+  newly.blacklisted                           <- setdiff(contaminant.nos, tree.info$blacklist)
+  
+  if(verbose & length(newly.blacklisted)>0) cat(length(newly.blacklisted), " tips blacklisted as probable contaminants by parsimony reconstruction for tree suffix ",tree.info$suffix, "\n", sep="")
+  
+  tree.info$hosts.for.tips[newly.blacklisted] <- NA
+  
+  old.tip.labels                              <- tree.info$tree$tip.label
+  
+  if(length(newly.blacklisted)>0){
+    new.tip.labels                          <- old.tip.labels
+    new.tip.labels[newly.blacklisted]       <- paste0(new.tip.labels[newly.blacklisted], "_X_CONTAMINANT")
+    tree$tip.label                          <- new.tip.labels
+    tree.info$tree                          <- tree
+  }
+  
+  if(length(contaminant.nos)>0){
+    new.rows                                    <- data.frame(tip = tree.info$original.tip.labels[contaminant.nos], reason="parsimony_contaminant")
+    tree.info$bl.report                  <- rbind(tree.info$bl.report, new.rows)
+  }
+  
+  tree.info$blacklist                         <- unique(c(tree.info$blacklist, contaminant.nos))
+  tree.info$blacklist                         <- tree.info$blacklist[order(tree.info$blacklist)]
+  
+  which.are.duals                             <- which(unlist(lapply(results, "[[", 6)))
+  mi.count                                    <- unlist(lapply(results, "[[", 7))
+  
+  multiplicity.table                          <- data.frame(host = hosts, count = mi.count, stringsAsFactors = F)
+  tree.info$dual.detection.splits             <- multiplicity.table
+  
+  if(length(which.are.duals) > 0) {
+    repeat.column <- as.vector(unlist(sapply(results[which.are.duals], function (x) rep(x$id, length(x$tip.names)) )))
+    mi.df                                   <- data.frame(host = repeat.column,
+                                                          tip.name = unlist(lapply(results[which.are.duals], "[[", 3)),
+                                                          reads.in.subtree = unlist(lapply(results[which.are.duals], "[[", 4)),
+                                                          tips.in.subtree = unlist(lapply(results[which.are.duals], "[[", 5)),
+                                                          stringsAsFactors = F
+    )
     
-    results <- sapply(hosts, function(x) get.splits.for.host(x, tip.hosts, tree, outgroup.name, raw.blacklist.threshold, ratio.blacklist.threshold, "s", parsimony.blacklist.k, 0, read.counts.matter, T, !has.read.counts, tip.regex, verbose), simplify = F, USE.NAMES = T)
-
-    contaminant                                 <- unlist(lapply(results, "[[", 2))
-    contaminant.nos                             <- which(tree.info$tree$tip.label %in% contaminant)
-
-    newly.blacklisted                           <- setdiff(contaminant.nos, tree.info$blacklist)
-
-    if(verbose & length(newly.blacklisted)>0) cat(length(newly.blacklisted), " tips blacklisted as probable contaminants by parsimony reconstruction for tree suffix ",tree.info$suffix, "\n", sep="")
-
-    tree.info$hosts.for.tips[newly.blacklisted] <- NA
-
-    old.tip.labels                              <- tree.info$tree$tip.label
-
-    if(length(newly.blacklisted)>0){
-        new.tip.labels                          <- old.tip.labels
-        new.tip.labels[newly.blacklisted]       <- paste0(new.tip.labels[newly.blacklisted], "_X_CONTAMINANT")
-        tree$tip.label                          <- new.tip.labels
-        tree.info$tree                          <- tree
-    }
-
-    if(length(contaminant.nos)>0){
-      new.rows                                    <- data.frame(tip = tree.info$original.tip.labels[contaminant.nos], reason="parsimony_contaminant")
-      tree.info$bl.report                  <- rbind(tree.info$bl.report, new.rows)
-    }
-    
-    tree.info$blacklist                         <- unique(c(tree.info$blacklist, contaminant.nos))
-    tree.info$blacklist                         <- tree.info$blacklist[order(tree.info$blacklist)]
-
-    which.are.duals                             <- which(unlist(lapply(results, "[[", 6)))
-    mi.count                                    <- unlist(lapply(results, "[[", 7))
-
-    multiplicity.table                          <- data.frame(host = hosts, count = mi.count, stringsAsFactors = F)
-    tree.info$dual.detection.splits             <- multiplicity.table
-
-    if(length(which.are.duals) > 0) {
-        repeat.column <- as.vector(unlist(sapply(results[which.are.duals], function (x) rep(x$id, length(x$tip.names)) )))
-        mi.df                                   <- data.frame(host = repeat.column,
-        tip.name = unlist(lapply(results[which.are.duals], "[[", 3)),
-        reads.in.subtree = unlist(lapply(results[which.are.duals], "[[", 4)),
-        tips.in.subtree = unlist(lapply(results[which.are.duals], "[[", 5)),
-        stringsAsFactors = F
-        )
-
-        tree.info$duals.info <- mi.df
-    }
-
-    tree.info
+    tree.info$duals.info <- mi.df
+  }
+  
+  tree.info
 }
 
 #' @export
 #' @keywords internal
 
 blacklist.from.duals.list <- function(tree.info, dual.results, verbose) {
-    tree <- tree.info$tree
-
-    if(!is.null(dual.results[[tree.info$suffix]])){
-        dual                                        <- dual.results[[tree.info$suffix]]
-        dual.nos                                    <- which(tree.info$original.tip.labels %in% dual)
-
-        newly.blacklisted                           <- setdiff(dual.nos, tree.info$blacklist)
-
-        if(verbose & length(newly.blacklisted)>0) cat(length(newly.blacklisted), " tips blacklisted for belonging to minor subgraphs in tree ID ",tree.info$suffix, "\n", sep="")
-
-        tree.info$hosts.for.tips[newly.blacklisted] <- NA
-
-        old.tip.labels                              <- tree.info$tree$tip.label
-
-        if(length(newly.blacklisted)>0){
-            new.tip.labels                          <- old.tip.labels
-            new.tip.labels[newly.blacklisted]       <- paste0(new.tip.labels[newly.blacklisted], "_X_DUAL")
-            tree$tip.label                          <- new.tip.labels
-            tree.info$tree                          <- tree
-        }
-        
-        if(length(dual.nos)>0){
-          new.rows                                    <- data.frame(tip = tree.info$original.tip.labels[dual.nos], reason="dual_infection_minor_subgraph")
-          tree.info$bl.report                  <- rbind(tree.info$bl.report, new.rows)
-        }
-
-        tree.info$blacklist                         <- unique(c(tree.info$blacklist, dual.nos))
-        tree.info$blacklist                         <- tree.info$blacklist[order(tree.info$blacklist)]
+  tree <- tree.info$tree
+  
+  if(!is.null(dual.results[[tree.info$suffix]])){
+    dual                                        <- dual.results[[tree.info$suffix]]
+    dual.nos                                    <- which(tree.info$original.tip.labels %in% dual)
+    
+    newly.blacklisted                           <- setdiff(dual.nos, tree.info$blacklist)
+    
+    if(verbose & length(newly.blacklisted)>0) cat(length(newly.blacklisted), " tips blacklisted for belonging to minor subgraphs in tree ID ",tree.info$suffix, "\n", sep="")
+    
+    tree.info$hosts.for.tips[newly.blacklisted] <- NA
+    
+    old.tip.labels                              <- tree.info$tree$tip.label
+    
+    if(length(newly.blacklisted)>0){
+      new.tip.labels                          <- old.tip.labels
+      new.tip.labels[newly.blacklisted]       <- paste0(new.tip.labels[newly.blacklisted], "_X_DUAL")
+      tree$tip.label                          <- new.tip.labels
+      tree.info$tree                          <- tree
     }
-    tree.info
+    
+    if(length(dual.nos)>0){
+      new.rows                                    <- data.frame(tip = tree.info$original.tip.labels[dual.nos], reason="dual_infection_minor_subgraph")
+      tree.info$bl.report                  <- rbind(tree.info$bl.report, new.rows)
+    }
+    
+    tree.info$blacklist                         <- unique(c(tree.info$blacklist, dual.nos))
+    tree.info$blacklist                         <- tree.info$blacklist[order(tree.info$blacklist)]
+  }
+  tree.info
 }
 
 #' @export
 #' @keywords internal
 
 blacklist.from.random.downsample <- function(tree.info, max.reads.per.host, blacklist.underrepresented, has.read.counts, tip.regex, seed, verbose){
-    tree.info <- downsample.tree(tree.info, NULL, max.reads.per.host, T, blacklist.underrepresented, !has.read.counts, tip.regex, seed, verbose)
-    tree.info$hosts.for.tips[tree.info$blacklist] <- NA
-
-    tree.info
+  tree.info <- downsample.tree(tree.info, NULL, max.reads.per.host, T, blacklist.underrepresented, !has.read.counts, tip.regex, seed, verbose)
+  tree.info$hosts.for.tips[tree.info$blacklist] <- NA
+  
+  tree.info
 }
 
 #' @export
 #' @keywords internal
 identify.window.coords <- function(tree.info, file.name.regex) {
-    tryCatch({
-        coords                  <- get.window.coords(tree.info$suffix, file.name.regex)
-        tree.info$window.coords <- coords
-        tree.info$xcoord        <- (coords$end + coords$start)/2
-        tree.info
-    }, error = function(e){
-        tree.info$xcoord        <- tree.info$index
-        tree.info
-    })
+  tryCatch({
+    coords                  <- get.window.coords(tree.info$suffix, file.name.regex)
+    tree.info$window.coords <- coords
+    tree.info$xcoord        <- (coords$end + coords$start)/2
+    tree.info
+  }, error = function(e){
+    tree.info$xcoord        <- tree.info$index
+    tree.info
+  })
 }
