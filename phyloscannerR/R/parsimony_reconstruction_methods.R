@@ -1,7 +1,19 @@
 #' @keywords internal
 #' @export split.hosts.to.subgraphs
 
-split.hosts.to.subgraphs <- function(tree, blacklist, mode, tip.regex, sankoff.k, sankoff.p, useff, count.reads, m.thresh = 0, host.master.list=NULL, tree.file.name = NULL, verbose = F, no.progress.bars = F){
+split.hosts.to.subgraphs <- function(tree, 
+                                     blacklist, 
+                                     mode, 
+                                     tip.regex, 
+                                     sankoff.k,
+                                     sankoff.p, 
+                                     useff, 
+                                     count.reads,
+                                     m.thresh = 0, 
+                                     host.master.list = NULL, 
+                                     tree.file.name = NULL, 
+                                     verbose = F, 
+                                     no.progress.bars = F){
   
   if (verbose) cat("Getting tip read counts...\n")
   
@@ -44,7 +56,7 @@ split.hosts.to.subgraphs <- function(tree, blacklist, mode, tip.regex, sankoff.k
   
   # Find the complete list of hosts present in this tree minus blacklisting
   
-  if (verbose) cat("Constructing list of hosts...\n")
+  if(verbose) cat("Constructing list of hosts...\n")
   
   if(length(blacklist)>0){
     hosts <- unique(na.omit(tip.hosts[-blacklist]))
@@ -133,7 +145,7 @@ split.hosts.to.subgraphs <- function(tree, blacklist, mode, tip.regex, sankoff.k
   attr(tree, 'SUBGRAPH_MRCA') <- first.nodes
   
   rs.subgraphs <- data.table(subgraph=results$split.hosts)
-  rs.subgraphs <- rs.subgraphs[, list(host= unlist(strsplit(subgraph, "-SPLIT"))[1], tip= tree$tip.label[ results$split.tips[[subgraph]] ]	), by='subgraph']
+  rs.subgraphs <- rs.subgraphs[, list(host= unlist(strsplit(subgraph, "-SPLIT"))[1], tip = tree$tip.label[ results$split.tips[[subgraph]] ]	), by='subgraph']
   rs.subgraphs <- as.data.frame(subset(rs.subgraphs, select=c(host, subgraph, tip)))
   
   list(tree=tree, rs.subgraphs=rs.subgraphs)
