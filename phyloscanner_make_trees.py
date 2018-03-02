@@ -230,7 +230,12 @@ of a directory into which output files will be moved.''')
 OtherArgs.add_argument('--time', action='store_true',
 help='Print the times taken by different steps.')
 OtherArgs.add_argument('--x-mafft', default='mafft', help=\
-'Used to specify the command required to run mafft (by default: mafft).')
+'Used to specify the command required to run mafft (by default: mafft). See '\
+'also --x-mafft2.')
+OtherArgs.add_argument('--x-mafft2', default='linsi', help='''"If you are using
+--pairwise-align-to, by default we will use the command 'linsi' for pairwise
+alignment of references regardless of what you specified with --x-mafft. Use
+this option to override the linsi default with another command.''')
 OtherArgs.add_argument('--x-samtools', default='samtools', help=\
 'Used to specify the command required to run samtools, if needed (by default: '
 'samtools).')
@@ -842,7 +847,7 @@ else:
       TempFiles.add(TempFileForPairwiseUnalignedRefs)
       with open(TempFileForPairwiseAlignedRefs, 'w') as f:
         try:
-          ExitStatus = subprocess.call([args.x_mafft, '--quiet',
+          ExitStatus = subprocess.call([args.x_mafft2, '--quiet',
           '--preservecase', TempFileForPairwiseUnalignedRefs], stdout=f)
           assert ExitStatus == 0
         except:
