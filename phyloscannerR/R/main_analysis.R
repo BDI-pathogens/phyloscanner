@@ -558,9 +558,9 @@ phyloscanner.analyse.trees <- function(
       
       hosts.that.are.duals <- hosts.that.are.duals[order(hosts.that.are.duals)]
       
-      dual.results <- blacklist.duals(all.tree.info, hosts.that.are.duals, summary.file = NULL, verbosity==2)
+      dual.results <- blacklist.duals(all.tree.info, hosts.that.are.duals, summary.file = NULL, verbose = verbosity==2)
       
-      all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.duals.list(tree.info, dual.results, verbosity==2), simplify = F, USE.NAMES = T)
+      all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.duals.list(tree.info, dual.results, verbose = verbosity==2), simplify = F, USE.NAMES = T)
     } else {
       if(verbosity!=0) cat("No dual infections identified in any tree.\n")
     }
@@ -572,7 +572,7 @@ phyloscanner.analyse.trees <- function(
   if(downsample){
     if (verbosity!=0) cat("Downsampling to equalise read counts across hosts...\n", sep="")
     
-    all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.random.downsample(tree.info, max.reads.per.host, blacklist.underrepresented, has.read.counts, tip.regex, NA, verbosity==2), simplify = F, USE.NAMES = T)
+    all.tree.info <- sapply(all.tree.info, function(tree.info) blacklist.from.random.downsample(tree.info, max.reads.per.host, blacklist.underrepresented, has.read.counts, tip.regex, NA, verbose = verbosity==2), simplify = F, USE.NAMES = T)
   }
   
   # 16. All IDs can be safely gathered and mapped now, and read counts calculated. Windows with no patients should be removed.
@@ -653,7 +653,7 @@ phyloscanner.analyse.trees <- function(
     sankoff.p <- continuation.unassigned.proximity.cost
   }
   
-  if(verbosity==2) cat("Performing the parsimony reconstruction...\n", sep="")
+  if(verbosity!=0) cat("Performing the parsimony reconstruction...\n", sep="")
   
   
   all.tree.info <- sapply(all.tree.info, function(tree.info) {
@@ -661,7 +661,7 @@ phyloscanner.analyse.trees <- function(
     
     if(verbosity==2) cat("Reconstructing internal node hosts on tree ID ",tree.info$suffix, "\n", sep="")
     
-    tmp					     <- split.hosts.to.subgraphs(tree.info$tree, tree.info$blacklist, splits.rule, tip.regex, sankoff.k, sankoff.p, use.ff, read.counts.matter.on.zero.length.tips, multifurcation.threshold, hosts, tree.info$suffix, verbosity==2, no.progress.bars)
+    tmp					     <- split.hosts.to.subgraphs(tree.info$tree, tree.info$blacklist, splits.rule, tip.regex, sankoff.k, sankoff.p, use.ff, read.counts.matter.on.zero.length.tips, multifurcation.threshold, hosts, tree.info$suffix, verbose = verbosity==2, no.progress.bars)
     tree					   <- tmp[['tree']]
     
     # trees are annotated from now on
