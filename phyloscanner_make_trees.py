@@ -49,6 +49,7 @@ from Bio import SeqIO
 from Bio import Seq
 from Bio import AlignIO
 from Bio import Align
+from distutils.version import LooseVersion
 import tools.phyloscanner_funcs as pf
 
 # Define a function to check files exist, as a type for the argparse.
@@ -973,15 +974,32 @@ for i,BamFileName in enumerate(BamFiles):
   BamFileBasename = BamFileBasenames[i]
   BamAlias = BamAliases[i]
 
-  # Prep for pysam
+  # Prep for pysam. The call to the AlignmentFile function sometimes gives a
+  # very unclear error depending on the pysam version: handle this defensively.
   try:
     BamFile = pysam.AlignmentFile(BamFileName, "rb")
   except AttributeError:
-    print('Error calling "pysam.AlignmentFile". The AlignmentFile attribute',
-    'was introduced in pysam version 0.8.1; are you using an older version',
-    'than that? You might be able to update by running\npip install pysam',
-    '--upgrade\nfrom the command line. Quitting.', file=sys.stderr)
-    exit(1)
+    if hasattr(pysam, AlignmentFile):
+      print("Error: your pysam module contains the 'AlignmentFile'",
+      "attribute, but calling it to read", BamFileName, "in bam format has",
+      "generated an AttributeError. It is far from clear how to solve this.",
+      "Error details below.", file=sys.stderr)
+      raise
+    RequiredPysamVersion = '0.8.1'
+    print('Error: your pysam module does not seem to have the "AlignmentFile"',
+    'attribute. It was introduced in pysam version', RequiredPysamVersion + \,
+    '. The pysam version found by phyloscanner is', str(pysam.__version__) + \
+    '. A comparison of these version strings suggests that your version is',
+    end=' ', file=sys.stderr)
+    if LooseVersion(pysam.__version__) < LooseVersion(RequiredPysamVersion)
+      print('older than that required; you might be able to update by',
+      'running\npip install pysam --upgrade\nfrom the command line. Quitting.',
+      file=sys.stderr)
+      exit(1)
+    else:
+      print("actually sufficiently recent, in which case this error is very",
+      "mysterious. Error details below.", file=sys.stderr)
+      raise
   except ValueError:
     print('Error trying to read', BamFileName, 'as a bam file with pysam.',
     'Quitting.', file=sys.stderr)
