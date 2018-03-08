@@ -987,11 +987,11 @@ for i,BamFileName in enumerate(BamFiles):
       raise
     RequiredPysamVersion = '0.8.1'
     print('Error: your pysam module does not seem to have the "AlignmentFile"',
-    'attribute. It was introduced in pysam version', RequiredPysamVersion + \,
+    'attribute. It was introduced in pysam version', RequiredPysamVersion + \
     '. The pysam version found by phyloscanner is', str(pysam.__version__) + \
     '. A comparison of these version strings suggests that your version is',
     end=' ', file=sys.stderr)
-    if LooseVersion(pysam.__version__) < LooseVersion(RequiredPysamVersion)
+    if LooseVersion(pysam.__version__) < LooseVersion(RequiredPysamVersion):
       print('older than that required; you might be able to update by',
       'running\npip install pysam --upgrade\nfrom the command line. Quitting.',
       file=sys.stderr)
