@@ -979,7 +979,8 @@ for i,BamFileName in enumerate(BamFiles):
   try:
     BamFile = pysam.AlignmentFile(BamFileName, "rb")
   except AttributeError:
-    if hasattr(pysam, AlignmentFile):
+    test = getattr(pysam, 'AlignmentFile', None)
+    if test != None:
       print("Error: your pysam module contains the 'AlignmentFile'",
       "attribute, but calling it to read", BamFileName, "in bam format has",
       "generated an AttributeError. It is far from clear how to solve this.",
