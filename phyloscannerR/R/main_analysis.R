@@ -279,7 +279,7 @@ phyloscanner.analyse.trees <- function(
         }
       }
       if(!setequal(tree.identifiers, user.blacklist.identifiers)){
-        warning("Tree files and blacklist files do not entirely match. Blacklist files with no tree files will be ignored; tree files with no blacklist file will have no tips blacklisted.")
+        warning("Tree files and blacklist files do not entirely match. Blacklist files with no tree file will be ignored; tree files with no blacklist file will have no tips blacklisted.")
       }
     }
     
