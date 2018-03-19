@@ -1498,6 +1498,22 @@ attach.tree <- function(tree.info, verbose) {
 #' @export
 #' @keywords internal
 
+attach.alignment <- function(tree.info, verbose, ...) {
+  if(verbose){
+    cat("Reading alignment file",tree.info$alignment.file.name,'\n')
+  }
+
+  alignment                     <- read.dna(tree.info$alignment.file.name, list(...))
+
+  tree.info$alignment           <- alignment
+  
+  tree.info
+}
+
+
+#' @export
+#' @keywords internal
+
 check.read.counts <- function(tree.info, tip.regex){
   tip.labels   <- tree.info$tree$tip.label
   read.counts  <- sapply(tip.labels, read.count.from.label, tip.regex)
