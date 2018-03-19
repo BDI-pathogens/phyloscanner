@@ -23,7 +23,7 @@ phyloscanner.analyse.trees(tree.directory,
   ratio.blacklist.threshold = 0, do.dual.blacklisting = F,
   max.reads.per.host = Inf, blacklist.underrepresented = F, use.ff = F,
   prune.blacklist = F, read.counts.matter.on.zero.length.tips = T,
-  verbose = F, no.progress.bars = F)
+  verbosity = 0, no.progress.bars = F)
 }
 \arguments{
 \item{tree.directory}{The directory containing all input trees.}
@@ -86,7 +86,7 @@ phyloscanner.analyse.trees(tree.directory,
 
 \item{read.counts.matter.on.zero.length.tips}{If TRUE, read counts on tips will be taken into account in parsimony reconstructions at the parents of zero-length terminal branches. Not applicable for the Romero-Severson-like reconstruction method.}
 
-\item{verbose}{Give verbose output.}
+\item{verbosity}{The type of verbose output. 0=none, 1=minimal, 2=complete}
 
 \item{no.progress.bars}{Hide the progress bars from verbose output.}
 }

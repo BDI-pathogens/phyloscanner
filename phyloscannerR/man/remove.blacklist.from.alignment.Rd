@@ -19,7 +19,7 @@ remove.blacklist.from.alignment(tree.directory, alignment.directory,
   ratio.blacklist.threshold = 0, do.dual.blacklisting = F,
   max.reads.per.host = Inf, blacklist.underrepresented = F,
   read.counts.matter.on.zero.length.tips = F,
-  output.file.id = "CleanedAlignment_InWindow_", verbose = F)
+  output.file.id = "CleanedAlignment_InWindow_", verbosity = 0)
 }
 \arguments{
 \item{tree.directory}{The directory containing all input trees.}
@@ -70,7 +70,7 @@ remove.blacklist.from.alignment(tree.directory, alignment.directory,
 
 \item{output.file.id}{A string identifying the cleaned alignments}
 
-\item{verbose}{Give verbose output.}
+\item{verbosity}{The type of verbose output. 0=none, 1=minimal, 2=complete}
 
 \item{recombination.file.directory}{An optional path for a folder containing results of the \code{phyloscanner_make_trees.py} recombination metric analysis.}
 
