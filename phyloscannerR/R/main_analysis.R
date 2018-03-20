@@ -1498,12 +1498,12 @@ attach.tree <- function(tree.info, verbose) {
 #' @export
 #' @keywords internal
 
-attach.alignment <- function(tree.info, verbose, ...) {
+attach.alignment <- function(tree.info, verbose=F, ...) {
   if(verbose){
     cat("Reading alignment file",tree.info$alignment.file.name,'\n')
   }
-
-  alignment                     <- read.dna(tree.info$alignment.file.name, list(...))
+  
+  alignment                     <- read.dna(tree.info$alignment.file.name, ...)
 
   tree.info$alignment           <- alignment
   
