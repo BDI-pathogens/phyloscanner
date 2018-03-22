@@ -116,7 +116,35 @@ phyloscanner.analyse.tree(tree.file.name, splits.rule = c("s", "r", "f"),
 \item{recombination.file.name}{The path for a single file containing the results of the \code{phyloscanner_make_trees.py} recombination metric analysis.}
 }
 \value{
-A list of class \code{phyloscanner.trees}.
+A list of class \code{phyloscanner.trees}. Each element of this list is itself a list of class \code{phyloscanner.tree} and corresponds to a single tree, recording details of the \code{phyloscanner} reconstruction. The \code{names} of the \code{phyloscanner.trees} object are the tree IDs, usually derived from file suffixes. A list of class \code{phyloscanner.tree} may, depending on exact circumstances, have the following items:
+\itemize{
+\item{\code{suffix}}{ The tree ID.}
+\item{\code{tree}}{ The tree as a \code{phylo} object. This will have been rooted and have multifurcations collapsed as requested, but branch lengths are original. It may have been pruned of blacklisted tips if \code{prune.blacklist} was specified.}
+\item{\code{tree.file.name}}{ The file name from which the tree was loaded.}
+\item{\code{index}}{ The index of this tree in the \code{phyloscanner.trees} list.}
+\item{\code{bl.report}}{ A \code{data.frame} outlining the blacklisted tips in this tree and the reasons they were blacklisted.}
+\item{\code{window.coords}}{ A vector giving the start and end of the genome cooardinates of the window from which the tree was built (if the windowed approach was used).}
+\item{\code{xcoord}}{ A single genome position to locate this tree along the genome; generally the window midpoint in the windowed approach.}
+\item{\code{duplicate.file.name}}{ The file name used to determine between-host duplicate tips}
+\item{\code{original.tip.labels}}{ Blacklisting may lead to the pruinig of tips from the tree or their renaming. The original tip labels read from the tree file are recorded here.}
+\item{\code{hosts.for.tips}}{ A vector mapping each tip onto its correspoinding hosts. Blacklisted tips are given NA.}
+\item{\code{normalisation.constant}}{ The normalisation constant for this tree. This will be 1 if no normalisation was requested.}
+\item{\code{duplicate.tips}}{ A list whose entries are vectors of tips whose sequences are exactly alike.}
+\item{\code{blacklist}}{ A vector of numbers for all tips blacklisted for whatever reason. If the blacklist was pruned away, this will be empty.}
+\item{\code{dual.detection.splits}}{ A \code{data.frame} determining the multiplicity of infection for each host as determined by parsimony blacklisting.}
+\item{\code{tips.for.hosts}}{ A list giving the tips numbers corresponding to each host}
+\item{\code{read.counts}}{ A vector giving the read counts for each tip. Blacklisted tips and the outgroup have NAs. All non-NAs will be 1 if the data has no read count.}
+\item{\code{splits.table}}{ A data frame giving the host and subgraph containing each tip, according to the parsimony reconstruction.}
+\item{\code{clades.by.host}} {A list of lists of tips, each determining a monophyletic clade from one host.}
+\item{\code{clade.mrcas.by.host}}{ A list of vectors containing the MRCA nodes of those clades.}
+\item{\code{classification.results}}{ A \code{data.frame} desribing the pairwise topological classification of each pair of hosts in the tree.}
+}
+A \code{phyloscanner.trees} object has the following attributes:
+\itemize{
+\item{\code{readable.coords}}{ TRUE if genome window coordinates could be obtained from file names.}
+\item{\code{match.mode}}{ Either "suffix" (tree IDs were identified using \code{tree.file.regex}), "coords" (tree IDs were identified from what appear to be genome window coordinates in file names) or "none" (string IDs could not be determined).}
+\item{\code{has.read.counts}}{ TRUE if \code{phyloscanner} detected read counts in tip labels.}
+}
 }
 \description{
 These functions perform a parsimony reconstruction and classification of pairwise host relationships.
