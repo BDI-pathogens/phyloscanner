@@ -2,7 +2,8 @@
 % Please edit documentation in R/main_analysis.R
 \name{phyloscanner.analyse.trees}
 \alias{phyloscanner.analyse.trees}
-\title{Perform a phyloscanner analysis on a set of trees}
+\alias{phyloscanner.analyse.tree}
+\title{Perform a phyloscanner analysis on a tree or set of trees}
 \usage{
 phyloscanner.analyse.trees(tree.directory,
   tree.file.regex = "^RAxML_bestTree.InWindow_([0-9]+_to_[0-9]+)\\\\.tree$",
@@ -15,6 +16,22 @@ phyloscanner.analyse.trees(tree.directory,
   duplicate.file.regex = "^DuplicateReadCountsProcessed_InWindow_([0-9]+_to_[0-9]+).csv$",
   recombination.file.directory = NULL,
   recombination.file.regex = "^RecombinantReads_InWindow_([0-9]+_to_[0-9]+).csv$",
+  tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
+  file.name.regex = "^\\\\D*([0-9]+)_to_([0-9]+)\\\\D*$",
+  seed = sample(1:1e+07, 1), norm.ref.file.name = NULL,
+  norm.standardise.gag.pol = F, norm.constants = NULL,
+  parsimony.blacklist.k = 0, raw.blacklist.threshold = 0,
+  ratio.blacklist.threshold = 0, do.dual.blacklisting = F,
+  max.reads.per.host = Inf, blacklist.underrepresented = F, use.ff = F,
+  prune.blacklist = F, count.reads.in.parsimony = T, verbosity = 0,
+  no.progress.bars = F)
+
+phyloscanner.analyse.tree(tree.file.name, splits.rule = c("s", "r", "f"),
+  sankoff.k = 0, sankoff.unassigned.switch.threshold = 0,
+  continuation.unassigned.proximity.cost = 1000, outgroup.name = NULL,
+  multifurcation.threshold = -1, guess.multifurcation.threshold = F,
+  user.blacklist.file.name = NULL, duplicate.file.name = NULL,
+  recombination.file.name = NULL,
   tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
   file.name.regex = "^\\\\D*([0-9]+)_to_([0-9]+)\\\\D*$",
   seed = sample(1:1e+07, 1), norm.ref.file.name = NULL,
@@ -89,10 +106,21 @@ phyloscanner.analyse.trees(tree.directory,
 \item{verbosity}{The type of verbose output. 0=none, 1=minimal, 2=complete}
 
 \item{no.progress.bars}{Hide the progress bars from verbose output.}
+
+\item{tree.file.name}{The name of a single tree file (Newick or NEXUS format).}
+
+\item{user.blacklist.file.name}{The path of a single text file containing the user-specified list of tips to be blacklisted}
+
+\item{duplicate.file.name}{The path of a single \code{.csv} file specifying which tree tips are from duplicate reads. Normally this is produced by \code{phyloscanner_make_trees.py}.}
+
+\item{recombination.file.name}{The path for a single file containing the results of the \code{phyloscanner_make_trees.py} recombination metric analysis.}
 }
 \value{
 A list of class \code{phyloscanner.trees}.
 }
 \description{
-This function performs a parsimony reconstruction and classification of pairwise host relationships.
+These functions perform a parsimony reconstruction and classification of pairwise host relationships.
+}
+\details{
+\code{phyloscanner.analyse.tree} is for a single phylogeny and \code{phyloscanner.analyse.trees} for a collection.
 }
