@@ -564,8 +564,6 @@ phyloscanner.analyse.trees <- function(
     }, simplify = F, USE.NAMES = T)
   }
   
-  
-  
   # 18. Parsimony reconstruction
   
   sankoff.p <- NA
@@ -577,7 +575,6 @@ phyloscanner.analyse.trees <- function(
   }
   
   if(verbosity!=0) cat("Performing the parsimony reconstruction...\n", sep="")
-  
   
   ptrees <- sapply(ptrees, function(ptree) {
     # Do the reconstruction
