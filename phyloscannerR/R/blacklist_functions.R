@@ -72,7 +72,22 @@ blacklist.exact.duplicates <- function(tree.info, raw.threshold, ratio.threshold
 #' @export get.splits.for.host
 #' @importFrom ape root
 
-get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold, ratio.threshold, sankoff.method = "s", sankoff.k, sankoff.p = 0, count.reads.in.parsimony, check.duals, no.read.counts = T, tip.regex, verbose=F, no.progress.bars = T, just.report.counts=F){
+get.splits.for.host <- function(host, 
+                                tip.hosts, 
+                                tree, 
+                                outgroup.name, 
+                                raw.threshold, 
+                                ratio.threshold, 
+                                sankoff.method = "s", 
+                                sankoff.k, 
+                                sankoff.p = 0, 
+                                count.reads.in.parsimony, 
+                                check.duals, 
+                                no.read.counts = T, 
+                                tip.regex, 
+                                verbose = F, 
+                                no.progress.bars = T, 
+                                just.report.counts = F){
 
   if (verbose) cat("Identifying splits for host ", host, "\n", sep="")
 
@@ -80,11 +95,11 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
   
   dual <- F
   
-  if(length(which(tip.hosts==host))>1){
+  if(sum(tip.hosts==host, na.rm=T) > 1){
     
     # Keep only the tips from this host and the outgroup
-    if(!is.null(root.name)){
-      outgroup.no <- which(tree$tip.label==root.name)
+    if(!is.null(outgroup.name)){
+      outgroup.no <- which(tree$tip.label==outgroup.name)
     } else {
       # Find a random outgroup if you can
       
@@ -96,7 +111,7 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
       while(host.mrca %in% Ancestors(tree, outgroup.no)){
         outgroup.no <- sample(1:length(tree$tip.label), 1)
       }
-      root.name <- tree$tip.label[outgroup.no]
+      outgroup.name <- tree$tip.label[outgroup.no]
     }
     
     tip.nos <- c(outgroup.no, which(tip.hosts==host))
@@ -105,7 +120,7 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
     
     # Re-find the root
     
-    st.outgroup.no <- which(subtree$tip.label==root.name)
+    st.outgroup.no <- which(subtree$tip.label==outgroup.name)
     
     # di2multi actually unroots the tree!
     
@@ -137,8 +152,6 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
                                         
     split.results <- split.and.annotate(subtree, c(host, "unassigned"), tip.hosts, host.tips, NULL, vector(), tip.regex, sankoff.method, multipliers, sankoff.k, sankoff.p, useff = F, verbose, no.progress.bars)
      
-    # print(split.results)
-    
     # vector of of split IDs
     
     host.split.ids <- split.results$split.hosts
@@ -147,11 +160,12 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
     
     tips.for.splits <- split.results$split.tips
     
-    # The total number of reads is either got from the tips or assumed to be one per tip
+    # The total number of reads is either gotten from the tips or assumed to be one per tip
     
     total.reads <- sum(reads.per.tip[!is.na(reads.per.tip)])
 
     counts.per.split <- sapply(host.split.ids, function(x) sum(reads.per.tip[tips.for.splits[[x]]]), USE.NAMES=FALSE)
+    
     if (just.report.counts) {return(counts.per.split)}
     
     if(length(host.split.ids)==1){
@@ -166,7 +180,7 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
         if(verbose){
           cat("Blacklisting ",host,"; not enough reads in total.\n", sep="")
         }
-        blacklist.items <- subtree$tip.label[which(subtree$tip.label!=root.name)]
+        blacklist.items <- subtree$tip.label[which(subtree$tip.label!=outgroup.name)]
         
         multiplicity <- 0
       } else {
@@ -177,14 +191,7 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
       # at least two subgraphs
       
       if (verbose) cat(length(host.split.ids), " splits for host ", host, "\n", sep="")
-      
-      props <- vector()
-      too.small <- vector()
-      
-      tips.vector <- vector()
-      read.count.vector <- vector()
-      tip.count.vector <- vector()
-
+    
       too.small <- sapply(host.split.ids, function(x) check.read.count.for.split(x, tips.for.splits, raw.threshold, ratio.threshold, reads.per.tip, total.reads))
       
       if(length(which(!too.small))>1 & check.duals){
@@ -198,7 +205,6 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
       }
       
       multiplicity <- length(which(!too.small))
-      
       
       # blacklist the tips from small subgraphs
       
@@ -214,6 +220,9 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
     }))
     tip.count.vector <- unlist(lapply(host.split.ids, function(x){
       rep(length(tips.for.splits[[x]]), length(tips.for.splits[[x]]))
+    }))
+    split.id.vector <- unlist(lapply(host.split.ids, function(x){
+      rep(x, length(tips.for.splits[[x]]))
     }))
     
   } else {
@@ -243,11 +252,19 @@ get.splits.for.host <- function(host, tip.hosts, tree, root.name, raw.threshold,
     tips.vector <- tree$tip.label[tip.no]
     read.count.vector <- reads
     tip.count.vector <- 1
+    split.id.vector <- host
   }
 
   if (just.report.counts) {return(c(reads))}
   
-  list(id = host, blacklist.items = blacklist.items, tip.names = tips.vector, read.counts = read.count.vector, tip.counts = tip.count.vector, dual = dual, multiplicity = multiplicity)
+  list(id = host, 
+       blacklist.items = blacklist.items, 
+       tip.names = tips.vector, 
+       read.counts = read.count.vector, 
+       split.ids = split.id.vector,
+       tip.counts = tip.count.vector, 
+       dual = dual, 
+       multiplicity = multiplicity)
 }
 
 # Return whether the number of reads in this split is below one of the thresholds

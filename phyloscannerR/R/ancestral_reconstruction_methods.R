@@ -1,12 +1,18 @@
 #' Reconstruct the ancestral sequence at every node of the tree
 #' @param phyloscanner.tree A list of class \code{phyloscanner.tree} (usually an item in a list of class \code{phyloscanner.trees})
 #' @param verbose Verbose output
-#' @param default If TRUE, the reconstruction is done according to the default model used in RAxML to build trees for phyloscanner. The ... below will be ignored.
-#' @param ... Further arguments to be passed to pml and optim.pml
-#' @importFrom phangorn optim.pml ancestral.pml
+#' @param default If TRUE, the reconstruction is done according to the default model used in RAxML to build trees for phyloscanner. The \code{...} below will be ignored.
+#' @param ... Further arguments to be passed to \code{pml} and \code{optim.pml}
+#' @return An alignment of the sequences at all nodes (in \code{DNAbin} format)
+#' @importFrom phangorn pml optim.pml ancestral.pml as.phyDat phyDat2alignment
+#' @importFrom ape as.DNAbin as.alignment
 #' @export reconstruct.ancestral.sequences
 
-reconstruct.ancestral.sequences <- function(phyloscanner.tree, verbose, default=F, ...){
+reconstruct.ancestral.sequences <- function(phyloscanner.tree, verbose=F, default=F, ...){
+  
+  if(verbose){
+    cat("Reconstructing ancestral sequences on tree ID",phyloscanner.tree$suffix,"\n")
+  }
   
   if(default){
     pml.opts <- list(k=4, model="GTR")
@@ -77,7 +83,7 @@ reconstruct.ancestral.sequences <- function(phyloscanner.tree, verbose, default=
     
   mfit <- do.call("pml", c(list(tree=phyl, data=as.phyDat(algn)), pml.opts))
   
-  # I do not want this output. I also want this to work on Windows, however. This isn't exactly elegant,ne
+  # I do not want this output. I also want this to work on Windows, however. This isn't exactly elegant.
   
   if(file.exists("/dev/null")){
     # *nix
@@ -87,7 +93,7 @@ reconstruct.ancestral.sequences <- function(phyloscanner.tree, verbose, default=
     sink("NUL")
   }
   
-  optm.mfit <- do.call("optim.pml", c(list(object=mfit), opt.pml.opts))
+  optim.mfit <- do.call("optim.pml", c(list(object=mfit), opt.pml.opts))
   
   sink()
 
@@ -103,4 +109,80 @@ reconstruct.ancestral.sequences <- function(phyloscanner.tree, verbose, default=
   # Need to remap the names to the unrooted tree.
   
   alignment
+
+}
+
+#' Find the ancestral sequence at the MRCA of the tips from this host, or, if a dual infection was previously identified, of the MRCA of the tips making up each infection event
+#' @param phyloscanner.tree A list of class \code{phyloscanner.tree} (usually an item in a list of class \code{phyloscanner.trees}). This must have an \code{ancestral.alignment} element (see \emph{reconstruct.ancestral.sequences})
+#' @param host The host ID
+#' @param individual.duals Whether to output multiple sequences for \code{host} based on the results of a previous dual infection analysis
+#' @param verbose Verbose output
+#' @importFrom phangorn mrca.phylo
+#' @export reconstruct.host.ancestral.sequences
+
+reconstruct.host.ancestral.sequences <- function(phyloscanner.tree, host, individual.duals = F, verbose){
+  
+  if(!(host %in% names(phyloscanner.tree$tips.for.hosts))){
+    stop(paste0("A host with ID ",host," is not present in tree ID ",phyloscanner.tree$suffix,"\n"))
+  }
+  
+  if(verbose){
+    cat(paste0("Finding the MRCA sequence or sequences for host ",host," in tree ",phyloscanner.tree$suffix,"\n"))
+  }
+  
+  # Currently multiplicity will evaluate to >1 even if only one subgraph remains after blacklisting.
+  
+  multiplicity <- 1
+  
+  if(individual.duals){
+    if(!is.null(phyloscanner.tree$dual.detection.splits)){
+      multiplicity <- phyloscanner.tree$dual.detection.splits$count[phyloscanner.tree$dual.detection.splits$host==host]
+    } else {
+      warning("Parsimony blacklisting was not performed on these trees. With no dual infections identified, only one reconstructed sequence will be returned")
+    }
+  }
+  
+  tree <- phyloscanner.tree$tree
+  
+  tips <- phyloscanner.tree$tips.for.hosts[[host]]
+  
+  aa <- phyloscanner.tree$ancestral.alignment
+  
+  if(multiplicity == 1){
+    
+    
+    
+    mrca <- mrca.phylo(tree, tips)
+    
+    if(is.matrix(aa)){
+      sequence <- aa[which(rownames(aa)==as.character(mrca)),]
+    } else {
+      sequence <- aa[which(rownames(aa)==as.character(mrca))]
+    }
+    
+    
+    setNames(list(sequence), host)
+    
+  } else {
+    
+    if(is.null(phyloscanner.tree$duals.info)){
+      stop(paste0("Expecting a duals report for tree id ",phyloscanner.tree$suffix," but this is absent"))
+    }
+    
+    # we only want the non-blacklisted tips
+    
+    di <- phyloscanner.tree$duals.info[which(phyloscanner.tree$duals.info$tip.name %in% tree$tip.label[tips]),]
+    
+    out <- lapply(unique(di$split.ids), function(split){
+      mrca <- mrca.phylo(tree, di$tip.name[which(di$split.ids==split)])
+      if(is.matrix(aa)){
+        sequence <- aa[which(rownames(aa)==as.character(mrca)),]
+      } else {
+        sequence <- aa[which(rownames(aa)==as.character(mrca))]
+      }
+      sequence
+    })
+    
+    setNames(out, unique(di$split.ids))
+  }
 }

@@ -342,7 +342,7 @@ split.and.annotate <- function(tree, hosts, tip.hosts, host.tips, host.mrcas, bl
     
     if (verbose) cat("Reconstructing...\n")
     
-    full.assocs <- reconstruct(tree, getRoot(tree), "unassigned", list(), tip.hosts, hosts, cost.matrix, individual.costs, k, p, tip.read.counts, verbose)
+    full.assocs <- phyloscanner.reconstruct(tree, getRoot(tree), "unassigned", list(), tip.hosts, hosts, cost.matrix, individual.costs, k, p, tip.read.counts, verbose)
     
     temp.ca <- rep(NA, length(tree$tip.label) + tree$Nnode)
     
@@ -780,9 +780,9 @@ child.cost <- function(tree, child.index, hosts, top.host.no, bottom.host.no, cu
 # Reconstruct node states based on the cost matrix. 
 
 #' @keywords internal
-#' @export reconstruct
+#' @export phyloscanner.reconstruct
 
-reconstruct <- function(tree, node, node.state, node.assocs, tip.hosts, hosts, full.cost.matrix, node.cost.matrix, k, p, tip.read.counts, verbose=F){
+phyloscanner.reconstruct <- function(tree, node, node.state, node.assocs, tip.hosts, hosts, full.cost.matrix, node.cost.matrix, k, p, tip.read.counts, verbose=F){
   node.assocs[[node]] <- node.state
   # if(verbose){
   #   cat("Node ",node," reconstructed as ",node.state,"\n", sep="")
@@ -834,7 +834,7 @@ reconstruct <- function(tree, node, node.state, node.assocs, tip.hosts, hosts, f
           cat("WARNING: some ties broken at random\n", sep="")
         }
       }
-      node.assocs <- reconstruct(tree, child, decision, node.assocs, tip.hosts, hosts, full.cost.matrix, node.cost.matrix, k, p, tip.read.counts, verbose)
+      node.assocs <- phyloscanner.reconstruct(tree, child, decision, node.assocs, tip.hosts, hosts, full.cost.matrix, node.cost.matrix, k, p, tip.read.counts, verbose)
     }
   }
   return(node.assocs)

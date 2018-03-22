@@ -18,7 +18,7 @@ remove.blacklist.from.alignment(tree.directory, alignment.directory,
   parsimony.blacklist.k = 0, raw.blacklist.threshold = 0,
   ratio.blacklist.threshold = 0, do.dual.blacklisting = F,
   max.reads.per.host = Inf, blacklist.underrepresented = F,
-  read.counts.matter.on.zero.length.tips = F,
+  count.reads.in.parsimony = F,
   output.file.id = "CleanedAlignment_InWindow_", verbosity = 0)
 }
 \arguments{

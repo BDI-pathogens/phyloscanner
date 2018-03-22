@@ -17,8 +17,8 @@ phyloscanner.analyse.tree(tree.file.name, splits.rule = c("s", "r", "f"),
   parsimony.blacklist.k = 0, raw.blacklist.threshold = 0,
   ratio.blacklist.threshold = 0, do.dual.blacklisting = F,
   max.reads.per.host = Inf, blacklist.underrepresented = F, use.ff = F,
-  prune.blacklist = F, read.counts.matter.on.zero.length.tips = T,
-  verbosity = 0, no.progress.bars = F)
+  prune.blacklist = F, count.reads.in.parsimony = T, verbosity = 0,
+  no.progress.bars = F)
 }
 \arguments{
 \item{tree.file.name}{The name of the tree file (Newick or NEXUS format).}
@@ -71,7 +71,7 @@ phyloscanner.analyse.tree(tree.file.name, splits.rule = c("s", "r", "f"),
 
 \item{prune.blacklist}{If TRUE, all blacklisted and reference tips (except the outgroup) are pruned away before starting parsimony-based reconstruction.}
 
-\item{read.counts.matter.on.zero.length.tips}{If TRUE, read counts on tips will be taken into account in parsimony reconstructions at the parents of zero-length terminal branches. Not applicable for the Romero-Severson-like reconstruction method.}
+\item{count.reads.in.parsimony}{If TRUE, read counts on tips will be taken into account in parsimony reconstructions at the parents of zero-length terminal branches. Not applicable for the Romero-Severson-like reconstruction method.}
 
 \item{verbosity}{The type of verbose output. 0=none, 1=minimal, 2=complete}
 
