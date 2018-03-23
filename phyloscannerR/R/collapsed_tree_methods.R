@@ -893,7 +893,7 @@ merge.classifications <- function(all.tree.info, allow.mt = T, verbose = F){
       if (verbose) cat("Reading window input file ",tree.info$classification.file.name,"\n", sep="")
       tt <- as.data.table(read.table(tree.info$classification.file.name, sep=",", header=TRUE, stringsAsFactors=FALSE))
     }
-    tt[, SUFFIX:=tree.info$suffix]			
+    tt[, ID:=tree.info$id]			
     tt
   })	
   
@@ -965,7 +965,7 @@ merge.classifications <- function(all.tree.info, allow.mt = T, verbose = F){
   if(verbose) cat("Reordering...\n")
   
   #	reorder
-  setkey(tt, SUFFIX, HOST.1, HOST.2)
+  setkey(tt, ID, HOST.1, HOST.2)
   
   return(tt)
 }
@@ -981,7 +981,7 @@ summarise.classifications <- function(all.tree.info, min.threshold, dist.thresho
   
   set(tt, NULL, c('PATHS.12','PATHS.21'),NULL)
   
-  existence.counts <- tt[, list(both.exist=length(SUFFIX)), by=c('HOST.1','HOST.2')]
+  existence.counts <- tt[, list(both.exist=length(ID)), by=c('HOST.1','HOST.2')]
   
   tt <- merge(tt, existence.counts, by=c('HOST.1', 'HOST.2'))
   
@@ -1000,9 +1000,9 @@ summarise.classifications <- function(all.tree.info, min.threshold, dist.thresho
   }
   
   # How many windows have this relationship, ADJACENT and PATRISTIC_DISTANCE below the threshold?
-  type.counts	<- tt.close[, list(trees.with.this.relationship=length(SUFFIX)), by=c('HOST.1','HOST.2','TYPE')]
+  type.counts	<- tt.close[, list(trees.with.this.relationship=length(ID)), by=c('HOST.1','HOST.2','TYPE')]
   # How many windows have ADJACENT and PATRISTIC_DISTANCE below the threshold?
-  any.counts  <- tt.close[, list(trees.with.any.relationship=length(SUFFIX)), by=c('HOST.1','HOST.2')]
+  any.counts  <- tt.close[, list(trees.with.any.relationship=length(ID)), by=c('HOST.1','HOST.2')]
 
   tt.close		<- merge(tt.close, type.counts, by=c('HOST.1','HOST.2','TYPE'))
   tt.close		<- merge(tt.close, any.counts, by=c('HOST.1','HOST.2'))
@@ -1029,7 +1029,7 @@ summarise.classifications <- function(all.tree.info, min.threshold, dist.thresho
   
   tt.close[, DUMMY:=NULL]
   
-  set(tt.close, NULL, c('SUFFIX', 'ADJACENT','PATRISTIC_DISTANCE', "CONTIGUOUS", "nodes1", "nodes2"), NULL)
+  set(tt.close, NULL, c('ID', 'ADJACENT','PATRISTIC_DISTANCE', "CONTIGUOUS", "nodes1", "nodes2"), NULL)
   tt.close <- tt.close[!duplicated(tt.close),]
   
   setkey(tt.close, HOST.1, HOST.2, TYPE)

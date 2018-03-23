@@ -6,7 +6,7 @@
 blacklist.exact.duplicates <- function(tree.info, raw.threshold, ratio.threshold, tip.regex, verbose = F){
   
   if(is.null(tree.info$duplicate.tips)){
-    stop("No duplicate tips for tree ID ",tree.info$suffix)
+    stop("No duplicate tips for tree ID ",tree.info$id)
   }
   
   entries <- tree.info$duplicate.tips
@@ -59,7 +59,7 @@ blacklist.exact.duplicates <- function(tree.info, raw.threshold, ratio.threshold
   
   # calculate the counts
   pairs.table$ratio <- pairs.table$reads.2 / pairs.table$reads.1
-  if (verbose) cat("Tree ID ",tree.info$suffix,": making duplicate blacklist with a ratio threshold of ",ratio.threshold," and a raw threshold of ",raw.threshold,"\n",sep="")
+  if (verbose) cat("Tree ID ",tree.info$id,": making duplicate blacklist with a ratio threshold of ",ratio.threshold," and a raw threshold of ",raw.threshold,"\n",sep="")
   blacklisted <- pairs.table[which(pairs.table$ratio < ratio.threshold | (pairs.table$reads.2<raw.threshold)),2]
   
   return(blacklisted)
@@ -347,7 +347,7 @@ blacklist.duals <- function(all.tree.info, hosts, threshold = 1, summary.file=NU
   blacklists <- list()
   
   for(tree.info in all.tree.info){
-    if(verbose) cat("Making new blacklists for tree ID ",tree.info$suffix,"\n",sep="")
+    if(verbose) cat("Making new blacklists for tree ID ",tree.info$id,"\n",sep="")
     
     new.bl <- vector()
     
@@ -378,7 +378,7 @@ blacklist.duals <- function(all.tree.info, hosts, threshold = 1, summary.file=NU
         }
       }
     }
-    blacklists[[tree.info$suffix]] <- new.bl
+    blacklists[[tree.info$id]] <- new.bl
   }
   
   if(!is.null(summary.file)) {

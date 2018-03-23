@@ -11,7 +11,7 @@
 reconstruct.ancestral.sequences <- function(phyloscanner.tree, verbose=F, default=F, ...){
   
   if(verbose){
-    cat("Reconstructing ancestral sequences on tree ID",phyloscanner.tree$suffix,"\n")
+    cat("Reconstructing ancestral sequences on tree ID ",phyloscanner.tree$id,"\n",sep="")
   }
   
   if(default){
@@ -30,7 +30,7 @@ reconstruct.ancestral.sequences <- function(phyloscanner.tree, verbose=F, defaul
   # No sequences = no reconstruction
   
   if(is.null(phyloscanner.tree$alignment)){
-    stop(paste0("The phyloscanner.tree object with ID ",phyloscanner.tree$suffix," has no alignment item"))
+    stop(paste0("The phyloscanner.tree object with ID ",phyloscanner.tree$id," has no alignment item"))
   }
   
   phyl <- phyloscanner.tree$tree
@@ -123,11 +123,11 @@ reconstruct.ancestral.sequences <- function(phyloscanner.tree, verbose=F, defaul
 reconstruct.host.ancestral.sequences <- function(phyloscanner.tree, host, individual.duals = F, verbose){
   
   if(!(host %in% names(phyloscanner.tree$tips.for.hosts))){
-    stop(paste0("A host with ID ",host," is not present in tree ID ",phyloscanner.tree$suffix,"\n"))
+    stop(paste0("A host with ID ",host," is not present in tree ID ",phyloscanner.tree$id,"\n"))
   }
   
   if(verbose){
-    cat(paste0("Finding the MRCA sequence or sequences for host ",host," in tree ",phyloscanner.tree$suffix,"\n"))
+    cat(paste0("Finding the MRCA sequence or sequences for host ",host," in tree ",phyloscanner.tree$id,"\n"))
   }
   
   # Currently multiplicity will evaluate to >1 even if only one subgraph remains after blacklisting.
@@ -166,7 +166,7 @@ reconstruct.host.ancestral.sequences <- function(phyloscanner.tree, host, indivi
   } else {
     
     if(is.null(phyloscanner.tree$duals.info)){
-      stop(paste0("Expecting a duals report for tree id ",phyloscanner.tree$suffix," but this is absent"))
+      stop(paste0("Expecting a duals report for tree id ",phyloscanner.tree$id," but this is absent"))
     }
     
     # we only want the non-blacklisted tips

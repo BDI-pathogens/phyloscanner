@@ -3,9 +3,10 @@
 \name{phyloscanner.analyse.trees}
 \alias{phyloscanner.analyse.trees}
 \alias{phyloscanner.analyse.tree}
+\alias{phyloscanner.generate.blacklist}
 \title{Perform a phyloscanner analysis on a tree or set of trees}
 \usage{
-phyloscanner.analyse.trees(tree.directory,
+phyloscanner.analyse.trees(tree.file.directory,
   tree.file.regex = "^RAxML_bestTree.InWindow_([0-9]+_to_[0-9]+)\\\\.tree$",
   splits.rule = c("s", "r", "f"), sankoff.k = 0,
   sankoff.unassigned.switch.threshold = 0,
@@ -16,6 +17,7 @@ phyloscanner.analyse.trees(tree.directory,
   duplicate.file.regex = "^DuplicateReadCountsProcessed_InWindow_([0-9]+_to_[0-9]+).csv$",
   recombination.file.directory = NULL,
   recombination.file.regex = "^RecombinantReads_InWindow_([0-9]+_to_[0-9]+).csv$",
+  alignment.file.directory = NULL, alignment.file.regex = NULL,
   tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
   file.name.regex = "^\\\\D*([0-9]+)_to_([0-9]+)\\\\D*$",
   seed = sample(1:1e+07, 1), norm.ref.file.name = NULL,
@@ -31,7 +33,7 @@ phyloscanner.analyse.tree(tree.file.name, splits.rule = c("s", "r", "f"),
   continuation.unassigned.proximity.cost = 1000, outgroup.name = NULL,
   multifurcation.threshold = -1, guess.multifurcation.threshold = F,
   user.blacklist.file.name = NULL, duplicate.file.name = NULL,
-  recombination.file.name = NULL,
+  recombination.file.name = NULL, alignment.file.name = NULL,
   tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
   file.name.regex = "^\\\\D*([0-9]+)_to_([0-9]+)\\\\D*$",
   seed = sample(1:1e+07, 1), norm.ref.file.name = NULL,
@@ -41,11 +43,26 @@ phyloscanner.analyse.tree(tree.file.name, splits.rule = c("s", "r", "f"),
   max.reads.per.host = Inf, blacklist.underrepresented = F, use.ff = F,
   prune.blacklist = F, count.reads.in.parsimony = T, verbosity = 0,
   no.progress.bars = F)
+
+phyloscanner.generate.blacklist(tree.directory,
+  tree.file.regex = "^RAxML_bestTree.InWindow_([0-9]+_to_[0-9]+)\\\\.tree$",
+  outgroup.name = NULL, multifurcation.threshold = -1,
+  guess.multifurcation.threshold = F, user.blacklist.directory = NULL,
+  user.blacklist.file.regex = NULL, duplicate.file.directory = NULL,
+  duplicate.file.regex = "^DuplicateReadCountsProcessed_InWindow_([0-9]+_to_[0-9]+).csv$",
+  tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
+  file.name.regex = "^\\\\D*([0-9]+)_to_([0-9]+)\\\\D*$",
+  seed = sample(1:1e+07, 1), norm.ref.file.name = NULL,
+  norm.standardise.gag.pol = F, norm.constants = NULL,
+  parsimony.blacklist.k = 0, raw.blacklist.threshold = 0,
+  ratio.blacklist.threshold = 0, do.dual.blacklisting = F,
+  max.reads.per.host = Inf, blacklist.underrepresented = F,
+  count.reads.in.parsimony = F, verbosity = 0)
 }
 \arguments{
-\item{tree.directory}{The directory containing all input trees.}
+\item{tree.file.directory}{The directory containing all input trees.}
 
-\item{tree.file.regex}{A regular expression identifying every file in \code{tree.directory} that is to be included in the analysis. The first capture group, if present, gives a unique string identifying each tree. If this is NULL then \code{phyloscanner} will attempt to open every file in \code{tree.directory}.}
+\item{tree.file.regex}{A regular expression identifying every file in \code{tree.file.directory} that is to be included in the analysis. The first capture group, if present, gives a unique string identifying each tree. If this is NULL then \code{phyloscanner} will attempt to open every file in \code{tree.file.directory}.}
 
 \item{splits.rule}{The rules by which the sets of hosts are split into groups in order to ensure that all groups can be members of connected subgraphs without causing conflicts. Options: s=Sankoff with optional within-host diversity penalty (slow, rigorous, recommended), r=Romero-Severson (quick, less rigorous with >2 hosts), f=Sankoff with continuation costs (experimental).}
 
@@ -72,6 +89,8 @@ phyloscanner.analyse.tree(tree.file.name, splits.rule = c("s", "r", "f"),
 \item{recombination.file.directory}{An optional path for a folder containing results of the \code{phyloscanner_make_trees.py} recombination metric analysis.}
 
 \item{recombination.file.regex}{A regular expression identifying every file in \code{recombination.file.directory} that contains a recombination file. If a capture group is specified then its contents will uniquely identify the tree it belongs to, which must matches the IDs found by \code{tree.file.regex}. If these IDs cannot be identified then matching will be attempted using genome window coordinates.}
+
+\item{alignment.file.regex}{A regular expression identifying every file in \code{alignment.directory} that is an alignment. If a capture group is specified then its contents will uniquely identify the tree it belongs to, which must matches the IDs found by \code{tree.file.regex}. If these IDs cannot be identified then matching will be attempted using genome window coordinates.}
 
 \item{tip.regex}{Regular expression identifying tips from the dataset. This expects up to three capture groups, for host ID, read ID, and read count (in that order). If the latter two groups are missing then read information will not be used. The default matches input from the phyloscanner pipeline where the host ID is the BAM file name.}
 
@@ -114,13 +133,20 @@ phyloscanner.analyse.tree(tree.file.name, splits.rule = c("s", "r", "f"),
 \item{duplicate.file.name}{The path of a single \code{.csv} file specifying which tree tips are from duplicate reads. Normally this is produced by \code{phyloscanner_make_trees.py}.}
 
 \item{recombination.file.name}{The path for a single file containing the results of the \code{phyloscanner_make_trees.py} recombination metric analysis.}
+
+\item{alignment.directory}{The directory containing the alignments used to construct the phylogenies.}
 }
 \value{
 A list of class \code{phyloscanner.trees}. Each element of this list is itself a list of class \code{phyloscanner.tree} and corresponds to a single tree, recording details of the \code{phyloscanner} reconstruction. The \code{names} of the \code{phyloscanner.trees} object are the tree IDs, usually derived from file suffixes. A list of class \code{phyloscanner.tree} may, depending on exact circumstances, have the following items:
 \itemize{
-\item{\code{suffix}}{ The tree ID.}
+\item{\code{id}}{ The tree ID.}
 \item{\code{tree}}{ The tree as a \code{phylo} object. This will have been rooted and have multifurcations collapsed as requested, but branch lengths are original. It may have been pruned of blacklisted tips if \code{prune.blacklist} was specified.}
+\item{\code{alignment}}{ The alignment as a \code{DNAbin} object.}
 \item{\code{tree.file.name}}{ The file name from which the tree was loaded.}
+\item{\code{alignment.file.name}}{ The file name for the alignment.}
+\item{\code{user.blacklist.file.name}}{ The file name for the user-specified blacklist.}
+\item{\code{duplicate.file.name}}{ The file name for the list of between-host duplicate tips.}
+\item{\code{recombination.file.name}}{ The file name for the results of the \code{phyloscanner_make_trees.py} recombination metric analysis.}
 \item{\code{index}}{ The index of this tree in the \code{phyloscanner.trees} list.}
 \item{\code{bl.report}}{ A \code{data.frame} outlining the blacklisted tips in this tree and the reasons they were blacklisted.}
 \item{\code{window.coords}}{ A vector giving the start and end of the genome cooardinates of the window from which the tree was built (if the windowed approach was used).}
@@ -132,6 +158,7 @@ A list of class \code{phyloscanner.trees}. Each element of this list is itself a
 \item{\code{duplicate.tips}}{ A list whose entries are vectors of tips whose sequences are exactly alike.}
 \item{\code{blacklist}}{ A vector of numbers for all tips blacklisted for whatever reason. If the blacklist was pruned away, this will be empty.}
 \item{\code{dual.detection.splits}}{ A \code{data.frame} determining the multiplicity of infection for each host as determined by parsimony blacklisting.}
+\item{\code{duals.info}}{ A \code{data.frame} describing the subgraphs that each tip belong to in the dual infection detection, prior to parsimony and dual blacklisting.}
 \item{\code{tips.for.hosts}}{ A list giving the tips numbers corresponding to each host}
 \item{\code{read.counts}}{ A vector giving the read counts for each tip. Blacklisted tips and the outgroup have NAs. All non-NAs will be 1 if the data has no read count.}
 \item{\code{splits.table}}{ A data frame giving the host and subgraph containing each tip, according to the parsimony reconstruction.}
@@ -142,13 +169,14 @@ A list of class \code{phyloscanner.trees}. Each element of this list is itself a
 A \code{phyloscanner.trees} object has the following attributes:
 \itemize{
 \item{\code{readable.coords}}{ TRUE if genome window coordinates could be obtained from file names.}
-\item{\code{match.mode}}{ Either "suffix" (tree IDs were identified using \code{tree.file.regex}), "coords" (tree IDs were identified from what appear to be genome window coordinates in file names) or "none" (string IDs could not be determined).}
+\item{\code{match.mode}}{ Either "ID" (tree IDs were identified using \code{tree.file.regex}), "coords" (tree IDs were identified from what appear to be genome window coordinates in file names) or "none" (string IDs could not be determined).}
 \item{\code{has.read.counts}}{ TRUE if \code{phyloscanner} detected read counts in tip labels.}
+\item{\code{outgroup.name}}{ The tip label of the outgroup.}
 }
 }
 \description{
 These functions perform a parsimony reconstruction and classification of pairwise host relationships.
 }
 \details{
-\code{phyloscanner.analyse.tree} is for a single phylogeny and \code{phyloscanner.analyse.trees} for a collection.
+\code{phyloscanner.analyse.tree} is for a single phylogeny and \code{phyloscanner.analyse.trees} for a collection, while \code{phyloscanner.generate.blacklist} performs the blacklisting steps only.
 }

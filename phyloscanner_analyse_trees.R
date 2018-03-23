@@ -92,7 +92,7 @@ args                            <- arg_parser$parse_args()
 # basics
 verbosity                       <- args$verbose
 
-if(!(verbosity %in% 1:3)){
+if(!(verbosity %in% 0:2)){
   stop("Invalid verbosity option: ",verbosity)
 }
 
@@ -325,6 +325,7 @@ if(single.tree){
     blacklist.input,
     dup.input.file.name,
     recomb.input,
+    NULL,
     tip.regex,
     file.name.regex,
     seed,
@@ -359,6 +360,8 @@ if(single.tree){
     duplicate.file.regex,
     recomb.file.directory,
     recomb.file.regex,
+    NULL,
+    NULL,
     tip.regex,
     file.name.regex,
     seed,
@@ -386,7 +389,7 @@ silent <- sapply(phyloscanner.trees, function(tree.info){
   if(single.tree){
     file.name <- paste0(output.string, "_processedTree.", tree.output.format)
   } else {
-    file.name <- paste0(output.string, "_processedTree_", tree.info$suffix, ".", tree.output.format)
+    file.name <- paste0(output.string, "_processedTree_", tree.info$id, ".", tree.output.format)
   }
   write.annotated.tree(tree.info, file=file.path(output.dir, file.name), tree.output.format, pdf.scale.bar.width, pdf.w, pdf.hm, verbosity == 2)
 }, simplify = F, USE.NAMES = T)
@@ -400,9 +403,9 @@ if(do.collapsed){
     if(single.tree){
       file.name <- paste0(output.string, "_collapsedTree.", csv.fe)
     } else {
-      file.name <- paste0(output.string, "_collapsedTree_", tree.info$suffix, ".", csv.fe)
+      file.name <- paste0(output.string, "_collapsedTree_", tree.info$id, ".", csv.fe)
     }
-    if(verbosity==2) cat("Writing collapsed tree for tree ID",tree.info$suffix,"to file",file.name, "\n")
+    if(verbosity==2) cat("Writing collapsed tree for tree ID",tree.info$id,"to file",file.name, "\n")
     write.csv(tree.info$classification.results$collapsed[,1:4], file=file.path(output.dir, file.name), quote=F, row.names=F)
     
   }, simplify = F, USE.NAMES = T)
@@ -418,9 +421,9 @@ if(do.class.detail){
     if(single.tree){
       file.name <- paste0(output.string, "_classification.", csv.fe)
     } else {
-      file.name <- paste0(output.string, "_classification_", tree.info$suffix, ".", csv.fe)
+      file.name <- paste0(output.string, "_classification_", tree.info$id, ".", csv.fe)
     }
-    if(verbosity==2) cat("Writing relationship classifications for tree ID",tree.info$suffix,"to file",file.name, "\n")
+    if(verbosity==2) cat("Writing relationship classifications for tree ID",tree.info$id,"to file",file.name, "\n")
     write.csv(tree.info$classification.results$classification, file=file.path(output.dir, file.name), quote=F, row.names=F)
     
   }, simplify = F, USE.NAMES = T)
@@ -474,7 +477,7 @@ if(output.blacklisting.report){
   dfs <- lapply(phyloscanner.trees, function(x) {
     window.df <- x$bl.report
     if(nrow(window.df)>0){
-      window.df$suffix <- x$suffix
+      window.df$id <- x$id
       window.df <- window.df[,c(3,1,2)]
     }
     window.df
