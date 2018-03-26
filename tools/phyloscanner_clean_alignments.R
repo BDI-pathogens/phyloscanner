@@ -54,6 +54,10 @@ arg_parser$add_argument("-rtt", "--ratioBlacklistThreshold", action="store", def
 arg_parser$add_argument("-ub", "--dualBlacklist", action="store_true", default=F, help="Blacklist all reads from the minor subgraphs for all hosts established as dual by parsimony blacklisting.")
 arg_parser$add_argument("-rcm", "--readCountsMatterOnZeroLengthBranches", default = FALSE, action="store_true", help="If present, read counts at tips will be taken into account in parsimony reconstructions at the parents of zero-length branches.")
 
+# Blacklisting report
+
+arg_parser$add_argument("-blr", "--blacklistReport", action="store_true", help="If present, output a CSV file of blacklisted tips from each tree.")
+
 # Downsampling
 
 arg_parser$add_argument("-dsl", "--maxReadsPerHost", action="store", type="integer", help="If given, blacklist to downsample read counts from each host to this number.")
@@ -79,6 +83,8 @@ alignment.directory           <- dirname(alignment.input)
 alignment.file.regex          <- paste0("^", basename(alignment.input), "(.*)\\.[A-Za-z]+$")
 
 blacklist.input               <- args$blacklist
+
+output.blacklisting.report    <- args$blacklistReport
 
 if(!is.null(blacklist.input)){
   user.blacklist.directory    <- dirname(blacklist.input)
@@ -209,45 +215,38 @@ ptrees <- phyloscanner.generate.blacklist(
   verbosity)
 
 
-if(length(tree.file.names == 1) & length(alignment.file.names)==1){
-  alignment.identifiers <- tree.identifiers
-} else {
-  if(match.mode=="ID"){
-    alignment.identifiers <- sapply(alignment.file.names, function(x) sub(alignment.file.regex, "\\1", x))
-  } else {
-    if(match.mode != "coords"){
-      stop("Cannot match alignment files with tree files using the information given.")
-    } else {
-      tryCatch({
-        alignment.identifiers <- sapply(alignment.file.names, function(x) get.window.coords.string(x, file.name.regex))},
-        error = function(e){
-          stop("Cannot match alignment files with tree files using the information given.")
-        })
-    }
-  }
-  if(length(intersect(tree.identifiers, alignment.identifiers))==0){
-    stop("Tree files identifiers and alignment file identifiers do not match at all. Check file prefixes are correct.")
-  }
-  if(!setequal(tree.identifiers, duplicate.identifiers)){
-    warning("Tree files identifiers and alignment file identifiers do not entirely match.")
-  }
-}
-
-ptrees <- sapply(ptrees, function(ptree) attach.file.names(ptree, full.alignment.file.names, alignment.identifiers, "alignment.file.name"), simplify = F, USE.NAMES = T)
-
-sapply(ptrees, function(ptree){
+silent <- sapply(ptrees, function(ptree){
   
   if(!is.null(ptree$alignment.file.name)){
     
     seqs     <- read.dna(ptree$alignment.file.name, format="fasta")
     new.seqs <- seqs[which(!(labels(seqs) %in% ptree$original.tip.labels[ptree$blacklist])),]
-    new.afn  <- paste0(output.string, ptree$suffix, ".fasta")
+    new.afn  <- paste0(output.string, "_", ptree$id, ".fasta")
     
     if(verbosity!=0) cat("Writing cleaned alignment to ",new.afn, "\n", sep="")
     write.dna(new.seqs, new.afn, format="fasta")
+
   } else {
     if(verbosity!=0) cat("No alignment file found for tree ID ",ptree$suffix, "\n", sep="")
   }
   
 })
+
+if(output.blacklisting.report){
+  if (verbosity!=0) cat('Saving blacklisting report to file', paste0(output.string,"_blacklistReport.csv"),'\n')
+  
+  dfs <- lapply(ptrees, function(x) {
+    window.df <- x$bl.report
+    if(nrow(window.df)>0){
+      window.df$id <- x$id
+      window.df <- window.df[,c(3,1,2)]
+    }
+    window.df
+  }
+  )
+  
+  output.bl.report <- do.call(rbind, dfs)
+  
+  write.csv(output.bl.report, file = file.path(output.dir, paste0(output.string,"_blacklistReport.csv")), quote=F, row.names=F)
+}
 
