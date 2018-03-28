@@ -400,6 +400,8 @@ blacklist <- function(ptrees,
                       tip.regex,
                       max.reads.per.host = 0,
                       blacklist.underrepresented = 0,
+                      do.dup.blacklisting,
+                      do.dual.blacklisting,
                       outgroup.name,
                       verbosity){
   
@@ -428,7 +430,7 @@ blacklist <- function(ptrees,
   
   # Parsimony blacklisting
   
-  if(do.par.blacklisting){
+  if(parsimony.blacklist.k > 0){
     if (verbosity!=0) cat("Blacklisting probable contaminants using parsimony...\n", sep="")
     
     ptrees <- sapply(ptrees, function(ptree) blacklist.using.parsimony(ptree, tip.regex, outgroup.name, raw.blacklist.threshold, ratio.blacklist.threshold, parsimony.blacklist.k, has.read.counts, count.reads.in.parsimony, verbosity==2), simplify = F, USE.NAMES = T)
@@ -437,6 +439,11 @@ blacklist <- function(ptrees,
   # Dual blacklisting
   
   if(do.dual.blacklisting){
+    
+    if(parsimony.blacklist.k == 0){
+      stop("Dual blacklisting must be performed subsequent to parsimony blacklisting")
+    }
+    
     if (verbosity!=0) cat("Blacklisting minor subgraphs in probable dual infections...\n", sep="")
     
     hosts.that.are.duals <- lapply(ptrees, function(ptree){
@@ -635,12 +642,14 @@ phyloscanner.analyse.trees <- function(
   ptrees <- blacklist(ptrees,
                       raw.blacklist.threshold,
                       ratio.blacklist.threshold,
-                      parsimony.blacklist.k,
+                      if(do.par.blacklisting) parsimony.blacklist.k else 0,
                       has.read.counts,
                       count.reads.in.parsimony,
                       tip.regex,
                       max.reads.per.host,
                       blacklist.underrepresented,
+                      do.dup.blacklisting,
+                      do.dual.blacklisting,
                       outgroup.name,
                       verbosity)
   
@@ -912,12 +921,14 @@ phyloscanner.generate.blacklist <- function(
   ptrees <- blacklist(ptrees,
                       raw.blacklist.threshold,
                       ratio.blacklist.threshold,
-                      parsimony.blacklist.k,
+                      if(do.par.blacklisting) parsimony.blacklist.k else 0,
                       has.read.counts,
                       count.reads.in.parsimony,
                       tip.regex,
                       max.reads.per.host,
                       blacklist.underrepresented,
+                      do.dup.blacklisting,
+                      do.dual.blacklisting,
                       outgroup.name,
                       verbosity)
   
@@ -1274,13 +1285,13 @@ attach.tree <- function(ptree, verbose) {
 #' @export
 #' @keywords internal
 #' @importFrom ape read.dna
+
 attach.alignment <- function(ptree, verbose=F, ...) {
   if(verbose){
     cat("Reading alignment file",ptree$alignment.file.name,'\n')
   }
   
   alignment                     <- read.dna(ptree$alignment.file.name, ...)
-  
   ptree$alignment           <- alignment
   
   ptree
