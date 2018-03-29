@@ -1291,7 +1291,7 @@ attach.alignment <- function(ptree, verbose=F, ...) {
     cat("Reading alignment file",ptree$alignment.file.name,'\n')
   }
   
-  alignment                     <- read.dna(ptree$alignment.file.name, ...)
+  alignment                 <- read.dna(ptree$alignment.file.name, ...)
   ptree$alignment           <- alignment
   
   ptree

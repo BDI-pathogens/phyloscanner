@@ -97,17 +97,8 @@ reconstruct.ancestral.sequences <- function(phyloscanner.tree, verbose=F, defaul
   
   sink()
 
-  reconst.aln <- phyDat2alignment(ancestral.pml(optim.mfit, return = "phyDat"))
+  alignment <- as.DNAbin(ancestral.pml(optim.mfit, return = "phyDat"))
 
-  raw <- as.list(reconst.aln$seq)
-  names(raw) <- reconst.aln$nam
-
-  # this seems faintly crazy, but it's ape's problem
-  
-  alignment <- as.DNAbin(as.alignment(raw))
-  
-  # Need to remap the names to the unrooted tree.
-  
   alignment
 
 }
