@@ -111,10 +111,11 @@ reconstruct.ancestral.sequences <- function(phyloscanner.tree, verbose=F, defaul
 #' @importFrom phangorn mrca.phylo
 #' @export reconstruct.host.ancestral.sequences
 
-reconstruct.host.ancestral.sequences <- function(phyloscanner.tree, host, individual.duals = F, verbose){
+reconstruct.host.ancestral.sequences <- function(phyloscanner.tree, host, individual.duals = F, verbose = F){
   
-  if(!(host %in% names(phyloscanner.tree$tips.for.hosts))){
-    stop(paste0("A host with ID ",host," is not present in tree ID ",phyloscanner.tree$id,"\n"))
+  if(length(phyloscanner.tree$tips.for.hosts[[host]]) == 0 ){
+    if(verbose) cat(paste0("A host with ID ",host," is not present in tree ID ",phyloscanner.tree$id,"\n"))
+    return(NULL)
   }
   
   if(verbose){
@@ -141,16 +142,25 @@ reconstruct.host.ancestral.sequences <- function(phyloscanner.tree, host, indivi
   
   if(multiplicity == 1){
     
+    mrca <- mrca.phylo.or.unique.tip(tree, tips)
     
-    
-    mrca <- mrca.phylo(tree, tips)
-    
-    if(is.matrix(aa)){
-      sequence <- aa[which(rownames(aa)==as.character(mrca)),]
+    if(length(tips)==1){
+      if(is.matrix(aa)){
+        sequence <- aa[which(rownames(aa)==tree$tip.label[tips]),]
+        rownames(sequence) <- host 
+      } else {
+        sequence <- aa[which(names(aa)==tree$tip.label[tips])]
+        names(sequence) <- host
+      }
     } else {
-      sequence <- aa[which(rownames(aa)==as.character(mrca))]
+      if(is.matrix(aa)){
+        sequence <- aa[which(rownames(aa)==as.character(mrca)),]
+        rownames(sequence) <- host 
+      } else {
+        sequence <- aa[which(names(aa)==as.character(mrca))]
+        names(sequence) <- host
+      }
     }
-    
     
     setNames(list(sequence), host)
     
@@ -165,15 +175,31 @@ reconstruct.host.ancestral.sequences <- function(phyloscanner.tree, host, indivi
     di <- phyloscanner.tree$duals.info[which(phyloscanner.tree$duals.info$tip.name %in% tree$tip.label[tips]),]
     
     out <- lapply(unique(di$split.ids), function(split){
-      mrca <- mrca.phylo(tree, di$tip.name[which(di$split.ids==split)])
-      if(is.matrix(aa)){
-        sequence <- aa[which(rownames(aa)==as.character(mrca)),]
+      tips <- di$tip.name[which(di$split.ids==split)]
+      
+      mrca <- mrca.phylo.or.unique.tip(tree, tips)
+      
+      if(length(tips)==1){
+        if(is.matrix(aa)){
+          sequence <- aa[which(rownames(aa)==tree$tip.label[tips]),]
+          rownames(sequence) <- host 
+        } else {
+          sequence <- aa[which(names(aa)==tree$tip.label[tips])]
+          names(sequence) <- host
+        }
       } else {
-        sequence <- aa[which(rownames(aa)==as.character(mrca))]
+        if(is.matrix(aa)){
+          sequence <- aa[which(rownames(aa)==as.character(mrca)),]
+          rownames(sequence) <- split
+        } else {
+          sequence <- aa[which(names(aa)==as.character(mrca))]
+          names(sequence) <- split
+        }
       }
       sequence
     })
     
     setNames(out, unique(di$split.ids))
   }
+
 }
