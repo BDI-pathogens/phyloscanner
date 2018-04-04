@@ -10,7 +10,8 @@ phyloscanner is freely available under the GNU General Public License version 3,
 phyloscanner runs natively on Linux and Mac OS, but not Windows.
 However on any operating system (including Windows), if you have [VirtualBox](https://www.virtualbox.org/wiki/Downloads) installed, you can run [this](https://www.dropbox.com/sh/j3pmmunhxlc7g1w/AABddPfc5dN9oVnP9vQfAZOta?dl=0) image of Ubuntu Linux 16.04.3 which contains phyloscanner and our separate tool [shiver](https://github.com/ChrisHIV/shiver) (which allows you to process raw sequence data into mapped reads suitable as input for phyloscanner), with all of their dependencies.  
 To make phylogenies from mapped reads, phyloscanner requires [samtools](http://www.htslib.org/), [pysam](https://github.com/pysam-developers/pysam) (0.8.1 or later), [biopython](http://biopython.org/wiki/Download), [mafft](http://mafft.cbrc.jp/alignment/software/) and [RAxML](http://sco.h-its.org/exelixis/web/software/raxml/index.html); notes on installing these are [here](InfoAndInputs/InstallationNotesForMakingTrees.sh).
-To set up the part of phyloscanner that analyses these phylogenies (or others), follow [these instructions](InfoAndInputs/InstallationNotesForAnalysingTrees.sh). 
+To set up the part of phyloscanner that analyses these phylogenies (or others), follow [these instructions](InfoAndInputs/InstallationNotesForAnalysingTrees.sh).
+[This](InfoAndInputs/UpdatingPhyloscanner.sh) tells you how to update your phyloscanner code, if it has changed since you installed it.
 
 Info and help:
 * The phyloscanner publication, discussing the method and its scientific context, is [here](https://academic.oup.com/mbe/advance-article/doi/10.1093/molbev/msx304/4653772).  
