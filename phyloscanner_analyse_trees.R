@@ -494,4 +494,4 @@ if(output.rda){
   save.image(file=file.path(output.dir, paste0(output.string,"_workspace.rda")))
 }
 
-if(verbosity!=0) cat("Finished.")
+if(verbosity!=0) cat("Finished.\n")
