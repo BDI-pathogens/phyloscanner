@@ -107,7 +107,7 @@ downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, e
 downsample.tree <- function(tree.info, hosts.to.include, max.reads, rename = F, exclude.underrepresented = F, no.read.counts = T, tip.regex, seed=NA, verbose=F) {
   
   if(verbose){
-    cat("Downsampling reads on tree ",tree.info$suffix," to ",max.reads," per host...\n",sep = "")
+    cat("Downsampling reads on tree ",tree.info$id," to ",max.reads," per host...\n",sep = "")
   }
 
   if(!is.na(seed)){
@@ -167,7 +167,7 @@ downsample.tree <- function(tree.info, hosts.to.include, max.reads, rename = F, 
   
   new.tip.labels <- tree$tip.label
   excluded <- unlist(lapply(hosts.to.include, function(x){
-    result <- downsample.host(x, tree=tree.1, number = max.reads, tip.regex=tip.regex, host.ids=host.ids, rename, exclude.underrepresented, no.read.counts, name = tree.info$suffix, verbose)
+    result <- downsample.host(x, tree=tree.1, number = max.reads, tip.regex=tip.regex, host.ids=host.ids, rename, exclude.underrepresented, no.read.counts, name = tree.info$id, verbose)
     if(rename & !is.null(result$map)){
       new.tip.labels <<- sapply(new.tip.labels, function(y){
         if(y %in% names(result$map)){

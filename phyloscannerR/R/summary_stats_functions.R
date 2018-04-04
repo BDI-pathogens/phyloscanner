@@ -4,13 +4,13 @@
 #' @export calc.subtree.stats
 #' @importFrom ape unroot
 
-calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table, tip.regex, no.read.counts, verbose = F){
+calc.subtree.stats <- function(host.id, tree.id, tree, tips.for.patients, splits.table, tip.regex, no.read.counts, verbose = F){
   
-  if(verbose) cat("Calculating statistics for host ",id,".\n", sep="")
+  if(verbose) cat("Calculating statistics for host ",host.id,".\n", sep="")
   
-  subgraphs <- length(unique(splits.table$subgraph[which(splits.table$host==id)]))
+  subgraphs <- length(unique(splits.table$subgraph[which(splits.table$host==host.id)]))
   
-  all.tips <- tips.for.patients[[id]]
+  all.tips <- tips.for.patients[[host.id]]
   
   subtree.all <- NULL
   
@@ -48,7 +48,7 @@ calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table
       largest.rtt <- overall.rtt
     } else {
       
-      relevant.reads <- splits.table[which(splits.table$host==id),]
+      relevant.reads <- splits.table[which(splits.table$host==host.id),]
       
       splits <- unique(relevant.reads$subgraph)
       
@@ -115,9 +115,9 @@ calc.subtree.stats <- function(id, suffix, tree, tips.for.patients, splits.table
 
 get.tip.and.read.counts <- function(tree.info, hosts, tip.regex, has.read.counts, verbose = F){
   
-  if(verbose) cat("Calculating tip and read counts for tree suffix ",tree.info$suffix,"\n",sep="")
+  id <- tree.info$id
   
-  suffix <- tree.info$suffix
+  if(verbose) cat("Calculating tip and read counts for tree ID ",tree.info$id,"\n",sep="")
   
   tree <- tree.info$tree
   blacklist <- tree.info$blacklist
@@ -131,7 +131,7 @@ get.tip.and.read.counts <- function(tree.info, hosts, tip.regex, has.read.counts
   
   hosts.present <- intersect(hosts, unique(hosts.for.tips))
   if(length(hosts.present)==0){
-    warning(paste("No listed hosts appear in tree ",tree.info$suffix,"\n",sep=""))
+    warning(paste("No listed hosts appear in tree ",id,"\n",sep=""))
   }
   
   # A list of tips for each patient 
@@ -141,7 +141,7 @@ get.tip.and.read.counts <- function(tree.info, hosts, tip.regex, has.read.counts
   # Make the data.table
   
   window.table <- data.table(id=hosts)
-  window.table <- window.table[, file.suffix := suffix]
+  window.table <- window.table[, file.suffix := id]
   window.table <- window.table[, tips :=  sapply(hosts, function(x) as.numeric(length(tips.for.hosts[[x]])))]
   window.table <- window.table[, reads :=  sapply(hosts, function(x){
     if(length(tips.for.hosts[[x]])==0){
@@ -163,9 +163,9 @@ get.tip.and.read.counts <- function(tree.info, hosts, tip.regex, has.read.counts
 
 calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, has.read.counts, verbose = F){
   
-  if(verbose) cat("Calculating host statistics for tree suffix ",tree.info$suffix,"\n",sep="")
+  if(verbose) cat("Calculating host statistics for tree ID ",tree.info$id,"\n",sep="")
   
-  suffix <- tree.info$suffix
+  id <- tree.info$id
   
   tree <- tree.info$tree
   blacklist <- tree.info$blacklist
@@ -188,7 +188,7 @@ calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, has.read.count
   
   hosts.present <- intersect(hosts, unique(hosts.for.tips))
   if(length(hosts.present)==0){
-    warning(paste("No listed hosts appear in tree ",tree.info$suffix,"\n",sep=""))
+    warning(paste("No listed hosts appear in tree ",tree.info$id,"\n",sep=""))
   }
   
   # A list of tips for each patient 
@@ -198,7 +198,7 @@ calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, has.read.count
   # Make the data.table
   
   window.table <- data.table(id=hosts)
-  window.table <- window.table[, file.suffix := suffix]
+  window.table <- window.table[, file.suffix := id]
   window.table <- window.table[, xcoord := tree.info$xcoord]
   window.table <- window.table[, tips :=  sapply(hosts, function(x) as.numeric(length(tips.for.hosts[[x]])))]
   window.table <- window.table[, reads :=  sapply(hosts, function(x){
@@ -216,7 +216,7 @@ calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, has.read.count
   window.table <- window.table[, subgraphs := sapply(hosts, function(x) length(unique(splits.table[which(splits.table$host==x),]$subgraph)))]
   window.table <- window.table[, clades := sapply(hosts, function(x) length(clades.by.host[[x]]))  ]
   
-  new.cols <- sapply(hosts, function(x) calc.subtree.stats(x, suffix, tree, tips.for.hosts, splits.table, tip.regex, !has.read.counts, verbose))
+  new.cols <- sapply(hosts, function(x) calc.subtree.stats(x, id, tree, tips.for.hosts, splits.table, tip.regex, !has.read.counts, verbose))
   
   new.cols <- as.data.table(t(new.cols))
   
@@ -268,9 +268,9 @@ calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, has.read.count
 #' @keywords internal
 #' @export get.read.proportions
 
-get.read.proportions <- function(id, suffix, splits.table){
+get.read.proportions <- function(host.id, tree.id, splits.table){
   
-  this.pat.splits <- splits.table[which(splits.table$host==id),]
+  this.pat.splits <- splits.table[which(splits.table$host==host.id),]
   
   if(nrow(this.pat.splits)>0){
     this.pat.reads.by.split <- aggregate(this.pat.splits$reads, by=list(Category=this.pat.splits$subgraph), sum)

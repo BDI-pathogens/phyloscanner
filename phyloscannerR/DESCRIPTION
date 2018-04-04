@@ -1,6 +1,6 @@
 Package: phyloscannerR
 Title: Phylogenetics between and within hosts at once, all along the genome
-Version: 1.4.0
+Version: 1.5.0
 Authors@R: c(person("Matthew", "Hall", email = "matthew.hall@bdi.ox.ac.uk", role = c("aut", "cre")), person("Chris", "Wymant", email = "matthew.hall@bdi.ox.ac.uk", role = c("aut")), person("Oliver", "Ratmann", email = "matthew.hall@bdi.ox.ac.uk", role = c("aut")))
 Description: An R package for the second half of phyloscanner (tree analysis).
 Depends: R (>= 3.4.0)
