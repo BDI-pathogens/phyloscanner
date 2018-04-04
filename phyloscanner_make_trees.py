@@ -136,8 +136,7 @@ WindowArgs.add_argument('-EF', '--explore-window-width-file', help='Used to '
 
 RecommendedArgs = parser.add_argument_group('Options we particularly recommend')
 RecommendedArgs.add_argument('-A', '--alignment-of-other-refs', type=File,
-help='''Used to specify an alignment of reference sequences for inclusion with
-the reads, for comparison. (which need not be
+help='''Used to specify an alignment of reference sequences (which need not be
 those used to produce the bam files) that will be cut into the same windows as
 the bam files and included in the alignment of reads, for comparison. This is
 required if phyloscanner is to analyse the trees it produces.''')
@@ -159,7 +158,7 @@ RaxmlHelp ='''Use this option to specify how RAxML is to be run, including
 both the executable (with the path to it if needed), and the options. If you do
 not specify anything, we will try to find the fastest RAxML exectuable available
 (assuming its path is in your PATH environment variable) and use the
-options''' + RAxMLdefaultOptions + '''. -m tells RAxML which evolutionary model
+options ''' + RAxMLdefaultOptions + '''. -m tells RAxML which evolutionary model
 to use, and -p specifies a random number seed for the parsimony inferences; both
 are compulsory. You may include any other RAxML options in this command. The set
 of things you specify with --x-raxml need to be surrounded with one pair of
@@ -172,13 +171,8 @@ relating to the naming of files.'''
 RecommendedArgs.add_argument('--x-raxml', help=RaxmlHelp)
 RecommendedArgs.add_argument('-P', '--merge-paired-reads', action='store_true',
 help='''Relevant only for paired-read data for which the mates in a pair
-(sometimes) overlap with each other: merge overlapping mates into a single
-(longer) read.''')
-RecommendedArgs.add_argument('-CR', '--check-recombination',
-action='store_true', help='''Calculates a metric of recombination for each
-sample's set of reads in each window. (Recommended only if you're interested, of
-course.) Calculation time scales cubically with the number of unique sequences
-each sample has per window, and so is turned off by default.''')
+(sometimes) overlap with each other: with this option we merge overlapping mates
+into a single (longer) read.''')
 
 QualityArgs = parser.add_argument_group('Options intended to mitigate the '
 'impact of poor quality reads')
@@ -220,6 +214,11 @@ help='''Similar to --merging-threshold-a, except that in this version of the
 merging algorithm, if B is similar enough to merge into C, and A is similar
 enough to merge into B but not into C (A -> B -> C), both A and B will be merged
 into C.''')
+OtherArgs.add_argument('-CR', '--check-recombination',
+action='store_true', help='''Calculates a metric of recombination for each
+sample's set of reads in each window. (Recommended only if you're interested, of
+course.) Calculation time scales cubically with the number of unique sequences
+each sample has per window, and so is turned off by default.''')
 OtherArgs.add_argument('-N', '--num-bootstraps', type=int,
 help='Used to specify the number of bootstraps to be calculated for RAxML trees'
 ' (by default, none, i.e. only the ML tree is calculated).')
