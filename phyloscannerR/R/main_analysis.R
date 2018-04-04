@@ -1158,7 +1158,6 @@ write.annotated.tree <- function(phyloscanner.tree, file.name, format = c("pdf",
       geom_tiplab(aes(col=INDIVIDUAL)) +
       geom_treescale(width=pdf.scale.bar.width, y=-5, offset=1.5)
     
-    
     if(any(read.counts!=1 & !is.na(read.counts))){
       tree.display <- tree.display + geom_point2(aes(color=INDIVIDUAL, size=READ_COUNT, shape=BLACKLISTED), alpha=0.5)
     }
