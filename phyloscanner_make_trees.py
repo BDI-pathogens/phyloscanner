@@ -1580,7 +1580,8 @@ for window in range(NumCoords / 2):
       ThisWindowSuffix + '.csv'
       with open(FileForDuplicateReadCountsRaw, 'w') as f:
         f.write('"Alias1","Alias2","Count1","Count2"\n')
-        f.write('\n'.join(','.join(map(str,data)) for data in DuplicateDetails))
+        f.write('\n'.join(','.join(map(str,data)) for data in \
+        DuplicateDetails) + '\n')
       OutputFilesByDestinationDir['DupData'].append(FileForDuplicateReadCountsRaw)
 
     # If contaminants are diagnosed, print them and remove them from their
@@ -1899,7 +1900,7 @@ for window in range(NumCoords / 2):
       FileForDuplicateReadCountsProcessed_basename + ThisWindowSuffix + '.csv'
       with open(FileForDuplicateReadCountsProcessed, 'w') as f:
         f.write('\n'.join(','.join(SeqNames) for SeqNames in \
-        DuplicatesDict.values()))
+        DuplicatesDict.values()) + '\n')
       OutputFilesByDestinationDir['DupData'].append(
       FileForDuplicateReadCountsProcessed)
 
@@ -1946,6 +1947,7 @@ for window in range(NumCoords / 2):
       for alias in BamAliases:
         if not alias in SamplesToAlnPosDict:
           f.write('\n' + alias + ',NA,NA,NA,NA')
+      f.write('\n')
     OutputFilesByDestinationDir['RecombFiles'].append(FileForRecombinantReads)
 
     # Update on time taken if desired
