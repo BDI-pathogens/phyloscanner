@@ -1524,13 +1524,14 @@ for window in range(NumCoords / 2):
     if args.read_names_1:
       FileForReadNames1 = FileForReadNames1_basename_ThisBam + BamAlias + '.txt'
       with open(FileForReadNames1, 'w') as f:
-        f.write('\n'.join(ReadNames))
+        f.write('\n'.join(ReadNames) + '\n')
       OutputFilesByDestinationDir['ReadNames'].append(FileForReadNames1)
     if args.read_names_2:
       FileForReadNames2 = FileForReadNames2_basename_ThisBam + BamAlias + '.csv'
       with open(FileForReadNames2, 'w') as f:
         for seq, ReadNamesForThatSeq in ReadNameDict.items():
           f.write(seq + ',' + ' '.join(ReadNamesForThatSeq) + '\n')
+        f.write('\n')
       OutputFilesByDestinationDir['ReadNames'].append(FileForReadNames2)
   if args.read_names_only:
     continue
