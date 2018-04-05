@@ -1164,6 +1164,12 @@ write.annotated.tree <- function(phyloscanner.tree, file.name, format = c("pdf",
     
     x.max <- ggplot_build(tree.display)$layout$panel_ranges[[1]]$x.range[2]
     
+    # for ggplot2 version compatibility
+    
+    if(is.null(x.max)){
+      x.max <- ggplot_build(tree.display)$layout$panel_params[[1]]$x.range[2]
+    }
+    
     tree.display <- tree.display + ggplot2::xlim(0, 1.1*x.max)
     tree.display
     ggsave(file.name, device="pdf", height = pdf.hm*length(tree$tip.label), width = pdf.w, limitsize = F)
