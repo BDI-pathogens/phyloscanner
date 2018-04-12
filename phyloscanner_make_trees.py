@@ -866,7 +866,7 @@ else:
       with open(TempFileForPairwiseAlignedRefs, 'w') as f:
         try:
           ExitStatus = subprocess.call(Mafft2ArgList + ['--quiet',
-          TempFileForPairwiseUnalignedRefs], stdout=f)
+          '--preservecase', TempFileForPairwiseUnalignedRefs], stdout=f)
           assert ExitStatus == 0
         except:
           print('Problem calling mafft. Quitting.', file=sys.stderr)
@@ -901,8 +901,8 @@ else:
       FinalMafftOptions = [TempFileForRefs]
     with open(FileForAlignedRefs, 'w') as f:
       try:
-        ExitStatus = subprocess.call(MafftArgList + ['--quiet'] + \
-        FinalMafftOptions, stdout=f)
+        ExitStatus = subprocess.call(MafftArgList + ['--quiet',
+        '--preservecase'] + FinalMafftOptions, stdout=f)
         assert ExitStatus == 0
       except:
         print('Problem calling mafft. Quitting.', file=sys.stderr)
@@ -1744,8 +1744,8 @@ for window in range(NumCoords / 2):
     FinalMafftOptions = [TempFileForReadsHere]
   with open(FileForReads, 'w') as f:
     try:
-      ExitStatus = subprocess.call(MafftArgList + ['--quiet'] + \
-      FinalMafftOptions, stdout=f)
+      ExitStatus = subprocess.call(MafftArgList + ['--quiet',
+      '--preservecase'] + FinalMafftOptions, stdout=f)
       assert ExitStatus == 0
     except:
       print('Problem calling mafft. Skipping to the next window.',
