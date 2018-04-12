@@ -700,6 +700,12 @@ if not args.no_trees:
   RAxMLargList = pf.TestRAxML(args.x_raxml, RAxMLdefaultOptions, RaxmlHelp)
 
 # Set up the mafft commands
+if '--add' in args.x_mafft or \
+(args.x_mafft2 != None and '--add' in args.x_mafft2):
+  print('Do not specify --add in your mafft command: we automatically use',
+  '--add as needed, depending on what is being aligned. Quitting.',
+  file=sys.stderr)
+  exit(1)
 MafftArgList = args.x_mafft.split()
 if args.x_mafft2 == None:
   Mafft2ArgList = [MafftArgList[0], '--localpair', '--maxiterate', '1000']
