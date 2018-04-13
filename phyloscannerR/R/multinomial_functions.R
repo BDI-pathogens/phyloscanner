@@ -33,12 +33,12 @@ multinomial.calculations <- function(phyloscanner.trees,
   ss <- lapply(phyloscanner.trees, function(x) get.tip.and.read.counts(x, all.hosts.from.trees(phyloscanner.trees), tip.regex, attr(phyloscanner.trees, 'has.read.counts'), verbose))
   ss <- rbindlist(ss)
 
-  setkey(ss, id, file.suffix)
-  setkey(mc, HOST.1, SUFFIX)
+  setkey(ss, id, file.id)
+  setkey(mc, HOST.1, ID)
   merge.tab.1 <- mc[ss, nomatch=0]
   setnames(merge.tab.1, c('tips', 'reads'), c('tips.1', 'reads.1'))
   
-  setkey(merge.tab.1, HOST.2, SUFFIX)
+  setkey(merge.tab.1, HOST.2, ID)
   merge.tab.2 <- merge.tab.1[ss, nomatch=0]
   setnames(merge.tab.2, c('tips', 'reads'), c('tips.2', 'reads.2'))
   
@@ -47,8 +47,8 @@ multinomial.calculations <- function(phyloscanner.trees,
   setnames(dwin, c('HOST.1', 'HOST.2', 'tips.1', 'reads.1', 'tips.2', 'reads.2', 'PATHS.12', 'PATHS.21'), 
            c('ID1', 'ID2', 'ID1_L', 'ID1_R', 'ID2_L', 'ID2_R', 'PATHS_12', 'PATHS_21'))
   
-  set(dwin, NULL, 'W_FROM', dwin[, as.integer(gsub('[^0-9]*([0-9]+)_to_([0-9]+).*','\\1', SUFFIX))])
-  set(dwin, NULL, 'W_TO', dwin[, as.integer(gsub('[^0-9]*([0-9]+)_to_([0-9]+).*','\\2', SUFFIX))])
+  set(dwin, NULL, 'W_FROM', dwin[, as.integer(gsub('[^0-9]*([0-9]+)_to_([0-9]+).*','\\1', ID))])
+  set(dwin, NULL, 'W_TO', dwin[, as.integer(gsub('[^0-9]*([0-9]+)_to_([0-9]+).*','\\2', ID))])
   
   dwin$CATDISTANCE <- sapply(dwin$PATRISTIC_DISTANCE, function(x){
     if(x < close.threshold){

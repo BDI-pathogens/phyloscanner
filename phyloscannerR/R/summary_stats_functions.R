@@ -115,7 +115,7 @@ calc.subtree.stats <- function(host.id, tree.id, tree, tips.for.patients, splits
 
 get.tip.and.read.counts <- function(tree.info, hosts, tip.regex, has.read.counts, verbose = F){
   
-  id <- tree.info$id
+  tree.id <- tree.info$id
   
   if(verbose) cat("Calculating tip and read counts for tree ID ",tree.info$id,"\n",sep="")
   
@@ -131,7 +131,7 @@ get.tip.and.read.counts <- function(tree.info, hosts, tip.regex, has.read.counts
   
   hosts.present <- intersect(hosts, unique(hosts.for.tips))
   if(length(hosts.present)==0){
-    warning(paste("No listed hosts appear in tree ",id,"\n",sep=""))
+    warning(paste("No listed hosts appear in tree ",tree.id,"\n",sep=""))
   }
   
   # A list of tips for each patient 
@@ -141,7 +141,7 @@ get.tip.and.read.counts <- function(tree.info, hosts, tip.regex, has.read.counts
   # Make the data.table
   
   window.table <- data.table(id=hosts)
-  window.table <- window.table[, file.suffix := id]
+  window.table <- window.table[, file.id := tree.id]
   window.table <- window.table[, tips :=  sapply(hosts, function(x) as.numeric(length(tips.for.hosts[[x]])))]
   window.table <- window.table[, reads :=  sapply(hosts, function(x){
     if(length(tips.for.hosts[[x]])==0){
@@ -198,7 +198,7 @@ calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, has.read.count
   # Make the data.table
   
   window.table <- data.table(id=hosts)
-  window.table <- window.table[, file.suffix := id]
+  window.table <- window.table[, file.id := id]
   window.table <- window.table[, xcoord := tree.info$xcoord]
   window.table <- window.table[, tips :=  sapply(hosts, function(x) as.numeric(length(tips.for.hosts[[x]])))]
   window.table <- window.table[, reads :=  sapply(hosts, function(x){
