@@ -26,7 +26,7 @@ If you use phyloscanner for published work, please cite it and the tools it uses
 
 The simulated bam files in [ExampleInputData](ExampleInputData) illustrate interesting within- and between-host diversity.
 Let's analyse them with phyloscanner.
-For this example I'll assume you've downloaded the phyloscanner code to your home directory, i.e. that its found in `~/phyloscanner/`.
+For this example I'll assume you've downloaded the phyloscanner code to your home directory, i.e. that it is found in `~/phyloscanner/`.
 First we need to make a file listing the files we want analysed; that file should be comma-separated variable format, containing lines like this: `BamFile1,ReferenceFile1,ID1` where the third field is optional (if present it is used as an ID for that bam file).
 You can make that csv file manually if you like, but here is an example of making it automatically from the command line for these bam files:
 ```bash

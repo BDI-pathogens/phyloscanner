@@ -1,7 +1,9 @@
 # INSTALLING DEPENDENCIES OF phyloscanner_make_trees.py
 
-# Note that phyloscanner_make_trees.py is written in python 2 (not 3), so biopython and pysam
-# need to be installed as part of your python 2 installation.
+# Note that phyloscanner_make_trees.py is written in python 2 (not 3), so biopython
+# and pysam need to be installed as part of your python 2 installation.
+
+# Scroll down for instructions for MacOS.
 
 ################################################################################
 # ON LINUX:

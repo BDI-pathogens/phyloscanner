@@ -229,13 +229,18 @@ OtherArgs.add_argument('-OD', '--output-dir', help='''Used to specify the name
 of a directory into which output files will be moved.''')
 OtherArgs.add_argument('--time', action='store_true',
 help='Print the times taken by different steps.')
-OtherArgs.add_argument('--x-mafft', default='mafft', help=\
-'Used to specify the command required to run mafft (by default: mafft). See '\
-'also --x-mafft2.')
-OtherArgs.add_argument('--x-mafft2', default='linsi', help='''"If you are using
---pairwise-align-to, by default we will use the command 'linsi' for pairwise
-alignment of references regardless of what you specified with --x-mafft. Use
-this option to override the linsi default with another command.''')
+OtherArgs.add_argument('--x-mafft', default='mafft', help=''''Used to specify
+the command required to run mafft (by default: mafft). Whitespace is interpreted
+as separating mafft options, so if a path to the mafft binary is specified it
+may not contain whitespace. See also --x-mafft2.''')
+OtherArgs.add_argument('--x-mafft2', help='''"If you are using
+--pairwise-align-to, by default we will use a different command for pairwise
+alignment of references from what you specified with --x-mafft. Specifically, we
+use whatever binary you specified there, plus ' --localpair --maxiterate 1000'
+(i.e. we use linsi rather mafft). Use this option to override this default,
+specifying the mafft command to be used for pairwise alignment of references.
+Whitespace is interpreted as separating mafft options, so if a path to the
+mafft binary is specified it may not contain whitespace.''')
 OtherArgs.add_argument('--x-samtools', default='samtools', help=\
 'Used to specify the command required to run samtools, if needed (by default: '
 'samtools).')
@@ -694,6 +699,19 @@ FindWindowsCode     = pf.FindAndCheckCode('FindInformativeWindowsInFasta.py')
 if not args.no_trees:
   RAxMLargList = pf.TestRAxML(args.x_raxml, RAxMLdefaultOptions, RaxmlHelp)
 
+# Set up the mafft commands
+if '--add' in args.x_mafft or \
+(args.x_mafft2 != None and '--add' in args.x_mafft2):
+  print('Do not specify --add in your mafft command: we automatically use',
+  '--add as needed, depending on what is being aligned. Quitting.',
+  file=sys.stderr)
+  exit(1)
+MafftArgList = args.x_mafft.split()
+if args.x_mafft2 == None:
+  Mafft2ArgList = [MafftArgList[0], '--localpair', '--maxiterate', '1000']
+else:
+  Mafft2ArgList = args.x_mafft2.split()
+
 times = []
 if args.time:
   times.append(time.time())
@@ -847,7 +865,7 @@ else:
       TempFiles.add(TempFileForPairwiseUnalignedRefs)
       with open(TempFileForPairwiseAlignedRefs, 'w') as f:
         try:
-          ExitStatus = subprocess.call([args.x_mafft2, '--quiet',
+          ExitStatus = subprocess.call(Mafft2ArgList + ['--quiet',
           '--preservecase', TempFileForPairwiseUnalignedRefs], stdout=f)
           assert ExitStatus == 0
         except:
@@ -883,7 +901,7 @@ else:
       FinalMafftOptions = [TempFileForRefs]
     with open(FileForAlignedRefs, 'w') as f:
       try:
-        ExitStatus = subprocess.call([args.x_mafft, '--quiet',
+        ExitStatus = subprocess.call(MafftArgList + ['--quiet',
         '--preservecase'] + FinalMafftOptions, stdout=f)
         assert ExitStatus == 0
       except:
@@ -1524,13 +1542,14 @@ for window in range(NumCoords / 2):
     if args.read_names_1:
       FileForReadNames1 = FileForReadNames1_basename_ThisBam + BamAlias + '.txt'
       with open(FileForReadNames1, 'w') as f:
-        f.write('\n'.join(ReadNames))
+        f.write('\n'.join(ReadNames) + '\n')
       OutputFilesByDestinationDir['ReadNames'].append(FileForReadNames1)
     if args.read_names_2:
       FileForReadNames2 = FileForReadNames2_basename_ThisBam + BamAlias + '.csv'
       with open(FileForReadNames2, 'w') as f:
         for seq, ReadNamesForThatSeq in ReadNameDict.items():
           f.write(seq + ',' + ' '.join(ReadNamesForThatSeq) + '\n')
+        f.write('\n')
       OutputFilesByDestinationDir['ReadNames'].append(FileForReadNames2)
   if args.read_names_only:
     continue
@@ -1725,8 +1744,8 @@ for window in range(NumCoords / 2):
     FinalMafftOptions = [TempFileForReadsHere]
   with open(FileForReads, 'w') as f:
     try:
-      ExitStatus = subprocess.call([args.x_mafft, '--quiet', '--preservecase']+\
-      FinalMafftOptions, stdout=f)
+      ExitStatus = subprocess.call(MafftArgList + ['--quiet',
+      '--preservecase'] + FinalMafftOptions, stdout=f)
       assert ExitStatus == 0
     except:
       print('Problem calling mafft. Skipping to the next window.',
