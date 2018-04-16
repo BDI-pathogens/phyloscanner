@@ -114,8 +114,9 @@ initialise.phyloscanner <- function(
       user.blacklist.identifiers <- tree.identifiers
     } else {
       if(match.mode == "ID"){
+        
         user.blacklist.identifiers <- sapply(user.blacklist.file.names, function(x) sub(user.blacklist.file.regex, "\\1", x))
-        print(user.blacklist.identifiers)
+
       } else {
         if(match.mode != "coords"){
           stop("Cannot match blacklist files with tree files using the information given.")
