@@ -181,7 +181,7 @@ initialise.phyloscanner <- function(
         }
       }
       if(length(intersect(tree.identifiers, duplicate.identifiers))==0){
-        stop("Tree files identifiers and duplicate file identifiers do not match at all. Check file prefixes are correct.")
+        stop("Tree file identifiers and duplicate file identifiers do not match at all. Check file prefixes are correct.")
       }
       if(!setequal(tree.identifiers, duplicate.identifiers)){
         warning("Tree files identifiers and duplicate file identifiers do not entirely match.")
@@ -1486,7 +1486,7 @@ blacklist.from.duplicates.vector <- function(ptree, raw.blacklist.threshold, rat
     }
     
     if(length(duplicate.nos)>0){
-      new.rows                                   <- data.frame(tip = ptree$original.tip.labels[duplicate.nos], reason="duplicate", row.names = NULL)
+      new.rows                               <- data.frame(tip = ptree$original.tip.labels[duplicate.nos], reason="duplicate", row.names = NULL)
       ptree$bl.report                        <- rbind(ptree$bl.report, new.rows)
     }
     
@@ -1503,9 +1503,15 @@ blacklist.using.parsimony <- function(ptree, tip.regex, outgroup.name, raw.black
   
   tree      <- ptree$tree
   tip.hosts <- sapply(tree$tip.label, function(x) host.from.label(x, tip.regex))
+  
   tip.hosts[ptree$blacklist] <- NA
   
   hosts   <- unique(na.omit(tip.hosts))
+  
+  if(length(hosts)==0){
+    # This tree is going to disappear anyway, no need to do anything further
+    return(ptree)
+  }
   
   hosts   <- hosts[order(hosts)]
   
