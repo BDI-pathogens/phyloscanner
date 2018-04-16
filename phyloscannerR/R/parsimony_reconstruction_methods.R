@@ -9,6 +9,7 @@ split.hosts.to.subgraphs <- function(tree,
                                      sankoff.p, 
                                      useff, 
                                      count.reads,
+                                     m.thresh,
                                      host.master.list = NULL, 
                                      tree.file.name = NULL, 
                                      verbose = F, 
@@ -17,20 +18,18 @@ split.hosts.to.subgraphs <- function(tree,
   if (verbose) cat("Getting tip read counts...\n")
   
   # If no multifurcation-collapsing occurred, the minimum branch length is taken to be zero
-  
+
   if(count.reads){
-    if(is.null(tree$m.thresh)){
+    if(is.null(m.thresh)){
       if(min(tree$edge.length)!=0){
         warning("You specified --readCountsMatterOnZeroLengthBranches but there are no zero-length branches in this tree. Consider setting a multifurcation threshold, which will identify branches of minimum length")
       }
       m.thresh <- 0
-    } else if(tree.$m.thresh == -1) {
+    } else if(m.thresh == -1) {
       if(min(tree$edge.length)!=0){
         warning("You specified --readCountsMatterOnZeroLengthBranches but there are no zero-length branches in this tree. Consider setting a multifurcation threshold, which will identify branches of minimum length")
       }
       m.thresh <- 0
-    } else {
-      m.thresh <- tree$m.thresh
     }
     
     tip.read.counts <- sapply(tree$tip.label, function(x) read.count.from.label(x, tip.regex))

@@ -220,9 +220,9 @@ for(i in all.tree.info){
     m.thresh <- -1
   }
 
-  tree <- process.tree(tree, root.name, m.thresh, tips.to.go, i$normalisation.constant)
+  tree              <- process.tree(tree, root.name, m.thresh, tips.to.go, i$normalisation.constant)
  
-  tmp					      <- split.hosts.to.subgraphs(tree, blacklist, mode, tip.regex, sankoff.k, sankoff.p, useff, read.counts.matter, host.master.list, verbose = verbose)
+  tmp					      <- split.hosts.to.subgraphs(tree, blacklist, mode, tip.regex, sankoff.k, sankoff.p, useff, read.counts.matter, m.thresh, host.master.list, verbose = verbose)
 
   tree					    <- tmp[['tree']]
   rs.subgraphs		        <- tmp[['rs.subgraphs']]
