@@ -139,7 +139,7 @@ initialise.phyloscanner <- function(
   if(do.recomb){
     recombination.file.names <- list.files.mod(recombination.file.directory, pattern=recombination.file.regex)
     full.recombination.file.names <- list.files.mod(recombination.file.directory, pattern=recombination.file.regex, full.names=TRUE)
-    if(length(tree.file.names == 1) & length(recombination.file.names)==1){
+    if(length(tree.file.names) == 1 & length(recombination.file.names)==1){
       recomb.identifiers <- tree.identifiers
     } else {
       if(match.mode=="ID"){
@@ -166,7 +166,7 @@ initialise.phyloscanner <- function(
   if(do.dup.blacklisting){
     duplicate.file.names <- list.files.mod(duplicate.file.directory, pattern=duplicate.file.regex)
     full.duplicate.file.names <- list.files.mod(duplicate.file.directory, pattern=duplicate.file.regex, full.names=TRUE)
-    if(length(tree.file.names == 1) & length(duplicate.file.names)==1){
+    if(length(tree.file.names) == 1 & length(duplicate.file.names)==1){
       duplicate.identifiers <- tree.identifiers
     } else {
       if(match.mode=="ID"){
@@ -196,7 +196,7 @@ initialise.phyloscanner <- function(
   if(include.alignment){
     alignment.file.names <- list.files.mod(alignment.file.directory, pattern=alignment.file.regex)
     full.alignment.file.names <- list.files.mod(alignment.file.directory, pattern=alignment.file.regex, full.names=TRUE)
-    if(length(tree.file.names == 1) & length(alignment.file.names)==1){
+    if(length(tree.file.names) == 1 & length(alignment.file.names)==1){
       alignment.identifiers <- tree.identifiers
     } else {
       if(match.mode=="ID"){
