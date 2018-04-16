@@ -18,15 +18,17 @@ split.hosts.to.subgraphs <- function(tree,
   
   # If no multifurcation-collapsing occurred, the minimum branch length is taken to be zero
   
-  
-  
   if(count.reads){
-    if(is.null(tree$m.thresh) | tree$m.thresh == -1){
+    if(is.null(tree$m.thresh)){
       if(min(tree$edge.length)!=0){
         warning("You specified --readCountsMatterOnZeroLengthBranches but there are no zero-length branches in this tree. Consider setting a multifurcation threshold, which will identify branches of minimum length")
       }
       m.thresh <- 0
-      
+    } else if(tree.$m.thresh == -1) {
+      if(min(tree$edge.length)!=0){
+        warning("You specified --readCountsMatterOnZeroLengthBranches but there are no zero-length branches in this tree. Consider setting a multifurcation threshold, which will identify branches of minimum length")
+      }
+      m.thresh <- 0
     } else {
       m.thresh <- tree$m.thresh
     }
@@ -40,7 +42,7 @@ split.hosts.to.subgraphs <- function(tree,
   } else {
     tip.read.counts <- rep(1, length(tree$tip.label))
   }
-
+  
   tip.labels <- tree$tip.label
   
   if (verbose) cat("Identifying tips with hosts...\n")
@@ -48,7 +50,7 @@ split.hosts.to.subgraphs <- function(tree,
   # Find host IDs from each tip
   
   tip.hosts <- sapply(tip.labels, function(x) host.from.label(x, tip.regex))
-
+  
   non.host.tips <- which(is.na(sapply(tree$tip.label, function(name) host.from.label(name, tip.regex))))
   tip.hosts[c(non.host.tips, blacklist)] <- "unassigned"
   
@@ -92,7 +94,7 @@ split.hosts.to.subgraphs <- function(tree,
   host.mrcas <- lapply(host.tips, function(node) mrca.phylo.or.unique.tip(tree, node))
   
   # Do the main function
-
+  
   results <- split.and.annotate(tree, 
                                 hosts, 
                                 tip.hosts, 
@@ -124,7 +126,7 @@ split.hosts.to.subgraphs <- function(tree,
       }
     }
   }
-
+  
   # This is the annotation for each node by host
   
   host.annotation <- sapply(split.annotation, function(x) unlist(strsplit(x, "-SPLIT"))[1] )
@@ -158,7 +160,7 @@ split.hosts.to.subgraphs <- function(tree,
 #' @export split.and.annotate
 
 split.and.annotate <- function(tree, hosts, tip.hosts, host.tips, host.mrcas, blacklist, tip.regex, method="r", tip.read.counts, k=NA, p = 0, useff=F, verbose=F, no.progress.bars = F){
-
+  
   if (method == "r") {
     
     if (verbose) cat("Applying the Romero-Severson parsimony classification to internal nodes...\n")
@@ -271,7 +273,7 @@ split.and.annotate <- function(tree, hosts, tip.hosts, host.tips, host.mrcas, bl
     }
     
     if (verbose) cat("Reconstructing internal node hosts with the Sankoff algorithm...\n")
-
+    
     if (verbose) cat("Calculating node costs...\n")
     
     # This matrix is the cost of an infection for a given host along the branch ENDING in a given
@@ -310,20 +312,20 @@ split.and.annotate <- function(tree, hosts, tip.hosts, host.tips, host.mrcas, bl
         }
       }
     }
-
+    
     # unassigned column is all TRUE (not actually used in calculations, but for the sake of correctness)
     
     finite.cost[,length(hosts)] <- T
     
     # Then traverse
-
+    
     for(host.no in 1:(length(hosts)-1)){
       start.col <- sapply(finite.cost[,host.no], function(x) if(x) 0 else Inf)
       individual.costs[,host.no] <- cost.of.subtree(tree, getRoot(tree), hosts[host.no], tip.hosts, finite.cost[,host.no], start.col)
     }
     
     individual.costs[,length(hosts)] <- 0
-  
+    
     # The rows of the cost matrix are nodes. The columns are hosts; the last column is the unassigned
     # state
     
@@ -338,7 +340,7 @@ split.and.annotate <- function(tree, hosts, tip.hosts, host.tips, host.mrcas, bl
     progress.bar <- NULL
     
     if(verbose & !no.progress.bars) progress.bar <- txtProgressBar(width=50, style=3) else progress.bar <- NULL
-
+    
     cost.matrix <- make.cost.matrix(getRoot(tree), tree, hosts, tip.hosts, individual.costs, cost.matrix, k, tip.read.counts, progress.bar, verbose)
     
     if(verbose & !no.progress.bars) close(progress.bar)
@@ -417,7 +419,7 @@ split.and.annotate <- function(tree, hosts, tip.hosts, host.tips, host.mrcas, bl
     if (verbose) cat("Reconstructing internal node hosts with the Sankoff algorithm (continuation costs version)...\n")
     
     if (verbose) cat("Calculating node costs...\n")
-
+    
     if(useff){
       finite.cost <- ff(TRUE, dim=c(length(tree$tip.label) + tree$Nnode, length(hosts)))
     } else {
@@ -460,9 +462,9 @@ split.and.annotate <- function(tree, hosts, tip.hosts, host.tips, host.mrcas, bl
     close(progress.bar)
     
     if (verbose) cat("Reconstructing...\n")
-  
+    
     full.assocs <- reconstruct.fi(tree, getRoot(tree), "unassigned", list(), tip.hosts, hosts, cost.matrix, finite.cost, k, p, tip.read.counts, verbose)
-
+    
     temp.ca <- rep(NA, length(tree$tip.label) + tree$Nnode)
     
     for(item in seq(1, length(full.assocs))){
@@ -749,7 +751,7 @@ child.min.cost <- function(tree, child.index, hosts, top.host.no, current.matrix
   } else {
     multiplier <- 1
   }
-
+  
   scores <- rep(Inf, length(hosts))
   
   finite.scores <- unique(c(top.host.no, which(hosts=="unassigned"), which(is.finite(individual.costs[child.index,]))))
@@ -829,7 +831,7 @@ phyloscanner.reconstruct <- function(tree, node, node.state, node.assocs, tip.ho
             decision <- node.state
           }
         } else {
-
+          
           decision <- hosts[sample(which(costs == min.cost), 1)]
           # if(verbose){
           #   cat("broken in favour of", decision, '\n')
@@ -914,7 +916,7 @@ make.cost.matrix.fi <- function(node, tree, hosts, tip.assocs, current.matrix, k
     this.row <- vector()
     child.nos <- Children(tree, node)
     for(child in child.nos){
-
+      
       current.matrix <- make.cost.matrix.fi(child, tree, hosts, tip.assocs, current.matrix, k, us.penalty, finite.costs, tip.read.counts, progress.bar, verbose)
     }
     if(length(child.nos)==0){
@@ -937,7 +939,7 @@ make.cost.matrix.fi <- function(node, tree, hosts, tip.assocs, current.matrix, k
   #   cat("\n")  
   # }
   if(verbose & !is.null(progress.bar)){
-
+    
     setTxtProgressBar(progress.bar, length(which(!is.na(current.matrix[,1])))/nrow(current.matrix))
   }
   
@@ -955,7 +957,7 @@ node.cost.fi <- function(tree, child.nos, host.index, hosts, current.matrix, k, 
 #' @export child.min.cost.fi
 
 child.min.cost.fi <- function(tree, child.index, top.host.no, hosts, current.matrix, k, us.penalty, finite.costs, tip.read.counts){
-
+  
   if(is.tip(tree, child.index)){
     multiplier <- tip.read.counts[child.index]
   } else {
@@ -965,7 +967,7 @@ child.min.cost.fi <- function(tree, child.index, top.host.no, hosts, current.mat
   scores <- rep(Inf, length(hosts))
   
   finite.scores <- unique(c(top.host.no, which(hosts=="unassigned"), which(finite.costs[child.index,])))
-
+  
   finite.scores <- finite.scores[order(finite.scores)]
   
   scores[finite.scores] <- vapply(finite.scores, function(x) child.cost.fi(tree, child.index, hosts, top.host.no, x, current.matrix, k, us.penalty, multiplier), 0)
@@ -1032,7 +1034,7 @@ reconstruct.fi <- function(tree, node, node.state, node.assocs, tip.assocs, host
         #   cat("Single minimum cost belongs to ", decision, "\n", sep="")
         # }
       } else {
-#        cat("Tie at node",child,"between",format(hosts[which(costs == min.cost)]),"broken randomly\n", sep=" ")
+        #        cat("Tie at node",child,"between",format(hosts[which(costs == min.cost)]),"broken randomly\n", sep=" ")
         choices <- which(costs == min.cost)
         choice <- choices[sample.int(length(choices), 1)]
         

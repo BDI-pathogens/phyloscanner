@@ -738,7 +738,7 @@ phyloscanner.analyse.trees <- function(
   
   ptrees <- sapply(ptrees, function(ptree) {
     # Do the reconstruction
-    
+
     if(verbosity==2) cat("Reconstructing internal node hosts on tree ID ",ptree$id, "\n", sep="")
     
     tmp					     <- split.hosts.to.subgraphs(ptree$tree, ptree$blacklist, splits.rule, tip.regex, sankoff.k, sankoff.p, use.ff, count.reads.in.parsimony, hosts, ptree$id, verbose = verbosity==2, no.progress.bars)

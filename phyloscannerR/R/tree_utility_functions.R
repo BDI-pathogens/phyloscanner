@@ -466,7 +466,6 @@ prop.internal.longer.than.root <- function(tree, split, splits){
 
 process.tree <- function(tree, root.name=NULL, m.thresh=-1, blacklist.for.pruning = vector(), normalisation.constant = 1) {
   
-  
   if(m.thresh != -1){
     tree <- di2multi(tree, tol = m.thresh)
   }
