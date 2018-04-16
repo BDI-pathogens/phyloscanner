@@ -26,8 +26,8 @@ arg_parser$add_argument("-v", "--verbose", action="store", type="integer", defau
 arg_parser$add_argument("-npb", "--noProgressBars", action="store_true", default=FALSE, help="If --verbose, do not display progress bars")
 arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. This expects up to three capture groups, for host ID, read ID, and read count (in that order). If the latter two groups are missing then read information will not be used. If absent, the default is '^(.*)_read_([0-9]+)_count_([0-9]+)$', which matches input from the phyloscanner pipeline where the host ID is the BAM file name.")
 arg_parser$add_argument("-y", "--fileNameRegex", action="store", default="^\\D*([0-9]+)_to_([0-9]+)\\D*$", help="Regular expression identifying window coordinates. Two capture groups: start and end; if the latter is missing then the first group is a single numerical identifier for the window. If absent, input will be assumed to be from the phyloscanner pipeline, and the host ID will be the BAM file name.")
-arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default="tree", help="The file extension for tree files (default tree).")
-arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="csv", help="The file extension for table files (default csv).")
+arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default=".tree", help="The file extension for tree files (default .tree). This includes the dot; use '' if there is no file extension.")
+arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default=".csv", help="The file extension for table files (default .csv). This includes the dot; use '' if there is no file extension..")
 arg_parser$add_argument("-pw", "--pdfWidth", action="store", default=50, help="Width of tree PDF in inches.")
 arg_parser$add_argument("-ph", "--pdfRelHeight", action="store", default=0.15, help="Relative height of tree PDF")
 arg_parser$add_argument("-psb", "--pdfScaleBarWidth", action="store", default=0.01, help="Width of the scale bar in the PDF output (in branch length units)")
@@ -99,13 +99,15 @@ if(!(verbosity %in% 0:2)){
 no.progress.bars                <- args$noProgressBars
 overwrite                       <- args$overwrite
 tree.fe                         <- args$treeFileExtension
+re.tree.fe                      <- gsub("\\.", "\\\\.", ".tree")
 csv.fe                          <- args$csvFileExtension
+re.csv.fe                       <- gsub("\\.", "\\\\.", ".csv")
 
 # tree input
 tree.input                      <- args$tree
 if(!file.exists(tree.input)){
   tree.directory                <- dirname(tree.input)
-  tree.file.regex               <- paste0("^", basename(tree.input), "(.*)\\.", tree.fe, "$")
+  tree.file.regex               <- paste0("^", basename(tree.input), "(.*)", re.tree.fe, "$")
 }
 
 # user blacklist
@@ -114,7 +116,7 @@ blacklist.input                 <- args$userBlacklist
 if(!is.null(blacklist.input)){
   if(!file.exists(blacklist.input)){
     user.blacklist.directory    <- dirname(blacklist.input)
-    user.blacklist.file.regex   <- paste0("^", basename(blacklist.input), "(.*)\\.",csv.fe,"$")
+    user.blacklist.file.regex   <- paste0("^", basename(blacklist.input), "(.*)", re.csv.fe,"$")
   }
 } else {
   user.blacklist.directory      <- NULL
@@ -401,9 +403,9 @@ if(do.collapsed){
   
   silent <- sapply(phyloscanner.trees, function(tree.info){
     if(single.tree){
-      file.name <- paste0(output.string, "_collapsedTree.", csv.fe)
+      file.name <- paste0(output.string, "_collapsedTree", csv.fe)
     } else {
-      file.name <- paste0(output.string, "_collapsedTree_", tree.info$id, ".", csv.fe)
+      file.name <- paste0(output.string, "_collapsedTree_", tree.info$id, csv.fe)
     }
     if(verbosity==2) cat("Writing collapsed tree for tree ID",tree.info$id,"to file",file.name, "\n")
     write.csv(tree.info$classification.results$collapsed[,1:4], file=file.path(output.dir, file.name), quote=F, row.names=F)
@@ -419,9 +421,9 @@ if(do.class.detail){
   
   silent <- sapply(phyloscanner.trees, function(tree.info){
     if(single.tree){
-      file.name <- paste0(output.string, "_classification.", csv.fe)
+      file.name <- paste0(output.string, "_classification", csv.fe)
     } else {
-      file.name <- paste0(output.string, "_classification_", tree.info$id, ".", csv.fe)
+      file.name <- paste0(output.string, "_classification_", tree.info$id, csv.fe)
     }
     if(verbosity==2) cat("Writing relationship classifications for tree ID",tree.info$id,"to file",file.name, "\n")
     write.csv(tree.info$classification.results$classification, file=file.path(output.dir, file.name), quote=F, row.names=F)
@@ -437,7 +439,7 @@ if(length(phyloscanner.trees)>1){
   
   summary.stats <- gather.summary.statistics(phyloscanner.trees, tip.regex = tip.regex, verbose = verbosity==2)
   
-  ss.csv.fn <- paste0(output.string,"_patStats.",csv.fe)
+  ss.csv.fn <- paste0(output.string,"_patStats", csv.fe)
   
   if(verbosity!=0){
     cat("Writing summary statistics to file ",ss.csv.fn,"\n", sep="")
@@ -454,8 +456,8 @@ if(length(phyloscanner.trees)>1){
   silent <- multipage.summary.statistics(phyloscanner.trees, summary.stats, file.name = file.path(output.dir, ss.graphs.fn), verbose = verbosity==2)
   
   ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, allow.mt, close.sib.only = F, verbosity==2)
-  if (verbosity!=0) cat('Writing summary to file', paste0(output.string,"_hostRelationshipSummary.",csv.fe),'\n')
-  write.csv(ts, file=file.path(output.dir, paste0(output.string,"_hostRelationshipSummary.",csv.fe)), row.names=FALSE, quote=FALSE)
+  if (verbosity!=0) cat('Writing summary to file', paste0(output.string,"_hostRelationshipSummary", csv.fe),'\n')
+  write.csv(ts, file=file.path(output.dir, paste0(output.string,"_hostRelationshipSummary", csv.fe)), row.names=FALSE, quote=FALSE)
   
   if(do.simplified.graph){
     if (verbosity!=0) cat('Drawing simplified summary diagram to file', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'\n')

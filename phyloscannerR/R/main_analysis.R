@@ -27,7 +27,7 @@ initialise.phyloscanner <- function(
   }
   
   full.tree.file.names <- list.files.mod(tree.file.directory, pattern=tree.file.regex, full.names=TRUE)
-  tree.file.names <- list.files.mod(tree.file.directory,  pattern=tree.file.regex)
+  tree.file.names <- list.files.mod(tree.file.directory, pattern=tree.file.regex)
   
   if(length(tree.file.names)==0){
     stop("No tree files found.")
