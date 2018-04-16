@@ -99,9 +99,9 @@ if(!(verbosity %in% 0:2)){
 no.progress.bars                <- args$noProgressBars
 overwrite                       <- args$overwrite
 tree.fe                         <- args$treeFileExtension
-re.tree.fe                      <- gsub("\\.", "\\\\.", ".tree")
+re.tree.fe                      <- gsub("\\.", "\\\\.", tree.fe)
 csv.fe                          <- args$csvFileExtension
-re.csv.fe                       <- gsub("\\.", "\\\\.", ".csv")
+re.csv.fe                       <- gsub("\\.", "\\\\.", csv.fe)
 
 # tree input
 tree.input                      <- args$tree
