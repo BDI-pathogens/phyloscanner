@@ -203,7 +203,7 @@ if(!is.null(dup.input.file.name)){
 do.par.blacklisting           <- !is.null(args$parsimonyBlacklistK)
 par.blacklisting.k            <- args$parsimonyBlacklistK
 if(is.null(par.blacklisting.k)){
-  par.blacklisting.k        <- 0
+  par.blacklisting.k          <- 0
 }
 do.dual.blacklisting          <- args$dualBlacklist
 

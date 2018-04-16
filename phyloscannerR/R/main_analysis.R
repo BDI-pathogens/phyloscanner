@@ -741,7 +741,7 @@ phyloscanner.analyse.trees <- function(
     
     if(verbosity==2) cat("Reconstructing internal node hosts on tree ID ",ptree$id, "\n", sep="")
     
-    tmp					     <- split.hosts.to.subgraphs(ptree$tree, ptree$blacklist, splits.rule, tip.regex, sankoff.k, sankoff.p, use.ff, count.reads.in.parsimony, multifurcation.threshold, hosts, ptree$id, verbose = verbosity==2, no.progress.bars)
+    tmp					     <- split.hosts.to.subgraphs(ptree$tree, ptree$blacklist, splits.rule, tip.regex, sankoff.k, sankoff.p, use.ff, count.reads.in.parsimony, hosts, ptree$id, verbose = verbosity==2, no.progress.bars)
     tree					   <- tmp[['tree']]
     
     # trees are annotated from now on
@@ -1362,6 +1362,7 @@ prepare.tree <- function(ptree, outgroup.name, tip.regex, guess.multifurcation.t
   
   ptree$tree                      <- new.tree
   ptree$original.tip.labels       <- new.tree$tip.label
+  ptree$m.thresh                  <- multifurcation.threshold
   
   hosts.for.tips                  <- sapply(tree$tip.label, function(x) host.from.label(x, tip.regex))
   ptree$hosts.for.tips            <- hosts.for.tips
