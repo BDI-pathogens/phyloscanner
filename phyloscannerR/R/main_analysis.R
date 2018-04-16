@@ -110,11 +110,12 @@ initialise.phyloscanner <- function(
     
     user.blacklist.file.names <- list.files.mod(user.blacklist.directory, pattern=user.blacklist.file.regex)
     full.user.blacklist.file.names <- list.files.mod(user.blacklist.directory, pattern=user.blacklist.file.regex, full.names=TRUE)
-    if(length(tree.file.names == 1) & length(user.blacklist.file.names)==1){
+    if(length(tree.file.names) == 1 & length(user.blacklist.file.names)==1){
       user.blacklist.identifiers <- tree.identifiers
     } else {
       if(match.mode == "ID"){
         user.blacklist.identifiers <- sapply(user.blacklist.file.names, function(x) sub(user.blacklist.file.regex, "\\1", x))
+        print(user.blacklist.identifiers)
       } else {
         if(match.mode != "coords"){
           stop("Cannot match blacklist files with tree files using the information given.")
@@ -130,6 +131,7 @@ initialise.phyloscanner <- function(
         warning("Tree files and blacklist files do not entirely match. Blacklist files with no tree file will be ignored; tree files with no blacklist file will have no tips blacklisted.")
       }
     }
+    
     
     ptrees <- sapply(ptrees, function(ptree) attach.file.names(ptree, full.user.blacklist.file.names, user.blacklist.identifiers, "user.blacklist.file.name"), simplify = F, USE.NAMES = T)
   }
@@ -408,6 +410,7 @@ blacklist <- function(ptrees,
   
   # Read the user blacklists
   
+
   if(any(sapply(ptrees, function(x) !is.null(x$user.blacklist.file.name))) & verbosity!=0){
     cat("Reading user blacklists...\n")
   }
@@ -638,7 +641,7 @@ phyloscanner.analyse.trees <- function(
   downsample            <- max.reads.per.host < Inf
   
   ptrees <- sapply(ptrees, function(ptree) apply.normalisation.constants(ptree), simplify = F, USE.NAMES = T)
-  
+
   ptrees <- blacklist(ptrees,
                       raw.blacklist.threshold,
                       ratio.blacklist.threshold,
@@ -653,6 +656,7 @@ phyloscanner.analyse.trees <- function(
                       outgroup.name,
                       verbosity)
   
+
   # All IDs can be safely gathered and mapped now, and read counts calculated. Windows with no patients should be removed.
   
   if(verbosity!=0) cat("Gathering host IDs...\n")
@@ -1374,14 +1378,17 @@ prepare.tree <- function(ptree, outgroup.name, tip.regex, guess.multifurcation.t
 #' @keywords internal
 
 read.blacklist <- function(ptree, verbose = F) {
+
   if(!is.null(ptree$user.blacklist.file.name)){
     if(file.exists(ptree$user.blacklist.file.name)){
       if (verbose) cat("Reading blacklist file ",ptree$user.blacklist.file.name,'\n',sep="")
       blacklisted.tips                    <- read.table(ptree$user.blacklist.file.name, sep=",", header=F, stringsAsFactors = F, col.names="read")
+      
       blacklist                           <- vector()
       if(nrow(blacklisted.tips)>0){
         blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=ptree$tree))
       }
+      
       if(any(is.na(blacklist))){
         warning("Some tips listed in blacklist file ",ptree$user.blacklist.file.name," are not tips of tree ",ptree$tree.file.name, sep="")
       }
