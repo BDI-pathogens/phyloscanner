@@ -187,7 +187,7 @@ initialise.phyloscanner <- function(
         stop("Tree file identifiers and duplicate file identifiers do not match at all. Check file prefixes are correct.")
       }
       if(!setequal(tree.identifiers, duplicate.identifiers)){
-        warning("Tree files identifiers and duplicate file identifiers do not entirely match.")
+        warning("Tree file identifiers and duplicate file identifiers do not entirely match.")
       }
     }
     
@@ -214,10 +214,10 @@ initialise.phyloscanner <- function(
         }
       }
       if(length(intersect(tree.identifiers, alignment.identifiers))==0){
-        stop("Tree files identifiers and alignment file identifiers do not match at all. Check file prefixes are correct.")
+        stop("Tree file identifiers and alignment file identifiers do not match at all. Check file prefixes are correct.")
       }
       if(!setequal(tree.identifiers, duplicate.identifiers)){
-        warning("Tree files identifiers and alignment file identifiers do not entirely match.")
+        warning("Tree file identifiers and alignment file identifiers do not entirely match.")
       }
     }
     
