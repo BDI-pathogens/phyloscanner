@@ -880,6 +880,8 @@ convert.to.columns <- function(matrix, names){
 #' @keywords internal
 #' @export merge.classifications
 
+
+
 merge.classifications <- function(all.tree.info, allow.mt = T, verbose = F){
   tt	<-	lapply(all.tree.info, function(tree.info){
     

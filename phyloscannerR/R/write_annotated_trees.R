@@ -23,7 +23,7 @@ write.ann.tree <-
     
     for (i in 1:N)
       res[i] <- .write.ann.tree2(phy[[i]], annotations, digits = digits,
-                             tree.prefix = tree.names[i])
+                                 tree.prefix = tree.names[i])
     
     if (file == "") return(res)
     else cat(res, file = file, append = append, sep = "\n")
@@ -131,21 +131,24 @@ process.annotations <- function(tree, index, ann.names){
       any.not.na <- T
     }
   }
- 
+  
   if(any.not.na){
     string <- "[&"
     first <- T
     for(item in ann.names) {
-      if(first){
-        first <- F
-      } else {
-        string <- paste(string, ",", sep="")
-      }
-      string <- paste(string, item, "=", sep="")
-      if(length(value.list[[item]])==1){
-        string <- paste(string, quote.if.char(value.list[[item]]), sep="")
-      } else {
-        string <- paste(string, "{", paste(quote.if.char(value.list[[item]]), collapse=","), "}", sep="")
+      if(!is.na(value.list[[item]])){
+        
+        if(first){
+          first <- F
+        } else {
+          string <- paste(string, ",", sep="")
+        }
+        string <- paste(string, item, "=", sep="")
+        if(length(value.list[[item]])==1){
+          string <- paste(string, quote.if.char(value.list[[item]]), sep="")
+        } else {
+          string <- paste(string, "{", paste(quote.if.char(value.list[[item]]), collapse=","), "}", sep="")
+        }
       }
     }
     
