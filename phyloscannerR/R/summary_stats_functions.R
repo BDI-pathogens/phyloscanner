@@ -113,14 +113,14 @@ calc.subtree.stats <- function(host.id, tree.id, tree, tips.for.patients, splits
 #' @keywords internal
 #' @export get.tip.and.read.counts
 
-get.tip.and.read.counts <- function(tree.info, hosts, tip.regex, has.read.counts, verbose = F){
+get.tip.and.read.counts <- function(ptree, hosts, tip.regex, has.read.counts, verbose = F){
   
-  tree.id <- tree.info$id
+  tree.id <- ptree$id
   
-  if(verbose) cat("Calculating tip and read counts for tree ID ",tree.info$id,"\n",sep="")
+  if(verbose) cat("Calculating tip and read counts for tree ID ",ptree$id,"\n",sep="")
   
-  tree <- tree.info$tree
-  blacklist <- tree.info$blacklist
+  tree <- ptree$tree
+  blacklist <- ptree$blacklist
   
   # A vector of patients for each tip
   
@@ -161,23 +161,23 @@ get.tip.and.read.counts <- function(tree.info, hosts, tip.regex, has.read.counts
 #' @keywords internal
 #' @export calc.all.stats.in.window
 
-calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, has.read.counts, verbose = F){
+calc.all.stats.in.window <- function(ptree, hosts, tip.regex, has.read.counts, verbose = F){
   
-  if(verbose) cat("Calculating host statistics for tree ID ",tree.info$id,"\n",sep="")
+  if(verbose) cat("Calculating host statistics for tree ID ",ptree$id,"\n",sep="")
   
-  id <- tree.info$id
+  id <- ptree$id
   
-  tree <- tree.info$tree
-  blacklist <- tree.info$blacklist
+  tree <- ptree$tree
+  blacklist <- ptree$blacklist
   
   # Get the splits
   
-  splits.table <- tree.info$splits.table
+  splits.table <- ptree$splits.table
   
   # Find the clades
   
-  clade.mrcas.by.host <- tree.info$clade.mrcas.by.host
-  clades.by.host <- tree.info$clades.by.host
+  clade.mrcas.by.host <- ptree$clade.mrcas.by.host
+  clades.by.host <- ptree$clades.by.host
   
   # A vector of patients for each tip
   
@@ -188,7 +188,7 @@ calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, has.read.count
   
   hosts.present <- intersect(hosts, unique(hosts.for.tips))
   if(length(hosts.present)==0){
-    warning(paste("No listed hosts appear in tree ",tree.info$id,"\n",sep=""))
+    warning(paste("No listed hosts appear in tree ",ptree$id,"\n",sep=""))
   }
   
   # A list of tips for each patient 
@@ -199,7 +199,7 @@ calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, has.read.count
   
   window.table <- data.table(id=hosts)
   window.table <- window.table[, file.id := id]
-  window.table <- window.table[, xcoord := tree.info$xcoord]
+  window.table <- window.table[, xcoord := ptree$xcoord]
   window.table <- window.table[, tips :=  sapply(hosts, function(x) as.numeric(length(tips.for.hosts[[x]])))]
   window.table <- window.table[, reads :=  sapply(hosts, function(x){
     if(length(tips.for.hosts[[x]])==0){
@@ -222,9 +222,13 @@ calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, has.read.count
   
   new.cols <- new.cols[, lapply(.SD, as.numeric)]
   
-  window.table <- cbind(window.table, new.cols) 
+  normalised.new.cols <- new.cols/ptree$normalisation.constant
+  colnames(normalised.new.cols) <- paste0("normalised.", colnames(new.cols))
   
-  recomb.file.name <- tree.info$recombination.file.name
+  window.table <- cbind(window.table, new.cols) 
+  window.table <- cbind(window.table, normalised.new.cols) 
+  
+  recomb.file.name <- ptree$recombination.file.name
   
   if (!is.null(recomb.file.name)) {
     
@@ -254,9 +258,9 @@ calc.all.stats.in.window <- function(tree.info, hosts, tip.regex, has.read.count
   
   # If you did dual detection, add that in
   
-  if(!is.null(tree.info$dual.detection.splits)){
+  if(!is.null(ptree$dual.detection.splits)){
     
-    window.table$solo.dual.count <- tree.info$dual.detection.splits$count[match(window.table$id, tree.info$dual.detection.splits$host)]
+    window.table$solo.dual.count <- ptree$dual.detection.splits$count[match(window.table$id, ptree$dual.detection.splits$host)]
     
   }
   

@@ -88,7 +88,7 @@ multinomial.calculations <- function(phyloscanner.trees,
   if(verbose) cat('\nCalculating KEFF and NEFF for windows n=',nrow(dwin),'...')
   rplkl	<- phsc.get.pairwise.relationships.keff.and.neff(dwin, relationship.types)
   
-  if(verbose) cat('\nCalculating posterior state probabilities for pairs and relationship groups n=',nrow(rplkl),'...')
+  if(verbose) cat('\nCalculating posterior state probabilities for pairs and relationship groups n =',nrow(rplkl),'...')
   rplkl	<- phsc.get.pairwise.relationships.posterior(rplkl, n.type=prior.keff, n.obs=prior.neff, confidence.cut=prior.calibrated.prob)
   
   list(dwin=dwin, rplkl=rplkl)
