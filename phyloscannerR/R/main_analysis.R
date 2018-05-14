@@ -1191,7 +1191,7 @@ write.annotated.tree <- function(phyloscanner.tree, file.name, format = c("pdf",
 #' @param win.threshold The proportion of windows that a pair of hosts need to be related (adjacent and within \code{dist.threshold} of each other) in order for them to appear in the summary.
 #' @param dist.threshold The patristic distance within which the subgraphs from two hosts need to be in order for them to be declared related (default is infinity, so adjacent hosts are always related).
 #' @param allow.mt If FALSE, directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative.
-#' @param close.sib.only If TRUE, then the distance threshold applies only to hosts on sibiling clades. Any ancestry is automatically a relationship.
+#' @param close.sib.only If TRUE, then the distance threshold applies only to hosts in sibling clades. Any ancestry is automatically a relationship.
 #' @param verbose Give verbose output
 #' @return A \code{data.table}, every line of which counts the number of pairwise relationships of a particular type between a pair of hosts
 #' @importFrom data.table copy setkey setcolorder
