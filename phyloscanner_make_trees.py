@@ -1091,7 +1091,7 @@ WindowAsStr):
 # constrained to come at the end of the string. We'll need it later.
 SampleRegex = re.compile('_read_\d+_count_\d+$')
 
-def ReadAlignedReadsIntoDicts(AlignIOobject, ValuesAreCounts=True):
+def ReadAlignedReadsIntoDicts(AlignIOobject):
   '''Collects sample seqs and into dicts, and other seqs into a list.
 
   The values of the dicts are either the seq count (inferred from the seq name)
@@ -1103,10 +1103,7 @@ def ReadAlignedReadsIntoDicts(AlignIOobject, ValuesAreCounts=True):
     if RegexMatch and seq.id[:RegexMatch.start()] in BamAliases:
       SampleName = seq.id[:RegexMatch.start()]
       read = str(seq.seq)
-      if ValuesAreCounts:
-        value = int(seq.id.rsplit('_',1)[1])
-      else:
-        value = seq.id
+      value = int(seq.id.rsplit('_',1)[1])
       if SampleName in SampleReadCounts:
         # After excising positions, a sample can have the same read twice:
         if read in SampleReadCounts[SampleName]:
