@@ -452,6 +452,7 @@ if RecallContaminants:
   PairedWindowCoords = zip(LeftWindowEdges, RightWindowEdges)
   for AnyFile in os.listdir(args.contaminant_read_dir):
     if ContaminantFileRegex2.match(AnyFile):
+      # TODO: should that be .search instead of .match?
       (LeftEdge, RightEdge) = ContaminantFileRegex2.match(AnyFile).groups()
       (LeftEdge, RightEdge) = (int(LeftEdge), int(RightEdge))
       if (LeftEdge, RightEdge) in PairedWindowCoords:
@@ -484,11 +485,9 @@ if (ExcisePositions and args.excision_ref == None) or \
   'use both, or neither. Quitting.', file=sys.stderr)
   exit(1)
 
-# --read-names-2 can't be used with read merging or position excising
-if args.read_names_2 and (ExcisePositions or MergeReads):
-  print('The --read-names-2 option cannot be used with --merging-threshold-a,',
-  '--merging-threshold-b or --excision-coords, because they change the',
-  'correspondence initially established between unique sequences and reads.',
+# --read-names-2 can't be used with --merging-threshold-b.
+if args.read_names_2 and MergeReadsB:
+  print('The --read-names-2 option cannot be used with --merging-threshold-b.',
   'Quitting''', file=sys.stderr)
   exit(1)
 
@@ -1061,10 +1060,17 @@ WindowAsStr):
 
   # Merge similar reads if desired
   if MergeReadsA:
-    ReadDict = pf.MergeSimilarStringsA(ReadDict, MergingThreshold)
+    if args.read_names_2:
+      ReadDict, CorrespondenceDict_PostMergingToPreMerging = \
+      pf.MergeSimilarStringsA(ReadDict, MergingThreshold,
+      RecordCorrespondence=True)
+    else:
+      ReadDict = pf.MergeSimilarStringsA(ReadDict, MergingThreshold)
+  elif args.read_names_2:
+    CorrespondenceDict_PostMergingToPreMerging = \
+    {read:[read] for read in ReadDict.keys()}
   if MergeReadsB:
     ReadDict = pf.MergeSimilarStringsB(ReadDict, MergingThreshold)
-
 
   # Implement the minimum read count
   if args.min_read_count > 1:
@@ -1080,24 +1086,41 @@ WindowAsStr):
 
   # Return a list of reads named according to their count.
   reads = []
+  CorrespondenceDict_TipNameToRawSeqs = {}
   for k, (read, count) in \
   enumerate(sorted(ReadDict.items(), key=lambda x: x[1], reverse=True)):
     SeqName = BasenameForReads+'_read_'+str(k+1)+'_count_'+str(count)
     SeqObject = SeqIO.SeqRecord(Seq.Seq(read), id=SeqName, description='')
     reads.append(SeqObject)
+    if args.read_names_2:
+      CorrespondenceDict_TipNameToRawSeqs[SeqName] = \
+      CorrespondenceDict_PostMergingToPreMerging[read]
+  if args.read_names_2:
+    return reads, CorrespondenceDict_TipNameToRawSeqs
   return reads
 
 # This regex matches "_read_" then any integer then "_count_" then any integer,
 # constrained to come at the end of the string. We'll need it later.
-SampleRegex = re.compile('_read_\d+_count_\d+$')
+SampleRegex = re.compile('_read_(\d+)_count_(\d+)$')
 
-def ReadAlignedReadsIntoDicts(AlignIOobject):
-  '''Collects sample seqs and into dicts, and other seqs into a list.
+def GetReadNumber(TipName):
+  "Returns Y from X_read_Y_count_Z"
+  return int(SampleRegex.search(TipName).groups()[0])
 
-  The values of the dicts are either the seq count (inferred from the seq name)
-  or simply the seq name.'''
+def ReadAlignedReadsIntoDicts(AlignIOobject,
+CorrespondenceDict_TipNameToRawSeqs_AllSamples=None):
+  '''Collects sample seqs into dicts by sample, and other seqs into a list.
+
+  The values of the dicts are the seq count (inferred from the seq name).'''
   SampleReadCounts = collections.OrderedDict()
   NonSampleSeqs = []
+  # CorrespondenceDict_AlignedSeqToRawSeqs_AllSamples will be a dict (labelled
+  # by sample) of dicts (labelled by read) of sets, where each set contains all
+  # the read sequences that orginally went into that read.
+  CorrespondenceDict_AlignedSeqToRawSeqs_AllSamples = \
+  collections.defaultdict(lambda: collections.defaultdict(set))
+  HaveCorrespondenceDict = \
+  CorrespondenceDict_TipNameToRawSeqs_AllSamples != None
   for seq in AlignIOobject:
     RegexMatch = SampleRegex.search(seq.id)
     if RegexMatch and seq.id[:RegexMatch.start()] in BamAliases:
@@ -1112,12 +1135,25 @@ def ReadAlignedReadsIntoDicts(AlignIOobject):
           SampleReadCounts[SampleName][read] = value
       else:
         SampleReadCounts[SampleName] = {read : value}
+      if HaveCorrespondenceDict:
+        try:
+          ReadsForThisSeq = \
+          CorrespondenceDict_TipNameToRawSeqs_AllSamples[SampleName][seq.id]
+        except KeyError:
+          print('Error: malfunction of phyloscanner. Lost track of which reads',
+          'went into the unique read sequence', seq.id + '. Please report to',
+          'Chris Wymant. Quitting.', file=sys.stderr)
+          exit(1)
+        CorrespondenceDict_AlignedSeqToRawSeqs_AllSamples[SampleName][read].update(ReadsForThisSeq)
     else:
-      assert seq.id in ExternalRefNames, 'Malfunction of phylotypes: '+\
+      assert seq.id in ExternalRefNames, 'Malfunction of phyloscanner: '+\
       'sequence ' + seq.id + ' is not recognised as a read nor as an external'+\
       ' reference.'
       NonSampleSeqs.append(seq)
 
+  if HaveCorrespondenceDict:
+    return SampleReadCounts, NonSampleSeqs, \
+    CorrespondenceDict_AlignedSeqToRawSeqs_AllSamples
   return SampleReadCounts, NonSampleSeqs
 
 def RemovePureGapCols(alignment):
@@ -1133,17 +1169,46 @@ def RemovePureGapCols(alignment):
       alignment = alignment[:, :column] + alignment[:, column+1:]
   return alignment
 
-def ReMergeAlignedReads(alignment, ForceNoMerging=False):
+def ReMergeAlignedReads(alignment,
+CorrespondenceDict_TipNameToRawSeqs_AllSamples=None, ForceNoMerging=False):
   '''Splits an alignment object into reads and refs, re-merges the reads,
-  renames them, and removes pure-gap columns.'''
+  renames them, and removes pure-gap columns.
 
-  SampleReadCounts, RefSeqsHere = ReadAlignedReadsIntoDicts(alignment)
+  The optional argument CorrespondenceDict_TipNameToRawSeqs_AllSamples is a dict
+  (labelled by sample) of dicts (labelled by tip name e.g.
+  sample_read_m_count_n) of sets, where each set contains all the read sequences
+  that orginally went into that read. From this we'll construct
+  CorrespondenceDict_PostMergingTipNameToRawSeqs_AllSamples which is the same
+  thing but after some reads have been merged.'''
+
+  HaveCorrespondenceDict = \
+  CorrespondenceDict_TipNameToRawSeqs_AllSamples != None
+  if HaveCorrespondenceDict:
+    SampleReadCounts, RefSeqsHere, \
+    CorrespondenceDict_AlignedSeqToRawSeqs_AllSamples = \
+    ReadAlignedReadsIntoDicts(alignment,
+    CorrespondenceDict_TipNameToRawSeqs_AllSamples)
+    CorrespondenceDict_PostMergingTipNameToRawSeqs_AllSamples = {}
+  else:
+    SampleReadCounts, RefSeqsHere = ReadAlignedReadsIntoDicts(alignment)
   NewAlignment = AlignIO.MultipleSeqAlignment([])
   for SampleName in SampleReadCounts:
+    if HaveCorrespondenceDict:
+      CorrespondenceDict_AlignedSeqToRawSeqs = \
+      CorrespondenceDict_AlignedSeqToRawSeqs_AllSamples[SampleName]
+      CorrespondenceDict_PostMergingTipNameToRawSeqs = \
+      collections.defaultdict(set)
     if not ForceNoMerging:
       if MergeReadsA:
-        SampleReadCounts[SampleName] = \
-        pf.MergeSimilarStringsA(SampleReadCounts[SampleName], MergingThreshold)
+        if HaveCorrespondenceDict:
+          SampleReadCounts[SampleName], \
+          CorrespondenceDict_PostMergingToPreMerging = \
+          pf.MergeSimilarStringsA(SampleReadCounts[SampleName],
+          MergingThreshold, RecordCorrespondence=True)
+        else:
+          SampleReadCounts[SampleName] = \
+          pf.MergeSimilarStringsA(SampleReadCounts[SampleName], \
+          MergingThreshold)
       if MergeReadsB:
         SampleReadCounts[SampleName] = \
         pf.MergeSimilarStringsB(SampleReadCounts[SampleName], MergingThreshold)
@@ -1152,11 +1217,36 @@ def ReMergeAlignedReads(alignment, ForceNoMerging=False):
       ID = SampleName+'_read_'+str(k+1)+'_count_'+str(count)
       SeqObject = SeqIO.SeqRecord(Seq.Seq(read), id=ID, description='')
       NewAlignment.append(SeqObject)
+      if HaveCorrespondenceDict:
+        if (not ForceNoMerging) and MergeReadsA:
+          # If we're here, the 'read' object in the current loop of the
+          # iteration could correspond to more than one of the reads from the
+          # CorrespondenceDict_TipNameToRawSeqs_AllSamples. For each of those
+          # reads we look them up in the dict to find which reads went into it.
+          ReadsMergedIntoThisOne = \
+          CorrespondenceDict_PostMergingToPreMerging[read]
+          for PreMergingRead in ReadsMergedIntoThisOne:
+            ReadsMergedIntoThatOne = \
+            CorrespondenceDict_AlignedSeqToRawSeqs[PreMergingRead]
+            CorrespondenceDict_PostMergingTipNameToRawSeqs[ID].update(ReadsMergedIntoThatOne)
+        else:
+          # If we're here, the 'read' object in the current loop of the
+          # iteration corresponds to exactly one of the reads from the
+          # CorrespondenceDict_TipNameToRawSeqs_AllSamples.
+          CorrespondenceDict_PostMergingTipNameToRawSeqs[ID] = \
+          CorrespondenceDict_AlignedSeqToRawSeqs[read]
+    if HaveCorrespondenceDict:
+      CorrespondenceDict_PostMergingTipNameToRawSeqs_AllSamples[SampleName] = \
+      CorrespondenceDict_PostMergingTipNameToRawSeqs
   NewAlignment.extend(RefSeqsHere)
 
   # Merging after alignment means some columns could be pure gap. Remove these.
   if MergeReads:
     NewAlignment = RemovePureGapCols(NewAlignment)
+
+  if HaveCorrespondenceDict:
+    return NewAlignment, \
+    CorrespondenceDict_PostMergingTipNameToRawSeqs_AllSamples
   return NewAlignment
 
 def FindPatientsConsensuses(alignment):
@@ -1300,6 +1390,9 @@ for window in range(NumCoords / 2):
         else:
           ContaminantReadsInput[seq.id] = [str(seq.seq)]
 
+  CorrespondenceDict_TipNameToRawSeqs_AllSamples = {}
+  CorrespondenceDict_RawSeqToReadNames_AllSamples = {}
+
   # Iterate through the bam files
   for i,BamFileName in enumerate(BamFiles):
 
@@ -1317,8 +1410,6 @@ for window in range(NumCoords / 2):
 
     # For labelling read name files
     FileForReadNames1_basename_ThisBam = FileForReadNames1_basename + \
-    ThisWindowSuffix + '_InBam_'
-    FileForReadNames2_basename_ThisBam = FileForReadNames2_basename + \
     ThisWindowSuffix + '_InBam_'
 
     # Pysam uses zero-based coordinates for positions w.r.t the reference.
@@ -1342,7 +1433,7 @@ for window in range(NumCoords / 2):
     AllReads = {}
     UniqueReads = {}
     ReadNames = []
-    ReadNameDict = {}
+    CorrespondenceDict_RawSeqToReadNames = {}
     BamFile = pysam.AlignmentFile(BamFileName, "rb")
     for read in BamFile.fetch(RefSeqName, LeftWindowEdgeForFetch,
     RightWindowEdgeForFetch):
@@ -1453,11 +1544,10 @@ for window in range(NumCoords / 2):
         if args.read_names_1:
           ReadNames.append(read.query_name)
         if args.read_names_2:
-          if seq in ReadNameDict:
-            ReadNameDict[seq].append(read.query_name)
+          if seq in CorrespondenceDict_RawSeqToReadNames:
+            CorrespondenceDict_RawSeqToReadNames[seq].append(read.query_name)
           else:
-            ReadNameDict[seq] = [read.query_name]
-
+            CorrespondenceDict_RawSeqToReadNames[seq] = [read.query_name]
 
     # If we did merge paired reads, we now need to process them.
     # AllReads will be a mixture of PseudoRead instances (for merged read pairs)
@@ -1499,10 +1589,10 @@ for window in range(NumCoords / 2):
         if args.read_names_1:
           ReadNames.append(ReadName)
         if args.read_names_2:
-          if seq in ReadNameDict:
-            ReadNameDict[seq].append(ReadName)
+          if seq in CorrespondenceDict_RawSeqToReadNames:
+            CorrespondenceDict_RawSeqToReadNames[seq].append(ReadName)
           else:
-            ReadNameDict[seq] = [ReadName]
+            CorrespondenceDict_RawSeqToReadNames[seq] = [ReadName]
 
     # If we've read in any contaminant reads for this window and this bam,
     # remove them from the read dict. If they're not present in the read dict,
@@ -1531,9 +1621,16 @@ for window in range(NumCoords / 2):
     # If we're not checking for read duplication between samples, process the
     # read dict for this sample now and add it to the list of all reads here.
     else:
-      AllReadsInThisWindow += \
-      ProcessReadDict(UniqueReads, i, LeftWindowEdge, RightWindowEdge,
-      ThisWindowAsStr)
+      if args.read_names_2:
+        ReadsInThisWindow, CorrespondenceDict_TipNameToRawSeqs = \
+        ProcessReadDict(UniqueReads, i, LeftWindowEdge, RightWindowEdge, \
+        ThisWindowAsStr)
+        CorrespondenceDict_TipNameToRawSeqs_AllSamples[BamAlias] = \
+        CorrespondenceDict_TipNameToRawSeqs
+      else:
+        ReadsInThisWindow = ProcessReadDict(UniqueReads, i,
+        LeftWindowEdge, RightWindowEdge, ThisWindowAsStr)
+      AllReadsInThisWindow += ReadsInThisWindow
 
     # Write recorded read names to file if desired.
     if args.read_names_1:
@@ -1542,12 +1639,8 @@ for window in range(NumCoords / 2):
         f.write('\n'.join(ReadNames) + '\n')
       OutputFilesByDestinationDir['ReadNames'].append(FileForReadNames1)
     if args.read_names_2:
-      FileForReadNames2 = FileForReadNames2_basename_ThisBam + BamAlias + '.csv'
-      with open(FileForReadNames2, 'w') as f:
-        for seq, ReadNamesForThatSeq in ReadNameDict.items():
-          f.write(seq + ',' + ' '.join(ReadNamesForThatSeq) + '\n')
-        f.write('\n')
-      OutputFilesByDestinationDir['ReadNames'].append(FileForReadNames2)
+      CorrespondenceDict_RawSeqToReadNames_AllSamples[BamAlias] = \
+      CorrespondenceDict_RawSeqToReadNames
   if args.read_names_only:
     continue
 
@@ -1621,11 +1714,18 @@ for window in range(NumCoords / 2):
       continue
 
     # Process the read dicts (not yet done if we're checking for duplicates).
-    for i, (BamFileBasename, ReadDict, LeftWindowEdge, RightWindowEdge) \
+    for i, (BamAlias, ReadDict, LeftWindowEdge, RightWindowEdge) \
     in enumerate(AllReadDictsInThisWindow):
-      AllReadsInThisWindow += \
-      ProcessReadDict(ReadDict, i, LeftWindowEdge, RightWindowEdge,
-      ThisWindowAsStr)
+      if args.read_names_2:
+        ReadsInThisWindow, CorrespondenceDict_TipNameToRawSeqs = \
+        ProcessReadDict(ReadDict, i, LeftWindowEdge, RightWindowEdge,
+        ThisWindowAsStr)
+        CorrespondenceDict_TipNameToRawSeqs_AllSamples[BamAlias] = \
+        CorrespondenceDict_TipNameToRawSeqs
+      else:
+        ReadsInThisWindow = ProcessReadDict(ReadDict, i,
+        LeftWindowEdge, RightWindowEdge, ThisWindowAsStr)
+      AllReadsInThisWindow += ReadsInThisWindow
 
   # All read dicts have now been processed into the list AllReadsInThisWindow.
 
@@ -1773,12 +1873,19 @@ for window in range(NumCoords / 2):
   # Write the output to FileForAlnReadsHere.
   if MergeReads:
     try:
-      SeqAlignmentHere = ReMergeAlignedReads(SeqAlignmentHere)
+      if args.read_names_2:
+        SeqAlignmentHere, \
+        CorrespondenceDict_TipNameToRawSeqs_AllSamples = \
+        ReMergeAlignedReads(SeqAlignmentHere,
+        CorrespondenceDict_TipNameToRawSeqs_AllSamples)
+      else:
+        SeqAlignmentHere = ReMergeAlignedReads(SeqAlignmentHere)
     except:
       print('Problem encountered while analysing', FileForReads +'. Quitting.',
       file=sys.stderr)
       raise
     AlignIO.write(SeqAlignmentHere, FileForAlnReadsHere, 'fasta')
+
 
   # Find & write the consensuses.
   ConsensusAlignment = FindPatientsConsensuses(SeqAlignmentHere)
@@ -1843,8 +1950,15 @@ for window in range(NumCoords / 2):
       # Excising positions may have made some sequences identical within a
       # sample, which need to be merged even if the merging parameter is 0.
       try:
-        SeqAlignmentHere = ReMergeAlignedReads(SeqAlignmentHere,
-        ForceNoMerging=True)
+        if args.read_names_2:
+          SeqAlignmentHere, \
+          CorrespondenceDict_TipNameToRawSeqs_AllSamples = \
+          ReMergeAlignedReads(SeqAlignmentHere,
+          CorrespondenceDict_TipNameToRawSeqs_AllSamples,
+          ForceNoMerging=True)
+        else:
+          SeqAlignmentHere = ReMergeAlignedReads(SeqAlignmentHere,
+          ForceNoMerging=True)
       except:
         print('Problem encountered while analysing', FileForAlnReadsHere + \
         '. Quitting.', file=sys.stderr)
@@ -1919,6 +2033,31 @@ for window in range(NumCoords / 2):
         DuplicatesDict.values()) + '\n')
       OutputFilesByDestinationDir['DupData'].append(
       FileForDuplicateReadCountsProcessed)
+
+  # Output the correspondence between tip names and the names of the reads that
+  # went into them. Sort by read number.
+  if args.read_names_2:
+    FileForReadNames2 = FileForReadNames2_basename + ThisWindowSuffix + '.csv'
+    with open(FileForReadNames2, 'w') as f:
+      for alias, CorrespondenceDict_TipNameToRawSeqs in \
+      CorrespondenceDict_TipNameToRawSeqs_AllSamples.items():
+        CorrespondenceDict_RawSeqToReadNames = \
+        CorrespondenceDict_RawSeqToReadNames_AllSamples[alias]
+        for TipName, RawSeqs in sorted(\
+        CorrespondenceDict_TipNameToRawSeqs.items(), \
+        key=lambda x:GetReadNumber(x[0])):
+          ReadNames = list(itertools.chain.from_iterable(
+          CorrespondenceDict_RawSeqToReadNames[RawSeq] for RawSeq in RawSeqs))
+          TipCount = int(TipName.rsplit('_', 1)[1])
+          if TipCount != len(ReadNames):
+            print('Error: malfunction of phyloscanner in window',
+            ThisWindowAsStr + '. We have recorded', len(ReadNames), 'reads',
+            'associated with', TipName, "but that's incompatible with the"
+            'count in the tip name itself -', str(TipCount) + '. Please report',
+            'to Chris Wymant. Quitting.', file=sys.stderr)
+            exit(1)
+          f.write(TipName + "," + ",".join(ReadNames) + "\n")
+    OutputFilesByDestinationDir['ReadNames'].append(FileForReadNames2)
 
   # Update on time taken if desired
   if args.time:

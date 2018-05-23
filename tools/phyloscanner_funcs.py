@@ -1003,7 +1003,8 @@ def MakeBamIndices(BamFiles, SamtoolsCommand):
         raise
 
 
-def MergeSimilarStringsA(DictOfStringCounts, SimilarityThreshold=1):
+def MergeSimilarStringsA(DictOfStringCounts, SimilarityThreshold=1,
+RecordCorrespondence=False):
   '''Absorbs those strings with lower counts into those with higher counts.
   TODO
   '''
@@ -1024,14 +1025,19 @@ def MergeSimilarStringsA(DictOfStringCounts, SimilarityThreshold=1):
     file=sys.stderr)
     exit(1)
 
-  # Nothing needs to be done if the SimilarityThreshold is zero
-  if SimilarityThreshold == 0:
-    return DictOfStringCounts
-      
-  # Nothing needs to be done to dicts with fewer than two entries.
+
+  if RecordCorrespondence:
+    AfterToBeforeDict = \
+    {string:[string] for string in DictOfStringCounts.keys()}
+
+  # Nothing needs to be done to dicts with fewer than two entries, or if the
+  # SimilarityThreshold is zero
   NumberOfUniqueStrings = len(DictOfStringCounts)
-  if NumberOfUniqueStrings < 2:
-    return DictOfStringCounts
+  if NumberOfUniqueStrings < 2 or SimilarityThreshold == 0:
+    if RecordCorrespondence:
+      return DictOfStringCounts, AfterToBeforeDict
+    else:
+      return DictOfStringCounts
 
   # Sort the strings by their counts
   SortedDict = sorted(DictOfStringCounts.items(), key=lambda x: x[1])
@@ -1071,6 +1077,9 @@ def MergeSimilarStringsA(DictOfStringCounts, SimilarityThreshold=1):
       if NumDifferingBases <= SimilarityThreshold:
         CountForJsToMergeToThisI += RareCount
         PositionsOfStringsThatGetAbsorbed.add(j)
+        if RecordCorrespondence:
+          AfterToBeforeDict[CommonString].append(RareString)
+          del AfterToBeforeDict[RareString]
 
     MergedDict[CommonString] = CommonCount + CountForJsToMergeToThisI
 
@@ -1083,4 +1092,7 @@ def MergeSimilarStringsA(DictOfStringCounts, SimilarityThreshold=1):
     file=sys.stderr)
     exit(1)
 
-  return MergedDict
+  if RecordCorrespondence:
+    return MergedDict, AfterToBeforeDict
+  else:
+    return MergedDict
