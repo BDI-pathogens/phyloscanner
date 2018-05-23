@@ -197,7 +197,7 @@ calc.all.stats.in.window <- function(ptree, hosts, tip.regex, has.read.counts, v
   
   # Make the data.table
   
-  window.table <- data.table(id=hosts)
+  window.table <- data.table(host.id=hosts)
   window.table <- window.table[, file.id := id]
   window.table <- window.table[, xcoord := ptree$xcoord]
   window.table <- window.table[, tips :=  sapply(hosts, function(x) as.numeric(length(tips.for.hosts[[x]])))]
@@ -215,6 +215,8 @@ calc.all.stats.in.window <- function(ptree, hosts, tip.regex, has.read.counts, v
   )]
   window.table <- window.table[, subgraphs := sapply(hosts, function(x) length(unique(splits.table[which(splits.table$host==x),]$subgraph)))]
   window.table <- window.table[, clades := sapply(hosts, function(x) length(clades.by.host[[x]]))  ]
+  
+
   
   new.cols <- sapply(hosts, function(x) calc.subtree.stats(x, id, tree, tips.for.hosts, splits.table, tip.regex, !has.read.counts, verbose))
   
@@ -260,7 +262,7 @@ calc.all.stats.in.window <- function(ptree, hosts, tip.regex, has.read.counts, v
   
   if(!is.null(ptree$dual.detection.splits)){
     
-    window.table$solo.dual.count <- ptree$dual.detection.splits$count[match(window.table$id, ptree$dual.detection.splits$host)]
+    window.table$solo.dual.count <- ptree$dual.detection.splits$count[match(window.table$host.id, ptree$dual.detection.splits$host)]
     
   }
   
