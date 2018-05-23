@@ -498,7 +498,7 @@ if(output.blacklisting.report){
 
 if(output.rda){
   if (verbosity!=0) cat('Saving R workspace image to file', paste0(output.string,"_workspace.rda"),'...\n')
-  
+  save.image(file=file.path(output.dir, paste0(output.string,"_workspace.rda")))
 }
 
 if(verbosity!=0) cat("Finished.\n")
