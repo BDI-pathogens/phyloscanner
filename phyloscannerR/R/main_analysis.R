@@ -1087,7 +1087,7 @@ draw.summary.statistics <- function(phyloscanner.trees, sum.stats, host, verbose
 multipage.summary.statistics <- function(phyloscanner.trees, sum.stats, hosts = all.hosts.from.trees(phyloscanner.trees), file.name, height=11.6929, width=8.26772, verbose = F){
   readable.coords <- attr(phyloscanner.trees, 'readable.coords')
   
-  if(length(unique(sum.stats$file.suffix))==1){
+  if(length(unique(sum.stats$file.id))==1){
     stop("Only one tree, cannot draw summary statistics graph.")
   }
   

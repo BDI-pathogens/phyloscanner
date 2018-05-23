@@ -450,7 +450,7 @@ if(length(phyloscanner.trees)>1){
   ss.graphs.fn <- paste0(output.string,"_patStats.pdf")
   
   if(verbosity!=0){
-    cat("Graphing summary statistics to file ",ss.graphs.fn,"\n", sep="")
+    cat("Graphing summary statistics to file ",ss.graphs.fn,"...\n", sep="")
   }
   
   silent <- multipage.summary.statistics(phyloscanner.trees, summary.stats, file.name = file.path(output.dir, ss.graphs.fn), verbose = verbosity==2)
@@ -460,7 +460,7 @@ if(length(phyloscanner.trees)>1){
   write.csv(ts, file=file.path(output.dir, paste0(output.string,"_hostRelationshipSummary", csv.fe)), row.names=FALSE, quote=FALSE)
   
   if(do.simplified.graph){
-    if (verbosity!=0) cat('Drawing simplified summary diagram to file', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'\n')
+    if (verbosity!=0) cat('Drawing simplified summary diagram to file', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'...\n')
     
     if(nrow(ts)==0){
       cat("No relationships exist in the required proportion of windows (",win.threshold,"); skipping simplified relationship summary.\n", sep="")
@@ -474,7 +474,7 @@ if(length(phyloscanner.trees)>1){
 }
 
 if(output.blacklisting.report){
-  if (verbosity!=0) cat('Saving blacklisting report to file', paste0(output.string,"_blacklistReport.csv"),'\n')
+  if (verbosity!=0) cat('Saving blacklisting report to file', paste0(output.string,"_blacklistReport.csv"),'...\n')
   
   dfs <- lapply(phyloscanner.trees, function(x) {
     window.df <- x$bl.report
@@ -492,7 +492,7 @@ if(output.blacklisting.report){
 }
 
 if(output.rda){
-  if (verbosity!=0) cat('Saving R workspace image to file', paste0(output.string,"_workspace.rda"),'\n')
+  if (verbosity!=0) cat('Saving R workspace image to file', paste0(output.string,"_workspace.rda"),'...\n')
   save.image(file=file.path(output.dir, paste0(output.string,"_workspace.rda")))
 }
 
