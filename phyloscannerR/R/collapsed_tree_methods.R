@@ -884,7 +884,6 @@ convert.to.columns <- function(matrix, names){
 
 merge.classifications <- function(all.tree.info, allow.mt = T, verbose = F){
   tt	<-	lapply(all.tree.info, function(tree.info){
-    
     if(is.null(tree.info$classification.results$classification) & is.null(tree.info$classification.file.name)){
       NULL
     }

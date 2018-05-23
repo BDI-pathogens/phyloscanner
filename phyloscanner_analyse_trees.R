@@ -455,20 +455,25 @@ if(length(phyloscanner.trees)>1){
   
   silent <- multipage.summary.statistics(phyloscanner.trees, summary.stats, file.name = file.path(output.dir, ss.graphs.fn), verbose = verbosity==2)
   
-  ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, allow.mt, close.sib.only = F, verbosity==2)
-  if (verbosity!=0) cat('Writing summary to file', paste0(output.string,"_hostRelationshipSummary", csv.fe),'...\n')
-  write.csv(ts, file=file.path(output.dir, paste0(output.string,"_hostRelationshipSummary", csv.fe)), row.names=FALSE, quote=FALSE)
+  hosts <- all.hosts.from.trees(phyloscanner.trees)
   
-  if(do.simplified.graph){
-    if (verbosity!=0) cat('Drawing simplified summary diagram to file', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'...\n')
+  if(length(hosts)>1){
     
-    if(nrow(ts)==0){
-      cat("No relationships exist in the required proportion of windows (",win.threshold,"); skipping simplified relationship summary.\n", sep="")
-    } else {
-      simplified.graph <- simplify.summary(ts, arrow.threshold, length(phyloscanner.trees), plot = T)
+    ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, allow.mt, close.sib.only = F, verbosity==2)
+    if (verbosity!=0) cat('Writing summary to file', paste0(output.string,"_hostRelationshipSummary", csv.fe),'...\n')
+    write.csv(ts, file=file.path(output.dir, paste0(output.string,"_hostRelationshipSummary", csv.fe)), row.names=FALSE, quote=FALSE)
+    
+    if(do.simplified.graph){
+      if (verbosity!=0) cat('Drawing simplified summary diagram to file', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'...\n')
       
-      simplified.graph$simp.diagram
-      ggsave(file = file.path(output.dir, paste0(output.string,"_simplifiedRelationshipGraph.pdf")), width=simp.plot.dim, height=simp.plot.dim)
+      if(nrow(ts)==0){
+        cat("No relationships exist in the required proportion of windows (",win.threshold,"); skipping simplified relationship summary.\n", sep="")
+      } else {
+        simplified.graph <- simplify.summary(ts, arrow.threshold, length(phyloscanner.trees), plot = T)
+        
+        simplified.graph$simp.diagram
+        ggsave(file = file.path(output.dir, paste0(output.string,"_simplifiedRelationshipGraph.pdf")), width=simp.plot.dim, height=simp.plot.dim)
+      }
     }
   }
 }
@@ -483,7 +488,7 @@ if(output.blacklisting.report){
       window.df <- window.df[,c(3,1,2)]
     }
     window.df
-    }
+  }
   )
   
   output.bl.report <- do.call(rbind, dfs)
@@ -493,7 +498,7 @@ if(output.blacklisting.report){
 
 if(output.rda){
   if (verbosity!=0) cat('Saving R workspace image to file', paste0(output.string,"_workspace.rda"),'...\n')
-  save.image(file=file.path(output.dir, paste0(output.string,"_workspace.rda")))
+  
 }
 
 if(verbosity!=0) cat("Finished.\n")
