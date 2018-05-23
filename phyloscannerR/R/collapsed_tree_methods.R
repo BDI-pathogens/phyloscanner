@@ -1135,12 +1135,11 @@ simplify.summary <- function(summary, arrow.threshold, total.trees, plot = F){
     out.table$y.end <- sapply(out.table$host.2, function(x) arrangement$y[match(x, arrangement$label)]) 
     out.table$x.midpoint <- (out.table$x.end + out.table$x.start)/2
     out.table$y.midpoint <- (out.table$y.end + out.table$y.start)/2
-    
   
     out.diagram <- ggplot() + 
       geom_segment(data=out.table[which(out.table$arrow),], aes(x=x.start, xend = x.end, y=y.start, yend = y.end), arrow = arrow(length = unit(0.01, "npc"), type="closed"), col="steelblue3", size=1.5, lineend="round") +
       geom_segment(data=out.table[which(!out.table$arrow),], aes(x=x.start, xend = x.end, y=y.start, yend = y.end), col="chartreuse3", size=1.5, lineend="round") +
-      geom_label(aes(x=arrangement$x[,1], y=arrangement$y[,1], label=arrangement$label), alpha=0.25, fill="darkgoldenrod3") + 
+      geom_label(aes(x=arrangement$x, y=arrangement$y, label=arrangement$label), alpha=0.25, fill="darkgoldenrod3") + 
       geom_text(data=out.table, aes(x=x.midpoint, y=y.midpoint, label=label)) + 
       theme_void()
     
