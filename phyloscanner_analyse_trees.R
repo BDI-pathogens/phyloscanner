@@ -384,7 +384,7 @@ if(single.tree){
 }
 
 if(verbosity!=0){
-  cat("Writing annotated trees in .",tree.output.format," format.\n", sep="")
+  cat("Writing annotated trees in .",tree.output.format," format...\n", sep="")
 }
 
 silent <- sapply(phyloscanner.trees, function(tree.info){
@@ -398,7 +398,7 @@ silent <- sapply(phyloscanner.trees, function(tree.info){
 
 if(do.collapsed){
   if(verbosity!=0){
-    cat("Writing collapsed trees to .csv files.\n", sep="")
+    cat("Writing collapsed trees to .csv files...\n", sep="")
   }
   
   silent <- sapply(phyloscanner.trees, function(tree.info){
@@ -407,7 +407,7 @@ if(do.collapsed){
     } else {
       file.name <- paste0(output.string, "_collapsedTree_", tree.info$id, csv.fe)
     }
-    if(verbosity==2) cat("Writing collapsed tree for tree ID",tree.info$id,"to file",file.name, "\n")
+    if(verbosity==2) cat("Writing collapsed tree for tree ID",tree.info$id,"to file",file.name, "...\n")
     write.csv(tree.info$classification.results$collapsed[,1:4], file=file.path(output.dir, file.name), quote=F, row.names=F)
     
   }, simplify = F, USE.NAMES = T)
@@ -416,7 +416,7 @@ if(do.collapsed){
 
 if(do.class.detail){
   if(verbosity!=0){
-    cat("Writing host pairwise classifications to .csv files.\n", sep="")
+    cat("Writing host pairwise classifications to .csv files...\n", sep="")
   }
   
   silent <- sapply(phyloscanner.trees, function(tree.info){
@@ -425,7 +425,7 @@ if(do.class.detail){
     } else {
       file.name <- paste0(output.string, "_classification_", tree.info$id, csv.fe)
     }
-    if(verbosity==2) cat("Writing relationship classifications for tree ID",tree.info$id,"to file",file.name, "\n")
+    if(verbosity==2) cat("Writing relationship classifications for tree ID",tree.info$id,"to file",file.name, "...\n")
     write.csv(tree.info$classification.results$classification, file=file.path(output.dir, file.name), quote=F, row.names=F)
     
   }, simplify = F, USE.NAMES = T)
@@ -442,7 +442,7 @@ if(length(phyloscanner.trees)>1){
   ss.csv.fn <- paste0(output.string,"_patStats", csv.fe)
   
   if(verbosity!=0){
-    cat("Writing summary statistics to file ",ss.csv.fn,"\n", sep="")
+    cat("Writing summary statistics to file ",ss.csv.fn,"...\n", sep="")
   }
   
   write.csv(summary.stats, file.path(output.dir, ss.csv.fn), quote=F, row.names=F)
@@ -456,7 +456,7 @@ if(length(phyloscanner.trees)>1){
   silent <- multipage.summary.statistics(phyloscanner.trees, summary.stats, file.name = file.path(output.dir, ss.graphs.fn), verbose = verbosity==2)
   
   ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, allow.mt, close.sib.only = F, verbosity==2)
-  if (verbosity!=0) cat('Writing summary to file', paste0(output.string,"_hostRelationshipSummary", csv.fe),'\n')
+  if (verbosity!=0) cat('Writing summary to file', paste0(output.string,"_hostRelationshipSummary", csv.fe),'...\n')
   write.csv(ts, file=file.path(output.dir, paste0(output.string,"_hostRelationshipSummary", csv.fe)), row.names=FALSE, quote=FALSE)
   
   if(do.simplified.graph){

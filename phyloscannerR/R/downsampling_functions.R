@@ -43,7 +43,15 @@ downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, e
     }
   }
   
-  sample <- rmvhyper(nn=1, n = read.counts, k = number)
+  # whether intentionally or not, rvmhyper does not work as hoped if n has length 1
+  
+  if(length(read.counts)==1){
+    sample <- matrix(number, nrow=1, ncol=1)
+  } else {
+    sample <- rmvhyper(nn=1, n = read.counts, k = number)
+  }
+  
+  
   
   if(rename){
     if(verbose) cat("Renaming tree tips with new read counts...\n", sep="")
@@ -79,7 +87,7 @@ downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, e
       gsub(new.tip.regex, paste0("\\1", sample[x], "\\3"), labels.from.host[x])
     })
     
-    never.selected.tips <- which(sample==0)
+    never.selected.tips <- which(sample[1,]==0)
     
     label.map[never.selected.tips] <- paste0(label.map[never.selected.tips],"_X_DOWNSAMPLED")
 

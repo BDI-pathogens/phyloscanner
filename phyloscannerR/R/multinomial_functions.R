@@ -32,7 +32,7 @@ multinomial.calculations <- function(phyloscanner.trees,
   
   ss <- lapply(phyloscanner.trees, function(x) get.tip.and.read.counts(x, all.hosts.from.trees(phyloscanner.trees), tip.regex, attr(phyloscanner.trees, 'has.read.counts'), verbose))
   ss <- rbindlist(ss)
-
+  
   setkey(ss, id, file.id)
   setkey(mc, HOST.1, ID)
   merge.tab.1 <- mc[ss, nomatch=0]
@@ -66,25 +66,25 @@ multinomial.calculations <- function(phyloscanner.trees,
   
   if(verbose) cat('\nCalculating basic pairwise relationships for windows n=',nrow(dwin),'...')
   dwin	<- categorise(dwin, "TYPE_BASIC", "other",
-                      list(CONTIGUOUS=TRUE, ADJACENT=TRUE, TYPE=c("anc_12", "multi_anc_12"), label="trans12_contiguous"),
-                      list(CONTIGUOUS=FALSE, ADJACENT=TRUE, TYPE=c("anc_12", "multi_anc_12"), label="trans12_noncontiguous"),
-                      list(CONTIGUOUS=TRUE, ADJACENT=TRUE, TYPE=c("anc_21", "multi_anc_21"), label="trans21_contiguous"),
-                      list(CONTIGUOUS=FALSE, ADJACENT=TRUE, TYPE=c("anc_21", "multi_anc_21"), label="trans21_noncontiguous"),
-                      list(CONTIGUOUS=TRUE, ADJACENT=TRUE, TYPE="none", label="noancestry_contiguous"),
-                      list(CONTIGUOUS=FALSE, ADJACENT=TRUE, TYPE="none", label="noancestry_noncontiguous"),
-                      list(CONTIGUOUS=TRUE, ADJACENT=TRUE, TYPE="complex", label="complex_contiguous"),
-                      list(CONTIGUOUS=FALSE, ADJACENT=TRUE, TYPE="complex", label="complex_noncontiguous")
+                     list(CONTIGUOUS=TRUE, ADJACENT=TRUE, TYPE=c("anc_12", "multi_anc_12"), label="trans12_contiguous"),
+                     list(CONTIGUOUS=FALSE, ADJACENT=TRUE, TYPE=c("anc_12", "multi_anc_12"), label="trans12_noncontiguous"),
+                     list(CONTIGUOUS=TRUE, ADJACENT=TRUE, TYPE=c("anc_21", "multi_anc_21"), label="trans21_contiguous"),
+                     list(CONTIGUOUS=FALSE, ADJACENT=TRUE, TYPE=c("anc_21", "multi_anc_21"), label="trans21_noncontiguous"),
+                     list(CONTIGUOUS=TRUE, ADJACENT=TRUE, TYPE="none", label="noancestry_contiguous"),
+                     list(CONTIGUOUS=FALSE, ADJACENT=TRUE, TYPE="none", label="noancestry_noncontiguous"),
+                     list(CONTIGUOUS=TRUE, ADJACENT=TRUE, TYPE="complex", label="complex_contiguous"),
+                     list(CONTIGUOUS=FALSE, ADJACENT=TRUE, TYPE="complex", label="complex_noncontiguous")
   )
   
-
+  
   dwin	<- categorise(dwin, "TYPE_BASIC", "OTHER",
-                      list(CATDISTANCE = "close", label="close"),
-                      list(CATDISTANCE = "distant", label="distant"),
-                      list(CATDISTANCE = "intermediate", label="intermediate"))
+                     list(CATDISTANCE = "close", label="close"),
+                     list(CATDISTANCE = "distant", label="distant"),
+                     list(CATDISTANCE = "intermediate", label="intermediate"))
   
   if(verbose) cat('\nCalculating derived pairwise relationships for windows n=',nrow(dwin),'...')
   dwin	<- phsc.get.pairwise.relationships(dwin, get.groups=relationship.types)
-
+  
   if(verbose) cat('\nCalculating KEFF and NEFF for windows n=',nrow(dwin),'...')
   rplkl	<- phsc.get.pairwise.relationships.keff.and.neff(dwin, relationship.types)
   
@@ -103,11 +103,12 @@ multinomial.calculations <- function(phyloscanner.trees,
 #' @return input data.table with new columns. Each new column defines relationship states for a specific relationship group. 
 phsc.get.pairwise.relationships<- function(df, get.groups=c('TYPE_PAIR_DI2','TYPE_PAIR_TO','TYPE_PAIR_TODI2x2','TYPE_PAIR_TODI2','TYPE_DIR_TODI2','TYPE_NETWORK_SCORES','TYPE_CHAIN_TODI','TYPE_ADJ_NETWORK_SCORES','TYPE_ADJ_DIR_TODI2'))
 {
-
+  
   if('TYPE_PAIR_DI2' %in% get.groups)
   {
-    df	<- categorise(df, "TYPE_PAIR_DI2", "not.close",
-                      list(CATDISTANCE = "close", label="close"))
+    df	<- categorise(df, "TYPE_PAIR_DI2", "intermediate",
+                     list(CATDISTANCE = "close", label="close"),
+                     list(CATDISTANCE = "distant", label="distant"))
   }	
   #	
   #	group to define likely pair just based on topology
@@ -115,18 +116,18 @@ phsc.get.pairwise.relationships<- function(df, get.groups=c('TYPE_PAIR_DI2','TYP
   if('TYPE_PAIR_TO' %in% get.groups)
   {
     df	<- categorise(df, "TYPE_PAIR_TO", "other",
-                      list(CONTIGUOUS = TRUE, TYPE = c("anc_12", "anc_21", "multi_anc_12", "multi_anc_21", "complex"), label = "anc.or.complex"))
+                     list(CONTIGUOUS = TRUE, TYPE = c("anc_12", "anc_21", "multi_anc_12", "multi_anc_21", "complex"), label = "anc.or.complex"))
   }
-
+  
   #
   #	group for full 2x2 table of distance and topology
   #
   if('TYPE_PAIR_TODI2x2' %in% get.groups)
   {		
     df	<- categorise(df, "TYPE_PAIR_TODI2x2", "not.close.other",
-                      list(CONTIGUOUS = TRUE, CATDISTANCE = "close", label = "contiguous_close"),
-                      list(CONTIGUOUS = TRUE, CATDISTANCE = c("intermediate", "distant"), label = "contiguous_not.close"),
-                      list(CONTIGUOUS = FALSE, CATDISTANCE = "close", label = "noncontiguous_close"))
+                     list(CONTIGUOUS = TRUE, CATDISTANCE = "close", label = "contiguous_close"),
+                     list(CONTIGUOUS = TRUE, CATDISTANCE = c("intermediate", "distant"), label = "contiguous_not.close"),
+                     list(CONTIGUOUS = FALSE, CATDISTANCE = "close", label = "noncontiguous_close"))
   }
   #
   #	group to determine linkage - only 2 states, linked / unlinked
@@ -134,7 +135,7 @@ phsc.get.pairwise.relationships<- function(df, get.groups=c('TYPE_PAIR_DI2','TYP
   if('TYPE_PAIR_TODI2' %in% get.groups)
   {
     df	<- categorise(df, "TYPE_PAIR_TODI2", "not.close.or.noncontiguous",
-                      list(CONTIGUOUS = TRUE, CATDISTANCE = "close", label="close_contiguous"))
+                     list(CONTIGUOUS = TRUE, CATDISTANCE = "close", label="close_contiguous"))
   }	
   #
   #	group to determine direction of transmission in likely pairs
@@ -143,8 +144,8 @@ phsc.get.pairwise.relationships<- function(df, get.groups=c('TYPE_PAIR_DI2','TYP
   if('TYPE_DIR_TODI2' %in% get.groups)
   {
     df	<- categorise(df, "TYPE_DIR_TODI2", NA_character_,
-                      list(CONTIGUOUS = TRUE, TYPE=c("anc_12", "multi_anc_12"), CATDISTANCE = "close", label="12"),
-                      list(CONTIGUOUS = TRUE, TYPE=c("anc_21", "multi_anc_21"), CATDISTANCE = "close", label="21"))
+                     list(CONTIGUOUS = TRUE, TYPE=c("anc_12", "multi_anc_12"), CATDISTANCE = "close", label="12"),
+                     list(CONTIGUOUS = TRUE, TYPE=c("anc_21", "multi_anc_21"), CATDISTANCE = "close", label="21"))
   }
   #
   #	group to determine direction of transmission in likely pairs
@@ -153,8 +154,8 @@ phsc.get.pairwise.relationships<- function(df, get.groups=c('TYPE_PAIR_DI2','TYP
   if('TYPE_ADJ_DIR_TODI2' %in% get.groups)
   {
     df	<- categorise(df, "TYPE_ADJ_DIR_TODI2", NA_character_,
-                      list(ADJACENT = TRUE, TYPE=c("anc_12", "multi_anc_12"), CATDISTANCE = "close", label="12"),
-                      list(ADJACENT = TRUE, TYPE=c("anc_21", "multi_anc_21"), CATDISTANCE = "close", label="21"))
+                     list(ADJACENT = TRUE, TYPE=c("anc_12", "multi_anc_12"), CATDISTANCE = "close", label="12"),
+                     list(ADJACENT = TRUE, TYPE=c("anc_21", "multi_anc_21"), CATDISTANCE = "close", label="21"))
   }
   #
   #	group to determine probabilities for transmission networks
@@ -163,9 +164,9 @@ phsc.get.pairwise.relationships<- function(df, get.groups=c('TYPE_PAIR_DI2','TYP
   if('TYPE_NETWORK_SCORES'%in%get.groups)
   {				
     df	<- categorise(df, "TYPE_NETWORK_SCORES", "not.close.or.noncontiguous",
-                      list(CONTIGUOUS = TRUE, TYPE=c("anc_12", "multi_anc_12"), CATDISTANCE = "close", label = "12"),
-                      list(CONTIGUOUS = TRUE, TYPE=c("anc_21", "multi_anc_21"), CATDISTANCE = "close", label = "21"),
-                      list(CONTIGUOUS = TRUE, TYPE=c("none", "complex"), CATDISTANCE = "close", label = "complex.or.no.ancestry"))
+                     list(CONTIGUOUS = TRUE, TYPE=c("anc_12", "multi_anc_12"), CATDISTANCE = "close", label = "12"),
+                     list(CONTIGUOUS = TRUE, TYPE=c("anc_21", "multi_anc_21"), CATDISTANCE = "close", label = "21"),
+                     list(CONTIGUOUS = TRUE, TYPE=c("none", "complex"), CATDISTANCE = "close", label = "complex.or.no.ancestry"))
   }
   #
   #	group to determine probabilities for transmission networks
@@ -174,9 +175,9 @@ phsc.get.pairwise.relationships<- function(df, get.groups=c('TYPE_PAIR_DI2','TYP
   if('TYPE_ADJ_NETWORK_SCORES' %in% get.groups)
   {				
     df	<- categorise(df, "TYPE_ADJ_NETWORK_SCORES", "not.close.or.noncontiguous",
-                      list(ADJACENT = TRUE, TYPE=c("anc_12", "multi_anc_12"), CATDISTANCE = "close", label = "12"),
-                      list(ADJACENT = TRUE, TYPE=c("anc_21", "multi_anc_21"), CATDISTANCE = "close", label = "21"),
-                      list(ADJACENT = TRUE, TYPE=c("none", "complex"), CATDISTANCE = "close", label = "complex.or.no.ancestry"))
+                     list(ADJACENT = TRUE, TYPE=c("anc_12", "multi_anc_12"), CATDISTANCE = "close", label = "12"),
+                     list(ADJACENT = TRUE, TYPE=c("anc_21", "multi_anc_21"), CATDISTANCE = "close", label = "21"),
+                     list(ADJACENT = TRUE, TYPE=c("none", "complex"), CATDISTANCE = "close", label = "complex.or.no.ancestry"))
   }		
   #
   #	group to transmission networks
@@ -184,7 +185,8 @@ phsc.get.pairwise.relationships<- function(df, get.groups=c('TYPE_PAIR_DI2','TYP
   if('TYPE_CHAIN_TODI' %in% get.groups)
   {
     df	<- categorise(df, "TYPE_CHAIN_TODI", "distant",
-                      list(CATDISTANCE = "close", label = "close"))
+                     list(CATDISTANCE = "close", ADJACENT=TRUE, label = "cluster"),
+                     list(CATDISTANCE = "intermediate", ADJACENT=TRUE, label="ambiguous"))
   }
   df
 }
@@ -243,7 +245,7 @@ phsc.get.pairwise.relationships.keff.and.neff<- function(df, get.groups, w.slide
   #
   #	add relationship types
   #
-
+  
   setkey(rplkl, "TYPE_BASIC")
   rplkl <- rplkl[categorisation]
   
@@ -412,12 +414,12 @@ phsc.get.prior.parameter.n0<- function(n.states, keff=2, neff=3, confidence.cut=
 
 phsc.get.pairwise.relationships.numbers<- function()
 {
-  tmp	<- matrix(c('TYPE_PAIR_DI2','2',
+  tmp	<- matrix(c('TYPE_PAIR_DI2','3',
                   'TYPE_PAIR_TO','2',
                   'TYPE_PAIR_TODI2x2','4',					
                   'TYPE_PAIR_TODI2','2',
                   'TYPE_DIR_TODI2','2',															
-                  'TYPE_CHAIN_TODI','2',
+                  'TYPE_CHAIN_TODI','3',
                   'TYPE_ADJ_DIR_TODI2','2',
                   'TYPE_NETWORK_SCORES','4',
                   'TYPE_ADJ_NETWORK_SCORES','4',
