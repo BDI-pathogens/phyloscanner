@@ -196,6 +196,7 @@ downsample.tree <- function(tree.info, hosts.to.include, max.reads, rename = F, 
   
   if(length(excluded.nos)>0){
     tree.info$bl.report$status[excluded.nos] <- "downsampled"
+    tree.info$bl.report$kept[excluded.nos]   <- F
   }
   
   new.blacklist <- c(blacklist, excluded.nos)

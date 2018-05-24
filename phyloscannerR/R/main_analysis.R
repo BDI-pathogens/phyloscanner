@@ -1363,10 +1363,10 @@ prepare.tree <- function(ptree, outgroup.name, tip.regex, guess.multifurcation.t
   
   new.tree <- process.tree(tree, outgroup.name, multifurcation.threshold)
   
-  ptree$bl.report <- data.frame(tip = new.tree$tip.label, status = "kept", row.names = NULL, stringsAsFactors = F)
+  ptree$bl.report <- data.frame(tip = new.tree$tip.label, kept=TRUE, status = "included", row.names = NULL, stringsAsFactors = F)
   
   if(!is.null((outgroup.name))){
-    ptree$bl.report$status[which(new.tree$tip.label==outgroup.name)] <- "outgroup"
+    ptree$bl.report$status[which(new.tree$tip.label==outgroup.name)] <- "included_outgroup"
   }
     
   ptree$tree                      <- new.tree
@@ -1406,6 +1406,7 @@ read.blacklist <- function(ptree, verbose = F) {
       }
       
       ptree$bl.report$status[blacklist]      <- "bl_user_specified"
+      ptree$bl.report$kept[blacklist]        <- F
       
       ptree$blacklist                 <- blacklist
       
@@ -1498,7 +1499,8 @@ blacklist.from.duplicates.vector <- function(ptree, raw.blacklist.threshold, rat
     }
     
     if(length(duplicate.nos)>0){
-      ptree$bl.report$status[duplicate.nos]             <- "bl_duplicate"
+      ptree$bl.report$status[duplicate.nos]      <- "bl_duplicate"
+      ptree$bl.report$kept[duplicate.nos]        <- F
     }
     
     ptree$blacklist <- unique(c(ptree$blacklist, duplicate.nos))
@@ -1548,7 +1550,8 @@ blacklist.using.parsimony <- function(ptree, tip.regex, outgroup.name, raw.black
   
   
   if(length(contaminant.nos)>0){
-    ptree$bl.report$status[contaminant.nos]          <- "bl_parsimony_contaminant"
+    ptree$bl.report$status[contaminant.nos]   <- "bl_parsimony_contaminant"
+    ptree$bl.report$kept[contaminant.nos]     <- F
   }
   
   ptree$blacklist                             <- unique(c(ptree$blacklist, contaminant.nos))
@@ -1603,7 +1606,8 @@ blacklist.from.duals.list <- function(ptree, dual.results, verbose) {
     }
     
     if(length(dual.nos)>0){
-      ptree$bl.report$status[dual.nos]                 <- "bl_dual_infection_minor_subgraph"
+      ptree$bl.report$status[dual.nos]          <- "bl_dual_infection_minor_subgraph"
+      ptree$bl.report$kept[dual.nos]            <- F
     }
     
     ptree$blacklist                             <- unique(c(ptree$blacklist, dual.nos))
