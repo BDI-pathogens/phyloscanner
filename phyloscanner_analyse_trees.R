@@ -488,7 +488,7 @@ if(output.blacklisting.report){
     } else {
       treebl.df$tree.id <- vector()
     }
-    treebl.df <- treebl.df[,c(3,1,2)]
+    treebl.df <- treebl.df[,c(4,1,2,3)]
     treebl.df
   })
   
