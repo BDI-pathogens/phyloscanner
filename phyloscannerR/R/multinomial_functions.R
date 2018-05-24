@@ -33,7 +33,7 @@ multinomial.calculations <- function(phyloscanner.trees,
   ss <- lapply(phyloscanner.trees, function(x) get.tip.and.read.counts(x, all.hosts.from.trees(phyloscanner.trees), tip.regex, attr(phyloscanner.trees, 'has.read.counts'), verbose))
   ss <- rbindlist(ss)
   
-  setkey(ss, id, file.id)
+  setkey(ss, id, tree.id)
   setkey(mc, HOST.1, ID)
   merge.tab.1 <- mc[ss, nomatch=0]
   setnames(merge.tab.1, c('tips', 'reads'), c('tips.1', 'reads.1'))

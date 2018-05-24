@@ -482,14 +482,15 @@ if(output.blacklisting.report){
   if (verbosity!=0) cat('Saving blacklisting report to file', paste0(output.string,"_blacklistReport.csv"),'...\n')
   
   dfs <- lapply(phyloscanner.trees, function(x) {
-    window.df <- x$bl.report
-    if(nrow(window.df)>0){
-      window.df$id <- x$id
-      window.df <- window.df[,c(3,1,2)]
+    treebl.df <- x$bl.report
+    if(nrow(treebl.df)>0){
+      treebl.df$tree.id <- x$id
+    } else {
+      treebl.df$tree.id <- vector()
     }
-    window.df
-  }
-  )
+    treebl.df <- treebl.df[,c(3,1,2)]
+    treebl.df
+  })
   
   output.bl.report <- do.call(rbind, dfs)
   
