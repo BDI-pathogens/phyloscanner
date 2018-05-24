@@ -81,8 +81,6 @@ initialise.phyloscanner <- function(
     ptree$tree.file.name      <- full.tree.file.names[id.no]
     ptree$index               <- id.no
     
-    ptree$bl.report           <- data.frame(tip = character(), reason = character(), row.names = NULL)
-    
     ptrees[[id]]              <- ptree
   }
   
@@ -1365,6 +1363,12 @@ prepare.tree <- function(ptree, outgroup.name, tip.regex, guess.multifurcation.t
   
   new.tree <- process.tree(tree, outgroup.name, multifurcation.threshold)
   
+  ptree$bl.report <- data.frame(tip = new.tree$tip.label, status = "kept", row.names = NULL, stringsAsFactors = F)
+  
+  if(!is.null((outgroup.name))){
+    ptree$bl.report$status[which(new.tree$tip.label==outgroup.name)] <- "outgroup"
+  }
+    
   ptree$tree                      <- new.tree
   ptree$original.tip.labels       <- new.tree$tip.label
   ptree$m.thresh                  <- multifurcation.threshold
@@ -1401,10 +1405,10 @@ read.blacklist <- function(ptree, verbose = F) {
         cat(length(blacklist), " tips pre-blacklisted for tree ID ",ptree$id, ".\n", sep="")
       }
       
-      new.rows                        <- data.frame(tip = ptree$original.tip.labels[blacklist], reason="user_specified", row.names = NULL)
-      ptree$bl.report                 <- rbind(ptree$bl.report, new.rows)
+      ptree$bl.report$status[blacklist]      <- "bl_user_specified"
       
       ptree$blacklist                 <- blacklist
+      
     } else {
       cat(paste("WARNING: File ",ptree$blacklist.input," does not exist; skipping.\n",sep=""))
     }
@@ -1490,12 +1494,11 @@ blacklist.from.duplicates.vector <- function(ptree, raw.blacklist.threshold, rat
       new.tip.labels                             <- old.tip.labels
       new.tip.labels[newly.blacklisted]          <- paste0(new.tip.labels[newly.blacklisted], "_X_DUPLICATE")
       tree$tip.label                             <- new.tip.labels
-      ptree$tree                             <- tree
+      ptree$tree                                 <- tree
     }
     
     if(length(duplicate.nos)>0){
-      new.rows                               <- data.frame(tip = ptree$original.tip.labels[duplicate.nos], reason="duplicate", row.names = NULL)
-      ptree$bl.report                        <- rbind(ptree$bl.report, new.rows)
+      ptree$bl.report$status[duplicate.nos]             <- "bl_duplicate"
     }
     
     ptree$blacklist <- unique(c(ptree$blacklist, duplicate.nos))
@@ -1543,9 +1546,9 @@ blacklist.using.parsimony <- function(ptree, tip.regex, outgroup.name, raw.black
     ptree$tree                                <- tree
   }
   
+  
   if(length(contaminant.nos)>0){
-    new.rows                                  <- data.frame(tip = ptree$original.tip.labels[contaminant.nos], reason="parsimony_contaminant", row.names = NULL)
-    ptree$bl.report                           <- rbind(ptree$bl.report, new.rows)
+    ptree$bl.report$status[contaminant.nos]          <- "bl_parsimony_contaminant"
   }
   
   ptree$blacklist                             <- unique(c(ptree$blacklist, contaminant.nos))
@@ -1600,8 +1603,7 @@ blacklist.from.duals.list <- function(ptree, dual.results, verbose) {
     }
     
     if(length(dual.nos)>0){
-      new.rows                                  <- data.frame(tip = ptree$original.tip.labels[dual.nos], reason="dual_infection_minor_subgraph", row.names = NULL)
-      ptree$bl.report                           <- rbind(ptree$bl.report, new.rows)
+      ptree$bl.report$status[dual.nos]                 <- "bl_dual_infection_minor_subgraph"
     }
     
     ptree$blacklist                             <- unique(c(ptree$blacklist, dual.nos))
