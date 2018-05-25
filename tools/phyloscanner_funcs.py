@@ -995,12 +995,16 @@ def MakeBamIndices(BamFiles, SamtoolsCommand):
   '''Tries to run samtools index on bam files that don't have a .bai file.'''
   for BamFileName in BamFiles:
     if not os.path.isfile(BamFileName+'.bai'):
+      IndexCommandPieces = [SamtoolsCommand, 'index', BamFileName]
       try:
-        ExitStatus = subprocess.call([SamtoolsCommand, 'index', BamFileName])
+        ExitStatus = subprocess.call(IndexCommandPieces)
         assert ExitStatus == 0
       except:
-        print('Problem running samtools index. Quitting.', file=sys.stderr)
-        raise
+        print('Warning: encountered a problem running the command "' + \
+        ' '.join(IndexCommandPieces) + '" (which we tried to run because',
+        'there is no file', BamFileName + '.bai, i.e. it seems the bam file is',
+        'not indexed). This may prevent the bam file from being readable later',
+        'in the code. Continuing...', file=sys.stderr)
 
 
 def MergeSimilarStringsA(DictOfStringCounts, SimilarityThreshold=1,
