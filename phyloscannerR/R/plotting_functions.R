@@ -138,7 +138,7 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, x.lim
 #' @export produce.host.graphs
 
 produce.host.graphs <- function(host.statistics, host, xcoords, x.limits, missing.window.rects, bar.width, regular.gaps = F, readable.coords = F, verbose = F){
-  
+
   x.axis.label <- if(readable.coords) "Window centre" else "Tree number"
   
   this.host.statistics <- host.statistics[which(host.statistics$host.id==host),]
@@ -147,6 +147,7 @@ produce.host.graphs <- function(host.statistics, host, xcoords, x.limits, missin
   this.host.statistics <- this.host.statistics[which(this.host.statistics$reads>0),]
   
   if(nrow(this.host.statistics) > 0){
+  
     plot.list <- list()
     
     if (verbose) cat("Drawing graphs for host ",host,"\n", sep="")

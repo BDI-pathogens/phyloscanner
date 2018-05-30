@@ -1119,7 +1119,7 @@ multipage.summary.statistics <- function(phyloscanner.trees, sum.stats, hosts = 
   xcoords <- missing.window.data$x.coordinates
   regular.gaps <- missing.window.data$regular.gaps
   rectangles.for.missing.windows <- missing.window.data$rectangles.for.missing.windows
-  bar.width <- missing.window.data$width
+  bar.width <- missing.window.data$bar.width
   
   produce.pdf.graphs(file.name, sum.stats, hosts, xcoords, x.limits, rectangles.for.missing.windows, bar.width, regular.gaps, width, height, readable.coords, verbose)
 }
