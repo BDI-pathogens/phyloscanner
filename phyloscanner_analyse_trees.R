@@ -128,6 +128,11 @@ output.dir                      <- args$outputDir
 if(is.null(output.dir)){
   output.dir                    <- getwd()
 }
+
+if(!dir.exists(output.dir)){
+  stop("Specified output directory (",output.dir,") does not exist.")
+}
+
 output.string                   <- args$outputString
 
 
