@@ -854,14 +854,41 @@ phyloscanner.analyse.tree <- function(
   recombination.file.directory <- if(!is.null(recombination.file.name)) dirname(recombination.file.name) else NULL
   alignment.file.directory <- if(!is.null(alignment.file.name)) dirname(alignment.file.name) else NULL
   
-  phyloscanner.analyse.trees(tree.file.directory, basename(tree.file.name), splits.rule, sankoff.k, sankoff.unassigned.switch.threshold,
-                             continuation.unassigned.proximity.cost, outgroup.name, multifurcation.threshold, guess.multifurcation.threshold,
-                             user.blacklist.directory, basename(user.blacklist.file.name), duplicate.file.directory,
-                             basename(duplicate.file.name), recombination.file.directory, basename(recombination.file.name),
-                             alignment.file.directory, basename(alignment.file.name), tip.regex, file.name.regex, seed, norm.ref.file.name, 
-                             norm.standardise.gag.pol, norm.constants, parsimony.blacklist.k, raw.blacklist.threshold, ratio.blacklist.threshold, 
-                             do.dual.blacklisting, max.reads.per.host, blacklist.underrepresented, use.ff, prune.blacklist, count.reads.in.parsimony, 
-                             verbosity, no.progress.bars)
+  phyloscanner.analyse.trees(
+    tree.file.directory, 
+    basename(tree.file.name), 
+    splits.rule, 
+    sankoff.k, 
+    sankoff.unassigned.switch.threshold,
+    continuation.unassigned.proximity.cost, 
+    outgroup.name, 
+    multifurcation.threshold, 
+    guess.multifurcation.threshold,
+    user.blacklist.directory, 
+    basename(user.blacklist.file.name), 
+    duplicate.file.directory,
+    basename(duplicate.file.name), 
+    recombination.file.directory, 
+    basename(recombination.file.name),
+    alignment.file.directory, 
+    basename(alignment.file.name), 
+    tip.regex, 
+    file.name.regex, 
+    seed, 
+    norm.ref.file.name, 
+    norm.standardise.gag.pol, 
+    norm.constants, 
+    parsimony.blacklist.k, 
+    raw.blacklist.threshold, 
+    ratio.blacklist.threshold,
+    do.dual.blacklisting, 
+    max.reads.per.host, 
+    blacklist.underrepresented, 
+    use.ff, 
+    prune.blacklist, 
+    count.reads.in.parsimony, 
+    verbosity, 
+    no.progress.bars)
 }
 
 #' @export
