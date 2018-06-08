@@ -138,15 +138,16 @@ produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, x.lim
 #' @export produce.host.graphs
 
 produce.host.graphs <- function(host.statistics, host, xcoords, x.limits, missing.window.rects, bar.width, regular.gaps = F, readable.coords = F, verbose = F){
-  
+
   x.axis.label <- if(readable.coords) "Window centre" else "Tree number"
   
-  this.host.statistics <- host.statistics[which(host.statistics$id==host),]
+  this.host.statistics <- host.statistics[which(host.statistics$host.id==host),]
   this.host.statistics <- this.host.statistics[order(this.host.statistics$xcoord),]
   
   this.host.statistics <- this.host.statistics[which(this.host.statistics$reads>0),]
   
-  if(length(which(this.host.statistics$reads>0)) > 0){
+  if(nrow(this.host.statistics) > 0){
+  
     plot.list <- list()
     
     if (verbose) cat("Drawing graphs for host ",host,"\n", sep="")
@@ -167,7 +168,7 @@ produce.host.graphs <- function(host.statistics, host, xcoords, x.limits, missin
     
     #graph 1: read count and tip count
     
-    this.host.statistics.temp <- melt(this.host.statistics[,c("xcoord","id","tips","reads")], id.vars=c("id", "xcoord"))
+    this.host.statistics.temp <- melt(this.host.statistics[,c("xcoord","host.id","tips","reads")], id.vars=c("host.id", "xcoord"))
     
     # if the difference between the largest and smallest values is greater than 10, we want log scale. Otherwise, normal scale.
     
@@ -203,7 +204,7 @@ produce.host.graphs <- function(host.statistics, host, xcoords, x.limits, missin
     
     #graph 2: subgraph and clade counts
     
-    this.host.statistics.temp <- melt(this.host.statistics[,c("xcoord", "id", "subgraphs", "clades")], id.vars=c("id", "xcoord"))
+    this.host.statistics.temp <- melt(this.host.statistics[,c("xcoord", "host.id", "subgraphs", "clades")], id.vars=c("host.id", "xcoord"))
     
     log.scale <- max(this.host.statistics.temp$value - min(this.host.statistics.temp$value) >= 10)
     y.limits <- NULL
@@ -247,7 +248,7 @@ produce.host.graphs <- function(host.statistics, host, xcoords, x.limits, missin
     
     # graph 3: root-to-tip distances for all reads and largest subgraph
     
-    this.host.statistics.temp <- melt(this.host.statistics[,c("xcoord","id","overall.rtt","largest.rtt")], id.vars=c("id", "xcoord"))
+    this.host.statistics.temp <- melt(this.host.statistics[,c("xcoord","host.id","overall.rtt","largest.rtt")], id.vars=c("host.id", "xcoord"))
     
     graph.3 <- ggplot(this.host.statistics.temp, aes(x=xcoord, y=value))
     
@@ -272,7 +273,7 @@ produce.host.graphs <- function(host.statistics, host, xcoords, x.limits, missin
     
     # graph 4: largest patristic distance in largest subgraph
     
-    this.host.statistics.temp <- melt(this.host.statistics[,c("xcoord","id","global.mean.pat.distance","subgraph.mean.pat.distance")], id.vars=c("id", "xcoord"))
+    this.host.statistics.temp <- melt(this.host.statistics[,c("xcoord","host.id","global.mean.pat.distance","subgraph.mean.pat.distance")], id.vars=c("host.id", "xcoord"))
     
     graph.4 <- ggplot(this.host.statistics.temp, aes(x=xcoord, y=value))
     
@@ -300,14 +301,14 @@ produce.host.graphs <- function(host.statistics, host, xcoords, x.limits, missin
     proportion.column.names <- colnames(host.statistics)[which(substr(colnames(host.statistics), 1, 8)=="prop.gp.")]
     
     # only columns with nonzero entries should be kept
-    proportion.columns <- host.statistics[which(host.statistics$id==host), proportion.column.names, with=F]
+    proportion.columns <- host.statistics[which(host.statistics$host.id==host), proportion.column.names, with=F]
     
     sums <- colSums(proportion.columns, na.rm=T)
     proportion.column.names <- proportion.column.names[which(sums>0)]
     
-    splits.props <- host.statistics[which(host.statistics$id==host), c("id", "xcoord", proportion.column.names), with=F]
+    splits.props <- host.statistics[which(host.statistics$host.id==host), c("host.id", "xcoord", proportion.column.names), with=F]
     
-    splits.props.1col <- melt(splits.props, id=c("id", "xcoord"))
+    splits.props.1col <- melt(splits.props, id=c("host.id", "xcoord"))
     splits.props.1col <- splits.props.1col[!is.na(splits.props.1col$value),]
     
     splits.props.1col$ngroup <- sapply(splits.props.1col$variable, function(x) which(levels(splits.props.1col$variable)==x))

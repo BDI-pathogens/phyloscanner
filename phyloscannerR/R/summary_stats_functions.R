@@ -115,7 +115,7 @@ calc.subtree.stats <- function(host.id, tree.id, tree, tips.for.patients, splits
 
 get.tip.and.read.counts <- function(ptree, hosts, tip.regex, has.read.counts, verbose = F){
   
-  id <- ptree$id
+  tree.id <- ptree$id
   
   if(verbose) cat("Calculating tip and read counts for tree ID ",ptree$id,"\n",sep="")
   
@@ -141,7 +141,7 @@ get.tip.and.read.counts <- function(ptree, hosts, tip.regex, has.read.counts, ve
   # Make the data.table
   
   window.table <- data.table(id=hosts)
-  window.table <- window.table[, tree.id := id]
+  window.table <- window.table[, tree.id := tree.id]
   window.table <- window.table[, tips :=  sapply(hosts, function(x) as.numeric(length(tips.for.hosts[[x]])))]
   window.table <- window.table[, reads :=  sapply(hosts, function(x){
     if(length(tips.for.hosts[[x]])==0){
