@@ -1082,7 +1082,6 @@ WindowAsStr):
     print('Warning: bam file ', BamFileBasename, ' has no reads (after ',
     'processing) that fully span the window ', WindowAsStr, ".", sep='',
     file=sys.stderr)
-    return []
 
   # Return a list of reads named according to their count.
   reads = []
