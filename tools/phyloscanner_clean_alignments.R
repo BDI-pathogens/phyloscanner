@@ -215,23 +215,6 @@ ptrees <- phyloscanner.generate.blacklist(
   verbosity)
 
 
-silent <- sapply(ptrees, function(ptree){
-  
-  if(!is.null(ptree$alignment.file.name)){
-    
-    seqs     <- read.dna(ptree$alignment.file.name, format="fasta")
-    new.seqs <- seqs[which(!(labels(seqs) %in% ptree$original.tip.labels[ptree$blacklist])),]
-    new.afn  <- paste0(output.string, "_", ptree$id, ".fasta")
-    
-    if(verbosity!=0) cat("Writing cleaned alignment to ",new.afn, "\n", sep="")
-    write.dna(new.seqs, new.afn, format="fasta")
-
-  } else {
-    if(verbosity!=0) cat("No alignment file found for tree ID ",ptree$suffix, "\n", sep="")
-  }
-  
-})
-
 if(output.blacklisting.report){
   if (verbosity!=0) cat('Saving blacklisting report to file', paste0(output.string,"_blacklistReport.csv"),'...\n', sep="")
   
@@ -250,3 +233,22 @@ if(output.blacklisting.report){
   
   write.csv(output.bl.report, file = file.path(output.dir, paste0(output.string,"_blacklistReport.csv")), quote=F, row.names=F)
 }
+
+
+silent <- sapply(ptrees, function(ptree){
+  
+  if(!is.null(ptree$alignment.file.name)){
+    
+    seqs     <- read.dna(ptree$alignment.file.name, format="fasta")
+    new.seqs <- seqs[which(!(labels(seqs) %in% ptree$original.tip.labels[ptree$blacklist])),]
+    new.afn  <- paste0(output.string, "_", ptree$id, ".fasta")
+    
+    if(verbosity!=0) cat("Writing cleaned alignment to ",new.afn, "\n", sep="")
+    write.dna(new.seqs, new.afn, format="fasta")
+
+  } else {
+    if(verbosity!=0) cat("No alignment file found for tree ID ",ptree$suffix, "\n", sep="")
+  }
+  
+})
+
