@@ -235,7 +235,7 @@ silent <- sapply(ptrees, function(ptree){
 if(output.blacklisting.report){
   if (verbosity!=0) cat('Saving blacklisting report to file', paste0(output.string,"_blacklistReport.csv"),'...\n', sep="")
   
-  dfs <- lapply(phyloscanner.trees, function(x) {
+  dfs <- lapply(ptrees, function(x) {
     treebl.df <- x$bl.report
     if(nrow(treebl.df)>0){
       treebl.df$tree.id <- x$id
