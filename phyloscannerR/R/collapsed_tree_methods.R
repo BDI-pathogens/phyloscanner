@@ -856,7 +856,7 @@ classify <- function(tree.info, verbose = F, no.progress.bars = F) {
   
   classification <- cbind(adjacency.df, contiguity.df[,3], dir.12.df[,3], dir.21.df[,3], nodes.1.df[,3], nodes.2.df[,3], path.df[,3], min.distance.df[,3])
   
-  column.names <- c("host.1", "host.2", "adjacent", "contiguous", "paths12", "paths21", "nodes1", "nodes2", "path.classification", "min.distance.between.subgraphs")
+  column.names <- c("host.1", "host.2", "adjacent", "contiguous", "paths12", "paths21", "nodes1", "nodes2", "ancestry", "min.distance.between.subgraphs")
   
   if(normalisation.constant!=1){
     classification <- cbind(classification, normalised.distance.df[,3])
@@ -871,55 +871,68 @@ convert.to.columns <- function(matrix, names){
   a.table <- as.table(matrix)
   colnames(a.table) <- names
   rownames(a.table) <- names
-  a.df <- as.data.frame(a.table, stringsAsFactors=F)
+  
+  a.df <- as_data_frame(a.table)
+  
+  # I am unclear why the third column ends up as a factor, even if I use as.data.frame with stringsAsFactors = F
+  a.df <- a.df %>% mutate_at("n", as.character)
+  
   keep <- complete.cases(a.df)
   a.df <- a.df[keep,]
-  return(a.df)
+  
+  a.df
 }
 
 #' @keywords internal
 #' @export merge.classifications
+ 
 
 
-
-merge.classifications <- function(all.tree.info, allow.mt = T, verbose = F){
-  tt	<-	lapply(all.tree.info, function(tree.info){
-    if(is.null(tree.info$classification.results$classification) & is.null(tree.info$classification.file.name)){
+merge.classifications <- function(ptrees, allow.mt = T, verbose = F){
+  
+  classification.rows	<- ptrees %>% map(function(ptree) {
+    if(is.null(ptree$classification.results$classification) & is.null(ptree$classification.file.name)){
       NULL
     }
     
-    if(!is.null(tree.info$classification.results$classification)){
-      tt <- as.data.table(tree.info$classification.results$classification)
+    if(!is.null(ptree$classification.results$classification)){
+      # TODO this doesn't need to be coerced to a tibble in the end - it should be already
+      
+      tt <- as.tibble(ptree$classification.results$classification)
+      
+      # TODO remove this hack
+      if("path.classification" %in% names(tt)) tt <- tt %>% rename(ancestry = path.classification)
     } else {
-      if (verbose) cat("Reading window input file ",tree.info$classification.file.name,"\n", sep="")
-      tt <- as.data.table(read.table(tree.info$classification.file.name, sep=",", header=TRUE, stringsAsFactors=FALSE))
+      if (verbose) cat("Reading window input file ", ptree$classification.file.name,"\n", sep="")
+      tt <- read_csv(ptree$classification.file.name, header=TRUE)
     }
-    tt[, ID:=tree.info$id]			
+    
+    tt <- tt %>% add_column(tree.id = ptree$id)
+    			
     tt
   })	
   
-  if(length(tt)==0){
+  if(length(classification.rows)==0){
     stop("No classification results present in any window; cannot continue.\n")
   }
   
   # need to worry about transmissions listed in the wrong direction in the input file
-  # to avoid very large memory, consolidate by FILE
-  
+
   if(verbose) cat("Rearranging host pairs...\n")
   
-  tt	<- lapply(tt, function(x){
-    #x	<- tt[[1]]
-    tmp	<- copy(x)
-    setnames(tmp, c('host.1','host.2','paths12','paths21'), c('host.2','host.1','paths21','paths12'))
-    set(tmp, tmp[, which(path.classification=="anc")], 'path.classification', 'TMP')
-    set(tmp, tmp[, which(path.classification=="desc")], 'path.classification', 'anc')
-    set(tmp, tmp[, which(path.classification=="TMP")], 'path.classification', 'desc')
-    set(tmp, tmp[, which(path.classification=="multiAnc")], 'path.classification', 'TMP')
-    set(tmp, tmp[, which(path.classification=="multiDesc")], 'path.classification', 'multiAnc')
-    set(tmp, tmp[, which(path.classification=="TMP")], 'path.classification', 'multiDesc')
-    x	<- rbind(x, tmp)
-    setkey(x, host.1, host.2)
-    subset(x, host.1 < host.2)
+  classification.rows	<- classification.rows %>% map(function(x){
+    
+    # TODO this line should go when tidyscanner is done
+    
+    x <- x %>% mutate_at("ancestry", as.character)
+    
+    x <- x %>% mutate(ancestry = replace(ancestry, host.2 < host.1 & ancestry == "anc", "desc"))
+    x <- x %>% mutate(ancestry = replace(ancestry, host.2 < host.1 & ancestry == "desc", "anc"))
+    x <- x %>% mutate(ancestry = replace(ancestry, host.2 < host.1 & ancestry == "multiAnc", "multiDesc"))
+    x <- x %>% mutate(ancestry = replace(ancestry, host.2 < host.1 & ancestry == "multiDesc", "multiAnc"))
+    
+    
+    x
   })
   #
   # rbind consolidated files
@@ -927,120 +940,109 @@ merge.classifications <- function(all.tree.info, allow.mt = T, verbose = F){
   
   if(verbose) cat("Consolidating file contents...\n")
   
-  tt	<- do.call('rbind',tt)
+  classification.rows <- bind_rows(classification.rows)
   
   if(verbose) cat("Finding patristic distance columns...\n")
   
   # reset names depending on which Classify script was used
-  if(any('normalised.min.distance.between.subgraphs'==colnames(tt))){
-    setnames(tt, 'normalised.min.distance.between.subgraphs', 'PATRISTIC_DISTANCE')
-    set(tt, NULL, 'min.distance.between.subgraphs', NULL)
-  } else if(any('min.distance.between.subgraphs'==colnames(tt))){
-    setnames(tt, 'min.distance.between.subgraphs', 'PATRISTIC_DISTANCE')
+  if('normalised.min.distance.between.subgraphs' %in% names(classification.rows)){
+    
+    classification.rows <- classification.rows %>% rename(patristic.distance = normalised.min.distance.between.subgraphs)
+    classification.rows <- classification.rows %>% select(-min.distance.between.subgraphs)
+
+  } else if('min.distance.between.subgraphs' %in% names(classification.rows)){
+    
+    classification.rows <- classification.rows %>% rename(patristic.distance = min.distance.between.subgraphs)
+    
   }
   
-  setnames(tt, c('host.1','host.2','path.classification','paths21','paths12','adjacent','contiguous'), c('HOST.1','HOST.2','TYPE','PATHS.21','PATHS.12','ADJACENT','CONTIGUOUS'))
-  
   # change type name depending on allow.mt
+  
   if(!allow.mt){
     if(verbose) cat("Allowing only single lineage transmission to be used to infer directionality\n")
-    set(tt, tt[, which(TYPE%in%c("multiAnc", "multiDesc"))], 'TYPE', 'complex')
+    
+    classification.rows <- classification.rows %>% mutate(ancestry = 
+                                                            replace(ancestry, which(ancestry %in% c("multiAnc", "multiDesc")), "complex"))
   }
   
   #	check we have patristic distances, paths
   
-  stopifnot( !nrow(subset(tt, is.na(PATRISTIC_DISTANCE))) )
-  stopifnot( !nrow(subset(tt, is.na(PATHS.12))) )
-  stopifnot( !nrow(subset(tt, is.na(PATHS.21))) )
+  stopifnot('patristic.distance' %in% names(classification.rows))
+  stopifnot(!nrow(classification.rows %>% filter(is.na(patristic.distance))))
+  stopifnot(!nrow(classification.rows %>% filter(is.na(paths12))))
+  stopifnot(!nrow(classification.rows %>% filter(is.na(paths21))))
   
-  #	set to numeric
-  set(tt, NULL, 'PATRISTIC_DISTANCE', tt[, as.numeric(PATRISTIC_DISTANCE)])
-  # 	add window coordinates
+  #	set to numeric (probably not necessary now)
   
-  #	rename TYPE
-  set(tt, tt[,which(TYPE=='anc')], 'TYPE', 'anc_12')
-  set(tt, tt[,which(TYPE=='desc')], 'TYPE', 'anc_21')
-  set(tt, tt[,which(TYPE=='multiAnc')], 'TYPE', 'multi_anc_12')
-  set(tt, tt[,which(TYPE=='multiDesc')], 'TYPE', 'multi_anc_21')
+  classification.rows <- classification.rows %>% mutate_at("patristic.distance", as.numeric)
   
   if(verbose) cat("Reordering...\n")
   
   #	reorder
-  setkey(tt, ID, HOST.1, HOST.2)
+  classification.rows <- classification.rows %>% arrange(tree.id, host.1, host.2)
   
-  return(tt)
+  return(classification.rows)
 }
 
 #' @keywords internal
 #' @export summarise.classifications
 
-summarise.classifications <- function(all.tree.info, min.threshold, dist.threshold, allow.mt = T, close.sib.only = F, verbose = F, contiguous = F){
+summarise.classifications <- function(ptrees, min.threshold, dist.threshold, allow.mt = T, close.sib.only = F, verbose = F, contiguous = F){
   
-  tt <- merge.classifications(all.tree.info, allow.mt, verbose)
+  tt <- merge.classifications(ptrees, allow.mt, verbose)
   
   if (verbose) cat("Making summary output table...\n")
   
-  set(tt, NULL, c('PATHS.12','PATHS.21'),NULL)
+  tt <- tt %>% select(-c(paths12, paths21))
   
-  existence.counts <- tt[, list(both.exist=length(ID)), by=c('HOST.1','HOST.2')]
-  
-  tt <- merge(tt, existence.counts, by=c('HOST.1', 'HOST.2'))
-  
+  existence.counts <- tt %>% count(host.1, host.2)
+
+  tt <- tt %>% group_by(host.1, host.2) %>% mutate(both.exist = n()) %>% ungroup()
+
   if(!close.sib.only){
     if(!contiguous){
-      tt.close <- tt[which(tt$ADJACENT & tt$PATRISTIC_DISTANCE < dist.threshold ),]
+      tt.close <- tt %>% filter(adjacent & patristic.distance < dist.threshold)
     } else {
-      tt.close <- tt[which(tt$CONTIGUOUS & tt$PATRISTIC_DISTANCE < dist.threshold ),]
+      tt.close <- tt %>% filter(contiguous & patristic.distance < dist.threshold)
     }
   } else {
     if(!contiguous){
-      tt.close <- tt[which(tt$ADJACENT & (tt$TYPE != "none" | tt$PATRISTIC_DISTANCE < dist.threshold)),]
+      tt.close <- tt %>% filter(adjacent & (patristic.distance < dist.threshold | ancestry == "none"))
     } else {
-      tt.close <- tt[which(tt$CONTIGUOUS & (tt$TYPE != "none" | tt$PATRISTIC_DISTANCE < dist.threshold)),]
+      tt.close <- tt %>% filter(contiguous & (patristic.distance < dist.threshold | ancestry == "none"))
     }
   }
   
-  # How many windows have this relationship, ADJACENT and PATRISTIC_DISTANCE below the threshold?
-  type.counts	<- tt.close[, list(trees.with.this.relationship=length(ID)), by=c('HOST.1','HOST.2','TYPE')]
+  # How many windows have this relationship, adjacent and patristic.distance below the threshold?
+  tt.close	<- tt.close %>% group_by(host.1, host.2, ancestry) %>% mutate(ancestry.tree.count = n()) %>% ungroup()
+  
   # How many windows have ADJACENT and PATRISTIC_DISTANCE below the threshold?
-  any.counts  <- tt.close[, list(trees.with.any.relationship=length(ID)), by=c('HOST.1','HOST.2')]
+  
+  tt.close <- tt.close %>% group_by(host.1, host.2) %>% mutate(any.relationship.tree.count = n()) %>% ungroup()
+  
+  tt.close <- tt.close %>% mutate(fraction = paste0(ancestry.tree.count,'/',both.exist))
+  
+  #	Flip directions - all ancestry is now "trans" or "multiTrans"
+  
+  tt.close <- tt.close %>% mutate(new.host.1 = ifelse(ancestry %in% c("desc", "multiDesc"), host.2, host.1), 
+                                  new.host.2 = ifelse(ancestry %in% c("desc", "multiDesc"), host.1, host.2), 
+                                  host.1 = new.host.1,
+                                  host.2 = new.host.2) %>% select(-new.host.1, -new.host.2)
+  
+  tt.close <- tt.close %>% mutate(ancestry = replace(ancestry, ancestry == "anc" | ancestry == "desc", "trans"))
+  tt.close <- tt.close %>% mutate(ancestry = replace(ancestry, ancestry == "multiAnc" | ancestry == "multiDesc", "multiTrans"))
 
-  tt.close		<- merge(tt.close, type.counts, by=c('HOST.1','HOST.2','TYPE'))
-  tt.close		<- merge(tt.close, any.counts, by=c('HOST.1','HOST.2'))
-
-  tt.close[, fraction:=paste(trees.with.this.relationship,'/',both.exist,sep='')]
+  tt.close <- tt.close %>% select(-tree.id, -adjacent, -contiguous, -nodes1, -nodes2, -patristic.distance)
   
-  #	convert "anc_12" and "ans_21" to "anc" depending on direction
-  tt.close[, DUMMY:=NA_character_]
-  tmp			<- tt.close[, which(TYPE=="anc_12")]
-  set(tt.close, tmp, 'TYPE', "trans")
-  tmp			<- tt.close[, which(TYPE=="anc_21")]
-  set(tt.close, tmp, 'DUMMY', tt.close[tmp, HOST.1])
-  set(tt.close, tmp, 'HOST.1', tt.close[tmp, HOST.2])
-  set(tt.close, tmp, 'HOST.2', tt.close[tmp, DUMMY])
-  set(tt.close, tmp, 'TYPE', "trans")
-  
-  tmp			<- tt.close[, which(TYPE=="multi_anc_12")]
-  set(tt.close, tmp, 'TYPE', "multi_trans")
-  tmp			<- tt.close[, which(TYPE=="multi_anc_21")]
-  set(tt.close, tmp, 'DUMMY', tt.close[tmp, HOST.1])
-  set(tt.close, tmp, 'HOST.1', tt.close[tmp, HOST.2])
-  set(tt.close, tmp, 'HOST.2', tt.close[tmp, DUMMY])
-  set(tt.close, tmp, 'TYPE', "multi_trans")
-  
-  tt.close[, DUMMY:=NULL]
-  
-  set(tt.close, NULL, c('ID', 'ADJACENT','PATRISTIC_DISTANCE', "CONTIGUOUS", "nodes1", "nodes2"), NULL)
-  tt.close <- tt.close[!duplicated(tt.close),]
+  tt.close <- tt.close %>% distinct()
   
   setkey(tt.close, HOST.1, HOST.2, TYPE)
   
-  setnames(tt.close, c('HOST.1','HOST.2','TYPE', 'fraction', 'trees.with.this.relationship', 'trees.with.any.relationship'), 
-           c('host.1', 'host.2', 'ancestry', 'fraction', 'ancestry.tree.count', 'any.relationship.tree.count'))
+  tt.close <- tt.close %>% arrange(host.1, host.2, ancestry)
   
-  setcolorder(tt.close, c('host.1', 'host.2', 'ancestry', 'ancestry.tree.count', 'both.exist', 'fraction', 'any.relationship.tree.count'))
+  tt.close <- tt.close %>% select(host.1, host.2, ancestry, ancestry.tree.count, both.exist, fraction, any.relationship.tree.count)
   
-  return(subset(tt.close, any.relationship.tree.count>min.threshold))
+  tt.close %>% filter(any.relationship.tree.count > min.threshold)
 }
 
 #' @keywords internal

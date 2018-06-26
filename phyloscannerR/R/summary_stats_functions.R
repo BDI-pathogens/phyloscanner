@@ -136,25 +136,25 @@ get.tip.and.read.counts <- function(ptree, hosts, tip.regex, has.read.counts, ve
   
   # A list of tips for each patient 
   
-  tips.for.hosts <- lapply(setNames(hosts, hosts), function(x) tree$tip.label[which(hosts.for.tips==x)])
+  tips.for.hosts <- map(setNames(hosts, hosts), function(x) tree$tip.label[which(hosts.for.tips==x)])
   
   # Make the data.table
   
-  window.table <- data.table(id=hosts)
-  window.table <- window.table[, tree.id := tree.id]
-  window.table <- window.table[, tips :=  sapply(hosts, function(x) as.numeric(length(tips.for.hosts[[x]])))]
-  window.table <- window.table[, reads :=  sapply(hosts, function(x){
+  window.table <- tibble(host.id=hosts)
+  window.table <- window.table %>% mutate(tree.id = tree.id) 
+  window.table <- window.table %>% mutate(tips = map_int(host.id, function(x)  (length(tips.for.hosts[[x]]))))
+  window.table <- window.table %>% mutate(reads = map_int(host.id, function(x){
     if(length(tips.for.hosts[[x]])==0){
-      return(0)
+      return(0L)
     } else {
       if(has.read.counts){
-        return(sum(sapply(tips.for.hosts[[x]], function(y) as.numeric(read.count.from.label(y, tip.regex)))))
+        return(sum(map_int(tips.for.hosts[[x]], function(y) read.count.from.label(y, tip.regex))))
       } else {
-        return(as.numeric(length(tips.for.hosts[[x]])))
+        return(length(tips.for.hosts[[x]]))
       }
     }
-  } 
-  )]
+  })) 
+    
   window.table
 }
 

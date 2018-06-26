@@ -47,8 +47,8 @@ get.window.coords.string <- function(string, regex = "^\\D*([0-9]+)_to_([0-9]+).
 #' @keywords internal
 #' @export all.hosts.from.trees
 
-all.hosts.from.trees <- function(phyloscanner.trees){
-  hosts <- lapply(phyloscanner.trees, "[[" , "hosts.for.tips")
+all.hosts.from.trees <- function(ptrees){
+  hosts <- ptrees %>% map("hosts.for.tips")
   hosts <- unique(unlist(hosts))
   hosts <- hosts[!is.na(hosts)]
   hosts <- hosts[order(hosts)]
