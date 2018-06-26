@@ -209,10 +209,10 @@ get.keff.and.neff <- function(df, get.groups, w.slide=NA){
   #	identify chunks of contiguous windows
   
   if(is.na(w.slide)) {
-    w.slide <- df %>% group_by(host.1, host.2) %>% summarise(slide.width = min(diff(window.start)))
+    w.slide <- df %>% group_by(host.1, host.2) %>% summarise(slide.width = min(diff(window.start))) %>% ungroup()
     
-    w.slide	<- filter(w.slide, !is.na(slide.width))
-    w.slide	<- ifelse(nrow(w.slide), w.slide[, min(slide.width)], 1L)		
+    w.slide	<- w.slide %>% filter(!is.na(slide.width))
+    w.slide	<- ifelse(nrow(w.slide), min(w.slide$slide.width), 1L)		
   }
   #	define chunks
 
