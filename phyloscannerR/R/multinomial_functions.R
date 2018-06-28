@@ -105,10 +105,10 @@ multinomial.calculations <- function(ptrees,
 #' @title Calculate pairwise relationships
 #' @description This function calculates pairwise relationships between each pair of two individuals in any window. Several different relationship groups can be calculated, for example just using pairwise distance, or using both pairwise distance and topology to define likely pairs.
 #' @export    
-#' @param df data.table to which new columns of relationship groups will be added. Must contain a column with name TYPE_BASIC. This column contains fundamental relationship states for every window, from which other relationships are derived. 
+#' @param df tibble to which new columns of relationship groups will be added. Must contain a column with name TYPE_BASIC. This column contains fundamental relationship states for every window, from which other relationships are derived. 
 #' @param get.groups names of relationship groups  
 #' @keywords internal
-#' @return input data.table with new columns. Each new column defines relationship states for a specific relationship group. 
+#' @return input tibble with new columns. Each new column defines relationship states for a specific relationship group. 
  
 get.pairwise.relationships <- function(df, get.groups=c('proximity.3.way',
                                                         'any.ancestry',
@@ -205,10 +205,10 @@ get.pairwise.relationships <- function(df, get.groups=c('proximity.3.way',
 #' @description This function counts for each pair of individuals their relationship states across all windows (KEFF), and the total number of windows (NEFF). Since windows can be overlapping, the count is a real value.
 #' @export    
 #' @keywords internal
-#' @param df data.table with basic relationship types for paired individuals across windows. Must contain columns 'ID1','ID2','W_FROM','W_TO','TYPE_BASIC'. 
+#' @param df tibble with basic relationship types for paired individuals across windows. Must contain columns 'ID1','ID2','W_FROM','W_TO','TYPE_BASIC'. 
 #' @param get.groups names of relationship groups
-#' @import data.table  
-#' @return new data.table with columns host.1 host.2 GROUP TYPE K KEFF N NEFF.
+#' @import tidyverse  
+#' @return new tibble with columns host.1 host.2 GROUP TYPE K KEFF N NEFF.
 #'  
 get.keff.and.neff <- function(df, get.groups, w.slide=NA){
   
@@ -283,7 +283,6 @@ get.keff.and.neff <- function(df, get.groups, w.slide=NA){
     ungroup()
   
   #	add zero-count relationship states (change to wide table and set NA's to zero's)
-  # tidyverse wins hands-down here (unless data.table can do it some other way)
   
   category.parameters <- category.parameters %>% 
     complete(nesting(categorisation, type), nesting(host.1, host.2, statistic), fill = list(value=0))
@@ -309,23 +308,22 @@ get.keff.and.neff <- function(df, get.groups, w.slide=NA){
 #' @param n.type Calibration parameter for the prior: minimum number of windows of state to select a pair of individuals with confidence of at least at least confidence.cut, if the total number of windows is n.obs
 #' @param n.obs Calibration parameter for the prior: total number of windows. 
 #' @param confidence.cut Calibration parameter for the prior: confidence cut off.  
-#' @return Input data.table with two additional columns POSTERIOR_ALPHA and POSTERIOR_BETA
+#' @return Input tibble with two additional columns POSTERIOR_ALPHA and POSTERIOR_BETA
 #' @keywords internal
 get.posterior.scores <- function(df){
   
   stopifnot(c('categorisation') %in% colnames(df))
   category.counts <- get.pairwise.relationship.category.counts()	
   category.counts <- category.counts %>%
-    group_by(categorisation, n) %>%
-    rename(par.prior = n)
+    group_by(categorisation, n.type) %>%
+    mutate(par.prior = n.type)
   
   category.counts <- category.counts %>%
-    mutate(posterior.alpha = par.prior/)
+    mutate(posterior.alpha = par.prior/n + k.eff, 
+           posterior.beta = par.prior*(1-(1/n.type)) + n.eff - k.eff, 
+           posterior.score = (posterior.alpha - 1)/(posterior.alpha + posterior.beta - n.type))
 
-  df[, POSTERIOR_ALPHA:= PAR_PRIOR/N_TYPE+KEFF]
-  df[, POSTERIOR_BETA:= PAR_PRIOR*(1-1/N_TYPE)+NEFF-KEFF]	
-  df[, POSTERIOR_SCORE:= (POSTERIOR_ALPHA-1) / (POSTERIOR_ALPHA+POSTERIOR_BETA-N_TYPE)]
-  df
+  category.counts
 }
 
 
@@ -430,7 +428,7 @@ get.pairwise.relationship.category.counts <- function() {
                   'close.and.contiguous.and.ancestry.cat','4',
                   'close.and.adjacent.and.ancestry.cat','4',
                   'basic.classification','24'), ncol=2,byrow=TRUE)
-  colnames(tmp)	<- c('categorisation','n')
+  colnames(tmp)	<- c('categorisation','n.type')
   tmp				    <- as_tibble(tmp)
   tmp
 }
