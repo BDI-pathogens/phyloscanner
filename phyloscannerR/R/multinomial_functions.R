@@ -224,10 +224,16 @@ get.keff.and.neff <- function(df, relationship.types, w.slide=NA){
   #	identify chunks of contiguous windows
   
   if(is.na(w.slide)) {
+    # There are warnings here but it's OK unless _every_ pair in the dataset occurs in only one window
+    
     w.slide <- df %>% group_by(host.1, host.2) %>% summarise(slide.width = min(diff(window.start))) %>% ungroup()
     
     w.slide	<- w.slide %>% filter(!is.na(slide.width))
     w.slide	<- ifelse(nrow(w.slide), min(w.slide$slide.width), 1L)		
+    
+    if(w.slide == Inf){
+      stop("Cannot calculate sliding window size from this data")
+    }
   }
   #	define chunks
 
