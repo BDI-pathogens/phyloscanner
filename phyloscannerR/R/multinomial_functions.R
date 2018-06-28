@@ -248,7 +248,7 @@ get.keff.and.neff <- function(df, relationship.types, w.slide=NA){
   
   category.parameters <- df %>% 
     group_by(host.1, host.2, chunk.no, basic.classification) %>%
-    summarise(k = n(), k.eff = n()/effective.n.windows[1] * n.windows[1]) %>%
+    summarise(k = n(), k.eff = n()/n.windows[1] * effective.n.windows[1]) %>%
     ungroup()
   
   category.parameters <- category.parameters %>%
@@ -317,7 +317,7 @@ get.posterior.scores <- function(df){
   df <- df %>% inner_join(category.counts)
   
   df <- df %>%
-    mutate(posterior.alpha = par.prior/n + k.eff, 
+    mutate(posterior.alpha = par.prior/n.type + k.eff, 
            posterior.beta = par.prior*(1-(1/n.type)) + n.eff - k.eff, 
            posterior.score = (posterior.alpha - 1)/(posterior.alpha + posterior.beta - n.type))
 
