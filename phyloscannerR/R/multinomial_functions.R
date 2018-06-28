@@ -62,12 +62,12 @@ multinomial.calculations <- function(ptrees,
     }
   }))
   
-  if(verbose) cat('\nReducing transmission window stats to windows with at least',min.reads,'reads and at least',min.tips,'tips ...')
+  if(verbose) cat('Reducing transmission window stats to windows with at least',min.reads,'reads and at least',min.tips,'tips...\n')
   all.classifications	<- all.classifications %>% 
     filter(reads.1 >= min.reads & reads.2 >= min.reads & tips.1 >= min.tips & tips.2 >= min.tips)
-  if(verbose) cat('\nTotal number of windows with transmission assignments is ',nrow(all.classifications),'.', sep="")		
+  if(verbose) cat('Total number of windows with transmission assignments is ',nrow(all.classifications),'.\n', sep="")		
   
-  if(verbose) cat('\nCalculating basic pairwise relationships for windows (n=',nrow(all.classifications),')...', sep="")
+  if(verbose) cat('Calculating basic pairwise relationships for windows (n=',nrow(all.classifications),')...\n', sep="")
   all.classifications	<- all.classifications %>% categorise("basic.classification", "other",
                      list(contiguous=TRUE, adjacent=TRUE, ancestry=c("anc", "multiAnc"), label="anc_contiguous"),
                      list(contiguous=FALSE, adjacent=TRUE, ancestry=c("anc", "multiAnc"), label="anc_noncontiguous"),
@@ -85,15 +85,15 @@ multinomial.calculations <- function(ptrees,
                      list(categorical.distance = "distant", label="distant"),
                      list(categorical.distance = "intermediate", label="intermediate"))
   
-  if(verbose) cat('\nCalculating derived pairwise relationships for windows (n=',nrow(all.classifications),')...', sep="")
+  if(verbose) cat('Calculating derived pairwise relationships for windows (n=',nrow(all.classifications),')...\n', sep="")
   all.classifications <- all.classifications %>% get.pairwise.relationships(get.groups=relationship.types)
   
-  if(verbose) cat('\nCalculating k.eff and n.eff for windows (n=',nrow(all.classifications),')...', sep="")
+  if(verbose) cat('Calculating k.eff and n.eff for windows (n=',nrow(all.classifications),')...\n', sep="")
   category.parameters	<- all.classifications %>% 
     get.keff.and.neff(relationship.types)
   
-  if(verbose) cat('\nCalculating posterior state probabilities for pairs and relationship groups (n=',nrow(category.parameters),')...', sep="")
-  category.parameters	< category.parameters %>% 
+  if(verbose) cat('Calculating posterior state probabilities for pairs and relationship groups (n=',nrow(category.parameters),')...\n', sep="")
+  category.parameters	<- category.parameters %>% 
     get.posterior.scores()
   
   list(dwin=all.classifications, rplkl=category.parameters)
@@ -312,15 +312,16 @@ get.posterior.scores <- function(df){
   stopifnot(c('categorisation') %in% colnames(df))
   category.counts <- get.pairwise.relationship.category.counts()	
   category.counts <- category.counts %>%
-    group_by(categorisation, n.type) %>%
     mutate(par.prior = n.type)
   
-  category.counts <- category.counts %>%
+  df <- df %>% inner_join(category.counts)
+  
+  df <- df %>%
     mutate(posterior.alpha = par.prior/n + k.eff, 
            posterior.beta = par.prior*(1-(1/n.type)) + n.eff - k.eff, 
            posterior.score = (posterior.alpha - 1)/(posterior.alpha + posterior.beta - n.type))
 
-  category.counts
+  df
 }
 
 
@@ -415,18 +416,18 @@ categorise <- function(df, col.name, no.match.result = NA_character_, ...){
 }
 
 get.pairwise.relationship.category.counts <- function() {
-  tmp	<- matrix(c('proximity.3.way','3',
-                  'any.ancestry','2',
-                  'close.x.contiguous','4',					
-                  'close.and.contiguous','2',
-                  'close.and.contiguous.and.directed','2',															
-                  'adjacent.and.proximity.cat','3',
-                  'close.and.adjacent.and.directed','2',
-                  'close.and.contiguous.and.ancestry.cat','4',
-                  'close.and.adjacent.and.ancestry.cat','4',
-                  'basic.classification','24'), ncol=2,byrow=TRUE)
+  tmp	<- matrix(c('proximity.3.way', 3,
+                  'any.ancestry',2 ,
+                  'close.x.contiguous', 4,					
+                  'close.and.contiguous', 2,
+                  'close.and.contiguous.and.directed', 2,															
+                  'adjacent.and.proximity.cat', 3,
+                  'close.and.adjacent.and.directed', 2,
+                  'close.and.contiguous.and.ancestry.cat', 4,
+                  'close.and.adjacent.and.ancestry.cat', 4,
+                  'basic.classification', 24 ), ncol=2,byrow=TRUE)
   colnames(tmp)	<- c('categorisation','n.type')
-  tmp				    <- as_tibble(tmp)
+  tmp <- tmp %>% as_tibble() %>% type_convert()
   tmp
 }
 
