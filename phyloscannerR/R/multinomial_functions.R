@@ -39,6 +39,8 @@ multinomial.calculations <- function(ptrees,
   host.tips.and.reads <- map(ptrees, function(x) get.tip.and.read.counts(x, all.hosts.from.trees(ptrees), tip.regex, attr(ptrees, 'has.read.counts'), verbose))
   host.tips.and.reads <- bind_rows(host.tips.and.reads)
   
+  if(verbose) cat('Merging tip and read counts...\n')
+  
   all.classifications <- all.classifications %>% 
     inner_join(host.tips.and.reads, by=c("host.1"="host.id", "tree.id")) %>% 
     rename(tips.1 = tips, reads.1=reads)
@@ -46,10 +48,14 @@ multinomial.calculations <- function(ptrees,
     inner_join(host.tips.and.reads, by=c("host.2"="host.id", "tree.id")) %>% 
     rename(tips.2 = tips, reads.2=reads)
 
+  if(verbose) cat('Finding window coordinates...\n')
+  
   all.classifications <- all.classifications %>% 
     mutate(window.start = map_int(tree.id, function(x) as.integer(gsub('[^0-9]*([0-9]+)_to_([0-9]+).*','\\1', x))))
   all.classifications <- all.classifications %>% 
     mutate(window.end = map_int(tree.id, function(x) as.integer(gsub('[^0-9]*([0-9]+)_to_([0-9]+).*','\\2', x))))
+  
+  if(verbose) cat('Assigning discrete proximity categories...\n')
   
   all.classifications <- all.classifications %>% 
     mutate(categorical.distance = map_chr(patristic.distance, function(x){
@@ -63,8 +69,10 @@ multinomial.calculations <- function(ptrees,
   }))
   
   if(verbose) cat('Reducing transmission window stats to windows with at least',min.reads,'reads and at least',min.tips,'tips...\n')
+  
   all.classifications	<- all.classifications %>% 
     filter(reads.1 >= min.reads & reads.2 >= min.reads & tips.1 >= min.tips & tips.2 >= min.tips)
+  
   if(verbose) cat('Total number of windows with transmission assignments is ',nrow(all.classifications),'.\n', sep="")		
   
   if(verbose) cat('Calculating basic pairwise relationships for windows (n=',nrow(all.classifications),')...\n', sep="")
