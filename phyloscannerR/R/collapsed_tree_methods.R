@@ -997,30 +997,43 @@ summarise.classifications <- function(ptrees, min.threshold, dist.threshold, all
   
   existence.counts <- tt %>% count(host.1, host.2)
 
-  tt <- tt %>% group_by(host.1, host.2) %>% mutate(both.exist = n()) %>% ungroup()
+  tt <- tt %>% 
+    group_by(host.1, host.2) %>% 
+    mutate(both.exist = n()) %>%
+    ungroup()
 
   if(!close.sib.only){
     if(!contiguous){
-      tt.close <- tt %>% filter(adjacent & patristic.distance < dist.threshold)
+      tt.close <- tt %>% 
+        filter(adjacent & patristic.distance < dist.threshold)
     } else {
-      tt.close <- tt %>% filter(contiguous & patristic.distance < dist.threshold)
+      tt.close <- tt %>% 
+        filter(contiguous & patristic.distance < dist.threshold)
     }
   } else {
     if(!contiguous){
-      tt.close <- tt %>% filter(adjacent & (patristic.distance < dist.threshold | ancestry == "none"))
+      tt.close <- tt %>% 
+        filter(adjacent & (patristic.distance < dist.threshold | ancestry == "none"))
     } else {
-      tt.close <- tt %>% filter(contiguous & (patristic.distance < dist.threshold | ancestry == "none"))
+      tt.close <- tt %>% 
+        filter(contiguous & (patristic.distance < dist.threshold | ancestry == "none"))
     }
   }
   
   # How many windows have this relationship, adjacent and patristic.distance below the threshold?
-  tt.close	<- tt.close %>% group_by(host.1, host.2, ancestry) %>% mutate(ancestry.tree.count = n()) %>% ungroup()
+  tt.close	<- tt.close %>% 
+    group_by(host.1, host.2, ancestry) %>% 
+    mutate(ancestry.tree.count = n()) %>% 
+    ungroup()
   
   # How many windows have ADJACENT and PATRISTIC_DISTANCE below the threshold?
   
-  tt.close <- tt.close %>% group_by(host.1, host.2) %>% mutate(any.relationship.tree.count = n()) %>% ungroup()
+  tt.close <- tt.close %>% group_by(host.1, host.2) %>% 
+    mutate(any.relationship.tree.count = n()) %>% 
+    ungroup()
   
-  tt.close <- tt.close %>% mutate(fraction = paste0(ancestry.tree.count,'/',both.exist))
+  tt.close <- tt.close %>% 
+    mutate(fraction = paste0(ancestry.tree.count,'/',both.exist))
   
   #	Flip directions - all ancestry is now "trans" or "multiTrans"
   
@@ -1029,18 +1042,24 @@ summarise.classifications <- function(ptrees, min.threshold, dist.threshold, all
                                   host.1 = new.host.1,
                                   host.2 = new.host.2) %>% select(-new.host.1, -new.host.2)
   
-  tt.close <- tt.close %>% mutate(ancestry = replace(ancestry, ancestry == "anc" | ancestry == "desc", "trans"))
-  tt.close <- tt.close %>% mutate(ancestry = replace(ancestry, ancestry == "multiAnc" | ancestry == "multiDesc", "multiTrans"))
+  tt.close <- tt.close %>% 
+    mutate(ancestry = replace(ancestry, ancestry == "anc" | ancestry == "desc", "trans"))
+  tt.close <- tt.close %>% 
+    mutate(ancestry = replace(ancestry, ancestry == "multiAnc" | ancestry == "multiDesc", "multiTrans"))
 
-  tt.close <- tt.close %>% select(-tree.id, -adjacent, -contiguous, -nodes1, -nodes2, -patristic.distance)
+  tt.close <- tt.close %>% 
+    select(-tree.id, -adjacent, -contiguous, -nodes1, -nodes2, -patristic.distance)
   
-  tt.close <- tt.close %>% distinct()
+  tt.close <- tt.close %>% 
+    distinct()
   
   setkey(tt.close, HOST.1, HOST.2, TYPE)
   
-  tt.close <- tt.close %>% arrange(host.1, host.2, ancestry)
+  tt.close <- tt.close %>% 
+    arrange(host.1, host.2, ancestry)
   
-  tt.close <- tt.close %>% select(host.1, host.2, ancestry, ancestry.tree.count, both.exist, fraction, any.relationship.tree.count)
+  tt.close <- tt.close %>% 
+    select(host.1, host.2, ancestry, ancestry.tree.count, both.exist, fraction, any.relationship.tree.count)
   
   tt.close %>% filter(any.relationship.tree.count > min.threshold)
 }

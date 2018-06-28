@@ -138,7 +138,7 @@ get.tip.and.read.counts <- function(ptree, hosts, tip.regex, has.read.counts, ve
   
   tips.for.hosts <- map(setNames(hosts, hosts), function(x) tree$tip.label[which(hosts.for.tips==x)])
   
-  # Make the data.table
+  # Make the tibble
   
   window.table <- tibble(host.id=hosts)
   window.table <- window.table %>% mutate(tree.id = tree.id) 

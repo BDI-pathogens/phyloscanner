@@ -42,13 +42,20 @@ multinomial.calculations <- function(ptrees,
   host.tips.and.reads <- map(ptrees, function(x) get.tip.and.read.counts(x, all.hosts.from.trees(ptrees), tip.regex, attr(ptrees, 'has.read.counts'), verbose))
   host.tips.and.reads <- bind_rows(host.tips.and.reads)
   
-  all.classifications <- all.classifications %>% inner_join(host.tips.and.reads, by=c("host.1"="host.id", "tree.id")) %>% rename(tips.1 = tips, reads.1=reads)
-  all.classifications <- all.classifications %>% inner_join(host.tips.and.reads, by=c("host.2"="host.id", "tree.id")) %>% rename(tips.2 = tips, reads.2=reads)
+  all.classifications <- all.classifications %>% 
+    inner_join(host.tips.and.reads, by=c("host.1"="host.id", "tree.id")) %>% 
+    rename(tips.1 = tips, reads.1=reads)
+  all.classifications <- all.classifications %>% 
+    inner_join(host.tips.and.reads, by=c("host.2"="host.id", "tree.id")) %>% 
+    rename(tips.2 = tips, reads.2=reads)
 
-  all.classifications <- all.classifications %>% mutate(window.start = map_int(tree.id, function(x) as.integer(gsub('[^0-9]*([0-9]+)_to_([0-9]+).*','\\1', x))))
-  all.classifications <- all.classifications %>% mutate(window.end = map_int(tree.id, function(x) as.integer(gsub('[^0-9]*([0-9]+)_to_([0-9]+).*','\\2', x))))
+  all.classifications <- all.classifications %>% 
+    mutate(window.start = map_int(tree.id, function(x) as.integer(gsub('[^0-9]*([0-9]+)_to_([0-9]+).*','\\1', x))))
+  all.classifications <- all.classifications %>% 
+    mutate(window.end = map_int(tree.id, function(x) as.integer(gsub('[^0-9]*([0-9]+)_to_([0-9]+).*','\\2', x))))
   
-  all.classifications <- all.classifications %>% mutate(categorical.distance = map_chr(patristic.distance, function(x){
+  all.classifications <- all.classifications %>% 
+    mutate(categorical.distance = map_chr(patristic.distance, function(x){
     if(x < close.threshold){
       "close"
     } else if(x >= distant.threshold){
@@ -59,7 +66,8 @@ multinomial.calculations <- function(ptrees,
   }))
   
   if(verbose) cat('\nReducing transmission window stats to windows with at least',min.reads,'reads and at least',min.tips,'tips ...')
-  all.classifications	<- filter(all.classifications, reads.1>=min.reads & reads.2>=min.reads & tips.1>=min.tips & tips.2>=min.tips)
+  all.classifications	<- all.classifications %>% 
+    filter(reads.1>=min.reads & reads.2>=min.reads & tips.1>=min.tips & tips.2>=min.tips)
   if(verbose) cat('\nTotal number of windows with transmission assignments is ',nrow(all.classifications),'.', sep="")		
   
   if(verbose) cat('\nCalculating basic pairwise relationships for windows (n=',nrow(all.classifications),')...', sep="")
@@ -83,13 +91,15 @@ multinomial.calculations <- function(ptrees,
   if(verbose) cat('\nCalculating derived pairwise relationships for windows (n=',nrow(all.classifications),')...', sep="")
   all.classifications <- all.classifications %>% get.pairwise.relationships(get.groups=relationship.types)
   
-  if(verbose) cat('\nCalculating KEFF and NEFF for windows (n=',nrow(all.classifications),')...', sep="")
-  rplkl	<- dwin %>% get.keff.and.neff(relationship.types)
+  if(verbose) cat('\nCalculating k.eff and n.eff for windows (n=',nrow(all.classifications),')...', sep="")
+  category.parameters	<- all.classifications %>% 
+    get.keff.and.neff(relationship.types)
   
   if(verbose) cat('\nCalculating posterior state probabilities for pairs and relationship groups (n=',nrow(rplkl),')...', sep="")
-  rplkl	<- phsc.get.pairwise.relationships.posterior(rplkl, n.type=prior.keff, n.obs=prior.neff, confidence.cut=prior.calibrated.prob)
+  category.parameters	< category.parameters %>% 
+    get.posterior.scores(n.type=prior.keff, n.obs=prior.neff, confidence.cut=prior.calibrated.prob)
   
-  list(dwin=dwin, rplkl=rplkl)
+  list(dwin=all.classifications, rplkl=category.parameters)
 }
 
 #' @title Calculate pairwise relationships
@@ -121,7 +131,7 @@ get.pairwise.relationships <- function(df, get.groups=c('proximity.3.way',
   #	
   if('any.ancestry' %in% get.groups) {
     df <- df %>% categorise("any.ancestry", "other",
-                     list(contiguous = TRUE, ancestry = c("anc_12", "anc_21", "multi_anc_12", "multi_anc_21", "complex"), label = "anc.or.complex"))
+                     list(contiguous = TRUE, ancestry = c("anc", "desc", "multiAnc", "multiDesc", "complex"), label = "anc.or.complex"))
   }
   
   #
@@ -146,8 +156,8 @@ get.pairwise.relationships <- function(df, get.groups=c('proximity.3.way',
   #
   if('close.and.contiguous.and.directed' %in% get.groups) {
     df <- df %>% categorise("close.and.contiguous.and.directed", NA_character_,
-                     list(contiguous = TRUE, ancestry=c("anc_12", "multi_anc_12"), categorical.distance = "close", label="12"),
-                     list(contiguous = TRUE, ancestry=c("anc_21", "multi_anc_21"), categorical.distance = "close", label="21"))
+                     list(contiguous = TRUE, ancestry=c("anc", "multiAnc"), categorical.distance = "close", label="12"),
+                     list(contiguous = TRUE, ancestry=c("desc", "multiDesc"), categorical.distance = "close", label="21"))
   }
   #
   #	group to determine direction of transmission in likely pairs
@@ -155,8 +165,8 @@ get.pairwise.relationships <- function(df, get.groups=c('proximity.3.way',
   #
   if('close.and.adjacent.and.directed' %in% get.groups) {
     df	<- df %>% categorise("close.and.adjacent.and.directed", NA_character_,
-                     list(adjacent = TRUE, ancestry=c("anc_12", "multi_anc_12"), categorical.distance = "close", label="12"),
-                     list(adjacent = TRUE, ancestry=c("anc_21", "multi_anc_21"), categorical.distance = "close", label="21"))
+                     list(adjacent = TRUE, ancestry=c("anc", "multiAnc"), categorical.distance = "close", label="12"),
+                     list(adjacent = TRUE, ancestry=c("desc", "multiDesc"), categorical.distance = "close", label="21"))
   }
   #
   #	group to determine probabilities for transmission networks
@@ -164,8 +174,8 @@ get.pairwise.relationships <- function(df, get.groups=c('proximity.3.way',
   #
   if('close.and.contiguous.and.ancestry.cat' %in% get.groups) {				
     df	<- df %>% categorise("close.and.contiguous.and.ancestry.cat", "not.close.or.noncontiguous",
-                     list(contiguous = TRUE, ancestry=c("anc_12", "multi_anc_12"), categorical.distance = "close", label = "12"),
-                     list(contiguous = TRUE, ancestry=c("anc_21", "multi_anc_21"), categorical.distance = "close", label = "21"),
+                     list(contiguous = TRUE, ancestry=c("anc", "multiAnc"), categorical.distance = "close", label = "12"),
+                     list(contiguous = TRUE, ancestry=c("desc", "multiDesc"), categorical.distance = "close", label = "21"),
                      list(contiguous = TRUE, ancestry=c("none", "complex"), categorical.distance = "close", label = "complex.or.no.ancestry"))
   }
   #
@@ -174,8 +184,8 @@ get.pairwise.relationships <- function(df, get.groups=c('proximity.3.way',
   #
   if('close.and.adjacent.and.ancestry.cat' %in% get.groups) {				
     df <- df %>% categorise("close.and.adjacent.and.ancestry.cat", "not.close.or.nonadjacent",
-                     list(adjacent = TRUE, ancestry=c("anc_12", "multi_anc_12"), categorical.distance = "close", label = "12"),
-                     list(adjacent = TRUE, ancestry=c("anc_21", "multi_anc_21"), categorical.distance = "close", label = "21"),
+                     list(adjacent = TRUE, ancestry=c("anc", "multiAnc"), categorical.distance = "close", label = "12"),
+                     list(adjacent = TRUE, ancestry=c("desc", "multiDesc"), categorical.distance = "close", label = "21"),
                      list(adjacent = TRUE, ancestry=c("none", "complex"), categorical.distance = "close", label = "complex.or.no.ancestry"))
   }		
   #
@@ -216,79 +226,102 @@ get.keff.and.neff <- function(df, get.groups, w.slide=NA){
   }
   #	define chunks
 
-  tmp		<- df[, {
-    tmp<- as.integer( c(TRUE,(W_FROM[-length(W_FROM)]+w.slide)!=W_FROM[-1]) )
-    list(W_FROM=W_FROM, W_TO=W_TO, CHUNK=cumsum(tmp))
-  }, by=c('ID1','ID2')]
-  df		<- merge(df,tmp,by=c('ID1','ID2','W_FROM','W_TO'))
+  df <- df %>% 
+    group_by(host.1, host.2) %>% 
+    mutate(new.block = (function(x){
+    if_else(is.na(lag(x,1)), TRUE, lag(x, 1) != x-w.slide) 
+    })(window.start)) %>% 
+    mutate(chunk.no = cumsum(new.block)) %>% 
+    select(-new.block) %>% 
+    ungroup()
+  
   #	define chunk length in terms of non-overlapping windows	& number of windows in chunk
-  tmp		<- df[, {
-    list(W_FROM=W_FROM, W_TO=W_TO, CHUNK_L=(max(W_TO+1L)-min(W_FROM))/(W_TO[1]+1L-W_FROM[1]), CHUNK_N=length(W_FROM))
-  }, by=c('ID1','ID2','CHUNK')]
-  df		<- merge(df,tmp,by=c('ID1','ID2','CHUNK','W_FROM','W_TO'))
   
-  categorisation <- df[,c('TYPE_BASIC', get.groups), with=F]
-  setkey(categorisation)
-  categorisation <- unique(categorisation)
+  df <- df %>% 
+    group_by(host.1, host.2, chunk.no) %>% 
+    mutate(effective.n.windows = (max(window.end) + 1 - min(window.start))/(window.end + 1 - window.start), n.windows = n()) %>% 
+    ungroup()
   
-  setkey(categorisation, "TYPE_BASIC")
-  
+  categorisation <- df %>% 
+    select("basic.classification", get.groups) %>% 
+    distinct()
+
   #	for each chunk, count: windows by type and effective length of chunk
   #	then sum chunks
-  rplkl	<- df[, list(	K= length(W_FROM), KEFF= length(W_FROM)/CHUNK_N[1] * CHUNK_L[1]), by=c('ID1','ID2','CHUNK','TYPE_BASIC')]	
-  rplkl	<- rplkl[, list(STAT=c('K','KEFF'), V=c(sum(K),sum(KEFF))), by=c('ID1','ID2','TYPE_BASIC')]
-  #
-  #	add relationship types
-  #
   
-  setkey(rplkl, "TYPE_BASIC")
-  rplkl <- rplkl[categorisation]
+  category.parameters <- df %>% 
+    group_by(host.1, host.2, chunk.no, basic.classification) %>%
+    summarise(k = n(), k.eff = n()/effective.n.windows[1] * n.windows[1]) %>%
+    ungroup()
+  
+  category.parameters <- category.parameters %>%
+    group_by(host.1, host.2, basic.classification) %>%
+    gather(statistic, value, k:k.eff) %>%
+    ungroup()
+  
+  category.parameters <- category.parameters %>%
+    group_by(host.1, host.2, statistic, basic.classification) %>%
+    summarise(value = sum(value)) %>%
+    ungroup()
+
+  #	add relationship types
+  
+  category.parameters <- category.parameters %>% 
+    inner_join(categorisation, by="basic.classification")
   
   #	melt relationship groups
-  rplkl	<- melt(rplkl, measure.vars=c(get.groups,'TYPE_BASIC'), variable.name='GROUP', value.name='TYPE')
-  rplkl	<- subset(rplkl, !is.na(TYPE))
-  #	sum K and KEFF of same relationship state
-  rplkl	<- rplkl[, list(V=sum(V)), by=c('ID1','ID2','GROUP','TYPE','STAT')]
+  
+  category.parameters <- category.parameters %>% 
+    gather(categorisation, type, c("basic.classification", get.groups)) %>%
+    filter(!is.na(type))
+  
+  #	sum k and k.eff of same relationship state
+  
+  category.parameters <- category.parameters %>% 
+    group_by(host.1, host.2, categorisation, type, statistic) %>%
+    summarise(value = sum(value)) %>%
+    ungroup()
+  
   #	add zero-count relationship states (change to wide table and set NA's to zero's)
-  tmp		<- unique(subset(rplkl, select=c(GROUP,TYPE)))
-  tmp2	<- unique(subset(rplkl, select=c(ID1,ID2, STAT)))
-  tmp[, DUMMY:=1L]
-  tmp2[, DUMMY:=1L]
-  tmp		<- merge(tmp, tmp2, by='DUMMY',allow.cartesian=TRUE)
-  set(tmp, NULL, 'DUMMY', NULL)
-  rplkl	<- merge(tmp, rplkl, all.x=1, by=c('ID1','ID2','GROUP','TYPE','STAT'))
-  set(rplkl, rplkl[,which(is.na(V))], 'V', 0)	
+  # tidyverse wins hands-down here (unless data.table can do it some other way)
+  
+  category.parameters <- category.parameters %>% 
+    complete(nesting(categorisation, type), nesting(host.1, host.2, statistic), fill = list(value=0))
+
   #	expand KEFF and K columns now that everything is done
-  rplkl	<- dcast.data.table(rplkl, ID1+ID2+GROUP+TYPE~STAT, value.var='V')	
+  
+  category.parameters <- category.parameters %>% spread(statistic, value)
+  
   #	calculate N and NEFF
-  tmp		<- rplkl[, list(N= sum(K), NEFF= sum(KEFF)), by=c('ID1','ID2','GROUP')]	
-  rplkl	<- merge(rplkl, tmp, by=c('ID1','ID2','GROUP'))
-  rplkl
+  
+  category.parameters <- category.parameters %>%
+    group_by(host.1, host.2, categorisation) %>%
+    mutate(n = sum(k), n.eff = sum(k.eff)) %>%
+    ungroup()
+  
+  category.parameters
 }
 
 #' @title Calculate marginal posterior probability for two individuals being in a particular relationship state
 #' @description This function calculates the parameters that specify the marginal posterior probability for two individuals being in a particular relationship state. The marginal posterior is Beta distributed and this function calculates the ALPHA and BETA parameters.
 #' @export  
-#' @param df Input data.table   
+#' @param df Input tibble   
 #' @param n.type Calibration parameter for the prior: minimum number of windows of state to select a pair of individuals with confidence of at least at least confidence.cut, if the total number of windows is n.obs
 #' @param n.obs Calibration parameter for the prior: total number of windows. 
 #' @param confidence.cut Calibration parameter for the prior: confidence cut off.  
 #' @return Input data.table with two additional columns POSTERIOR_ALPHA and POSTERIOR_BETA
 #' @keywords internal
-phsc.get.pairwise.relationships.posterior <- function(df, n.type=2, n.obs=3, n.type.dir=n.type, n.obs.dir=n.obs, confidence.cut=0.5) {
+get.posterior.scores <- function(df){
   
-  stopifnot(c('GROUP')%in%colnames(df))
-  tmp		<- phsc.get.pairwise.relationships.numbers()	
-  tmp		<- tmp[, {
-    #if(!grepl('_DIR',GROUP))
-    #	z<- phsc.get.prior.parameter.n0(N_TYPE, keff=n.type, neff=n.obs, confidence.cut=confidence.cut)
-    #if(grepl('_DIR',GROUP))
-    #	z<- phsc.get.prior.parameter.n0(N_TYPE, keff=n.type.dir, neff=n.obs.dir, confidence.cut=confidence.cut)
-    #list(PAR_PRIOR=z)
-    list(PAR_PRIOR=N_TYPE)
-  }, by=c('GROUP','N_TYPE')]
-  df		<- merge(df, tmp, by=c('GROUP'))
-  # df[, POSTERIOR_ALPHA:= PAR_PRIOR/N_TYPE+KEFF]
+  stopifnot(c('categorisation') %in% colnames(df))
+  category.counts <- get.pairwise.relationship.category.counts()	
+  category.counts <- category.counts %>%
+    group_by(categorisation, n) %>%
+    rename(par.prior = n)
+  
+  category.counts <- category.counts %>%
+    mutate(posterior.alpha = par.prior/)
+
   df[, POSTERIOR_ALPHA:= PAR_PRIOR/N_TYPE+KEFF]
   df[, POSTERIOR_BETA:= PAR_PRIOR*(1-1/N_TYPE)+NEFF-KEFF]	
   df[, POSTERIOR_SCORE:= (POSTERIOR_ALPHA-1) / (POSTERIOR_ALPHA+POSTERIOR_BETA-N_TYPE)]
@@ -386,43 +419,19 @@ categorise <- function(df, col.name, no.match.result = NA_character_, ...){
   df
 }
 
-
-#' @title Calculate prior parameter n0
-#' @description This function calculates the prior parameter n0 such that the minimum number of windows needed is at least n.obs in order to select a pair of individuals with confidence at least confidence.cut.    
-#' @param n.states Number of relationship states.
-#' @param n.obs Minimum number of windows to select a pair of individuals with confidence at least confidence.cut. 
-#' @param confidence.cut Confidence cut off.  
-#' @keywords internal
-#' @return Prior parameter n0 
-phsc.get.prior.parameter.n0 <- function(n.states, keff=2, neff=3, confidence.cut=0.66) {
-  #phsc.find.n0.aux<- function(n0, n.states, keff, neff, confidence.cut)
-  #{
-  #	abs( (n0+n.states*(keff-1))/ (n.states*(neff+n0-2)) - confidence.cut )
-  #}
-  phsc.find.n0.aux<- function(n0, n.states, keff, neff, confidence.cut)
-  {
-    abs( (n0+n.states*keff)/ (n.states*(neff+n0)) - confidence.cut )
-  }	
-  
-  ans	<- optimize(phsc.find.n0.aux, c(.001,1e2), n.states=n.states, keff=keff, neff=neff, confidence.cut=confidence.cut)
-  ans	<- round(ans$minimum, d=4)
-  ans
-}
-
-phsc.get.pairwise.relationships.numbers <- function() {
-  tmp	<- matrix(c('TYPE_PAIR_DI2','3',
-                  'TYPE_PAIR_TO','2',
-                  'TYPE_PAIR_TODI2x2','4',					
-                  'TYPE_PAIR_TODI2','2',
-                  'TYPE_DIR_TODI2','2',															
-                  'TYPE_CHAIN_TODI','3',
-                  'TYPE_ADJ_DIR_TODI2','2',
-                  'TYPE_NETWORK_SCORES','4',
-                  'TYPE_ADJ_NETWORK_SCORES','4',
-                  'TYPE_BASIC','24'), ncol=2,byrow=TRUE)
-  colnames(tmp)	<- c('GROUP','N_TYPE')
-  tmp				<- as.data.table(tmp)
-  set(tmp, NULL, 'N_TYPE', tmp[, as.integer(N_TYPE)])
+get.pairwise.relationship.category.counts <- function() {
+  tmp	<- matrix(c('proximity.3.way','3',
+                  'any.ancestry','2',
+                  'close.x.contiguous','4',					
+                  'close.and.contiguous','2',
+                  'close.and.contiguous.and.directed','2',															
+                  'adjacent.and.proximity.cat','3',
+                  'close.and.adjacent.and.directed','2',
+                  'close.and.contiguous.and.ancestry.cat','4',
+                  'close.and.adjacent.and.ancestry.cat','4',
+                  'basic.classification','24'), ncol=2,byrow=TRUE)
+  colnames(tmp)	<- c('categorisation','n')
+  tmp				    <- as_tibble(tmp)
   tmp
 }
 
