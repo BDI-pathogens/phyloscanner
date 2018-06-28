@@ -782,7 +782,7 @@ phyloscanner.analyse.trees <- function(
   if(verbosity!=0) cat("Finding host MRCAs for summary statistics...\n", sep="")
   
   ptrees <- sapply(ptrees, function(ptree) {
-    clade.results                 <- resolveTreeIntoPatientClades(ptree$tree, hosts, tip.regex, ptree$blacklist, !has.read.counts)
+    clade.results             <- resolve.tree.into.host.clades(ptree$tree, hosts, tip.regex, ptree$blacklist, !has.read.counts)
     
     ptree$clades.by.host      <- clade.results$clades.by.patient
     ptree$clade.mrcas.by.host <- clade.results$clade.mrcas.by.patient

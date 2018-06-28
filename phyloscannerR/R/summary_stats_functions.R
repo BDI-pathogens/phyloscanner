@@ -28,7 +28,7 @@ calc.subtree.stats <- function(host.id, tree.id, tree, tips.for.patients, splits
     
     names(reads.per.tip) <- subtree.all$tip.label
     
-    overall.rtt <- calcMeanRootToTip(subtree.all, reads.per.tip)
+    overall.rtt <- calc.mean.root.to.tip(subtree.all, reads.per.tip)
     
     if(length(subtree.all$tip.label)>2){
       unrooted.subtree <- unroot(subtree.all)
