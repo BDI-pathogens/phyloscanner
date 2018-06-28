@@ -150,7 +150,7 @@ get.tip.and.read.counts <- function(ptree, hosts, tip.regex, has.read.counts, ve
       if(has.read.counts){
         return(sum(map_int(tips.for.hosts[[x]], function(y) read.count.from.label(y, tip.regex))))
       } else {
-        return(length(tips.for.hosts[[x]]))
+        return(as.integer(length(tips.for.hosts[[x]])))
       }
     }
   })) 

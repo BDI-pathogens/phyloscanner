@@ -2,7 +2,7 @@
 
 #' @title Calculate parameters of the posterior density for pairwise host relationships
 #' @export
-#' @param phyloscanner.trees A list of class \code{phyloscanner.trees} produced by \code{phyloscanner.analyse.trees}.
+#' @param ptrees A list of class \code{phyloscanner.trees} produced by \code{phyloscanner.analyse.trees}.
 #' @param close.threshold The (potentially normalised) patristic threshold used to determine if two patients' subgraphs are "close"
 #' @param tip.regex The regular expression used to identify host IDs in tip names
 #' @param allow.mt If FALSE, directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative.
@@ -14,9 +14,6 @@
 
 multinomial.calculations <- function(ptrees, 
                                      close.threshold,
-                                     prior.keff = 3,
-                                     prior.neff = 4,
-                                     prior.calibrated.prob = 0.66,
                                      tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$", 
                                      allow.mt = F, 
                                      min.reads = 0, 
@@ -67,7 +64,7 @@ multinomial.calculations <- function(ptrees,
   
   if(verbose) cat('\nReducing transmission window stats to windows with at least',min.reads,'reads and at least',min.tips,'tips ...')
   all.classifications	<- all.classifications %>% 
-    filter(reads.1>=min.reads & reads.2>=min.reads & tips.1>=min.tips & tips.2>=min.tips)
+    filter(reads.1 >= min.reads & reads.2 >= min.reads & tips.1 >= min.tips & tips.2 >= min.tips)
   if(verbose) cat('\nTotal number of windows with transmission assignments is ',nrow(all.classifications),'.', sep="")		
   
   if(verbose) cat('\nCalculating basic pairwise relationships for windows (n=',nrow(all.classifications),')...', sep="")
@@ -95,9 +92,9 @@ multinomial.calculations <- function(ptrees,
   category.parameters	<- all.classifications %>% 
     get.keff.and.neff(relationship.types)
   
-  if(verbose) cat('\nCalculating posterior state probabilities for pairs and relationship groups (n=',nrow(rplkl),')...', sep="")
+  if(verbose) cat('\nCalculating posterior state probabilities for pairs and relationship groups (n=',nrow(category.parameters),')...', sep="")
   category.parameters	< category.parameters %>% 
-    get.posterior.scores(n.type=prior.keff, n.obs=prior.neff, confidence.cut=prior.calibrated.prob)
+    get.posterior.scores()
   
   list(dwin=all.classifications, rplkl=category.parameters)
 }
