@@ -8,7 +8,8 @@ list.files.mod <- function(path = ".", pattern = NULL, all.files = FALSE,
                            ignore.case = FALSE, include.dirs = FALSE, no.. = FALSE){
   
   original <- list.files(path, pattern, all.files, full.names, recursive, ignore.case, include.dirs, no..)
-  return(sapply(original, function(x) if(substr(x, 1, 2)=="./") {substr(x, 3, nchar(x))} else {x}))
+  
+  sapply(original, function(x) if(substr(x, 1, 2)=="./") {substr(x, 3, nchar(x))} else {x})
 }
 
 #' @keywords internal
@@ -33,7 +34,7 @@ get.window.coords <- function(string, regex = "^\\D*([0-9]+)_to_([0-9]+).*$"){
     stop(paste0("ERROR: cannot determine window coordinates"))
   }
   
-  return(list(start=start, end = end))
+  list(start=start, end = end)
 }
 
 #' @keywords internal
@@ -41,7 +42,8 @@ get.window.coords <- function(string, regex = "^\\D*([0-9]+)_to_([0-9]+).*$"){
 
 get.window.coords.string <- function(string, regex = "^\\D*([0-9]+)_to_([0-9]+).*$"){
   wc <- get.window.coords(string, regex)
-  return(paste0(wc$start, "_to_", wc$end))
+  
+  paste0(wc$start, "_to_", wc$end)
 }
 
 #' @keywords internal
