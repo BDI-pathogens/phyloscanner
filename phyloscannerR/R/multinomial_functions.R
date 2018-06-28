@@ -86,7 +86,7 @@ multinomial.calculations <- function(ptrees,
                      list(categorical.distance = "intermediate", label="intermediate"))
   
   if(verbose) cat('Calculating derived pairwise relationships for windows (n=',nrow(all.classifications),')...\n', sep="")
-  all.classifications <- all.classifications %>% get.pairwise.relationships(get.groups=relationship.types)
+  all.classifications <- all.classifications %>% get.pairwise.relationships(relationship.types=relationship.types)
   
   if(verbose) cat('Calculating k.eff and n.eff for windows (n=',nrow(all.classifications),')...\n', sep="")
   category.parameters	<- all.classifications %>% 
@@ -103,11 +103,11 @@ multinomial.calculations <- function(ptrees,
 #' @description This function calculates pairwise relationships between each pair of two individuals in any window. Several different relationship groups can be calculated, for example just using pairwise distance, or using both pairwise distance and topology to define likely pairs.
 #' @export    
 #' @param df tibble to which new columns of relationship groups will be added. Must contain a column with name TYPE_BASIC. This column contains fundamental relationship states for every window, from which other relationships are derived. 
-#' @param get.groups names of relationship groups  
+#' @param relationship.types names of relationship groups  
 #' @keywords internal
 #' @return input tibble with new columns. Each new column defines relationship states for a specific relationship group. 
  
-get.pairwise.relationships <- function(df, get.groups=c('proximity.3.way',
+get.pairwise.relationships <- function(df, relationship.types=c('proximity.3.way',
                                                         'any.ancestry',
                                                         'close.x.contiguous',
                                                         'close.and.contiguous',
@@ -118,7 +118,7 @@ get.pairwise.relationships <- function(df, get.groups=c('proximity.3.way',
                                                         'adjacent.and.proximity.cat'
                                                         )){
   
-  if('proximity.3.way' %in% get.groups) {
+  if('proximity.3.way' %in% relationship.types) {
     df <- df %>% categorise("proximity.3.way", "intermediate",
                      list(categorical.distance = "close", label="close"),
                      list(categorical.distance = "distant", label="distant"))
@@ -126,7 +126,7 @@ get.pairwise.relationships <- function(df, get.groups=c('proximity.3.way',
   #	
   #	group to define likely pair just based on topology
   #	
-  if('any.ancestry' %in% get.groups) {
+  if('any.ancestry' %in% relationship.types) {
     df <- df %>% categorise("any.ancestry", "other",
                      list(contiguous = TRUE, ancestry = c("anc", "desc", "multiAnc", "multiDesc", "complex"), label = "anc.or.complex"))
   }
@@ -134,7 +134,7 @@ get.pairwise.relationships <- function(df, get.groups=c('proximity.3.way',
   #
   #	group for full 2x2 table of distance and topology
   #
-  if('close.x.contiguous' %in% get.groups) {		
+  if('close.x.contiguous' %in% relationship.types) {		
     df <- df %>% categorise("close.x.contiguous", "not.close.other",
                      list(contiguous = TRUE, categorical.distance = "close", label = "contiguous_close"),
                      list(contiguous = TRUE, categorical.distance = c("intermediate", "distant"), label = "contiguous_not.close"),
@@ -143,7 +143,7 @@ get.pairwise.relationships <- function(df, get.groups=c('proximity.3.way',
   #
   #	group to determine linkage - only 2 states, linked / unlinked
   #
-  if('close.and.contiguous' %in% get.groups) {
+  if('close.and.contiguous' %in% relationship.types) {
     df <- df %>% categorise("close.and.contiguous", "not.close.or.noncontiguous",
                      list(contiguous = TRUE, categorical.distance = "close", label="close_contiguous"))
   }	
@@ -151,7 +151,7 @@ get.pairwise.relationships <- function(df, get.groups=c('proximity.3.way',
   #	group to determine direction of transmission in likely pairs
   #	based on contiguous linkage
   #
-  if('close.and.contiguous.and.directed' %in% get.groups) {
+  if('close.and.contiguous.and.directed' %in% relationship.types) {
     df <- df %>% categorise("close.and.contiguous.and.directed", NA_character_,
                      list(contiguous = TRUE, ancestry=c("anc", "multiAnc"), categorical.distance = "close", label="12"),
                      list(contiguous = TRUE, ancestry=c("desc", "multiDesc"), categorical.distance = "close", label="21"))
@@ -160,7 +160,7 @@ get.pairwise.relationships <- function(df, get.groups=c('proximity.3.way',
   #	group to determine direction of transmission in likely pairs
   #	based on adjacent linkage
   #
-  if('close.and.adjacent.and.directed' %in% get.groups) {
+  if('close.and.adjacent.and.directed' %in% relationship.types) {
     df	<- df %>% categorise("close.and.adjacent.and.directed", NA_character_,
                      list(adjacent = TRUE, ancestry=c("anc", "multiAnc"), categorical.distance = "close", label="12"),
                      list(adjacent = TRUE, ancestry=c("desc", "multiDesc"), categorical.distance = "close", label="21"))
@@ -169,7 +169,7 @@ get.pairwise.relationships <- function(df, get.groups=c('proximity.3.way',
   #	group to determine probabilities for transmission networks
   #	based on contiguous linkage
   #
-  if('close.and.contiguous.and.ancestry.cat' %in% get.groups) {				
+  if('close.and.contiguous.and.ancestry.cat' %in% relationship.types) {				
     df	<- df %>% categorise("close.and.contiguous.and.ancestry.cat", "not.close.or.noncontiguous",
                      list(contiguous = TRUE, ancestry=c("anc", "multiAnc"), categorical.distance = "close", label = "12"),
                      list(contiguous = TRUE, ancestry=c("desc", "multiDesc"), categorical.distance = "close", label = "21"),
@@ -179,7 +179,7 @@ get.pairwise.relationships <- function(df, get.groups=c('proximity.3.way',
   #	group to determine probabilities for transmission networks
   #	based on adjacent linkage
   #
-  if('close.and.adjacent.and.ancestry.cat' %in% get.groups) {				
+  if('close.and.adjacent.and.ancestry.cat' %in% relationship.types) {				
     df <- df %>% categorise("close.and.adjacent.and.ancestry.cat", "not.close.or.nonadjacent",
                      list(adjacent = TRUE, ancestry=c("anc", "multiAnc"), categorical.distance = "close", label = "12"),
                      list(adjacent = TRUE, ancestry=c("desc", "multiDesc"), categorical.distance = "close", label = "21"),
@@ -188,7 +188,7 @@ get.pairwise.relationships <- function(df, get.groups=c('proximity.3.way',
   #
   #	group to transmission networks
   #	
-  if('adjacent.and.proximity.cat' %in% get.groups) {
+  if('adjacent.and.proximity.cat' %in% relationship.types) {
     df <- df %>% categorise("adjacent.and.proximity.cat", "distant",
                      list(categorical.distance = "close", adjacent=TRUE, label = "cluster"),
                      list(categorical.distance = "intermediate", adjacent=TRUE, label="ambiguous"))
@@ -203,11 +203,11 @@ get.pairwise.relationships <- function(df, get.groups=c('proximity.3.way',
 #' @export    
 #' @keywords internal
 #' @param df tibble with basic relationship types for paired individuals across windows. Must contain columns 'ID1','ID2','W_FROM','W_TO','TYPE_BASIC'. 
-#' @param get.groups names of relationship groups
+#' @param relationship.types names of relationship groups
 #' @import tidyverse  
 #' @return new tibble with columns host.1 host.2 GROUP TYPE K KEFF N NEFF.
 #'  
-get.keff.and.neff <- function(df, get.groups, w.slide=NA){
+get.keff.and.neff <- function(df, relationship.types, w.slide=NA){
   
   stopifnot(c('host.1', 'host.2', 'window.start', 'window.end', 'basic.classification') %in% colnames(df))
   
@@ -240,7 +240,7 @@ get.keff.and.neff <- function(df, get.groups, w.slide=NA){
     ungroup()
   
   categorisation <- df %>% 
-    select("basic.classification", get.groups) %>% 
+    select("basic.classification", relationship.types) %>% 
     distinct()
 
   #	for each chunk, count: windows by type and effective length of chunk
@@ -269,7 +269,7 @@ get.keff.and.neff <- function(df, get.groups, w.slide=NA){
   #	melt relationship groups
   
   category.parameters <- category.parameters %>% 
-    gather(categorisation, type, c("basic.classification", get.groups)) %>%
+    gather(categorisation, type, c("basic.classification", relationship.types)) %>%
     filter(!is.na(type))
   
   #	sum k and k.eff of same relationship state
