@@ -60,7 +60,7 @@ split.hosts.to.subgraphs <- function(tree,
   
   # Find the complete list of hosts present in this tree minus blacklisting
   
-  if(verbose) cat("Constructing list of hosts...\n")
+  if(verbose) cat("Constructing vector of hosts...\n")
   
   if(length(blacklist)>0){
     hosts <- unique(na.omit(tip.hosts[-blacklist]))
@@ -148,9 +148,11 @@ split.hosts.to.subgraphs <- function(tree,
   attr(tree, 'BRANCH_COLOURS') <- branch.colours
   attr(tree, 'SUBGRAPH_MRCA') <- first.nodes
   
-  rs.subgraphs <- data.table(subgraph=results$split.hosts)
-  rs.subgraphs <- rs.subgraphs[, list(host= unlist(strsplit(subgraph, "-SPLIT"))[1], tip = tree$tip.label[ results$split.tips[[subgraph]] ]	), by='subgraph']
-  rs.subgraphs <- as.data.frame(subset(rs.subgraphs, select=c(host, subgraph, tip)))
+  rs.subgraphs <- tibble(subgraph=results$split.hosts)
+  rs.subgraphs <- rs.subgraphs %>% 
+    mutate(host = unlist(strsplit(subgraph, "-SPLIT"))[1],
+           tip = tree$tip.label[ results$split.tips[[subgraph]]]) %>%
+    select(host, subgraph, tip)
   
   list(tree=tree, rs.subgraphs=rs.subgraphs)
 }
@@ -425,25 +427,6 @@ split.and.annotate <- function(tree, hosts, tip.hosts, host.tips, host.mrcas, bl
       finite.cost <- matrix(TRUE, ncol=length(hosts), nrow=length(tree$tip.label) + tree$Nnode) 
     }
     
-    # for(tip in seq(1, length(tree$tip.label))){
-    #   pat <- tip.hosts[tip]
-    #   
-    #   finite.cost[tip, which(hosts==pat)] <- TRUE
-    #   current.node <- tip
-    #   repeat{
-    #     current.node <- Ancestors(tree, current.node, type="parent")
-    #     
-    #     if(finite.cost[current.node, which(hosts==pat)]){
-    #       # already been here
-    #       break
-    #     }
-    #     finite.cost[current.node, which(hosts==pat)] <- TRUE
-    #     if(is.root(tree, current.node)){
-    #       break
-    #     }
-    #   }
-    # }
-    # 
     finite.cost[,which(hosts=="unassigned")] <- TRUE
     
     if (verbose) cat("Building full cost matrix...\n")
@@ -456,13 +439,13 @@ split.and.annotate <- function(tree, hosts, tip.hosts, host.tips, host.mrcas, bl
     
     if(verbose) progress.bar <- txtProgressBar(width=50, style=3)
     
-    cost.matrix <- make.cost.matrix.fi(getRoot(tree), tree, hosts, tip.hosts, cost.matrix, k, p, finite.cost, tip.read.counts, progress.bar, verbose)
+    cost.matrix <- make.cost.matrix.experimental(getRoot(tree), tree, hosts, tip.hosts, cost.matrix, k, p, finite.cost, tip.read.counts, progress.bar, verbose)
     
     close(progress.bar)
     
     if (verbose) cat("Reconstructing...\n")
     
-    full.assocs <- reconstruct.fi(tree, getRoot(tree), "unassigned", list(), tip.hosts, hosts, cost.matrix, finite.cost, k, p, tip.read.counts, verbose)
+    full.assocs <- reconstruct.experimental(tree, getRoot(tree), "unassigned", list(), tip.hosts, hosts, cost.matrix, finite.cost, k, p, tip.read.counts, verbose)
     
     temp.ca <- rep(NA, length(tree$tip.label) + tree$Nnode)
     
@@ -893,9 +876,9 @@ cost.of.subtree <- function(tree, node, host, tip.hosts, finite.cost.col, result
 # Reconstruct node states based on the cost matrix. 
 
 #' @keywords internal
-#' @export make.cost.matrix.fi
+#' @export make.cost.matrix.experimental
 
-make.cost.matrix.fi <- function(node, tree, hosts, tip.assocs, current.matrix, k, us.penalty, finite.costs, tip.read.counts, progress.bar = NULL, verbose = F){
+make.cost.matrix.experimental <- function(node, tree, hosts, tip.assocs, current.matrix, k, us.penalty, finite.costs, tip.read.counts, progress.bar = NULL, verbose = F){
   # if(verbose){
   #   cat("Node number ",node,":", sep="")
   # }
@@ -916,7 +899,7 @@ make.cost.matrix.fi <- function(node, tree, hosts, tip.assocs, current.matrix, k
     child.nos <- Children(tree, node)
     for(child in child.nos){
       
-      current.matrix <- make.cost.matrix.fi(child, tree, hosts, tip.assocs, current.matrix, k, us.penalty, finite.costs, tip.read.counts, progress.bar, verbose)
+      current.matrix <- make.cost.matrix.experimental(child, tree, hosts, tip.assocs, current.matrix, k, us.penalty, finite.costs, tip.read.counts, progress.bar, verbose)
     }
     if(length(child.nos)==0){
       stop("Reached an internal node with no children(?)")
@@ -924,7 +907,7 @@ make.cost.matrix.fi <- function(node, tree, hosts, tip.assocs, current.matrix, k
     # if(verbose){
     #   cat("Done; back to node ",node,"\n", sep="")
     # }
-    current.matrix[node,] <- vapply(seq(1, length(hosts)), function(x) node.cost.fi(tree, child.nos, x, hosts, current.matrix, k, us.penalty, finite.costs, tip.read.counts), 0)
+    current.matrix[node,] <- vapply(seq(1, length(hosts)), function(x) node.cost.experimental(tree, child.nos, x, hosts, current.matrix, k, us.penalty, finite.costs, tip.read.counts), 0)
     
     # if(verbose){
     #   cat("Row for node ",node," calculated\n", sep="")
@@ -946,16 +929,16 @@ make.cost.matrix.fi <- function(node, tree, hosts, tip.assocs, current.matrix, k
 }
 
 #' @keywords internal
-#' @export node.cost.fi
+#' @export node.cost.experimental
 
-node.cost.fi <- function(tree, child.nos, host.index, hosts, current.matrix, k, us.penalty, finite.costs, tip.read.counts){
-  return(sum(vapply(child.nos, function (x) child.min.cost.fi(tree, x, host.index, hosts, current.matrix, k, us.penalty, finite.costs, tip.read.counts), 0)))
+node.cost.experimental <- function(tree, child.nos, host.index, hosts, current.matrix, k, us.penalty, finite.costs, tip.read.counts){
+  return(sum(vapply(child.nos, function (x) child.min.cost.experimental(tree, x, host.index, hosts, current.matrix, k, us.penalty, finite.costs, tip.read.counts), 0)))
 }
 
 #' @keywords internal
-#' @export child.min.cost.fi
+#' @export child.min.cost.experimental
 
-child.min.cost.fi <- function(tree, child.index, top.host.no, hosts, current.matrix, k, us.penalty, finite.costs, tip.read.counts){
+child.min.cost.experimental <- function(tree, child.index, top.host.no, hosts, current.matrix, k, us.penalty, finite.costs, tip.read.counts){
   
   if(is.tip(tree, child.index)){
     multiplier <- tip.read.counts[child.index]
@@ -969,7 +952,7 @@ child.min.cost.fi <- function(tree, child.index, top.host.no, hosts, current.mat
   
   finite.scores <- finite.scores[order(finite.scores)]
   
-  scores[finite.scores] <- vapply(finite.scores, function(x) child.cost.fi(tree, child.index, hosts, top.host.no, x, current.matrix, k, us.penalty, multiplier), 0)
+  scores[finite.scores] <- vapply(finite.scores, function(x) child.cost.experimental(tree, child.index, hosts, top.host.no, x, current.matrix, k, us.penalty, multiplier), 0)
   
   return(min(scores))
 }
@@ -977,9 +960,9 @@ child.min.cost.fi <- function(tree, child.index, top.host.no, hosts, current.mat
 # Submethods of the above
 
 #' @keywords internal
-#' @export child.cost.fi
+#' @export child.cost.experimental
 
-child.cost.fi <- function(tree, child.index, hosts, top.host.no, bottom.host.no, current.matrix, k, us.penalty, multiplier = 1){
+child.cost.experimental <- function(tree, child.index, hosts, top.host.no, bottom.host.no, current.matrix, k, us.penalty, multiplier = 1){
   bl <- get.edge.length(tree, child.index)
   out <- current.matrix[child.index, bottom.host.no]
   if(hosts[top.host.no] == "unassigned"){
@@ -1001,9 +984,9 @@ child.cost.fi <- function(tree, child.index, hosts, top.host.no, bottom.host.no,
 }
 
 #' @keywords internal
-#' @export reconstruct.fi
+#' @export reconstruct.experimental
 
-reconstruct.fi <- function(tree, node, node.state, node.assocs, tip.assocs, hosts, full.cost.matrix, finite.costs, k, penalty, tip.read.counts, verbose=F){
+reconstruct.experimental <- function(tree, node, node.state, node.assocs, tip.assocs, hosts, full.cost.matrix, finite.costs, k, penalty, tip.read.counts, verbose=F){
   node.assocs[[node]] <- node.state
   # if(verbose){
   #   cat("Node ",node," reconstructed as ",node.state,"\n", sep="")
@@ -1024,7 +1007,7 @@ reconstruct.fi <- function(tree, node, node.state, node.assocs, tip.assocs, host
       bl <- get.edge.length(tree, child)
       costs <- rep(Inf, length(hosts))
       costs.that.are.finite <- unique(c(which(hosts=="unassigned"), which(hosts==node.state), which(finite.costs[child,])))
-      costs[costs.that.are.finite] <- vapply(costs.that.are.finite, function(x) calc.costs.fi(x, hosts, node.state, child, bl, full.cost.matrix, k, penalty, multiplier), 0)
+      costs[costs.that.are.finite] <- vapply(costs.that.are.finite, function(x) calc.costs.experimental(x, hosts, node.state, child, bl, full.cost.matrix, k, penalty, multiplier), 0)
       min.cost <- min(costs)
       
       if(length(which(costs == min.cost))==1){
@@ -1040,16 +1023,16 @@ reconstruct.fi <- function(tree, node, node.state, node.assocs, tip.assocs, host
         decision <- hosts[choice]
         
       }
-      node.assocs <- reconstruct.fi(tree, child, decision, node.assocs, tip.assocs, hosts, full.cost.matrix, finite.costs, k, penalty, tip.read.counts, verbose)
+      node.assocs <- reconstruct.experimental(tree, child, decision, node.assocs, tip.assocs, hosts, full.cost.matrix, finite.costs, k, penalty, tip.read.counts, verbose)
     }
   }
   return(node.assocs)
 }
 
 #' @keywords internal
-#' @export calc.costs.fi
+#' @export calc.costs.experimental
 
-calc.costs.fi <- function(child.host.no, hosts, parent.host, child.node, bl, full.cost.matrix, k, penalty, multiplier=1){
+calc.costs.experimental <- function(child.host.no, hosts, parent.host, child.node, bl, full.cost.matrix, k, penalty, multiplier=1){
   host <- hosts[child.host.no]
   out <- full.cost.matrix[child.node, child.host.no]
   if(parent.host=="unassigned"){

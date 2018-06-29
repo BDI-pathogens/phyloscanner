@@ -466,7 +466,7 @@ if(length(phyloscanner.trees)>1){
     
     ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, allow.mt, close.sib.only = F, verbosity==2)
     if (verbosity!=0) cat('Writing transmission summary to file', paste0(output.string,"_hostRelationshipSummary", csv.fe),'...\n', sep="")
-    write.csv(ts, file=file.path(output.dir, paste0(output.string,"_hostRelationshipSummary", csv.fe)), row.names=FALSE, quote=FALSE)
+    write_csv(ts, file=file.path(output.dir, paste0(output.string,"_hostRelationshipSummary", csv.fe)))
     
     if(do.simplified.graph){
       if (verbosity!=0) cat('Drawing simplified summary diagram to file', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'...\n', sep="")

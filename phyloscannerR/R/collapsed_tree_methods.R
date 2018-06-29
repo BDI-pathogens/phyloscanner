@@ -6,10 +6,10 @@
 #' @export get.tt.parent
 
 get.tt.parent <- function(tt, label){
-  if(length(which(tt$unique.splits==label))>0){
-    return(tt$parent.splits[which(tt$unique.splits==label)])
+  if(length(which(tt$unique.split==label))>0){
+    tt$parent.split[which(tt$unique.split==label)]
   } else {
-    return(NULL)
+    NULL
   }
 }
 
@@ -25,7 +25,7 @@ get.tt.ancestors <- function(tt, label){
     out <- c(out, current.node)
     current.node <- get.tt.parent(tt, current.node)
   }
-  return(out)
+  out
 }
 
 # All children of a node in the collapsed tree
@@ -34,7 +34,7 @@ get.tt.ancestors <- function(tt, label){
 #' @export get.tt.children
 
 get.tt.children <- function(tt, label){
-  return(tt$unique.splits[which(tt$parent.splits==label)])
+  tt$unique.split[which(tt$parent.split==label)]
 }
 
 # All adjacent nodes of a node in the collapsed tree (parent and children)
@@ -43,7 +43,7 @@ get.tt.children <- function(tt, label){
 #' @export get.tt.adjacent
 
 get.tt.adjacent <- function(tt, label){
-  return(c(get.tt.children(tt, label), get.tt.parent(tt, label)))
+  c(get.tt.children(tt, label), get.tt.parent(tt, label))
 }
 
 # The grandparent of a node in the collapsed tree
@@ -52,10 +52,10 @@ get.tt.adjacent <- function(tt, label){
 #' @export get.tt.parent.host
 
 get.tt.parent.host <- function(tt, label){
-  if(length(which(tt$unique.splits==label))>0){
-    return(tt$hosts[which(tt$unique.splits==label)])
+  if(length(which(tt$unique.split==label))>0){
+    tt$host[which(tt$unique.split==label)]
   } else {
-    return(NULL)
+    NULL
   }
 }
 
@@ -75,7 +75,7 @@ get.tt.mrca <- function(tt, label1, label2){
     }
   }
   
-  return(ca.vec[1])
+  ca.vec[1]
 }
 
 # The host corresponding to the MRCA of two nodes
@@ -86,7 +86,7 @@ get.tt.mrca <- function(tt, label1, label2){
 get.tt.mrca.host <- function(tt, label1, label2){
   node <- intersect(c(label1,get.tt.ancestors(tt, label1)), c(label2, get.tt.ancestors(tt, label2)))[1]
   
-  return(tt$hosts[which(tt$unique.splits==node)])
+  tt$host[which(tt$unique.split==node)]
 }
 
 # The path from one node in the collapsed tree to another
@@ -133,7 +133,7 @@ get.tt.path <- function(tt, label1, label2){
     current.node <- get.tt.parent(tt, current.node)
   }
   
-  return(c(first.half, mrca, rev(second.half)))
+  c(first.half, mrca, rev(second.half))
 }
 
 # Output the collapsed tree from a phylogeny and its node associations
@@ -144,7 +144,7 @@ get.tt.path <- function(tt, label1, label2){
 output.trans.tree <- function(tree, assocs){
   # find the association of each node
   
-  assocs.vec <- vector()
+  assocs.vec <- vector(mode = "character", length = tree$Nnode + length(tree$tip.label))
   
   for(node.no in seq(1, tree$Nnode + length(tree$tip.label))){
     if(node.no > length(assocs)){
@@ -164,7 +164,7 @@ output.trans.tree <- function(tree, assocs){
     }
   }
   
-  first.of.split <- vector()
+  first.of.split <- vector(mode = "logical", length = tree$Nnode + length(tree$tip.label))
   
   for(node.no in seq(1, tree$Nnode + length(tree$tip.label))){
     parent.no <- Ancestors(tree, node.no, type="parent")
@@ -195,33 +195,42 @@ output.trans.tree <- function(tree, assocs){
     }
   }
   
-  unique.splits <- unique(splits.vec)
-  parent.splits <- vector()
-  lengths <- vector()
-  root.nos <- vector()
+  unique.split <- unique(splits.vec)
   
-  for(unique.split in unique.splits){
-    root <- which(splits.vec == unique.split & first.of.split)
-    parent.node <- Ancestors(tree, root, type="parent")
-    if(parent.node != 0){
-      parent.splits <- c(parent.splits, splits.vec[parent.node])
-      
-      root.edge.no <- which(tree$edge[,2]==root)
-      lengths <- c(lengths, tree$edge.length[root.edge.no])
-    } else {
-      parent.splits <- c(parent.splits, "root")
-      lengths <- c(lengths, 0)
-    }
-    root.nos <- c(root.nos, root)
-  }
+  tt.table <- tibble(unique.split)
   
-  hosts <-  unlist(lapply(strsplit(unique.splits, "-SPLIT"), `[[`, 1)) 
-  parent.hosts <-  unlist(lapply(strsplit(parent.splits, "-SPLIT"), `[[`, 1)) 
+  tt.table <- tt.table %>% 
+    mutate(root.no = map_int(unique.split, function(x){
+      which(splits.vec == x & first.of.split)}), 
+      parent.node = Ancestors(tree, root.no, type="parent"),
+      parent.split = map_chr(parent.node, function(x){
+        if(x == 0){
+          "root"
+        } else {
+          splits.vec[x]
+        }
+      }),
+      length = map2_dbl(root.no, parent.node, function(x, y){
+        if(y==0){
+          0
+        } else {
+          tree$edge.length[which(tree$edge[,2]==x)]
+        }
+      }),
+      host = unlist(lapply(strsplit(unique.split, "-SPLIT"), `[[`, 1)),
+      parent.host = unlist(lapply(strsplit(parent.split, "-SPLIT"), `[[`, 1))) %>%
+    select(unique.split, parent.split, host, parent.host, length, root.no)
   
-  tt.table <- data.frame(unique.splits, parent.splits, hosts, parent.hosts, lengths, root.nos, stringsAsFactors = F)
-  
-  return(tt.table)
+  tt.table
 }
+
+tt.table %>% mutate(length = map2_chr(root.no, parent.node, function(x, y){
+  if(y==0){
+    0
+  } else {
+    tree$edge.length[which(tree$edge[,2]==x)]
+  }
+}))
 
 #' @keywords internal
 #' @export prune.unassigned.tips
@@ -231,11 +240,12 @@ prune.unassigned.tips <- function(tt.table){
   for.output <- tt.table[,1:6]
   
   unassigned.tips <- which(grepl("unassigned",for.output$unique.splits) &
-                            !(for.output$unique.splits %in% for.output$parent.splits))
+                             !(for.output$unique.splits %in% for.output$parent.splits))
   
   if(length(unassigned.tips) > 0){
     for.output <- for.output[-unassigned.tips,]
   }
+  
   #renumber
   unassigned.rows <- which(grepl("^unassigned_region",for.output$unique.splits))
   
@@ -253,7 +263,7 @@ prune.unassigned.tips <- function(tt.table){
   
   for.output$parent.hosts[which(grepl("^unassigned_region",for.output$parent.hosts))] <- "UnassignedRegion"
   
-  return(for.output)
+  for.output
 }
 
 #' @keywords internal
@@ -293,7 +303,7 @@ check.contiguous <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
     }
   }
   
-  return(OK)
+  OK
 }
 
 #' @keywords internal
@@ -354,16 +364,16 @@ check.uninterrupted <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
       
     }
   }
-  return(any.contiguity & !any.interruption)
+  any.contiguity & !any.interruption
 }
 
 #' @keywords internal
 #' @export extract.tt.subgraph
 
 extract.tt.subgraph <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
-  # for now, at least
   
   if(length(hosts)!=2){
+    # for now, at least
     stop("Not implemented")
   }
   if(!check.contiguous(tt, hosts, splits.for.hosts, hosts.for.splits)){
@@ -376,15 +386,15 @@ extract.tt.subgraph <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
   pat.1.splts <- splits.for.hosts[[pat.1.id]]
   pat.2.splts <- splits.for.hosts[[pat.2.id]]
   
-  sub.tt <- tt[which(tt$unique.splits %in% c(pat.1.splts, pat.2.splts)),]
-  unassigned.below <- tt[which(tt$hosts == "unassigned_region" & (tt$parent.splits %in% c(pat.1.splts, pat.2.splts))),]
-  unassigned.above <- tt[which(tt$hosts == "unassigned_region" & (tt$unique.splits %in% sub.tt$parent.splits)),]
+  sub.tt <- tt %>% filter(unique.split %in% c(pat.1.splts, pat.2.splts)
+  unassigned.below <- tt[which(tt$host == "unassigned_region" & (tt$parent.split %in% c(pat.1.splts, pat.2.splts))),]
+  unassigned.above <- tt[which(tt$host == "unassigned_region" & (tt$unique.split %in% sub.tt$parent.split)),]
   
   none.but.maybe.relevant <- c(unassigned.above$unique.splits, unassigned.below$unique.splits)
   
   adjacent.relevance.count <- sapply(none.but.maybe.relevant, function(x) length(intersect(c(pat.1.splts, pat.2.splts), get.tt.adjacent(tt, x) ) ))
   
-  return(c(sub.tt$unique.splits, unique(none.but.maybe.relevant[which(adjacent.relevance.count > 1)])))
+  c(sub.tt$unique.split, unique(none.but.maybe.relevant[which(adjacent.relevance.count > 1)]))
 }
 
 # every distance between subgraphs
@@ -405,7 +415,7 @@ all.subgraph.distances <- function(tree, tt, splits, assocs, slow=F, total.pairs
   
   count <- 0
   
-  temp <- matrix(ncol = length(splits), nrow=length(splits))
+  out <- matrix(ncol = length(splits), nrow=length(splits))
   
   if(total.pairs==0 & verbose & !no.progress.bars){
     setTxtProgressBar(progress.bar, 1)
@@ -413,7 +423,7 @@ all.subgraph.distances <- function(tree, tt, splits, assocs, slow=F, total.pairs
     for(spt.1.no in 1:length(splits)){
       for(spt.2.no in 1:length(splits)){
         if(spt.1.no==spt.2.no){
-          temp[spt.1.no, spt.2.no] <- 0
+          out[spt.1.no, spt.2.no] <- 0
         } else if(spt.1.no<spt.2.no){
           
           
@@ -424,7 +434,7 @@ all.subgraph.distances <- function(tree, tt, splits, assocs, slow=F, total.pairs
           chain.2 <- get.tt.ancestors(tt, spt.2)
           
           if(spt.1 %in% chain.2){
-            mrca.2 <- tt$root.nos[which(tt$unique.splits==spt.2)]
+            mrca.2 <- tt$root.no[which(tt$unique.split==spt.2)]
             current.node <- mrca.2
             length <- 0
             while(assocs[[current.node]]!=spt.1){
@@ -434,10 +444,10 @@ all.subgraph.distances <- function(tree, tt, splits, assocs, slow=F, total.pairs
                 stop("Reached the root?")
               }
             }
-            temp[spt.1.no, spt.2.no] <- length
+            out[spt.1.no, spt.2.no] <- length
             
           } else if(spt.2 %in% chain.1){
-            mrca.1 <- tt$root.nos[which(tt$unique.splits==spt.1)]
+            mrca.1 <- tt$root.no[which(tt$unique.split==spt.1)]
             current.node <- mrca.1
             length <- 0
             while(assocs[[current.node]]!=spt.2){
@@ -448,16 +458,16 @@ all.subgraph.distances <- function(tree, tt, splits, assocs, slow=F, total.pairs
                 stop("Reached the root?")
               }
             }
-            temp[spt.1.no, spt.2.no] <- length
+            out[spt.1.no, spt.2.no] <- length
             
           } else {
             
-            mrca.1 <- tt$root.nos[which(tt$unique.splits==spt.1)]
-            mrca.2 <- tt$root.nos[which(tt$unique.splits==spt.2)]
+            mrca.1 <- tt$root.no[which(tt$unique.split==spt.1)]
+            mrca.2 <- tt$root.no[which(tt$unique.split==spt.2)]
             if(!slow){
-              temp[spt.1.no, spt.2.no] <- tree.dist[mrca.1, mrca.2]
+              out[spt.1.no, spt.2.no] <- tree.dist[mrca.1, mrca.2]
             } else {
-              temp[spt.1.no, spt.2.no] <- pat.dist(tree, depths, mrca.1, mrca.2)
+              out[spt.1.no, spt.2.no] <- pat.dist(tree, depths, mrca.1, mrca.2)
             }
           }
           
@@ -466,16 +476,17 @@ all.subgraph.distances <- function(tree, tt, splits, assocs, slow=F, total.pairs
           if(verbose & !no.progress.bars){
             setTxtProgressBar(progress.bar, count/total.pairs)
           }
-          temp[spt.2.no, spt.1.no] <- temp[spt.1.no, spt.2.no]
+          out[spt.2.no, spt.1.no] <- out[spt.1.no, spt.2.no]
         }
       }
     }
   }
   
   if(verbose & !no.progress.bars) close(progress.bar)
-  colnames(temp) <- splits
-  rownames(temp) <- splits
-  return(temp)
+  colnames(out) <- splits
+  rownames(out) <- splits
+  
+  out
 }
 
 #' @keywords internal
@@ -494,7 +505,8 @@ pat.dist <- function(tree, depths, node.1, node.2){
     mrca <- node.1.chain[which(node.1.chain %in% node.2.chain)][1]
     dist <- (depths[node.1] - depths[mrca]) + (depths[node.2] - depths[mrca])
   }
-  return(dist)
+  
+  dist
 }
 
 # are each pair of subgraphs adjacent? If !none.matters then two nodes separated only by "none" are still adjacent
@@ -531,7 +543,7 @@ subgraphs.adjacent <- function(tt, splits, none.matters = F){
   colnames(out) <- splits
   rownames(out) <- splits
   
-  return(out)
+  out
 }
 
 # are pairs of subgraphs from two hosts not separated by any other subgraphs from either of those hosts?
@@ -540,7 +552,7 @@ subgraphs.adjacent <- function(tt, splits, none.matters = F){
 #' @export subgraphs.unblocked
 
 subgraphs.unblocked <- function(tt, splits, total.pairs, verbose = F, no.progress.bars = F){
-
+  
   if (verbose & !no.progress.bars) progress.bar <- txtProgressBar(width=50, style=3)
   count <- 0
   
@@ -585,7 +597,7 @@ subgraphs.unblocked <- function(tt, splits, total.pairs, verbose = F, no.progres
   colnames(out) <- splits
   rownames(out) <- splits
   
-  return(out)
+  out
 }
 
 
@@ -611,7 +623,7 @@ check.adjacency <- function(tt, hosts, splits.for.hosts){
     }
   } 
   
-  return(F)
+  F
 }
 
 #' @keywords internal
@@ -633,29 +645,20 @@ check.tt.node.adjacency <- function(tt, label1, label2, allow.unassigned = F){
     # they can't be - a path length greater than 2 can only go through an unassigned region, and adjacent unassigned regions are not allowed
     return(F)
   }
-
-  # #START TEMPORARY BIT - if the middle node is the region around the root this adjacency is not interesting
-  # 
-  # if(substr(path[2], 1, 17) == "unassigned_region" & get.tt.parent(tt, path[2])=="root"){
-  #   return(F)
-  # }
-  # 
-  # #END TEMPORARY BIT
   
-  return(grepl("^unassigned_region",path[2]))
-  
+  grepl("^unassigned_region",path[2])
 }
 
 #' @keywords internal
 #' @export classify
 
-classify <- function(tree.info, verbose = F, no.progress.bars = F) {	
+classify <- function(ptree, verbose = F, no.progress.bars = F) {	
   
-  if(is.null(tree.info[["tree"]])){
+  if(is.null(ptree[["tree"]])){
     
-    if (verbose) cat("Reading tree file ", tree.info$tree.file.name, "...\n", sep = "")
+    if (verbose) cat("Reading tree file ", ptree$tree.file.name, "...\n", sep = "")
     
-    pseudo.beast.import <- read.beast(tree.info$tree.file.name)
+    pseudo.beast.import <- read.beast(ptree$tree.file.name)
     tree <- attr(pseudo.beast.import, "phylo")
     
     if (verbose) cat("Reading annotations...\n")
@@ -674,21 +677,20 @@ classify <- function(tree.info, verbose = F, no.progress.bars = F) {
     
   } else {
     
-    tree <- tree.info$tree
+    tree <- ptree$tree
     
-    annotations <- data.frame(node = seq(1, length(tree$tip.label) + tree$Nnode), 
+    annotations <- tibble(node = seq(1, length(tree$tip.label) + tree$Nnode), 
                               INDIVIDUAL = as.character(attr(tree, "INDIVIDUAL")), 
-                              SPLIT = as.character(attr(tree, "SPLIT")), 
-                              stringsAsFactors = F)
+                              SPLIT = as.character(attr(tree, "SPLIT")))
   }
   
   
-  if(is.null(tree.info$splits.table)){
+  if(is.null(ptree$splits.table)){
     if (verbose) cat("Reading splits file", tree.info$splits.file.name, "...\n")
     
-    splits <- read.csv(tree.info$splits.file.name, stringsAsFactors = F)
+    splits <- read_csv(tree.info$splits.file.name)
   } else {
-    splits <- tree.info$splits.table
+    splits <- ptree$splits.table
   }
   
   if (verbose) cat("Collecting tips for each host...\n")
@@ -714,7 +716,7 @@ classify <- function(tree.info, verbose = F, no.progress.bars = F) {
   
   hosts.included <- hosts
   
-  total.split.pairs <- (length(all.splits) ^ 2 - length(all.splits))/2
+  total.split.pairs <- (length(all.splits)^2 - length(all.splits))/2
   total.host.pairs <- (length(hosts)^2 - length(hosts))/2
   
   if (verbose) cat("Collapsing subgraphs...\n")
@@ -741,14 +743,14 @@ classify <- function(tree.info, verbose = F, no.progress.bars = F) {
   if (verbose & !no.progress.bars) progress.bar <- txtProgressBar(width=50, style=3)
   
   count <- 0
-  adjacency.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
-  contiguity.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
-  path.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
-  nodes.1.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
-  nodes.2.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
-  dir.12.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
-  dir.21.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
-  min.distance.matrix <- matrix(NA, length(hosts.included), length(hosts.included))
+  adjacency.matrix <- matrix(NA, length(hosts.included), length(hosts.included), dimnames=list(hosts.included, hosts.included))
+  contiguity.matrix <- matrix(NA, length(hosts.included), length(hosts.included), dimnames=list(hosts.included, hosts.included))
+  top.class.matrix <- matrix(NA, length(hosts.included), length(hosts.included), dimnames=list(hosts.included, hosts.included))
+  nodes.1.matrix <- matrix(NA, length(hosts.included), length(hosts.included), dimnames=list(hosts.included, hosts.included))
+  nodes.2.matrix <- matrix(NA, length(hosts.included), length(hosts.included), dimnames=list(hosts.included, hosts.included))
+  dir.12.matrix <- matrix(NA, length(hosts.included), length(hosts.included), dimnames=list(hosts.included, hosts.included))
+  dir.21.matrix <- matrix(NA, length(hosts.included), length(hosts.included), dimnames=list(hosts.included, hosts.included))
+  min.distance.matrix <- matrix(NA, length(hosts.included), length(hosts.included), dimnames=list(hosts.included, hosts.included))
   
   if(total.host.pairs==0 & verbose & !no.progress.bars){
     setTxtProgressBar(progress.bar, 1)
@@ -770,7 +772,6 @@ classify <- function(tree.info, verbose = F, no.progress.bars = F) {
           
           adjacency.matrix[pat.1, pat.2] <- check.adjacency(tt, c(pat.1.id, pat.2.id), splits.for.hosts)		
           contiguity.matrix[pat.1, pat.2] <- check.contiguous(tt, c(pat.1.id, pat.2.id), splits.for.hosts, hosts.for.splits)		
-          
           
           count.12 <- 0
           count.21 <- 0
@@ -799,21 +800,21 @@ classify <- function(tree.info, verbose = F, no.progress.bars = F) {
           dir.21.matrix[pat.1, pat.2] <- count.21
           
           if(count.12 == 0 & count.21 == 0){
-            path.matrix[pat.1, pat.2] <- "none"
+            top.class.matrix[pat.1, pat.2] <- "none"
           } else if(count.12 != 0 & count.21 == 0 & prop.12 == 1) {
             if(count.12 == 1){
-              path.matrix[pat.1, pat.2] <- "anc"
+              top.class.matrix[pat.1, pat.2] <- "anc"
             } else {
-              path.matrix[pat.1, pat.2] <- "multiAnc"
+              top.class.matrix[pat.1, pat.2] <- "multiAnc"
             }
           } else if(count.21 != 0 & count.12 == 0 & prop.21 == 1) {
             if(count.21 == 1){
-              path.matrix[pat.1, pat.2] <- "desc"
+              top.class.matrix[pat.1, pat.2] <- "desc"
             } else {
-              path.matrix[pat.1, pat.2] <- "multiDesc"
+              top.class.matrix[pat.1, pat.2] <- "multiDesc"
             }
           } else {
-            path.matrix[pat.1, pat.2] <- "complex"
+            top.class.matrix[pat.1, pat.2] <- "complex"
           }
           
           pairwise.distances <- vector()
@@ -838,54 +839,38 @@ classify <- function(tree.info, verbose = F, no.progress.bars = F) {
   
   if (verbose & !no.progress.bars) close(progress.bar)
   
-  normalisation.constant <- tree.info$normalisation.constant
+  normalisation.constant <- ptree$normalisation.constant
   
-  normalised.distance.matrix<- min.distance.matrix/normalisation.constant
+  # get the first two columns once only
+  # this procedure still turns strings into factors for reasons I don't really understand
   
-  adjacency.df <- convert.to.columns(adjacency.matrix, hosts.included)
-  contiguity.df <- convert.to.columns(contiguity.matrix, hosts.included)
-  dir.12.df <- convert.to.columns(dir.12.matrix, hosts.included)
-  dir.21.df <- convert.to.columns(dir.21.matrix, hosts.included)
-  nodes.1.df <- convert.to.columns(nodes.1.matrix, hosts.included)
-  nodes.2.df <- convert.to.columns(nodes.2.matrix, hosts.included)
-  path.df <- convert.to.columns(path.matrix, hosts.included)
-  min.distance.df <- convert.to.columns(min.distance.matrix, hosts.included)
-  if(normalisation.constant!=1){
-    normalised.distance.df <- convert.to.columns(normalised.distance.matrix, hosts.included)
-  }
+  melted.matrix <- adjacency.matrix %>% melt() %>% filter(!is.na(value)) 
   
-  classification <- cbind(adjacency.df, contiguity.df[,3], dir.12.df[,3], dir.21.df[,3], nodes.1.df[,3], nodes.2.df[,3], path.df[,3], min.distance.df[,3])
+  host.1 <- melted.matrix %>% magrittr::extract(, "Var1") %>% as.character()
+  host.2 <- melted.matrix %>% magrittr::extract(, "Var2") %>% as.character()
+  adjacent <- melted.matrix %>% magrittr::extract(, "value")
   
-  column.names <- c("host.1", "host.2", "adjacent", "contiguous", "paths12", "paths21", "nodes1", "nodes2", "ancestry", "min.distance.between.subgraphs")
-  
-  if(normalisation.constant!=1){
-    classification <- cbind(classification, normalised.distance.df[,3])
-    column.names <- c(column.names, "normalised.min.distance.between.subgraphs")
-  }
-  
-  colnames(classification) <- column.names
-  return(list(classification = classification, collapsed=tt))
-}
+  contiguous <- contiguity.matrix %>% melt() %>% filter(!is.na(value)) %>% magrittr::extract(, "value")
+  paths12 <- dir.12.matrix %>% melt() %>% filter(!is.na(value)) %>% magrittr::extract(, "value")
+  paths21 <- dir.21.matrix %>% melt() %>% filter(!is.na(value)) %>% magrittr::extract(, "value")
+  nodes1 <- nodes.1.matrix %>% melt() %>% filter(!is.na(value)) %>% magrittr::extract(, "value")
+  nodes2 <- nodes.2.matrix %>% melt() %>% filter(!is.na(value)) %>% magrittr::extract(, "value")
+  ancestry <- top.class.matrix %>% melt() %>% filter(!is.na(value)) %>% magrittr::extract(, "value") %>% as.character()
+  min.distance.between.subgraphs <- min.distance.matrix %>% melt() %>% filter(!is.na(value)) %>% magrittr::extract(, "value")
 
-convert.to.columns <- function(matrix, names){
-  a.table <- as.table(matrix)
-  colnames(a.table) <- names
-  rownames(a.table) <- names
+  classification <- tibble(host.1, host.2, adjacent, contiguous, paths12, paths21, nodes1, nodes2, ancestry, min.distance.between.subgraphs)
   
-  a.df <- as_data_frame(a.table)
+  if(normalisation.constant!=1){
+    normalised.distance.matrix <- min.distance.matrix/normalisation.constant
+    normalised.min.distance.between.subgraphs <- normalised.distance.matrix %>% melt() %>% filter(!is.na(value)) %>% magrittr::extract(, "value")
+    classification <- classification %>% mutate(normalised.min.distance.between.subgraphs = normalised.min.distance.between.subgraphs)
+  }
   
-  # I am unclear why the third column ends up as a factor, even if I use as.data.frame with stringsAsFactors = F
-  a.df <- a.df %>% mutate_at("n", as.character)
-  
-  keep <- complete.cases(a.df)
-  a.df <- a.df[keep,]
-  
-  a.df
+  return(list(classification = classification, collapsed=tt))
 }
 
 #' @keywords internal
 #' @export merge.classifications
- 
 
 
 merge.classifications <- function(ptrees, allow.mt = T, verbose = F){
@@ -908,7 +893,7 @@ merge.classifications <- function(ptrees, allow.mt = T, verbose = F){
     }
     
     tt <- tt %>% add_column(tree.id = ptree$id)
-    			
+    
     tt
   })	
   
@@ -917,7 +902,7 @@ merge.classifications <- function(ptrees, allow.mt = T, verbose = F){
   }
   
   # need to worry about transmissions listed in the wrong direction in the input file
-
+  
   if(verbose) cat("Rearranging host pairs...\n")
   
   classification.rows	<- classification.rows %>% map(function(x){
@@ -926,11 +911,10 @@ merge.classifications <- function(ptrees, allow.mt = T, verbose = F){
     
     x <- x %>% mutate_at("ancestry", as.character)
     
-    x <- x %>% mutate(ancestry = replace(ancestry, host.2 < host.1 & ancestry == "anc", "desc"))
-    x <- x %>% mutate(ancestry = replace(ancestry, host.2 < host.1 & ancestry == "desc", "anc"))
-    x <- x %>% mutate(ancestry = replace(ancestry, host.2 < host.1 & ancestry == "multiAnc", "multiDesc"))
-    x <- x %>% mutate(ancestry = replace(ancestry, host.2 < host.1 & ancestry == "multiDesc", "multiAnc"))
-    
+    x <- x %>% mutate(ancestry = replace(ancestry, host.2 < host.1 & ancestry == "anc", "desc")) %>% 
+      mutate(ancestry = replace(ancestry, host.2 < host.1 & ancestry == "desc", "anc")) %>% 
+      mutate(ancestry = replace(ancestry, host.2 < host.1 & ancestry == "multiAnc", "multiDesc")) %>% 
+      mutate(ancestry = replace(ancestry, host.2 < host.1 & ancestry == "multiDesc", "multiAnc"))
     
     x
   })
@@ -949,7 +933,7 @@ merge.classifications <- function(ptrees, allow.mt = T, verbose = F){
     
     classification.rows <- classification.rows %>% rename(patristic.distance = normalised.min.distance.between.subgraphs)
     classification.rows <- classification.rows %>% select(-min.distance.between.subgraphs)
-
+    
   } else if('min.distance.between.subgraphs' %in% names(classification.rows)){
     
     classification.rows <- classification.rows %>% rename(patristic.distance = min.distance.between.subgraphs)
@@ -996,12 +980,12 @@ summarise.classifications <- function(ptrees, min.threshold, dist.threshold, all
   tt <- tt %>% select(-c(paths12, paths21))
   
   existence.counts <- tt %>% count(host.1, host.2)
-
+  
   tt <- tt %>% 
     group_by(host.1, host.2) %>% 
     mutate(both.exist = n()) %>%
     ungroup()
-
+  
   if(!close.sib.only){
     if(!contiguous){
       tt.close <- tt %>% 
@@ -1039,31 +1023,19 @@ summarise.classifications <- function(ptrees, min.threshold, dist.threshold, all
   
   tt.close <- tt.close %>% 
     mutate(new.host.1 = ifelse(ancestry %in% c("desc", "multiDesc"), host.2, host.1), 
-                                  new.host.2 = ifelse(ancestry %in% c("desc", "multiDesc"), host.1, host.2), 
-                                  host.1 = new.host.1,
-                                  host.2 = new.host.2) %>% 
-    select(-new.host.1, -new.host.2)
+           new.host.2 = ifelse(ancestry %in% c("desc", "multiDesc"), host.1, host.2), 
+           host.1 = new.host.1,
+           host.2 = new.host.2) %>% 
+    select(-new.host.1, -new.host.2) %>% 
+    mutate(ancestry = replace(ancestry, ancestry == "anc" | ancestry == "desc", "trans")) %>% 
+    mutate(ancestry = replace(ancestry, ancestry == "multiAnc" | ancestry == "multiDesc", "multiTrans")) %>% 
+    select(-tree.id, -adjacent, -contiguous, -nodes1, -nodes2, -patristic.distance) %>% 
+    distinct() %>% 
+    arrange(host.1, host.2, ancestry) %>% 
+    select(host.1, host.2, ancestry, ancestry.tree.count, both.exist, fraction, any.relationship.tree.count) %>% 
+    filter(any.relationship.tree.count > min.threshold)
   
-  tt.close <- tt.close %>% 
-    mutate(ancestry = replace(ancestry, ancestry == "anc" | ancestry == "desc", "trans"))
-  tt.close <- tt.close %>% 
-    mutate(ancestry = replace(ancestry, ancestry == "multiAnc" | ancestry == "multiDesc", "multiTrans"))
-
-  tt.close <- tt.close %>% 
-    select(-tree.id, -adjacent, -contiguous, -nodes1, -nodes2, -patristic.distance)
-  
-  tt.close <- tt.close %>% 
-    distinct()
-  
-  setkey(tt.close, HOST.1, HOST.2, TYPE)
-  
-  tt.close <- tt.close %>% 
-    arrange(host.1, host.2, ancestry)
-  
-  tt.close <- tt.close %>% 
-    select(host.1, host.2, ancestry, ancestry.tree.count, both.exist, fraction, any.relationship.tree.count)
-  
-  tt.close %>% filter(any.relationship.tree.count > min.threshold)
+  tt.close 
 }
 
 #' @keywords internal
@@ -1092,73 +1064,74 @@ simplify.summary <- function(summary, arrow.threshold, total.trees, plot = F){
     }
   }
   
-  summary.wide <- reshape(summary, direction="w", idvar=c("host.1", "host.2"), timevar = "ancestry", v.names = "ancestry.tree.count",  drop=c("fraction"))
+  summary.wide <- summary %>% 
+    select(host.1, host.2, both.exist, ancestry, ancestry.tree.count) %>% 
+    spread(ancestry, ancestry.tree.count, fill = 0) %>% 
+    mutate(total.equiv = 0, total.12 = 0, total.21 = 0)
   
-  summary.wide[is.na(summary.wide)] <- 0
-
-  summary.wide$total.equiv <- 0
-  
-  if("ancestry.tree.count.none" %in% colnames(summary.wide)){
-    summary.wide$total.equiv <- summary.wide$total.equiv + summary.wide$ancestry.tree.count.none
+  if("none" %in% names(summary.wide)){
+    summary.wide <- summary.wide %>% mutate(total.equiv = total.equiv + none)
   }
-  if("ancestry.tree.count.complex" %in% colnames(summary.wide)){
-    summary.wide$total.equiv <- summary.wide$total.equiv + summary.wide$ancestry.tree.count.complex
+  if("complex" %in% names(summary.wide)){
+    summary.wide <- summary.wide %>% mutate(total.equiv = total.equiv + complex)
   }
-  
-  if("ancestry.tree.count.trans12" %in% colnames(summary.wide)){
-    summary.wide$total.12 <- summary.wide$ancestry.tree.count.trans12
-  } else {
-    summary.wide$total.12 <- rep(0, nrow(summary.wide))
+  if("trans12" %in% names(summary.wide)){
+    summary.wide <- summary.wide %>% mutate(total.12 = total.12 + trans12)
+  } 
+  if("multi_trans12" %in% names(summary.wide)){
+    summary.wide <- summary.wide %>% mutate(total.12 = total.12 + multi_trans12)
   }
-  
-  if(!is.null(summary.wide$ancestry.tree.count.multi_trans12)){
-    summary.wide$total.12 <- summary.wide$total.12 + summary.wide$ancestry.tree.count.multi_trans12
-  }
-  
-  
-  if("ancestry.tree.count.trans21" %in% colnames(summary.wide)){
-    summary.wide$total.21 <- summary.wide$ancestry.tree.count.trans21
-  } else {
-    summary.wide$total.21 <- rep(0, nrow(summary.wide))
+  if("trans21" %in% names(summary.wide)){
+    summary.wide <- summary.wide %>% mutate(total.21 = total.21 + trans21)
+  } 
+  if("multi_trans21" %in% names(summary.wide)){
+    summary.wide <- summary.wide %>% mutate(total.21 = total.21 + multi_trans21)
   }
   
-  if(!is.null(summary.wide$ancestry.tree.count.multi_trans21)){
-    summary.wide$total.21 <- summary.wide$total.21 + summary.wide$ancestry.tree.count.multi_trans21
-  }
+  summary.wide <- summary.wide %>% 
+    mutate(total = total.21 + total.12 + total.equiv,
+           dir = total.12 >= arrow.threshold*total.trees | total.21 >= arrow.threshold*total.trees,
+           arrow = pmap_chr(list(dir, total.12, total.21), function(x, y, z) {
+             if(!x){
+               return("none")
+             }
+             if(y > z){
+               return("forwards")
+             } else {
+               return("backwards")
+             }
+           }),
+           label = pmap_chr(list(dir, total.12, total.21, total), function(w, x, y, z) {
+             if(!w){
+               as.character(round(z/total.trees, 2))
+             } else {
+               paste0(round(max(x,y)/total.trees, 2), "/", round(z/total.trees, 2))
+             }
+             
+           })
+    ) %>%
+    select(host.1, host.2, arrow, label)
   
-  summary.wide$total <- summary.wide$total.21 + summary.wide$total.12 + summary.wide$total.equiv
-
-  dir <- summary.wide$total.12 >= arrow.threshold*total.trees | summary.wide$total.21 >= arrow.threshold*total.trees
+  # this has not been tidied
   
-  summary.wide$arrow[!dir] <- "none"
+  summary.wide[which(summary.wide$arrow=="backwards"),c(1,2)] <- summary.wide[which(summary.wide$arrow=="backwards"),c(2,1)] 
   
-  if(length(which(dir)>0)){
-    summary.wide$arrow[dir] <- sapply(which(dir), function(x)  if(summary.wide$total.12[x]>summary.wide$total.21[x]) "forwards" else "backwards")
-    summary.wide$label[dir] <- paste0(round(pmax(summary.wide$total.12[dir],summary.wide$total.21[dir])/total.trees, 2),"/", round(summary.wide$total[dir]/total.trees, 2))
-  }
-
-  summary.wide$label[!dir] <- as.character(round(summary.wide$total[!dir]/total.trees, 2))
+  summary.wide$arrow <- summary.wide$arrow!="none"
   
-  out.table <- summary.wide[,c("host.1","host.2","arrow","label")]
-
-  out.table[which(out.table$arrow=="backwards"),c(1,2)] <- out.table[which(out.table$arrow=="backwards"),c(2,1)] 
-  
-  out.table$arrow <- out.table$arrow!="none"
-  
-  out <- list(simp.table = out.table)
+  out <- list(simp.table = summary.wide)
   
   if(plot){
     network.obj <- as.network.matrix(out.table[,c(1,2)], matrix.type = "edgelist")
     
     arrangement <- ggnet2(network.obj)$data[,c("label", "x", "y")]
-
+    
     out.table$x.start <- sapply(out.table$host.1, function(x) arrangement$x[match(x, arrangement$label)]) 
     out.table$y.start <- sapply(out.table$host.1, function(x) arrangement$y[match(x, arrangement$label)]) 
     out.table$x.end <- sapply(out.table$host.2, function(x) arrangement$x[match(x, arrangement$label)]) 
     out.table$y.end <- sapply(out.table$host.2, function(x) arrangement$y[match(x, arrangement$label)]) 
     out.table$x.midpoint <- (out.table$x.end + out.table$x.start)/2
     out.table$y.midpoint <- (out.table$y.end + out.table$y.start)/2
-  
+    
     out.diagram <- ggplot() + 
       geom_segment(data=out.table[which(out.table$arrow),], aes(x=x.start, xend = x.end, y=y.start, yend = y.end), arrow = arrow(length = unit(0.01, "npc"), type="closed"), col="steelblue3", size=1.5, lineend="round") +
       geom_segment(data=out.table[which(!out.table$arrow),], aes(x=x.start, xend = x.end, y=y.start, yend = y.end), col="chartreuse3", size=1.5, lineend="round") +
