@@ -944,7 +944,7 @@ merge.classifications <- function(ptrees, allow.mt = T, verbose = F){
   
   if(verbose) cat("Finding patristic distance columns...\n")
   
-  # reset names depending on which Classify script was used
+  # reset names depending on which classify script was used
   if('normalised.min.distance.between.subgraphs' %in% names(classification.rows)){
     
     classification.rows <- classification.rows %>% rename(patristic.distance = normalised.min.distance.between.subgraphs)
@@ -1037,10 +1037,12 @@ summarise.classifications <- function(ptrees, min.threshold, dist.threshold, all
   
   #	Flip directions - all ancestry is now "trans" or "multiTrans"
   
-  tt.close <- tt.close %>% mutate(new.host.1 = ifelse(ancestry %in% c("desc", "multiDesc"), host.2, host.1), 
+  tt.close <- tt.close %>% 
+    mutate(new.host.1 = ifelse(ancestry %in% c("desc", "multiDesc"), host.2, host.1), 
                                   new.host.2 = ifelse(ancestry %in% c("desc", "multiDesc"), host.1, host.2), 
                                   host.1 = new.host.1,
-                                  host.2 = new.host.2) %>% select(-new.host.1, -new.host.2)
+                                  host.2 = new.host.2) %>% 
+    select(-new.host.1, -new.host.2)
   
   tt.close <- tt.close %>% 
     mutate(ancestry = replace(ancestry, ancestry == "anc" | ancestry == "desc", "trans"))

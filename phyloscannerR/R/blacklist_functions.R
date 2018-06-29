@@ -3,48 +3,45 @@
 #' @keywords internal
 #' @export blacklist.exact.duplicates
 
-blacklist.exact.duplicates <- function(tree.info, raw.threshold, ratio.threshold, tip.regex, verbose = F){
+blacklist.exact.duplicates <- function(ptree, raw.threshold, ratio.threshold, tip.regex, verbose = F){
   
-  if(is.null(tree.info$duplicate.tips)){
-    stop("No duplicate tips for tree ID ",tree.info$id)
+  if(is.null(ptree$duplicate.tips)){
+    stop("No duplicate tips for tree ID ",ptree$id)
   }
   
-  entries <- tree.info$duplicate.tips
+  entries <- ptree$duplicate.tips
   
-  pairs.table	<- data.frame(V1=character(0), V2=character(0))
+  pairs.table	<- tibble(tip.1=character(0), tip.2=character(0))
   
   for(entry in entries){
     # get rid of anything that doesn't match the regexp (outgroup etc)
     tmp <-  entry[!is.na(sapply(entry, read.count.from.label, regexp = tip.regex))]
     if(length(tmp)>1){
       tmp <- t(combn(tmp,2))
-      colnames(tmp) <- c('V1','V2')
-      pairs.table <- rbind(pairs.table, tmp)  
+      colnames(tmp) <- c('tip.1','tip.2')
+      pairs.table <- bind_rows(pairs.table, tmp)  
     }  
   }
-  
-  pairs.table$V1 <- as.character(pairs.table$V1)
-  pairs.table$V2 <- as.character(pairs.table$V2)
-  
-  tmp <- unlist(sapply(pairs.table$V1, function(x) read.count.from.label(x, tip.regex)))
+
+  tmp <- unlist(sapply(pairs.table$tip.1, function(x) read.count.from.label(x, tip.regex)))
   if(!is.null(tmp))
     pairs.table$reads.1 <- tmp
   if(is.null(tmp))
     pairs.table$reads.1 <- integer(0)
   
-  tmp <- unlist(sapply(pairs.table$V2, function(x) read.count.from.label(x, tip.regex)))
+  tmp <- unlist(sapply(pairs.table$tip.2, function(x) read.count.from.label(x, tip.regex)))
   if(!is.null(tmp))
     pairs.table$reads.2 <- tmp
   if(is.null(tmp))
     pairs.table$reads.2 <- integer(0)
   
-  tmp <- unlist(sapply(pairs.table$V1, function(x) host.from.label(x, tip.regex)))
+  tmp <- unlist(sapply(pairs.table$tip.1, function(x) host.from.label(x, tip.regex)))
   if(!is.null(tmp))
     pairs.table$host.1 <- tmp
   if(is.null(tmp))
     pairs.table$host.1 <- character(0)
   
-  tmp <- unlist(sapply(pairs.table$V2, function(x) host.from.label(x, tip.regex)))
+  tmp <- unlist(sapply(pairs.table$tip.2, function(x) host.from.label(x, tip.regex)))
   if(!is.null(tmp))
     pairs.table$host.2 <- tmp
   if(is.null(tmp))
@@ -52,17 +49,33 @@ blacklist.exact.duplicates <- function(tree.info, raw.threshold, ratio.threshold
   
   # pairs from the same host aren't under consideration
   
-  pairs.table <- pairs.table[which(pairs.table$host.1 != pairs.table$host.2),]
+  pairs.table <- pairs.table %>% filter(host.1 != host.2)
   
   # reverse the order so the read with the greater count is in the first column
-  pairs.table[pairs.table$reads.2 > pairs.table$reads.1, c("V1", "V2", "reads.1", "reads.2")] <- pairs.table[pairs.table$reads.2 > pairs.table$reads.1, c("V2", "V1", "reads.2", "reads.1")] 
   
+  pairs.table <- pairs.table %>% 
+    mutate(new.tip.1 = ifelse(reads.2 > reads.1, tip.2, tip.1), 
+           new.tip.2 = ifelse(reads.2 > reads.1, tip.1, tip.2),
+           new.reads.1 = ifelse(reads.2 > reads.1, reads.2, reads.1),
+           new.reads.2 = ifelse(reads.2 > reads.1, reads.1, reads.2),
+           new.host.1 = ifelse(reads.2 > reads.1, host.2, host.1),
+           new.host.2 = ifelse(reads.2 > reads.1, host.1, host.2),
+           tip.1 = new.tip.1,
+           tip.2 = new.tip.2,
+           reads.1 = new.reads.1,
+           reads.2 = new.reads.2,
+           host.1 = new.host.1,
+           host.2 = new.host.2) %>% 
+    select(-new.tip.1, -new.tip.2, -new.reads.1, -new.reads.2, -new.host.1, -new.host.2)
+
   # calculate the counts
-  pairs.table$ratio <- pairs.table$reads.2 / pairs.table$reads.1
+  pairs.table <- pairs.table %>% mutate(ratio = reads.2/reads.1)
+
   if (verbose) cat("Tree ID ",tree.info$id,": making duplicate blacklist with a ratio threshold of ",ratio.threshold," and a raw threshold of ",raw.threshold,"\n",sep="")
-  blacklisted <- pairs.table[which(pairs.table$ratio < ratio.threshold | (pairs.table$reads.2<raw.threshold)),2]
   
-  return(blacklisted)
+  blacklisted <- pairs.table %>% filter(ratio < ratio.threshold | reads.2<raw.threshold)
+  
+  blacklisted
 }
 
 

@@ -13,22 +13,20 @@ get.tip.no <- function(tree, name) {
 #' @keywords internal
 #' @export get.tips.for.host
 
-get.tips.for.host <-
-  function(tree, host.string, host.ids, blacklist) {
-    node.numbers <- which(grepl(paste0('^',host.string),host.ids))
-    
-    node.numbers <-
-      node.numbers[which(!(node.numbers %in% blacklist))]
-    return(node.numbers)
-  }
+get.tips.for.host <- function(tree, host.string, host.ids, blacklist) {
+  node.numbers <- which(grepl(paste0('^',host.string),host.ids))
+  
+  node.numbers <-
+    node.numbers[which(!(node.numbers %in% blacklist))]
+  return(node.numbers)
+}
 
 #' @keywords internal
 #' @export get.tips.for.sample
 
-get.tips.for.sample <-
-  function(tree, sample.string){
-    return(which(grepl(paste0('^',sample.string),tree$tip.label)))
-  }
+get.tips.for.sample <- function(tree, sample.string){
+  return(which(grepl(paste0('^',sample.string),tree$tip.label)))
+}
 
 # Edge length by node number (probably in some library somewhere)
 

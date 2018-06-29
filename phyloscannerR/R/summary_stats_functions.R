@@ -46,6 +46,7 @@ calc.subtree.stats <- function(host.id, tree.id, tree, tips.for.patients, splits
     if(subgraphs==1){
       subgraph.mean.pat.distance <- global.mean.pat.distance
       largest.rtt <- overall.rtt
+      
     } else {
       
       relevant.reads <- splits.table[which(splits.table$host==host.id),]
@@ -154,7 +155,7 @@ get.tip.and.read.counts <- function(ptree, hosts, tip.regex, has.read.counts, ve
       }
     }
   })) 
-    
+  
   window.table
 }
 
@@ -187,6 +188,7 @@ calc.all.stats.in.window <- function(ptree, hosts, tip.regex, has.read.counts, v
   # If no patients from the input file are actually here, give a warning
   
   hosts.present <- intersect(hosts, unique(hosts.for.tips))
+  
   if(length(hosts.present)==0){
     warning(paste("No listed hosts appear in tree ",ptree$id,"\n",sep=""))
   }
@@ -195,46 +197,41 @@ calc.all.stats.in.window <- function(ptree, hosts, tip.regex, has.read.counts, v
   
   tips.for.hosts <- lapply(setNames(hosts, hosts), function(x) tree$tip.label[which(hosts.for.tips==x)])
   
-  # Make the data.table
+  # Make the tibble
   
-  window.table <- data.table(host.id=hosts)
-  window.table <- window.table[, tree.id := id]
-  window.table <- window.table[, xcoord := ptree$xcoord]
-  window.table <- window.table[, tips :=  sapply(hosts, function(x) as.numeric(length(tips.for.hosts[[x]])))]
-  window.table <- window.table[, reads :=  sapply(hosts, function(x){
-    if(length(tips.for.hosts[[x]])==0){
-      return(0)
-    } else {
-      if(has.read.counts){
-        return(sum(sapply(tips.for.hosts[[x]], function(y) as.numeric(read.count.from.label(y, tip.regex)))))
-      } else {
-        return(as.numeric(length(tips.for.hosts[[x]])))
-      }
-    }
-  } 
-  )]
-  window.table <- window.table[, subgraphs := sapply(hosts, function(x) length(unique(splits.table[which(splits.table$host==x),]$subgraph)))]
-  window.table <- window.table[, clades := sapply(hosts, function(x) length(clades.by.host[[x]]))  ]
-  
+  window.table <- tibble(host.id=hosts, 
+                         tree.id = id, 
+                         xcoord = ptree$xcoord, 
+                         tips = sapply(hosts, function(x) as.numeric(length(tips.for.hosts[[x]]))),
+                         reads = sapply(hosts, function(x){
+                           if(length(tips.for.hosts[[x]])==0){
+                             return(0)
+                           } else {
+                             if(has.read.counts){
+                               return(sum(sapply(tips.for.hosts[[x]], function(y) as.numeric(read.count.from.label(y, tip.regex)))))
+                             } else {
+                               return(as.numeric(length(tips.for.hosts[[x]])))
+                             }
+                           }
+                         } 
+                         ),
+                         subgraphs =  sapply(hosts, function(x) length(unique(splits.table[which(splits.table$host==x),]$subgraph))),
+                         clades = sapply(hosts, function(x) length(clades.by.host[[x]]))
+  )
 
-  
-  new.cols <- sapply(hosts, function(x) calc.subtree.stats(x, id, tree, tips.for.hosts, splits.table, tip.regex, !has.read.counts, verbose))
-  
-  new.cols <- as.data.table(t(new.cols))
-  
-  new.cols <- new.cols[, lapply(.SD, as.numeric)]
-  
-  normalised.new.cols <- new.cols/ptree$normalisation.constant
+  new.cols <- map_dfr(hosts, function(x) calc.subtree.stats(x, id, tree, tips.for.hosts, splits.table, tip.regex, !has.read.counts, verbose))
+
+  normalised.new.cols <- new.cols %>% transmute_all(funs(./ptree$normalisation.constant))  
   colnames(normalised.new.cols) <- paste0("normalised.", colnames(new.cols))
   
-  window.table <- cbind(window.table, new.cols) 
-  window.table <- cbind(window.table, normalised.new.cols) 
+  window.table <- bind_cols(window.table, new.cols) 
+  window.table <- bind_cols(window.table, normalised.new.cols) 
   
   recomb.file.name <- ptree$recombination.file.name
   
   if (!is.null(recomb.file.name)) {
     
-    recomb.df <- read.csv(recomb.file.name, stringsAsFactors = F)
+    recomb.df <- read_csv(recomb.file.name, stringsAsFactors = F)
     col.names <- colnames(recomb.df)
     for (expected.col.name in c("Bam.file","Recombination.metric")) {
       if (! expected.col.name %in% col.names) {
@@ -252,15 +249,17 @@ calc.all.stats.in.window <- function(ptree, hosts, tip.regex, has.read.counts, v
       stop(paste0("Error: the following bam file IDs were unexpected in ",
                   recomb.file.name, ": ", paste(extra.IDs, collapse = " "), "\nQuitting."))
     }
-    recomb.df <- recomb.df[c("Bam.file","Recombination.metric")]
-    colnames(recomb.df)[colnames(recomb.df) == "Bam.file"] <- "id"
-    colnames(recomb.df)[colnames(recomb.df) == "Recombination.metric"] <- "recombination.metric"
-    window.table <- merge(window.table, recomb.df, by="id", all=F)
+    recomb.df <- recomb.df %>% 
+      select(Bam.file, Recombination.metric] %>% 
+      rename(host.id = Bam.file, recombination.metic = Recombination.metric)
+
+    window.table <- window.table %>% inner_join(recomb.df)
   }
   
   # If you did dual detection, add that in
   
   if(!is.null(ptree$dual.detection.splits)){
+    # Q: is there a tidyverse match?
     
     window.table$solo.dual.count <- ptree$dual.detection.splits$count[match(window.table$host.id, ptree$dual.detection.splits$host)]
     

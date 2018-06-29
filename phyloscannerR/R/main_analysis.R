@@ -975,7 +975,7 @@ phyloscanner.generate.blacklist <- function(
 #' Make a \code{data.table} of per-window host statistics
 #'
 #' This function collects per-window statistics on hosts
-#' @param phyloscanner.trees A list of class \code{phyloscanner.trees}
+#' @param ptrees A list of class \code{phyloscanner.trees}
 #' @param hosts A list of hosts to record statistics for. If not specified, every identifiable host in \code{phyloscanner.trees}
 #' @param tip.regex Regular expression identifying tips from the dataset. This expects up to three capture groups, for host ID, read ID, and read count (in that order). If the latter two groups are missing then read information will not be used. The default matches input from the phyloscanner pipeline where the host ID is the BAM file name.
 #' @param verbose Produce verbose output
@@ -985,20 +985,20 @@ phyloscanner.generate.blacklist <- function(
 #' @importFrom data.table rbindlist
 #' @export gather.summary.statistics
 
-gather.summary.statistics <- function(phyloscanner.trees, hosts = all.hosts.from.trees(phyloscanner.trees), tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$", verbose = F){
+gather.summary.statistics <- function(ptrees, hosts = all.hosts.from.trees(phyloscanner.trees), tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$", verbose = F){
   
-  has.read.counts <- attr(phyloscanner.trees, 'has.read.counts')
+  has.read.counts <- attr(ptrees, 'has.read.counts')
   
-  pat.stats <- lapply(phyloscanner.trees, function(x) calc.all.stats.in.window(x, hosts, tip.regex, has.read.counts, verbose))
+  pat.stats <- lapply(ptrees, function(x) calc.all.stats.in.window(x, hosts, tip.regex, has.read.counts, verbose))
   pat.stats <- rbindlist(pat.stats)
   
-  read.proportions <- lapply(phyloscanner.trees, function(y) sapply(hosts, function(x) get.read.proportions(x, y$id, y$splits.table), simplify = F, USE.NAMES = T))
+  read.proportions <- lapply(ptrees, function(y) sapply(hosts, function(x) get.read.proportions(x, y$id, y$splits.table), simplify = F, USE.NAMES = T))
   
   # Get the max split count over every window and host (the exact number of columns depends on this)
   
   max.splits <- max(sapply(read.proportions, function(x) max(sapply(x, function(y) length(y)))))
   
-  read.prop.columns <- lapply(phyloscanner.trees, function(x){
+  read.prop.columns <- lapply(ptrees, function(x){
     window.props <- read.proportions[[x$id]]
     out <- lapply(hosts, function(y){
       
