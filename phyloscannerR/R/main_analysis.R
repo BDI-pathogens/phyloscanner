@@ -1094,10 +1094,10 @@ draw.summary.statistics <- function(phyloscanner.trees, sum.stats, host, verbose
 }
 
 #' Draw summary statistics to file for many hosts as a multipage file
-#' @param phyloscanner.trees A list of class \code{phyloscanner.trees}
+#' @param ptrees A list of class \code{phyloscanner.trees}
 #' @param sum.stats The output of a call to \code{gather.summary.statistics}.
 #' @param hosts A vector of hosts to obtain graphs for. By default, all hosts detected in \code{phyloscanner.trees}.
-#' @param file.name Output file name (should have a .pdf file extension)
+#' @param file.name Output file name (expected to be a PDF)
 #' @param height The height of each page of the output file in inches (defaults to A4 size)
 #' @param width The width of each page of the output file in inches (defaults to A4 size)
 #' @param verbose Verbose output
@@ -1109,8 +1109,8 @@ draw.summary.statistics <- function(phyloscanner.trees, sum.stats, host, verbose
 #' @importFrom data.table melt
 #' @importFrom scales pretty_breaks
 #' @export multipage.summary.statistics
-multipage.summary.statistics <- function(phyloscanner.trees, sum.stats, hosts = all.hosts.from.trees(phyloscanner.trees), file.name, height=11.6929, width=8.26772, verbose = F){
-  readable.coords <- attr(phyloscanner.trees, 'readable.coords')
+multipage.summary.statistics <- function(ptrees, sum.stats, hosts = all.hosts.from.trees(phyloscanner.trees), file.name, height=11.6929, width=8.26772, verbose = F){
+  readable.coords <- attr(ptrees, 'readable.coords')
   
   if(length(unique(sum.stats$tree.id))==1){
     stop("Only one tree, cannot draw summary statistics graph.")
@@ -1126,7 +1126,7 @@ multipage.summary.statistics <- function(phyloscanner.trees, sum.stats, hosts = 
     lwe <- max(ends)
     
   } else {
-    coordinates <- sapply(phyloscanner.trees, "[[" , "xcoord")
+    coordinates <- sapply(ptrees, "[[" , "xcoord")
     range <- max(coordinates) - min(coordinates)
     increment <- range/length(coordinates)
     
