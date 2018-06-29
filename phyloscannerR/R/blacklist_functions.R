@@ -293,49 +293,19 @@ check.read.count.for.split <- function(split, tips.for.splits, raw.threshold, ra
   # find what proportion of all reads from this host are in this subgraph and check against the thresholds
   
   prop.in.split <- count.in.split/total.reads
-  return (count.in.split < raw.threshold | prop.in.split < ratio.threshold)
+  
+  count.in.split < raw.threshold | prop.in.split < ratio.threshold
 }
-
-
-#' @keywords internal
-#' @export blacklist.all.reads.for.dual.host
-
-blacklist.all.reads.for.dual.host <- function(host, tree.info, tip.regex){
-  for(info in tree.info){
-    labels <- info$tree$tip.label
-    hosts <- sapply(labels, function(x) host.from.label(x, tip.regex))
-    labels.to.go <- labels[hosts==host]
-    info$blacklist <- c(info$blacklist, labels.to.go)
-  }
-}
-
-#' @keywords internal
-#' @export blacklist.small.subgraphs.for.dual.host
-
-blacklist.small.subgraphs.for.dual.host <- function(host, tree.info, max.reads){
-  for(info in tree.info){
-    labels <- info$tree$tip.label
-    duals.table <- info$duals.info
-    pat.rows <- duals.table[duals.table$host==host,]
-    
-    if(nrow(pat.rows)>0){
-      max.reads <- max(pat.rows$reads.in.subtree)
-      smaller.tips <- pat.rows$tip.name[pat.rows$reads.in.subtree!=max.reads]
-      info$blacklist <- c(info$blacklist, smaller.tips)
-    }
-  }
-}
-
 
 # This takes a tree, a blacklist, and a string, appends that string to the blacklisted tips of the tree
 
 #' @keywords internal
-#' @export blacklist.tip.rename
+#' @export rename.blacklisted.tips
 
-blacklist.tip.rename <- function(tree, blacklist, reason){
-  tree$tip.label[blacklist] <- paste0(tree$tip.label[blacklist], "_", reason)
+rename.blacklisted.tips <- function(tree, blacklist, reason){
+  tree$tip.label[blacklist] <- paste0(tree$tip.label[blacklist], "_X_", reason)
   
-  return(tree)
+  tree
 }
 
 #' @keywords internal
