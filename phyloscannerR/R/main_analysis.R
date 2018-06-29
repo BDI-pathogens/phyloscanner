@@ -1597,6 +1597,8 @@ blacklist.using.parsimony <- function(ptree, tip.regex, outgroup.name, raw.black
   ptree
 }
 
+# dual.results is a vector of tip NAMES, not numbers
+
 #' @export
 #' @keywords internal
 

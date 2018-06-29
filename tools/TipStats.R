@@ -122,8 +122,7 @@ tip.stats <- function(tree.file.name, splits.file.name)
 
 single.file	<- file.exists(tree.file.names)
 
-if(single.file)
-{
+if(single.file){
   #	if 'tree.file.names' is tree, process just one tree
   tree.file.name		<- tree.file.names[1]
   splits.file.name	<- splits.file.names[1]
