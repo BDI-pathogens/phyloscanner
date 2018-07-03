@@ -373,7 +373,6 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
         theme(text = element_text(size=7))
       
       if(regular.gaps & !is.null(missing.rects)){
-        graph.6 <- add.no.data.rectangles(graph.6, missing.rects)
       }
       
       plot.list[["recombination.metric"]] <- graph.6

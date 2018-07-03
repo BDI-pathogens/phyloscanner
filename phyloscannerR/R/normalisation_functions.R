@@ -24,5 +24,5 @@ lookup.normalisation.for.tree <- function(ptree, lookup.df, lookup.column = "NOR
 
   window.rows <- lookup.df %>% filter(POSITION<=end & POSITION>=start)
   
-  return(mean(window.rows %>% pull(lookup.column)) 
+  return(mean(window.rows %>% pull(lookup.column))) 
 }

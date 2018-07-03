@@ -4,11 +4,11 @@
 \alias{reconstruct.host.ancestral.sequences}
 \title{Find the ancestral sequence at the MRCA of the tips from this host, or, if a dual infection was previously identified, of the MRCA of the tips making up each infection event}
 \usage{
-reconstruct.host.ancestral.sequences(phyloscanner.tree, host,
-  individual.duals = F, verbose = F)
+reconstruct.host.ancestral.sequences(ptree, host, individual.duals = F,
+  verbose = F)
 }
 \arguments{
-\item{phyloscanner.tree}{A list of class \code{phyloscanner.tree} (usually an item in a list of class \code{phyloscanner.trees}). This must have an \code{ancestral.alignment} element (see \emph{reconstruct.ancestral.sequences})}
+\item{ptree}{A list of class \code{phyloscanner.tree} (usually an item in a list of class \code{phyloscanner.trees}). This must have an \code{ancestral.alignment} element (see \emph{reconstruct.ancestral.sequences})}
 
 \item{host}{The host ID}
 

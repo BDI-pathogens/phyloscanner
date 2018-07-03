@@ -250,7 +250,7 @@ calc.all.stats.in.window <- function(ptree, hosts, tip.regex, has.read.counts, v
                   recomb.file.name, ": ", paste(extra.IDs, collapse = " "), "\nQuitting."))
     }
     recomb.df <- recomb.df %>% 
-      select(Bam.file, Recombination.metric] %>% 
+      select(Bam.file, Recombination.metric) %>% 
       rename(host.id = Bam.file, recombination.metic = Recombination.metric)
 
     window.table <- window.table %>% inner_join(recomb.df)

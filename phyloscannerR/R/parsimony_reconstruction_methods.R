@@ -149,9 +149,12 @@ split.hosts.to.subgraphs <- function(tree,
   attr(tree, 'SUBGRAPH_MRCA') <- first.nodes
   
   rs.subgraphs <- tibble(subgraph=results$split.hosts)
-  rs.subgraphs <- rs.subgraphs %>% 
+
+
+
+  rs.subgraphs <- rs.subgraphs %>%
     mutate(host = unlist(strsplit(subgraph, "-SPLIT"))[1],
-           tip = tree$tip.label[ results$split.tips[[subgraph]]]) %>%
+           tip = tree$tip.label[results$split.tips[[subgraph]]]) %>%
     select(host, subgraph, tip)
   
   list(tree=tree, rs.subgraphs=rs.subgraphs)

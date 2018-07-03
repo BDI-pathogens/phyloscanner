@@ -2,14 +2,14 @@
 % Please edit documentation in R/main_analysis.R
 \name{gather.summary.statistics}
 \alias{gather.summary.statistics}
-\title{Make a \code{data.table} of per-window host statistics}
+\title{Make a \code{tibble} of per-window host statistics}
 \usage{
-gather.summary.statistics(phyloscanner.trees,
+gather.summary.statistics(ptrees,
   hosts = all.hosts.from.trees(phyloscanner.trees),
   tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$", verbose = F)
 }
 \arguments{
-\item{phyloscanner.trees}{A list of class \code{phyloscanner.trees}}
+\item{ptrees}{A list of class \code{phyloscanner.trees}}
 
 \item{hosts}{A list of hosts to record statistics for. If not specified, every identifiable host in \code{phyloscanner.trees}}
 
@@ -18,7 +18,7 @@ gather.summary.statistics(phyloscanner.trees,
 \item{verbose}{Produce verbose output}
 }
 \value{
-A \code{data.table}
+A \code{tibble}
 }
 \description{
 This function collects per-window statistics on hosts

@@ -224,13 +224,13 @@ output.trans.tree <- function(tree, assocs){
   tt.table
 }
 
-tt.table %>% mutate(length = map2_chr(root.no, parent.node, function(x, y){
-  if(y==0){
-    0
-  } else {
-    tree$edge.length[which(tree$edge[,2]==x)]
-  }
-}))
+# tt.table %>% mutate(length = map2_chr(root.no, parent.node, function(x, y){
+#   if(y==0){
+#     0
+#   } else {
+#     tree$edge.length[which(tree$edge[,2]==x)]
+#   }
+# }))
 
 #' @keywords internal
 #' @export prune.unassigned.tips
@@ -239,7 +239,7 @@ prune.unassigned.tips <- function(tt.table){
   
   for.output <- tt.table[,1:6]
   
-  unassigned.tips <- which(grepl("unassigned",for.output$unique.splits) &
+  unassigned.tips <- which(grepl("unassigned", for.output$unique.splits) &
                              !(for.output$unique.splits %in% for.output$parent.splits))
   
   if(length(unassigned.tips) > 0){
@@ -386,7 +386,7 @@ extract.tt.subgraph <- function(tt, hosts, splits.for.hosts, hosts.for.splits){
   pat.1.splts <- splits.for.hosts[[pat.1.id]]
   pat.2.splts <- splits.for.hosts[[pat.2.id]]
   
-  sub.tt <- tt %>% filter(unique.split %in% c(pat.1.splts, pat.2.splts)
+  sub.tt <- tt %>% filter(unique.split %in% c(pat.1.splts, pat.2.splts))
   unassigned.below <- tt[which(tt$host == "unassigned_region" & (tt$parent.split %in% c(pat.1.splts, pat.2.splts))),]
   unassigned.above <- tt[which(tt$host == "unassigned_region" & (tt$unique.split %in% sub.tt$parent.split)),]
   
@@ -1112,7 +1112,7 @@ simplify.summary <- function(summary, arrow.threshold, total.trees, plot = F){
     ) %>%
     select(host.1, host.2, arrow, label)
   
-  # this has not been tidied
+  # this has not been tidied - but it's much more succint in standard R language
   
   summary.wide[which(summary.wide$arrow=="backwards"),c(1,2)] <- summary.wide[which(summary.wide$arrow=="backwards"),c(2,1)] 
   

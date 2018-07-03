@@ -413,7 +413,7 @@ if(do.collapsed){
       file.name <- paste0(output.string, "_collapsedTree_", tree.info$id, csv.fe)
     }
     if(verbosity==2) cat("Writing collapsed tree for tree ID",tree.info$id,"to file",file.name, "...\n")
-    write.csv(tree.info$classification.results$collapsed[,1:4], file=file.path(output.dir, file.name), quote=F, row.names=F)
+    write_csv(tree.info$classification.results$collapsed[,1:4], file=file.path(output.dir, file.name))
     
   }, simplify = F, USE.NAMES = T)
 }
@@ -431,7 +431,7 @@ if(do.class.detail){
       file.name <- paste0(output.string, "_classification_", tree.info$id, csv.fe)
     }
     if(verbosity==2) cat("Writing relationship classifications for tree ID",tree.info$id,"to file",file.name, "...\n")
-    write.csv(tree.info$classification.results$classification, file=file.path(output.dir, file.name), quote=F, row.names=F)
+    write_csv(tree.info$classification.results$classification, file=file.path(output.dir, file.name))
     
   }, simplify = F, USE.NAMES = T)
 }
@@ -450,7 +450,7 @@ if(length(phyloscanner.trees)>1){
     cat("Writing summary statistics to file ",ss.csv.fn,"...\n", sep="")
   }
   
-  write.csv(summary.stats, file.path(output.dir, ss.csv.fn), quote=F, row.names=F)
+  write_csv(summary.stats, file.path(output.dir, ss.csv.fn))
   
   ss.graphs.fn <- paste0(output.string,"_patStats.pdf")
   
@@ -499,7 +499,7 @@ if(output.blacklisting.report){
   
   output.bl.report <- do.call(rbind, dfs)
   
-  write.csv(output.bl.report, file = file.path(output.dir, paste0(output.string,"_blacklistReport.csv")), quote=F, row.names=F)
+  write_csv(output.bl.report, file = file.path(output.dir, paste0(output.string,"_blacklistReport.csv")))
 }
 
 if(output.rda){

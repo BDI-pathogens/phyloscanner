@@ -288,7 +288,7 @@ initialise.phyloscanner <- function(
       if (verbosity!=0) cat('Normalising branch lengths using contents of file ', norm.constants, "...\n", sep="")
       
       
-      nc.df   <- read.csv(norm.constants, stringsAsFactors = F, header = F)
+      nc.df   <- read_csv(norm.constants, col.names = F)
       ptrees <- sapply(ptrees, function(ptree) {
         rows  <- which(nc.df[,1]==basename(ptree$tree.file.name))
         
@@ -312,7 +312,7 @@ initialise.phyloscanner <- function(
       
     } else {
       ptrees <- sapply(ptrees, function(ptree) {
-        ptree$normalisation.constant  <- 1
+        ptree$normalisation.constant <- 1
         ptree
       }, simplify = F, USE.NAMES = T)
       warning(paste0("Normalisation file ",norm.constants," not found. Tree branch lengths will not be normalised.\n"))
@@ -322,13 +322,12 @@ initialise.phyloscanner <- function(
       if (verbosity!=0) cat('Calculating normalisation constants from file ', norm.ref.file.name, "...\n", sep="")
       
       if(grepl(paste0("csv", "$"), norm.ref.file.name)){
-        norm.table	<- as.data.table(read.csv(norm.ref.file.name, stringsAsFactors=FALSE))
+        norm.table	<- read_csv(norm.ref.file.name)
         
         if(ncol(norm.table)!=2){
           stop(paste0(norm.ref.file.name," is not formatted as expected for a normalisation lookup file; expecting two columns.\n"))
         } else {
-          setnames(norm.table, 1, 'POSITION')
-          setnames(norm.table, 2, 'NORM_CONST')
+          names(norm.table) <- c('POSITION', 'NORM_CONST')
           
           if(norm.standardise.gag.pol){
             #	Standardize to mean of 1 on gag+pol ( prot + first part of RT in total 1300bp )
@@ -336,28 +335,32 @@ initialise.phyloscanner <- function(
             #790 - 3385
             if (verbosity==2) cat('Standardising normalising constants to 1 on the gag+pol (prot + first part of RT in total 1300bp pol) region\n')
             
-            tmp		<- subset(norm.table, POSITION>=790L & POSITION<=3385L)
+            tmp	 <- norm.table %>% filter(POSITION>=790L & POSITION<=3385L)
             
             if(nrow(tmp)<=0){
               stop(paste0("No positions from gag+pol present in file ",norm.ref.file.name,"; unable to standardise"))
             }
             
-            tmp		<- tmp[, mean(NORM_CONST)]
+            mean.nc <- mean(tmp$NORM_CONST)
             
             if(!is.finite(tmp)){
-              stop(paste0("Standardising constant is not finite"))
+              stop(paste0("Normalisation standardising constant is not finite"))
             }
+            
+            norm.table <- norm.table %>% mutate(NORM_CONST = NORM_CONST/mean.nc)
             
             set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
           } else {
             if (verbosity==2) cat('Standardising normalising constants to 1 on the whole genome\n')
             
-            tmp		<- norm.table[, mean(NORM_CONST)]
+            mean.nc <- mean(norm.table$NORM_CONST)
+            
             if(!is.finite(tmp)){
-              stop(paste0("Standardising constant is not finite"))
+              stop(paste0("Normalisation standardising constant is not finite"))
             }
             
-            set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
+            norm.table <- norm.table %>% mutate(NORM_CONST = NORM_CONST/mean.nc)
+            
           }
           
           ptrees <- sapply(ptrees, function(ptree){
@@ -556,7 +559,8 @@ blacklist <- function(ptrees,
 #' \item{\code{outgroup.name}}{ The tip label of the outgroup.}
 #' }
 #' @importFrom ape read.tree read.nexus di2multi root node.depth.edgelength
-#' @importFrom data.table data.table as.data.table set setnames
+#' @importFrom tibble tibble as.tibble
+#' @importFrom purrr map
 #' @importFrom ff ff
 #' @importFrom phangorn Ancestors Descendants Children mrca.phylo getRoot
 #' @export phyloscanner.analyse.trees 
@@ -972,33 +976,33 @@ phyloscanner.generate.blacklist <- function(
 }
 
 
-#' Make a \code{data.table} of per-window host statistics
+#' Make a \code{tibble} of per-window host statistics
 #'
 #' This function collects per-window statistics on hosts
 #' @param ptrees A list of class \code{phyloscanner.trees}
 #' @param hosts A list of hosts to record statistics for. If not specified, every identifiable host in \code{phyloscanner.trees}
 #' @param tip.regex Regular expression identifying tips from the dataset. This expects up to three capture groups, for host ID, read ID, and read count (in that order). If the latter two groups are missing then read information will not be used. The default matches input from the phyloscanner pipeline where the host ID is the BAM file name.
 #' @param verbose Produce verbose output
-#' @return A \code{data.table}
+#' @return A \code{tibble}
 #' @importFrom ape drop.tip unroot
 #' @importFrom phytools nodeheight
-#' @importFrom data.table rbindlist
+#' @importFrom dplyr bind_rows bind_cols
 #' @export gather.summary.statistics
 
 gather.summary.statistics <- function(ptrees, hosts = all.hosts.from.trees(phyloscanner.trees), tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$", verbose = F){
   
   has.read.counts <- attr(ptrees, 'has.read.counts')
   
-  pat.stats <- lapply(ptrees, function(x) calc.all.stats.in.window(x, hosts, tip.regex, has.read.counts, verbose))
-  pat.stats <- rbindlist(pat.stats)
+  pat.stats <- map(ptrees, function(x) calc.all.stats.in.window(x, hosts, tip.regex, has.read.counts, verbose))
+  pat.stats <- bind_rows(pat.stats)
   
-  read.proportions <- lapply(ptrees, function(y) sapply(hosts, function(x) get.read.proportions(x, y$id, y$splits.table), simplify = F, USE.NAMES = T))
+  read.proportions <- map(ptrees, function(y) sapply(hosts, function(x) get.read.proportions(x, y$id, y$splits.table), simplify = F, USE.NAMES = T))
   
   # Get the max split count over every window and host (the exact number of columns depends on this)
   
-  max.splits <- max(sapply(read.proportions, function(x) max(sapply(x, function(y) length(y)))))
+  max.splits <- max(map_int(read.proportions, function(x) max(sapply(x, function(y) length(y)))))
   
-  read.prop.columns <- lapply(ptrees, function(x){
+  read.prop.columns <- map(ptrees, function(x){
     window.props <- read.proportions[[x$id]]
     out <- lapply(hosts, function(y){
       
@@ -1015,14 +1019,14 @@ gather.summary.statistics <- function(ptrees, hosts = all.hosts.from.trees(phylo
       
       result
     })
-    out <- as.data.table(do.call(rbind, out))
-    colnames(out) <- paste("prop.gp.",seq(1,max.splits),sep="")
+    out <- as.tibble(bind_rows(out))
+    names(out) <- paste("prop.gp.",seq(1,max.splits),sep="")
     out
   })
   
-  read.prop.columns <- rbindlist(read.prop.columns)
+  read.prop.columns <- bind_rows(read.prop.columns)
   
-  pat.stats         <- cbind(pat.stats, read.prop.columns)
+  pat.stats         <- bind_cols(pat.stats, read.prop.columns)
   
   pat.stats$tips    <- as.numeric(pat.stats$tips)
   
@@ -1038,10 +1042,9 @@ gather.summary.statistics <- function(ptrees, hosts = all.hosts.from.trees(phylo
 #' @param verbose Verbose output
 #' @import ggplot2
 #' @import grid
-#' @import gridExtra
 #' @import gtable
 #' @import RColorBrewer
-#' @importFrom data.table melt
+#' @import dplyr
 #' @importFrom scales pretty_breaks
 #' @export draw.summary.statistics
 
@@ -1103,10 +1106,9 @@ draw.summary.statistics <- function(phyloscanner.trees, sum.stats, host, verbose
 #' @param verbose Verbose output
 #' @import ggplot2
 #' @import grid
-#' @import gridExtra
 #' @import gtable
 #' @import RColorBrewer
-#' @importFrom data.table melt
+#' @import dplyr
 #' @importFrom scales pretty_breaks
 #' @export multipage.summary.statistics
 multipage.summary.statistics <- function(ptrees, sum.stats, hosts = all.hosts.from.trees(phyloscanner.trees), file.name, height=11.6929, width=8.26772, verbose = F){
@@ -1163,9 +1165,9 @@ multipage.summary.statistics <- function(ptrees, sum.stats, hosts = all.hosts.fr
 #' @import ggplot2
 #' @import ggtree
 #' @export write.annotated.tree
-write.annotated.tree <- function(phyloscanner.tree, file.name, format = c("pdf", "nex"), pdf.scale.bar.width = 0.01, pdf.w = 50, pdf.hm = 0.15, verbose = F){
-  tree <- phyloscanner.tree$tree
-  read.counts <- phyloscanner.tree$read.counts
+write.annotated.tree <- function(ptree, file.name, format = c("pdf", "nex"), pdf.scale.bar.width = 0.01, pdf.w = 50, pdf.hm = 0.15, verbose = F){
+  tree <- ptree$tree
+  read.counts <- ptree$read.counts
   
   attr(tree, 'BLACKLISTED') <- c(is.na(read.counts), rep(FALSE, tree$Nnode) )
   
@@ -1218,29 +1220,28 @@ write.annotated.tree <- function(phyloscanner.tree, file.name, format = c("pdf",
 #' @param allow.mt If FALSE, directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative.
 #' @param close.sib.only If TRUE, then the distance threshold applies only to hosts in sibling clades. Any ancestry is automatically a relationship.
 #' @param verbose Give verbose output
-#' @return A \code{data.table}, every line of which counts the number of pairwise relationships of a particular type between a pair of hosts
-#' @importFrom data.table copy setkey setcolorder
+#' @return A \code{tibble}, every line of which counts the number of pairwise relationships of a particular type between a pair of hosts
 #' @export transmission.summary
 
-transmission.summary <- function(phyloscanner.trees, win.threshold=0, dist.threshold=Inf, allow.mt=T, close.sib.only = F, verbose = F){
-  if(length(phyloscanner.trees)==1){
+transmission.summary <- function(ptrees, win.threshold=0, dist.threshold=Inf, allow.mt=T, close.sib.only = F, verbose = F){
+  if(length(ptrees)==1){
     stop("Can't summarise transmission information on a single tree. Use the collapsed tree instead?")
   }
-  out <- summarise.classifications(phyloscanner.trees, win.threshold*length(phyloscanner.trees), dist.threshold, allow.mt, close.sib.only, verbose, F)
+  out <- summarise.classifications(ptrees, win.threshold*length(ptrees), dist.threshold, allow.mt, close.sib.only, verbose, F)
   out$ancestry <- as.character(out$ancestry)
   out
 }
 
 #' Simplfy and visually display the pairwise host relationships across all trees
 #' @param phyloscanner.trees A list of class \code{phyloscanner.trees}
-#' @param trans.summary The output of \code{transmission.summary}; a \code{data.table}.
+#' @param trans.summary The output of \code{transmission.summary}; a \code{tibble}.
 #' @param arrow.threshold The proportion of trees in which a pair of hosts need to show a direction of transmission for that direction to be indicated as an arrow. If both directions meet this threshold, the arrow is in the direction with the larger proportion of trees.
 #' @param plot If TRUE, the returned list has an item called \code{simp.diagram}, a \code{ggplot} object plotting the simplified relationship diagram.
 #' @importFrom GGally ggnet2
 #' @export simplified.transmission.summary
 
-simplified.transmission.summary <- function(phyloscanner.trees, transmission.summary, arrow.threshold, plot = F){
-  total.trees <- length(phyloscanner.trees)
+simplified.transmission.summary <- function(ptrees, transmission.summary, arrow.threshold, plot = F){
+  total.trees <- length(ptrees)
   
   transmission.summary$ancestry <- as.character(transmission.summary$ancestry)
   
@@ -1260,42 +1261,6 @@ attach.file.names <- function(ptree, paths, identifiers, item.name){
   ptree
 }
 
-# attach.file.names <- function(ptree,
-#                               full.user.blacklist.file.names = NULL,
-#                               full.recombination.file.names = NULL,
-#                               full.duplicate.file.names = NULL,
-#                               full.alignment.file.names = NULL) {
-#   if(!is.null(full.user.blacklist.file.names)){
-#     expected.user.blacklist.file.name  <- full.user.blacklist.file.names[which(user.blacklist.identifiers==ptree$suffix)]
-#     if(length(expected.user.blacklist.file.name)!=0){
-#       ptree$user.blacklist.file.name <- expected.user.blacklist.file.name
-#     }
-#   }
-#
-#   if(!is.null(full.recombination.file.names)){
-#     expected.recomb.file.name  <- full.recombination.file.names[which(recomb.identifiers==ptree$suffix)]
-#     if(length(expected.recomb.file.name)!=0){
-#       ptree$recombination.file.name <- expected.recomb.file.name
-#     }
-#   }
-#
-#   if(!is.null(full.duplicate.file.names)){
-#     expected.duplicate.file.name  <- full.duplicate.file.names[which(duplicate.identifiers==ptree$suffix)]
-#     if(length(expected.duplicate.file.name)!=0){
-#       ptree$duplicate.file.name <- expected.duplicate.file.name
-#     }
-#   }
-#
-#   if(!is.null(full.alignment.file.names)){
-#     expected.alignment.file.name  <- full.alignment.file.names[which(alignment.identifiers==ptree$suffix)]
-#     if(length(expected.alignment.file.name)!=0){
-#       ptree$alignment.file.name <- expected.alignment.file.name
-#     }
-#   }
-#
-#   ptree
-# }
-
 #' @export
 #' @keywords internal
 
@@ -1304,15 +1269,15 @@ attach.tree <- function(ptree, verbose) {
     cat("Reading tree file",ptree$tree.file.name,'\n')
   }
   
-  first.line                     <- readLines(ptree$tree.file.name, n=1)
+  first.line        <- readLines(ptree$tree.file.name, n=1)
   
   if(first.line == "#NEXUS"){
-    tree                         <- read.nexus(ptree$tree.file.name)
+    tree            <- read.nexus(ptree$tree.file.name)
   } else {
-    tree                         <- read.tree(ptree$tree.file.name)
+    tree            <- read.tree(ptree$tree.file.name)
   }
   
-  ptree$tree                 <- tree
+  ptree$tree        <- tree
   
   ptree
 }
@@ -1390,7 +1355,7 @@ prepare.tree <- function(ptree, outgroup.name, tip.regex, guess.multifurcation.t
   
   new.tree <- process.tree(tree, outgroup.name, multifurcation.threshold)
   
-  ptree$bl.report <- data.frame(tip = new.tree$tip.label, kept=TRUE, status = "included", row.names = NULL, stringsAsFactors = F)
+  ptree$bl.report <- tibble(tip = new.tree$tip.label, kept=TRUE, status = "included")
   
   if(!is.null((outgroup.name))){
     ptree$bl.report$status[which(new.tree$tip.label==outgroup.name)] <- "included_outgroup"
@@ -1414,7 +1379,7 @@ read.blacklist <- function(ptree, verbose = F) {
   if(!is.null(ptree$user.blacklist.file.name)){
     if(file.exists(ptree$user.blacklist.file.name)){
       if (verbose) cat("Reading blacklist file ",ptree$user.blacklist.file.name,'\n',sep="")
-      blacklisted.tips                    <- read.table(ptree$user.blacklist.file.name, sep=",", header=F, stringsAsFactors = F, col.names="read")
+      blacklisted.tips                    <- read_csv(ptree$user.blacklist.file.name, col.names="read")
       
       blacklist                           <- vector()
       if(nrow(blacklisted.tips)>0){
@@ -1577,18 +1542,17 @@ blacklist.using.parsimony <- function(ptree, tip.regex, outgroup.name, raw.black
   which.are.duals                             <- which(unlist(lapply(results, "[[", 7)))
   mi.count                                    <- unlist(lapply(results, "[[", 8))
   
-  multiplicity.table                          <- data.frame(host = hosts, count = mi.count, stringsAsFactors = F, row.names = NULL)
+  multiplicity.table                          <- tibble(host = hosts, count = mi.count)
   
   ptree$dual.detection.splits                 <- multiplicity.table
   
   if(length(which.are.duals) > 0) {
     repeat.column <- as.vector(unlist(sapply(results[which.are.duals], function (x) rep(x$id, length(x$tip.names)) )))
-    mi.df                                     <- data.frame(host = repeat.column,
+    mi.df                                     <- tibble(host = repeat.column,
                                                             tip.name = unlist(lapply(results[which.are.duals], "[[", 3)),
                                                             reads.in.subtree = unlist(lapply(results[which.are.duals], "[[", 4)),
                                                             split.ids = unlist(lapply(results[which.are.duals], "[[", 5)),
-                                                            tips.in.subtree = unlist(lapply(results[which.are.duals], "[[", 6)),
-                                                            stringsAsFactors = F, row.names = NULL
+                                                            tips.in.subtree = unlist(lapply(results[which.are.duals], "[[", 6))
     )
     
     ptree$duals.info <- mi.df
