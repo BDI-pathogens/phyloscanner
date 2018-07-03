@@ -562,6 +562,7 @@ blacklist <- function(ptrees,
 #' @importFrom tibble tibble as.tibble
 #' @importFrom purrr map
 #' @importFrom ff ff
+#' @importFrom tidyr unnest
 #' @importFrom phangorn Ancestors Descendants Children mrca.phylo getRoot
 #' @export phyloscanner.analyse.trees 
 

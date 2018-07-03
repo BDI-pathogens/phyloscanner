@@ -150,11 +150,10 @@ split.hosts.to.subgraphs <- function(tree,
   
   rs.subgraphs <- tibble(subgraph=results$split.hosts)
 
-
-
   rs.subgraphs <- rs.subgraphs %>%
     mutate(host = unlist(strsplit(subgraph, "-SPLIT"))[1],
-           tip = tree$tip.label[results$split.tips[[subgraph]]]) %>%
+           tip = map(subgraph, function(x) tree$tip.label[results$split.tips[[x]]])) %>%
+    unnest() %>%
     select(host, subgraph, tip)
   
   list(tree=tree, rs.subgraphs=rs.subgraphs)
