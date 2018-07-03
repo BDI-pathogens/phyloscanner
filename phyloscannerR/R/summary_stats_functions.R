@@ -8,7 +8,9 @@ calc.subtree.stats <- function(host.id, tree.id, tree, tips.for.patients, splits
   
   if(verbose) cat("Calculating statistics for host ",host.id,".\n", sep="")
   
-  subgraphs <- length(unique(splits.table$subgraph[which(splits.table$host==host.id)]))
+  relevant.reads <- splits.table %>% filter(host == host.id)
+  
+  subgraphs <- length(unique(relevant.reads$subgraph))
   
   all.tips <- tips.for.patients[[host.id]]
   
@@ -49,8 +51,6 @@ calc.subtree.stats <- function(host.id, tree.id, tree, tips.for.patients, splits
       
     } else {
       
-      relevant.reads <- splits.table[which(splits.table$host==host.id),]
-      
       splits <- unique(relevant.reads$subgraph)
       
       reads.per.split <- sapply(splits, function(x) sum(splits.table$reads[which(splits.table$subgraph==x)] ) )
@@ -79,7 +79,7 @@ calc.subtree.stats <- function(host.id, tree.id, tree, tips.for.patients, splits
         
         names(reads.per.tip) <- subtree$tip.label
         
-        largest.rtt <- calcMeanRootToTip(subtree, reads.per.tip)
+        largest.rtt <- calc.mean.root.to.tip(subtree, reads.per.tip)
         pat.distances <- cophenetic(subtree)
         subgraph.mean.pat.distance <- mean(pat.distances[upper.tri(pat.distances)])
       }

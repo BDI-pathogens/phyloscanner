@@ -8,6 +8,7 @@ suppressMessages(require(network, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(ggplot2, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(sna, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(scales, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(readr, quietly=TRUE, warn.conflicts=FALSE))
 
 arg_parser		     <- ArgumentParser()
 
@@ -413,7 +414,7 @@ if(do.collapsed){
       file.name <- paste0(output.string, "_collapsedTree_", tree.info$id, csv.fe)
     }
     if(verbosity==2) cat("Writing collapsed tree for tree ID",tree.info$id,"to file",file.name, "...\n")
-    write_csv(tree.info$classification.results$collapsed[,1:4], file=file.path(output.dir, file.name))
+    write_csv(tree.info$classification.results$collapsed[,1:4], file.path(output.dir, file.name))
     
   }, simplify = F, USE.NAMES = T)
 }
@@ -431,7 +432,7 @@ if(do.class.detail){
       file.name <- paste0(output.string, "_classification_", tree.info$id, csv.fe)
     }
     if(verbosity==2) cat("Writing relationship classifications for tree ID",tree.info$id,"to file",file.name, "...\n")
-    write_csv(tree.info$classification.results$classification, file=file.path(output.dir, file.name))
+    write_csv(tree.info$classification.results$classification, file.path(output.dir, file.name))
     
   }, simplify = F, USE.NAMES = T)
 }
@@ -466,7 +467,7 @@ if(length(phyloscanner.trees)>1){
     
     ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, allow.mt, close.sib.only = F, verbosity==2)
     if (verbosity!=0) cat('Writing transmission summary to file', paste0(output.string,"_hostRelationshipSummary", csv.fe),'...\n', sep="")
-    write_csv(ts, file=file.path(output.dir, paste0(output.string,"_hostRelationshipSummary", csv.fe)))
+    write_csv(ts, file.path(output.dir, paste0(output.string,"_hostRelationshipSummary", csv.fe)))
     
     if(do.simplified.graph){
       if (verbosity!=0) cat('Drawing simplified summary diagram to file', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'...\n', sep="")

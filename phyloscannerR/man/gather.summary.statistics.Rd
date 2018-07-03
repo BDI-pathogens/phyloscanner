@@ -5,7 +5,7 @@
 \title{Make a \code{tibble} of per-window host statistics}
 \usage{
 \method{gather}{summary.statistics}(ptrees,
-  hosts = all.hosts.from.trees(phyloscanner.trees),
+  hosts = all.hosts.from.trees(ptrees),
   tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$", verbose = F)
 }
 \arguments{

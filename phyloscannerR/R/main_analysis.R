@@ -991,14 +991,14 @@ phyloscanner.generate.blacklist <- function(
 #' @importFrom dplyr bind_rows bind_cols
 #' @export gather.summary.statistics
 
-gather.summary.statistics <- function(ptrees, hosts = all.hosts.from.trees(phyloscanner.trees), tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$", verbose = F){
+gather.summary.statistics <- function(ptrees, hosts = all.hosts.from.trees(ptrees), tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$", verbose = F){
   
   has.read.counts <- attr(ptrees, 'has.read.counts')
   
-  pat.stats <- map(ptrees, function(x) calc.all.stats.in.window(x, hosts, tip.regex, has.read.counts, verbose))
-  pat.stats <- bind_rows(pat.stats)
+  pat.stats <- ptrees %>% map(function(x) calc.all.stats.in.window(x, hosts, tip.regex, has.read.counts, verbose))
+  pat.stats <- pat.stats %>% bind_rows
   
-  read.proportions <- map(ptrees, function(y) sapply(hosts, function(x) get.read.proportions(x, y$id, y$splits.table), simplify = F, USE.NAMES = T))
+  read.proportions <- ptrees %>% map(function(y) sapply(hosts, function(x) get.read.proportions(x, y$id, y$splits.table), simplify = F, USE.NAMES = T))
   
   # Get the max split count over every window and host (the exact number of columns depends on this)
   
@@ -1006,7 +1006,7 @@ gather.summary.statistics <- function(ptrees, hosts = all.hosts.from.trees(phylo
   
   read.prop.columns <- map(ptrees, function(x){
     window.props <- read.proportions[[x$id]]
-    out <- lapply(hosts, function(y){
+    out <- hosts %>% map(function(y){
       
       result <- window.props[[y]]
       
@@ -1014,23 +1014,26 @@ gather.summary.statistics <- function(ptrees, hosts = all.hosts.from.trees(phylo
         result <- rep(NA, max.splits)
         
       } else {
-        if(length(result)<max.splits){
+        if(length(result) < max.splits){
           result[(length(result)+1):max.splits] <- 0
         }
       }
       
       result
     })
-    out <- as.tibble(bind_rows(out))
-    names(out) <- paste("prop.gp.",seq(1,max.splits),sep="")
+    
+    out <- as_tibble(do.call(rbind, out))
+    out$host.id <- hosts
+    out$tree.id <- x$id
+    
+    names(out) <- c(paste("prop.gp.",seq(1,max.splits),sep=""), "host.id", "tree.id")
+  
     out
   })
   
   read.prop.columns <- bind_rows(read.prop.columns)
   
-  pat.stats         <- bind_cols(pat.stats, read.prop.columns)
-  
-  pat.stats$tips    <- as.numeric(pat.stats$tips)
+  pat.stats         <- inner_join(pat.stats, read.prop.columns)
   
   pat.stats
 }
@@ -1111,6 +1114,8 @@ draw.summary.statistics <- function(phyloscanner.trees, sum.stats, host, verbose
 #' @import gtable
 #' @import RColorBrewer
 #' @import dplyr
+#' @import tidyr
+#' @import tibble
 #' @importFrom scales pretty_breaks
 #' @export multipage.summary.statistics
 multipage.summary.statistics <- function(ptrees, sum.stats, hosts = all.hosts.from.trees(phyloscanner.trees), file.name, height=11.6929, width=8.26772, verbose = F){

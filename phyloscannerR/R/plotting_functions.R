@@ -40,10 +40,10 @@ add.no.data.rectangles <- function(graph, rectangle.coords, log = F, y.limits = 
   if(nrow(rectangle.coords)>0){
     for(rect.no in seq(1, nrow(rectangle.coords))){
       if(log){
-        graph <- graph + annotate("rect", xmin=rectangle.coords$start[rect.no], xmax = rectangle.coords$end[rect.no], 
+        graph <- graph + annotate("rect", xmin=rectangle.coords$starts[rect.no], xmax = rectangle.coords$ends[rect.no], 
                                   ymin=10^(y.limits[1]), ymax=10^(y.limits[2]), fill=rectangle.coords$colour[rect.no], alpha=0.5)
       } else {
-        graph <- graph + annotate("rect", xmin=rectangle.coords$start[rect.no], xmax = rectangle.coords$end[rect.no], 
+        graph <- graph + annotate("rect", xmin=rectangle.coords$starts[rect.no], xmax = rectangle.coords$ends[rect.no], 
                                   ymin=y.limits[1], ymax=y.limits[2], fill=rectangle.coords$colour[rect.no], alpha=0.5)
       }
     }
@@ -123,16 +123,16 @@ produce.pdf.graphs <- function(file.name, sum.stats, hosts, xcoords, x.limits, m
   
   for (i in seq(1, length(hosts))) {
     host <- hosts[i]
-    tryCatch({
+    # tryCatch({
       if(i!=1){
         grid.newpage()
       }
-      produce.host.graphs(sum.stats, host, xcoords, x.limits, missing.window.rects, bar.width, regular.gaps, readable.coords, verbose)},
-      error=function(e){
-        if (verbose) cat("Skipping graphs for host ",host," as no reads are present and not blacklisted.\n", sep="")
-      })
-  }
-  
+      produce.host.graphs(sum.stats, host, xcoords, x.limits, missing.window.rects, bar.width, regular.gaps, readable.coords, verbose)} #,
+  #     error=function(e){
+  #       if (verbose) cat("Skipping graphs for host ",host," as no reads are present and not blacklisted.\n", sep="")
+  #     })
+  # }
+  # 
   invisible(dev.off())
 }
 
@@ -147,7 +147,7 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
     filter(host.id==host) %>% 
     arrange(xcoord)
   
-  if(nrow(this.host.statistics) > 0){
+  if(nrow(host.stats) > 0){
   
     plot.list <- list()
     
@@ -393,9 +393,9 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
         #      scale_color_discrete(name="Tip set", labels=c("Longest branch", "Greatest patristic distance")) + 
         theme(text = element_text(size=7))
       
-      if(max(this.host.statistics$solo.dual.count)==1){
+      if(max(host.stats$solo.dual.count)==1){
         graph.7 <- graph.7 + scale_y_continuous(breaks = c(0,1))
-      } else if(max(this.host.statistics$solo.dual.count)==2){
+      } else if(max(host.stats$solo.dual.count)==2){
         graph.7 <- graph.7 + expand_limits(y=0)+ scale_y_continuous(breaks = c(0,1,2)) 
       } else if(!log.scale) {
         graph.7 <- graph.7 + expand_limits(y=0) + scale_y_continuous(breaks = pretty_breaks()) 
