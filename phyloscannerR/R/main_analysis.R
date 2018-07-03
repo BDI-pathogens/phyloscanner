@@ -560,7 +560,8 @@ blacklist <- function(ptrees,
 #' }
 #' @importFrom ape read.tree read.nexus di2multi root node.depth.edgelength
 #' @importFrom tibble tibble as.tibble
-#' @importFrom purrr map
+#' @import purrr
+#' @importFrom reshape2 melt
 #' @importFrom ff ff
 #' @importFrom tidyr unnest
 #' @importFrom phangorn Ancestors Descendants Children mrca.phylo getRoot

@@ -4,7 +4,7 @@ Version: 1.5.4.1
 Authors@R: c(person("Matthew", "Hall", email = "matthew.hall@bdi.ox.ac.uk", role = c("aut", "cre")), person("Chris", "Wymant", email = "matthew.hall@bdi.ox.ac.uk", role = c("aut")), person("Oliver", "Ratmann", email = "matthew.hall@bdi.ox.ac.uk", role = c("aut")))
 Description: An R package for the second half of phyloscanner (tree analysis).
 Depends: R (>= 3.4.0)
-Imports: ape, argparse, extraDistr, ff, GGally, ggtree, grid, gtable, kimisc, network, pegas, phangorn, phytools, prodlim, RColorBrewer, scales, sna, tidyverse, viridis
+Imports: ape, argparse, extraDistr, ff, GGally, ggtree, grid, gtable, kimisc, network, pegas, phangorn, phytools, prodlim, RColorBrewer, reshape2, scales, sna, tidyverse, viridis
 License: GPL
 Encoding: UTF-8
 LazyData: true
