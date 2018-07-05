@@ -343,19 +343,18 @@ initialise.phyloscanner <- function(
             
             mean.nc <- mean(tmp$NORM_CONST)
             
-            if(!is.finite(tmp)){
+            if(!is.finite(mean.nc)){
               stop(paste0("Normalisation standardising constant is not finite"))
             }
             
             norm.table <- norm.table %>% mutate(NORM_CONST = NORM_CONST/mean.nc)
             
-            set(norm.table, NULL, 'NORM_CONST', norm.table[, NORM_CONST/tmp])
           } else {
             if (verbosity==2) cat('Standardising normalising constants to 1 on the whole genome\n')
             
             mean.nc <- mean(norm.table$NORM_CONST)
             
-            if(!is.finite(tmp)){
+            if(!is.finite(mean.nc)){
               stop(paste0("Normalisation standardising constant is not finite"))
             }
             
