@@ -79,10 +79,11 @@ blacklist.exact.duplicates <- function(ptree, raw.threshold, ratio.threshold, ti
     
     if (verbose) cat("Tree ID ",ptree$id,": making duplicate blacklist with a ratio threshold of ",ratio.threshold," and a raw threshold of ",raw.threshold,"\n",sep="")
     
-    blacklisted <- pairs.table %>% filter(ratio < ratio.threshold | reads.2<raw.threshold)
+    blacklisted <- pairs.table %>% filter((ratio < ratio.threshold) | (reads.2 < raw.threshold))
     
     blacklisted
   } else {
+
     pairs.table
   }
 }

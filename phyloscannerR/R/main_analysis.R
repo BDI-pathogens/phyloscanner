@@ -1474,7 +1474,7 @@ blacklist.from.duplicates.vector <- function(ptree, raw.blacklist.threshold, rat
     
     duplicated                                   <- blacklist.exact.duplicates(ptree, raw.blacklist.threshold, ratio.blacklist.threshold, tip.regex, verbose)
     
-    duplicate.nos                                <- which(ptree$original.tip.labels %in% duplicated)
+    duplicate.nos                                <- which(ptree$original.tip.labels %in% duplicated$tip.2)
     
     newly.blacklisted                            <- setdiff(duplicate.nos, ptree$blacklist)
     
@@ -1482,10 +1482,8 @@ blacklist.from.duplicates.vector <- function(ptree, raw.blacklist.threshold, rat
     
     ptree$hosts.for.tips[newly.blacklisted]  <- NA
     
-    old.tip.labels    <- ptree$tree$tip.label
-    
     if(length(newly.blacklisted)>0){
-      ptree$tree                                 <- ptree$tree %>% rename.blacklisted.tips(ptree$blacklist, "DUPLICATE")
+      ptree$tree                                 <- ptree$tree %>% rename.blacklisted.tips(newly.blacklisted, "DUPLICATE")
     }
     
     if(length(duplicate.nos)>0){
@@ -1528,11 +1526,9 @@ blacklist.using.parsimony <- function(ptree, tip.regex, outgroup.name, raw.black
   if(verbose & length(newly.blacklisted)>0) cat(length(newly.blacklisted), " tips blacklisted as probable contaminants by parsimony reconstruction for tree ID ",ptree$id, "\n", sep="")
   
   ptree$hosts.for.tips[newly.blacklisted] <- NA
-  
-  old.tip.labels                              <- ptree$tree$tip.label
-  
+ 
   if(length(newly.blacklisted)>0){
-    ptree$tree                                <- ptree$tree %>% rename.blacklisted.tips(ptree$blacklist, "CONTAMINANT")
+    ptree$tree                                <- ptree$tree %>% rename.blacklisted.tips(newly.blacklisted, "CONTAMINANT")
   }
   
   
@@ -1584,10 +1580,8 @@ blacklist.from.duals.list <- function(ptree, dual.results, verbose) {
     
     ptree$hosts.for.tips[newly.blacklisted] <- NA
     
-    old.tip.labels                              <- ptree$tree$tip.label
-    
     if(length(newly.blacklisted)>0){
-      ptree$tree                                <- ptree$tree %>% rename.blacklisted.tips(ptree$blacklist, "DUAL")
+      ptree$tree                                <- ptree$tree %>% rename.blacklisted.tips(newly.blacklisted, "DUAL")
     }
     
     if(length(dual.nos)>0){
