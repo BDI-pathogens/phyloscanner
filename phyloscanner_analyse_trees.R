@@ -90,6 +90,10 @@ arg_parser$add_argument("-sks", "--skipSummaryGraph", action="store_true", help=
 
 args                            <- arg_parser$parse_args()
 
+# make various packages less chattty
+
+options(readr.num_columns = 0)
+
 # basics
 verbosity                       <- args$verbose
 
