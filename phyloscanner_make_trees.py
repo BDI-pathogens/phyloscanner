@@ -705,7 +705,7 @@ FindSeqsInFastaCode = pf.FindAndCheckCode('FindSeqsInFasta.py')
 FindWindowsCode     = pf.FindAndCheckCode('FindInformativeWindowsInFasta.py')
 
 # Test RAxML works
-if not args.no_trees:
+if not (args.no_trees or ExploreWindowWidths):
   RAxMLargList = pf.TestRAxML(args.x_raxml, RAxMLdefaultOptions, RaxmlHelp)
 
 # Set up the mafft commands
