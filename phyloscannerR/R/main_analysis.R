@@ -32,7 +32,7 @@ initialise.phyloscanner <- function(
   if(length(tree.file.names)==0){
     stop("No tree files found.")
   }
-
+  
   if(!is.null(norm.ref.file.name) & !is.null(norm.constants)){
     stop("Please either ask for calculation of normalisation constants, provide your own, or neither.")
   }
@@ -114,7 +114,7 @@ initialise.phyloscanner <- function(
       if(match.mode == "ID"){
         
         user.blacklist.identifiers <- sapply(user.blacklist.file.names, function(x) sub(user.blacklist.file.regex, "\\1", x))
-
+        
       } else {
         if(match.mode != "coords"){
           stop("Cannot match blacklist files with tree files using the information given.")
@@ -411,7 +411,7 @@ blacklist <- function(ptrees,
   
   # Read the user blacklists
   
-
+  
   if(any(sapply(ptrees, function(x) !is.null(x$user.blacklist.file.name))) & verbosity!=0){
     cat("Reading user blacklists...\n")
   }
@@ -603,26 +603,26 @@ phyloscanner.analyse.trees <- function(
   no.progress.bars = F){
   
   splits.rule <- match.arg(splits.rule)
-
+  
   init <- initialise.phyloscanner(tree.file.directory,
-                                    tree.file.regex,
-                                    outgroup.name,
-                                    multifurcation.threshold,
-                                    guess.multifurcation.threshold,
-                                    user.blacklist.directory,
-                                    user.blacklist.file.regex,
-                                    duplicate.file.directory,
-                                    duplicate.file.regex,
-                                    recombination.file.directory,
-                                    recombination.file.regex,
-                                    alignment.file.directory,
-                                    alignment.file.regex,
-                                    tip.regex,
-                                    file.name.regex,
-                                    norm.ref.file.name,
-                                    norm.standardise.gag.pol,
-                                    norm.constants,
-                                    verbosity)
+                                  tree.file.regex,
+                                  outgroup.name,
+                                  multifurcation.threshold,
+                                  guess.multifurcation.threshold,
+                                  user.blacklist.directory,
+                                  user.blacklist.file.regex,
+                                  duplicate.file.directory,
+                                  duplicate.file.regex,
+                                  recombination.file.directory,
+                                  recombination.file.regex,
+                                  alignment.file.directory,
+                                  alignment.file.regex,
+                                  tip.regex,
+                                  file.name.regex,
+                                  norm.ref.file.name,
+                                  norm.standardise.gag.pol,
+                                  norm.constants,
+                                  verbosity)
   
   ptrees <- init$ptrees
   readable.coords <- init$readable.coords
@@ -645,7 +645,7 @@ phyloscanner.analyse.trees <- function(
   downsample            <- max.reads.per.host < Inf
   
   ptrees <- sapply(ptrees, function(ptree) apply.normalisation.constants(ptree), simplify = F, USE.NAMES = T)
-
+  
   ptrees <- blacklist(ptrees,
                       raw.blacklist.threshold,
                       ratio.blacklist.threshold,
@@ -660,7 +660,7 @@ phyloscanner.analyse.trees <- function(
                       outgroup.name,
                       verbosity)
   
-
+  
   # All IDs can be safely gathered and mapped now, and read counts calculated. Windows with no patients should be removed.
   
   if(verbosity!=0) cat("Gathering host IDs...\n")
@@ -690,7 +690,7 @@ phyloscanner.analyse.trees <- function(
       }, simplify = F, USE.NAMES = T)
       
       ptree$tips.for.hosts <- tips.for.hosts
-
+      
       ptree
     }
   }, simplify = F, USE.NAMES = T)
@@ -746,7 +746,7 @@ phyloscanner.analyse.trees <- function(
   
   ptrees <- sapply(ptrees, function(ptree) {
     # Do the reconstruction
-
+    
     if(verbosity==2) cat("Reconstructing internal node hosts on tree ID ",ptree$id, "\n", sep="")
     
     tmp					     <- split.hosts.to.subgraphs(ptree$tree, ptree$blacklist, splits.rule, tip.regex, sankoff.k, sankoff.p, use.ff, count.reads.in.parsimony, ptree$m.thresh, hosts, ptree$id, verbose = verbosity==2, no.progress.bars)
@@ -925,26 +925,26 @@ phyloscanner.generate.blacklist <- function(
   blacklist.underrepresented = F,
   count.reads.in.parsimony = F,
   verbosity = 0){
- 
+  
   init <- initialise.phyloscanner(tree.file.directory,
-                                    tree.file.regex,
-                                    outgroup.name,
-                                    multifurcation.threshold,
-                                    guess.multifurcation.threshold,
-                                    user.blacklist.directory,
-                                    user.blacklist.file.regex,
-                                    duplicate.file.directory,
-                                    duplicate.file.regex,
-                                    NULL,
-                                    NULL,
-                                    alignment.file.directory,
-                                    alignment.file.regex,
-                                    tip.regex,
-                                    file.name.regex,
-                                    norm.ref.file.name,
-                                    norm.standardise.gag.pol,
-                                    norm.constants,
-                                    verbosity)
+                                  tree.file.regex,
+                                  outgroup.name,
+                                  multifurcation.threshold,
+                                  guess.multifurcation.threshold,
+                                  user.blacklist.directory,
+                                  user.blacklist.file.regex,
+                                  duplicate.file.directory,
+                                  duplicate.file.regex,
+                                  NULL,
+                                  NULL,
+                                  alignment.file.directory,
+                                  alignment.file.regex,
+                                  tip.regex,
+                                  file.name.regex,
+                                  norm.ref.file.name,
+                                  norm.standardise.gag.pol,
+                                  norm.constants,
+                                  verbosity)
   
   ptrees <- init$ptrees
   readable.coords <- init$readable.coords
@@ -1026,7 +1026,7 @@ gather.summary.statistics <- function(ptrees, hosts = all.hosts.from.trees(ptree
     out$tree.id <- x$id
     
     names(out) <- c(paste("prop.gp.",seq(1,max.splits),sep=""), "host.id", "tree.id")
-  
+    
     out
   })
   
@@ -1184,7 +1184,7 @@ write.annotated.tree <- function(ptree, file.name, format = c("pdf", "nex"), pdf
   if(verbose) cat(paste0("Writing .",format," tree to file ",file.name,"\n"))
   
   if(format == "pdf"){
-
+    
     tree.display <- ggtree(tree, aes(color=BRANCH_COLOURS)) +
       geom_point2(aes(subset=SUBGRAPH_MRCA, color=INDIVIDUAL), shape = 23, size = 3, fill="white") +
       geom_point2(aes(color=INDIVIDUAL, shape=BLACKLISTED), size=1) +
@@ -1365,7 +1365,7 @@ prepare.tree <- function(ptree, outgroup.name, tip.regex, guess.multifurcation.t
   if(!is.null((outgroup.name))){
     ptree$bl.report$status[which(new.tree$tip.label==outgroup.name)] <- "included_outgroup"
   }
-    
+  
   ptree$tree                      <- new.tree
   ptree$original.tip.labels       <- new.tree$tip.label
   ptree$m.thresh                  <- multifurcation.threshold
@@ -1380,7 +1380,7 @@ prepare.tree <- function(ptree, outgroup.name, tip.regex, guess.multifurcation.t
 #' @keywords internal
 
 read.blacklist <- function(ptree, verbose = F) {
-
+  
   if(!is.null(ptree$user.blacklist.file.name)){
     if(file.exists(ptree$user.blacklist.file.name)){
       if (verbose) cat("Reading blacklist file ",ptree$user.blacklist.file.name,'\n',sep="")
@@ -1474,25 +1474,27 @@ blacklist.from.duplicates.vector <- function(ptree, raw.blacklist.threshold, rat
     
     duplicated                                   <- blacklist.exact.duplicates(ptree, raw.blacklist.threshold, ratio.blacklist.threshold, tip.regex, verbose)
     
-    duplicate.nos                                <- which(ptree$original.tip.labels %in% duplicated$tip.2)
-    
-    newly.blacklisted                            <- setdiff(duplicate.nos, ptree$blacklist)
-    
-    if(verbose & length(newly.blacklisted > 0)) cat(length(newly.blacklisted), " tips blacklisted as duplicates for tree ID ",ptree$id, "\n", sep="")
-    
-    ptree$hosts.for.tips[newly.blacklisted]  <- NA
-    
-    if(length(newly.blacklisted)>0){
-      ptree$tree                                 <- ptree$tree %>% rename.blacklisted.tips(newly.blacklisted, "DUPLICATE")
+    if(nrow(duplicated) > 0){
+      duplicate.nos                                <- which(ptree$original.tip.labels %in% duplicated$tip.2)
+      
+      newly.blacklisted                            <- setdiff(duplicate.nos, ptree$blacklist)
+      
+      if(verbose & length(newly.blacklisted > 0)) cat(length(newly.blacklisted), " tips blacklisted as duplicates for tree ID ",ptree$id, "\n", sep="")
+      
+      ptree$hosts.for.tips[newly.blacklisted]  <- NA
+      
+      if(length(newly.blacklisted)>0){
+        ptree$tree                                 <- ptree$tree %>% rename.blacklisted.tips(newly.blacklisted, "DUPLICATE")
+      }
+      
+      if(length(duplicate.nos)>0){
+        ptree$bl.report$status[duplicate.nos]      <- "bl_duplicate"
+        ptree$bl.report$kept[duplicate.nos]        <- F
+      }
+      
+      ptree$blacklist <- unique(c(ptree$blacklist, duplicate.nos))
+      ptree$blacklist <- ptree$blacklist[order(ptree$blacklist)]
     }
-    
-    if(length(duplicate.nos)>0){
-      ptree$bl.report$status[duplicate.nos]      <- "bl_duplicate"
-      ptree$bl.report$kept[duplicate.nos]        <- F
-    }
-    
-    ptree$blacklist <- unique(c(ptree$blacklist, duplicate.nos))
-    ptree$blacklist <- ptree$blacklist[order(ptree$blacklist)]
   }
   ptree
 }
@@ -1526,7 +1528,7 @@ blacklist.using.parsimony <- function(ptree, tip.regex, outgroup.name, raw.black
   if(verbose & length(newly.blacklisted)>0) cat(length(newly.blacklisted), " tips blacklisted as probable contaminants by parsimony reconstruction for tree ID ",ptree$id, "\n", sep="")
   
   ptree$hosts.for.tips[newly.blacklisted] <- NA
- 
+  
   if(length(newly.blacklisted)>0){
     ptree$tree                                <- ptree$tree %>% rename.blacklisted.tips(newly.blacklisted, "CONTAMINANT")
   }
@@ -1550,10 +1552,10 @@ blacklist.using.parsimony <- function(ptree, tip.regex, outgroup.name, raw.black
   if(length(which.are.duals) > 0) {
     repeat.column <- as.vector(unlist(sapply(results[which.are.duals], function (x) rep(x$id, length(x$tip.names)) )))
     mi.df                                     <- tibble(host = repeat.column,
-                                                            tip.name = unlist(lapply(results[which.are.duals], "[[", 3)),
-                                                            reads.in.subtree = unlist(lapply(results[which.are.duals], "[[", 4)),
-                                                            split.ids = unlist(lapply(results[which.are.duals], "[[", 5)),
-                                                            tips.in.subtree = unlist(lapply(results[which.are.duals], "[[", 6))
+                                                        tip.name = unlist(lapply(results[which.are.duals], "[[", 3)),
+                                                        reads.in.subtree = unlist(lapply(results[which.are.duals], "[[", 4)),
+                                                        split.ids = unlist(lapply(results[which.are.duals], "[[", 5)),
+                                                        tips.in.subtree = unlist(lapply(results[which.are.duals], "[[", 6))
     )
     
     ptree$duals.info <- mi.df
