@@ -425,25 +425,6 @@ split.and.annotate <- function(tree, hosts, tip.hosts, host.tips, host.mrcas, bl
       finite.cost <- matrix(TRUE, ncol=length(hosts), nrow=length(tree$tip.label) + tree$Nnode) 
     }
     
-    # for(tip in seq(1, length(tree$tip.label))){
-    #   pat <- tip.hosts[tip]
-    #   
-    #   finite.cost[tip, which(hosts==pat)] <- TRUE
-    #   current.node <- tip
-    #   repeat{
-    #     current.node <- Ancestors(tree, current.node, type="parent")
-    #     
-    #     if(finite.cost[current.node, which(hosts==pat)]){
-    #       # already been here
-    #       break
-    #     }
-    #     finite.cost[current.node, which(hosts==pat)] <- TRUE
-    #     if(is.root(tree, current.node)){
-    #       break
-    #     }
-    #   }
-    # }
-    # 
     finite.cost[,which(hosts=="unassigned")] <- TRUE
     
     if (verbose) cat("Building full cost matrix...\n")
