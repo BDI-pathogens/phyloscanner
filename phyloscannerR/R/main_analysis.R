@@ -1386,7 +1386,7 @@ read.blacklist <- function(ptree, verbose = F) {
   if(!is.null(ptree$user.blacklist.file.name)){
     if(file.exists(ptree$user.blacklist.file.name)){
       if (verbose) cat("Reading blacklist file ",ptree$user.blacklist.file.name,'\n',sep="")
-      blacklisted.tips                    <- read_csv(ptree$user.blacklist.file.name, col.names="read")
+      blacklisted.tips                    <- read_csv(ptree$user.blacklist.file.name, col_names="read")
       
       blacklist                           <- vector()
       if(nrow(blacklisted.tips)>0){
