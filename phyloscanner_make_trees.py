@@ -918,8 +918,9 @@ else:
         raise
 
     if args.align_refs_only:
-      print('References aligned in', FileForAlignedRefs+ \
-      '. Quitting successfully.')
+      if PrintInfo:
+        print('References aligned in', FileForAlignedRefs+ \
+        '. Quitting successfully.')
       CleanUp(TempFiles)
       exit(0)
 
@@ -2177,6 +2178,9 @@ if ExploreWindowWidths:
   with open(args.explore_window_width_file, 'w') as f:  
     f.write(OutputTables)
   CleanUp(TempFiles)
+  if PrintInfo:
+    print("All windows explored; data in", args.explore_window_width_file + \
+    ". Quitting successfully.")
   exit(0)
     
 
