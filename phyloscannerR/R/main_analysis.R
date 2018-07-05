@@ -1033,7 +1033,7 @@ gather.summary.statistics <- function(ptrees, hosts = all.hosts.from.trees(ptree
   
   read.prop.columns <- bind_rows(read.prop.columns)
   
-  pat.stats         <- inner_join(pat.stats, read.prop.columns)
+  pat.stats         <- inner_join(pat.stats, read.prop.columns, by=c("host.id", "tree.id"))
   
   pat.stats
 }

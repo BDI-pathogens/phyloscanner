@@ -253,7 +253,7 @@ calc.all.stats.in.window <- function(ptree, hosts, tip.regex, has.read.counts, v
       select(Bam.file, Recombination.metric) %>% 
       rename(host.id = Bam.file, recombination.metic = Recombination.metric)
 
-    window.table <- window.table %>% inner_join(recomb.df)
+    window.table <- window.table %>% inner_join(recomb.df, by = "host.id")
   }
   
   # If you did dual detection, add that in
