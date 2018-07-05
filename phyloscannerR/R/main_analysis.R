@@ -288,7 +288,7 @@ initialise.phyloscanner <- function(
       if (verbosity!=0) cat('Normalising branch lengths using contents of file ', norm.constants, "...\n", sep="")
       
       
-      nc.df   <- read_csv(norm.constants, col.names = F)
+      nc.df   <- read_csv(norm.constants, col_names = F)
       ptrees <- sapply(ptrees, function(ptree) {
         rows  <- which(nc.df[,1]==basename(ptree$tree.file.name))
         
