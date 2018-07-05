@@ -374,7 +374,7 @@ RecombNormToDiv = args.recombination_norm_diversity
 print('phyloscanner was called thus:\n' + ' '.join(sys.argv))
 
 # Warn if RAxML files exist already.
-if glob.glob('RAxML*'):
+if not (args.no_trees or ExploreWindowWidths) and glob.glob('RAxML*'):
   print('Warning: RAxML files are present in the working directory. If their',
   'names clash with those that phyloscanner will try to create, RAxML will',
   'fail to run. Continuing.', file=sys.stderr)
