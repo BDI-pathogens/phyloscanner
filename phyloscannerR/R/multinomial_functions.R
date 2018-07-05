@@ -21,7 +21,7 @@ multinomial.calculations <- function(phyloscanner.trees,
                                      min.reads = 0, 
                                      min.tips = 0, 
                                      distant.threshold = close.threshold,
-                                     relationship.types	= c('TYPE_PAIR_DI2','TYPE_PAIR_TO','TYPE_PAIR_TODI2x2','TYPE_PAIR_TODI2','TYPE_DIR_TODI2','TYPE_NETWORK_SCORES','TYPE_ADJ_NETWORK_SCORES','TYPE_CHAIN_TODI'),
+                                     relationship.types	= c('TYPE_PAIR_DI2','TYPE_PAIR_TO','TYPE_PAIR_TODI2x2','TYPE_PAIR_TODI2','TYPE_DIR_TODI2','TYPE_ADJ_DIR_TODI2','TYPE_NETWORK_SCORES','TYPE_ADJ_NETWORK_SCORES','TYPE_CHAIN_TODI'),
                                      verbose=F){
   
   if(!attr(phyloscanner.trees, "readable.coords")){
@@ -101,7 +101,7 @@ multinomial.calculations <- function(phyloscanner.trees,
 #' @param get.groups names of relationship groups  
 #' @keywords internal
 #' @return input data.table with new columns. Each new column defines relationship states for a specific relationship group. 
-phsc.get.pairwise.relationships<- function(df, get.groups=c('TYPE_PAIR_DI2','TYPE_PAIR_TO','TYPE_PAIR_TODI2x2','TYPE_PAIR_TODI2','TYPE_DIR_TODI2','TYPE_NETWORK_SCORES','TYPE_CHAIN_TODI','TYPE_ADJ_NETWORK_SCORES','TYPE_ADJ_DIR_TODI2'))
+phsc.get.pairwise.relationships<- function(df, get.groups=c('TYPE_PAIR_DI2','TYPE_PAIR_TO','TYPE_PAIR_TODI2x2','TYPE_PAIR_TODI2','TYPE_DIR_TODI2', 'TYPE_ADJ_DIR_TODI2', 'TYPE_NETWORK_SCORES','TYPE_CHAIN_TODI','TYPE_ADJ_NETWORK_SCORES','TYPE_ADJ_DIR_TODI2'))
 {
   
   if('TYPE_PAIR_DI2' %in% get.groups)

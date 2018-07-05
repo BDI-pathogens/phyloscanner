@@ -215,6 +215,26 @@ ptrees <- phyloscanner.generate.blacklist(
   verbosity)
 
 
+if(output.blacklisting.report){
+  if (verbosity!=0) cat('Saving blacklisting report to file', paste0(output.string,"_blacklistReport.csv"),'...\n', sep="")
+  
+  dfs <- lapply(ptrees, function(x) {
+    treebl.df <- x$bl.report
+    if(nrow(treebl.df)>0){
+      treebl.df$tree.id <- x$id
+    } else {
+      treebl.df$tree.id <- vector()
+    }
+    treebl.df <- treebl.df[,c(4,1,2,3)]
+    treebl.df
+  })
+  
+  output.bl.report <- do.call(rbind, dfs)
+  
+  write.csv(output.bl.report, file = file.path(output.dir, paste0(output.string,"_blacklistReport.csv")), quote=F, row.names=F)
+}
+
+
 silent <- sapply(ptrees, function(ptree){
   
   if(!is.null(ptree$alignment.file.name)){
@@ -231,22 +251,4 @@ silent <- sapply(ptrees, function(ptree){
   }
   
 })
-
-if(output.blacklisting.report){
-  if (verbosity!=0) cat('Saving blacklisting report to file', paste0(output.string,"_blacklistReport.csv"),'\n')
-  
-  dfs <- lapply(ptrees, function(x) {
-    window.df <- x$bl.report
-    if(nrow(window.df)>0){
-      window.df$id <- x$id
-      window.df <- window.df[,c(3,1,2)]
-    }
-    window.df
-  }
-  )
-  
-  output.bl.report <- do.call(rbind, dfs)
-  
-  write.csv(output.bl.report, file = file.path(output.dir, paste0(output.string,"_blacklistReport.csv")), quote=F, row.names=F)
-}
 
