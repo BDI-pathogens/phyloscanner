@@ -19,6 +19,7 @@ arg_parser$add_argument("outputString", action="store", help="A string that will
 arg_parser$add_argument("-og", "--outgroupName", action="store", help="The name of the tip in the phylogeny/phylogenies to be used as outgroup (if unspecified, trees will be assumed to be already rooted). This should be sufficiently distant to any sequence obtained from a host that it can be assumed that the MRCA of the entire tree was not a lineage present in any sampled individual.")
 arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, short branches in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. If a number, this number will be used as the threshold, with all branches strictly smaller collapsed. If 'g', it will be guessed from the branch lengths and the width of the genomic window (if appropriate). It is recommended that trees are examined by eye to check that they do appear to have multifurcations if 'g' is used.")
 arg_parser$add_argument("-b", "--userBlacklist", action="store", help="A path and string that begins all the file names for pre-existing blacklist files.")
+arg_parser$add_argument("-aln", "--alignment", action="store", help="A path and string that begins all the file names for alignments. Needed if ancestral state reconstruction is desired at a later point.")
 
 # General, bland options
 
@@ -29,6 +30,7 @@ arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_
 arg_parser$add_argument("-y", "--fileNameRegex", action="store", default="^\\D*([0-9]+)_to_([0-9]+)\\D*$", help="Regular expression identifying window coordinates. Two capture groups: start and end; if the latter is missing then the first group is a single numerical identifier for the window. If absent, input will be assumed to be from the phyloscanner pipeline, and the host ID will be the BAM file name.")
 arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default=".tree", help="The file extension for tree files (default .tree). This includes the dot; use '' if there is no file extension.")
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default=".csv", help="The file extension for table files (default .csv). This includes the dot; use '' if there is no file extension..")
+arg_parser$add_argument("-afe", "--alignmentFileExtension", action="store", default=".fasta", help="The file extension for nucleotide alignment files (default .fasta). This includes the dot; use '' if there is no file extension..")
 arg_parser$add_argument("-pw", "--pdfWidth", action="store", default=50, help="Width of tree PDF in inches.")
 arg_parser$add_argument("-ph", "--pdfRelHeight", action="store", default=0.15, help="Relative height of tree PDF")
 arg_parser$add_argument("-psb", "--pdfScaleBarWidth", action="store", default=0.01, help="Width of the scale bar in the PDF output (in branch length units)")
@@ -107,6 +109,8 @@ tree.fe                         <- args$treeFileExtension
 re.tree.fe                      <- gsub("\\.", "\\\\.", tree.fe)
 csv.fe                          <- args$csvFileExtension
 re.csv.fe                       <- gsub("\\.", "\\\\.", csv.fe)
+alignment.fe                    <- args$alignmentFileExtension
+re.alignment.fe                 <- gsub("\\.", "\\\\.", alignment.fe)
 
 # tree input
 tree.input                      <- args$tree
@@ -126,6 +130,19 @@ if(!is.null(blacklist.input)){
 } else {
   user.blacklist.directory      <- NULL
   user.blacklist.file.regex     <- NULL
+}
+
+# user blacklist
+alignment.input                 <- args$alignment
+
+if(!is.null(alignment.input)){
+  if(!file.exists(alignment.input)){
+    alignment.directory         <- dirname(alignment.input)
+    alignment.file.regex        <- paste0("^", basename(alignment.input), "(.*)", re.alignment.fe,"$")
+  }
+} else {
+  alignment.directory           <- NULL
+  alignment.file.regex          <- NULL
 }
 
 # output files
@@ -337,7 +354,7 @@ if(single.tree){
     blacklist.input,
     dup.input.file.name,
     recomb.input,
-    NULL,
+    alignment.input,
     tip.regex,
     file.name.regex,
     seed,
@@ -372,8 +389,8 @@ if(single.tree){
     duplicate.file.regex,
     recomb.file.directory,
     recomb.file.regex,
-    NULL,
-    NULL,
+    alignment.file.directory,
+    alignment.file.regex,
     tip.regex,
     file.name.regex,
     seed,
