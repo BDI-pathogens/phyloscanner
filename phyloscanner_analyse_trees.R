@@ -389,7 +389,7 @@ if(single.tree){
     duplicate.file.regex,
     recomb.file.directory,
     recomb.file.regex,
-    alignment.file.directory,
+    alignment.directory,
     alignment.file.regex,
     tip.regex,
     file.name.regex,
