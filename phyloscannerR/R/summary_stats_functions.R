@@ -6,7 +6,7 @@
 
 calc.subtree.stats <- function(host.id, tree.id, tree, tips.for.patients, splits.table, tip.regex, no.read.counts, verbose = F){
   
-  if(verbose) cat("Calculating statistics for host ",host.id,".\n", sep="")
+  if(verbose) cat("Calculating statistics for host ",host.id,"\n", sep="")
   
   relevant.reads <- splits.table %>% filter(host == host.id)
   
@@ -231,16 +231,16 @@ calc.all.stats.in.window <- function(ptree, hosts, tip.regex, has.read.counts, v
   
   if (!is.null(recomb.file.name)) {
     
-    recomb.df <- read_csv(recomb.file.name, stringsAsFactors = F)
+    recomb.df <- read_csv(recomb.file.name)
     col.names <- colnames(recomb.df)
-    for (expected.col.name in c("Bam.file","Recombination.metric")) {
+    for (expected.col.name in c("Bam file","Recombination metric")) {
       if (! expected.col.name %in% col.names) {
         stop("Expected column name ", expected.col.name, " missing from ",
              recomb.file.name, ". Quitting.")
       }
     }
-    missing.IDs <- setdiff(hosts, recomb.df$Bam.file)
-    extra.IDs <- setdiff(recomb.df$Bam.file, hosts)
+    missing.IDs <- setdiff(hosts, recomb.df$`Bam file`)
+    extra.IDs <- setdiff(recomb.df$`Bam file`, hosts)
     if (length(missing.IDs) > 0) {
       stop(paste0("Error: the following bam file IDs are missing from ",
                   recomb.file.name, ": ", paste(missing.IDs, collapse = " "), "\nQuitting."))
@@ -250,8 +250,8 @@ calc.all.stats.in.window <- function(ptree, hosts, tip.regex, has.read.counts, v
                   recomb.file.name, ": ", paste(extra.IDs, collapse = " "), "\nQuitting."))
     }
     recomb.df <- recomb.df %>% 
-      select(Bam.file, Recombination.metric) %>% 
-      rename(host.id = Bam.file, recombination.metic = Recombination.metric)
+      select(`Bam file`, `Recombination metric`) %>% 
+      rename(host.id = `Bam file`, recombination.metric = `Recombination metric`)
 
     window.table <- window.table %>% inner_join(recomb.df, by = "host.id")
   }

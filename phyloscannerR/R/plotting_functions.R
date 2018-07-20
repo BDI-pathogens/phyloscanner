@@ -160,7 +160,7 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
     missing.read.rects <- NULL
     
     if(regular.gaps & length(which(host.stats$reads==0))){
-      missing.read.rects <- form.rectangles(host.stats$xcoord[which(host.statistics$reads==0)], xcoords, "grey")
+      missing.read.rects <- form.rectangles(host.stats$xcoord[which(host.stats$reads==0)], xcoords, "grey")
     }
     
     # rbind on two NULLs still makes a NULL
@@ -360,7 +360,7 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
     
     # graph 6: recombination metric
     
-    if("recombination.metric" %in% colnames(host.stats)) {     
+    if("recombination.metric" %in% names(host.stats)) {     
       graph.6 <- ggplot(host.stats, aes(x=xcoord, y=recombination.metric))
       y.label <- "Recombination metric"
       
@@ -380,7 +380,7 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
       plot.list[["recombination.metric"]] <- graph.6
     }
     
-    if("solo.dual.count" %in% colnames(host.stats)) {
+    if("solo.dual.count" %in% names(host.stats)) {
       
       graph.7 <- ggplot(host.stats, aes(x=xcoord, y=solo.dual.count))
       y.label <- "Number of dual infections detected"
