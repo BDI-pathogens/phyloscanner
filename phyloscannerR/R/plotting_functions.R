@@ -4,6 +4,7 @@
 #' @export AlignPlots
 
 AlignPlots <- function(...) {
+  
   LegendWidth <- function(x) x$grobs[[15]]$grobs[[1]]$widths[[4]]
   
   plots.grobs <- lapply(list(...), ggplotGrob)
@@ -34,7 +35,7 @@ AlignPlots <- function(...) {
 add.no.data.rectangles <- function(graph, rectangle.coords, log = F, y.limits = NULL){
   
   if(is.null(y.limits)){
-    y.limits <- ggplot_build(graph)$layout$panel_ranges[[1]]$y.range
+    y.limits <- ggplot_build(graph)$layout$panel_params[[1]]$y.range
   }
   
   if(nrow(rectangle.coords)>0){
@@ -124,10 +125,11 @@ produce.pdf.graphs <- function(file.name, sum.stats, hosts, xcoords, x.limits, m
   for (i in seq(1, length(hosts))) {
     host <- hosts[i]
     # tryCatch({
-      if(i!=1){
-        grid.newpage()
-      }
-      produce.host.graphs(sum.stats, host, xcoords, x.limits, missing.window.rects, bar.width, regular.gaps, readable.coords, verbose)} #,
+    if(i!=1){
+      grid.newpage()
+    }
+    produce.host.graphs(sum.stats, host, xcoords, x.limits, missing.window.rects, bar.width, regular.gaps, readable.coords, verbose)
+  } #,
   #     error=function(e){
   #       if (verbose) cat("Skipping graphs for host ",host," as no reads are present and not blacklisted.\n", sep="")
   #     })
@@ -140,7 +142,7 @@ produce.pdf.graphs <- function(file.name, sum.stats, hosts, xcoords, x.limits, m
 #' @export produce.host.graphs
 
 produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.window.rects, bar.width, regular.gaps = F, readable.coords = F, verbose = F){
-
+  
   x.axis.label <- if(readable.coords) "Window centre" else "Tree number"
   
   host.stats <- sum.stats %>% 
@@ -148,7 +150,7 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
     arrange(xcoord)
   
   if(nrow(host.stats) > 0){
-  
+    
     plot.list <- list()
     
     if (verbose) cat("Drawing graphs for host ",host,"\n", sep="")
@@ -167,13 +169,13 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
     
     host.stats <- host.stats %>% 
       filter(reads > 0)
-
+    
     # Graph 1: read count and tip count
     
     host.stats.gd.1 <- host.stats %>% 
       select(xcoord, tips, reads) %>% 
       gather(variable, value, tips, reads)
-      
+    
     # if the difference between the largest and smallest values is greater than 10, we want log scale. Otherwise, normal scale.
     
     log.scale <- max(host.stats.gd.1$value - min(host.stats.gd.1$value) >= 10)
@@ -209,7 +211,7 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
     host.stats.gd.2 <- host.stats %>% 
       select(xcoord, subgraphs, clades) %>% 
       gather(variable, value, subgraphs, clades)
-      
+    
     log.scale <- max(host.stats.gd.2$value - min(host.stats.gd.2$value) >= 10)
     y.limits <- NULL
     
@@ -325,7 +327,7 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
     host.stats.gd.5 <- host.stats.gd.5 %>% 
       mutate(ngroup = map_int(variable, function(x) which(unique(host.stats.gd.5$variable)==x))) %>%
       mutate_at("ngroup", as.factor)
-
+    
     colourCount <- length(unique(host.stats.gd.5$ngroup))
     
     # want largest subgraph to be the darkest colour even if all windows have 1 subgraph
@@ -406,6 +408,7 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
       }
       
       plot.list[["dual.infections"]] <- graph.7
+      
     }
     
     all.plots <- do.call(AlignPlots, plot.list)

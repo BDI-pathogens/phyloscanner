@@ -1124,10 +1124,10 @@ multipage.summary.statistics <- function(ptrees, sum.stats, hosts = all.hosts.fr
     stop("Only one tree, cannot draw summary statistics graph.")
   }
   
-  coordinates <- lapply(phyloscanner.trees, "[[" , "window.coords")
+  coordinates <- lapply(ptrees, "[[" , "window.coords")
   
   if(readable.coords){
-    coordinates <- lapply(phyloscanner.trees, "[[" , "window.coords")
+    coordinates <- lapply(ptrees, "[[" , "window.coords")
     starts <- sapply(coordinates, "[[", "start")
     ends <- sapply(coordinates, "[[", "end")
     ews <- min(starts)
