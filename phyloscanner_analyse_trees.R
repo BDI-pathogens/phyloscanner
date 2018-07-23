@@ -521,7 +521,7 @@ if(output.blacklisting.report){
   
   output.bl.report <- do.call(rbind, dfs)
   
-  write_csv(output.bl.report, file = file.path(output.dir, paste0(output.string,"_blacklistReport.csv")))
+  write_csv(output.bl.report, path = file.path(output.dir, paste0(output.string,"_blacklistReport.csv")))
 }
 
 if(output.rda){
