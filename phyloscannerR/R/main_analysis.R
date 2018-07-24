@@ -17,11 +17,14 @@ initialise.phyloscanner <- function(
   alignment.file.regex = NULL,
   tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
   file.name.regex = "^\\D*([0-9]+)_to_([0-9]+)\\D*$",
+  seed,
   norm.ref.file.name = NULL,
   norm.standardise.gag.pol = F,
   norm.constants = NULL,
   verbosity = 0){
-  
+
+  set.seed(seed)
+
   if(verbosity!=0){
     cat("Initialising...\n")
   }
@@ -619,6 +622,7 @@ phyloscanner.analyse.trees <- function(
                                   alignment.file.regex,
                                   tip.regex,
                                   file.name.regex,
+                                  seed,
                                   norm.ref.file.name,
                                   norm.standardise.gag.pol,
                                   norm.constants,
