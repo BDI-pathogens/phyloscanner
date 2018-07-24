@@ -686,9 +686,9 @@ classify <- function(ptree, verbose = F, no.progress.bars = F) {
   
   
   if(is.null(ptree$splits.table)){
-    if (verbose) cat("Reading splits file", tree.info$splits.file.name, "...\n")
+    if (verbose) cat("Reading splits file", ptree$splits.file.name, "...\n")
     
-    splits <- read_csv(tree.info$splits.file.name)
+    splits <- read_csv(ptree$splits.file.name)
   } else {
     splits <- ptree$splits.table
   }
