@@ -945,6 +945,7 @@ phyloscanner.generate.blacklist <- function(
                                   alignment.file.regex,
                                   tip.regex,
                                   file.name.regex,
+                                  seed,
                                   norm.ref.file.name,
                                   norm.standardise.gag.pol,
                                   norm.constants,
