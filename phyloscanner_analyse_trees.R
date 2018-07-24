@@ -414,13 +414,13 @@ if(verbosity!=0){
   cat("Writing annotated trees in .",tree.output.format," format...\n", sep="")
 }
 
-silent <- sapply(phyloscanner.trees, function(tree.info){
+silent <- sapply(phyloscanner.trees, function(ptree){
   if(single.tree){
     file.name <- paste0(output.string, "_processedTree.", tree.output.format)
   } else {
-    file.name <- paste0(output.string, "_processedTree_", tree.info$id, ".", tree.output.format)
+    file.name <- paste0(output.string, "_processedTree_", ptree$id, ".", tree.output.format)
   }
-  write.annotated.tree(tree.info, file=file.path(output.dir, file.name), tree.output.format, pdf.scale.bar.width, pdf.w, pdf.hm, verbosity == 2)
+  write.annotated.tree(ptree, file=file.path(output.dir, file.name), tree.output.format, pdf.scale.bar.width, pdf.w, pdf.hm, verbosity == 2)
 }, simplify = F, USE.NAMES = T)
 
 if(do.collapsed){
@@ -428,14 +428,14 @@ if(do.collapsed){
     cat("Writing collapsed trees to .csv files...\n", sep="")
   }
   
-  silent <- sapply(phyloscanner.trees, function(tree.info){
+  silent <- sapply(phyloscanner.trees, function(ptree){
     if(single.tree){
       file.name <- paste0(output.string, "_collapsedTree", csv.fe)
     } else {
-      file.name <- paste0(output.string, "_collapsedTree_", tree.info$id, csv.fe)
+      file.name <- paste0(output.string, "_collapsedTree_", ptree$id, csv.fe)
     }
-    if(verbosity==2) cat("Writing collapsed tree for tree ID",tree.info$id,"to file",file.name, "...\n")
-    write_csv(tree.info$classification.results$collapsed[,1:4], file.path(output.dir, file.name))
+    if(verbosity==2) cat("Writing collapsed tree for tree ID",ptree$id,"to file",file.name, "...\n")
+    write_csv(ptree$classification.results$collapsed[,1:4], file.path(output.dir, file.name))
     
   }, simplify = F, USE.NAMES = T)
 }
@@ -446,14 +446,14 @@ if(do.class.detail){
     cat("Writing host pairwise classifications to .csv files...\n", sep="")
   }
   
-  silent <- sapply(phyloscanner.trees, function(tree.info){
+  silent <- sapply(phyloscanner.trees, function(ptree){
     if(single.tree){
       file.name <- paste0(output.string, "_classification", csv.fe)
     } else {
-      file.name <- paste0(output.string, "_classification_", tree.info$id, csv.fe)
+      file.name <- paste0(output.string, "_classification_", ptree$id, csv.fe)
     }
-    if(verbosity==2) cat("Writing relationship classifications for tree ID",tree.info$id,"to file",file.name, "...\n")
-    write_csv(tree.info$classification.results$classification, file.path(output.dir, file.name))
+    if(verbosity==2) cat("Writing relationship classifications for tree ID",ptree$id,"to file",file.name, "...\n")
+    write_csv(ptree$classification.results$classification, file.path(output.dir, file.name))
     
   }, simplify = F, USE.NAMES = T)
 }
