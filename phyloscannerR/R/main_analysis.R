@@ -39,8 +39,7 @@ initialise.phyloscanner <- function(
   if(!is.null(norm.ref.file.name) & !is.null(norm.constants)){
     stop("Please either ask for calculation of normalisation constants, provide your own, or neither.")
   }
-  
-  do.dup.blacklisting   <- !is.null(duplicate.file.directory)
+
   include.alignment     <- !is.null(alignment.file.directory)
   existing.bl           <- !is.null(user.blacklist.directory)
   do.recomb             <- !is.null(recombination.file.directory)
@@ -634,7 +633,8 @@ phyloscanner.analyse.trees <- function(
   match.mode <- init$match.mode
   
   do.par.blacklisting   <- parsimony.blacklist.k > 0
-  
+  do.dup.blacklisting   <- !is.null(duplicate.file.directory)
+
   if(do.dual.blacklisting & !do.par.blacklisting){
     warning("Dual blacklisting requires parsimony blacklisting. Turning dual blacklisting off.")
     do.dual.blacklisting <- F
@@ -645,9 +645,7 @@ phyloscanner.analyse.trees <- function(
       warning("Romero-Severson reconstuction has no parameters; specified values will be ignored.")
     }
   }
-  
-  downsample            <- max.reads.per.host < Inf
-  
+
   ptrees <- sapply(ptrees, function(ptree) apply.normalisation.constants(ptree), simplify = F, USE.NAMES = T)
   
   ptrees <- blacklist(ptrees,
@@ -955,7 +953,10 @@ phyloscanner.generate.blacklist <- function(
   readable.coords <- init$readable.coords
   has.read.counts <- init$has.read.counts
   match.mode <- init$match.mode
-  
+
+  do.par.blacklisting   <- parsimony.blacklist.k > 0
+  do.dup.blacklisting   <- !is.null(duplicate.file.directory)
+
   ptrees <- sapply(ptrees, function(ptree) apply.normalisation.constants(ptree), simplify = F, USE.NAMES = T)
   
   ptrees <- blacklist(ptrees,
