@@ -425,7 +425,7 @@ silent <- sapply(phyloscanner.trees, function(ptree){
 
 if(do.collapsed){
   if(verbosity!=0){
-    cat("Writing collapsed trees to .csv files...\n", sep="")
+    cat("Writing collapsed trees to ",csv.fe," files...\n", sep="")
   }
   
   silent <- sapply(phyloscanner.trees, function(ptree){
@@ -443,7 +443,7 @@ if(do.collapsed){
 
 if(do.class.detail){
   if(verbosity!=0){
-    cat("Writing host pairwise classifications to .csv files...\n", sep="")
+    cat("Writing host pairwise classifications to ",csv.fe," files...\n", sep="")
   }
   
   silent <- sapply(phyloscanner.trees, function(ptree){
@@ -506,7 +506,7 @@ if(length(phyloscanner.trees)>1){
 }
 
 if(output.blacklisting.report){
-  if (verbosity!=0) cat('Saving blacklisting report to file', paste0(output.string,"_blacklistReport.csv"),'...\n', sep="")
+  if (verbosity!=0) cat('Saving blacklisting report to file', paste0(output.string,"_blacklistReport",csv.fe),'...\n', sep="")
   
   dfs <- lapply(phyloscanner.trees, function(x) {
     treebl.df <- x$bl.report
@@ -521,12 +521,14 @@ if(output.blacklisting.report){
   
   output.bl.report <- do.call(rbind, dfs)
   
-  write_csv(output.bl.report, path = file.path(output.dir, paste0(output.string,"_blacklistReport.csv")))
+  write_csv(output.bl.report, path = file.path(output.dir, paste0(output.string,"_blacklistReport",csv.fe)))
 }
 
 if(output.rda){
   if (verbosity!=0) cat('Saving R workspace image to file', paste0(output.string,"_workspace.rda"),'...\n')
   save.image(file=file.path(output.dir, paste0(output.string,"_workspace.rda")))
 }
+
+ if(file.exists(file.path(output.dir, "Rplots.pdf"))) silent <- file.remove(file.path(output.dir, "Rplots.pdf"))
 
 if(verbosity!=0) cat("Finished.\n")
