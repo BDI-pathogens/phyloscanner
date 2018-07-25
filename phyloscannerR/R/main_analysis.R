@@ -563,6 +563,7 @@ blacklist <- function(ptrees,
 #' }
 #' @importFrom ape read.tree read.nexus di2multi root node.depth.edgelength
 #' @importFrom tibble tibble as.tibble
+#' @improtFrom readr read_csv
 #' @import purrr
 #' @import viridis
 #' @importFrom reshape2 melt
