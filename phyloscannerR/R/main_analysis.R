@@ -22,9 +22,9 @@ initialise.phyloscanner <- function(
   norm.standardise.gag.pol = F,
   norm.constants = NULL,
   verbosity = 0){
-
+  
   set.seed(seed)
-
+  
   if(verbosity!=0){
     cat("Initialising...\n")
   }
@@ -39,7 +39,7 @@ initialise.phyloscanner <- function(
   if(!is.null(norm.ref.file.name) & !is.null(norm.constants)){
     stop("Please either ask for calculation of normalisation constants, provide your own, or neither.")
   }
-
+  
   include.alignment     <- !is.null(alignment.file.directory)
   existing.bl           <- !is.null(user.blacklist.directory)
   do.recomb             <- !is.null(recombination.file.directory)
@@ -453,7 +453,9 @@ blacklist <- function(ptrees,
     if (verbosity!=0) cat("Blacklisting minor subgraphs in probable dual infections...\n", sep="")
     
     hosts.that.are.duals <- lapply(ptrees, function(ptree){
-      ptree$duals.info$host
+      just.duals <- ptree$duals.info %>% filter(dual)
+      
+      just.duals$host
     })
     hosts.that.are.duals <- unique(unlist(hosts.that.are.duals))
     
@@ -634,7 +636,7 @@ phyloscanner.analyse.trees <- function(
   
   do.par.blacklisting   <- parsimony.blacklist.k > 0
   do.dup.blacklisting   <- !is.null(duplicate.file.directory)
-
+  
   if(do.dual.blacklisting & !do.par.blacklisting){
     warning("Dual blacklisting requires parsimony blacklisting. Turning dual blacklisting off.")
     do.dual.blacklisting <- F
@@ -645,7 +647,7 @@ phyloscanner.analyse.trees <- function(
       warning("Romero-Severson reconstuction has no parameters; specified values will be ignored.")
     }
   }
-
+  
   ptrees <- sapply(ptrees, function(ptree) apply.normalisation.constants(ptree), simplify = F, USE.NAMES = T)
   
   ptrees <- blacklist(ptrees,
@@ -953,10 +955,10 @@ phyloscanner.generate.blacklist <- function(
   readable.coords <- init$readable.coords
   has.read.counts <- init$has.read.counts
   match.mode <- init$match.mode
-
+  
   do.par.blacklisting   <- parsimony.blacklist.k > 0
   do.dup.blacklisting   <- !is.null(duplicate.file.directory)
-
+  
   ptrees <- sapply(ptrees, function(ptree) apply.normalisation.constants(ptree), simplify = F, USE.NAMES = T)
   
   ptrees <- blacklist(ptrees,
@@ -1555,17 +1557,16 @@ blacklist.using.parsimony <- function(ptree, tip.regex, outgroup.name, raw.black
   
   ptree$dual.detection.splits                 <- multiplicity.table
   
-  if(length(which.are.duals) > 0) {
-    repeat.column <- as.vector(unlist(sapply(results[which.are.duals], function (x) rep(x$id, length(x$tip.names)) )))
-    mi.df                                     <- tibble(host = repeat.column,
-                                                        tip.name = unlist(lapply(results[which.are.duals], "[[", 3)),
-                                                        reads.in.subtree = unlist(lapply(results[which.are.duals], "[[", 4)),
-                                                        split.ids = unlist(lapply(results[which.are.duals], "[[", 5)),
-                                                        tips.in.subtree = unlist(lapply(results[which.are.duals], "[[", 6))
-    )
-    
-    ptree$duals.info <- mi.df
-  }
+  repeat.column <- as.vector(unlist(sapply(results, function (x) rep(x$id, length(x$tip.names)) )))
+  mi.df                                     <- tibble(host = repeat.column,
+                                                      tip.name = unlist(lapply(results, "[[", 3)),
+                                                      reads.in.subtree = unlist(lapply(results, "[[", 4)),
+                                                      split.ids = unlist(lapply(results, "[[", 5)),
+                                                      tips.in.subtree = unlist(lapply(results, "[[", 6)))
+  
+  mi.df <- mi.df %>% mutate(dual = host != split.ids)
+  
+  ptree$duals.info <- mi.df
   
   ptree
 }

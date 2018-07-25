@@ -529,6 +529,6 @@ if(output.rda){
   save.image(file=file.path(output.dir, paste0(output.string,"_workspace.rda")))
 }
 
- if(file.exists(file.path(output.dir, "Rplots.pdf"))) silent <- file.remove(file.path(output.dir, "Rplots.pdf"))
+if(file.exists(file.path(output.dir, "Rplots.pdf"))) silent <- file.remove(file.path(output.dir, "Rplots.pdf"))
 
 if(verbosity!=0) cat("Finished.\n")
