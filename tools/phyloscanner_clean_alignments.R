@@ -124,6 +124,9 @@ if(is.null(seed)){
 if(verbosity!=0) cat("Random number seed is",seed,"\n")
 set.seed(seed)
 
+# Output RDA?
+output.rda                    <- args$outputRDA
+
 if(use.m.thresh){
   if(args$multifurcationThreshold=="g"){
     m.thresh                  <- NA
