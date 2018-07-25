@@ -328,18 +328,6 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
       mutate(ngroup = map_int(variable, function(x) which(unique(host.stats.gd.5$variable)==x))) %>%
       mutate_at("ngroup", as.factor)
     
-    colourCount <- length(unique(host.stats.gd.5$ngroup))
-    
-    # want largest subgraph to be the darkest colour even if all windows have 1 subgraph
-    
-    getPalette <- function(x){
-      if(x>1){
-        colorRampPalette(brewer.pal(5, "RdYlBu"))(x)
-      } else {
-        brewer.pal(5, "RdYlBu")[5]
-      }
-    }
-    
     graph.5 <- ggplot(host.stats.gd.5, aes(x=xcoord, weight=value, fill=reorder(ngroup, rev(order(host.stats.gd.5$ngroup)))))
     
     graph.5 <- graph.5 +
@@ -348,7 +336,7 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
       ylab("Proportion of reads\nin different subraphs") +
       xlab(x.axis.label) +
       scale_x_continuous(limits=x.limits) +
-      scale_fill_manual(values = getPalette(colourCount)) +
+      scale_fill_viridis(discrete=T, begin=1, end=0, option="plasma") +
       theme(text = element_text(size=7)) + 
       guides(fill = guide_legend(title = "Subgraph rank\n(by tip count)", keywidth = 1, keyheight = 0.4))
     
