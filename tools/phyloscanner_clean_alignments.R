@@ -38,6 +38,7 @@ arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default="
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="csv", help="The file extension for table files (default csv).")
 arg_parser$add_argument("-sd", "--seed", action="store", help="Random number seed; used by the downsampling process, and also ties in some parsimony reconstructions can be broken randomly.")
 arg_parser$add_argument("-ow", "--overwrite", action="store_true", help="Overwrite existing output files with the same names.")
+arg_parser$add_argument("-rda", "--outputRDA", action="store_true", help="Write the final R workspace image to file.")
 
 # Normalisation options
 
@@ -252,3 +253,9 @@ silent <- sapply(ptrees, function(ptree){
   
 })
 
+if(output.rda){
+  if (verbosity!=0) cat('Saving R workspace image to file', paste0(output.string,"_workspace.rda"),'...\n')
+  save.image(file=file.path(output.dir, paste0(output.string,"_workspace.rda")))
+}
+
+if(verbosity!=0) cat("Finished.\n")
