@@ -434,7 +434,7 @@ if(do.collapsed){
     } else {
       file.name <- paste0(output.string, "_collapsedTree_", ptree$id, csv.fe)
     }
-    if(verbosity==2) cat("Writing collapsed tree for tree ID",ptree$id,"to file",file.name, "...\n")
+    if(verbosity==2) cat("Writing collapsed tree for tree ID ",ptree$id," to file ",file.name, "...\n", sep="")
     write_csv(ptree$classification.results$collapsed[,1:4], file.path(output.dir, file.name))
     
   }, simplify = F, USE.NAMES = T)
@@ -443,7 +443,7 @@ if(do.collapsed){
 
 if(do.class.detail){
   if(verbosity!=0){
-    cat("Writing host pairwise classifications to ",csv.fe," files...\n", sep="")
+    cat("Writing host pairwise classifications to ",csv.fe," files...\n")
   }
   
   silent <- sapply(phyloscanner.trees, function(ptree){
@@ -452,7 +452,7 @@ if(do.class.detail){
     } else {
       file.name <- paste0(output.string, "_classification_", ptree$id, csv.fe)
     }
-    if(verbosity==2) cat("Writing relationship classifications for tree ID",ptree$id,"to file",file.name, "...\n")
+    if(verbosity==2) cat("Writing relationship classifications for tree ID ",ptree$id," to file ",file.name, "...\n", sep="")
     write_csv(ptree$classification.results$classification, file.path(output.dir, file.name))
     
   }, simplify = F, USE.NAMES = T)
@@ -487,11 +487,11 @@ if(length(phyloscanner.trees)>1){
   if(length(hosts)>1){
     
     ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, allow.mt, close.sib.only = F, verbosity==2)
-    if (verbosity!=0) cat('Writing transmission summary to file', paste0(output.string,"_hostRelationshipSummary", csv.fe),'...\n', sep="")
+    if (verbosity!=0) cat('Writing transmission summary to file ', paste0(output.string,"_hostRelationshipSummary", csv.fe),'...\n', sep="")
     write_csv(ts, file.path(output.dir, paste0(output.string,"_hostRelationshipSummary", csv.fe)))
     
     if(do.simplified.graph){
-      if (verbosity!=0) cat('Drawing simplified summary diagram to file', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'...\n', sep="")
+      if (verbosity!=0) cat('Drawing simplified summary diagram to file ', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'...\n', sep="")
       
       if(nrow(ts)==0){
         cat("No relationships exist in the required proportion of windows (",win.threshold,"); skipping simplified relationship summary.\n", sep="")
@@ -525,7 +525,7 @@ if(output.blacklisting.report){
 }
 
 if(output.rda){
-  if (verbosity!=0) cat('Saving R workspace image to file', paste0(output.string,"_workspace.rda"),'...\n')
+  if (verbosity!=0) cat('Saving R workspace image to file ', paste0(output.string,"_workspace.rda"),'...\n', sep="")
   save.image(file=file.path(output.dir, paste0(output.string,"_workspace.rda")))
 }
 

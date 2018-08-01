@@ -1184,7 +1184,7 @@ write.annotated.tree <- function(ptree, file.name, format = c("pdf", "nex"), pdf
   tree <- ptree$tree
   read.counts <- ptree$read.counts
   
-  attr(tree, 'BLACKLISTED') <- c(is.na(read.counts), rep(FALSE, tree$Nnode) )
+  attr(tree, 'BLACKLISTED') <- c(is.na(read.counts), rep(FALSE, tree$Nnode))
   
   read.counts <- c(read.counts, rep(1, tree$Nnode))
   read.counts[which(is.na(read.counts))] <- 1
