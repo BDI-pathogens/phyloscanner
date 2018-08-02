@@ -370,8 +370,9 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
     
     if("solo.dual.count" %in% names(host.stats)) {
       
+
       graph.7 <- ggplot(host.stats, aes(x=xcoord, y=solo.dual.count))
-      y.label <- "Number of dual infections detected"
+      y.label <- "Multiplicity of infection"
       
       graph.7 <- graph.7 +
         geom_point(alpha = 0.5, na.rm=TRUE) +

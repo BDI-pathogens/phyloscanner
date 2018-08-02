@@ -29,7 +29,7 @@ multinomial.calculations <- function(ptrees,
                                                             'close.and.adjacent.and.ancestry.cat',
                                                             'adjacent.and.proximity.cat'),
                                      verbose=F) {
-  
+
   if(!attr(ptrees, "readable.coords")){
     stop("No window cooardinates detected in this tree set, cannot do multinomial calculations.")
   }
@@ -130,6 +130,7 @@ get.pairwise.relationships <- function(df, relationship.types=c('proximity.3.way
     df <- df %>% categorise("proximity.3.way", "intermediate",
                      list(categorical.distance = "close", label="close"),
                      list(categorical.distance = "distant", label="distant"))
+
   }	
   #	
   #	group to define likely pair just based on topology

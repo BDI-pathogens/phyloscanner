@@ -132,7 +132,7 @@ if(!is.null(blacklist.input)){
   user.blacklist.file.regex     <- NULL
 }
 
-# user blacklist
+# alignment files
 alignment.input                 <- args$alignment
 
 if(!is.null(alignment.input)){

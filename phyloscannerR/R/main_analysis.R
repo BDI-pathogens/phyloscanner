@@ -89,7 +89,7 @@ initialise.phyloscanner <- function(
   # Coordinates.
   
   if(verbosity!=0){
-    cat("Checking for window cooardinates in file names...")
+    cat("Checking for window coordinates in file names...")
   }
   
   ptrees <- sapply(ptrees, function(ptree) identify.window.coords(ptree, file.name.regex), simplify = F, USE.NAMES = T)
@@ -904,6 +904,7 @@ phyloscanner.analyse.tree <- function(
 
 #' @export
 #' @rdname phyloscanner.analyse.trees
+
 
 phyloscanner.generate.blacklist <- function(
   tree.file.directory,

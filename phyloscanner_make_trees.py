@@ -374,7 +374,7 @@ RecombNormToDiv = args.recombination_norm_diversity
 print('phyloscanner was called thus:\n' + ' '.join(sys.argv))
 
 # Warn if RAxML files exist already.
-if glob.glob('RAxML*'):
+if not (args.no_trees or ExploreWindowWidths) and glob.glob('RAxML*'):
   print('Warning: RAxML files are present in the working directory. If their',
   'names clash with those that phyloscanner will try to create, RAxML will',
   'fail to run. Continuing.', file=sys.stderr)
@@ -628,6 +628,16 @@ def FindExploratoryWindows(EndPoint):
       NextEnd += width
   return ExploratoryCoords
 
+def CleanUp(TempFiles):
+  '''Delete temporary files we've made'''
+  if not args.keep_temp_files:
+    for TempFile in TempFiles:
+      try:
+        os.remove(TempFile)
+      except:
+        print('Failed to delete temporary file', TempFile + '. Leaving it.',
+        file=sys.stderr)
+
 # Record the names of any external refs being included.
 # If we're doing pairwise alignments, we'll also need gappy and gapless copies
 # of the ref chosen for pairwise alignment.
@@ -695,7 +705,7 @@ FindSeqsInFastaCode = pf.FindAndCheckCode('FindSeqsInFasta.py')
 FindWindowsCode     = pf.FindAndCheckCode('FindInformativeWindowsInFasta.py')
 
 # Test RAxML works
-if not args.no_trees:
+if not (args.no_trees or ExploreWindowWidths):
   RAxMLargList = pf.TestRAxML(args.x_raxml, RAxMLdefaultOptions, RaxmlHelp)
 
 # Set up the mafft commands
@@ -908,8 +918,10 @@ else:
         raise
 
     if args.align_refs_only:
-      print('References aligned in', FileForAlignedRefs+ \
-      '. Quitting successfully.')
+      if PrintInfo:
+        print('References aligned in', FileForAlignedRefs+ \
+        '. Quitting successfully.')
+      CleanUp(TempFiles)
       exit(0)
 
     # If we're here and we're exploring window widths, we haven't defined the 
@@ -2165,6 +2177,10 @@ if ExploreWindowWidths:
       ','.join(map(str,ReadCountsSortedByBam))
   with open(args.explore_window_width_file, 'w') as f:  
     f.write(OutputTables)
+  CleanUp(TempFiles)
+  if PrintInfo:
+    print("All windows explored; data in", args.explore_window_width_file + \
+    ". Quitting successfully.")
   exit(0)
     
 
@@ -2231,14 +2247,7 @@ if HaveMadeOutputDir:
     OutputFilesByDestinationDir.values()):
       shutil.move(File, os.path.join(args.output_dir, File))
 
-# Delete temporary files we've made
-if not args.keep_temp_files:
-  for TempFile in TempFiles:
-    try:
-      os.remove(TempFile)
-    except:
-      print('Failed to delete temporary file', TempFile + '. Leaving it.',
-      file=sys.stderr)
+CleanUp(TempFiles)
 
 # We're only printing info henceforth
 if not PrintInfo:
