@@ -4,17 +4,17 @@
 \alias{simplified.transmission.summary}
 \title{Simplfy and visually display the pairwise host relationships across all trees}
 \usage{
-simplified.transmission.summary(phyloscanner.trees, transmission.summary,
-  arrow.threshold, plot = F)
+simplified.transmission.summary(ptrees, transmission.summary, arrow.threshold,
+  plot = F)
 }
 \arguments{
-\item{phyloscanner.trees}{A list of class \code{phyloscanner.trees}}
-
 \item{arrow.threshold}{The proportion of trees in which a pair of hosts need to show a direction of transmission for that direction to be indicated as an arrow. If both directions meet this threshold, the arrow is in the direction with the larger proportion of trees.}
 
 \item{plot}{If TRUE, the returned list has an item called \code{simp.diagram}, a \code{ggplot} object plotting the simplified relationship diagram.}
 
-\item{trans.summary}{The output of \code{transmission.summary}; a \code{data.table}.}
+\item{phyloscanner.trees}{A list of class \code{phyloscanner.trees}}
+
+\item{trans.summary}{The output of \code{transmission.summary}; a \code{tibble}.}
 }
 \description{
 Simplfy and visually display the pairwise host relationships across all trees

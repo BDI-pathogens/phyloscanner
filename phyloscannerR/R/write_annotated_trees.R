@@ -3,9 +3,7 @@
 #' @keywords internal
 #' @export write.ann.tree
 
-write.ann.tree <-
-  function(phy, file = "", annotations = NULL, append = FALSE, digits = 10, tree.names = FALSE)
-  {
+write.ann.tree <- function(phy, file = "", annotations = NULL, append = FALSE, digits = 10, tree.names = FALSE){
     if (!(inherits(phy, c("phylo", "multiPhylo"))))
       stop("object \"phy\" has no trees")
     
@@ -32,8 +30,7 @@ write.ann.tree <-
 #' @keywords internal
 #' @export .write.ann.tree2
 
-.write.ann.tree2 <- function(phy, annotations = NULL, digits = 10, tree.prefix = "")
-{
+.write.ann.tree2 <- function(phy, annotations = NULL, digits = 10, tree.prefix = ""){
   brl <- !is.null(phy$edge.length)
   nodelab <- !is.null(phy$node.label)
   phy$tip.label <- checkLabel(phy$tip.label)

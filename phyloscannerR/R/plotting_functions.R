@@ -4,6 +4,7 @@
 #' @export AlignPlots
 
 AlignPlots <- function(...) {
+  
   LegendWidth <- function(x) x$grobs[[15]]$grobs[[1]]$widths[[4]]
   
   plots.grobs <- lapply(list(...), ggplotGrob)
@@ -34,16 +35,16 @@ AlignPlots <- function(...) {
 add.no.data.rectangles <- function(graph, rectangle.coords, log = F, y.limits = NULL){
   
   if(is.null(y.limits)){
-    y.limits <- ggplot_build(graph)$layout$panel_ranges[[1]]$y.range
+    y.limits <- ggplot_build(graph)$layout$panel_params[[1]]$y.range
   }
   
   if(nrow(rectangle.coords)>0){
     for(rect.no in seq(1, nrow(rectangle.coords))){
       if(log){
-        graph <- graph + annotate("rect", xmin=rectangle.coords$start[rect.no], xmax = rectangle.coords$end[rect.no], 
+        graph <- graph + annotate("rect", xmin=rectangle.coords$starts[rect.no], xmax = rectangle.coords$ends[rect.no], 
                                   ymin=10^(y.limits[1]), ymax=10^(y.limits[2]), fill=rectangle.coords$colour[rect.no], alpha=0.5)
       } else {
-        graph <- graph + annotate("rect", xmin=rectangle.coords$start[rect.no], xmax = rectangle.coords$end[rect.no], 
+        graph <- graph + annotate("rect", xmin=rectangle.coords$starts[rect.no], xmax = rectangle.coords$ends[rect.no], 
                                   ymin=y.limits[1], ymax=y.limits[2], fill=rectangle.coords$colour[rect.no], alpha=0.5)
       }
     }
@@ -72,7 +73,7 @@ form.rectangles <- function(missing.coords, all.coords, colour = "grey"){
     final.starts <- setdiff(temp.starts, temp.ends)
     final.ends <- setdiff(temp.ends, temp.starts)
     
-    return(data.frame(starts = final.starts, ends = final.ends, colour=colour))
+    return(tibble(starts = final.starts, ends = final.ends, colour=colour))
   } 
   stop("No missing coordinates given")
 }
@@ -99,6 +100,8 @@ find.gaps <- function(xcoords){
       new.xcoords <- seq(min(xcoords), max(xcoords), smallest.gap)
       missing.window.rects <- form.rectangles(setdiff(new.xcoords, xcoords), new.xcoords, "grey20")
     } else {
+      # I don't know what to do and I am giving up
+      
       regular.gaps <- F
       new.xcoords <- xcoords
       missing.window.rects <- NULL
@@ -115,39 +118,39 @@ find.gaps <- function(xcoords){
 #' @keywords internal
 #' @export produce.pdf.graphs
 
-produce.pdf.graphs <- function(file.name, host.statistics, hosts, xcoords, x.limits, missing.window.rects, bar.width, regular.gaps = F, width=8.26772, height=11.6929, readable.coords = F, verbose = F){
+produce.pdf.graphs <- function(file.name, sum.stats, hosts, xcoords, x.limits, missing.window.rects, bar.width, regular.gaps = F, width=8.26772, height=11.6929, readable.coords = F, verbose = F){
   
   pdf(file=file.name, width=width, height=height)
   
   for (i in seq(1, length(hosts))) {
     host <- hosts[i]
-    tryCatch({
-      if(i!=1){
-        grid.newpage()
-      }
-      produce.host.graphs(host.statistics, host, xcoords, x.limits, missing.window.rects, bar.width, regular.gaps, readable.coords, verbose)},
-      error=function(e){
-        if (verbose) cat("Skipping graphs for host ",host," as no reads are present and not blacklisted.\n", sep="")
-      })
-  }
-  
-  never.mind <- dev.off()
+    # tryCatch({
+    if(i!=1){
+      grid.newpage()
+    }
+    produce.host.graphs(sum.stats, host, xcoords, x.limits, missing.window.rects, bar.width, regular.gaps, readable.coords, verbose)
+  } #,
+  #     error=function(e){
+  #       if (verbose) cat("Skipping graphs for host ",host," as no reads are present and not blacklisted.\n", sep="")
+  #     })
+  # }
+  # 
+  invisible(dev.off())
 }
 
 #' @keywords internal
 #' @export produce.host.graphs
 
-produce.host.graphs <- function(host.statistics, host, xcoords, x.limits, missing.window.rects, bar.width, regular.gaps = F, readable.coords = F, verbose = F){
-
+produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.window.rects, bar.width, regular.gaps = F, readable.coords = F, verbose = F){
+  
   x.axis.label <- if(readable.coords) "Window centre" else "Tree number"
   
-  this.host.statistics <- host.statistics[which(host.statistics$host.id==host),]
-  this.host.statistics <- this.host.statistics[order(this.host.statistics$xcoord),]
+  host.stats <- sum.stats %>% 
+    filter(host.id==host) %>% 
+    arrange(xcoord)
   
-  this.host.statistics <- this.host.statistics[which(this.host.statistics$reads>0),]
-  
-  if(nrow(this.host.statistics) > 0){
-  
+  if(nrow(host.stats) > 0){
+    
     plot.list <- list()
     
     if (verbose) cat("Drawing graphs for host ",host,"\n", sep="")
@@ -156,33 +159,29 @@ produce.host.graphs <- function(host.statistics, host, xcoords, x.limits, missin
     
     missing.read.rects <- NULL
     
-    if(regular.gaps & length(which(this.host.statistics$reads==0))){
-      missing.read.rects <- form.rectangles(host.statistics$xcoord[which(host.statistics$reads==0)], xcoords, "grey")
+    if(regular.gaps & length(which(host.stats$reads==0))){
+      missing.read.rects <- form.rectangles(host.stats$xcoord[which(host.stats$reads==0)], xcoords, "grey")
     }
     
     # rbind on two NULLs still makes a NULL
     
-    missing.rects <- rbind(missing.window.rects, missing.read.rects)
+    missing.rects <- bind_rows(missing.window.rects, missing.read.rects)
     
-    this.host.statistics <- this.host.statistics[which(this.host.statistics$reads>0),]
+    host.stats <- host.stats %>% 
+      filter(reads > 0)
     
-    #graph 1: read count and tip count
+    # Graph 1: read count and tip count
     
-    this.host.statistics.temp <- melt(this.host.statistics[,c("xcoord","host.id","tips","reads")], id.vars=c("host.id", "xcoord"))
+    host.stats.gd.1 <- host.stats %>% 
+      select(xcoord, tips, reads) %>% 
+      gather(variable, value, tips, reads)
     
     # if the difference between the largest and smallest values is greater than 10, we want log scale. Otherwise, normal scale.
     
-    log.scale <- max(this.host.statistics.temp$value - min(this.host.statistics.temp$value) >= 10)
+    log.scale <- max(host.stats.gd.1$value - min(host.stats.gd.1$value) >= 10)
     y.limits <- NULL
     
-    if(log.scale){
-      max.value <- max(this.host.statistics.temp$value)
-      log.upper.tick <- ceiling(log10(max.value))
-      ticks <- 10^(seq(0, log.upper.tick))
-      y.limits <- c(0.8, 1.2*(10^log.upper.tick))
-    }
-    
-    graph.1 <- ggplot(this.host.statistics.temp, aes(x=xcoord, y=value, col=variable))
+    graph.1 <- ggplot(host.stats.gd.1, aes(x=xcoord, y=value, col=variable))
     
     graph.1 <- graph.1 + geom_point(na.rm=TRUE) +
       theme_bw() + 
@@ -193,6 +192,11 @@ produce.host.graphs <- function(host.statistics, host, xcoords, x.limits, missin
       theme(text = element_text(size=7))
     
     if(log.scale){
+      max.value <- max(host.stats.gd.1$value)
+      log.upper.tick <- ceiling(log10(max.value))
+      ticks <- 10^(seq(0, log.upper.tick))
+      y.limits <- c(0.8, 1.2*(10^log.upper.tick))
+      
       graph.1 <- graph.1 + scale_y_log10(breaks=ticks, limits=y.limits)
     }
     
@@ -202,21 +206,23 @@ produce.host.graphs <- function(host.statistics, host, xcoords, x.limits, missin
     
     plot.list[["reads.and.tips"]] <- graph.1
     
-    #graph 2: subgraph and clade counts
+    # Graph 2: subgraph and clade counts
     
-    this.host.statistics.temp <- melt(this.host.statistics[,c("xcoord", "host.id", "subgraphs", "clades")], id.vars=c("host.id", "xcoord"))
+    host.stats.gd.2 <- host.stats %>% 
+      select(xcoord, subgraphs, clades) %>% 
+      gather(variable, value, subgraphs, clades)
     
-    log.scale <- max(this.host.statistics.temp$value - min(this.host.statistics.temp$value) >= 10)
+    log.scale <- max(host.stats.gd.2$value - min(host.stats.gd.2$value) >= 10)
     y.limits <- NULL
     
     if(log.scale){
-      max.value <- max(this.host.statistics.temp$value)
+      max.value <- max(host.stats.gd.2$value)
       log.upper.tick <- ceiling(log10(max.value))
       ticks <- 10^(seq(0, log.upper.tick))
       y.limits <- c(0.8, 1.2*(10^log.upper.tick))
     }
     
-    graph.2 <- ggplot(this.host.statistics.temp, aes(x=xcoord, y=value))
+    graph.2 <- ggplot(host.stats.gd.2, aes(x=xcoord, y=value))
     
     graph.2 <- graph.2 +
       geom_point(aes(shape=variable, size=variable), na.rm=TRUE) +
@@ -230,9 +236,9 @@ produce.host.graphs <- function(host.statistics, host, xcoords, x.limits, missin
       scale_color_discrete(name="Variable", labels=c("Subgraphs", "Clades")) + 
       theme(text = element_text(size=7))
     
-    if(max(this.host.statistics.temp$value)==1){
+    if(max(host.stats.gd.2$value)==1){
       graph.2 <- graph.2 + scale_y_continuous(breaks = c(0,1))
-    } else if(max(this.host.statistics.temp$value)==2){
+    } else if(max(host.stats.gd.2$value)==2){
       graph.2 <- graph.2 + expand_limits(y=0)+ scale_y_continuous(breaks = c(0,1,2)) 
     } else if(!log.scale) {
       graph.2 <- graph.2 + expand_limits(y=0) + scale_y_continuous(breaks = pretty_breaks()) 
@@ -246,11 +252,13 @@ produce.host.graphs <- function(host.statistics, host, xcoords, x.limits, missin
     
     plot.list[["subgraphs.and.clades"]] <- graph.2
     
-    # graph 3: root-to-tip distances for all reads and largest subgraph
+    # Graph 3: root-to-tip distances for all reads and largest subgraph
     
-    this.host.statistics.temp <- melt(this.host.statistics[,c("xcoord","host.id","overall.rtt","largest.rtt")], id.vars=c("host.id", "xcoord"))
+    host.stats.gd.3 <- host.stats %>% 
+      select(xcoord, overall.rtt, largest.rtt) %>% 
+      gather(variable, value, overall.rtt, largest.rtt)
     
-    graph.3 <- ggplot(this.host.statistics.temp, aes(x=xcoord, y=value))
+    graph.3 <- ggplot(host.stats.gd.3, aes(x=xcoord, y=value))
     
     graph.3 <- graph.3 +
       geom_point(aes(shape=variable, size=variable), na.rm=TRUE) +
@@ -271,11 +279,13 @@ produce.host.graphs <- function(host.statistics, host, xcoords, x.limits, missin
     
     plot.list[["root.to.tip"]] <- graph.3
     
-    # graph 4: largest patristic distance in largest subgraph
+    # Graph 4: largest patristic distances overall and in largest subgraph
     
-    this.host.statistics.temp <- melt(this.host.statistics[,c("xcoord","host.id","global.mean.pat.distance","subgraph.mean.pat.distance")], id.vars=c("host.id", "xcoord"))
+    host.stats.gd.4 <- host.stats %>% 
+      select(xcoord, global.mean.pat.distance, subgraph.mean.pat.distance) %>% 
+      gather(variable, value, global.mean.pat.distance, subgraph.mean.pat.distance)
     
-    graph.4 <- ggplot(this.host.statistics.temp, aes(x=xcoord, y=value))
+    graph.4 <- ggplot(host.stats.gd.4, aes(x=xcoord, y=value))
     
     graph.4 <- graph.4 +
       geom_point(aes(shape=variable, size=variable), na.rm=TRUE) +
@@ -298,36 +308,27 @@ produce.host.graphs <- function(host.statistics, host, xcoords, x.limits, missin
     
     # graph 5: read proportions in each subgraph
     
-    proportion.column.names <- colnames(host.statistics)[which(substr(colnames(host.statistics), 1, 8)=="prop.gp.")]
+    proportion.column.names <- colnames(host.stats)[which(substr(colnames(host.stats), 1, 8)=="prop.gp.")]
     
     # only columns with nonzero entries should be kept
-    proportion.columns <- host.statistics[which(host.statistics$host.id==host), proportion.column.names, with=F]
     
-    sums <- colSums(proportion.columns, na.rm=T)
-    proportion.column.names <- proportion.column.names[which(sums>0)]
+    sums <- host.stats %>% 
+      select(proportion.column.names)%>% 
+      summarise_all(sum) %>% 
+      unlist()
     
-    splits.props <- host.statistics[which(host.statistics$host.id==host), c("host.id", "xcoord", proportion.column.names), with=F]
+    proportion.column.names <- proportion.column.names[sums>0]
     
-    splits.props.1col <- melt(splits.props, id=c("host.id", "xcoord"))
-    splits.props.1col <- splits.props.1col[!is.na(splits.props.1col$value),]
+    host.stats.gd.5 <- host.stats %>% 
+      select(xcoord, proportion.column.names) %>%
+      gather(variable, value, proportion.column.names) %>%
+      filter(!is.na(value))
     
-    splits.props.1col$ngroup <- sapply(splits.props.1col$variable, function(x) which(levels(splits.props.1col$variable)==x))
+    host.stats.gd.5 <- host.stats.gd.5 %>% 
+      mutate(ngroup = map_int(variable, function(x) which(unique(host.stats.gd.5$variable)==x))) %>%
+      mutate_at("ngroup", as.factor)
     
-    splits.props.1col$fgroup <- as.factor(splits.props.1col$ngroup)
-    
-    colourCount <- length(unique(splits.props.1col$ngroup))
-    
-    # want largest subgraph to be the darkest colour even if all windows have 1 subgraph
-    
-    getPalette <- function(x){
-      if(x>1){
-        colorRampPalette(brewer.pal(5, "RdYlBu"))(x)
-      } else {
-        brewer.pal(5, "RdYlBu")[5]
-      }
-    }
-    
-    graph.5 <- ggplot(splits.props.1col, aes(x=xcoord, weight=value, fill=reorder(fgroup, rev(order(splits.props.1col$ngroup)))))
+    graph.5 <- ggplot(host.stats.gd.5, aes(x=xcoord, weight=value, fill=reorder(ngroup, rev(order(host.stats.gd.5$ngroup)))))
     
     graph.5 <- graph.5 +
       geom_bar(width=bar.width, colour="black", lty="blank") +
@@ -335,7 +336,7 @@ produce.host.graphs <- function(host.statistics, host, xcoords, x.limits, missin
       ylab("Proportion of reads\nin different subraphs") +
       xlab(x.axis.label) +
       scale_x_continuous(limits=x.limits) +
-      scale_fill_manual(values = getPalette(colourCount)) +
+      scale_fill_viridis(discrete=T, begin=1, end=0, option="plasma") +
       theme(text = element_text(size=7)) + 
       guides(fill = guide_legend(title = "Subgraph rank\n(by tip count)", keywidth = 1, keyheight = 0.4))
     
@@ -347,8 +348,8 @@ produce.host.graphs <- function(host.statistics, host, xcoords, x.limits, missin
     
     # graph 6: recombination metric
     
-    if("recombination.metric" %in% colnames(this.host.statistics)) {     
-      graph.6 <- ggplot(this.host.statistics, aes(x=xcoord, y=recombination.metric))
+    if("recombination.metric" %in% names(host.stats)) {     
+      graph.6 <- ggplot(host.stats, aes(x=xcoord, y=recombination.metric))
       y.label <- "Recombination metric"
       
       graph.6 <- graph.6 +
@@ -362,14 +363,15 @@ produce.host.graphs <- function(host.statistics, host, xcoords, x.limits, missin
         theme(text = element_text(size=7))
       
       if(regular.gaps & !is.null(missing.rects)){
-        graph.6 <- add.no.data.rectangles(graph.6, missing.rects)
       }
       
       plot.list[["recombination.metric"]] <- graph.6
     }
-    if("solo.dual.count" %in% colnames(this.host.statistics)) {
+    
+    if("solo.dual.count" %in% names(host.stats)) {
       
-      graph.7 <- ggplot(this.host.statistics, aes(x=xcoord, y=solo.dual.count))
+
+      graph.7 <- ggplot(host.stats, aes(x=xcoord, y=solo.dual.count))
       y.label <- "Multiplicity of infection"
       
       graph.7 <- graph.7 +
@@ -382,9 +384,9 @@ produce.host.graphs <- function(host.statistics, host, xcoords, x.limits, missin
         #      scale_color_discrete(name="Tip set", labels=c("Longest branch", "Greatest patristic distance")) + 
         theme(text = element_text(size=7))
       
-      if(max(this.host.statistics$solo.dual.count)==1){
+      if(max(host.stats$solo.dual.count)==1){
         graph.7 <- graph.7 + scale_y_continuous(breaks = c(0,1))
-      } else if(max(this.host.statistics$solo.dual.count)==2){
+      } else if(max(host.stats$solo.dual.count)==2){
         graph.7 <- graph.7 + expand_limits(y=0)+ scale_y_continuous(breaks = c(0,1,2)) 
       } else if(!log.scale) {
         graph.7 <- graph.7 + expand_limits(y=0) + scale_y_continuous(breaks = pretty_breaks()) 
@@ -395,6 +397,7 @@ produce.host.graphs <- function(host.statistics, host, xcoords, x.limits, missin
       }
       
       plot.list[["dual.infections"]] <- graph.7
+      
     }
     
     all.plots <- do.call(AlignPlots, plot.list)

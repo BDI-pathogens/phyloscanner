@@ -1,5 +1,5 @@
 #' Reconstruct the ancestral sequence at every node of the tree
-#' @param phyloscanner.tree A list of class \code{phyloscanner.tree} (usually an item in a list of class \code{phyloscanner.trees})
+#' @param ptree A list of class \code{phyloscanner.tree} (usually an item in a list of class \code{phyloscanner.trees})
 #' @param verbose Verbose output
 #' @param default If TRUE, the reconstruction is done according to the default model used in RAxML to build trees for phyloscanner. The \code{...} below will be ignored.
 #' @param ... Further arguments to be passed to \code{pml} and \code{optim.pml}
@@ -8,10 +8,10 @@
 #' @importFrom ape as.DNAbin as.alignment
 #' @export reconstruct.ancestral.sequences
 
-reconstruct.ancestral.sequences <- function(phyloscanner.tree, verbose=F, default=F, ...){
+reconstruct.ancestral.sequences <- function(ptree, verbose=F, default=F, ...){
   
   if(verbose){
-    cat("Reconstructing ancestral sequences on tree ID ",phyloscanner.tree$id,"\n",sep="")
+    cat("Reconstructing ancestral sequences on tree ID ",ptree$id,"\n",sep="")
   }
   
   if(default){
@@ -29,12 +29,12 @@ reconstruct.ancestral.sequences <- function(phyloscanner.tree, verbose=F, defaul
   
   # No sequences = no reconstruction
   
-  if(is.null(phyloscanner.tree$alignment)){
-    stop(paste0("The phyloscanner.tree object with ID ",phyloscanner.tree$id," has no alignment item"))
+  if(is.null(ptree$alignment)){
+    stop(paste0("The phyloscanner.tree object with ID ",ptree$id," has no alignment item"))
   }
   
-  phyl <- phyloscanner.tree$tree
-  algn <- phyloscanner.tree$alignment
+  phyl <- ptree$tree
+  algn <- ptree$alignment
   
   # The tree may have had the blacklist pruned away, or it may have had tips renamed due to blacklisting
   
@@ -68,7 +68,7 @@ reconstruct.ancestral.sequences <- function(phyloscanner.tree, verbose=F, defaul
       
       # the original tip labels were stored
       
-      old.tiplabels <- phyloscanner.tree$original.tip.labels
+      old.tiplabels <- ptree$original.tip.labels
       
       if(is.null(old.tiplabels) | length(intersect(old.tiplabels, algn.seqlabels)) != length(old.tiplabels)){
         stop("Tip labels in the tree and names of the alignment do not match, and the discrepancy cannot be resolved")
@@ -104,22 +104,22 @@ reconstruct.ancestral.sequences <- function(phyloscanner.tree, verbose=F, defaul
 }
 
 #' Find the ancestral sequence at the MRCA of the tips from this host, or, if a dual infection was previously identified, of the MRCA of the tips making up each infection event
-#' @param phyloscanner.tree A list of class \code{phyloscanner.tree} (usually an item in a list of class \code{phyloscanner.trees}). This must have an \code{ancestral.alignment} element (see \emph{reconstruct.ancestral.sequences})
+#' @param ptree A list of class \code{phyloscanner.tree} (usually an item in a list of class \code{phyloscanner.trees}). This must have an \code{ancestral.alignment} element (see \emph{reconstruct.ancestral.sequences})
 #' @param host The host ID
 #' @param individual.duals Whether to output multiple sequences for \code{host} based on the results of a previous dual infection analysis
 #' @param verbose Verbose output
 #' @importFrom phangorn mrca.phylo
 #' @export reconstruct.host.ancestral.sequences
 
-reconstruct.host.ancestral.sequences <- function(phyloscanner.tree, host, individual.duals = F, verbose = F){
+reconstruct.host.ancestral.sequences <- function(ptree, host, individual.duals = F, verbose = F){
   
-  if(length(phyloscanner.tree$tips.for.hosts[[host]]) == 0 ){
-    if(verbose) cat(paste0("A host with ID ",host," is not present in tree ID ",phyloscanner.tree$id,"\n"))
+  if(length(ptree$tips.for.hosts[[host]]) == 0 ){
+    if(verbose) cat(paste0("A host with ID ",host," is not present in tree ID ",ptree$id,"\n"))
     return(NULL)
   }
   
   if(verbose){
-    cat(paste0("Finding the MRCA sequence or sequences for host ",host," in tree ",phyloscanner.tree$id,"\n"))
+    cat(paste0("Finding the MRCA sequence or sequences for host ",host," in tree ",ptree$id,"\n"))
   }
   
   # Currently multiplicity will evaluate to >1 even if only one subgraph remains after blacklisting.
@@ -127,18 +127,18 @@ reconstruct.host.ancestral.sequences <- function(phyloscanner.tree, host, indivi
   multiplicity <- 1
   
   if(individual.duals){
-    if(!is.null(phyloscanner.tree$dual.detection.splits)){
-      multiplicity <- phyloscanner.tree$dual.detection.splits$count[phyloscanner.tree$dual.detection.splits$host==host]
+    if(!is.null(ptree$dual.detection.splits)){
+      multiplicity <- ptree$dual.detection.splits$count[ptree$dual.detection.splits$host==host]
     } else {
       warning("Parsimony blacklisting was not performed on these trees. With no dual infections identified, only one reconstructed sequence will be returned")
     }
   }
   
-  tree <- phyloscanner.tree$tree
+  tree <- ptree$tree
   
-  tips <- phyloscanner.tree$tips.for.hosts[[host]]
+  tips <- ptree$tips.for.hosts[[host]]
   
-  aa <- phyloscanner.tree$ancestral.alignment
+  aa <- ptree$ancestral.alignment
   
   if(multiplicity == 1){
     
@@ -166,13 +166,13 @@ reconstruct.host.ancestral.sequences <- function(phyloscanner.tree, host, indivi
     
   } else {
     
-    if(is.null(phyloscanner.tree$duals.info)){
-      stop(paste0("Expecting a duals report for tree id ",phyloscanner.tree$id," but this is absent"))
+    if(is.null(ptree$duals.info)){
+      stop(paste0("Expecting a duals report for tree id ",ptree$id," but this is absent"))
     }
     
     # we only want the non-blacklisted tips
     
-    di <- phyloscanner.tree$duals.info[which(phyloscanner.tree$duals.info$tip.name %in% tree$tip.label[tips]),]
+    di <- ptree$duals.info[which(ptree$duals.info$tip.name %in% tree$tip.label[tips]),]
     
     out <- lapply(unique(di$split.ids), function(split){
       tips <- di$tip.name[which(di$split.ids==split)]

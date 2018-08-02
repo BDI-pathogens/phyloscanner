@@ -4,11 +4,10 @@
 \alias{reconstruct.ancestral.sequences}
 \title{Reconstruct the ancestral sequence at every node of the tree}
 \usage{
-reconstruct.ancestral.sequences(phyloscanner.tree, verbose = F, default = F,
-  ...)
+reconstruct.ancestral.sequences(ptree, verbose = F, default = F, ...)
 }
 \arguments{
-\item{phyloscanner.tree}{A list of class \code{phyloscanner.tree} (usually an item in a list of class \code{phyloscanner.trees})}
+\item{ptree}{A list of class \code{phyloscanner.tree} (usually an item in a list of class \code{phyloscanner.trees})}
 
 \item{verbose}{Verbose output}
 

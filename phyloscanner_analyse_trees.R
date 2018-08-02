@@ -8,6 +8,7 @@ suppressMessages(require(network, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(ggplot2, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(sna, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(scales, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(readr, quietly=TRUE, warn.conflicts=FALSE))
 
 arg_parser		     <- ArgumentParser()
 
@@ -91,6 +92,10 @@ arg_parser$add_argument("-sks", "--skipSummaryGraph", action="store_true", help=
 
 args                            <- arg_parser$parse_args()
 
+# make packages less chatty
+
+options(readr.num_columns = 0)
+
 # basics
 verbosity                       <- args$verbose
 
@@ -104,6 +109,8 @@ tree.fe                         <- args$treeFileExtension
 re.tree.fe                      <- gsub("\\.", "\\\\.", tree.fe)
 csv.fe                          <- args$csvFileExtension
 re.csv.fe                       <- gsub("\\.", "\\\\.", csv.fe)
+alignment.fe                    <- args$alignmentFileExtension
+re.alignment.fe                 <- gsub("\\.", "\\\\.", alignment.fe)
 
 # tree input
 tree.input                      <- args$tree
@@ -382,7 +389,7 @@ if(single.tree){
     duplicate.file.regex,
     recomb.file.directory,
     recomb.file.regex,
-    alignment.file.directory,
+    alignment.directory,
     alignment.file.regex,
     tip.regex,
     file.name.regex,
@@ -407,28 +414,28 @@ if(verbosity!=0){
   cat("Writing annotated trees in .",tree.output.format," format...\n", sep="")
 }
 
-silent <- sapply(phyloscanner.trees, function(tree.info){
+silent <- sapply(phyloscanner.trees, function(ptree){
   if(single.tree){
     file.name <- paste0(output.string, "_processedTree.", tree.output.format)
   } else {
-    file.name <- paste0(output.string, "_processedTree_", tree.info$id, ".", tree.output.format)
+    file.name <- paste0(output.string, "_processedTree_", ptree$id, ".", tree.output.format)
   }
-  write.annotated.tree(tree.info, file=file.path(output.dir, file.name), tree.output.format, pdf.scale.bar.width, pdf.w, pdf.hm, verbosity == 2)
+  write.annotated.tree(ptree, file=file.path(output.dir, file.name), tree.output.format, pdf.scale.bar.width, pdf.w, pdf.hm, verbosity == 2)
 }, simplify = F, USE.NAMES = T)
 
 if(do.collapsed){
   if(verbosity!=0){
-    cat("Writing collapsed trees to .csv files...\n", sep="")
+    cat("Writing collapsed trees to ",csv.fe," files...\n", sep="")
   }
   
-  silent <- sapply(phyloscanner.trees, function(tree.info){
+  silent <- sapply(phyloscanner.trees, function(ptree){
     if(single.tree){
       file.name <- paste0(output.string, "_collapsedTree", csv.fe)
     } else {
-      file.name <- paste0(output.string, "_collapsedTree_", tree.info$id, csv.fe)
+      file.name <- paste0(output.string, "_collapsedTree_", ptree$id, csv.fe)
     }
-    if(verbosity==2) cat("Writing collapsed tree for tree ID",tree.info$id,"to file",file.name, "...\n")
-    write.csv(tree.info$classification.results$collapsed[,1:4], file=file.path(output.dir, file.name), quote=F, row.names=F)
+    if(verbosity==2) cat("Writing collapsed tree for tree ID ",ptree$id," to file ",file.name, "...\n", sep="")
+    write_csv(ptree$classification.results$collapsed[,1:4], file.path(output.dir, file.name))
     
   }, simplify = F, USE.NAMES = T)
 }
@@ -436,17 +443,17 @@ if(do.collapsed){
 
 if(do.class.detail){
   if(verbosity!=0){
-    cat("Writing host pairwise classifications to .csv files...\n", sep="")
+    cat("Writing host pairwise classifications to ",csv.fe," files...\n")
   }
   
-  silent <- sapply(phyloscanner.trees, function(tree.info){
+  silent <- sapply(phyloscanner.trees, function(ptree){
     if(single.tree){
       file.name <- paste0(output.string, "_classification", csv.fe)
     } else {
-      file.name <- paste0(output.string, "_classification_", tree.info$id, csv.fe)
+      file.name <- paste0(output.string, "_classification_", ptree$id, csv.fe)
     }
-    if(verbosity==2) cat("Writing relationship classifications for tree ID",tree.info$id,"to file",file.name, "...\n")
-    write.csv(tree.info$classification.results$classification, file=file.path(output.dir, file.name), quote=F, row.names=F)
+    if(verbosity==2) cat("Writing relationship classifications for tree ID ",ptree$id," to file ",file.name, "...\n", sep="")
+    write_csv(ptree$classification.results$classification, file.path(output.dir, file.name))
     
   }, simplify = F, USE.NAMES = T)
 }
@@ -465,7 +472,7 @@ if(length(phyloscanner.trees)>1){
     cat("Writing summary statistics to file ",ss.csv.fn,"...\n", sep="")
   }
   
-  write.csv(summary.stats, file.path(output.dir, ss.csv.fn), quote=F, row.names=F)
+  write_csv(summary.stats, file.path(output.dir, ss.csv.fn))
   
   ss.graphs.fn <- paste0(output.string,"_patStats.pdf")
   
@@ -480,11 +487,11 @@ if(length(phyloscanner.trees)>1){
   if(length(hosts)>1){
     
     ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, allow.mt, close.sib.only = F, verbosity==2)
-    if (verbosity!=0) cat('Writing transmission summary to file', paste0(output.string,"_hostRelationshipSummary", csv.fe),'...\n', sep="")
-    write.csv(ts, file=file.path(output.dir, paste0(output.string,"_hostRelationshipSummary", csv.fe)), row.names=FALSE, quote=FALSE)
+    if (verbosity!=0) cat('Writing transmission summary to file ', paste0(output.string,"_hostRelationshipSummary", csv.fe),'...\n', sep="")
+    write_csv(ts, file.path(output.dir, paste0(output.string,"_hostRelationshipSummary", csv.fe)))
     
     if(do.simplified.graph){
-      if (verbosity!=0) cat('Drawing simplified summary diagram to file', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'...\n', sep="")
+      if (verbosity!=0) cat('Drawing simplified summary diagram to file ', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'...\n', sep="")
       
       if(nrow(ts)==0){
         cat("No relationships exist in the required proportion of windows (",win.threshold,"); skipping simplified relationship summary.\n", sep="")
@@ -499,7 +506,7 @@ if(length(phyloscanner.trees)>1){
 }
 
 if(output.blacklisting.report){
-  if (verbosity!=0) cat('Saving blacklisting report to file', paste0(output.string,"_blacklistReport.csv"),'...\n', sep="")
+  if (verbosity!=0) cat('Saving blacklisting report to file', paste0(output.string,"_blacklistReport",csv.fe),'...\n', sep="")
   
   dfs <- lapply(phyloscanner.trees, function(x) {
     treebl.df <- x$bl.report
@@ -514,12 +521,14 @@ if(output.blacklisting.report){
   
   output.bl.report <- do.call(rbind, dfs)
   
-  write.csv(output.bl.report, file = file.path(output.dir, paste0(output.string,"_blacklistReport.csv")), quote=F, row.names=F)
+  write_csv(output.bl.report, path = file.path(output.dir, paste0(output.string,"_blacklistReport",csv.fe)))
 }
 
 if(output.rda){
-  if (verbosity!=0) cat('Saving R workspace image to file', paste0(output.string,"_workspace.rda"),'...\n')
+  if (verbosity!=0) cat('Saving R workspace image to file ', paste0(output.string,"_workspace.rda"),'...\n', sep="")
   save.image(file=file.path(output.dir, paste0(output.string,"_workspace.rda")))
 }
+
+if(file.exists(file.path(output.dir, "Rplots.pdf"))) silent <- file.remove(file.path(output.dir, "Rplots.pdf"))
 
 if(verbosity!=0) cat("Finished.\n")
