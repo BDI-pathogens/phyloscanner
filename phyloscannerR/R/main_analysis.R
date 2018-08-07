@@ -43,6 +43,7 @@ initialise.phyloscanner <- function(
   include.alignment     <- !is.null(alignment.file.directory)
   existing.bl           <- !is.null(user.blacklist.directory)
   do.recomb             <- !is.null(recombination.file.directory)
+  do.dup.blacklisting   <- !is.null(duplicate.file.directory)
   
   # Make the big list.
   
