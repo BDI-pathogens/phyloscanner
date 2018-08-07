@@ -889,7 +889,7 @@ merge.classifications <- function(ptrees, allow.mt = T, verbose = F){
       if("path.classification" %in% names(tt)) tt <- tt %>% rename(ancestry = path.classification)
     } else {
       if (verbose) cat("Reading window input file ", ptree$classification.file.name,"\n", sep="")
-      tt <- read_csv(ptree$classification.file.name, header=TRUE)
+      tt <- read_csv(ptree$classification.file.name, col_names = TRUE)
     }
     
     tt <- tt %>% add_column(tree.id = ptree$id)
