@@ -1055,10 +1055,10 @@ simplify.summary <- function(summary, arrow.threshold, total.trees, plot = F){
       done[backwards.rows] <- T
       
       summary$ancestry[intersect(forwards.rows, which(summary$ancestry=="trans"))] <- "trans12"
-      summary$ancestry[intersect(forwards.rows, which(summary$ancestry=="multi_trans"))] <- "multi_trans12"
+      summary$ancestry[intersect(forwards.rows, which(summary$ancestry=="multiTrans"))] <- "multi_trans12"
       
       summary$ancestry[intersect(backwards.rows, which(summary$ancestry=="trans"))] <- "trans21"
-      summary$ancestry[intersect(backwards.rows, which(summary$ancestry=="multi_trans"))] <- "multi_trans21"
+      summary$ancestry[intersect(backwards.rows, which(summary$ancestry=="multiTrans"))] <- "multi_trans21"
       
       summary[backwards.rows,c(1,2)] <- summary[backwards.rows,c(2,1)]
     }
