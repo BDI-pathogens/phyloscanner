@@ -1112,7 +1112,7 @@ simplify.summary <- function(summary, arrow.threshold, total.trees, plot = F){
     ) %>%
     select(host.1, host.2, arrow, label)
   
-  # this has not been tidied - but it's much more succint in standard R language
+  # this has not been tidied - but it's much more succinct in standard R language
   
   summary.wide[which(summary.wide$arrow=="backwards"),c(1,2)] <- summary.wide[which(summary.wide$arrow=="backwards"),c(2,1)] 
   
