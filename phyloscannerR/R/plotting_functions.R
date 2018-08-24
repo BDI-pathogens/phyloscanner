@@ -231,9 +231,9 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
       ylab("Subgraph or clade count") +
       xlab(x.axis.label) +
       scale_x_continuous(limits=x.limits) +
-      scale_shape_manual(values=c(1,19), name="Variable", labels=c("Subgraphs", "Clades")) +  
-      scale_size_manual(values=c(2,1), name="Variable", labels=c("Subgraphs", "Clades")) +		
-      scale_color_discrete(name="Variable", labels=c("Subgraphs", "Clades")) + 
+      scale_color_discrete(name="Variable", labels=c("Clades", "Subgraphs")) +
+      scale_shape_manual(values=c(1,19), name="Variable", labels=c("Clades", "Subgraphs")) +
+      scale_size_manual(values=c(2,1), name="Variable", labels=c("Clades", "Subgraphs")) +
       theme(text = element_text(size=7))
     
     if(max(host.stats.gd.2$value)==1){
@@ -256,7 +256,8 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
     
     host.stats.gd.3 <- host.stats %>% 
       select(xcoord, overall.rtt, largest.rtt) %>% 
-      gather(variable, value, overall.rtt, largest.rtt)
+      gather(variable, value, overall.rtt, largest.rtt) %>%
+      mutate(variable = factor(variable, levels=c("overall.rtt", "largest.rtt")))
     
     graph.3 <- ggplot(host.stats.gd.3, aes(x=xcoord, y=value))
     
@@ -268,7 +269,7 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
       xlab(x.axis.label) +
       scale_x_continuous(limits=x.limits) +
       expand_limits(y=0) + 
-      scale_color_discrete(name="Tip set", labels=c("All", "Largest subgraph")) + 
+      scale_color_discrete(name="Tip set", labels=c("All", "Largest subgraph"), h = c(0, 360) + 105) +
       scale_shape_manual(values=c(1,19), name="Tip set", labels=c("All", "Largest subgraph")) +
       scale_size_manual(values=c(2,1), name="Tip set", labels=c("All", "Largest subgraph")) +
       theme(text = element_text(size=7))
@@ -283,7 +284,8 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
     
     host.stats.gd.4 <- host.stats %>% 
       select(xcoord, global.mean.pat.distance, subgraph.mean.pat.distance) %>% 
-      gather(variable, value, global.mean.pat.distance, subgraph.mean.pat.distance)
+      gather(variable, value, global.mean.pat.distance, subgraph.mean.pat.distance) %>%
+      mutate(variable = factor(variable, levels=c("global.mean.pat.distance", "subgraph.mean.pat.distance")))
     
     graph.4 <- ggplot(host.stats.gd.4, aes(x=xcoord, y=value))
     
@@ -295,7 +297,7 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
       xlab(x.axis.label) +
       scale_x_continuous(limits=x.limits) +
       expand_limits(y=0) + 
-      scale_color_discrete(name="Tip set", labels=c("All", "Largest subgraph")) + 
+      scale_color_discrete(name="Tip set", labels=c("All", "Largest subgraph"), h = c(0, 360) + 105) +
       scale_shape_manual(values=c(1,19), name="Tip set", labels=c("All", "Largest subgraph")) +
       scale_size_manual(values=c(2,1), name="Tip set", labels=c("All", "Largest subgraph")) +
       theme(text = element_text(size=7))

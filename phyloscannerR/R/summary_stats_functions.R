@@ -4,7 +4,7 @@
 #' @export calc.subtree.stats
 #' @importFrom ape unroot
 
-calc.subtree.stats <- function(host.id, tree.id, tree, tips.for.patients, splits.table, tip.regex, no.read.counts, verbose = F){
+calc.subtree.stats <- function(host.id, tree.id, tree, tips.for.hosts, splits.table, tip.regex, no.read.counts, verbose = F){
   
   if(verbose) cat("Calculating statistics for host ",host.id,"\n", sep="")
   
@@ -12,7 +12,7 @@ calc.subtree.stats <- function(host.id, tree.id, tree, tips.for.patients, splits
   
   subgraphs <- length(unique(relevant.reads$subgraph))
   
-  all.tips <- tips.for.patients[[host.id]]
+  all.tips <- tips.for.hosts[[host.id]]
   
   subtree.all <- NULL
   
