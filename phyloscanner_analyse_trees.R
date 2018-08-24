@@ -8,6 +8,7 @@ suppressMessages(require(network, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(ggplot2, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(sna, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(scales, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(readr, quietly=TRUE, warn.conflicts=FALSE))
 
 arg_parser		     <- ArgumentParser()
 
@@ -18,6 +19,7 @@ arg_parser$add_argument("outputString", action="store", help="A string that will
 arg_parser$add_argument("-og", "--outgroupName", action="store", help="The name of the tip in the phylogeny/phylogenies to be used as outgroup (if unspecified, trees will be assumed to be already rooted). This should be sufficiently distant to any sequence obtained from a host that it can be assumed that the MRCA of the entire tree was not a lineage present in any sampled individual.")
 arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, short branches in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. If a number, this number will be used as the threshold, with all branches strictly smaller collapsed. If 'g', it will be guessed from the branch lengths and the width of the genomic window (if appropriate). It is recommended that trees are examined by eye to check that they do appear to have multifurcations if 'g' is used.")
 arg_parser$add_argument("-b", "--userBlacklist", action="store", help="A path and string that begins all the file names for pre-existing blacklist files.")
+arg_parser$add_argument("-aln", "--alignment", action="store", help="A path and string that begins all the file names for alignments. Needed if ancestral state reconstruction is desired at a later point.")
 
 # General, bland options
 
@@ -28,6 +30,7 @@ arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_
 arg_parser$add_argument("-y", "--fileNameRegex", action="store", default="^\\D*([0-9]+)_to_([0-9]+)\\D*$", help="Regular expression identifying window coordinates. Two capture groups: start and end; if the latter is missing then the first group is a single numerical identifier for the window. If absent, input will be assumed to be from the phyloscanner pipeline, and the host ID will be the BAM file name.")
 arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default=".tree", help="The file extension for tree files (default .tree). This includes the dot; use '' if there is no file extension.")
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default=".csv", help="The file extension for table files (default .csv). This includes the dot; use '' if there is no file extension..")
+arg_parser$add_argument("-afe", "--alignmentFileExtension", action="store", default=".fasta", help="The file extension for nucleotide alignment files (default .fasta). This includes the dot; use '' if there is no file extension..")
 arg_parser$add_argument("-pw", "--pdfWidth", action="store", default=50, help="Width of tree PDF in inches.")
 arg_parser$add_argument("-ph", "--pdfRelHeight", action="store", default=0.15, help="Relative height of tree PDF")
 arg_parser$add_argument("-psb", "--pdfScaleBarWidth", action="store", default=0.01, help="Width of the scale bar in the PDF output (in branch length units)")
@@ -89,6 +92,10 @@ arg_parser$add_argument("-sks", "--skipSummaryGraph", action="store_true", help=
 
 args                            <- arg_parser$parse_args()
 
+# make packages less chatty
+
+options(readr.num_columns = 0)
+
 # basics
 verbosity                       <- args$verbose
 
@@ -102,6 +109,8 @@ tree.fe                         <- args$treeFileExtension
 re.tree.fe                      <- gsub("\\.", "\\\\.", tree.fe)
 csv.fe                          <- args$csvFileExtension
 re.csv.fe                       <- gsub("\\.", "\\\\.", csv.fe)
+alignment.fe                    <- args$alignmentFileExtension
+re.alignment.fe                 <- gsub("\\.", "\\\\.", alignment.fe)
 
 # tree input
 tree.input                      <- args$tree
@@ -121,6 +130,19 @@ if(!is.null(blacklist.input)){
 } else {
   user.blacklist.directory      <- NULL
   user.blacklist.file.regex     <- NULL
+}
+
+# alignment files
+alignment.input                 <- args$alignment
+
+if(!is.null(alignment.input)){
+  if(!file.exists(alignment.input)){
+    alignment.directory         <- dirname(alignment.input)
+    alignment.file.regex        <- paste0("^", basename(alignment.input), "(.*)", re.alignment.fe,"$")
+  }
+} else {
+  alignment.directory           <- NULL
+  alignment.file.regex          <- NULL
 }
 
 # output files
@@ -332,7 +354,7 @@ if(single.tree){
     blacklist.input,
     dup.input.file.name,
     recomb.input,
-    NULL,
+    alignment.input,
     tip.regex,
     file.name.regex,
     seed,
@@ -367,8 +389,8 @@ if(single.tree){
     duplicate.file.regex,
     recomb.file.directory,
     recomb.file.regex,
-    NULL,
-    NULL,
+    alignment.directory,
+    alignment.file.regex,
     tip.regex,
     file.name.regex,
     seed,
@@ -392,28 +414,28 @@ if(verbosity!=0){
   cat("Writing annotated trees in .",tree.output.format," format...\n", sep="")
 }
 
-silent <- sapply(phyloscanner.trees, function(tree.info){
+silent <- sapply(phyloscanner.trees, function(ptree){
   if(single.tree){
     file.name <- paste0(output.string, "_processedTree.", tree.output.format)
   } else {
-    file.name <- paste0(output.string, "_processedTree_", tree.info$id, ".", tree.output.format)
+    file.name <- paste0(output.string, "_processedTree_", ptree$id, ".", tree.output.format)
   }
-  write.annotated.tree(tree.info, file=file.path(output.dir, file.name), tree.output.format, pdf.scale.bar.width, pdf.w, pdf.hm, verbosity == 2)
+  write.annotated.tree(ptree, file=file.path(output.dir, file.name), tree.output.format, pdf.scale.bar.width, pdf.w, pdf.hm, verbosity == 2)
 }, simplify = F, USE.NAMES = T)
 
 if(do.collapsed){
   if(verbosity!=0){
-    cat("Writing collapsed trees to .csv files...\n", sep="")
+    cat("Writing collapsed trees to ",csv.fe," files...\n", sep="")
   }
   
-  silent <- sapply(phyloscanner.trees, function(tree.info){
+  silent <- sapply(phyloscanner.trees, function(ptree){
     if(single.tree){
       file.name <- paste0(output.string, "_collapsedTree", csv.fe)
     } else {
-      file.name <- paste0(output.string, "_collapsedTree_", tree.info$id, csv.fe)
+      file.name <- paste0(output.string, "_collapsedTree_", ptree$id, csv.fe)
     }
-    if(verbosity==2) cat("Writing collapsed tree for tree ID",tree.info$id,"to file",file.name, "...\n")
-    write.csv(tree.info$classification.results$collapsed[,1:4], file=file.path(output.dir, file.name), quote=F, row.names=F)
+    if(verbosity==2) cat("Writing collapsed tree for tree ID ",ptree$id," to file ",file.name, "...\n", sep="")
+    write_csv(ptree$classification.results$collapsed[,1:4], file.path(output.dir, file.name))
     
   }, simplify = F, USE.NAMES = T)
 }
@@ -421,17 +443,17 @@ if(do.collapsed){
 
 if(do.class.detail){
   if(verbosity!=0){
-    cat("Writing host pairwise classifications to .csv files...\n", sep="")
+    cat("Writing host pairwise classifications to ",csv.fe," files...\n")
   }
   
-  silent <- sapply(phyloscanner.trees, function(tree.info){
+  silent <- sapply(phyloscanner.trees, function(ptree){
     if(single.tree){
       file.name <- paste0(output.string, "_classification", csv.fe)
     } else {
-      file.name <- paste0(output.string, "_classification_", tree.info$id, csv.fe)
+      file.name <- paste0(output.string, "_classification_", ptree$id, csv.fe)
     }
-    if(verbosity==2) cat("Writing relationship classifications for tree ID",tree.info$id,"to file",file.name, "...\n")
-    write.csv(tree.info$classification.results$classification, file=file.path(output.dir, file.name), quote=F, row.names=F)
+    if(verbosity==2) cat("Writing relationship classifications for tree ID ",ptree$id," to file ",file.name, "...\n", sep="")
+    write_csv(ptree$classification.results$classification, file.path(output.dir, file.name))
     
   }, simplify = F, USE.NAMES = T)
 }
@@ -450,7 +472,7 @@ if(length(phyloscanner.trees)>1){
     cat("Writing summary statistics to file ",ss.csv.fn,"...\n", sep="")
   }
   
-  write.csv(summary.stats, file.path(output.dir, ss.csv.fn), quote=F, row.names=F)
+  write_csv(summary.stats, file.path(output.dir, ss.csv.fn))
   
   ss.graphs.fn <- paste0(output.string,"_patStats.pdf")
   
@@ -465,11 +487,11 @@ if(length(phyloscanner.trees)>1){
   if(length(hosts)>1){
     
     ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, allow.mt, close.sib.only = F, verbosity==2)
-    if (verbosity!=0) cat('Writing transmission summary to file', paste0(output.string,"_hostRelationshipSummary", csv.fe),'...\n', sep="")
-    write.csv(ts, file=file.path(output.dir, paste0(output.string,"_hostRelationshipSummary", csv.fe)), row.names=FALSE, quote=FALSE)
+    if (verbosity!=0) cat('Writing transmission summary to file ', paste0(output.string,"_hostRelationshipSummary", csv.fe),'...\n', sep="")
+    write_csv(ts, file.path(output.dir, paste0(output.string,"_hostRelationshipSummary", csv.fe)))
     
     if(do.simplified.graph){
-      if (verbosity!=0) cat('Drawing simplified summary diagram to file', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'...\n', sep="")
+      if (verbosity!=0) cat('Drawing simplified summary diagram to file ', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'...\n', sep="")
       
       if(nrow(ts)==0){
         cat("No relationships exist in the required proportion of windows (",win.threshold,"); skipping simplified relationship summary.\n", sep="")
@@ -484,7 +506,7 @@ if(length(phyloscanner.trees)>1){
 }
 
 if(output.blacklisting.report){
-  if (verbosity!=0) cat('Saving blacklisting report to file', paste0(output.string,"_blacklistReport.csv"),'...\n', sep="")
+  if (verbosity!=0) cat('Saving blacklisting report to file', paste0(output.string,"_blacklistReport",csv.fe),'...\n', sep="")
   
   dfs <- lapply(phyloscanner.trees, function(x) {
     treebl.df <- x$bl.report
@@ -499,12 +521,14 @@ if(output.blacklisting.report){
   
   output.bl.report <- do.call(rbind, dfs)
   
-  write.csv(output.bl.report, file = file.path(output.dir, paste0(output.string,"_blacklistReport.csv")), quote=F, row.names=F)
+  write_csv(output.bl.report, path = file.path(output.dir, paste0(output.string,"_blacklistReport",csv.fe)))
 }
 
 if(output.rda){
-  if (verbosity!=0) cat('Saving R workspace image to file', paste0(output.string,"_workspace.rda"),'...\n')
+  if (verbosity!=0) cat('Saving R workspace image to file ', paste0(output.string,"_workspace.rda"),'...\n', sep="")
   save.image(file=file.path(output.dir, paste0(output.string,"_workspace.rda")))
 }
+
+if(file.exists(file.path(output.dir, "Rplots.pdf"))) silent <- file.remove(file.path(output.dir, "Rplots.pdf"))
 
 if(verbosity!=0) cat("Finished.\n")

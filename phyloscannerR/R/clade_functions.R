@@ -1,7 +1,7 @@
 #' @keywords internal
-#' @export resolveTreeIntoPatientClades
+#' @export resolve.tree.into.host.clades
 
-resolveTreeIntoPatientClades <- function(tree, ids, tip.regex, blacklisted.tips = vector(), no.read.counts = T) {
+resolve.tree.into.host.clades <- function(tree, ids, tip.regex, blacklisted.tips = vector(), no.read.counts = T) {
   
   num.tips <- length(tree$tip.label)
   num.patients <- length(ids)
@@ -96,9 +96,9 @@ resolveTreeIntoPatientClades <- function(tree, ids, tip.regex, blacklisted.tips 
 }
 
 #' @keywords internal
-#' @export calcMeanRootToTip
+#' @export calc.mean.root.to.tip
 
-calcMeanRootToTip <- function(tree, read.counts.per.tip) {
+calc.mean.root.to.tip <- function(tree, read.counts.per.tip) {
   if(is.null(read.counts.per.tip)){
     read.counts.per.tip <- rep(1, length(tree$tip.label))
   }

@@ -4,18 +4,18 @@
 \alias{multipage.summary.statistics}
 \title{Draw summary statistics to file for many hosts as a multipage file}
 \usage{
-multipage.summary.statistics(phyloscanner.trees, sum.stats,
+multipage.summary.statistics(ptrees, sum.stats,
   hosts = all.hosts.from.trees(phyloscanner.trees), file.name,
   height = 11.6929, width = 8.26772, verbose = F)
 }
 \arguments{
-\item{phyloscanner.trees}{A list of class \code{phyloscanner.trees}}
+\item{ptrees}{A list of class \code{phyloscanner.trees}}
 
 \item{sum.stats}{The output of a call to \code{gather.summary.statistics}.}
 
 \item{hosts}{A vector of hosts to obtain graphs for. By default, all hosts detected in \code{phyloscanner.trees}.}
 
-\item{file.name}{Output file name (should have a .pdf file extension)}
+\item{file.name}{Output file name (expected to be a PDF)}
 
 \item{height}{The height of each page of the output file in inches (defaults to A4 size)}
 

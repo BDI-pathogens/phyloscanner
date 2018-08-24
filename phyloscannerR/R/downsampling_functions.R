@@ -112,41 +112,41 @@ downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, e
 #' @keywords internal
 #' @export downsample.tree
 
-downsample.tree <- function(tree.info, hosts.to.include, max.reads, rename = F, exclude.underrepresented = F, no.read.counts = T, tip.regex, seed=NA, verbose=F) {
+downsample.tree <- function(ptree, hosts.to.include, max.reads, rename = F, exclude.underrepresented = F, no.read.counts = T, tip.regex, seed=NA, verbose=F) {
   
   if(verbose){
-    cat("Downsampling reads on tree ",tree.info$id," to ",max.reads," per host...\n",sep = "")
+    cat("Downsampling reads on tree ",ptree$id," to ",max.reads," per host...\n",sep = "")
   }
 
   if(!is.na(seed)){
     set.seed(seed)
   }
   
-  if(is.null(tree.info$tree)){
+  if(is.null(ptree$tree)){
     if(verbose){
       cat("Loading tree...\n",sep = "")
     }
   
-    tree <- read.tree(tree.info$tree.file.name)
+    tree <- read.tree(ptree$tree.file.name)
 
   } else {
-    tree <- tree.info$tree
+    tree <- ptree$tree
   }
   
-  if(!is.null(tree.info$blacklist)){
-    blacklist <- tree.info$blacklist
-  } else if(!is.null(tree.info$blacklist.file.name)){
+  if(!is.null(ptree$blacklist)){
+    blacklist <- ptree$blacklist
+  } else if(!is.null(ptree$blacklist.file.name)){
     blacklist <- vector()
   
-    if(file.exists(tree.info$blacklist.file.name)){
-      if(verbose) cat("Reading existing blacklist file",tree.info$blacklist.file.name,'\n')
-      blacklisted.tips <- read.table(tree.info$blacklist.file.name, sep=",", header=F, stringsAsFactors = F, col.names="read")
+    if(file.exists(ptree$blacklist.file.name)){
+      if(verbose) cat("Reading existing blacklist file",ptree$blacklist.file.name,'\n')
+      blacklisted.tips <- read.table(ptree$blacklist.file.name, sep=",", header=F, stringsAsFactors = F, col.names="read")
        
       if(nrow(blacklisted.tips)>0){
         blacklist <- c(blacklist, sapply(blacklisted.tips, get.tip.no, tree=tree))
       }
     } else {
-      warning("File ",tree.info$blacklist.file.name," does not exist; skipping.", sep="")
+      warning("File ",ptree$blacklist.file.name," does not exist; skipping.", sep="")
     }	
   } else {
     blacklist <- vector()
@@ -175,7 +175,16 @@ downsample.tree <- function(tree.info, hosts.to.include, max.reads, rename = F, 
   
   new.tip.labels <- tree$tip.label
   excluded <- unlist(lapply(hosts.to.include, function(x){
-    result <- downsample.host(x, tree=tree.1, number = max.reads, tip.regex=tip.regex, host.ids=host.ids, rename, exclude.underrepresented, no.read.counts, name = tree.info$id, verbose)
+    result <- downsample.host(x, 
+                              tree=tree.1, 
+                              number = max.reads, 
+                              tip.regex=tip.regex, 
+                              host.ids=host.ids, 
+                              rename, 
+                              exclude.underrepresented, 
+                              no.read.counts, 
+                              name = ptree$id, 
+                              verbose)
     if(rename & !is.null(result$map)){
       new.tip.labels <<- sapply(new.tip.labels, function(y){
         if(y %in% names(result$map)){
@@ -190,18 +199,18 @@ downsample.tree <- function(tree.info, hosts.to.include, max.reads, rename = F, 
   
 
   tree$tip.label <- new.tip.labels
-  tree.info$tree <- tree
+  ptree$tree <- tree
   
   excluded.nos  <- which(tree$tip.label %in% excluded) 
   
   if(length(excluded.nos)>0){
-    tree.info$bl.report$status[excluded.nos] <- "downsampled"
-    tree.info$bl.report$kept[excluded.nos]   <- F
+    ptree$bl.report$status[excluded.nos] <- "downsampled"
+    ptree$bl.report$kept[excluded.nos]   <- F
   }
   
   new.blacklist <- c(blacklist, excluded.nos)
-  tree.info$blacklist <- new.blacklist
+  ptree$blacklist <- new.blacklist
   
-  tree.info
+  ptree
 }
 

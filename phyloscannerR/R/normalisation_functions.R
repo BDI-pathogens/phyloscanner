@@ -3,15 +3,15 @@
 #' @keywords internal
 #' @export lookup.normalisation.for.tree
 
-lookup.normalisation.for.tree <- function(tree.info, lookup.df, lookup.column = "NORM_CONST"){
+lookup.normalisation.for.tree <- function(ptree, lookup.df, lookup.column = "NORM_CONST"){
 
-  if(is.null(tree.info$window.coords)){
-    stop(paste0("Tree ",tree.info$name, "has no window coordinates" ))
+  if(is.null(ptree$window.coords)){
+    stop(paste0("Tree ", ptree$name, "has no window coordinates" ))
   }
-  if(length(tree.info$window.coords)!=2){
-    stop(paste0("Tree ",tree.info$name, "has malformed window coordinates" ))
+  if(length(ptree$window.coords)!=2){
+    stop(paste0("Tree ", ptree$name, "has malformed window coordinates" ))
   }
-  return(.lookup.normalisation.for.coords(tree.info$window.coords$start, tree.info$window.coords$end, lookup.df, lookup.column))
+  return(.lookup.normalisation.for.coords(ptree$window.coords$start, ptree$window.coords$end, lookup.df, lookup.column))
 }
 
 #' @keywords internal
@@ -22,7 +22,7 @@ lookup.normalisation.for.tree <- function(tree.info, lookup.df, lookup.column = 
     stop(paste0("No column called ",lookup.column," in lookup data frame."))
   }
 
-  window.rows <- lookup.df[which(lookup.df$POSITION<=end & lookup.df$POSITION>=start),]
+  window.rows <- lookup.df %>% filter(POSITION<=end & POSITION>=start)
   
-  return(colMeans(window.rows)[lookup.column]) 
+  return(mean(window.rows %>% pull(lookup.column))) 
 }

@@ -2,16 +2,16 @@
 % Please edit documentation in R/multinomial_functions.R
 \name{categorise}
 \alias{categorise}
-\title{Generate a new column, or append to an existing column, in a \code{data.table} which determines whether each row belongs to one or more categories determiend by other columns in the table.}
+\title{Generate a new column, or append to an existing column, in a \code{data.frame} which determines whether each row belongs to one or more categories determiend by other columns in the table.}
 \usage{
-categorise(df, name, no.match.result = NA_character_, ...)
+categorise(df, col.name, no.match.result = NA_character_, ...)
 }
 \arguments{
-\item{df}{A data.table}
+\item{df}{A \code{data.frame}}
 
-\item{name}{The name of the column to be added or appended to}
+\item{col.name}{The name of the column to be added or appended to}
 
-\item{no.match.result}{A stringt that will identify rows that do not match any of the categories.}
+\item{no.match.result}{A string that will identify rows that do not match any of the categories.}
 
 \item{...}{One or more lists. Each entry in each list, except \code{label} should take the name of a column in \code{df} and a value or vector of values which are the acceptable values for that column in this category. The \code{label} item gives the name for this category, which will be automatically generated in a long-winded fashion if \code{label} is absent. Categories must be mutually exclusive.}
 }
