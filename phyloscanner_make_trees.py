@@ -1458,6 +1458,10 @@ for window in range(NumCoords / 2):
       not read.is_proper_pair:
         continue
 
+      # Skip supplementary read alignments
+      if read.is_supplementary:
+        continue
+
       if not read.query_qualities:
         read.query_qualities = [106 for base in range(len(read.query_sequence))]
         if not HaveWarnedNoQualities:
