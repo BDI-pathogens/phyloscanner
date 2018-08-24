@@ -914,7 +914,11 @@ merge.classifications <- function(ptrees, allow.mt = T, verbose = F){
     x <- x %>% mutate(ancestry = replace(ancestry, host.2 < host.1 & ancestry == "anc", "desc")) %>% 
       mutate(ancestry = replace(ancestry, host.2 < host.1 & ancestry == "desc", "anc")) %>% 
       mutate(ancestry = replace(ancestry, host.2 < host.1 & ancestry == "multiAnc", "multiDesc")) %>% 
-      mutate(ancestry = replace(ancestry, host.2 < host.1 & ancestry == "multiDesc", "multiAnc"))
+      mutate(ancestry = replace(ancestry, host.2 < host.1 & ancestry == "multiDesc", "multiAnc")) %>%
+      mutate(temphost.1 = host.1, temphost.2 = host.2) %>%
+      mutate(host.1 = replace(temphost.1, temphost.2 < temphost.1, temphost.2)) %>%
+      mutate(host.2 = replace(temphost.2, temphost.2 < temphost.1, temphost.1)) %>%
+      select(-c(temphost.1, temphost.2))
     
     x
   })
