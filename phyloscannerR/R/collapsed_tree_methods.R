@@ -998,7 +998,7 @@ summarise.classifications <- function(ptrees, min.threshold, dist.threshold, all
   } else {
     if(!contiguous){
       tt.close <- tt %>% 
-        filter(adjacent & (patristic.distance < dist.threshold | ancestry == "none"))
+        filter(adjacent & (patristic.distance < dist.threshold | ancestry != "none"))
     } else {
       tt.close <- tt %>% 
         filter(contiguous & (patristic.distance < dist.threshold | ancestry == "none"))
