@@ -1241,6 +1241,7 @@ write.annotated.tree <- function(ptree, file.name, format = c("pdf", "nex"), pdf
 #' @return A \code{tibble}, every line of which counts the number of pairwise relationships of a particular type between a pair of hosts
 #' @export transmission.summary
 
+
 transmission.summary <- function(ptrees, win.threshold=0, dist.threshold=Inf, allow.mt=T, close.sib.only = F, verbose = F){
   if(length(ptrees)==1){
     stop("Can't summarise transmission information on a single tree. Use the collapsed tree instead?")
@@ -1286,7 +1287,7 @@ attach.tree <- function(ptree, verbose) {
   if(verbose){
     cat("Reading tree file",ptree$tree.file.name,'\n')
   }
-  
+
   first.line        <- readLines(ptree$tree.file.name, n=1)
   
   if(first.line == "#NEXUS"){
