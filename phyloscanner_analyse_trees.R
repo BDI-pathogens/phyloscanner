@@ -412,7 +412,7 @@ if(single.tree){
 
 hosts <- all.hosts.from.trees(phyloscanner.trees)
 
-if(length(hosts)<=1 & do.collapsed | do.class.detail){
+if(length(hosts)<=1 & (do.collapsed | do.class.detail)){
   cat("One or less hosts in all trees; will skip collapsed tree output\n")
   do.collapsed <- F
   do.class.detail <- F
