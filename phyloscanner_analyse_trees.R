@@ -410,6 +410,13 @@ if(single.tree){
     no.progress.bars)
 }
 
+hosts <- all.hosts.from.trees(phyloscanner.trees)
+
+if(length(hosts)<=1 & (do.collapsed | do.class.detail)){
+  do.collapsed <- F
+  do.class.detail <- F
+}
+
 if(verbosity!=0){
   cat("Writing annotated trees in .",tree.output.format," format...\n", sep="")
 }
@@ -435,6 +442,7 @@ if(do.collapsed){
       file.name <- paste0(output.string, "_collapsedTree_", ptree$id, csv.fe)
     }
     if(verbosity==2) cat("Writing collapsed tree for tree ID ",ptree$id," to file ",file.name, "...\n", sep="")
+    
     write_csv(ptree$classification.results$collapsed[,1:4], file.path(output.dir, file.name))
     
   }, simplify = F, USE.NAMES = T)

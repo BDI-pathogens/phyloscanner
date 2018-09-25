@@ -5,7 +5,8 @@
 \title{Write the phylogeny with reconstructed host annotations to file}
 \usage{
 write.annotated.tree(ptree, file.name, format = c("pdf", "nex"),
-  pdf.scale.bar.width = 0.01, pdf.w = 50, pdf.hm = 0.15, verbose = F)
+  pdf.scale.bar.width = 0.01, pdf.w = 50, pdf.hm = 0.15,
+  verbose = F)
 }
 \arguments{
 \item{file.name}{The name of the output file}

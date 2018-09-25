@@ -907,14 +907,15 @@ merge.classifications <- function(ptrees, allow.mt = T, verbose = F){
   
   classification.rows	<- classification.rows %>% map(function(x){
     
-    x <- x %>% mutate(ancestry = replace(ancestry, host.2 < host.1 & ancestry == "anc", "desc")) %>% 
-      mutate(ancestry = replace(ancestry, host.2 < host.1 & ancestry == "desc", "anc")) %>% 
-      mutate(ancestry = replace(ancestry, host.2 < host.1 & ancestry == "multiAnc", "multiDesc")) %>% 
-      mutate(ancestry = replace(ancestry, host.2 < host.1 & ancestry == "multiDesc", "multiAnc")) %>%
-      mutate(temphost.1 = host.1, temphost.2 = host.2) %>%
-      mutate(host.1 = replace(temphost.1, temphost.2 < temphost.1, temphost.2[temphost.2 < temphost.1])) %>%
-      mutate(host.2 = replace(temphost.2, temphost.2 < temphost.1, temphost.1[temphost.2 < temphost.1])) %>%
-      select(-c(temphost.1, temphost.2))
+    x <- x %>%
+      mutate(tempancestry = ancestry, temphost.1 = host.1, temphost.2 = host.2) %>%
+      mutate(ancestry = replace(ancestry, host.2 < host.1 & tempancestry == "anc", "desc")) %>% 
+      mutate(ancestry = replace(ancestry, host.2 < host.1 & tempancestry == "desc", "anc")) %>% 
+      mutate(ancestry = replace(ancestry, host.2 < host.1 & tempancestry == "multiAnc", "multiDesc")) %>% 
+      mutate(ancestry = replace(ancestry, host.2 < host.1 & tempancestry == "multiDesc", "multiAnc")) %>%
+      mutate(host.1 = replace(host.1, temphost.2 < temphost.1, temphost.2[temphost.2 < temphost.1])) %>%
+      mutate(host.2 = replace(host.2, temphost.2 < temphost.1, temphost.1[temphost.2 < temphost.1])) %>%
+      select(-c(temphost.1, temphost.2, tempancestry))
     
     x
   })
@@ -997,7 +998,7 @@ summarise.classifications <- function(ptrees, min.threshold, dist.threshold, all
   } else {
     if(!contiguous){
       tt.close <- tt %>% 
-        filter(adjacent & (patristic.distance < dist.threshold | ancestry == "none"))
+        filter(adjacent & (patristic.distance < dist.threshold | ancestry != "none"))
     } else {
       tt.close <- tt %>% 
         filter(contiguous & (patristic.distance < dist.threshold | ancestry == "none"))

@@ -34,3 +34,6 @@ multinomial.calculations(ptrees, close.threshold,
 \value{
 A list with two items: \code{dwin} giving information on the genome windows for each pair of hosts, and \code{rplkl} giving information on phylogenetic relationships between each pair of hosts.
 }
+\description{
+Calculate parameters of the posterior density for pairwise host relationships
+}

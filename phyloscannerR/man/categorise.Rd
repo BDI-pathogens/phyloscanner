@@ -18,4 +18,7 @@ categorise(df, col.name, no.match.result = NA_character_, ...)
 \value{
 If \code{name} is not an existing column in \code{df}, then \code{df} with a new column \code{name} which contains the category names. If \code{name} does exist, then its entries are appended with the category names following an underscore.
 }
+\description{
+Generate a new column, or append to an existing column, in a \code{data.frame} which determines whether each row belongs to one or more categories determiend by other columns in the table.
+}
 \keyword{internal}

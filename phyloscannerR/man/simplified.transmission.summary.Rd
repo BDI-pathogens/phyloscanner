@@ -4,8 +4,8 @@
 \alias{simplified.transmission.summary}
 \title{Simplfy and visually display the pairwise host relationships across all trees}
 \usage{
-simplified.transmission.summary(ptrees, transmission.summary, arrow.threshold,
-  plot = F)
+simplified.transmission.summary(ptrees, transmission.summary,
+  arrow.threshold, plot = F)
 }
 \arguments{
 \item{arrow.threshold}{The proportion of trees in which a pair of hosts need to show a direction of transmission for that direction to be indicated as an arrow. If both directions meet this threshold, the arrow is in the direction with the larger proportion of trees.}

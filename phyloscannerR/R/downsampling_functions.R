@@ -43,15 +43,13 @@ downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, e
     }
   }
   
-  # whether intentionally or not, rvmhyper does not work as hoped if n has length 1
+  # whether intentionally or not, rmvhyper does not work as hoped if n has length 1
   
   if(length(read.counts)==1){
     sample <- matrix(number, nrow=1, ncol=1)
   } else {
     sample <- rmvhyper(nn=1, n = read.counts, k = number)
   }
-  
-  
   
   if(rename){
     if(verbose) cat("Renaming tree tips with new read counts...\n", sep="")

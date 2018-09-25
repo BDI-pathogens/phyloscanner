@@ -24,9 +24,9 @@ phyloscanner.analyse.trees(tree.file.directory,
   norm.standardise.gag.pol = F, norm.constants = NULL,
   parsimony.blacklist.k = 0, raw.blacklist.threshold = 0,
   ratio.blacklist.threshold = 0, do.dual.blacklisting = F,
-  max.reads.per.host = Inf, blacklist.underrepresented = F, use.ff = F,
-  prune.blacklist = F, count.reads.in.parsimony = T, verbosity = 0,
-  no.progress.bars = F)
+  max.reads.per.host = Inf, blacklist.underrepresented = F,
+  use.ff = F, prune.blacklist = F, count.reads.in.parsimony = T,
+  verbosity = 0, no.progress.bars = F)
 
 phyloscanner.analyse.tree(tree.file.name, splits.rule = c("s", "r", "f"),
   sankoff.k = 0, sankoff.unassigned.switch.threshold = 0,
@@ -40,9 +40,9 @@ phyloscanner.analyse.tree(tree.file.name, splits.rule = c("s", "r", "f"),
   norm.standardise.gag.pol = F, norm.constants = NULL,
   parsimony.blacklist.k = 0, raw.blacklist.threshold = 0,
   ratio.blacklist.threshold = 0, do.dual.blacklisting = F,
-  max.reads.per.host = Inf, blacklist.underrepresented = F, use.ff = F,
-  prune.blacklist = F, count.reads.in.parsimony = T, verbosity = 0,
-  no.progress.bars = F)
+  max.reads.per.host = Inf, blacklist.underrepresented = F,
+  use.ff = F, prune.blacklist = F, count.reads.in.parsimony = T,
+  verbosity = 0, no.progress.bars = F)
 
 phyloscanner.generate.blacklist(tree.file.directory,
   tree.file.regex = "^RAxML_bestTree.InWindow_([0-9]+_to_[0-9]+)\\\\.tree$",
