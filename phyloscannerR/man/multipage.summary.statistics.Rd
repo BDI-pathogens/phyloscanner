@@ -13,7 +13,7 @@ multipage.summary.statistics(ptrees, sum.stats,
 
 \item{sum.stats}{The output of a call to \code{gather.summary.statistics}.}
 
-\item{hosts}{A vector of hosts to obtain graphs for. By default, all hosts detected in \code{phyloscanner.trees}.}
+\item{hosts}{A vector of hosts to obtain graphs for. By default, all hosts detected in \code{ptrees}.}
 
 \item{file.name}{Output file name (expected to be a PDF)}
 
