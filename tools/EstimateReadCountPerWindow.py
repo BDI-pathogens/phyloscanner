@@ -51,6 +51,10 @@ optional third column, if present, will be used to
 rename the bam files in all output. For example:
 PatientA.bam,PatientA_ref.fasta,A
 PatientB.bam,PatientB_ref.fasta,B''')
+parser.add_argument('-N', '--normalise', action='store_true', help='''Normalise
+the counts for each bam to the value at a window width of zero, making it easier
+to compare the relative decline in number of reads with growing window size
+between different bams with different total numbers of reads.''')
 parser.add_argument('-O', '--out-filename', help="We'll append '.csv' for the "
 "output data file, and '.pdf' for the plot. The default is "
 "'EstimatedReadCountsPerWindow'.", default='EstimatedReadCountsPerWindow')
@@ -146,6 +150,10 @@ def FindReadCountAsFuncOfWindowWidth(ReadSizeCountDict, RefLength):
       NumSpanningReads = count * \
       float(ReadLengthPlus1 - W) / (RefLengthPlus1 - W)
       ReadsCountByWindowWidth[W-1] += NumSpanningReads
+
+  if args.normalise:
+    ReadsCountByWindowWidth = [float(count) / ReadsCountByWindowWidth[0] \
+    for count in ReadsCountByWindowWidth]
 
   return ReadsCountByWindowWidth
 
@@ -336,7 +344,7 @@ for i in range(1, matrix.shape[1]):
   if SomeDataIsPaired:
     alias = aliases[(i - 1) / 2]
     if i % 2 == 0:
-      label = 'inserts, ' + alias
+      label = 'read pairs, ' + alias
       linestyle = '--'
     else:
       label = 'reads, ' + alias
@@ -348,6 +356,8 @@ for i in range(1, matrix.shape[1]):
 
 plt.xlabel('window width', fontsize=args.axis_font_size)
 YaxisLabel = 'number of reads'
+if args.normalise:
+  YaxisLabel += ' relative to\nwhen the window width of zero'
 if SomeDataIsPaired:
   title = \
   'Estimating the number of unpaired reads and paired reads (merging\n' + \
