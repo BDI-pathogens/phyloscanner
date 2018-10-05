@@ -83,7 +83,7 @@ form.rectangles <- function(missing.coords, all.coords, colour = "grey"){
 #' @keywords internal
 #' @export find.gaps
 
-find.gaps <- function(xcoords){
+find.gaps <- function(xcoords, x.limits){
   gaps <- xcoords[2:length(xcoords)]-xcoords[1:length(xcoords)-1]
   
   if(length(unique(gaps))==1){
@@ -110,9 +110,14 @@ find.gaps <- function(xcoords){
   
   range <- max(new.xcoords) - min(new.xcoords)
   bar.width <- range/(1.5*(length(new.xcoords)+1))
+  if(xcoords[1] - (bar.width/2) < x.limits[1]){
+    bar.width <- 2*(xcoords[1] - x.limits[1])
+  }
+  if(xcoords[length(xcoords)] + (bar.width/2) > x.limits[2]){
+    bar.width <- 2*(x.limits[2] - xcoords[length(xcoords)])
+  }
   
   return(list(x.coordinates = new.xcoords, regular.gaps = regular.gaps, rectangles.for.missing.windows = missing.window.rects, bar.width=bar.width))
-  
 }
 
 #' @keywords internal
@@ -411,6 +416,22 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
       plot$vp = viewport(layout.pos.col = 1, layout.pos.row = plot.no + 1)
       grid.draw(plot)
     }
+  } else {
+    stop("Cannot draw graphs for host ",host," as no reads are present and not blacklisted.")
+  }
+}
+
+
+produce.pairwise.graphs <- function(t.stats, hosts, xcoords, x.limits, missing.window.rects, bar.width, regular.gaps = F, readable.coords = F, verbose = F){
+  
+  x.axis.label <- if(readable.coords) "Window centre" else "Tree number"
+  
+  p.stats <- t.stats %>% 
+    filter((host.1==hosts[1] & host.2==hosts[2]) | (host.1==hosts[2] & host.2==hosts[1])) %>% 
+    arrange(xcoord)
+  
+  if(nrow(host.stats) > 0){
+
   } else {
     stop("Cannot draw graphs for host ",host," as no reads are present and not blacklisted.")
   }

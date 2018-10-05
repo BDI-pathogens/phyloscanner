@@ -1101,7 +1101,7 @@ draw.summary.statistics <- function(phyloscanner.trees, sum.stats, host, verbose
   xcoords <- unique(sum.stats$xcoord)
   xcoords <- xcoords[order(xcoords)]
   
-  missing.window.data <- find.gaps(xcoords)
+  missing.window.data <- find.gaps(xcoords, x.limits)
   
   xcoords <- missing.window.data$x.coordinates
   regular.gaps <- missing.window.data$regular.gaps
@@ -1115,7 +1115,7 @@ draw.summary.statistics <- function(phyloscanner.trees, sum.stats, host, verbose
 #' Draw summary statistics to file for many hosts as a multipage file
 #' @param ptrees A list of class \code{phyloscanner.trees}
 #' @param sum.stats The output of a call to \code{gather.summary.statistics}.
-#' @param hosts A vector of hosts to obtain graphs for. By default, all hosts detected in \code{phyloscanner.trees}.
+#' @param hosts A vector of hosts to obtain graphs for. By default, all hosts detected in \code{ptrees}.
 #' @param file.name Output file name (expected to be a PDF)
 #' @param height The height of each page of the output file in inches (defaults to A4 size)
 #' @param width The width of each page of the output file in inches (defaults to A4 size)
@@ -1136,15 +1136,12 @@ multipage.summary.statistics <- function(ptrees, sum.stats, hosts = all.hosts.fr
     stop("Only one tree, cannot draw summary statistics graph.")
   }
   
-  coordinates <- lapply(ptrees, "[[" , "window.coords")
-  
   if(readable.coords){
     coordinates <- lapply(ptrees, "[[" , "window.coords")
     starts <- sapply(coordinates, "[[", "start")
     ends <- sapply(coordinates, "[[", "end")
     ews <- min(starts)
     lwe <- max(ends)
-    
   } else {
     coordinates <- sapply(ptrees, "[[" , "xcoord")
     range <- max(coordinates) - min(coordinates)
@@ -1161,7 +1158,69 @@ multipage.summary.statistics <- function(ptrees, sum.stats, hosts = all.hosts.fr
   xcoords <- unique(sum.stats$xcoord)
   xcoords <- xcoords[order(xcoords)]
   
-  missing.window.data <- find.gaps(xcoords)
+  missing.window.data <- find.gaps(xcoords, x.limits)
+  
+  xcoords <- missing.window.data$x.coordinates
+  regular.gaps <- missing.window.data$regular.gaps
+  rectangles.for.missing.windows <- missing.window.data$rectangles.for.missing.windows
+  bar.width <- missing.window.data$bar.width
+  
+  produce.pdf.graphs(file.name, sum.stats, hosts, xcoords, x.limits, rectangles.for.missing.windows, bar.width, regular.gaps, width, height, readable.coords, verbose)
+}
+
+#' Draw bar graphs of pairwise topological/distance relationships to file
+#' @param ptrees A list of class \code{phyloscanner.trees}
+#' @param hosts A list of pairs of hosts (as vectors) to obtain graphs for. By default, all pairs hosts detected in \code{ptrees}.
+#' @param file.name Output file name (expected to be a PDF)
+#' @param height The height of each page of the output file in inches (defaults to A4 size)
+#' @param width The width of each page of the output file in inches (defaults to A4 size)
+#' @param verbose Verbose output
+#' @import ggplot2
+#' @import grid
+#' @import gtable
+#' @import RColorBrewer
+#' @import dplyr
+#' @import tidyr
+#' @import tibble
+#' @importFrom scales pretty_breaks
+#' @export multipage.summary.statistics
+pairwise.relationship.statistics <- function(ptrees, hosts = combn(all.hosts.from.trees(phyloscanner.trees), 2, simplify = F), file.name, height=11.6929, width=8.26772, verbose = F){
+  readable.coords <- attr(ptrees, 'readable.coords')
+  
+  if(length(unique(sum.stats$tree.id))==1){
+    stop("Only one tree, cannot draw pairwise relatioships graph.")
+  }
+  
+  t.stats <- ptrees %>% map(function(ptree){
+    out <- ptree$classification.results$classification
+    out <- out %>% 
+      mutate(tree.id = ptree$id, xcoord = ptree$xcoord)
+    out
+  }) %>% bind_rows()
+  
+  if(readable.coords){
+    coordinates <- lapply(ptrees, "[[" , "window.coords")
+    starts <- sapply(coordinates, "[[", "start")
+    ends <- sapply(coordinates, "[[", "end")
+    ews <- min(starts)
+    lwe <- max(ends)
+  } else {
+    coordinates <- sapply(ptrees, "[[" , "xcoord")
+    range <- max(coordinates) - min(coordinates)
+    increment <- range/length(coordinates)
+    
+    ews <- min(coordinates) - 0.45*increment
+    lwe <- max(coordinates) + 0.45*increment
+  }
+  
+  x.limits <- c(ews, lwe)
+  
+  # Set up the boundaries of each window's region on the x-axis
+  
+  xcoords <- unique(t.stats$xcoord)
+  xcoords <- xcoords[order(xcoords)]
+  
+  missing.window.data <- find.gaps(xcoords, x.limits)
   
   xcoords <- missing.window.data$x.coordinates
   regular.gaps <- missing.window.data$regular.gaps
