@@ -107,7 +107,7 @@ little more information than usual. The --time option also provides extra
 information on progress.''')
 
 WindowArgs = parser.add_argument_group('Window options - you must choose'
-' exactly one of -W, -AW or -E')
+' exactly one of -W, -AW, -E or -ES')
 WindowArgs.add_argument('-W', '--windows', type=CommaSeparatedInts,
 help='''Used to specify a comma-separated series of paired coordinates defining
 the boundaries of the windows. e.g. 1,300,301,600,601,900 would define windows
@@ -133,6 +133,10 @@ file specified with the --explore-window-width-file option.''')
 WindowArgs.add_argument('-EF', '--explore-window-width-file', help='Used to '
 'specify an output file for window width data, when the '
 '--explore-window-widths option is used. Output is in in csv format.')
+WindowArgs.add_argument('-ES', '--explore-window-widths-speedy',
+type=CommaSeparatedInts, help='''Exactly the same as --explore-window-widths,
+except that the number of unique reads is calculated before read processing
+(including alignment) instead of after.''')
 
 RecommendedArgs = parser.add_argument_group('Options we particularly recommend')
 RecommendedArgs.add_argument('-A', '--alignment-of-other-refs', type=File,
@@ -364,6 +368,7 @@ FlagContaminants = args.contaminant_count_ratio != None
 RecallContaminants = False
 CheckDuplicates = not args.dont_check_duplicates
 ExploreWindowWidths = args.explore_window_widths != None
+ExploreWindowWidthsFast = args.explore_window_widths_speedy != None
 MergeReadsA = args.merging_threshold_a > 0
 MergeReadsB = args.merging_threshold_b > 0
 MergeReads = MergeReadsA or MergeReadsB
@@ -374,7 +379,8 @@ RecombNormToDiv = args.recombination_norm_diversity
 print('phyloscanner was called thus:\n' + ' '.join(sys.argv))
 
 # Warn if RAxML files exist already.
-if not (args.no_trees or ExploreWindowWidths) and glob.glob('RAxML*'):
+if not (args.no_trees or ExploreWindowWidths or ExploreWindowWidthsFast) and \
+glob.glob('RAxML*'):
   print('Warning: RAxML files are present in the working directory. If their',
   'names clash with those that phyloscanner will try to create, RAxML will',
   'fail to run. Continuing.', file=sys.stderr)
@@ -410,12 +416,17 @@ elif MergeReadsB:
 # Check that window coords have been specified either manually or automatically,
 # or we're exploring window widths
 NumWindowOptions = len([Bool for Bool in [UserSpecifiedCoords, AutoWindows,
-ExploreWindowWidths] if Bool == True])
+ExploreWindowWidths, ExploreWindowWidthsFast] if Bool == True])
 if NumWindowOptions != 1:
   print('Exactly one of the --windows, --auto-window-params,',
-  '--explore-window-widths options should specified. Quitting.',
-  file=sys.stderr)
+  '--explore-window-widths, --explore-window-widths-fast options should be',
+  'specified. Quitting.', file=sys.stderr)
   exit(1)
+
+# For convenience, since common stuff needs doing in both cases
+if ExploreWindowWidthsFast:
+  ExploreWindowWidths = True
+  args.explore_window_widths = args.explore_window_widths_speedy
 
 # If using automatic windows (i.e. not specifying any coordinates), the user
 # should not specify a reference for their coords to be interpreted with respect
@@ -1608,6 +1619,11 @@ for window in range(NumCoords / 2):
             CorrespondenceDict_RawSeqToReadNames[seq].append(ReadName)
           else:
             CorrespondenceDict_RawSeqToReadNames[seq] = [ReadName]
+
+    if ExploreWindowWidthsFast:
+      WindowWidthExplorationData.append([UserLeftWindowEdge,
+      UserRightWindowEdge, BamAlias, len(UniqueReads)])
+      continue
 
     # If we've read in any contaminant reads for this window and this bam,
     # remove them from the read dict. If they're not present in the read dict,
