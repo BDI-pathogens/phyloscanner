@@ -1762,7 +1762,9 @@ for window in range(NumCoords / 2):
 
   # Skip empty windows.
   if AllReadsInThisWindow == []:
-    if ExploreWindowWidths:
+    if ExploreWindowWidthsFast:
+      pass
+    elif ExploreWindowWidths:
       for alias in BamAliases:
         WindowWidthExplorationData.append([UserLeftWindowEdge,
         UserRightWindowEdge, alias, 0])
