@@ -24,5 +24,9 @@ lookup.normalisation.for.tree <- function(ptree, lookup.df, lookup.column = "NOR
 
   window.rows <- lookup.df %>% filter(POSITION<=end & POSITION>=start)
   
+  if(nrow(window.rows)==0){
+    stop("Window ",start,"-",end," overlaps no coordinates in lookup file. Consider excluding this tree from the analysis, or disabling patristic distance normalisation.")
+  }
+  
   return(mean(window.rows %>% pull(lookup.column))) 
 }
