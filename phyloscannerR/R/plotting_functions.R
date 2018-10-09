@@ -440,7 +440,7 @@ produce.pairwise.graphs <- function(ptrees,
   
   full.host.list <- all.hosts.from.trees(ptrees)
   
-  t.stats <- phyloscanner.trees %>% map(function(ptree){
+  t.stats <- ptrees %>% map(function(ptree){
     out <- ptree$classification.results$classification
     out <- out %>% 
       mutate(tree.id = ptree$id, xcoord = ptree$xcoord)
