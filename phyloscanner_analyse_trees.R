@@ -451,7 +451,7 @@ if(do.collapsed){
 
 if(do.class.detail){
   if(verbosity!=0){
-    cat("Writing host pairwise classifications to ",csv.fe," files...\n")
+    cat("Writing host pairwise classifications to ",csv.fe," files...\n", sep="")
   }
   
   silent <- sapply(phyloscanner.trees, function(ptree){

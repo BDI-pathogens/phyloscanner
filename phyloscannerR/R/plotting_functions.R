@@ -377,7 +377,7 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
     
     if("solo.dual.count" %in% names(host.stats)) {
       
-
+      
       graph.7 <- ggplot(host.stats, aes(x=xcoord, y=solo.dual.count))
       y.label <- "Multiplicity of infection"
       
@@ -422,17 +422,144 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
 }
 
 
-produce.pairwise.graphs <- function(t.stats, hosts, xcoords, x.limits, missing.window.rects, bar.width, regular.gaps = F, readable.coords = F, verbose = F){
-  
-  x.axis.label <- if(readable.coords) "Window centre" else "Tree number"
-  
-  p.stats <- t.stats %>% 
-    filter((host.1==hosts[1] & host.2==hosts[2]) | (host.1==hosts[2] & host.2==hosts[1])) %>% 
-    arrange(xcoord)
-  
-  if(nrow(host.stats) > 0){
+#' Draw bar graphs of pairwise topological/distance relationships to file
+#' @param ptrees A list of class \code{phyloscanner.trees}
+#' @param hosts A list of hosts (as a vector) to obtain graphs for. By default, all pairs of hosts detected in \code{ptrees}.
+#' @param file.name Output file name (expected to be a PDF)
+#' @param height The height of each comparison in of the output file in inches
+#' @param width The width of the page of the output file in inches
+#' @param verbose Verbose output
+#' @export produce.pairwise.graphs
 
+produce.pairwise.graphs <- function(ptrees, 
+                                    hosts = all.hosts.from.trees(ptrees),
+                                    dist.thresh,
+                                    out.file.name,
+                                    width = 30,
+                                    height.each = 5){
+  
+  full.host.list <- all.hosts.from.trees(ptrees)
+  
+  t.stats <- phyloscanner.trees %>% map(function(ptree){
+    out <- ptree$classification.results$classification
+    out <- out %>% 
+      mutate(tree.id = ptree$id, xcoord = ptree$xcoord)
+    out
+  }) %>% bind_rows()
+  
+  wrong.dir <- which(t.stats$host.2 < t.stats$host.1)
+  t.stats <- t.stats %>% 
+    mutate(ancestry = replace(ancestry, ancestry=="anc" & host.2 < host.1, "desc")) %>% 
+    mutate(ancestry = replace(ancestry, ancestry=="desc" & host.2 < host.1, "anc")) %>% 
+    mutate(ancestry = replace(ancestry, ancestry=="mutltiAnc" & host.2 < host.1, "multiDesc")) %>% 
+    mutate(ancestry = replace(ancestry, ancestry=="multiDesc" & host.2 < host.1, "multiAnc")) 
+  t.stats[wrong.dir,c(1,2)] <- t.stats[wrong.dir,c(2,1)]
+  
+  hosts.by.tree <- map(1:length(ptrees), function(x){
+    all.hosts.from.trees(ptrees[x])
+  })
+  
+  names(hosts.by.tree) <- map_chr(ptrees, function(x) x$id)
+  
+  if(attr(ptrees, "readable.coords")){
+    xcoord.lookup <- tibble(id = unique(map_chr(ptrees, function(x) x$id))) %>%
+      mutate(xcoord = map_dbl(id, function(x) mean(as.numeric(unlist(strsplit(x, "_to_"))))))
   } else {
-    stop("Cannot draw graphs for host ",host," as no reads are present and not blacklisted.")
+    xcoord.lookup <- tibble(id = unique(map_chr(ptrees, function(x) x$id))) %>%
+      mutate(xcoord = 1:length(id))
   }
+
+  pair.data <- as.tibble(expand.grid(full.host.list, full.host.list, map_chr(ptrees, function(x) x$id), stringsAsFactors = F)) %>%
+    dplyr::rename(host.1 = Var1, host.2 = Var2, tree.id = Var3) %>%
+    filter(host.1 < host.2) %>% 
+    left_join(t.stats) %>%
+    mutate(not.present = is.na(ancestry)) %>%
+    left_join(xcoord.lookup, by=c("tree.id" = "id")) %>%
+    mutate(xcoord = xcoord.y) %>%
+    select(-xcoord.x, -xcoord.y) %>%
+    mutate(host.1.present = pmap_lgl(list(tree.id, host.1, not.present), function(x, y, z){
+      if(!z){
+        TRUE 
+      } else {
+        y %in% hosts.by.tree[[x]]
+      }
+    })) %>% mutate(host.2.present = pmap_lgl(list(tree.id, host.2, not.present), function(x, y, z){
+      if(!z){
+        TRUE 
+      } else {
+        y %in% hosts.by.tree[[x]]
+      }
+    })) %>%
+    mutate(paircombo = paste0(host.1, " vs " ,host.2)) %>%
+    group_by(paircombo) %>%
+    mutate(within.distance = normalised.min.distance.between.subgraphs <= dist.thresh) %>%
+    mutate(any.link = any(!not.present & adjacent & within.distance)) %>%
+    ungroup() %>%
+    mutate(nondir.ancestry = replace(ancestry, ancestry %in% c("anc", "desc"), "trans")) %>%
+    mutate(nondir.ancestry = replace(nondir.ancestry, nondir.ancestry %in% c("multiAnc", "multiDesc"), "multiTrans")) %>%
+    mutate(nondir.ancestry = factor(nondir.ancestry, levels = c("trans", "multiTrans", "none", "complex"))) %>%
+    mutate(linked = adjacent & within.distance) %>%
+    mutate(adjacent = replace(adjacent, is.na(adjacent), T)) %>%
+    mutate(contiguous = replace(contiguous, is.na(contiguous), T)) %>%
+    mutate(fact.within.distance = as.character(within.distance)) %>%
+    mutate(fact.within.distance = replace(fact.within.distance, fact.within.distance=="TRUE", "Within threshold")) %>%
+    mutate(fact.within.distance = replace(fact.within.distance, fact.within.distance=="FALSE", "Outside threshold")) %>%
+    mutate(fact.within.distance = as.factor(fact.within.distance)) %>%
+    mutate(arrow = ancestry) %>%
+    mutate(arrow = replace(arrow, arrow %in% c("anc", "multiAnc"), 1)) %>%
+    mutate(arrow = replace(arrow, arrow %in% c("desc", "multiDesc"), 2)) %>%
+    mutate(arrow = replace(arrow, arrow %in% c(NA, "none", "complex"), 3)) %>%
+    mutate(arrow = as.numeric(arrow)) %>%
+    mutate(arrow.start = arrow) %>%
+    mutate(arrow.start = replace(arrow.start, arrow.start == 2, 1.20001)) %>%
+    mutate(arrow.start = replace(arrow.start, arrow.start == 1, 1.79999)) %>%
+    mutate(arrow.start = replace(arrow.start, arrow.start == 3, NA)) %>%
+    mutate(arrow.end = arrow) %>%
+    mutate(arrow.end = replace(arrow.end, arrow.end == 2, 1.2)) %>%
+    mutate(arrow.end = replace(arrow.end, arrow.end == 1, 1.8)) %>%
+    mutate(arrow.end = replace(arrow.end, arrow.end == 3, NA)) %>%
+    mutate(arrow.start = as.numeric(arrow.start), arrow.end = as.numeric(arrow.end)) %>%
+    filter((host.1 %in% hosts & host.2 %in% hosts))
+  
+  
+  if(all(pair.data$within.distance, na.rm = T)){
+    linevals <- "solid"
+  } else if(all(!pair.data$linked, na.rm = T)){
+    linevals <- "dashed"
+  } else {
+    linevals <- c("dashed", "solid")
+  }
+  
+  ggplot(pair.data) +
+    geom_point(aes(y=host.2, x = xcoord, alpha = as.numeric(host.2.present), fill=linked), col="black", size=2, shape=21) +
+    geom_point(aes(y=host.1, x = xcoord, alpha = as.numeric(host.1.present), fill=linked), col="black", size=2, shape=21) +
+    geom_point(aes(y=host.2, x = xcoord, alpha = as.numeric(host.2.present), fill=linked), col="black", size=2, shape=21) +
+    geom_segment(data = pair.data %>% filter(!not.present), 
+                 aes(x=xcoord, xend = xcoord, y = 1.8, yend = 1.2, col = nondir.ancestry, linetype=fact.within.distance), size=0.75) +
+    geom_segment(data = pair.data %>% filter(!not.present), 
+                 aes(x=xcoord, xend = xcoord, y = arrow.start, yend = arrow.end, col = nondir.ancestry), 
+                 size=0.66, 
+                 arrow = arrow(length = unit(0.2, "cm"), ends = "last"),
+                 show.legend = FALSE) +
+    geom_point(data = pair.data %>% filter(!host.1.present), aes(y=host.1, x = xcoord), col="black", shape = 4, size=2) +
+    geom_point(data = pair.data %>% filter(!host.2.present), aes(y=host.2, x = xcoord), col="black", shape = 4, size=2) +
+    geom_point(aes(x = xcoord, shape = !adjacent), y=1.5, col="red3", size=5) +
+    scale_fill_discrete(name="Linked", labels=c("No", "Yes", "Member\nabsent")) +
+    scale_linetype_manual(values = c("dotted", "solid"), drop=F, name="Distance\nthreshold", labels = c("Outside", "Within")) +
+    scale_alpha_continuous(range = c(0.33, 1), guide=FALSE) +
+    scale_colour_manual(drop=FALSE, values = c("blue3", "green4", "darkorange2", "orange4"), name="Ancestry", labels = c("Single", "Multiple", "None", "Complex")) +
+    scale_shape_manual(values = c(32, 126), name="Adjacent", labels = c("Yes", "Blocked")) +
+    facet_wrap(~paircombo, ncol = 1, scales="free_y") + 
+    theme_minimal() + 
+    theme(panel.grid.major.y = element_blank(), 
+          panel.grid.minor.y = element_blank(),
+          axis.title.y=element_blank()) +
+    guides(size = guide_legend(override.aes = list(shape = 32))) +
+    guides(col = guide_legend(override.aes = list(shape = 32))) +
+    xlab("Window centre") +
+    ylab("Host")
+  
+  ncomps = length(unique(pair.data$paircombo))
+  
+  ggsave(out.file.name, height=height.each*ncomps, width=width, limitsize = F)
 }
