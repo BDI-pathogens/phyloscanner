@@ -422,21 +422,17 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
 }
 
 
-#' Draw bar graphs of pairwise topological/distance relationships to file
+#' Draw bar graphs of pairwise topological/distance relationships
 #' @param ptrees A list of class \code{phyloscanner.trees}
 #' @param hosts A list of hosts (as a vector) to obtain graphs for. By default, all pairs of hosts detected in \code{ptrees}.
-#' @param file.name Output file name (expected to be a PDF)
-#' @param height The height of each comparison in of the output file in inches
-#' @param width The width of the page of the output file in inches
+#' @param inclusion If "both", then only pairs in which both individuals are members of \code{hosts} are included. If "either" then pairs only need have one member from \code{hosts}
 #' @param verbose Verbose output
 #' @export produce.pairwise.graphs
 
 produce.pairwise.graphs <- function(ptrees, 
-                                    hosts = all.hosts.from.trees(ptrees),
                                     dist.thresh,
-                                    out.file.name,
-                                    width = 30,
-                                    height.each = 5){
+                                    hosts = all.hosts.from.trees(ptrees),
+                                    inclusion = c("both", "either")){
   
   full.host.list <- all.hosts.from.trees(ptrees)
   
@@ -518,9 +514,19 @@ produce.pairwise.graphs <- function(ptrees,
     mutate(arrow.end = replace(arrow.end, arrow.end == 2, 1.2)) %>%
     mutate(arrow.end = replace(arrow.end, arrow.end == 1, 1.8)) %>%
     mutate(arrow.end = replace(arrow.end, arrow.end == 3, NA)) %>%
-    mutate(arrow.start = as.numeric(arrow.start), arrow.end = as.numeric(arrow.end)) %>%
-    filter((host.1 %in% hosts & host.2 %in% hosts))
+    mutate(arrow.start = as.numeric(arrow.start), arrow.end = as.numeric(arrow.end)) 
   
+  if(inclusion == "both"){
+    pair.data <- pair.data %>%
+      filter((host.1 %in% hosts & host.2 %in% hosts))
+  } else {
+    pair.data <- pair.data %>%
+      filter((host.1 %in% hosts | host.2 %in% hosts))
+  }
+  
+  if(nrow(pair.data)==0){
+    stop("No pairs match this vector of hosts")
+  }
   
   if(all(pair.data$within.distance, na.rm = T)){
     linevals <- "solid"
@@ -530,7 +536,8 @@ produce.pairwise.graphs <- function(ptrees,
     linevals <- c("dashed", "solid")
   }
   
-  ggplot(pair.data) +
+  
+  pairwise.plot <- ggplot(pair.data) +
     geom_point(aes(y=host.2, x = xcoord, alpha = as.numeric(host.2.present), fill=linked), col="black", size=2, shape=21) +
     geom_point(aes(y=host.1, x = xcoord, alpha = as.numeric(host.1.present), fill=linked), col="black", size=2, shape=21) +
     geom_point(aes(y=host.2, x = xcoord, alpha = as.numeric(host.2.present), fill=linked), col="black", size=2, shape=21) +
@@ -559,7 +566,5 @@ produce.pairwise.graphs <- function(ptrees,
     xlab("Window centre") +
     ylab("Host")
   
-  ncomps = length(unique(pair.data$paircombo))
-  
-  ggsave(out.file.name, height=height.each*ncomps, width=width, limitsize = F)
+  return(pairwise.plot)
 }
