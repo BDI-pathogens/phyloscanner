@@ -470,7 +470,7 @@ produce.pairwise.graphs <- function(ptrees,
   pair.data <- as.tibble(expand.grid(full.host.list, full.host.list, map_chr(ptrees, function(x) x$id), stringsAsFactors = F)) %>%
     dplyr::rename(host.1 = Var1, host.2 = Var2, tree.id = Var3) %>%
     filter(host.1 < host.2) %>% 
-    left_join(t.stats) %>%
+    left_join(t.stats, c("host.1", "host.2", "tree.id")) %>%
     mutate(not.present = is.na(ancestry)) %>%
     left_join(xcoord.lookup, by=c("tree.id" = "id")) %>%
     mutate(xcoord = xcoord.y) %>%
@@ -549,7 +549,7 @@ produce.pairwise.graphs <- function(ptrees,
                  aes(x=xcoord, xend = xcoord, y = arrow.start, yend = arrow.end, col = nondir.ancestry), 
                  size=0.66, 
                  arrow = arrow(length = unit(0.2, "cm"), ends = "last"),
-                 show.legend = FALSE) +
+                 show.legend = FALSE, na.rm=TRUE) +
     geom_point(data = pair.data %>% filter(!host.1.present), aes(y=host.1, x = xcoord), col="black", shape = 4, size=2) +
     geom_point(data = pair.data %>% filter(!host.2.present), aes(y=host.2, x = xcoord), col="black", shape = 4, size=2) +
     geom_point(aes(x = xcoord, shape = !adjacent), y=1.5, col="red3", size=5) +
