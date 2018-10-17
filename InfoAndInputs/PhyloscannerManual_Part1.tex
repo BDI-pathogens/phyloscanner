@@ -50,6 +50,7 @@ or like this:\\
 In the former case, the version of Python used to execute \pmt is whatever version gets called when you simply run the command \c{python} in the terminal.
 In the latter case, you can explicitly replace \c{python} by a specific version of Python on your machine, for example \c{python2.7} or \c{/usr/bin/python}.
 The version of Python that's used must (a) be Python 2, not Python 3, and (b) contain the Python dependencies described in \mbox{\c{phyloscanner/InfoAndInputs/InstallationNotesForMakingTrees.sh}}.
+The version of Python used can be specified the same way for all of the Python tools in the \c{tools} subdirectory.
 
 \section{What do the window coordinates mean exactly?} \label{sec:CoordMeaning}
 By default the references used for mapping, together with any extra references if included using the \c{--alignment-of-other-refs} option, are all aligned together and window coordinates are interpreted with respect to the alignment (i.e. position $n$ refers to the $n$th column of that alignment, which could be a gap for some of the sequences).
