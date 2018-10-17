@@ -1825,8 +1825,6 @@ for window in range(NumCoords / 2):
     continue
   SeqIO.write(AllReadsInThisWindow, TempFileForReadsHere, "fasta")
   TempFiles.add(TempFileForReadsHere)
-  # TODO: duplicate & move line below to the two scopes where that file is created
-  OutputFilesByDestinationDir['AlignedReads'].append(FileForAlnReadsHere)
   FileForTrees = FileForAlnReadsHere
 
   # If external refs are included, find the part of each one's seq corresponding
@@ -1909,6 +1907,7 @@ for window in range(NumCoords / 2):
   try:
     SeqAlignmentHere = AlignIO.read(FileForReads, "fasta")
   except:
+    # TODO: global replace reference to phylotypes!
     print('Malfunction of phylotypes: problem encountered reading in',
     FileForReads, 'as an alignment. Quitting.', file=sys.stderr)
     raise
@@ -1929,6 +1928,7 @@ for window in range(NumCoords / 2):
       file=sys.stderr)
       raise
     AlignIO.write(SeqAlignmentHere, FileForAlnReadsHere, 'fasta')
+    OutputFilesByDestinationDir['AlignedReads'].append(FileForAlnReadsHere)
 
 
   # Find & write the consensuses.
