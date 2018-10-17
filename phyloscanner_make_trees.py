@@ -906,7 +906,7 @@ else:
       args.pairwise_align_to] + [str(coord) for coord in WindowCoords])
       if set(PairwiseCoordsDict.keys()) != \
       set([BamRefSeq.id,args.pairwise_align_to]):
-        print('Malfunction of phylotypes: mismatch between the sequences',
+        print('Malfunction of phyloscanner: mismatch between the sequences',
         'found in the output of', TranslateCoordsCode, 'and the two names "' + \
         BamRefSeq.id+'", "'+args.pairwise_align_to +'". Quitting.',
         file=sys.stderr)
@@ -1001,7 +1001,7 @@ else:
     # coord translation, should cooincide with all seqs we're considering (i.e.
     # those in FileForAlignedRefs).
     if set(CoordsInRefs.keys()) != set(BamAliases+ExternalRefNames):
-      print('Malfunction of phylotypes: mismatch between the sequences found',
+      print('Malfunction of phyloscanner: mismatch between the sequences found',
       'in the output of', TranslateCoordsCode, 'and those in',
       FileForAlignedRefs +'. Quitting.', file=sys.stderr)
       exit(1)
@@ -1806,7 +1806,7 @@ for window in range(NumCoords / 2):
       if RegexMatch and TheReadID[:RegexMatch.start()] in BamAliases:
         TheBamWithOneRead = TheReadID[:RegexMatch.start()]
       else:
-        print('Malfunction of phylotypes: there is only one read in the ',
+        print('Malfunction of phyloscanner: there is only one read in the ',
         'window ', ThisWindowAsStr, ', namely ', TheReadID,
         ", but we can't figure out which bam we got it from. Quitting.", sep='',
         file=sys.stderr)
@@ -1907,8 +1907,7 @@ for window in range(NumCoords / 2):
   try:
     SeqAlignmentHere = AlignIO.read(FileForReads, "fasta")
   except:
-    # TODO: global replace reference to phylotypes!
-    print('Malfunction of phylotypes: problem encountered reading in',
+    print('Malfunction of phyloscanner: problem encountered reading in',
     FileForReads, 'as an alignment. Quitting.', file=sys.stderr)
     raise
 
@@ -1973,11 +1972,11 @@ for window in range(NumCoords / 2):
           RefInAlignment = str(seq.seq)
           break
       if RefInAlignment == None:
-        print('Malfunction of phylotypes: unable to find', args.excision_ref,
+        print('Malfunction of phyloscanner: unable to find', args.excision_ref,
         'in', FileForAlnReadsHere +'. Quitting.', file=sys.stderr)
         exit(1)
       if RefInAlignment.replace(GapChar,'') != UngappedRefHere:
-        print('Malfunction of phylotypes: mismatch between the ref for',
+        print('Malfunction of phyloscanner: mismatch between the ref for',
         'excision we expected to find in this window:\n', UngappedRefHere,
         '\nand the ref for excision we actually found in this window:\n',
         RefInAlignment.replace(GapChar,''), '\nQuitting.', file=sys.stderr)
@@ -2065,7 +2064,7 @@ for window in range(NumCoords / 2):
           DuplicatedAliases = [alias for alias, count in \
           collections.Counter(aliases).items() if count > 1]
           if DuplicatedAliases != []:
-            print('Malfunction of phylotypes - the each of the following bam',
+            print('Malfunction of phyloscanner - the each of the following bam',
             'files has more than one copy of the same sequence after '
             'processing:', ' '.join(DuplicatedAliases) + '. Quitting.',
             file=sys.stderr)
