@@ -711,9 +711,14 @@ if ExcisePositions:
   args.excision_coords = list(set(args.excision_coords))
   args.excision_coords = sorted(args.excision_coords, reverse=True)
 
-TranslateCoordsCode = pf.FindAndCheckCode('TranslateCoords.py')
-FindSeqsInFastaCode = pf.FindAndCheckCode('FindSeqsInFasta.py')
-FindWindowsCode     = pf.FindAndCheckCode('FindInformativeWindowsInFasta.py')
+PythonPath = sys.executable
+
+TranslateCoordsCode = pf.FindAndCheckCode(PythonPath, 'TranslateCoords.py')
+FindSeqsInFastaCode = pf.FindAndCheckCode(PythonPath, 'FindSeqsInFasta.py')
+FindWindowsCode     = pf.FindAndCheckCode(PythonPath,
+'FindInformativeWindowsInFasta.py')
+
+
 
 # Test RAxML works
 if not (args.no_trees or ExploreWindowWidths):
@@ -762,7 +767,8 @@ def TranslateCoords(CodeArgs):
   a dict.'''
 
   try:
-    CoordsString = subprocess.check_output([TranslateCoordsCode]+CodeArgs)
+    CoordsString = subprocess.check_output([PythonPath, TranslateCoordsCode] + \
+    CodeArgs)
   except:
     print('Problem executing', TranslateCoordsCode +'. Quitting.',
     file=sys.stderr)
@@ -962,7 +968,7 @@ else:
 
     # Determine windows automatically if desired
     if AutoWindows:
-      command = [FindWindowsCode, FileForAlignedRefs,
+      command = [PythonPath, FindWindowsCode, FileForAlignedRefs,
       str(WeightedWindowWidth), str(WindowOverlap), '-S', str(WindowStartPos)]
       if NumAutoWindowParams == 4:
         command += ['-E', str(WindowEndPos)]
@@ -1769,6 +1775,7 @@ for window in range(NumCoords / 2):
         WindowWidthExplorationData.append([UserLeftWindowEdge,
         UserRightWindowEdge, alias, 0])
     else:
+      # TODO: don't mention args.min_read_count if it's None
       print('WARNING: no bam file had any reads (after a minimum post-merging '+\
       'read count of', args.min_read_count, 'was imposed) in the window',
       ThisWindowAsStr + '. Skipping to the next window.', file=sys.stderr)
@@ -1815,6 +1822,7 @@ for window in range(NumCoords / 2):
     continue
   SeqIO.write(AllReadsInThisWindow, TempFileForReadsHere, "fasta")
   TempFiles.add(TempFileForReadsHere)
+  # TODO: duplicate & move line below to the two scopes where that file is created
   OutputFilesByDestinationDir['AlignedReads'].append(FileForAlnReadsHere)
   FileForTrees = FileForAlnReadsHere
 
@@ -1845,7 +1853,7 @@ for window in range(NumCoords / 2):
     else:
       with open(TempFileForOtherRefsHere, 'w') as f:
         try:
-          ExitStatus = subprocess.call([FindSeqsInFastaCode,
+          ExitStatus = subprocess.call([PythonPath, FindSeqsInFastaCode,
           FileForAlignedRefs, '-B', '-W', str(LeftWindowEdge) + ',' + \
           str(RightWindowEdge), '-v'] + BamAliases, stdout=f)
           assert ExitStatus == 0
