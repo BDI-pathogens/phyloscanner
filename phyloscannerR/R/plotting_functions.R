@@ -424,14 +424,16 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
 
 #' Draw bar graphs of pairwise topological/distance relationships
 #' @param ptrees A list of class \code{phyloscanner.trees}
+#' @param dist.thresh The distance threshold used to select likely transmission pairs
 #' @param hosts A list of hosts (as a vector) to obtain graphs for. By default, all pairs of hosts detected in \code{ptrees}.
 #' @param inclusion If "both", then only pairs in which both individuals are members of \code{hosts} are included. If "either" then pairs only need have one member from \code{hosts}
-#' @param verbose Verbose output
+#' @param contiguous.pairs If TRUE pairs require contiguous (rather than ajacent) subgraphs to be identified as likely transmissions
 #' @export produce.pairwise.graphs
 
 produce.pairwise.graphs <- function(ptrees, 
                                     dist.thresh,
                                     hosts = all.hosts.from.trees(ptrees),
+                                    contiguous.pairs = F,
                                     inclusion = c("both", "either")){
   
   full.host.list <- all.hosts.from.trees(ptrees)
@@ -468,7 +470,7 @@ produce.pairwise.graphs <- function(ptrees,
   pair.data <- as.tibble(expand.grid(full.host.list, full.host.list, map_chr(ptrees, function(x) x$id), stringsAsFactors = F)) %>%
     dplyr::rename(host.1 = Var1, host.2 = Var2, tree.id = Var3) %>%
     filter(host.1 < host.2) %>% 
-    left_join(t.stats) %>%
+    left_join(t.stats, c("host.1", "host.2", "tree.id")) %>%
     mutate(not.present = is.na(ancestry)) %>%
     left_join(xcoord.lookup, by=c("tree.id" = "id")) %>%
     mutate(xcoord = xcoord.y) %>%
@@ -494,7 +496,7 @@ produce.pairwise.graphs <- function(ptrees,
     mutate(nondir.ancestry = replace(ancestry, ancestry %in% c("anc", "desc"), "trans")) %>%
     mutate(nondir.ancestry = replace(nondir.ancestry, nondir.ancestry %in% c("multiAnc", "multiDesc"), "multiTrans")) %>%
     mutate(nondir.ancestry = factor(nondir.ancestry, levels = c("trans", "multiTrans", "none", "complex"))) %>%
-    mutate(linked = adjacent & within.distance) %>%
+    mutate(linked = ((!contiguous.pairs & adjacent) | (contiguous.pairs & contiguous)) & within.distance) %>%
     mutate(adjacent = replace(adjacent, is.na(adjacent), T)) %>%
     mutate(contiguous = replace(contiguous, is.na(contiguous), T)) %>%
     mutate(fact.within.distance = as.character(within.distance)) %>%
@@ -547,7 +549,7 @@ produce.pairwise.graphs <- function(ptrees,
                  aes(x=xcoord, xend = xcoord, y = arrow.start, yend = arrow.end, col = nondir.ancestry), 
                  size=0.66, 
                  arrow = arrow(length = unit(0.2, "cm"), ends = "last"),
-                 show.legend = FALSE) +
+                 show.legend = FALSE, na.rm=TRUE) +
     geom_point(data = pair.data %>% filter(!host.1.present), aes(y=host.1, x = xcoord), col="black", shape = 4, size=2) +
     geom_point(data = pair.data %>% filter(!host.2.present), aes(y=host.2, x = xcoord), col="black", shape = 4, size=2) +
     geom_point(aes(x = xcoord, shape = !adjacent), y=1.5, col="red3", size=5) +

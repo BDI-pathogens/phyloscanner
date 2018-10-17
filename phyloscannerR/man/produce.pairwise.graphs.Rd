@@ -2,24 +2,23 @@
 % Please edit documentation in R/plotting_functions.R
 \name{produce.pairwise.graphs}
 \alias{produce.pairwise.graphs}
-\title{Draw bar graphs of pairwise topological/distance relationships to file}
+\title{Draw bar graphs of pairwise topological/distance relationships}
 \usage{
-produce.pairwise.graphs(ptrees, hosts = all.hosts.from.trees(ptrees),
-  dist.thresh, out.file.name, width = 30, height.each = 5)
+produce.pairwise.graphs(ptrees, dist.thresh,
+  hosts = all.hosts.from.trees(ptrees), contiguous.pairs = F,
+  inclusion = c("both", "either"))
 }
 \arguments{
 \item{ptrees}{A list of class \code{phyloscanner.trees}}
 
+\item{dist.thresh}{The distance threshold used to select likely transmission pairs}
+
 \item{hosts}{A list of hosts (as a vector) to obtain graphs for. By default, all pairs of hosts detected in \code{ptrees}.}
 
-\item{width}{The width of the page of the output file in inches}
+\item{contiguous.pairs}{If TRUE pairs require contiguous (rather than ajacent) subgraphs to be identified as likely transmissions}
 
-\item{file.name}{Output file name (expected to be a PDF)}
-
-\item{height}{The height of each comparison in of the output file in inches}
-
-\item{verbose}{Verbose output}
+\item{inclusion}{If "both", then only pairs in which both individuals are members of \code{hosts} are included. If "either" then pairs only need have one member from \code{hosts}}
 }
 \description{
-Draw bar graphs of pairwise topological/distance relationships to file
+Draw bar graphs of pairwise topological/distance relationships
 }
