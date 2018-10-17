@@ -1,6 +1,17 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
+# Quit if this is being run as python 3.
+import sys
+if sys.version_info.major > 2:
+  name = sys.argv[0]
+  print(name, "is written in python 2; it is not compatible with python 3.",
+  "Sorry! Note that you can specify exactly which version of python on your",
+  "machine is used by running a command like\n$ python", name, "[input and",
+  "options]\ninstead of\n$", name, "[input and options]\nreplacing 'python' by",
+  "the specific executable you want.\nQuitting.", file=sys.stderr)
+  exit(1)
+
 ## Author: Chris Wymant, c.wymant@imperial.ac.uk
 ## Acknowledgement: I wrote this while funded by ERC Advanced Grant PBDR-339251
 ##
@@ -37,7 +48,6 @@ import os
 import collections
 import itertools
 import subprocess
-import sys
 import re
 import copy
 import shutil
