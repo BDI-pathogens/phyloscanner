@@ -1775,10 +1775,13 @@ for window in range(NumCoords / 2):
         WindowWidthExplorationData.append([UserLeftWindowEdge,
         UserRightWindowEdge, alias, 0])
     else:
-      # TODO: don't mention args.min_read_count if it's None
-      print('WARNING: no bam file had any reads (after a minimum post-merging '+\
-      'read count of', args.min_read_count, 'was imposed) in the window',
-      ThisWindowAsStr + '. Skipping to the next window.', file=sys.stderr)
+      message = 'WARNING: no bam file had any reads '
+      if args.min_read_count > 1:
+        message += '(after a minimum read count of ' + \
+        str(args.min_read_count) + ' was imposed) '
+      message += 'in the window ' + ThisWindowAsStr + \
+      '. Skipping to the next window.'
+      print(message, file=sys.stderr)
     continue
 
   # Re-define the window edge coords to be with respect to the alignment of refs
