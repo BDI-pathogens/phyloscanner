@@ -10,7 +10,7 @@ GapChar = '-'
 
 # Test that we can run code we'll need
 DirectoryOfThisScript = os.path.dirname(os.path.realpath(__file__))
-def FindAndCheckCode(CodeBasename):
+def FindAndCheckCode(PythonPath, CodeBasename):
   '''Checks that code exists in the same directory as this script, that it's
   executable with a -h flag, and returns its path.'''
   CodeFullPath = os.path.join(DirectoryOfThisScript, CodeBasename)
@@ -20,13 +20,12 @@ def FindAndCheckCode(CodeBasename):
     exit(1)
   FNULL = open(os.devnull, 'w')
   try:
-    ExitStatus = subprocess.call([CodeFullPath, '-h'], stdout=FNULL,
-    stderr=subprocess.STDOUT)
+    ExitStatus = subprocess.call([PythonPath, CodeFullPath, '-h'], stdout=FNULL)
     assert ExitStatus == 0
   except:
     print('Problem running', CodeFullPath+'.\nTry running\nchmod u+x ',
     CodeFullPath+'\nIt might help...', file=sys.stderr)
-    exit(1)
+    raise
   return CodeFullPath
 
 

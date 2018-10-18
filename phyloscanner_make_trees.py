@@ -1,6 +1,17 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
+# Quit if this is being run as python 3.
+import sys
+if sys.version_info.major > 2:
+  name = sys.argv[0]
+  print(name, "is written in python 2; it is not compatible with python 3.",
+  "Sorry! Note that you can specify exactly which version of python on your",
+  "machine is used by running a command like\n$ python", name, "[input and",
+  "options]\ninstead of\n$", name, "[input and options]\nreplacing 'python' by",
+  "the specific executable you want.\nQuitting.", file=sys.stderr)
+  exit(1)
+
 ## Author: Chris Wymant, c.wymant@imperial.ac.uk
 ## Acknowledgement: I wrote this while funded by ERC Advanced Grant PBDR-339251
 ##
@@ -37,7 +48,6 @@ import os
 import collections
 import itertools
 import subprocess
-import sys
 import re
 import copy
 import shutil
@@ -711,9 +721,14 @@ if ExcisePositions:
   args.excision_coords = list(set(args.excision_coords))
   args.excision_coords = sorted(args.excision_coords, reverse=True)
 
-TranslateCoordsCode = pf.FindAndCheckCode('TranslateCoords.py')
-FindSeqsInFastaCode = pf.FindAndCheckCode('FindSeqsInFasta.py')
-FindWindowsCode     = pf.FindAndCheckCode('FindInformativeWindowsInFasta.py')
+PythonPath = sys.executable
+
+TranslateCoordsCode = pf.FindAndCheckCode(PythonPath, 'TranslateCoords.py')
+FindSeqsInFastaCode = pf.FindAndCheckCode(PythonPath, 'FindSeqsInFasta.py')
+FindWindowsCode     = pf.FindAndCheckCode(PythonPath,
+'FindInformativeWindowsInFasta.py')
+
+
 
 # Test RAxML works
 if not (args.no_trees or ExploreWindowWidths):
@@ -762,7 +777,8 @@ def TranslateCoords(CodeArgs):
   a dict.'''
 
   try:
-    CoordsString = subprocess.check_output([TranslateCoordsCode]+CodeArgs)
+    CoordsString = subprocess.check_output([PythonPath, TranslateCoordsCode] + \
+    CodeArgs)
   except:
     print('Problem executing', TranslateCoordsCode +'. Quitting.',
     file=sys.stderr)
@@ -900,7 +916,7 @@ else:
       args.pairwise_align_to] + [str(coord) for coord in WindowCoords])
       if set(PairwiseCoordsDict.keys()) != \
       set([BamRefSeq.id,args.pairwise_align_to]):
-        print('Malfunction of phylotypes: mismatch between the sequences',
+        print('Malfunction of phyloscanner: mismatch between the sequences',
         'found in the output of', TranslateCoordsCode, 'and the two names "' + \
         BamRefSeq.id+'", "'+args.pairwise_align_to +'". Quitting.',
         file=sys.stderr)
@@ -962,7 +978,7 @@ else:
 
     # Determine windows automatically if desired
     if AutoWindows:
-      command = [FindWindowsCode, FileForAlignedRefs,
+      command = [PythonPath, FindWindowsCode, FileForAlignedRefs,
       str(WeightedWindowWidth), str(WindowOverlap), '-S', str(WindowStartPos)]
       if NumAutoWindowParams == 4:
         command += ['-E', str(WindowEndPos)]
@@ -995,7 +1011,7 @@ else:
     # coord translation, should cooincide with all seqs we're considering (i.e.
     # those in FileForAlignedRefs).
     if set(CoordsInRefs.keys()) != set(BamAliases+ExternalRefNames):
-      print('Malfunction of phylotypes: mismatch between the sequences found',
+      print('Malfunction of phyloscanner: mismatch between the sequences found',
       'in the output of', TranslateCoordsCode, 'and those in',
       FileForAlignedRefs +'. Quitting.', file=sys.stderr)
       exit(1)
@@ -1769,9 +1785,13 @@ for window in range(NumCoords / 2):
         WindowWidthExplorationData.append([UserLeftWindowEdge,
         UserRightWindowEdge, alias, 0])
     else:
-      print('WARNING: no bam file had any reads (after a minimum post-merging '+\
-      'read count of', args.min_read_count, 'was imposed) in the window',
-      ThisWindowAsStr + '. Skipping to the next window.', file=sys.stderr)
+      message = 'WARNING: no bam file had any reads '
+      if args.min_read_count > 1:
+        message += '(after a minimum read count of ' + \
+        str(args.min_read_count) + ' was imposed) '
+      message += 'in the window ' + ThisWindowAsStr + \
+      '. Skipping to the next window.'
+      print(message, file=sys.stderr)
     continue
 
   # Re-define the window edge coords to be with respect to the alignment of refs
@@ -1796,7 +1816,7 @@ for window in range(NumCoords / 2):
       if RegexMatch and TheReadID[:RegexMatch.start()] in BamAliases:
         TheBamWithOneRead = TheReadID[:RegexMatch.start()]
       else:
-        print('Malfunction of phylotypes: there is only one read in the ',
+        print('Malfunction of phyloscanner: there is only one read in the ',
         'window ', ThisWindowAsStr, ', namely ', TheReadID,
         ", but we can't figure out which bam we got it from. Quitting.", sep='',
         file=sys.stderr)
@@ -1815,7 +1835,6 @@ for window in range(NumCoords / 2):
     continue
   SeqIO.write(AllReadsInThisWindow, TempFileForReadsHere, "fasta")
   TempFiles.add(TempFileForReadsHere)
-  OutputFilesByDestinationDir['AlignedReads'].append(FileForAlnReadsHere)
   FileForTrees = FileForAlnReadsHere
 
   # If external refs are included, find the part of each one's seq corresponding
@@ -1845,7 +1864,7 @@ for window in range(NumCoords / 2):
     else:
       with open(TempFileForOtherRefsHere, 'w') as f:
         try:
-          ExitStatus = subprocess.call([FindSeqsInFastaCode,
+          ExitStatus = subprocess.call([PythonPath, FindSeqsInFastaCode,
           FileForAlignedRefs, '-B', '-W', str(LeftWindowEdge) + ',' + \
           str(RightWindowEdge), '-v'] + BamAliases, stdout=f)
           assert ExitStatus == 0
@@ -1898,7 +1917,7 @@ for window in range(NumCoords / 2):
   try:
     SeqAlignmentHere = AlignIO.read(FileForReads, "fasta")
   except:
-    print('Malfunction of phylotypes: problem encountered reading in',
+    print('Malfunction of phyloscanner: problem encountered reading in',
     FileForReads, 'as an alignment. Quitting.', file=sys.stderr)
     raise
 
@@ -1918,6 +1937,7 @@ for window in range(NumCoords / 2):
       file=sys.stderr)
       raise
     AlignIO.write(SeqAlignmentHere, FileForAlnReadsHere, 'fasta')
+    OutputFilesByDestinationDir['AlignedReads'].append(FileForAlnReadsHere)
 
 
   # Find & write the consensuses.
@@ -1962,11 +1982,11 @@ for window in range(NumCoords / 2):
           RefInAlignment = str(seq.seq)
           break
       if RefInAlignment == None:
-        print('Malfunction of phylotypes: unable to find', args.excision_ref,
+        print('Malfunction of phyloscanner: unable to find', args.excision_ref,
         'in', FileForAlnReadsHere +'. Quitting.', file=sys.stderr)
         exit(1)
       if RefInAlignment.replace(GapChar,'') != UngappedRefHere:
-        print('Malfunction of phylotypes: mismatch between the ref for',
+        print('Malfunction of phyloscanner: mismatch between the ref for',
         'excision we expected to find in this window:\n', UngappedRefHere,
         '\nand the ref for excision we actually found in this window:\n',
         RefInAlignment.replace(GapChar,''), '\nQuitting.', file=sys.stderr)
@@ -2054,7 +2074,7 @@ for window in range(NumCoords / 2):
           DuplicatedAliases = [alias for alias, count in \
           collections.Counter(aliases).items() if count > 1]
           if DuplicatedAliases != []:
-            print('Malfunction of phylotypes - the each of the following bam',
+            print('Malfunction of phyloscanner - the each of the following bam',
             'files has more than one copy of the same sequence after '
             'processing:', ' '.join(DuplicatedAliases) + '. Quitting.',
             file=sys.stderr)
