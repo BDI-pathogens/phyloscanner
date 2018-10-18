@@ -220,7 +220,7 @@ ptrees <- phyloscanner.generate.blacklist(
 
 
 if(output.blacklisting.report){
-  if (verbosity!=0) cat('Saving blacklisting report to file', paste0(output.string,"_blacklistReport.csv"),'...\n', sep="")
+  if (verbosity!=0) cat('Saving blacklisting report to file ', paste0(output.string,"_blacklistReport.csv"),'...\n', sep="")
   
   dfs <- lapply(ptrees, function(x) {
     treebl.df <- x$bl.report
@@ -247,7 +247,7 @@ silent <- sapply(ptrees, function(ptree){
     new.seqs <- seqs[which(!(labels(seqs) %in% ptree$original.tip.labels[ptree$blacklist])),]
     new.afn  <- paste0(output.string, "_", ptree$id, ".fasta")
     
-    if(verbosity!=0) cat("Writing cleaned alignment to ",new.afn, "\n", sep="")
+    if(verbosity!=0) cat("Writing cleaned alignment to ",new.afn, "...\n", sep="")
     write.dna(new.seqs, new.afn, format="fasta")
 
   } else {
@@ -257,7 +257,7 @@ silent <- sapply(ptrees, function(ptree){
 })
 
 if(output.rda){
-  if (verbosity!=0) cat('Saving R workspace image to file', paste0(output.string,"_workspace.rda"),'...\n')
+  if (verbosity!=0) cat('Saving R workspace image to file ', paste0(output.string,"_workspace.rda"),'...\n', sep="")
   save.image(file=file.path(output.dir, paste0(output.string,"_workspace.rda")))
 }
 
