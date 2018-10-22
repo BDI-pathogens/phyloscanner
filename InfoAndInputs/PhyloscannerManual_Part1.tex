@@ -116,14 +116,18 @@ The \c{--explore-window-widths} option of \pmt was written with the following ba
 If a window is too wide, too few reads overlap it, as discussed.
 However if it is too small, there aren't enough positions at which a variant can be observed and so few {\it unique} reads will be observed in the window.
 Somewhere between these two extremes therefore maximises the number of unique reads.
-The \c{--explore-window-widths} option reports, for each in a list of window widths to try, how many unique reads are found in each bam and in each successive along the genome.
-To summarise these read counts into a single value that varies with window width, you could use the mean or the median, or you might be interested in a percentile lower than the 50th, if your concern is ensuring some minimal amount of diversity across all bams and all genomic positions.
-Up to you.
-Anecdotally, I did not find this option useful for our HIV data: manually examining phylogenies revealed that they were more interesting when a larger window width was used than the one that maximised the number of unique reads.
+The \c{--explore-window-widths} option reports, for each in a list of window widths to try, a two-dimensional matrix of count values -- the number of unique reads found in each bam and in each successive window along the genome.
+One way of visually summarising this matrix of counts as a function of window widths is to give the file containing this data as the argument to \c{tools/PlotExplorationOfWindowWidths.py}, which calculates and plots various percentiles of the matrix of counts.
+e.g. for a given window width, the 50th percentile of the counts means that half of all the windows from all the bams had more unique sequences than this, and half had fewer.
+Anecdotally, for our HIV data, I did not find that maximising the number of unique sequences per window gave the best results: manually examining phylogenies revealed that a larger window width produced more revealing trees.
+But this option can still be helpful for quantifying the decline in how many unique sequences you get as window width is increased out towards the largest possible values.
 
-(Note that some of the other options can affect how many reads you get in a window and so can affect what \c{--explore-window-widths} will tell you, namely the \c{--excision-coords}, \c{--merging-threshold}, \c{--min-read-count}, \c{--quality-trim-ends}, \c{--min-internal-quality}, and \c{--discard-improper-pairs} options.
-The first two can result in two or more unique reads being merged into one; the rest can simply discard some reads.
+The regular \c{--explore-window-widths} option calculates the number of unique reads after all read processing has been done, including aligning the reads from all bams using mafft, and other options you may have specified that affect how many unique reads survive, for example \c{--excision-coords}, \c{--merging-threshold}, \c{--min-read-count}, \c{--quality-trim-ends}, \c{--min-internal-quality}, and \\\c{--discard-improper-pairs} options.
+The first two of these can result in two or more unique reads being merged into one; the rest can simply discard some reads.
 You could choose values for the associated parameters immediately and then use \c{--explore-window-widths}, or else come back to \c{--explore-window-widths} later on once you've got the hang of \pmt and investigated the effect of those other options in your data.)  
+
+There is also the \c{--explore-window-widths-speedy} option which is almost identical: the difference is that this counts the number of unique reads in the window straight away after they are extracted from the bam, before any processing of them has been done (including aligning them all with \c{mafft}).
+If you don't care about read processing steps that change the number of unique reads, use this because it's faster.
 
 Power users might want to optimise their own measure of phylogenetic information as a function of window width; one of the first metrics to pop into your head might be the mean bootstrap of all nodes in the tree.
 That's not advised because within a sample there may be many very similar sequences, and the set of nodes connecting these may have poor bootstrap support, but this is not something that ought to be penalised.
