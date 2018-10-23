@@ -1,0 +1,75 @@
+
+
+WARNING: RAxML is not checking sequences for duplicate seqs and sites with missing data!
+
+
+
+Using BFGS method to optimize GTR rate parameters, to disable this specify "--no-bfgs" 
+
+
+
+This is RAxML version 8.1.24 released by Alexandros Stamatakis on June 29 2015.
+
+With greatly appreciated code contributions by:
+Andre Aberer      (HITS)
+Simon Berger      (HITS)
+Alexey Kozlov     (HITS)
+Kassian Kobert    (HITS)
+David Dao         (KIT and HITS)
+Nick Pattengale   (Sandia)
+Wayne Pfeiffer    (SDSC)
+Akifumi S. Tanabe (NRIFS)
+
+Alignment has 184 distinct alignment patterns
+
+Proportion of gaps and completely undetermined characters in this alignment: 1.03%
+
+RAxML rapid hill-climbing mode
+
+Using 1 distinct models/data partitions with joint branch length optimization
+
+
+Executing 1 inferences on the original alignment using 1 distinct randomized MP trees
+
+All free model parameters will be estimated by RAxML
+ML estimate of 25 per site rate categories
+
+Likelihood of final tree will be evaluated and optimized under GAMMA
+
+GAMMA Model parameters will be estimated up to an accuracy of 0.1000000000 Log Likelihood units
+
+Partition: 0
+Alignment Patterns: 184
+Name: No Name Provided
+DataType: DNA
+Substitution Matrix: GTR
+
+
+
+
+RAxML was called as follows:
+
+raxmlHPC-AVX -m GTRCAT -p 1 --no-seq-check -s AlignedReadsInWindow_5000_to_5299.fasta -n InWindow_5000_to_5299.tree 
+
+
+Partition: 0 with name: No Name Provided
+Base frequencies: 0.373 0.144 0.264 0.219 
+
+Inference[0]: Time 2.295776 CAT-based likelihood -2074.937226, best rearrangement setting 5
+alpha[0]: 1.000000 rates[0] ac ag at cg ct gt: 2.038556 1.472816 0.799791 1.426922 4.154900 1.000000 
+
+
+Conducting final model optimizations on all 1 trees under GAMMA-based models ....
+
+Inference[0] final GAMMA-based Likelihood: -2271.851512 tree written to file /home/chris/TestFoo/RAxML_result.InWindow_5000_to_5299.tree
+
+
+Starting final GAMMA-based thorough Optimization on tree 0 likelihood -2271.851512 .... 
+
+Final GAMMA-based Score of best tree -2271.022529
+
+Program execution info written to /home/chris/TestFoo/RAxML_info.InWindow_5000_to_5299.tree
+Best-scoring ML tree written to: /home/chris/TestFoo/RAxML_bestTree.InWindow_5000_to_5299.tree
+
+Overall execution time: 4.143046 secs or 0.001151 hours or 0.000048 days
+

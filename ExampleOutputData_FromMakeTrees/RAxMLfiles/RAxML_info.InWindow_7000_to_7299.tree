@@ -1,0 +1,85 @@
+
+
+WARNING: RAxML is not checking sequences for duplicate seqs and sites with missing data!
+
+
+
+Using BFGS method to optimize GTR rate parameters, to disable this specify "--no-bfgs" 
+
+
+
+This is RAxML version 8.1.24 released by Alexandros Stamatakis on June 29 2015.
+
+With greatly appreciated code contributions by:
+Andre Aberer      (HITS)
+Simon Berger      (HITS)
+Alexey Kozlov     (HITS)
+Kassian Kobert    (HITS)
+David Dao         (KIT and HITS)
+Nick Pattengale   (Sandia)
+Wayne Pfeiffer    (SDSC)
+Akifumi S. Tanabe (NRIFS)
+
+Alignment has 314 distinct alignment patterns
+
+Proportion of gaps and completely undetermined characters in this alignment: 8.34%
+
+RAxML rapid hill-climbing mode
+
+Using 1 distinct models/data partitions with joint branch length optimization
+
+
+Executing 1 inferences on the original alignment using 1 distinct randomized MP trees
+
+All free model parameters will be estimated by RAxML
+ML estimate of 25 per site rate categories
+
+Likelihood of final tree will be evaluated and optimized under GAMMA
+
+GAMMA Model parameters will be estimated up to an accuracy of 0.1000000000 Log Likelihood units
+
+Partition: 0
+Alignment Patterns: 314
+Name: No Name Provided
+DataType: DNA
+Substitution Matrix: GTR
+
+
+
+
+RAxML was called as follows:
+
+raxmlHPC-AVX -m GTRCAT -p 1 --no-seq-check -s AlignedReadsInWindow_7000_to_7299.fasta -n InWindow_7000_to_7299.tree 
+
+
+Partition: 0 with name: No Name Provided
+Base frequencies: 0.420 0.153 0.203 0.224 
+
+Inference[0]: Time 15.680365 CAT-based likelihood -7007.863521, best rearrangement setting 5
+alpha[0]: 1.000000 rates[0] ac ag at cg ct gt: 1.125436 0.891789 0.579404 1.338971 1.387973 1.000000 
+
+
+Conducting final model optimizations on all 1 trees under GAMMA-based models ....
+
+
+WARNING the alpha parameter with a value of 11.411433 estimated by RAxML for partition number 0 with the name "No Name Provided"
+is larger than 10.000000. You should do a model test and confirm that you actually need to incorporate a model of rate heterogeneity!
+You can run inferences with a plain substitution model (without rate heterogeneity) by specifyng the CAT model and the "-V" option!
+
+
+WARNING the alpha parameter with a value of 11.591780 estimated by RAxML for partition number 0 with the name "No Name Provided"
+is larger than 10.000000. You should do a model test and confirm that you actually need to incorporate a model of rate heterogeneity!
+You can run inferences with a plain substitution model (without rate heterogeneity) by specifyng the CAT model and the "-V" option!
+
+Inference[0] final GAMMA-based Likelihood: -7198.772253 tree written to file /home/chris/TestFoo/RAxML_result.InWindow_7000_to_7299.tree
+
+
+Starting final GAMMA-based thorough Optimization on tree 0 likelihood -7198.772253 .... 
+
+Final GAMMA-based Score of best tree -7198.772251
+
+Program execution info written to /home/chris/TestFoo/RAxML_info.InWindow_7000_to_7299.tree
+Best-scoring ML tree written to: /home/chris/TestFoo/RAxML_bestTree.InWindow_7000_to_7299.tree
+
+Overall execution time: 30.115883 secs or 0.008366 hours or 0.000349 days
+
