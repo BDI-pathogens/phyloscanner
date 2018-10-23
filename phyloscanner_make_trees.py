@@ -1905,6 +1905,8 @@ for window in range(NumCoords / 2):
       'not exist. Skipping to the next window.', file=sys.stderr)
       continue
 
+  if not MergeReads:
+    OutputFilesByDestinationDir['AlignedReads'].append(FileForAlnReadsHere)
 
   # Update on time taken if desired
   if args.time:
