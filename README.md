@@ -26,23 +26,24 @@ If you use phyloscanner for published work, please cite it and the tools it uses
 
 The simulated bam files in [ExampleInputData](ExampleInputData) illustrate interesting within- and between-host diversity.
 Let's analyse them with phyloscanner.
-For this example I'll assume you've downloaded the phyloscanner code to your home directory, i.e. that it is found in `~/phyloscanner/`.
+For this example I'll assume you've downloaded the phyloscanner code to your home directory, i.e. that it is found in `~/phyloscanner/` (if you have put it in a different path, replace every occurrence of `~/phyloscanner/` below by that path).
 First we need to make a file listing the files we want analysed; that file should be comma-separated variable format, containing lines like this: `BamFile1,ReferenceFile1,ID1` where the third field is optional (if present it is used as an ID for that bam file).
 You can make that csv file manually if you like, but here is an example of making it automatically from the command line for these bam files:
 ```bash
 for i in ~/phyloscanner/ExampleInputData/*.bam; do
-  RefFile=${i%.bam}_ref.fasta;
-  echo $i,$RefFile
+  RefFile=${i%.bam}_ref.fasta
+  ID=$(basename "${i%.bam}")
+  echo $i,$RefFile,$ID
 done > InputFileList.csv
 ```
-To make some within- & between-host phylogenies, run this command from the directory where your local copy of this code repostory lives (or adjusting paths appropriately if run from another directory):
+To make some within- & between-host phylogenies, run the following command:
 ```bash
 ~/phyloscanner/phyloscanner_make_trees.py InputFileList.csv --auto-window-params 300,-700,1000,8300 --alignment-of-other-refs ~/phyloscanner/InfoAndInputs/2refs_HXB2_C.BW.fasta --pairwise-align-to B.FR.83.HXB2_LAI_IIIB_BRU.K03455 
 ```
 (Those window parameters make best use of this simulated data, the `-A` option includes an alignment of extra reference sequences along with the reads, see the manual for the `--pairwise-align-to` option.)  
 Now let's analyse those phylogenies:
 ```bash
-~/phyloscanner/phyloscanner_analyse_trees.R RAxMLfiles/RAxML_bestTree. MyOutput s,20 --outgroupName C.BW.00.00BW07621.AF443088 --multifurcationThreshold g
+~/phyloscanner/phyloscanner_analyse_trees.R RAxMLfiles/RAxML_bestTree. MyOutput s,12.5 --outgroupName C.BW.00.00BW07621.AF443088 --multifurcationThreshold g
 ```
 In the output you'll see trees and summary information indicating that these samples constitute:
 * a straightforward, singly infected individual, 
@@ -50,7 +51,7 @@ In the output you'll see trees and summary information indicating that these sam
 * a contamination pair (one contaminating the other), and
 * a pair exhibiting *ancestry*, i.e. one having evolved from the other. For populations of pathogens, this implies transmission, either indirectly (via unsampled intermediate patients) or directly.
 
-Here is one of the trees from the output.
+The pdf trees in the output will all look quite similar to this one below.
 Each patient has many sequences (reads), with one colour per patient.
 Extra reference sequences are coloured black.
 Can you see why each of the patients merits their label?
