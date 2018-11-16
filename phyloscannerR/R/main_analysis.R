@@ -301,7 +301,7 @@ initialise.phyloscanner <- function(
           row <- rows[1]
           nc  <- as.numeric(nc.df[row, 2])
           if(is.na(nc)){
-            warning("Tree with ID ",ptree$id," given a normalisation constant in file ",norm.constants," which cannot be processed as a number; this tree will not have normalised branch lengths\n")
+            warning("Tree with ID ",ptree$id," given a normalisation constant in file ",norm.constants," which cannot be parsed as a number; this tree will not have normalised branch lengths\n")
             nc <- 1
           }
         } else {
@@ -366,8 +366,15 @@ initialise.phyloscanner <- function(
           }
           
           ptrees <- sapply(ptrees, function(ptree){
-            ptree$normalisation.constant <- lookup.normalisation.for.tree(ptree, norm.table, lookup.column = "NORM_CONST")
-            ptree
+            nc <- lookup.normalisation.for.tree(ptree, norm.table, lookup.column = "NORM_CONST")
+            if(!is.na(nc)){
+              ptree$normalisation.constant <- nc
+              return(ptree)
+            } else {
+              warning("Window coordinates for tree ID ",ptree$id," overlap no coordinates in lookup file. ***Excluding this tree from the analysis***.")
+              return(NULL)
+            }
+
           }, simplify = F, USE.NAMES = T)
         }
       } else {
