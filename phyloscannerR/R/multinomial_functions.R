@@ -69,9 +69,9 @@ multinomial.calculations <- function(ptrees,
   }))
   
   if(verbose) cat('Reducing transmission window stats to windows with at least',min.reads,'reads and at least',min.tips,'tips...\n')
-  
-  all.classifications	<- all.classifications %>% 
-    filter(reads.1 >= min.reads & reads.2 >= min.reads & tips.1 >= min.tips & tips.2 >= min.tips)
+  # only for counts. 
+  #all.classifications	<- all.classifications %>% 
+  #  filter(reads.1 >= min.reads & reads.2 >= min.reads & tips.1 >= min.tips & tips.2 >= min.tips)
   
   if(verbose) cat('Total number of windows with transmission assignments is ',nrow(all.classifications),'.\n', sep="")		
   
@@ -429,6 +429,131 @@ categorise <- function(df, col.name, no.match.result = NA_character_, ...){
   }
   df
 }
+
+#' @keywords internal
+#' @title Define basic topological relationships between two individuals
+#' @author Oliver Ratmann
+get.pairwise.relationships.basic <- function(all.classifications)
+{
+	stopifnot( all(c('contiguous','adjacent','paths12','paths21')%in%colnames(all.classifications)) )
+	# define "XXX_contiguous"
+	tmp			<- all.classifications %>% filter(contiguous & adjacent)
+	class 		<- list()
+	class[[1]]	<- tmp %>% filter(paths12>0 & paths21==0) %>% mutate(basic.classification:= "anc_contiguous")
+	class[[2]]	<- tmp %>% filter(paths12==0 & paths21>0) %>% mutate(basic.classification:= "desc_contiguous")
+	class[[3]]	<- tmp %>% filter(paths12>0 & paths21>0) %>% mutate(basic.classification:= "intermingled_contiguous")
+	class[[4]]	<- tmp %>% filter(paths12==0 & paths21==0) %>% mutate(basic.classification:= "sibling_contiguous")
+	# define "XXX_noncontiguous"
+	tmp			<- all.classifications %>% filter(!contiguous & adjacent)
+	class[[5]]	<- tmp %>% filter(paths12>0 & paths21==0) %>% mutate(basic.classification:= "anc_noncontiguous")
+	class[[6]]	<- tmp %>% filter(paths12==0 & paths21>0) %>% mutate(basic.classification:= "desc_noncontiguous")
+	class[[7]]	<- tmp %>% filter(paths12>0 & paths21>0) %>% mutate(basic.classification:= "intermingled_noncontiguous")
+	class[[8]]	<- tmp %>% filter(paths12==0 & paths21==0) %>% mutate(basic.classification:= "sibling_noncontiguous")
+	# define "other"
+	class[[9]]	<- all.classifications %>% filter(!adjacent) %>% mutate(basic.classification:= "other")
+	class		<- bind_rows(class)
+	stopifnot(nrow(all.classifications)==nrow(class))
+	class
+}
+
+#' @keywords internal
+#' @title Group to determine phylogenetic linkage based on adjacent subgraphs
+#' @author Oliver Ratmann 
+get.pairwise.relationships.close.and.adjacent.cat <- function(all.classifications)
+{
+	stopifnot( all(c('adjacent','categorical.distance')%in%colnames(all.classifications)) )
+	class 		<- list()
+	class[[1]]	<- all.classifications %>% filter(categorical.distance=='close' & adjacent) %>% mutate(close.and.adjacent.cat:= 'close.and.adjacent')
+	class[[2]]	<- all.classifications %>% filter(!(categorical.distance=='close' & adjacent)) %>% mutate(close.and.adjacent.cat:= 'not.close.or.nonadjacent')
+	class		<- bind_rows(class)
+	stopifnot(nrow(class)==nrow(all.classifications))
+	class
+}
+
+#' @keywords internal
+#' @title Group to determine phylogenetic linkage based on contiguous subgraphs
+#' @author Oliver Ratmann 
+get.pairwise.relationships.close.and.contiguous.cat <- function(all.classifications)
+{
+	stopifnot( all(c('contiguous','categorical.distance')%in%colnames(all.classifications)) )
+	class 		<- list()
+	class[[1]]	<- all.classifications %>% filter(categorical.distance=='close' & contiguous) %>% mutate(close.and.adjacent.cat:= 'close.and.contiguous')
+	class[[2]]	<- all.classifications %>% filter(!(categorical.distance=='close' & contiguous)) %>% mutate(close.and.adjacent.cat:= 'not.close.or.noncontiguous')
+	class		<- bind_rows(class)
+	stopifnot(nrow(class)==nrow(all.classifications))
+	class
+}
+
+#' @keywords internal
+#' @title Group to determine probabilities for transmission networks based on adjacent subgraphs
+#' @description Define basic topological relationships 'close and 12', 'close and 21', 'close and ambiguous direction', 'not close or not adjacent'
+#' @author Oliver Ratmann 
+get.pairwise.relationships.close.and.adjacent.and.ancestry.cat <- function(all.classifications)
+{
+	stopifnot( all(c('adjacent','categorical.distance','basic.classification')%in%colnames(all.classifications)) )
+	tmp			<- all.classifications %>% filter(categorical.distance=='close' & adjacent)
+	class 		<- list()
+	class[[1]] 	<- tmp %>% filter(grepl('anc',basic.classification)) %>% mutate(close.and.adjacent.and.ancestry.cat:= '12')
+	class[[2]] 	<- tmp %>% filter(grepl('desc',basic.classification)) %>% mutate(close.and.adjacent.and.ancestry.cat:= '21')
+	class[[3]] 	<- tmp %>% filter(grepl('sibling|intermingled|noancestry|complex',basic.classification)) %>% mutate(close.and.adjacent.and.ancestry.cat:= 'complex.or.no.ancestry')
+	class[[4]] 	<- all.classifications %>% filter(!(categorical.distance=='close' & adjacent)) %>% mutate(close.and.adjacent.and.ancestry.cat:= 'not.close.or.nonadjacent')
+	class		<- bind_rows(class)
+	stopifnot(nrow(class)==nrow(all.classifications))
+	class			
+}
+
+#' @keywords internal
+#' @title Group to determine direction of transmission in likely pairs based on adjacent subgraphs
+#' @author Oliver Ratmann 
+get.pairwise.relationships.close.and.adjacent.and.directed.cat <- function(all.classifications)
+{
+	stopifnot( all(c('adjacent','categorical.distance','basic.classification')%in%colnames(all.classifications)) )
+	tmp			<- all.classifications %>% filter(categorical.distance=='close' & adjacent)
+	class 		<- list()
+	class[[1]] 	<- tmp %>% filter(grepl('anc',basic.classification)) %>% mutate(close.and.adjacent.and.directed.cat:= '12')
+	class[[2]] 	<- tmp %>% filter(grepl('desc',basic.classification)) %>% mutate(close.and.adjacent.and.directed.cat:= '21')
+	class[[3]] 	<- tmp %>% filter(grepl('sibling|intermingled|noancestry|complex',basic.classification)) %>% mutate(close.and.adjacent.and.directed.cat:= NA_character_)
+	class[[4]] 	<- all.classifications %>% filter(!(categorical.distance=='close' & adjacent)) %>% mutate(close.and.adjacent.and.directed.cat:= NA_character_)
+	class		<- bind_rows(class)
+	stopifnot(nrow(class)==nrow(all.classifications))
+	class			
+}
+
+#' @keywords internal
+#' @title Group to determine direction of transmission in likely pairs based on contiguous subgraphs
+#' @author Oliver Ratmann 
+get.pairwise.relationships.close.and.contiguous.and.directed.cat <- function(all.classifications)
+{
+	stopifnot( all(c('contiguous','categorical.distance','basic.classification')%in%colnames(all.classifications)) )
+	tmp			<- all.classifications %>% filter(categorical.distance=='close' & contiguous)
+	class 		<- list()
+	class[[1]] 	<- tmp %>% filter(grepl('anc',basic.classification)) %>% mutate(close.and.contiguous.and.directed.cat:= '12')
+	class[[2]] 	<- tmp %>% filter(grepl('desc',basic.classification)) %>% mutate(close.and.contiguous.and.directed.cat:= '21')
+	class[[3]] 	<- tmp %>% filter(grepl('sibling|intermingled|noancestry|complex',basic.classification)) %>% mutate(close.and.contiguous.and.directed.cat:= NA_character_)
+	class[[4]] 	<- all.classifications %>% filter(!(categorical.distance=='close' & contiguous)) %>% mutate(close.and.contiguous.and.directed.cat:= NA_character_)
+	class		<- bind_rows(class)
+	stopifnot(nrow(class)==nrow(all.classifications))
+	class			
+}
+
+#' @keywords internal
+#' @title Group to determine probabilities for transmission networks based on contiguous subgraphs
+#' @description Define basic topological relationships 'close and 12', 'close and 21', 'close and ambiguous direction', 'not close or not contiguous'
+#' @author Oliver Ratmann 
+get.pairwise.relationships.close.and.contiguous.and.ancestry.cat <- function(all.classifications)
+{
+	stopifnot( all(c('contiguous','categorical.distance','basic.classification')%in%colnames(all.classifications)) )
+	tmp			<- all.classifications %>% filter(categorical.distance=='close' & contiguous)
+	class 		<- list()
+	class[[1]] 	<- tmp %>% filter(grepl('anc',basic.classification)) %>% mutate(close.and.contiguous.and.ancestry.cat:= '12')
+	class[[2]] 	<- tmp %>% filter(grepl('desc',basic.classification)) %>% mutate(close.and.contiguous.and.ancestry.cat:= '21')
+	class[[3]] 	<- tmp %>% filter(grepl('sibling|intermingled|noancestry|complex',basic.classification)) %>% mutate(close.and.contiguous.and.ancestry.cat:= 'complex.or.no.ancestry')
+	class[[4]] 	<- all.classifications %>% filter(!(categorical.distance=='close' & contiguous)) %>% mutate(close.and.contiguous.and.ancestry.cat:= 'not.close.or.noncontiguous')
+	class		<- bind_rows(class)
+	stopifnot(nrow(class)==nrow(all.classifications))
+	class			
+}
+
 
 get.pairwise.relationship.category.counts <- function() {
   tmp	<- matrix(c('proximity.3.way', 3,
