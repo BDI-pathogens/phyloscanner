@@ -38,7 +38,7 @@
 #' }	
 count.pairwise.relationships<- function(dwin, w.slide=NA, verbose=TRUE)	
 {
-	stopifnot(c('host.1', 'host.2', 'window.start', 'window.end', 'basic.classification','categorical.distance') %in% colnames(dwin))
+	stopifnot(c('host.1', 'host.2', 'basic.classification','categorical.distance') %in% colnames(dwin))
 	
 	if(verbose) cat('Finding window coordinates...\n')
 	
@@ -142,6 +142,6 @@ count.pairwise.relationships<- function(dwin, w.slide=NA, verbose=TRUE)
 			inner_join(tmp, by=c('host.1','host.2','cat')) %>%
 			ungroup() %>%
 			rename(categorisation=cat) %>%
-			arrange(host.1,host.2,cat,categorical.distance,type) 			
+			arrange(host.1,host.2,categorisation,categorical.distance,type) 			
 	dc
 }

@@ -85,7 +85,7 @@ classify.pairwise.relationships<- function(ptrees,
 				select(host.1,host.2,tree.id,categorical.distance) %>%
 				phyloscannerR:::get.pairwise.relationships.proximity.3.way.cat() %>%
 				group_by(host.1,host.2,tree.id) %>%
-				inner_join(dwin) %>%
+				inner_join(dwin, by=c('host.1','host.2','tree.id')) %>%
 				ungroup() %>%
 				select(-proximity.3.way.cat,proximity.3.way.cat)				
 	}
@@ -95,7 +95,7 @@ classify.pairwise.relationships<- function(ptrees,
 				select(host.1,host.2,tree.id,contiguous,ancestry) %>%
 				phyloscannerR:::get.pairwise.relationships.any.ancestry.cat() %>%
 				group_by(host.1,host.2,tree.id) %>%
-				inner_join(dwin) %>%
+				inner_join(dwin, by=c('host.1','host.2','tree.id')) %>%
 				ungroup() %>%
 				select(-proximity.3.way.cat,any.ancestry.cat)
 	}
@@ -105,7 +105,7 @@ classify.pairwise.relationships<- function(ptrees,
 				select(host.1,host.2,tree.id,contiguous,categorical.distance) %>%
 				phyloscannerR:::get.pairwise.relationships.close.x.contiguous.cat() %>%
 				group_by(host.1,host.2,tree.id) %>%
-				inner_join(dwin) %>%
+				inner_join(dwin, by=c('host.1','host.2','tree.id')) %>%
 				ungroup() %>%
 				select(-proximity.3.way.cat,close.x.contiguous.cat)
 	}	
@@ -115,7 +115,7 @@ classify.pairwise.relationships<- function(ptrees,
 				select(host.1,host.2,tree.id,contiguous,categorical.distance) %>%
 				phyloscannerR:::get.pairwise.relationships.close.and.contiguous.cat() %>%
 				group_by(host.1,host.2,tree.id) %>%
-				inner_join(dwin) %>%
+				inner_join(dwin, by=c('host.1','host.2','tree.id')) %>%
 				ungroup() %>%
 				select(-close.and.contiguous.cat,close.and.contiguous.cat)
 	}
@@ -125,7 +125,7 @@ classify.pairwise.relationships<- function(ptrees,
 				select(host.1,host.2,tree.id,adjacent,categorical.distance) %>%
 				phyloscannerR:::get.pairwise.relationships.close.and.adjacent.cat() %>%
 				group_by(host.1,host.2,tree.id) %>%
-				inner_join(dwin) %>%
+				inner_join(dwin, by=c('host.1','host.2','tree.id')) %>%
 				ungroup() %>%
 				select(-close.and.adjacent.cat,close.and.adjacent.cat)
 	}
@@ -135,7 +135,7 @@ classify.pairwise.relationships<- function(ptrees,
 				select(host.1,host.2,tree.id,contiguous,categorical.distance,basic.classification) %>%
 				phyloscannerR:::get.pairwise.relationships.close.and.contiguous.and.directed.cat() %>%
 				group_by(host.1,host.2,tree.id) %>%
-				inner_join(dwin) %>%
+				inner_join(dwin, by=c('host.1','host.2','tree.id')) %>%
 				ungroup() %>%
 				select(-close.and.contiguous.and.directed.cat,close.and.contiguous.and.directed.cat)
 	}
@@ -145,7 +145,7 @@ classify.pairwise.relationships<- function(ptrees,
 				select(host.1,host.2,tree.id,adjacent,categorical.distance,basic.classification) %>%
 				phyloscannerR:::get.pairwise.relationships.close.and.adjacent.and.directed.cat() %>%
 				group_by(host.1,host.2,tree.id) %>%
-				inner_join(dwin) %>%
+				inner_join(dwin, by=c('host.1','host.2','tree.id')) %>%
 				ungroup() %>%
 				select(-close.and.adjacent.and.directed.cat,close.and.adjacent.and.directed.cat)
 	}
@@ -155,7 +155,7 @@ classify.pairwise.relationships<- function(ptrees,
 				select(host.1,host.2,tree.id,contiguous,categorical.distance,basic.classification) %>%
 				phyloscannerR:::get.pairwise.relationships.close.and.contiguous.and.ancestry.cat() %>%
 				group_by(host.1,host.2,tree.id) %>%
-				inner_join(dwin) %>%
+				inner_join(dwin, by=c('host.1','host.2','tree.id')) %>%
 				ungroup() %>%
 				select(-close.and.contiguous.and.ancestry.cat,close.and.contiguous.and.ancestry.cat)
 	}
@@ -165,7 +165,7 @@ classify.pairwise.relationships<- function(ptrees,
 				select(host.1,host.2,tree.id,adjacent,categorical.distance,basic.classification) %>%
 				phyloscannerR:::get.pairwise.relationships.close.and.adjacent.and.ancestry.cat() %>%
 				group_by(host.1,host.2,tree.id) %>%
-				inner_join(dwin) %>%
+				inner_join(dwin, by=c('host.1','host.2','tree.id')) %>%
 				ungroup() %>%
 				select(-close.and.adjacent.and.ancestry.cat,close.and.adjacent.and.ancestry.cat)
 	}
