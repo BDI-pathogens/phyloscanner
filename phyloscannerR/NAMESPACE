@@ -2,6 +2,7 @@
 
 S3method(identify,window.coords)
 S3method(rename,user.blacklist.tips)
+S3method(select,windows.by.read.and.tip.count)
 export(.lookup.normalisation.for.coords)
 export(.write.ann.tree2)
 export(AlignPlots)
