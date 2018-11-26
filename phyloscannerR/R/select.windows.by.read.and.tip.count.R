@@ -1,5 +1,5 @@
 #' @title Select for further analysis relationship classifications by read and tip counts 
-#' @export
+#' @export select.windows.by.read.and.tip.count
 #' @import tidyverse 
 #' @author Oliver Ratmann, Matthew Hall
 #' @param ptrees A list of class \code{phyloscanner.trees} produced by \code{phyloscanner.analyse.trees}.
@@ -32,12 +32,12 @@
 #' tip.regex <- "^(.*)_fq[0-9]+_read_([0-9]+)_count_([0-9]+)$"
 #' min.reads <- 30
 #' min.tips <- 1
-#' dwin <- select.windows.by.read.and.tip.count(ptrees, dwin, tip.regex, min.reads, min.tips)
+#' dwin <- select.windows.by.read.and.tip.count(phsc, dwin, tip.regex, min.reads, min.tips)
 #' #
 #' # 	end of Rakai example
 #' #
 #' }	 	
-select.windows.by.read.and.tip.count	<- function(ptrees, dwin, tip.regex, min.reads, min.tips, verbose=TRUE)			
+select.windows.by.read.and.tip.count <- function(ptrees, dwin, tip.regex, min.reads, min.tips, verbose=TRUE)			
 {
 	host.tips.and.reads <- map(ptrees, function(x) phyloscannerR:::get.tip.and.read.counts(x, all.hosts.from.trees(ptrees), tip.regex, attr(ptrees, 'has.read.counts'), verbose))
 	host.tips.and.reads <- bind_rows(host.tips.and.reads)
