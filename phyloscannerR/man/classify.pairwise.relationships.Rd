@@ -6,9 +6,9 @@
 \usage{
 classify.pairwise.relationships(ptrees, allow.mt = TRUE,
   close.threshold = 0.025, distant.threshold = 0.05,
-  relationship.types = c("proximity.3.way", "close.and.contiguous",
-  "close.and.adjacent", "close.and.contiguous.and.directed",
-  "close.and.adjacent.and.directed",
+  relationship.types = c("proximity.3.way", "any.ancestry",
+  "close.x.contiguous", "close.and.contiguous", "close.and.adjacent",
+  "close.and.contiguous.and.directed", "close.and.adjacent.and.directed",
   "close.and.contiguous.and.ancestry.cat",
   "close.and.adjacent.and.ancestry.cat"), verbose = FALSE)
 }

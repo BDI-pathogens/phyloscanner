@@ -47,6 +47,8 @@ classify.pairwise.relationships<- function(ptrees,
 		close.threshold=0.025, 
 		distant.threshold=0.05,	
 		relationship.types=c('proximity.3.way',
+				'any.ancestry',
+				'close.x.contiguous',
 				'close.and.contiguous',
 				'close.and.adjacent',
 				'close.and.contiguous.and.directed',
@@ -87,6 +89,26 @@ classify.pairwise.relationships<- function(ptrees,
 				ungroup() %>%
 				select(-proximity.3.way.cat,proximity.3.way.cat)				
 	}
+	if('any.ancestry'%in%relationship.types)
+	{
+		dwin <- dwin %>% 
+				select(host.1,host.2,tree.id,contiguous,ancestry) %>%
+				phyloscannerR:::get.pairwise.relationships.any.ancestry.cat() %>%
+				group_by(host.1,host.2,tree.id) %>%
+				inner_join(dwin) %>%
+				ungroup() %>%
+				select(-proximity.3.way.cat,any.ancestry.cat)
+	}
+	if('close.x.contiguous'%in%relationship.types)
+	{
+		dwin <- dwin %>% 
+				select(host.1,host.2,tree.id,contiguous,categorical.distance) %>%
+				phyloscannerR:::get.pairwise.relationships.close.x.contiguous.cat() %>%
+				group_by(host.1,host.2,tree.id) %>%
+				inner_join(dwin) %>%
+				ungroup() %>%
+				select(-proximity.3.way.cat,close.x.contiguous.cat)
+	}	
 	if('close.and.contiguous'%in%relationship.types)
 	{
 		dwin <- dwin %>% 
@@ -175,6 +197,44 @@ get.pairwise.relationships.basic <- function(all.classifications)
 	stopifnot(nrow(all.classifications)==nrow(class))
 	class
 }
+
+#' @keywords internal
+#' @title Group to determine 2x2 table of distance and topology
+#' @author Oliver Ratmann, Matthew Hall
+get.pairwise.relationships.any.ancestry.cat <- function(all.classifications)
+{
+	stopifnot( all(c('host.1','host.2','tree.id','ancestry','contiguous')%in%colnames(all.classifications)) )	
+	class 		<- list()
+	class[[1]]	<- all.classifications %>% 
+						filter(contiguous & ancestry%in%c("anc", "desc", "multiAnc", "multiDesc", "complex")) %>% 
+						mutate(any.ancestry.cat:= 'anc.or.complex')		
+	class[[2]]	<- all.classifications %>% 
+						filter(!(contiguous & ancestry%in%c("anc", "desc", "multiAnc", "multiDesc", "complex"))) %>% 
+						mutate(any.ancestry.cat:= 'other')	
+	class		<- bind_rows(class)
+	stopifnot(nrow(class)==nrow(all.classifications))
+	class 		<- class %>% select(host.1,host.2,tree.id,any.ancestry.cat)
+	class	
+}
+
+
+#' @keywords internal
+#' @title Group to determine 2x2 table of distance and topology
+#' @author Oliver Ratmann, Matthew Hall
+get.pairwise.relationships.close.x.contiguous.cat <- function(all.classifications)
+{
+	stopifnot( all(c('host.1','host.2','tree.id','categorical.distance','contiguous')%in%colnames(all.classifications)) )	
+	class 		<- list()
+	class[[1]]	<- all.classifications %>% filter(categorical.distance!='close' & !contiguous) %>% mutate(close.x.contiguous.cat:= 'not.close.other')	
+	class[[2]]	<- all.classifications %>% filter(categorical.distance=='close' & !contiguous) %>% mutate(close.x.contiguous.cat:= 'noncontiguous_close')
+	class[[3]]	<- all.classifications %>% filter(categorical.distance!='close' & contiguous) %>% mutate(close.x.contiguous.cat:= 'contiguous_not.close')
+	class[[4]]	<- all.classifications %>% filter(categorical.distance=='close' & contiguous) %>% mutate(close.x.contiguous.cat:= 'contiguous_close')	
+	class		<- bind_rows(class)
+	stopifnot(nrow(class)==nrow(all.classifications))
+	class 		<- class %>% select(host.1,host.2,tree.id,close.x.contiguous.cat)
+	class	
+}
+
 
 #' @keywords internal
 #' @title Group to determine phylogenetic linkage based on distance only
