@@ -6,6 +6,7 @@
 \usage{
 classify.pairwise.relationships(ptrees, allow.mt = TRUE,
   close.threshold = 0.025, distant.threshold = 0.05,
+  use.paths.to.define.relationships = FALSE,
   relationship.types = c("proximity.3.way", "any.ancestry",
   "close.x.contiguous", "close.and.contiguous", "close.and.adjacent",
   "close.and.contiguous.and.directed", "close.and.adjacent.and.directed",
@@ -20,6 +21,8 @@ classify.pairwise.relationships(ptrees, allow.mt = TRUE,
 \item{close.threshold}{The (potentially normalised) patristic threshold used to determine if two patients' subgraphs are "close".}
 
 \item{distant.threshold}{If present, a second distance threshold determines hosts that are "distant" from each other, with those lying between \code{close.threshold} and \code{dist.threshold} classed as "intermediate". The default is the same as \code{close.threshold}, so the intermediate class does not exist.}
+
+\item{use.paths.to.define.relationships}{If true, the path variable only is used to define ancestry (paths12>0 & paths21==0), intermingled (paths12>0 & paths21>0), and sibling (paths12==0 & paths21==0) relationships. Default: FALSE.}
 
 \item{relationship.types}{Classification types.
 \itemize{
@@ -55,11 +58,12 @@ distant.threshold <- 0.05
 #	use relationship types based on adjacency
 #	this also considers linkage etc between individuals who have dual infections, recombinants etc 
 #	..and thus may not have *all* their subgraphs adjacent to each other
+use.paths.to.define.relationships <- 1
 relationship.types <- c('proximity.3.way',					
 		'close.and.adjacent',					
 		'close.and.adjacent.and.directed',					
 		'close.and.adjacent.and.ancestry.cat')	
-dwin <- classify.pairwise.relationships(phsc, allow.mt=TRUE, close.threshold=close.threshold, distant.threshold=distant.threshold,relationship.types=relationship.types, verbose=TRUE)
+dwin <- classify.pairwise.relationships(phsc, allow.mt=TRUE, close.threshold=close.threshold, distant.threshold=distant.threshold,use.paths.to.define.relationships=use.paths.to.define.relationships,relationship.types=relationship.types, verbose=TRUE)
 #
 # 	end of Rakai example
 #
