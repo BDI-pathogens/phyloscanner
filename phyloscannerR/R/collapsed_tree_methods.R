@@ -907,17 +907,20 @@ merge.classifications <- function(ptrees, allow.mt = T, verbose = F){
   
   classification.rows	<- classification.rows %>% map(function(x){
     
-    x <- x %>%
-      mutate(tempancestry = ancestry, temphost.1 = host.1, temphost.2 = host.2) %>%
-      mutate(ancestry = replace(ancestry, host.2 < host.1 & tempancestry == "anc", "desc")) %>% 
-      mutate(ancestry = replace(ancestry, host.2 < host.1 & tempancestry == "desc", "anc")) %>% 
-      mutate(ancestry = replace(ancestry, host.2 < host.1 & tempancestry == "multiAnc", "multiDesc")) %>% 
-      mutate(ancestry = replace(ancestry, host.2 < host.1 & tempancestry == "multiDesc", "multiAnc")) %>%
-      mutate(host.1 = replace(host.1, temphost.2 < temphost.1, temphost.2[temphost.2 < temphost.1])) %>%
-      mutate(host.2 = replace(host.2, temphost.2 < temphost.1, temphost.1[temphost.2 < temphost.1])) %>%
-      select(-c(temphost.1, temphost.2, tempancestry))
-    
-    x
+	x <- x %>%
+			mutate(tempancestry = ancestry, temphost.1 = host.1, temphost.2 = host.2) %>%
+			mutate(ancestry = replace(ancestry, host.2 < host.1 & tempancestry == "anc", "desc")) %>% 
+			mutate(ancestry = replace(ancestry, host.2 < host.1 & tempancestry == "desc", "anc")) %>% 
+			mutate(ancestry = replace(ancestry, host.2 < host.1 & tempancestry == "multiAnc", "multiDesc")) %>% 
+			mutate(ancestry = replace(ancestry, host.2 < host.1 & tempancestry == "multiDesc", "multiAnc")) %>%
+			mutate(host.1 = replace(host.1, temphost.2 < temphost.1, temphost.2[temphost.2 < temphost.1])) %>%
+			mutate(host.2 = replace(host.2, temphost.2 < temphost.1, temphost.1[temphost.2 < temphost.1])) %>%
+			mutate(paths12 = replace(paths12, temphost.2 < temphost.1, paths21[temphost.2 < temphost.1])) %>%
+			mutate(paths21 = replace(paths21, temphost.2 < temphost.1, paths12[temphost.2 < temphost.1])) %>%
+			mutate(nodes1 = replace(nodes1, temphost.2 < temphost.1, nodes2[temphost.2 < temphost.1])) %>%
+			mutate(nodes2 = replace(nodes2, temphost.2 < temphost.1, nodes1[temphost.2 < temphost.1])) %>%
+			select(-c(temphost.1, temphost.2, tempancestry))
+	x    
   })
   #
   # rbind consolidated files
