@@ -1273,7 +1273,6 @@ write.annotated.tree <- function(ptree, file.name, format = c("pdf", "nex"), pdf
     tree.display <- ggtree(tree, aes(color=BRANCH_COLOURS)) +
       geom_point2(aes(subset=SUBGRAPH_MRCA, color=INDIVIDUAL), shape = 23, size = 3, fill="white") +
       geom_point2(aes(color=INDIVIDUAL, shape=BLACKLISTED), size=1) +
-      scale_fill_hue(na.value = "black", drop=F) +
       scale_color_hue(na.value = "black", drop=F) +
       scale_shape_manual(values=c(16, 4)) +
       theme(legend.position="none") +
