@@ -61,6 +61,7 @@ classify.pairwise.relationships<- function(ptrees,
 		verbose= FALSE
 )
 {		
+  
 	dwin <- phyloscannerR:::merge.classifications(ptrees, allow.mt, verbose)	
 	
 	if(verbose) cat('Assigning discrete proximity categories...\n')

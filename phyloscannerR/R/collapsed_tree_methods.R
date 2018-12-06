@@ -980,10 +980,11 @@ summarise.classifications <- function(ptrees, min.threshold, dist.threshold, tip
   
   if(min.reads > 1 | min.tips > 1){
     tt <- select.windows.by.read.and.tip.count(ptrees, tt, tip.regex, min.reads, min.tips, verbose)
+    tt <- tt %>% select(-reads.1, -reads.2, -tips.1, -tips.2)
+    
   }
   
-  tt <- tt %>% select(-reads.1, -reads.2, -tips.1, -tips.2)
-  
+
   if (verbose) cat("Making summary output table...\n")
   
   tt <- tt %>% select(-c(paths12, paths21))
