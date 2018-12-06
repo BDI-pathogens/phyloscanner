@@ -974,9 +974,15 @@ merge.classifications <- function(ptrees, allow.mt = T, verbose = F){
 #' @keywords internal
 #' @export summarise.classifications
 
-summarise.classifications <- function(ptrees, min.threshold, dist.threshold, allow.mt = T, close.sib.only = F, verbose = F, contiguous = F){
+summarise.classifications <- function(ptrees, min.threshold, dist.threshold, tip.regex, min.reads = 1, min.tips = 1, allow.mt = T, close.sib.only = F, verbose = F, contiguous = F){
   
   tt <- merge.classifications(ptrees, allow.mt, verbose)
+  
+  if(min.reads > 1 | min.tips > 1){
+    tt <- select.windows.by.read.and.tip.count(ptrees, tt, tip.regex, min.reads, min.tips, verbose)
+  }
+  
+  tt <- tt %>% select(-reads.1, -reads.2, -tips.1, -tips.2)
   
   if (verbose) cat("Making summary output table...\n")
   
@@ -1013,7 +1019,7 @@ summarise.classifications <- function(ptrees, min.threshold, dist.threshold, all
     mutate(ancestry.tree.count = n()) %>% 
     ungroup()
   
-  # How many windows have ADJACENT and PATRISTIC_DISTANCE below the threshold?
+  # How many windows have adjacent and patristic.distance below the threshold?
   
   tt.close <- tt.close %>% group_by(host.1, host.2) %>% 
     mutate(any.relationship.tree.count = n()) %>% 
@@ -1071,6 +1077,7 @@ simplify.summary <- function(summary, arrow.threshold, total.trees, plot = F){
     select(host.1, host.2, both.exist, ancestry, ancestry.tree.count) %>% 
     spread(ancestry, ancestry.tree.count, fill = 0) %>% 
     mutate(total.equiv = 0, total.12 = 0, total.21 = 0)
+
   
   if("none" %in% names(summary.wide)){
     summary.wide <- summary.wide %>% mutate(total.equiv = total.equiv + none)

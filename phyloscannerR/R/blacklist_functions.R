@@ -407,11 +407,13 @@ blacklist.by.tip.count <- function(ptree, hosts, min.tips = 1){
     which(ptree$hosts.for.tips == x)
     
   }, simplify = F, USE.NAMES = T)
-  
+
   tip.counts <- map_int(hosts, function(x){
     length(tips.for.hosts[[x]])
   })
+  
   to.go <- hosts[which(tip.counts < min.tips)]
+  
   tips.to.remove <- unlist(tips.for.hosts[to.go])
   
   tips.to.remove
@@ -421,7 +423,7 @@ blacklist.by.tip.count <- function(ptree, hosts, min.tips = 1){
 #' @keywords internal
 #' @export blacklist.by.read.count
 
-blacklist.by.read.count <- function(ptrees, hosts, min.reads = 1, tip.regex){
+blacklist.by.read.count <- function(ptree, hosts, min.reads = 1, tip.regex){
   
   tips.for.hosts <- sapply(hosts, function(x){
     
@@ -430,14 +432,15 @@ blacklist.by.read.count <- function(ptrees, hosts, min.reads = 1, tip.regex){
   }, simplify = F, USE.NAMES = T)
   
   read.counts <- map_int(hosts, function(x){
-    host.tips <- tips.for.hosts[[x]]
+    host.tips <- ptree$tree$tip.label[tips.for.hosts[[x]]]
     
     rc <- map_int(host.tips, function(y) read.count.from.label(y, tip.regex))
     
     sum(rc)
-    
   })
+  
   to.go <- hosts[which(read.counts < min.reads)]
+  
   tips.to.remove <- unlist(tips.for.hosts[to.go])
   
   tips.to.remove

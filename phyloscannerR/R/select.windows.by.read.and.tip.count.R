@@ -39,7 +39,7 @@
 #' }	 	
 select.windows.by.read.and.tip.count <- function(ptrees, dwin, tip.regex, min.reads, min.tips, verbose=TRUE)			
 {
-	host.tips.and.reads <- map(ptrees, function(x) phyloscannerR:::get.tip.and.read.counts(x, all.hosts.from.trees(ptrees), tip.regex, attr(ptrees, 'has.read.counts'), verbose))
+	host.tips.and.reads <- map(ptrees, function(x) phyloscannerR:::get.tip.and.read.counts(x, all.hosts.from.trees(ptrees), tip.regex, attr(ptrees, 'has.read.counts'), verbose = F))
 	host.tips.and.reads <- bind_rows(host.tips.and.reads)
 	
 	if(verbose) cat('Merging tip and read counts...\n')
@@ -57,6 +57,6 @@ select.windows.by.read.and.tip.count <- function(ptrees, dwin, tip.regex, min.re
 			filter(reads.1 >= min.reads & reads.2 >= min.reads & tips.1 >= min.tips & tips.2 >= min.tips)
 	
 	if(verbose) cat('Total number of windows with transmission assignments is ',nrow(dwin),'.\n', sep="")		
-	
+
 	dwin
 }
