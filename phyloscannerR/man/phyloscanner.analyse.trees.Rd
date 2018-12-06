@@ -25,8 +25,9 @@ phyloscanner.analyse.trees(tree.file.directory,
   parsimony.blacklist.k = 0, raw.blacklist.threshold = 0,
   ratio.blacklist.threshold = 0, do.dual.blacklisting = F,
   max.reads.per.host = Inf, blacklist.underrepresented = F,
-  use.ff = F, prune.blacklist = F, count.reads.in.parsimony = T,
-  verbosity = 0, no.progress.bars = F)
+  min.reads.per.host = 1, min.tips.per.host = 1, use.ff = F,
+  prune.blacklist = F, count.reads.in.parsimony = T, verbosity = 0,
+  no.progress.bars = F)
 
 phyloscanner.analyse.tree(tree.file.name, splits.rule = c("s", "r", "f"),
   sankoff.k = 0, sankoff.unassigned.switch.threshold = 0,
@@ -41,8 +42,9 @@ phyloscanner.analyse.tree(tree.file.name, splits.rule = c("s", "r", "f"),
   parsimony.blacklist.k = 0, raw.blacklist.threshold = 0,
   ratio.blacklist.threshold = 0, do.dual.blacklisting = F,
   max.reads.per.host = Inf, blacklist.underrepresented = F,
-  use.ff = F, prune.blacklist = F, count.reads.in.parsimony = T,
-  verbosity = 0, no.progress.bars = F)
+  min.reads.per.host = 1, min.tips.per.host = 1, use.ff = F,
+  prune.blacklist = F, count.reads.in.parsimony = T, verbosity = 0,
+  no.progress.bars = F)
 
 phyloscanner.generate.blacklist(tree.file.directory,
   tree.file.regex = "^RAxML_bestTree.InWindow_([0-9]+_to_[0-9]+)\\\\.tree$",
@@ -58,6 +60,7 @@ phyloscanner.generate.blacklist(tree.file.directory,
   parsimony.blacklist.k = 0, raw.blacklist.threshold = 0,
   ratio.blacklist.threshold = 0, do.dual.blacklisting = F,
   max.reads.per.host = Inf, blacklist.underrepresented = F,
+  min.reads.per.host = 1, min.tips.per.host = 1,
   count.reads.in.parsimony = F, verbosity = 0)
 }
 \arguments{
@@ -113,9 +116,13 @@ phyloscanner.generate.blacklist(tree.file.directory,
 
 \item{do.dual.blacklisting}{Blacklist all reads from the minor subgraphs for all hosts established as dual by parsimony blacklisting (which must have been done for this to do anything).}
 
-\item{max.reads.per.host}{Used to turn on downsampling. If given, reads will be blacklisted such that read counts (or tip counts if no read counts are identified) from each host are equal (although see \code{blacklist.underrepresented}.}
+\item{max.reads.per.host}{Used to turn on downsampling. If given, tips will be blacklisted such that read counts (or tip counts if no read counts are identified) from each host are equal (although see \code{blacklist.underrepresented}).}
 
 \item{blacklist.underrepresented}{If TRUE and \code{max.reads.per.host} is given, blacklist hosts from trees where their total tip count does not reach the maximum.}
+
+\item{min.reads.per.host}{If given, hosts will be entirely blacklisted from a given tree if they have fewer than this number of reads on it (after all other blacklisting except downsampling).}
+
+\item{min.tips.per.host}{If given, hosts will be entirely blacklisted from a given tree if they have fewer than this number of tips on it (after all other blacklisting except downsampling).}
 
 \item{use.ff}{Use the \code{ff} package to store parsimony reconstruction matrices. Use if you run out of memory.}
 
