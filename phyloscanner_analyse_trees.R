@@ -52,6 +52,9 @@ arg_parser$add_argument("-pbk", "--parsimonyBlacklistK", action="store", type="d
 arg_parser$add_argument("-rwt", "--rawBlacklistThreshold", action="store", default=0, help="Used to specify a read count to be used as a raw threshold for blacklisting. --parsimonyBlacklistK and/or --duplicateBlacklist must also be used. If --parsimonyBlacklistK is used, subgraphs with a read count strictly less than this threshold will be blacklisted. If --duplicateBlacklist is used, duplicate reads with a count strictly less than this threshold will be blacklisted. The default value of 0 means nothing is blacklisted.")
 arg_parser$add_argument("-rtt", "--ratioBlacklistThreshold", action="store", default=0, help="Used to specify a read count ratio (between 0 and 1) to be used as a threshold for blacklisting. --parsimonyBlacklistK and/or --duplicateBlacklist must also be used. If --parsimonyBlacklistK is used, a subgraph will be blacklisted if the ratio of its read count to the total read count from the same host (in that tree) is strictly less than this threshold. If --duplicateBlacklist is used, duplicate reads will be blacklisted if the ratio of their count to the count of the duplicate (from another host) is strictly less than this threshold.")
 arg_parser$add_argument("-ub", "--dualBlacklist", action="store_true", help="Blacklist all reads from the minor subgraphs for all hosts established as dual by parsimony blacklisting.")
+arg_parser$add_argument("-mr", "--minReadsPerHost", action="store", type="integer", default = 1, help="Blacklist hosts from trees where they have less than this number of reads.")
+arg_parser$add_argument("-mt", "--minTipsPerHost", action="store",  type="integer", default = 1, help="Blacklist hosts from trees where they have less than this number of tips.")
+arg_parser$add_argument("-phcb", "--postHocCountBlacklisting", action="store_true", help="Perform minimum read and tip based blacklisting as a separate step at the end of the analysis. (A legacy option).")
 
 # Downsampling
 
@@ -82,8 +85,9 @@ arg_parser$add_argument("-ct", "--collapsedTrees", action="store_true", help="If
 # Classification summary
 
 arg_parser$add_argument("-swt", "--windowThreshold", action="store", default=0.5, type="double", help="Relationships between two hosts will only appear in output if they are within the distance threshold and ajacent to each other in more than this proportion of windows (default 0.5).")
-arg_parser$add_argument("-sdt", "--distanceThreshold", action="store", default=-1, type="double", help="Maximum distance threshold on a window for a relationship to be reconstructed between two hosts on that window. If tree branchs lengths were normalised this will be applied to those normalised lengths. If absent then no such threshold will be applied.")
+arg_parser$add_argument("-sdt", "--distanceThreshold", action="store", nargs="+", default=-1, type="double", help="Maximum distance threshold on a window for a relationship to be reconstructed between two hosts on that window. If tree branchs lengths were normalised this will be applied to those normalised lengths. If absent then no such threshold will be applied. If --multinomial is also specified and a second value is given, the two values will be used as the 'close threshold' and 'distant threshold' in that model. Any arguments beyond the first will otherwise be ignored.")
 arg_parser$add_argument("-amt", "--allowMultiTrans", action="store_true", help="If absent, directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative")
+arg_parser$add_argument("-mlt", "--multinomial", action="store_true", help="Use the adjustment for missing and overlapping windows as described in Ratmann et al., 2018 (under review).")
 
 # Classification simplification
 
@@ -259,10 +263,15 @@ useff                         <- args$useff
 #   suppressMessages(require(ff, quietly=TRUE, warn.conflicts=FALSE))
 # }
 
+# read and tip count blacklisting
+min.reads.per.host            <- args$minReadsPerHost
+min.tips.per.host             <- args$minTipsPerHost
+
+post.hoc.min.counts           <- args$postHocCountBlacklisting
 # Downsampling
 downsampling.limit            <- args$maxReadsPerHost
 if(is.null(downsampling.limit)){
-  downsampling.limit        <- Inf
+  downsampling.limit          <- Inf
 }
 blacklist.ur                  <- args$blacklistUnderrepresented
 
@@ -332,21 +341,55 @@ if(do.class.detail & !output.files){
   warning("You asked for classification files but also for no output files. No files will be produced.")
 }
 
+multinomial                    <- args$multinomial
+
 # Thresholds for summaries
 win.threshold                  <- args$windowThreshold
-dist.threshold                 <- args$distanceThreshold
-if(dist.threshold == -1){
-  dist.threshold <- Inf
+dist.thresholds                <- args$distanceThreshold
+if(length(dist.thresholds == 1)){
+  if(!multinomial){
+    if(dist.thresholds[[1]] == -1){
+      dist.threshold <- Inf
+    } else {
+      dist.threshold <- dist.thresholds[[1]]
+    }
+  } else {
+    if(dist.thresholds[[1]] == -1){
+      stop("A finite distance threshold must be specified for the multinomial model")
+    } else {
+      close.threshold <- dist.thresholds[[1]]
+      distant.threshold <- dist.thresholds[[1]]
+    }
+  } 
+} else {
+  if(!multinomial){
+    warning("More arguments than expected to --distanceThreshold. Ignoring all but the first.")
+    if(dist.thresholds[[1]] == -1){
+      dist.threshold <- Inf
+    } else {
+      dist.threshold <- dist.thresholds[[1]]
+    }
+  } else {
+    if(length(dist.thresholds > 2)){
+      warning("More arguments than expected to --distanceThreshold. Ignoring all but the first two")
+    } 
+    close.threshold <- dist.thresholds[[1]]
+    distant.threshold <- dist.thresholds[[2]]
+    if(close.threshold == -1 | distant.threshold == -1){
+      stop("Finite distance thresholds must be specified for the multinomial model")
+    }
+    if(close.threshold > distant.threshold){
+      stop("Threshold for close pairs must be smaller than or equal to threshold for distant pairs.")
+    }
+  }
 }
+
 arrow.threshold                <- args$directionThreshold
 
 if(arrow.threshold >= win.threshold){
   stop("Direction threshold cannot be larger than window threshold")
 }
 
-if(dist.threshold == -1){
-  dist.threshold             <- Inf
-}
 allow.mt                       <- args$allowMultiTrans
 
 # Do the simplified plot?
@@ -381,6 +424,8 @@ if(single.tree){
     do.dual.blacklisting,
     downsampling.limit,
     blacklist.ur,
+    ifelse(post.hoc.min.counts, 1, min.reads.per.host),
+    ifelse(post.hoc.min.counts, 1, min.tips.per.host),
     useff,
     prune.blacklist,
     read.counts.matter,
@@ -417,6 +462,8 @@ if(single.tree){
     do.dual.blacklisting,
     downsampling.limit,
     blacklist.ur,
+    ifelse(post.hoc.min.counts, 1, min.reads.per.host),
+    ifelse(post.hoc.min.counts, 1, min.tips.per.host),
     useff,
     prune.blacklist,
     read.counts.matter,
@@ -514,17 +561,56 @@ if(length(phyloscanner.trees)>1){
   
   if(length(hosts)>1){
     
-    ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, allow.mt, close.sib.only = F, verbosity==2)
-    if (verbosity!=0 & output.files) cat('Writing transmission summary to file ', paste0(output.string,"_hostRelationshipSummary", csv.fe),'...\n', sep="")
-    if(output.files){
+    if(!multinomial){
+      if(post.hoc.min.counts){
+        ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, tip.regex, min.tips.per.host, min.reads.per.host, allow.mt, close.sib.only = F, verbosity==2)
+      } else {
+        ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, tip.regex, 1, 1, allow.mt, close.sib.only = F, verbosity==2)
+      }
+      
+      if (verbosity!=0) cat('Writing transmission summary to file ', paste0(output.string,"_hostRelationshipSummary", csv.fe),'...\n', sep="")
       write_csv(ts, file.path(output.dir, paste0(output.string,"_hostRelationshipSummary", csv.fe)))
+    } else {
+      relationship.types	<- c('proximity.3.way',
+                              'any.ancestry',
+                              'close.x.contiguous',			
+                              'close.and.adjacent',					
+                              'close.and.adjacent.and.directed',					
+                              'close.and.adjacent.and.ancestry',			
+                              'close.and.contiguous',					
+                              'close.and.contiguous.and.directed',					
+                              'close.and.contiguous.and.ancestry')	
+      use.paths.to.define.relationships <- FALSE
+      
+      dwin <- classify.pairwise.relationships(phyloscanner.trees, 
+                                              allow.mt = allow.mt, 
+                                              close.threshold = close.threshold, 
+                                              distant.threshold = distant.threshold,
+                                              use.paths.to.define.relationships = use.paths.to.define.relationships,
+                                              relationship.types = relationship.types, 
+                                              verbosity == 2)			
+      
+      if(post.hoc.min.counts){
+        tmp <- select.windows.by.read.and.tip.count(phyloscanner.trees, dwin, tip.regex, min.reads.per.host, min.tips.per.host)
+      } else {
+        tmp <- select.windows.by.read.and.tip.count(phyloscanner.trees, dwin, tip.regex, 1, 1)
+      }
+      dc  <- count.pairwise.relationships(tmp)
     }
     
     if(do.simplified.graph){
-      if (verbosity!=0 & output.files) cat('Drawing simplified summary diagram to file ', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'...\n', sep="")
-      
-      if(nrow(ts)==0){
-        cat("No relationships exist in the required proportion of windows (",win.threshold,"); skipping simplified relationship summary.\n", sep="")
+     
+      if(!multinomial){
+        if(nrow(ts)==0){
+          cat("No relationships exist in the required proportion of windows (",win.threshold,"); skipping simplified relationship summary.\n", sep="")
+        } else {
+          if (verbosity!=0) cat('Drawing simplified summary diagram to file ', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'...\n', sep="")
+          
+          simplified.graph <- simplify.summary(ts, arrow.threshold, length(phyloscanner.trees), plot = T)
+          
+          simplified.graph$simp.diagram
+          ggsave(file = file.path(output.dir, paste0(output.string,"_simplifiedRelationshipGraph.pdf")), width=simp.plot.dim, height=simp.plot.dim)
+        }
       } else {
         simplified.graph <- simplify.summary(ts, arrow.threshold, length(phyloscanner.trees), plot = T)
         
