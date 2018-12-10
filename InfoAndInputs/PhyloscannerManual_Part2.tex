@@ -307,7 +307,7 @@ By default, \pat produces a csv file of summary statistics with the following co
 \item Tips: the number of tips from this host in this tree.
 \item Reads: the number of reads from this host in this tree (if read counts were not detected then this column will be identical to the tip counts, as each tip is assumed to represent one read).
 \item Subgraphs: the number of subgraphs that the parsimony reconstruction identified for this host in this tree.
-\item clades: the number of separate clades monophyletic clades from this host in this tree.
+\item clades: the number of separate monophyletic clades from this host in this tree.
 \item overall.rtt: the mean patristic distance from tips from this host to the MRCA of the tips from this host, weighted by read counts if these are given
 \item largest.rtt: the mean patristic distance from tips from the largest (by read count) subgraph from the host to the MRCA of that subgraph, weighted by read counts if these are given.
 \item max.branch.length: the length of the longest branch in the tree obtained by pruning all tips from the tree except the ones from this host.
@@ -427,7 +427,8 @@ Remaining command line options are as follows:
 \item \c{--pdfWidth}: the width of the pdf tree file output
 \item \c{--pdfRelHeight}: the height, per tip, of the pdf tree file output
 \item \c{--pdfScaleBarWidth}: The width of the scale bar in the pdf tree file output (in the same units as the branch lengths in the tree)
-\item \c{--outputRDA}: If present, an R list containing the objects used in the calculations is written as  a workspace image at the end of the script
+\item \c{--outputRDA}: If present, an R list containing the objects used in the calculations is written as a workspace image at the end of the script
+\item \c{--RDAonly}: If this option is given then only the RDA output will appear. This can be explored in \c{R} using the \c{phyloscannerR} package. It assumes \c{--outputRDA} even if that is not given, and overrides \c{--blacklistReport}, \c{--allClassifications} and \c{--collapsedTrees}
 \item \c{--seed}: Two parts of the process may use randomisation: the downsampling, and occasional tie-breaking in parsimony reconstruction.
 \item \c{--overwrite}: This option tells \pat to overwrite any existing output file with the same names.
 This option sets a random number seed.
