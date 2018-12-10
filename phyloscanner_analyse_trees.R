@@ -35,6 +35,7 @@ arg_parser$add_argument("-pw", "--pdfWidth", action="store", default=50, help="W
 arg_parser$add_argument("-ph", "--pdfRelHeight", action="store", default=0.15, help="Relative height of tree PDF")
 arg_parser$add_argument("-psb", "--pdfScaleBarWidth", action="store", default=0.01, help="Width of the scale bar in the PDF output (in branch length units)")
 arg_parser$add_argument("-rda", "--outputRDA", action="store_true", help="Write the final R workspace image to file.")
+arg_parser$add_argument("-rdo", "--RDAonly", action="store_true", help="Suppress all non-RDA output. Overrides --blacklistReport, --allClassifications and --collapsedTrees.")
 arg_parser$add_argument("-sd", "--seed", action="store", help="Random number seed; used by the downsampling process, and also ties in some parsimony reconstructions can be broken randomly.")
 arg_parser$add_argument("-ow", "--overwrite", action="store_true", help="Overwrite existing output files with the same names.")
 
@@ -200,7 +201,8 @@ if(verbosity!=0) cat("Random number seed is",seed,"\n")
 set.seed(seed)
 
 # Output RDA?
-output.rda                    <- args$outputRDA
+output.rda                    <- args$outputRDA | args$RDAonly
+output.files                  <- !args$RDAonly
 
 # Normalisation options
 norm.ref.file.name            <- args$normRefFileName
@@ -235,6 +237,9 @@ if(is.null(par.blacklisting.k)){
 do.dual.blacklisting          <- args$dualBlacklist
 
 output.blacklisting.report    <- args$blacklistReport
+if(output.blacklisting.report & !output.files){
+  warning("You asked for the blacklist report but also for no output files. No file will be produced.")
+}
 
 bl.raw.threshold              <- as.numeric(args$rawBlacklistThreshold)
 bl.ratio.threshold            <- as.numeric(args$ratioBlacklistThreshold)
@@ -298,6 +303,9 @@ if(reconstruction.mode=="s"){
 # Whether to output trees
 if(args$outputNexusTree){
   tree.output.format         <- "nex"
+  if(!output.files){
+    warning("You asked for Nexus trees but also for no output files. No trees will be produced.")
+  }
 } else {
   tree.output.format         <- "pdf"
 }
@@ -316,7 +324,13 @@ if(do.recomb){
 
 # Output classification and collapsed tree files?
 do.collapsed                   <- args$collapsedTrees
+if(do.collapsed & !output.files){
+  warning("You asked for collapsed tree files but also for no output files. No files will be produced.")
+}
 do.class.detail                <- args$allClassifications
+if(do.class.detail & !output.files){
+  warning("You asked for classification files but also for no output files. No files will be produced.")
+}
 
 # Thresholds for summaries
 win.threshold                  <- args$windowThreshold
@@ -417,20 +431,22 @@ if(length(hosts)<=1 & (do.collapsed | do.class.detail)){
   do.class.detail <- F
 }
 
-if(verbosity!=0){
+if(verbosity!=0 & output.files){
   cat("Writing annotated trees in .",tree.output.format," format...\n", sep="")
 }
 
-silent <- sapply(phyloscanner.trees, function(ptree){
-  if(single.tree){
-    file.name <- paste0(output.string, "_processedTree.", tree.output.format)
-  } else {
-    file.name <- paste0(output.string, "_processedTree_", ptree$id, ".", tree.output.format)
-  }
-  write.annotated.tree(ptree, file=file.path(output.dir, file.name), tree.output.format, pdf.scale.bar.width, pdf.w, pdf.hm, verbosity == 2)
-}, simplify = F, USE.NAMES = T)
+if(output.files){
+  silent <- sapply(phyloscanner.trees, function(ptree){
+    if(single.tree){
+      file.name <- paste0(output.string, "_processedTree.", tree.output.format)
+    } else {
+      file.name <- paste0(output.string, "_processedTree_", ptree$id, ".", tree.output.format)
+    }
+    write.annotated.tree(ptree, file=file.path(output.dir, file.name), tree.output.format, pdf.scale.bar.width, pdf.w, pdf.hm, verbosity == 2)
+  }, simplify = F, USE.NAMES = T)
+}
 
-if(do.collapsed){
+if(do.collapsed & output.files){
   if(verbosity!=0){
     cat("Writing collapsed trees to ",csv.fe," files...\n", sep="")
   }
@@ -449,7 +465,7 @@ if(do.collapsed){
 }
 
 
-if(do.class.detail){
+if(do.class.detail & output.files){
   if(verbosity!=0){
     cat("Writing host pairwise classifications to ",csv.fe," files...\n", sep="")
   }
@@ -476,44 +492,52 @@ if(length(phyloscanner.trees)>1){
   
   ss.csv.fn <- paste0(output.string,"_patStats", csv.fe)
   
-  if(verbosity!=0){
+  if(verbosity!=0 & output.files){
     cat("Writing summary statistics to file ",ss.csv.fn,"...\n", sep="")
   }
   
+  if(output.files){
   write_csv(summary.stats, file.path(output.dir, ss.csv.fn))
+  }
   
   ss.graphs.fn <- paste0(output.string,"_patStats.pdf")
   
-  if(verbosity!=0){
+  if(verbosity!=0 & output.files){
     cat("Graphing summary statistics to file ",ss.graphs.fn,"...\n", sep="")
   }
   
-  silent <- multipage.summary.statistics(phyloscanner.trees, summary.stats, file.name = file.path(output.dir, ss.graphs.fn), verbose = verbosity==2)
+  if(output.files){
+    silent <- multipage.summary.statistics(phyloscanner.trees, summary.stats, file.name = file.path(output.dir, ss.graphs.fn), verbose = verbosity==2)
+  }
   
   hosts <- all.hosts.from.trees(phyloscanner.trees)
   
   if(length(hosts)>1){
     
     ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, allow.mt, close.sib.only = F, verbosity==2)
-    if (verbosity!=0) cat('Writing transmission summary to file ', paste0(output.string,"_hostRelationshipSummary", csv.fe),'...\n', sep="")
-    write_csv(ts, file.path(output.dir, paste0(output.string,"_hostRelationshipSummary", csv.fe)))
+    if (verbosity!=0 & output.files) cat('Writing transmission summary to file ', paste0(output.string,"_hostRelationshipSummary", csv.fe),'...\n', sep="")
+    if(output.files){
+      write_csv(ts, file.path(output.dir, paste0(output.string,"_hostRelationshipSummary", csv.fe)))
+    }
     
     if(do.simplified.graph){
-      if (verbosity!=0) cat('Drawing simplified summary diagram to file ', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'...\n', sep="")
+      if (verbosity!=0 & output.files) cat('Drawing simplified summary diagram to file ', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'...\n', sep="")
       
       if(nrow(ts)==0){
         cat("No relationships exist in the required proportion of windows (",win.threshold,"); skipping simplified relationship summary.\n", sep="")
       } else {
         simplified.graph <- simplify.summary(ts, arrow.threshold, length(phyloscanner.trees), plot = T)
         
-        simplified.graph$simp.diagram
-        ggsave(file = file.path(output.dir, paste0(output.string,"_simplifiedRelationshipGraph.pdf")), width=simp.plot.dim, height=simp.plot.dim)
+        if(output.files){
+          simplified.graph$simp.diagram
+          ggsave(file = file.path(output.dir, paste0(output.string,"_simplifiedRelationshipGraph.pdf")), width=simp.plot.dim, height=simp.plot.dim)
+        }
       }
     }
   }
 }
 
-if(output.blacklisting.report){
+if(output.blacklisting.report & output.files){
   if (verbosity!=0) cat('Saving blacklisting report to file', paste0(output.string,"_blacklistReport",csv.fe),'...\n', sep="")
   
   dfs <- lapply(phyloscanner.trees, function(x) {
