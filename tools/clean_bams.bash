@@ -96,7 +96,7 @@ do
     then
         name="${BASH_REMATCH[1]}"
         echo "Cleaning ${name}.bam to ${name}_${runName}_cleaned.bam"
-        python ${phyDir}/tools/ExtractNamedReadsFromBam.py symlinks/${name}.bam ${outDir}/cleaned_BAMs/${name}_${runName}_cleaned.bam -F $mf
+        python ${phyDir}/tools/ExtractNamedReadsFromBam.py BAMs/${name}.bam ${outDir}/cleaned_BAMs/${name}_${runName}_cleaned.bam -F $mf
 
     fi
 done
