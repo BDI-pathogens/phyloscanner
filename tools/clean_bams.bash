@@ -19,10 +19,7 @@ fullOpts="$@"
 OPTIONS=m:b:v:x:y:
 LONGOPTS=og:,outgroupName:,multifurcationThreshold:,blacklist:,od:,outputDir:,verbose:,tipRegex:,tfe:,treeFileExtension:,cfe:,csvFileExtension:,sd:,seed:,ow,overwrite,rda,outputRDA,nr:,normRefFileName:,ns,normStandardiseGagPol,nc:,normalisationConstants:,db:,duplicateBlacklist:,pbk:,parsimonyBlacklistK:,rwt:,rawBlacklistThreshold:,rtt:,ratioBlacklistThreshold:,ub,dualBlacklist,rcm,readCountsMatterOnZeroLengthBranches,blr,blacklistReport,dsl:,maxReadsPerHost:,dsb,blacklistUnderrepresented
 
-# -use ! and PIPESTATUS to get exit code with errexit set
-# -temporarily store output to be able to check for errors
-# -activate quoting/enhanced mode (e.g. by writing out “--options”)
-# -pass arguments only via   -- "$@"   to separate them correctly
+
 ! PARSED=$(getopt -a --options=$OPTIONS --longoptions=$LONGOPTS --name "$0" -- "$@")
 if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
     # e.g. return value is 1
@@ -49,7 +46,7 @@ while true; do
         --ow|--overwrite|--rda|--outputRDA|--ns|--normStandardiseGagPol|--ub|--dualBlacklist|--rcm|--readCountsMatterOnZeroLengthBranches|--blr|--blacklistReport|--dsb|--blacklistUnderrepresented)
         	shift
         	;;
-	--)
+	    --)
             shift
             break
             ;;
@@ -71,15 +68,15 @@ mkdir -p ${outDir}/cleaning_temp
 
 for wrf in ReadNames_temp/ReadNames2_*
 do
-fn=$(basename $wrf)
-windowstring=${fn:20}
-windowstring=${windowstring::-4}
-if [ "$overwrite" = true ]
-then
-python ${phyDir}/tools/FindAllNonBlacklistedReads.py ${outDir}/${runName}_blacklistReport.csv $wrf ${outDir}/cleaning_temp/${runName}_keptReads_${windowstring} --overwrite
-else 
-python ${phyDir}/tools/FindAllNonBlacklistedReads.py ${outDir}/${runName}_blacklistReport.csv $wrf ${outDir}/cleaning_temp/${runName}_keptReads_${windowstring}
-fi
+    fn=$(basename $wrf)
+    windowstring=${fn:20}
+    windowstring=${windowstring::-4}
+    if [ "$overwrite" = true ]
+    then
+        python ${phyDir}/tools/FindAllNonBlacklistedReads.py ${outDir}/${runName}_blacklistReport.csv $wrf ${outDir}/cleaning_temp/${runName}_keptReads_${windowstring} --overwrite
+    else 
+        python ${phyDir}/tools/FindAllNonBlacklistedReads.py ${outDir}/${runName}_blacklistReport.csv $wrf ${outDir}/cleaning_temp/${runName}_keptReads_${windowstring}
+    fi
 done
 
 Rscript ${phyDir}/tools/collect_kept_reads_by_BAM.R ${outDir}/cleaning_temp/
