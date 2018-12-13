@@ -398,6 +398,8 @@ initialise.phyloscanner <- function(
     }, simplify = F, USE.NAMES = T)
   }
   
+  ptrees <- ptrees[!map_lgl(ptrees, is.null)]
+  
   list(ptrees = ptrees, has.read.counts = has.read.counts, readable.coords = readable.coords, match.mode = match.mode)
 }
 
@@ -1523,6 +1525,7 @@ rename.user.blacklist.tips <- function(ptree) {
 #' @keywords internal
 
 apply.normalisation.constants <- function(ptree) {
+  
   if(!("phyloscanner.tree" %in% class(ptree))){
     stop("This is not a phyloscanner.tree object")
   }
