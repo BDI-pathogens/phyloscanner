@@ -5,8 +5,8 @@
 \title{Summarise the pairwise host relationships across all trees}
 \usage{
 transmission.summary(ptrees, win.threshold = 0, dist.threshold = Inf,
-  tip.regex, min.tips = 1, min.reads = 1, allow.mt = T,
-  close.sib.only = F, verbose = F)
+  tip.regex, min.tips = 1, min.reads = 1, close.sib.only = F,
+  verbose = F)
 }
 \arguments{
 \item{win.threshold}{The proportion of windows that a pair of hosts need to be related (adjacent and within \code{dist.threshold} of each other) in order for them to appear in the summary.}
@@ -18,8 +18,6 @@ transmission.summary(ptrees, win.threshold = 0, dist.threshold = Inf,
 \item{min.tips}{The minimum number of tips that a host must have in each tree for it to be counted in that tree (A legacy option - we recommend using the blacklist functionality.)}
 
 \item{min.reads}{The minimum number of reads that a host must have in each tree for it to be counted in that tree (A legacy option - we recommend using the blacklist functionality.)}
-
-\item{allow.mt}{If FALSE, directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative.}
 
 \item{close.sib.only}{If TRUE, then the distance threshold applies only to hosts in sibling clades. Any ancestry is automatically a relationship.}
 
