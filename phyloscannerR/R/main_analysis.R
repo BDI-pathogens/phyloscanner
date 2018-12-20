@@ -540,6 +540,8 @@ blacklist <- function(ptrees,
 #' @param seed Random number seed; used by the downsampling process, and also ties in some parsimony reconstructions can be broken randomly.
 #' @param norm.ref.file.name Name of a file giving a normalisation constant for every genome position. Cannot be used simultaneously with \code{norm.constants}. If neither is given then no normalisation will be performed.
 #' @param norm.standardise.gag.pol Use only if \code{norm.ref.file.name} is given. An HIV-specific option: if true, the normalising constants are standardised so that the average on gag+pol equals 1. Otherwise they are standardised so the average on the whole genome equals 1.
+#' @param allow.mt If FALSE (the default0), directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative.
+#' @param strict.ancestry If FALSE, then an ancestry call requires only that at least one subgraph from one host is descended from the other, and that there are no subgrapghs in the opposite arrangement. If TRUE (the default), then it requires that all subgraphs from one host are descended from one from the other. 
 #' @param norm.constants Either the path of a CSV file listing the file name for each tree (column 1) and the respective normalisation constant (column 2) or a single numerical normalisation constant to be applied to every tree. Cannot be used simultaneously with \code{norm.ref.file.name}. If neither is given then no normalisation will be performed.
 #' @param parsimony.blacklist.k The \emph{k} parameter of the single-host Sankhoff parsimony reconstruction used to identify probable contaminants. A value of 0 is equivalent to not performing parsimony blacklisting. 
 #' @param raw.blacklist.threshold Used to specify a read count to be used as a raw threshold for duplicate or parsimony blacklisting. Use with \code{parsimony.blacklist.k} or \code{duplicate.file.regex} or both. Parsimony blacklisting will blacklist any subgraph with a read count strictly less than this threshold. Duplicate blacklisting will black list any duplicate read with a count strictly less than this threshold. The default value of 0 means nothing is blacklisted.
@@ -693,6 +695,8 @@ phyloscanner.analyse.trees <- function(
   norm.ref.file.name = NULL,
   norm.standardise.gag.pol = F,
   norm.constants = NULL,
+  allow.mt = F,
+  strict.ancestry = T,
   parsimony.blacklist.k = 0,
   raw.blacklist.threshold = 0,
   ratio.blacklist.threshold = 0,
@@ -911,7 +915,7 @@ phyloscanner.analyse.trees <- function(
       
       if(verbosity==2) cat("Classifying host relationships for tree ID ",ptree$id, ".\n", sep="")
       
-      ptree$classification.results <- classify(ptree, verbosity==2, no.progress.bars)
+      ptree$classification.results <- classify(ptree, allow.mt, strict.ancestry, verbosity==2, no.progress.bars)
       
       ptree
     }, simplify = F, USE.NAMES = T)
@@ -948,6 +952,8 @@ phyloscanner.analyse.tree <- function(
   norm.ref.file.name = NULL,
   norm.standardise.gag.pol = F,
   norm.constants = NULL,
+  allow.mt = F,
+  strict.ancestry = T,
   parsimony.blacklist.k = 0,
   raw.blacklist.threshold = 0,
   ratio.blacklist.threshold = 0,
@@ -992,6 +998,8 @@ phyloscanner.analyse.tree <- function(
     norm.ref.file.name, 
     norm.standardise.gag.pol, 
     norm.constants, 
+    allow.mt,
+    strict.ancestry,
     parsimony.blacklist.k, 
     raw.blacklist.threshold, 
     ratio.blacklist.threshold,
@@ -1340,17 +1348,16 @@ write.annotated.tree <- function(ptree, file.name, format = c("pdf", "nex"), pdf
 #' @param tip.regex Regular expression identifying tips from the dataset. This expects up to three capture groups, for host ID, read ID, and read count (in that order). If the latter two groups are missing then read information will not be used. The default matches input from the phyloscanner pipeline where the host ID is the BAM file name.
 #' @param min.tips The minimum number of tips that a host must have in each tree for it to be counted in that tree (A legacy option - we recommend using the blacklist functionality.)
 #' @param min.reads The minimum number of reads that a host must have in each tree for it to be counted in that tree (A legacy option - we recommend using the blacklist functionality.)
-#' @param allow.mt If FALSE, directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative.
 #' @param close.sib.only If TRUE, then the distance threshold applies only to hosts in sibling clades. Any ancestry is automatically a relationship.
 #' @param verbose Give verbose output
 #' @return A \code{tibble}, every line of which counts the number of pairwise relationships of a particular type between a pair of hosts
 #' @export transmission.summary
 
-transmission.summary <- function(ptrees, win.threshold=0, dist.threshold=Inf, tip.regex, min.tips = 1, min.reads = 1, allow.mt=T, close.sib.only = F, verbose = F){
+transmission.summary <- function(ptrees, win.threshold=0, dist.threshold=Inf, tip.regex, min.tips = 1, min.reads = 1, close.sib.only = F, verbose = F){
   if(length(ptrees)==1){
     stop("Can't summarise transmission information on a single tree. Use the collapsed tree instead?")
   }
-  out <- summarise.classifications(ptrees, win.threshold*length(ptrees), dist.threshold, tip.regex, min.tips, min.reads, allow.mt, close.sib.only, verbose, F)
+  out <- summarise.classifications(ptrees, win.threshold*length(ptrees), dist.threshold, tip.regex, min.tips, min.reads, close.sib.only, verbose, F)
   out$ancestry <- as.character(out$ancestry)
   out
 }

@@ -652,7 +652,7 @@ check.tt.node.adjacency <- function(tt, label1, label2, allow.unassigned = F){
 #' @keywords internal
 #' @export classify
 
-classify <- function(ptree, verbose = F, no.progress.bars = F) {	
+classify <- function(ptree, allow.mt = F, strict.ancestry = T, verbose = F, no.progress.bars = F) {	
   
   if(is.null(ptree[["tree"]])){
     
@@ -800,18 +800,26 @@ classify <- function(ptree, verbose = F, no.progress.bars = F) {
           dir.21.matrix[pat.1, pat.2] <- count.21
           
           if(count.12 == 0 & count.21 == 0){
-            top.class.matrix[pat.1, pat.2] <- "none"
-          } else if(count.12 != 0 & count.21 == 0 & prop.12 == 1) {
+            top.class.matrix[pat.1, pat.2] <- "noAncestry"
+          } else if(count.12 != 0 & count.21 == 0 & (!strict.ancestry | prop.12 == 1)) {
             if(count.12 == 1){
               top.class.matrix[pat.1, pat.2] <- "anc"
             } else {
-              top.class.matrix[pat.1, pat.2] <- "multiAnc"
+              if(allow.mt){
+                top.class.matrix[pat.1, pat.2] <- "multiAnc"
+              } else {
+                top.class.matrix[pat.1, pat.2] <- "complex"
+              }
             }
-          } else if(count.21 != 0 & count.12 == 0 & prop.21 == 1) {
+          } else if(count.21 != 0 & count.12 == 0 & (!strict.ancestry | prop.21 == 1)) {
             if(count.21 == 1){
               top.class.matrix[pat.1, pat.2] <- "desc"
             } else {
-              top.class.matrix[pat.1, pat.2] <- "multiDesc"
+              if(allow.mt){
+                top.class.matrix[pat.1, pat.2] <- "multiDesc"
+              } else {
+                top.class.matrix[pat.1, pat.2] <- "complex"
+              }
             }
           } else {
             top.class.matrix[pat.1, pat.2] <- "complex"
@@ -873,7 +881,7 @@ classify <- function(ptree, verbose = F, no.progress.bars = F) {
 #' @export merge.classifications
 
 
-merge.classifications <- function(ptrees, allow.mt = T, verbose = F){
+merge.classifications <- function(ptrees, verbose = F){
   
   classification.rows	<- ptrees %>% map(function(ptree) {
     if(is.null(ptree$classification.results$classification) & is.null(ptree$classification.file.name)){
@@ -941,15 +949,6 @@ merge.classifications <- function(ptrees, allow.mt = T, verbose = F){
     
     classification.rows <- classification.rows %>% rename(patristic.distance = min.distance.between.subgraphs)
     
-  }
-  
-  # change type name depending on allow.mt
-  
-  if(!allow.mt){
-    if(verbose) cat("Allowing only single lineage transmission to be used to infer directionality\n")
-    
-    classification.rows <- classification.rows %>% mutate(ancestry = 
-                                                            replace(ancestry, which(ancestry %in% c("multiAnc", "multiDesc")), "complex"))
   }
   
   #	check we have patristic distances, paths
