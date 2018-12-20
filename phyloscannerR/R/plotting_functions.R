@@ -495,7 +495,7 @@ produce.pairwise.graphs <- function(ptrees,
     ungroup() %>%
     mutate(nondir.ancestry = replace(ancestry, ancestry %in% c("anc", "desc"), "trans")) %>%
     mutate(nondir.ancestry = replace(nondir.ancestry, nondir.ancestry %in% c("multiAnc", "multiDesc"), "multiTrans")) %>%
-    mutate(nondir.ancestry = factor(nondir.ancestry, levels = c("trans", "multiTrans", "none", "complex"))) %>%
+    mutate(nondir.ancestry = factor(nondir.ancestry, levels = c("trans", "multiTrans", "noAncestry", "complex"))) %>%
     mutate(linked = ((!contiguous.pairs & adjacent) | (contiguous.pairs & contiguous)) & within.distance) %>%
     mutate(adjacent = replace(adjacent, is.na(adjacent), T)) %>%
     mutate(contiguous = replace(contiguous, is.na(contiguous), T)) %>%
@@ -506,7 +506,7 @@ produce.pairwise.graphs <- function(ptrees,
     mutate(arrow = ancestry) %>%
     mutate(arrow = replace(arrow, arrow %in% c("anc", "multiAnc"), 1)) %>%
     mutate(arrow = replace(arrow, arrow %in% c("desc", "multiDesc"), 2)) %>%
-    mutate(arrow = replace(arrow, arrow %in% c(NA, "none", "complex"), 3)) %>%
+    mutate(arrow = replace(arrow, arrow %in% c(NA, "noAncestry", "complex"), 3)) %>%
     mutate(arrow = as.numeric(arrow)) %>%
     mutate(arrow.start = arrow) %>%
     mutate(arrow.start = replace(arrow.start, arrow.start == 2, 1.20001)) %>%

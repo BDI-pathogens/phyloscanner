@@ -86,6 +86,7 @@ arg_parser$add_argument("-ct", "--collapsedTrees", action="store_true", help="If
 arg_parser$add_argument("-swt", "--windowThreshold", action="store", default=0.5, type="double", help="Relationships between two hosts will only appear in output if they are within the distance threshold and ajacent to each other in more than this proportion of windows (default 0.5).")
 arg_parser$add_argument("-sdt", "--distanceThreshold", action="store", nargs="+", default=-1, type="double", help="Maximum distance threshold on a window for a relationship to be reconstructed between two hosts on that window. If tree branchs lengths were normalised this will be applied to those normalised lengths. If absent then no such threshold will be applied. If --multinomial is also specified and a second value is given, the two values will be used as the 'close threshold' and 'distant threshold' in that model. Any arguments beyond the first will otherwise be ignored.")
 arg_parser$add_argument("-amt", "--allowMultiTrans", action="store_true", help="If absent, directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative")
+arg_parser$add_argument("-rla", "--relaxedAncestry", action="store_true", help="If absent, directionality can be inferred so long as at least one subraph from one host is descended from one from the other, and no pair of subgraphs exist in the opposite direction. Otherwise it is required that every subgraph from one host is descended from one from the other.")
 arg_parser$add_argument("-mlt", "--multinomial", action="store_true", help="Use the adjustment for missing and overlapping windows as described in Ratmann et al., 2018 (under review).")
 
 # Classification simplification
@@ -377,6 +378,7 @@ if(arrow.threshold >= win.threshold){
 }
 
 allow.mt                       <- args$allowMultiTrans
+strict.ancestry                <- !args$relaxedAncestry
 
 # Do the simplified plot?
 do.simplified.graph            <- !args$skipSummaryGraph
@@ -404,6 +406,8 @@ if(single.tree){
     norm.ref.file.name,
     norm.standardise.gp,
     norm.constants.input,
+    allow.mt,
+    strict.ancestry,
     par.blacklisting.k,
     bl.raw.threshold,
     bl.ratio.threshold,
@@ -442,6 +446,8 @@ if(single.tree){
     norm.ref.file.name,
     norm.standardise.gp,
     norm.constants.input,
+    allow.mt,
+    strict.ancestry,
     par.blacklisting.k,
     bl.raw.threshold,
     bl.ratio.threshold,
@@ -543,9 +549,9 @@ if(length(phyloscanner.trees)>1){
     
     if(!multinomial){
       if(post.hoc.min.counts){
-        ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, tip.regex, min.tips.per.host, min.reads.per.host, allow.mt, close.sib.only = F, verbosity==2)
+        ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, tip.regex, min.tips.per.host, min.reads.per.host, close.sib.only = F, verbosity==2)
       } else {
-        ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, tip.regex, 1, 1, allow.mt, close.sib.only = F, verbosity==2)
+        ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, tip.regex, 1, 1, close.sib.only = F, verbosity==2)
       }
       
       if (verbosity!=0) cat('Writing transmission summary to file ', paste0(output.string,"_hostRelationshipSummary", csv.fe),'...\n', sep="")
@@ -560,13 +566,11 @@ if(length(phyloscanner.trees)>1){
                               'close.and.contiguous',					
                               'close.and.contiguous.and.directed',					
                               'close.and.contiguous.and.ancestry')	
-      use.paths.to.define.relationships <- FALSE
       
       dwin <- classify.pairwise.relationships(phyloscanner.trees, 
                                               allow.mt = allow.mt, 
                                               close.threshold = close.threshold, 
                                               distant.threshold = distant.threshold,
-                                              use.paths.to.define.relationships = use.paths.to.define.relationships,
                                               relationship.types = relationship.types, 
                                               verbosity == 2)			
       

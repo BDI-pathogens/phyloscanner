@@ -25,7 +25,7 @@
 #' 		'close.and.adjacent',					
 #' 		'close.and.adjacent.and.directed',					
 #' 		'close.and.adjacent.and.ancestry.cat')	
-#' dwin <- classify.pairwise.relationships(phsc, allow.mt=TRUE, close.threshold=close.threshold, distant.threshold=distant.threshold,relationship.types=relationship.types, verbose=TRUE)
+#' dwin <- classify.pairwise.relationships(phsc, close.threshold=close.threshold, distant.threshold=distant.threshold,relationship.types=relationship.types, verbose=TRUE)
 #' tip.regex <- "^(.*)_fq[0-9]+_read_([0-9]+)_count_([0-9]+)$"
 #' min.reads <- 30
 #' min.tips <- 1
@@ -152,10 +152,8 @@ count.pairwise.relationships<- function(dwin, w.slide=NA, verbose=TRUE)
 #' @import tidyverse 
 #' @author Oliver Ratmann, Matthew Hall
 #' @param ptrees A list of class \code{phyloscanner.trees} produced by \code{phyloscanner.analyse.trees}.
-#' @param allow.mt If FALSE, directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative. Default: TRUE. 
 #' @param close.threshold The (potentially normalised) patristic threshold used to determine if two patients' subgraphs are "close".
 #' @param distant.threshold If present, a second distance threshold determines hosts that are "distant" from each other, with those lying between \code{close.threshold} and \code{dist.threshold} classed as "intermediate". The default is the same as \code{close.threshold}, so the intermediate class does not exist.
-#' @param use.paths.to.define.relationships If true, the path variable only is used to define ancestry (paths12>0 & paths21==0), intermingled (paths12>0 & paths21>0), and sibling (paths12==0 & paths21==0) relationships. Default: FALSE. 
 #' @param relationship.types Classification types.
 #' \itemize{
 #'  \item{"proximity.3.way"}{Classify individuals by phylogenetic distance between subgraphs. Suggested use: to exclude phylogenetic linkage based on distance alone.}
@@ -188,16 +186,14 @@ count.pairwise.relationships<- function(dwin, w.slide=NA, verbose=TRUE)
 #' 		'close.and.adjacent',					
 #' 		'close.and.adjacent.and.directed',					
 #' 		'close.and.adjacent.and.ancestry.cat')	
-#' dwin <- classify.pairwise.relationships(phsc, allow.mt=TRUE, close.threshold=close.threshold, distant.threshold=distant.threshold,use.paths.to.define.relationships=use.paths.to.define.relationships,relationship.types=relationship.types, verbose=TRUE)
+#' dwin <- classify.pairwise.relationships(phsc, close.threshold=close.threshold, distant.threshold=distant.threshold,use.paths.to.define.relationships=use.paths.to.define.relationships,relationship.types=relationship.types, verbose=TRUE)
 #' #
 #' # 	end of Rakai example
 #' #
 #' }	
 classify.pairwise.relationships<- function(ptrees, 
-                                           allow.mt=TRUE,
                                            close.threshold=0.025, 
                                            distant.threshold=0.05,	
-                                           use.paths.to.define.relationships=FALSE,
                                            relationship.types=c('proximity.3.way',
                                                                 'any.ancestry',
                                                                 'close.x.contiguous',
@@ -211,7 +207,7 @@ classify.pairwise.relationships<- function(ptrees,
 )
 {		
   
-  dwin <- phyloscannerR:::merge.classifications(ptrees, allow.mt, verbose)	
+  dwin <- phyloscannerR:::merge.classifications(ptrees, verbose)	
   
   if(verbose) cat('Assigning discrete proximity categories...\n')
   
@@ -228,10 +224,7 @@ classify.pairwise.relationships<- function(ptrees,
   
   if(verbose) cat('Calculating basic pairwise relationships for windows (n=',nrow(dwin),')...\n', sep="")
   
-  if(use.paths.to.define.relationships)
-    dwin	<- phyloscannerR:::get.pairwise.relationships.basic.by.paths(dwin)
-  if(!use.paths.to.define.relationships)
-    dwin	<- phyloscannerR:::get.pairwise.relationships.basic.by.ancestry(dwin)
+  dwin	<- phyloscannerR:::get.pairwise.relationships.basic.by.ancestry(dwin)
   
   if(verbose) cat('Calculating derived pairwise relationships for windows (n=',nrow(dwin),')...\n', sep="")
   
@@ -341,39 +334,13 @@ get.pairwise.relationships.basic.by.ancestry <- function(all.classifications)
   class[[1]]	<- tmp %>% filter(grepl("anc|Anc",ancestry)) %>% mutate(basic.classification:= "anc_contiguous")
   class[[2]]	<- tmp %>% filter(grepl("desc|Desc",ancestry)) %>% mutate(basic.classification:= "desc_contiguous")
   class[[3]]	<- tmp %>% filter(ancestry=='complex') %>% mutate(basic.classification:= "intermingled_contiguous")
-  class[[4]]	<- tmp %>% filter(ancestry=='none') %>% mutate(basic.classification:= "sibling_contiguous")
+  class[[4]]	<- tmp %>% filter(ancestry=='noAncestry') %>% mutate(basic.classification:= "sibling_contiguous")
   # define "XXX_noncontiguous"
   tmp			<- all.classifications %>% filter(!contiguous & adjacent)
   class[[5]]	<- tmp %>% filter(grepl("anc|Anc",ancestry)) %>% mutate(basic.classification:= "anc_noncontiguous")
   class[[6]]	<- tmp %>% filter(grepl("desc|Desc",ancestry)) %>% mutate(basic.classification:= "desc_noncontiguous")
   class[[7]]	<- tmp %>% filter(ancestry=='complex') %>% mutate(basic.classification:= "intermingled_noncontiguous")
-  class[[8]]	<- tmp %>% filter(ancestry=='none') %>% mutate(basic.classification:= "sibling_noncontiguous")
-  # define "other"
-  class[[9]]	<- all.classifications %>% filter(!adjacent) %>% mutate(basic.classification:= "other")
-  class		<- bind_rows(class)
-  stopifnot(nrow(all.classifications)==nrow(class))
-  class
-}
-
-#' @keywords internal
-#' @title Define basic topological relationships between two individuals by paths
-#' @author Oliver Ratmann
-get.pairwise.relationships.basic.by.paths <- function(all.classifications)
-{
-  stopifnot( all(c('contiguous','adjacent','paths12','paths21')%in%colnames(all.classifications)) )
-  # define "XXX_contiguous"
-  tmp			<- all.classifications %>% filter(contiguous & adjacent)
-  class 		<- list()
-  class[[1]]	<- tmp %>% filter(paths12>0 & paths21==0) %>% mutate(basic.classification:= "anc_contiguous")
-  class[[2]]	<- tmp %>% filter(paths12==0 & paths21>0) %>% mutate(basic.classification:= "desc_contiguous")
-  class[[3]]	<- tmp %>% filter(paths12>0 & paths21>0) %>% mutate(basic.classification:= "intermingled_contiguous")
-  class[[4]]	<- tmp %>% filter(paths12==0 & paths21==0) %>% mutate(basic.classification:= "sibling_contiguous")
-  # define "XXX_noncontiguous"
-  tmp			<- all.classifications %>% filter(!contiguous & adjacent)
-  class[[5]]	<- tmp %>% filter(paths12>0 & paths21==0) %>% mutate(basic.classification:= "anc_noncontiguous")
-  class[[6]]	<- tmp %>% filter(paths12==0 & paths21>0) %>% mutate(basic.classification:= "desc_noncontiguous")
-  class[[7]]	<- tmp %>% filter(paths12>0 & paths21>0) %>% mutate(basic.classification:= "intermingled_noncontiguous")
-  class[[8]]	<- tmp %>% filter(paths12==0 & paths21==0) %>% mutate(basic.classification:= "sibling_noncontiguous")
+  class[[8]]	<- tmp %>% filter(ancestry=='noAncestry') %>% mutate(basic.classification:= "sibling_noncontiguous")
   # define "other"
   class[[9]]	<- all.classifications %>% filter(!adjacent) %>% mutate(basic.classification:= "other")
   class		<- bind_rows(class)
@@ -538,16 +505,15 @@ get.pairwise.relationships.close.and.contiguous.and.ancestry.cat <- function(all
 #' @keywords internal
 #' @export summarise.classifications
 
-summarise.classifications <- function(ptrees, min.threshold, dist.threshold, tip.regex, min.reads = 1, min.tips = 1, allow.mt = T, close.sib.only = F, verbose = F, contiguous = F){
+summarise.classifications <- function(ptrees, min.threshold, dist.threshold, tip.regex, min.reads = 1, min.tips = 1, close.sib.only = F, verbose = F, contiguous = F){
   
-  tt <- merge.classifications(ptrees, allow.mt, verbose)
+  tt <- merge.classifications(ptrees, verbose)
   
   if(min.reads > 1 | min.tips > 1){
     tt <- select.windows.by.read.and.tip.count(ptrees, tt, tip.regex, min.reads, min.tips, verbose)
     tt <- tt %>% select(-reads.1, -reads.2, -tips.1, -tips.2)
     
   }
-  
   
   if (verbose) cat("Making summary output table...\n")
   
@@ -571,10 +537,10 @@ summarise.classifications <- function(ptrees, min.threshold, dist.threshold, tip
   } else {
     if(!contiguous){
       tt.close <- tt %>% 
-        filter(adjacent & (patristic.distance < dist.threshold | ancestry != "none"))
+        filter(adjacent & (patristic.distance < dist.threshold | ancestry != "noAncestry"))
     } else {
       tt.close <- tt %>% 
-        filter(contiguous & (patristic.distance < dist.threshold | ancestry == "none"))
+        filter(contiguous & (patristic.distance < dist.threshold | ancestry == "noAncestry"))
     }
   }
   

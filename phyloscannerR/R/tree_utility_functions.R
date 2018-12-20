@@ -530,7 +530,7 @@ process.tree <- function(tree, root.name=NULL, m.thresh=-1, blacklist.for.prunin
 #' # 	end of Rakai example
 #' #
 #' }	 	
-select.windows.by.read.and.tip.count <- function(ptrees, dwin, tip.regex, min.reads, min.tips, verbose=TRUE)			
+select.windows.by.read.and.tip.count <- function(ptrees, dwin, tip.regex, min.reads, min.tips, verbose=F)			
 {
   host.tips.and.reads <- map(ptrees, function(x) phyloscannerR:::get.tip.and.read.counts(x, all.hosts.from.trees(ptrees), tip.regex, attr(ptrees, 'has.read.counts'), verbose = F))
   host.tips.and.reads <- bind_rows(host.tips.and.reads)
