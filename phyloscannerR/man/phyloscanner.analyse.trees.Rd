@@ -21,13 +21,13 @@ phyloscanner.analyse.trees(tree.file.directory,
   tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
   file.name.regex = "^\\\\D*([0-9]+)_to_([0-9]+)\\\\D*$",
   seed = sample(1:1e+07, 1), norm.ref.file.name = NULL,
-  norm.standardise.gag.pol = F, norm.constants = NULL,
-  parsimony.blacklist.k = 0, raw.blacklist.threshold = 0,
-  ratio.blacklist.threshold = 0, do.dual.blacklisting = F,
-  max.reads.per.host = Inf, blacklist.underrepresented = F,
-  min.reads.per.host = 1, min.tips.per.host = 1, use.ff = F,
-  prune.blacklist = F, count.reads.in.parsimony = T, verbosity = 0,
-  no.progress.bars = F)
+  norm.standardise.gag.pol = F, norm.constants = NULL, allow.mt = F,
+  strict.ancestry = T, parsimony.blacklist.k = 0,
+  raw.blacklist.threshold = 0, ratio.blacklist.threshold = 0,
+  do.dual.blacklisting = F, max.reads.per.host = Inf,
+  blacklist.underrepresented = F, min.reads.per.host = 1,
+  min.tips.per.host = 1, use.ff = F, prune.blacklist = F,
+  count.reads.in.parsimony = T, verbosity = 0, no.progress.bars = F)
 
 phyloscanner.analyse.tree(tree.file.name, splits.rule = c("s", "r", "f"),
   sankoff.k = 0, sankoff.unassigned.switch.threshold = 0,
@@ -38,13 +38,13 @@ phyloscanner.analyse.tree(tree.file.name, splits.rule = c("s", "r", "f"),
   tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
   file.name.regex = "^\\\\D*([0-9]+)_to_([0-9]+)\\\\D*$",
   seed = sample(1:1e+07, 1), norm.ref.file.name = NULL,
-  norm.standardise.gag.pol = F, norm.constants = NULL,
-  parsimony.blacklist.k = 0, raw.blacklist.threshold = 0,
-  ratio.blacklist.threshold = 0, do.dual.blacklisting = F,
-  max.reads.per.host = Inf, blacklist.underrepresented = F,
-  min.reads.per.host = 1, min.tips.per.host = 1, use.ff = F,
-  prune.blacklist = F, count.reads.in.parsimony = T, verbosity = 0,
-  no.progress.bars = F)
+  norm.standardise.gag.pol = F, norm.constants = NULL, allow.mt = F,
+  strict.ancestry = T, parsimony.blacklist.k = 0,
+  raw.blacklist.threshold = 0, ratio.blacklist.threshold = 0,
+  do.dual.blacklisting = F, max.reads.per.host = Inf,
+  blacklist.underrepresented = F, min.reads.per.host = 1,
+  min.tips.per.host = 1, use.ff = F, prune.blacklist = F,
+  count.reads.in.parsimony = T, verbosity = 0, no.progress.bars = F)
 
 phyloscanner.generate.blacklist(tree.file.directory,
   tree.file.regex = "^RAxML_bestTree.InWindow_([0-9]+_to_[0-9]+)\\\\.tree$",
@@ -107,6 +107,10 @@ phyloscanner.generate.blacklist(tree.file.directory,
 \item{norm.standardise.gag.pol}{Use only if \code{norm.ref.file.name} is given. An HIV-specific option: if true, the normalising constants are standardised so that the average on gag+pol equals 1. Otherwise they are standardised so the average on the whole genome equals 1.}
 
 \item{norm.constants}{Either the path of a CSV file listing the file name for each tree (column 1) and the respective normalisation constant (column 2) or a single numerical normalisation constant to be applied to every tree. Cannot be used simultaneously with \code{norm.ref.file.name}. If neither is given then no normalisation will be performed.}
+
+\item{allow.mt}{If FALSE (the default0), directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative.}
+
+\item{strict.ancestry}{If FALSE, then an ancestry call requires only that at least one subgraph from one host is descended from the other, and that there are no subgrapghs in the opposite arrangement. If TRUE (the default), then it requires that all subgraphs from one host are descended from one from the other.}
 
 \item{parsimony.blacklist.k}{The \emph{k} parameter of the single-host Sankhoff parsimony reconstruction used to identify probable contaminants. A value of 0 is equivalent to not performing parsimony blacklisting.}
 
