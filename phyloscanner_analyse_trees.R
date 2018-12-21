@@ -568,7 +568,6 @@ if(length(phyloscanner.trees)>1){
                               'close.and.contiguous.and.ancestry')	
       
       dwin <- classify.pairwise.relationships(phyloscanner.trees, 
-                                              allow.mt = allow.mt, 
                                               close.threshold = close.threshold, 
                                               distant.threshold = distant.threshold,
                                               relationship.types = relationship.types, 
