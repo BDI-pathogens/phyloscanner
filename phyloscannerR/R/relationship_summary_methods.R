@@ -327,23 +327,27 @@ classify.pairwise.relationships<- function(ptrees,
 #' @author Oliver Ratmann
 get.pairwise.relationships.basic.by.ancestry <- function(all.classifications)
 {
-  stopifnot( all(c('contiguous','adjacent','paths12','paths21')%in%colnames(all.classifications)) )
+  stopifnot( all(c('contiguous','adjacent','paths12','paths21') %in% colnames(all.classifications)) )
   # define "XXX_contiguous"
+  
   tmp			<- all.classifications %>% filter(contiguous & adjacent)
   class 		<- list()
-  class[[1]]	<- tmp %>% filter(grepl("anc|Anc",ancestry)) %>% mutate(basic.classification:= "anc_contiguous")
-  class[[2]]	<- tmp %>% filter(grepl("desc|Desc",ancestry)) %>% mutate(basic.classification:= "desc_contiguous")
+  class[[1]]	<- tmp %>% filter(ancestry == "anc" | ancestry == "multiAnc") %>% mutate(basic.classification:= "anc_contiguous")
+  class[[2]]	<- tmp %>% filter(ancestry == "desc" | ancestry == "multiDesc") %>% mutate(basic.classification:= "desc_contiguous")
   class[[3]]	<- tmp %>% filter(ancestry=='complex') %>% mutate(basic.classification:= "intermingled_contiguous")
   class[[4]]	<- tmp %>% filter(ancestry=='noAncestry') %>% mutate(basic.classification:= "sibling_contiguous")
+  print(nrow(tmp))
   # define "XXX_noncontiguous"
   tmp			<- all.classifications %>% filter(!contiguous & adjacent)
-  class[[5]]	<- tmp %>% filter(grepl("anc|Anc",ancestry)) %>% mutate(basic.classification:= "anc_noncontiguous")
-  class[[6]]	<- tmp %>% filter(grepl("desc|Desc",ancestry)) %>% mutate(basic.classification:= "desc_noncontiguous")
+  class[[5]]	<- tmp %>% filter(ancestry == "anc" | ancestry == "multiAnc") %>% mutate(basic.classification:= "anc_noncontiguous")
+  class[[6]]	<- tmp %>% filter(ancestry == "desc" | ancestry == "multiDesc") %>% mutate(basic.classification:= "desc_noncontiguous")
   class[[7]]	<- tmp %>% filter(ancestry=='complex') %>% mutate(basic.classification:= "intermingled_noncontiguous")
   class[[8]]	<- tmp %>% filter(ancestry=='noAncestry') %>% mutate(basic.classification:= "sibling_noncontiguous")
   # define "other"
   class[[9]]	<- all.classifications %>% filter(!adjacent) %>% mutate(basic.classification:= "other")
+
   class		<- bind_rows(class)
+
   stopifnot(nrow(all.classifications)==nrow(class))
   class
 }

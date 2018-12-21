@@ -597,7 +597,7 @@ if(length(phyloscanner.trees)>1){
           ggsave(file = file.path(output.dir, paste0(output.string,"_simplifiedRelationshipGraph.pdf")), width=simp.plot.dim, height=simp.plot.dim)
         }
       } else {
-        cat("Summary diagram not currently implemented for multinomial version.")
+        cat("Summary diagram not currently implemented for multinomial version.\n")
       }
     }
   }
