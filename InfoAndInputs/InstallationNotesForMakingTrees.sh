@@ -24,10 +24,10 @@ echo 'PATH=$PATH:~/standard-RAxML/' >> ~/.bashrc
 source ~/.bashrc
 
 # MAFFT can be installed in different ways from http://mafft.cbrc.jp/alignment/software/linux.html
-# Here follows one way to install version 7.310 directly from the command line.
-wget http://mafft.cbrc.jp/alignment/software/mafft-7.310-without-extensions-src.tgz
-tar -xzf mafft-7.310-without-extensions-src.tgz
-cd mafft-7.310-without-extensions/core/
+# Here follows one way to install version 7.407 directly from the command line.
+wget http://mafft.cbrc.jp/alignment/software/mafft-7.407-without-extensions-src.tgz
+tar -xzf mafft-7.407-without-extensions-src.tgz
+cd mafft-7.407-without-extensions/core/
 make clean
 make
 sudo make install
@@ -100,10 +100,10 @@ echo 'PATH=$PATH:~/standard-RAxML/' >> ~/.bashrc
 source ~/.bashrc
 
 # MAFFT can be installed in different ways from http://mafft.cbrc.jp/alignment/software/linux.html
-# Here follows one way to install version 7.310 directly from the command line.
-curl http://mafft.cbrc.jp/alignment/software/mafft-7.310-without-extensions-src.tgz > mafft-7.310-without-extensions-src.tgz 
-tar -xzf mafft-7.310-without-extensions-src.tgz
-cd mafft-7.310-without-extensions/core/
+# Here follows one way to install version 7.407 directly from the command line.
+curl http://mafft.cbrc.jp/alignment/software/mafft-7.407-without-extensions-src.tgz > mafft-7.407-without-extensions-src.tgz 
+tar -xzf mafft-7.407-without-extensions-src.tgz
+cd mafft-7.407-without-extensions/core/
 make clean
 make
 sudo make install

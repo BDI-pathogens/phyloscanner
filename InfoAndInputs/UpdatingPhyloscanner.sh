@@ -13,3 +13,4 @@ sudo R
 # then inside the interactive R console, run
 library(devtools)
 install(".", dependencies = T)
+# Typing Ctrl+D twice gets you out of the interactive R console.
