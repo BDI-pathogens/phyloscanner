@@ -230,9 +230,11 @@ enough to merge into B but not into C (A -> B -> C), both A and B will be merged
 into C.''')
 OtherArgs.add_argument('-CR', '--check-recombination',
 action='store_true', help='''Calculates a metric of recombination for each
-sample's set of reads in each window. (Recommended only if you're interested, of
-course.) Calculation time scales cubically with the number of unique sequences
-each sample has per window, and so is turned off by default.''')
+sample's set of reads in each window. Calculation time scales cubically with the
+number of unique reads each sample has per window, so if you're interested
+in using this option it's best to play with all other options first to make sure
+your windows don't have a ridiculously large number of unique reads per sample.
+''')
 OtherArgs.add_argument('-N', '--num-bootstraps', type=int,
 help='Used to specify the number of bootstraps to be calculated for RAxML trees'
 ' (by default, none, i.e. only the ML tree is calculated).')
@@ -312,8 +314,8 @@ StopEarlyArgs.add_argument('-D', '--dont-check-duplicates', action='store_true',
 help="Don't compare reads between samples to find duplicates - a possible "+\
 "indication of contamination. (By default this check is done.)")
 
-DeprecatedArgs = parser.add_argument_group('''Deprecated options, left here for
-backward compatability or interest.''')
+DeprecatedArgs = parser.add_argument_group('Deprecated options, left here for'
+'backward compatability or interest.')
 DeprecatedArgs.add_argument('-C', '--contaminant-count-ratio', type=float,
 help='''Used to specify a numerical value which is interpreted in the following
 'way: if a sequence is found exactly duplicated between any two bam files,
