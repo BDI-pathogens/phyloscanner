@@ -33,7 +33,7 @@ get.window.coords <- function(string, regex = "^\\D*([0-9]+)_to_([0-9]+).*$"){
     stop(paste0("ERROR: cannot determine window coordinates"))
   }
   
-  list(start=start, end = end)
+  list(start = start, end = end)
 }
 
 #' @keywords internal

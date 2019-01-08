@@ -337,7 +337,7 @@ get.pairwise.relationships.basic.by.ancestry <- function(all.classifications)
   class[[2]]	<- tmp %>% filter(ancestry == "desc" | ancestry == "multiDesc") %>% mutate(basic.classification:= "desc_contiguous")
   class[[3]]	<- tmp %>% filter(ancestry=='complex') %>% mutate(basic.classification:= "intermingled_contiguous")
   class[[4]]	<- tmp %>% filter(ancestry=='noAncestry') %>% mutate(basic.classification:= "sibling_contiguous")
-  print(nrow(tmp))
+  
   # define "XXX_noncontiguous"
   tmp			<- all.classifications %>% filter(!contiguous & adjacent)
   class[[5]]	<- tmp %>% filter(ancestry == "anc" | ancestry == "multiAnc") %>% mutate(basic.classification:= "anc_noncontiguous")
@@ -346,9 +346,9 @@ get.pairwise.relationships.basic.by.ancestry <- function(all.classifications)
   class[[8]]	<- tmp %>% filter(ancestry=='noAncestry') %>% mutate(basic.classification:= "sibling_noncontiguous")
   # define "other"
   class[[9]]	<- all.classifications %>% filter(!adjacent) %>% mutate(basic.classification:= "other")
-
+  
   class		<- bind_rows(class)
-
+  
   stopifnot(nrow(all.classifications)==nrow(class))
   class
 }
@@ -666,86 +666,36 @@ simplify.summary <- function(summary, arrow.threshold, total.trees, plot = F){
   
   out <- list(simp.table = summary.wide)
   
-  
   if(plot){
-    network.obj <- as.network.matrix(summary.wide[,c(1,2)], matrix.type = "edgelist")
-    
-    arrangement <- ggnet2(network.obj)$data[,c("label", "x", "y")]
-    
-    summary.wide$x.start <- map_dbl(summary.wide$host.1, function(x) arrangement$x[match(x, arrangement$label)]) 
-    summary.wide$y.start <- map_dbl(summary.wide$host.1, function(x) arrangement$y[match(x, arrangement$label)]) 
-    summary.wide$x.end <- map_dbl(summary.wide$host.2, function(x) arrangement$x[match(x, arrangement$label)]) 
-    summary.wide$y.end <- map_dbl(summary.wide$host.2, function(x) arrangement$y[match(x, arrangement$label)]) 
-    summary.wide$x.midpoint <- (summary.wide$x.end + summary.wide$x.start)/2
-    summary.wide$y.midpoint <- (summary.wide$y.end + summary.wide$y.start)/2
-    
-    out.diagram <- ggplot() + 
-      geom_segment(data=summary.wide[which(summary.wide$arrow),], aes(x=x.start, xend = x.end, y=y.start, yend = y.end), arrow = arrow(length = unit(0.01, "npc"), type="closed"), col="steelblue3", size=1.5, lineend="round") +
-      geom_segment(data=summary.wide[which(!summary.wide$arrow),], aes(x=x.start, xend = x.end, y=y.start, yend = y.end), col="chartreuse3", size=1.5, lineend="round") +
-      geom_label(aes(x=arrangement$x, y=arrangement$y, label=arrangement$label), alpha=0.25, fill="darkgoldenrod3") + 
-      geom_text(data=summary.wide, aes(x=x.midpoint, y=y.midpoint, label=label)) + 
-      theme_void()
-    
-    out$simp.diagram <- out.diagram
+    out$simp.diagram <- make.simplified.plot(summary.wide)
   }
   
   return(out)
 }
 
 #' @keywords internal
-#' @importFrom network as.network.matrix
-#' @export simplify.summar.multnomial
+#' @export simplify.summary.multinomial
 
 simplify.summary.multinomial <- function(summary, win.threshold, arrow.threshold, contiguous = F, plot = F){
   
-  done <- rep(FALSE, nrow(summary))
-  
-  for(line in 1:nrow(summary)){
-    if(!done[line]){
-      forwards.rows <- which(summary$host.1 == summary$host.1[line] & summary$host.2 == summary$host.2[line])
-      backwards.rows <- which(summary$host.1 == summary$host.2[line] & summary$host.2 == summary$host.1[line])
-      
-      done[forwards.rows] <- T
-      done[backwards.rows] <- T
-      
-      summary$ancestry[intersect(forwards.rows, which(summary$ancestry=="trans"))] <- "trans12"
-      summary$ancestry[intersect(forwards.rows, which(summary$ancestry=="multiTrans"))] <- "multi_trans12"
-      
-      summary$ancestry[intersect(backwards.rows, which(summary$ancestry=="trans"))] <- "trans21"
-      summary$ancestry[intersect(backwards.rows, which(summary$ancestry=="multiTrans"))] <- "multi_trans21"
-      
-      summary[backwards.rows,c(1,2)] <- summary[backwards.rows,c(2,1)]
-    }
+  if(contiguous){
+    relevant.lines <- summary %>%
+      filter(categorisation == "close.and.contiguous.and.ancestry.cat")
+  } else {
+    relevant.lines <- summary %>%
+      filter(categorisation == "close.and.adjacent.and.ancestry.cat")
   }
   
-  summary.wide <- summary %>% 
-    select(host.1, host.2, both.exist, ancestry, ancestry.tree.count) %>% 
-    spread(ancestry, ancestry.tree.count, fill = 0) %>% 
-    mutate(total.equiv = 0, total.12 = 0, total.21 = 0)
-  
-  
-  if("none" %in% names(summary.wide)){
-    summary.wide <- summary.wide %>% mutate(total.equiv = total.equiv + none)
-  }
-  if("complex" %in% names(summary.wide)){
-    summary.wide <- summary.wide %>% mutate(total.equiv = total.equiv + complex)
-  }
-  if("trans12" %in% names(summary.wide)){
-    summary.wide <- summary.wide %>% mutate(total.12 = total.12 + trans12)
-  } 
-  if("multi_trans12" %in% names(summary.wide)){
-    summary.wide <- summary.wide %>% mutate(total.12 = total.12 + multi_trans12)
-  }
-  if("trans21" %in% names(summary.wide)){
-    summary.wide <- summary.wide %>% mutate(total.21 = total.21 + trans21)
-  } 
-  if("multi_trans21" %in% names(summary.wide)){
-    summary.wide <- summary.wide %>% mutate(total.21 = total.21 + multi_trans21)
-  }
-  
-  summary.wide <- summary.wide %>% 
+  relevant.lines <- relevant.lines %>% 
+    filter(type != "not.close.or.nonadjacent" & type != "not.close.or.noncontiguous") %>%
+    group_by(host.1, host.2) %>%
+    mutate(total.score = sum(score)) %>% 
+    filter(total.score >= win.threshold) %>%
+    select(host.1, host.2, type, score) %>%
+    spread(type, score) %>%
+    rename(total.12 = `12`, total.21 = `21`, total.equiv = complex.or.no.ancestry) %>% 
     mutate(total = total.21 + total.12 + total.equiv,
-           dir = total.12 >= arrow.threshold*total.trees | total.21 >= arrow.threshold*total.trees,
+           dir = total.12 >= arrow.threshold | total.21 >= arrow.threshold,
            arrow = pmap_chr(list(dir, total.12, total.21), function(x, y, z) {
              if(!x){
                return("none")
@@ -758,46 +708,52 @@ simplify.summary.multinomial <- function(summary, win.threshold, arrow.threshold
            }),
            label = pmap_chr(list(dir, total.12, total.21, total), function(w, x, y, z) {
              if(!w){
-               as.character(round(z/total.trees, 2))
+               as.character(round(z, 2))
              } else {
-               paste0(round(max(x,y)/total.trees, 2), "/", round(z/total.trees, 2))
+               paste0(round(max(x,y), 2), "/", round(z, 2))
              }
              
            })
     ) %>%
     select(host.1, host.2, arrow, label)
   
-  # this has not been tidied - but it's much more succinct in standard R language
+  relevant.lines[which(relevant.lines$arrow=="backwards"),c(1,2)] <- relevant.lines[which(relevant.lines$arrow=="backwards"),c(2,1)] 
   
-  summary.wide[which(summary.wide$arrow=="backwards"),c(1,2)] <- summary.wide[which(summary.wide$arrow=="backwards"),c(2,1)] 
+  relevant.lines$arrow <- relevant.lines$arrow!="none"
   
-  summary.wide$arrow <- summary.wide$arrow!="none"
-  
-  out <- list(simp.table = summary.wide)
-  
+  out <- list(simp.table = relevant.lines)
   
   if(plot){
-    network.obj <- as.network.matrix(summary.wide[,c(1,2)], matrix.type = "edgelist")
-    
-    arrangement <- ggnet2(network.obj)$data[,c("label", "x", "y")]
-    
-    summary.wide$x.start <- map_dbl(summary.wide$host.1, function(x) arrangement$x[match(x, arrangement$label)]) 
-    summary.wide$y.start <- map_dbl(summary.wide$host.1, function(x) arrangement$y[match(x, arrangement$label)]) 
-    summary.wide$x.end <- map_dbl(summary.wide$host.2, function(x) arrangement$x[match(x, arrangement$label)]) 
-    summary.wide$y.end <- map_dbl(summary.wide$host.2, function(x) arrangement$y[match(x, arrangement$label)]) 
-    summary.wide$x.midpoint <- (summary.wide$x.end + summary.wide$x.start)/2
-    summary.wide$y.midpoint <- (summary.wide$y.end + summary.wide$y.start)/2
-    
-    out.diagram <- ggplot() + 
-      geom_segment(data=summary.wide[which(summary.wide$arrow),], aes(x=x.start, xend = x.end, y=y.start, yend = y.end), arrow = arrow(length = unit(0.01, "npc"), type="closed"), col="steelblue3", size=1.5, lineend="round") +
-      geom_segment(data=summary.wide[which(!summary.wide$arrow),], aes(x=x.start, xend = x.end, y=y.start, yend = y.end), col="chartreuse3", size=1.5, lineend="round") +
-      geom_label(aes(x=arrangement$x, y=arrangement$y, label=arrangement$label), alpha=0.25, fill="darkgoldenrod3") + 
-      geom_text(data=summary.wide, aes(x=x.midpoint, y=y.midpoint, label=label)) + 
-      theme_void()
-    
-    out$simp.diagram <- out.diagram
+    out$simp.diagram <- make.simplified.plot(relevant.lines)
   }
   
   return(out)
+}
+
+
+#' @keywords internal
+#' #' @importFrom network as.network.matrix
+#' @export make.simplified.plot
+
+make.simplified.plot <- function(summary){
+  network.obj <- as.network.matrix(summary[,c(1,2)], matrix.type = "edgelist")
+  
+  arrangement <- ggnet2(network.obj)$data[,c("label", "x", "y")]
+  
+  summary$x.start <- map_dbl(summary$host.1, function(x) arrangement$x[match(x, arrangement$label)]) 
+  summary$y.start <- map_dbl(summary$host.1, function(x) arrangement$y[match(x, arrangement$label)]) 
+  summary$x.end <- map_dbl(summary$host.2, function(x) arrangement$x[match(x, arrangement$label)]) 
+  summary$y.end <- map_dbl(summary$host.2, function(x) arrangement$y[match(x, arrangement$label)]) 
+  summary$x.midpoint <- (summary$x.end + summary$x.start)/2
+  summary$y.midpoint <- (summary$y.end + summary$y.start)/2
+  
+  out.diagram <- ggplot() + 
+    geom_segment(data=summary[which(summary$arrow),], aes(x=x.start, xend = x.end, y=y.start, yend = y.end), arrow = arrow(length = unit(0.01, "npc"), type="closed"), col="steelblue3", size=1.5, lineend="round") +
+    geom_segment(data=summary[which(!summary$arrow),], aes(x=x.start, xend = x.end, y=y.start, yend = y.end), col="chartreuse3", size=1.5, lineend="round") +
+    geom_label(aes(x=arrangement$x, y=arrangement$y, label=arrangement$label), alpha=0.25, fill="darkgoldenrod3") + 
+    geom_text(data=summary, aes(x=x.midpoint, y=y.midpoint, label=label)) + 
+    theme_void()
+  
+  out.diagram
 }
 
