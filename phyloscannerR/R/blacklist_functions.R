@@ -11,21 +11,20 @@ blacklist.exact.duplicates <- function(ptree, raw.threshold, ratio.threshold, ti
   
   entries <- ptree$duplicate.tips
   
-  pairs.table <- entries %>% map(function(x){
-    # get rid of anything that doesn't match the regexp (outgroup etc)
-    tmp <-  x[!is.na(sapply(x, read.count.from.label, regexp = tip.regex))]
-    if(length(tmp)>1){
-      tmp <- as.tibble(t(combn(tmp,2)))
-      names(tmp) <- c('tip.1','tip.2')
-      
-      tmp
-    } else {
-      NULL
-    }
-    
-  })
-  
-  pairs.table	<- bind_rows(pairs.table)
+  pairs.table <- entries %>%
+    map(function(x){
+      # get rid of anything that doesn't match the regexp (outgroup etc)
+      tmp <-  x[!is.na(sapply(x, read.count.from.label, regexp = tip.regex))]
+      if(length(tmp)>1){
+        tmp <- as.tibble(t(combn(tmp,2)))
+        names(tmp) <- c('tip.1','tip.2')
+        
+        tmp
+      } else {
+        NULL
+      }
+    }) %>% 
+    bind_rows()
   
   if(nrow(pairs.table) > 0){
     
@@ -83,7 +82,7 @@ blacklist.exact.duplicates <- function(ptree, raw.threshold, ratio.threshold, ti
     
     blacklisted
   } else {
-
+    
     pairs.table
   }
 }
@@ -407,7 +406,7 @@ blacklist.by.tip.count <- function(ptree, hosts, min.tips = 1){
     which(ptree$hosts.for.tips == x)
     
   }, simplify = F, USE.NAMES = T)
-
+  
   tip.counts <- map_int(hosts, function(x){
     length(tips.for.hosts[[x]])
   })
