@@ -598,7 +598,10 @@ if(length(phyloscanner.trees)>1){
       } else {
         tmp <- select.windows.by.read.and.tip.count(phyloscanner.trees, dwin, tip.regex, 1, 1)
       }
-      dc  <- count.pairwise.relationships(tmp)
+      dc  <- count.pairwise.relationships(tmp) 
+      
+      if (verbosity!=0) cat('Writing multinomial model output to file ', paste0(output.string,"_multinomialOutput", csv.fe),'...\n', sep="")
+      write_csv(dc, file.path(output.dir, paste0(output.string,"_multinomialOutput", csv.fe)))
     }
     
     if(do.simplified.graph){
@@ -615,12 +618,13 @@ if(length(phyloscanner.trees)>1){
           ggsave(file = file.path(output.dir, paste0(output.string,"_simplifiedRelationshipGraph.pdf")), width=simp.plot.dim, height=simp.plot.dim)
         }
       } else {
-        simplified.graph <- simplify.summary(ts, arrow.threshold, length(phyloscanner.trees), plot = T)
+        if (verbosity!=0) cat('Drawing simplified summary diagram to file ', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'...\n', sep="")
         
-        if(output.files){
-          simplified.graph$simp.diagram
-          ggsave(file = file.path(output.dir, paste0(output.string,"_simplifiedRelationshipGraph.pdf")), width=simp.plot.dim, height=simp.plot.dim)
-        }
+        simplified.graph <- simplify.summary.multinomial(dc, win.threshold, arrow.threshold, contiguous = F, plot = T)
+        
+        simplified.graph$simp.diagram
+        ggsave(file = file.path(output.dir, paste0(output.string,"_simplifiedRelationshipGraph.pdf")), width=simp.plot.dim, height=simp.plot.dim)
+
       }
     }
   }
