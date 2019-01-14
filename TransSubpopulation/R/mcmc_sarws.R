@@ -43,17 +43,8 @@ mcmc.sarws.biass <- function(dc, iteration, seed = NULL)
   #	(https://projecteuclid.org/euclid.ba/1422556416)
   mc$pars$LAMBDA[1,]	<- 0.8 / nrow(dc)
   # 	sampling: set to draw from prior
-  tmp	<- dc[, list(
-    TR_SEQ_P = rbeta(1L, TR_P_SEQ_ALPHA, TR_P_SEQ_BETA),
-    REC_SEQ_P = rbeta(1L, REC_P_SEQ_ALPHA, REC_P_SEQ_BETA)
-  ),
-  by = c(
-    'COUNT_ID',
-    'TR_P_SEQ_ALPHA',
-    'TR_P_SEQ_BETA',
-    'REC_P_SEQ_ALPHA',
-    'REC_P_SEQ_BETA'
-  )]
+  tmp	<- dc[, list(TR_SEQ_P = rbeta(1L, TR_P_SEQ_ALPHA, TR_P_SEQ_BETA),REC_SEQ_P = rbeta(1L, REC_P_SEQ_ALPHA, REC_P_SEQ_BETA)),
+            by = c('COUNT_ID','TR_P_SEQ_ALPHA','TR_P_SEQ_BETA','REC_P_SEQ_ALPHA','REC_P_SEQ_BETA')]
   tmp[, TR_SEQ_LOGD := dbeta(TR_SEQ_P, TR_P_SEQ_ALPHA, TR_P_SEQ_BETA, log = TRUE)]
   tmp[, REC_SEQ_LOGD := dbeta(REC_SEQ_P, REC_P_SEQ_ALPHA, REC_P_SEQ_BETA, log = TRUE)]
   mc$pars$S_DTL	<- copy(tmp)
@@ -89,7 +80,7 @@ mcmc.sarws.biass <- function(dc, iteration, seed = NULL)
 
   #
   # run mcmc
-  options(warn = 2)
+  options(warn = 0)
   mc$sweep <- ncol(mc$pars$Z) + 1L
   for (i in 1L:(mc$n - 1L))
   {
@@ -341,7 +332,7 @@ mcmc.sarws.biassap<-function(dc, iteration, seed = NULL)
 
     #
     # run mcmc
-    options(warn = 2)
+    options(warn = 0)
     mc$sweep			<- ncol(mc$pars$Z) + 1L
     for (i in 1L:(mc$n - 1L))
     {
