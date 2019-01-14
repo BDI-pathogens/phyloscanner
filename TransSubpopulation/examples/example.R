@@ -35,8 +35,8 @@ dc$COUNT_ID<-1:nrow(dc)
 
 
 # example
-mcmc.sarws.biass(dc,1e4)
+mcmc.sarws.biass(dc,1e3)
 
 load("core_inference_SNPIZ_mcmcEachCount.rda")
 
-mcmc.sarws.diagnostics(mc, 1e4, 2e3)
+mcmc.sarws.diagnostics(mc, 1e3, 2e2)
