@@ -344,6 +344,8 @@ if(do.class.detail & !output.files){
 
 multinomial                    <- args$multinomial
 
+multinomial                    <- args$multinomial
+
 # Thresholds for summaries
 win.threshold                  <- args$windowThreshold
 dist.thresholds                <- args$distanceThreshold
@@ -605,7 +607,7 @@ if(length(phyloscanner.trees)>1){
     }
     
     if(do.simplified.graph){
-     
+
       if(!multinomial){
         if(nrow(ts)==0){
           cat("No relationships exist in the required proportion of windows (",win.threshold,"); skipping simplified relationship summary.\n", sep="")
