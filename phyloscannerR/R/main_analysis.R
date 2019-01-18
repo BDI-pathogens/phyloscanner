@@ -1454,12 +1454,12 @@ prepare.tree <- function(ptree, outgroup.name, tip.regex, guess.multifurcation.t
       
       if(minimum.bl > 0.25*one.snp){
         if(verbose){
-          cat("In tree ID ",ptree$id," the minimum branch length is ",minimum.bl,", which is equivalent to ",minimum.bl/one.snp," SNPs. Assuming this tree has no multifurcations.\n", sep="")
+          cat("In tree ID ", ptree$id," the minimum branch length is ", minimum.bl,", which is equivalent to ", minimum.bl/one.snp, " SNPs. Assuming this tree has no multifurcations.\n", sep="")
         }
         multifurcation.threshold                      <- -1
       } else {
         if(verbose) {
-          cat("In tree ID ",ptree$id," the minimum branch length is ",minimum.bl,", which is equivalent to ",minimum.bl/one.snp," SNPs. Using this branch length as a multifurcation threshold.\n", sep="")
+          cat("In tree ID ", ptree$id," the minimum branch length is ", minimum.bl, ", which is equivalent to ", minimum.bl/one.snp, " SNPs. Using this branch length as a multifurcation threshold.\n", sep="")
         }
         if(minimum.bl==0){
           multifurcation.threshold                    <- 1E-9
@@ -1471,7 +1471,7 @@ prepare.tree <- function(ptree, outgroup.name, tip.regex, guess.multifurcation.t
     } else {
       warning("Attempting to guess a branch length threshold for multifurcations from the tree. Please ensure that the tree has multifurcations before using the results of this analysis.")
       if(verbose){
-        cat("In tree ID ",ptree$id," the minimum branch length is ",minimum.bl,". Using this as a multifurcation threshold.\n", sep="")
+        cat("In tree ID ", ptree$id, " the minimum branch length is ", minimum.bl, ". Using this as a multifurcation threshold.\n", sep="")
       }
       if(minimum.bl==0){
         multifurcation.threshold                    <- 1E-9
