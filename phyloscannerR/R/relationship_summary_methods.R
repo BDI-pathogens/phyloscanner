@@ -692,7 +692,7 @@ simplify.summary.multinomial <- function(summary, win.threshold, arrow.threshold
     mutate(total.score = sum(score)) %>% 
     filter(total.score >= win.threshold) %>%
     select(host.1, host.2, type, score) %>%
-    spread(type, score) %>%
+    spread(type, score, fill = 0) %>%
     rename(total.12 = `12`, total.21 = `21`, total.equiv = complex.or.no.ancestry) %>% 
     mutate(total = total.21 + total.12 + total.equiv,
            dir = total.12 >= arrow.threshold | total.21 >= arrow.threshold,
