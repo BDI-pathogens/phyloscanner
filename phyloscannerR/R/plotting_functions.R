@@ -193,7 +193,7 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
       ylab("Tip or read count") +
       xlab(x.axis.label) +
       scale_x_continuous(limits=x.limits) +
-      scale_color_discrete(name="Variable", labels=c("Tips", "Reads")) + 
+      scale_color_discrete(name="Variable", labels=c("Reads", "Tips")) + 
       theme(text = element_text(size=7))
     
     if(log.scale){
