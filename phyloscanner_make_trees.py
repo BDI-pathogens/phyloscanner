@@ -1687,11 +1687,11 @@ for window in range(NumCoords / 2):
       with open(FileForReadNames1, 'w') as f:
         f.write('\n'.join(ReadNames) + '\n')
       OutputFilesByDestinationDir['ReadNames'].append(FileForReadNames1)
+      if args.read_names_only:
+        continue
     if args.read_names_2:
       CorrespondenceDict_RawSeqToReadNames_AllSamples[BamAlias] = \
       CorrespondenceDict_RawSeqToReadNames
-  if args.read_names_only:
-    continue
 
   # We've now gathered together reads from all bam files for this window.
 
@@ -2115,6 +2115,8 @@ for window in range(NumCoords / 2):
             exit(1)
           f.write(TipName + "," + ",".join(ReadNames) + "\n")
     OutputFilesByDestinationDir['ReadNames'].append(FileForReadNames2)
+    if args.read_names_only:
+      continue
 
   # Update on time taken if desired
   if args.time:
