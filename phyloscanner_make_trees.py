@@ -2114,7 +2114,26 @@ for window in range(NumCoords / 2):
             'to Chris Wymant. Quitting.', file=sys.stderr)
             exit(1)
           f.write(TipName + "," + ",".join(ReadNames) + "\n")
-    OutputFilesByDestinationDir['ReadNames'].append(FileForReadNames2)
+
+    ZippedFileForReadNames2 = FileForReadNames2 + ".gz"
+    try:
+      ExitStatus = subprocess.call(["gzip", FileForReadNames2])
+      assert ExitStatus == 0
+    except:
+      print('Warning: problem gzipping', FileForReadNames2, file=sys.stderr)
+      if not os.path.isfile(FileForReadNames2):
+        print('Warning: after a problem gzipping', FileForReadNames2 + \
+        ", that file no longer exists. Moving output files to their",
+        "subdirectories may be affected.", file=sys.stderr)
+    else:
+      if not os.path.isfile(ZippedFileForReadNames2):
+        print('Warning: gzipping file', FileForReadNames2, 'appeared to work,',
+        'but file', ZippedFileForReadNames2, 'does not exist. Moving output',
+        "files to their subdirectories may be affected.", file=sys.stderr)
+    if os.path.isfile(FileForReadNames2):
+      OutputFilesByDestinationDir['ReadNames'].append(FileForReadNames2)
+    if os.path.isfile(ZippedFileForReadNames2):
+      OutputFilesByDestinationDir['ReadNames'].append(ZippedFileForReadNames2)
     if args.read_names_only:
       continue
 
