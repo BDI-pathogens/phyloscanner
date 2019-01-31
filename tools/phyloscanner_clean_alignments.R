@@ -255,7 +255,7 @@ silent <- sapply(ptrees, function(ptree){
     new.seqs <- seqs[which(!(labels(seqs) %in% ptree$original.tip.labels[ptree$blacklist])),]
     new.afn  <- paste0(output.string, "_", ptree$id, ".fasta")
     
-    if(verbosity!=0) cat("Writing cleaned alignment to ",new.afn, "...\n", sep="")
+    if(verbosity==2) cat("Writing cleaned alignment to ",new.afn, "...\n", sep="")
     write.dna(new.seqs, new.afn, format="fasta")
 
   } else {
