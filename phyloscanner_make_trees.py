@@ -275,12 +275,6 @@ action='store_true', help='''With --merge-paired-reads, those pairs that
 overlap but disagree are discarded. With this option, these discarded pairs 
 are written to a bam file (one per patient, with their reference file copied
 to the working directory) for your inspection.''')
-BioinformaticsArgs.add_argument('-RN1', '--read-names-1', action='store_true',
-help='''Produce a file for each window and each bam, listing the names of the
-reads that phyloscanner used.''')
-BioinformaticsArgs.add_argument('-RN2', '--read-names-2', action='store_true',
-help='''As --read-names-1, except the files will show the correspondence between
-read names and which unique sequence they correspond to.''')
 BioinformaticsArgs.add_argument('--exact-window-start', action='store_true',
 help='''Normally phyloscanner retrieves all reads that fully
 overlap a given window, i.e. starting at or anywhere before the window start,
@@ -304,15 +298,19 @@ StopEarlyArgs.add_argument('-AO', '--align-refs-only', action='store_true',
 help='''Align the mapping references used to create the bam files, plus any
 extra reference sequences specified with -A, then quit without doing anything
 else.''')
-StopEarlyArgs.add_argument('-RNO', '--read-names-only', action='store_true',
-help='''To be combined with --read-names-1 or --read-names-2: quit after writing
-the read names to a file (which means the reads are not aligned).''')
 StopEarlyArgs.add_argument('-T', '--no-trees', action='store_true',
 help='Process and align the reads from each window, then quit without making '
 'trees.')
 StopEarlyArgs.add_argument('-D', '--dont-check-duplicates', action='store_true',
 help="Don't compare reads between samples to find duplicates - a possible "+\
 "indication of contamination. (By default this check is done.)")
+StopEarlyArgs.add_argument('-RNO', '--read-names-only', action='store_true',
+help='''Stop analysing each window as soon as possible after writing the read
+names to a file.''')
+StopEarlyArgs.add_argument('-NRN', '--no-read-names', action='store_true',
+help='''Do not record the correspondence between each unique sequence retained
+by phyloscanner, and the reads that went into this sequence (as they are named
+in the bam file), as is done by default.''')
 
 DeprecatedArgs = parser.add_argument_group('Deprecated options, left here for'
 'backward compatability or interest.')
@@ -363,6 +361,11 @@ action='store_true', help='''By default, the normalising constant for the
 recombination metric is half the number of sites in the window; with this option
 it's half the number of sites in the window that are polymorphic for that bam
 file.''')
+DeprecatedArgs.add_argument('-RNS', '--read-names-simple', action='store_true',
+help='''Produce a file for each window and each bam, simply listing the names of
+the reads that phyloscanner used (but not the correspondence between these and
+the set of unique sequences retained by phyloscanner after any merging etc.).
+This is not affected by the --no-read-names option.''')
 
 args = parser.parse_args()
 
@@ -386,10 +389,13 @@ MergeReadsB = args.merging_threshold_b > 0
 MergeReads = MergeReadsA or MergeReadsB
 PrintInfo = not args.quiet
 RecombNormToDiv = args.recombination_norm_diversity
+ReadNamesDetailed = not args.no_read_names
 
 # Print how this script was called, for logging purposes.
 print('phyloscanner was called thus:\n' + ' '.join(sys.argv))
 
+#TODO: if (ExploreWindowWidths or ExploreWindowWidthsFast or args.read_names_only
+#   args.no_trees = True # then search for args.no_trees
 # Warn if RAxML files exist already.
 if not (args.no_trees or ExploreWindowWidths or ExploreWindowWidthsFast) and \
 glob.glob('RAxML*'):
@@ -508,10 +514,17 @@ if (ExcisePositions and args.excision_ref == None) or \
   'use both, or neither. Quitting.', file=sys.stderr)
   exit(1)
 
-# --read-names-2 can't be used with --merging-threshold-b.
-if args.read_names_2 and MergeReadsB:
-  print('The --read-names-2 option cannot be used with --merging-threshold-b.',
-  'Quitting''', file=sys.stderr)
+if ReadNamesDetailed and MergeReadsB:
+  print('The --merging-threshold-b option can only be used with the',
+  '--no-read-names option. Quitting.', file=sys.stderr)
+  exit(1)
+
+# Check not --read-names-only if no read names are being recorded.
+if args.read_names_only and not ReadNamesDetailed and \
+not args.read_names_simple:
+  print('Using --read-names-only with --no-read-names and without',
+  '--read-names-simple makes no sense: no read names are being recorded.',
+  'Assuming this is an error, quitting.', file=sys.stderr)
   exit(1)
 
 # Sanity checks on using the pairwise alignment option.
@@ -1101,13 +1114,13 @@ WindowAsStr):
 
   # Merge similar reads if desired
   if MergeReadsA:
-    if args.read_names_2:
+    if ReadNamesDetailed:
       ReadDict, CorrespondenceDict_PostMergingToPreMerging = \
       pf.MergeSimilarStringsA(ReadDict, MergingThreshold,
       RecordCorrespondence=True)
     else:
       ReadDict = pf.MergeSimilarStringsA(ReadDict, MergingThreshold)
-  elif args.read_names_2:
+  elif ReadNamesDetailed:
     CorrespondenceDict_PostMergingToPreMerging = \
     {read:[read] for read in ReadDict.keys()}
   if MergeReadsB:
@@ -1132,10 +1145,10 @@ WindowAsStr):
     SeqName = BasenameForReads+'_read_'+str(k+1)+'_count_'+str(count)
     SeqObject = SeqIO.SeqRecord(Seq.Seq(read), id=SeqName, description='')
     reads.append(SeqObject)
-    if args.read_names_2:
+    if ReadNamesDetailed:
       CorrespondenceDict_TipNameToRawSeqs[SeqName] = \
       CorrespondenceDict_PostMergingToPreMerging[read]
-  if args.read_names_2:
+  if ReadNamesDetailed:
     return reads, CorrespondenceDict_TipNameToRawSeqs
   return reads
 
@@ -1368,8 +1381,10 @@ FileForDuplicateSeqs_basename = 'DuplicateReads_contaminants_'
 OutputDirs['DupData'] = 'DuplicationData'
 OutputFilesByDestinationDir['DupData'] = []
 
-FileForReadNames1_basename = 'ReadNames1_'
-FileForReadNames2_basename = 'ReadNames2_'
+# For historical reasons, the simple read name files are associated with "1" and
+# the detailed ones with 2. 
+FileForReadNames1_basename = 'ReadNamesSimple_'
+FileForReadNames2_basename = 'ReadNames_'
 OutputDirs['ReadNames'] = 'ReadNames'
 OutputFilesByDestinationDir['ReadNames'] = []
 
@@ -1585,9 +1600,9 @@ for window in range(NumCoords / 2):
           UniqueReads[seq] = 1
 
         # Record the read name if desired.
-        if args.read_names_1:
+        if args.read_names_simple:
           ReadNames.append(read.query_name)
-        if args.read_names_2:
+        if ReadNamesDetailed:
           if seq in CorrespondenceDict_RawSeqToReadNames:
             CorrespondenceDict_RawSeqToReadNames[seq].append(read.query_name)
           else:
@@ -1630,9 +1645,9 @@ for window in range(NumCoords / 2):
           UniqueReads[seq] = 1
 
         # Record the read name if desired.
-        if args.read_names_1:
+        if args.read_names_simple:
           ReadNames.append(ReadName)
-        if args.read_names_2:
+        if ReadNamesDetailed:
           if seq in CorrespondenceDict_RawSeqToReadNames:
             CorrespondenceDict_RawSeqToReadNames[seq].append(ReadName)
           else:
@@ -1670,7 +1685,7 @@ for window in range(NumCoords / 2):
     # If we're not checking for read duplication between samples, process the
     # read dict for this sample now and add it to the list of all reads here.
     else:
-      if args.read_names_2:
+      if ReadNamesDetailed:
         ReadsInThisWindow, CorrespondenceDict_TipNameToRawSeqs = \
         ProcessReadDict(UniqueReads, i, LeftWindowEdge, RightWindowEdge, \
         ThisWindowAsStr)
@@ -1682,14 +1697,14 @@ for window in range(NumCoords / 2):
       AllReadsInThisWindow += ReadsInThisWindow
 
     # Write recorded read names to file if desired.
-    if args.read_names_1:
+    if args.read_names_simple:
       FileForReadNames1 = FileForReadNames1_basename_ThisBam + BamAlias + '.txt'
       with open(FileForReadNames1, 'w') as f:
         f.write('\n'.join(ReadNames) + '\n')
       OutputFilesByDestinationDir['ReadNames'].append(FileForReadNames1)
-      if args.read_names_only:
+      if args.read_names_only and not ReadNamesDetailed:
         continue
-    if args.read_names_2:
+    if ReadNamesDetailed:
       CorrespondenceDict_RawSeqToReadNames_AllSamples[BamAlias] = \
       CorrespondenceDict_RawSeqToReadNames
 
@@ -1765,7 +1780,7 @@ for window in range(NumCoords / 2):
     # Process the read dicts (not yet done if we're checking for duplicates).
     for i, (BamAlias, ReadDict, LeftWindowEdge, RightWindowEdge) \
     in enumerate(AllReadDictsInThisWindow):
-      if args.read_names_2:
+      if ReadNamesDetailed:
         ReadsInThisWindow, CorrespondenceDict_TipNameToRawSeqs = \
         ProcessReadDict(ReadDict, i, LeftWindowEdge, RightWindowEdge,
         ThisWindowAsStr)
@@ -1929,7 +1944,7 @@ for window in range(NumCoords / 2):
   # Write the output to FileForAlnReadsHere.
   if MergeReads:
     try:
-      if args.read_names_2:
+      if ReadNamesDetailed:
         SeqAlignmentHere, \
         CorrespondenceDict_TipNameToRawSeqs_AllSamples = \
         ReMergeAlignedReads(SeqAlignmentHere,
@@ -2007,7 +2022,7 @@ for window in range(NumCoords / 2):
       # Excising positions may have made some sequences identical within a
       # sample, which need to be merged even if the merging parameter is 0.
       try:
-        if args.read_names_2:
+        if ReadNamesDetailed:
           SeqAlignmentHere, \
           CorrespondenceDict_TipNameToRawSeqs_AllSamples = \
           ReMergeAlignedReads(SeqAlignmentHere,
@@ -2093,7 +2108,7 @@ for window in range(NumCoords / 2):
 
   # Output the correspondence between tip names and the names of the reads that
   # went into them. Sort by read number.
-  if args.read_names_2:
+  if ReadNamesDetailed:
     FileForReadNames2 = FileForReadNames2_basename + ThisWindowSuffix + '.csv'
     with open(FileForReadNames2, 'w') as f:
       for alias, CorrespondenceDict_TipNameToRawSeqs in \
