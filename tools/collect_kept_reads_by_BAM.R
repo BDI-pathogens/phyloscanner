@@ -8,7 +8,7 @@ setwd(args[1])
 
 all.in <- list.files()
 
-bams.tbl <- all.in %>% str_match(regex.finder) %>% as.tibble() %>% filter(!is.na(V1))
+bams.tbl <- all.in %>% str_match(regex.finder) %>% as_tibble() %>% filter(!is.na(V1))
 
 unique.ids <- bams.tbl %>% pull("V3") %>% unique()
 

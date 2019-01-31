@@ -66,7 +66,7 @@ Rscript ${phyDir}/tools/phyloscanner_clean_alignments.R $fullOpts
 
 mkdir -p ${outDir}/cleaning_temp
 
-for wrf in ReadNames_temp/ReadNames2_*
+for wrf in ReadNames/ReadNames2_*
 do
     fn=$(basename $wrf)
     windowstring=${fn:20}

@@ -676,6 +676,7 @@ simplify.summary <- function(summary, arrow.threshold, total.trees, plot = F){
 #' @keywords internal
 #' @export simplify.summary.multinomial
 
+
 simplify.summary.multinomial <- function(summary, win.threshold, arrow.threshold, contiguous = F, plot = F){
   
   if(contiguous){
