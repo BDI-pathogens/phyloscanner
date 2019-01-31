@@ -394,11 +394,12 @@ ReadNamesDetailed = not args.no_read_names
 # Print how this script was called, for logging purposes.
 print('phyloscanner was called thus:\n' + ' '.join(sys.argv))
 
-#TODO: if (ExploreWindowWidths or ExploreWindowWidthsFast or args.read_names_only
-#   args.no_trees = True # then search for args.no_trees
+# Some options make trees unnecessary
+if ExploreWindowWidths or ExploreWindowWidthsFast or args.read_names_only:
+  args.no_trees = True
+
 # Warn if RAxML files exist already.
-if not (args.no_trees or ExploreWindowWidths or ExploreWindowWidthsFast) and \
-glob.glob('RAxML*'):
+if not args.no_trees and glob.glob('RAxML*'):
   print('Warning: RAxML files are present in the working directory. If their',
   'names clash with those that phyloscanner will try to create, RAxML will',
   'fail to run. Continuing.', file=sys.stderr)
@@ -746,7 +747,7 @@ FindWindowsCode     = pf.FindAndCheckCode(PythonPath,
 
 
 # Test RAxML works
-if not (args.no_trees or ExploreWindowWidths):
+if not args.no_trees:
   RAxMLargList = pf.TestRAxML(args.x_raxml, RAxMLdefaultOptions, RaxmlHelp)
 
 # Set up the mafft commands
