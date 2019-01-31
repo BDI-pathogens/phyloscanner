@@ -217,7 +217,7 @@ initialise.phyloscanner <- function(
       if(length(intersect(tree.identifiers, alignment.identifiers))==0){
         stop("Tree file identifiers and alignment file identifiers do not match at all. Check file prefixes are correct.")
       }
-      if(!setequal(tree.identifiers, duplicate.identifiers)){
+      if(!setequal(tree.identifiers, alignment.identifiers)){
         warning("Tree file identifiers and alignment file identifiers do not entirely match.")
       }
     }
