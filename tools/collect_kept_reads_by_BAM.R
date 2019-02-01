@@ -36,7 +36,7 @@ for(uid in unique.ids){
   original.bam.name <- bam.reference$X1[which(bam.reference$X3 == uid)]
   new.bam.name <- paste0(final.dir, "/", map_chr(original.bam.name, function(x){
     just.fn = basename(x)
-    paste0(substr(just.fn, 1, nchar(just.fn) - 4, "_", run.name, "_cleaned.bam"))
+    paste0(substr(just.fn, 1, nchar(just.fn) - 4), "_", run.name, "_cleaned.bam")
   }))
   
   write(paste0(original.bam.name, " ", new.bam.name, " -F ", keptReads.fn), file = "ENRFB_input.txt", append = T)
