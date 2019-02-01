@@ -39,9 +39,9 @@ for(uid in unique.ids){
     paste0(substr(just.fn, 1, nchar(just.fn) - 4), "_", run.name, "_cleaned.bam")
   }))
   
-  write(paste0(original.bam.name, " ", new.bam.name, " -F ", keptReads.fn), file = "ENRFB_input.txt", append = T)
+  write(paste0(original.bam.name, " ", new.bam.name, " -F ", args[1], "/", keptReads.fn), file = "ENRFB_input.txt", append = T)
   
-  write_csv(to.keep, keptReads.fn, col_names =F)
+  write_csv(to.keep, keptReads.fn, col_names = F)
   
 }
 
