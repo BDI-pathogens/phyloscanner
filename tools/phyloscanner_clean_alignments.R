@@ -256,7 +256,7 @@ silent <- sapply(ptrees, function(ptree){
     new.afn  <- paste0(output.string, "_", ptree$id, ".fasta")
     
     if(verbosity==2) cat("Writing cleaned alignment to ",new.afn, "...\n", sep="")
-    write.dna(new.seqs, new.afn, format="fasta")
+    write.dna(new.seqs, file = file.path(output.dir, new.afn), format="fasta")
 
   } else {
     if(verbosity!=0) cat("No alignment file found for tree ID ",ptree$suffix, "\n", sep="")
