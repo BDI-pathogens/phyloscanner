@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This script currently expects folders named ReadNames and BAMs
+# This script currently expects a folder named ReadNames
 
 # saner programming env: these switches turn some bugs into errors
 set -o errexit -o pipefail -o noclobber -o nounset
@@ -94,23 +94,14 @@ do
     fi
 done
 
-Rscript ${phyDir}/tools/collect_kept_reads_by_BAM.R ${outDir}/cleaning_temp/
+rm -f ${outDir}/cleaning_temp/ENRFB_input.txt
 
-myregex="${runName}_keptReads_allWindows_(.*)\.txt"
+Rscript ${phyDir}/tools/collect_kept_reads_by_BAM.R ${outDir}/cleaning_temp/ $bamInputFile ${outDir}/cleaned_BAMs/ $runName 
 
 mkdir -p ${outDir}/cleaned_BAMs
 
-for mf in ${outDir}/cleaning_temp/*allWindows*
-do
-    f=$(basename $mf)
-
-    if [[ $f =~ $myregex ]]
-    then
-        name="${BASH_REMATCH[1]}"
-        echo "Cleaning ${name}.bam to ${name}_${runName}_cleaned.bam"
-        python ${phyDir}/tools/ExtractNamedReadsFromBam.py BAMs/${name}.bam ${outDir}/cleaned_BAMs/${name}_${runName}_cleaned.bam -F $mf
-
-    fi
-done
+while IFS='' read -r line || [[ -n "$line" ]]; do
+    python ${phyDir}/tools/ExtractNamedReadsFromBam.py $line
+done < "${outDir}/cleaning_temp/ENRFB_input.txt"
 
 rm -r ${outDir}/cleaning_temp
