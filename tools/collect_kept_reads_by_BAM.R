@@ -21,7 +21,7 @@ unique.ids <- bams.tbl %>% pull("V3") %>% unique()
 for(uid in unique.ids){
   relevant.names <- bams.tbl %>% filter(V3 == uid) %>% pull("V1")
   
-  to.keep <- relevant.bams %>% map(function(a.file){
+  to.keep <- relevant.names %>% map(function(a.file){
     hi <- read_csv(a.file, col_names = F, col_types = cols())
     if(nrow(hi) > 0){
       hi
