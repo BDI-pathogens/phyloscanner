@@ -1,4 +1,7 @@
 #!/bin/bash
+
+# This script currently expects folders named ReadNames and BAMs
+
 # saner programming env: these switches turn some bugs into errors
 set -o errexit -o pipefail -o noclobber -o nounset
 
@@ -8,16 +11,16 @@ if [[ ${PIPESTATUS[0]} -ne 4 ]]; then
     exit 1
 fi
 
-# Where does phyloscanner live
+# Where does phyloscanner live normally?
 
-phyDir="/users/fraser/mdhall/phyloscanner"
+phyDir="~/phyloscanner"
 
-# These are to be passed, but this script also needs to know about a few of them
+# Most of these are to be passed, but a couple are unique and this script also needs to know about a few of them
 
 fullOpts="$@"
 
-OPTIONS=m:b:v:x:y:
-LONGOPTS=og:,outgroupName:,multifurcationThreshold:,blacklist:,od:,outputDir:,verbose:,tipRegex:,tfe:,treeFileExtension:,cfe:,csvFileExtension:,sd:,seed:,ow,overwrite,rda,outputRDA,nr:,normRefFileName:,ns,normStandardiseGagPol,nc:,normalisationConstants:,db:,duplicateBlacklist:,pbk:,parsimonyBlacklistK:,rwt:,rawBlacklistThreshold:,rtt:,ratioBlacklistThreshold:,ub,dualBlacklist,rcm,readCountsMatterOnZeroLengthBranches,blr,blacklistReport,dsl:,maxReadsPerHost:,dsb,blacklistUnderrepresented
+OPTIONS=m:b:v:x:y:p:i:
+LONGOPTS=phyloscannerPath:,baminput:,og:,outgroupName:,multifurcationThreshold:,blacklist:,od:,outputDir:,verbose:,tipRegex:,tfe:,treeFileExtension:,cfe:,csvFileExtension:,sd:,seed:,ow,overwrite,rda,outputRDA,nr:,normRefFileName:,ns,normStandardiseGagPol,nc:,normalisationConstants:,db:,duplicateBlacklist:,pbk:,parsimonyBlacklistK:,rwt:,rawBlacklistThreshold:,rtt:,ratioBlacklistThreshold:,ub,dualBlacklist,rcm,readCountsMatterOnZeroLengthBranches,blr,blacklistReport,dsl:,maxReadsPerHost:,dsb,blacklistUnderrepresented
 
 
 ! PARSED=$(getopt -a --options=$OPTIONS --longoptions=$LONGOPTS --name "$0" -- "$@")
@@ -35,6 +38,14 @@ overwrite=false
 # now enjoy the options in order and nicely split until we see --
 while true; do
     case "$1" in
+        -p|--phyloscannerPath)
+            phyDir="$2"
+            shift 2
+            ;;
+        -i|--baminput)
+            bamInputFile="$2"
+            shift 2
+            ;;
         --od|--outputDir)
             outDir="$2"
             shift 2
@@ -58,11 +69,15 @@ done
 
 
 
-# This script takes exactly the same arguments as phyloscanner_clean_alignments.R
+# This script takes the same arguments as phyloscanner_clean_alignments.R except -i and -p. Delete these
+
+pcaopts=$(echo $fullOpts sed s/-[ip]\ [^\ ]*\ //g)
+pcaopts=$(echo $pcaopts sed s/--phyloscannerPath\ [^\ ]*\ //g)
+pcaopts=$(echo $pcaopts sed s/--baminput\ [^\ ]*\ //g)
 
 runName=$3
 
-Rscript ${phyDir}/tools/phyloscanner_clean_alignments.R $fullOpts
+Rscript ${phyDir}/tools/phyloscanner_clean_alignments.R $pcaopts
 
 mkdir -p ${outDir}/cleaning_temp
 
