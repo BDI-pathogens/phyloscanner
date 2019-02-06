@@ -1285,13 +1285,18 @@ write.annotated.tree <- function(ptree, file.name, format = c("pdf", "nex"), pdf
       tree.display <- tree.display + geom_point2(aes(color=INDIVIDUAL, size=READ_COUNT, shape=BLACKLISTED), alpha=0.5)
     }
     
-    x.max <- ggplot_build(tree.display)$layout$panel_ranges[[1]]$x.range[2]
+    x.max <- ggplot_build(tree.display)$layout$panel_scales_x[[1]]$range$range[2]
     
-    # for ggplot2 version compatibility
+    # for ggplot2 version compatibility. This keeps changing!
     
     if(is.null(x.max)){
       x.max <- ggplot_build(tree.display)$layout$panel_params[[1]]$x.range[2]
     }
+    
+    if(is.null(x.max)){
+      x.max <- ggplot_build(tree.display)$layout$panel_ranges[[1]]$x.range[2]
+    }
+    
     
     tree.display <- tree.display + ggplot2::xlim(0, 1.1*x.max)
     tree.display
