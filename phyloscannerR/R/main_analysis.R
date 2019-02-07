@@ -217,7 +217,7 @@ initialise.phyloscanner <- function(
       if(length(intersect(tree.identifiers, alignment.identifiers))==0){
         stop("Tree file identifiers and alignment file identifiers do not match at all. Check file prefixes are correct.")
       }
-      if(!setequal(tree.identifiers, duplicate.identifiers)){
+      if(!setequal(tree.identifiers, alignment.identifiers)){
         warning("Tree file identifiers and alignment file identifiers do not entirely match.")
       }
     }
@@ -374,7 +374,7 @@ initialise.phyloscanner <- function(
               warning("Window coordinates for tree ID ",ptree$id," overlap no coordinates in lookup file. ***Excluding this tree from the analysis***.")
               return(NULL)
             }
-
+            
           }, simplify = F, USE.NAMES = T)
         }
       } else {
@@ -413,8 +413,10 @@ blacklist <- function(ptrees,
                       has.read.counts,
                       count.reads.in.parsimony,
                       tip.regex,
-                      max.reads.per.host = 0,
+                      max.reads.per.host = Inf,
                       blacklist.underrepresented = 0,
+                      min.reads.per.host = 0,
+                      min.tips.per.host = 0,
                       do.dup.blacklisting,
                       do.dual.blacklisting,
                       outgroup.name,
@@ -433,7 +435,7 @@ blacklist <- function(ptrees,
   # Rename tips from the prexisting blacklist
   
   ptrees <- sapply(ptrees, function(ptree) rename.user.blacklist.tips(ptree), simplify = F, USE.NAMES = T)
-  
+
   # Duplicate blacklisting
   
   if(do.dup.blacklisting){
@@ -481,6 +483,22 @@ blacklist <- function(ptrees,
     }
   }
   
+  # Min tip count blacklisting
+  
+  if(min.tips.per.host > 1){
+    if (verbosity!=0) cat("Removing hosts from trees where they have less than ",min.tips.per.host," tips...\n", sep="")
+    
+    ptrees <- sapply(ptrees, function(ptree) blacklist.using.min.tips.or.reads(ptree, min.tips.per.host, "tips", tip.regex, verbosity == 2))
+  }
+  
+  # Min read count blacklisting
+  
+  if(min.reads.per.host > 1){
+    if (verbosity!=0) cat("Removing hosts from trees where they have less than ",min.reads.per.host," reads...\n", sep="")
+  
+    ptrees <- sapply(ptrees, function(ptree) blacklist.using.min.tips.or.reads(ptree, min.reads.per.host, "reads", tip.regex, verbosity == 2))
+  }
+  
   # Downsampling
   
   if(max.reads.per.host < Inf){
@@ -522,13 +540,17 @@ blacklist <- function(ptrees,
 #' @param seed Random number seed; used by the downsampling process, and also ties in some parsimony reconstructions can be broken randomly.
 #' @param norm.ref.file.name Name of a file giving a normalisation constant for every genome position. Cannot be used simultaneously with \code{norm.constants}. If neither is given then no normalisation will be performed.
 #' @param norm.standardise.gag.pol Use only if \code{norm.ref.file.name} is given. An HIV-specific option: if true, the normalising constants are standardised so that the average on gag+pol equals 1. Otherwise they are standardised so the average on the whole genome equals 1.
+#' @param allow.mt If FALSE (the default0), directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative.
+#' @param strict.ancestry If FALSE, then an ancestry call requires only that at least one subgraph from one host is descended from the other, and that there are no subgrapghs in the opposite arrangement. If TRUE (the default), then it requires that all subgraphs from one host are descended from one from the other. 
 #' @param norm.constants Either the path of a CSV file listing the file name for each tree (column 1) and the respective normalisation constant (column 2) or a single numerical normalisation constant to be applied to every tree. Cannot be used simultaneously with \code{norm.ref.file.name}. If neither is given then no normalisation will be performed.
 #' @param parsimony.blacklist.k The \emph{k} parameter of the single-host Sankhoff parsimony reconstruction used to identify probable contaminants. A value of 0 is equivalent to not performing parsimony blacklisting. 
 #' @param raw.blacklist.threshold Used to specify a read count to be used as a raw threshold for duplicate or parsimony blacklisting. Use with \code{parsimony.blacklist.k} or \code{duplicate.file.regex} or both. Parsimony blacklisting will blacklist any subgraph with a read count strictly less than this threshold. Duplicate blacklisting will black list any duplicate read with a count strictly less than this threshold. The default value of 0 means nothing is blacklisted.
 #' @param ratio.blacklist.threshold Used to specify a read count ratio (between 0 and 1) to be used as a threshold for duplicate or parsimony blacklisting. Use with \code{parsimony.blacklist.k} or \code{duplicate.file.regex} or both. Parsimony blacklisting will blacklist a subgraph if the ratio of its read count to the total read count from the same host is strictly less than this threshold. Duplcate blacklisting will blacklist a duplicate read if the ratio of its count to the count of the duplicate (from another host) is strictly less than this threshold.
 #' @param do.dual.blacklisting Blacklist all reads from the minor subgraphs for all hosts established as dual by parsimony blacklisting (which must have been done for this to do anything).
-#' @param max.reads.per.host Used to turn on downsampling. If given, reads will be blacklisted such that read counts (or tip counts if no read counts are identified) from each host are equal (although see \code{blacklist.underrepresented}.
+#' @param max.reads.per.host Used to turn on downsampling. If given, tips will be blacklisted such that read counts (or tip counts if no read counts are identified) from each host are equal (although see \code{blacklist.underrepresented}).
 #' @param blacklist.underrepresented If TRUE and \code{max.reads.per.host} is given, blacklist hosts from trees where their total tip count does not reach the maximum.
+#' @param min.reads.per.host If given, hosts will be entirely blacklisted from a given tree if they have fewer than this number of reads on it (after all other blacklisting except downsampling).
+#' @param min.tips.per.host If given, hosts will be entirely blacklisted from a given tree if they have fewer than this number of tips on it (after all other blacklisting except downsampling).
 #' @param use.ff Use the \code{ff} package to store parsimony reconstruction matrices. Use if you run out of memory.
 #' @param prune.blacklist If TRUE, all blacklisted and reference tips (except the outgroup) are pruned away before starting parsimony-based reconstruction.
 #' @param count.reads.in.parsimony If TRUE, read counts on tips will be taken into account in parsimony reconstructions at the parents of zero-length terminal branches. Not applicable for the Romero-Severson-like reconstruction method.
@@ -673,12 +695,16 @@ phyloscanner.analyse.trees <- function(
   norm.ref.file.name = NULL,
   norm.standardise.gag.pol = F,
   norm.constants = NULL,
+  allow.mt = F,
+  strict.ancestry = T,
   parsimony.blacklist.k = 0,
   raw.blacklist.threshold = 0,
   ratio.blacklist.threshold = 0,
   do.dual.blacklisting = F,
   max.reads.per.host = Inf,
   blacklist.underrepresented = F,
+  min.reads.per.host = 1,
+  min.tips.per.host = 1,
   use.ff = F,
   prune.blacklist = F,
   count.reads.in.parsimony = T,
@@ -738,6 +764,8 @@ phyloscanner.analyse.trees <- function(
                       tip.regex,
                       max.reads.per.host,
                       blacklist.underrepresented,
+                      min.reads.per.host,
+                      min.tips.per.host,
                       do.dup.blacklisting,
                       do.dual.blacklisting,
                       outgroup.name,
@@ -887,7 +915,7 @@ phyloscanner.analyse.trees <- function(
       
       if(verbosity==2) cat("Classifying host relationships for tree ID ",ptree$id, ".\n", sep="")
       
-      ptree$classification.results <- classify(ptree, verbosity==2, no.progress.bars)
+      ptree$classification.results <- classify(ptree, allow.mt, strict.ancestry, verbosity==2, no.progress.bars)
       
       ptree
     }, simplify = F, USE.NAMES = T)
@@ -924,12 +952,16 @@ phyloscanner.analyse.tree <- function(
   norm.ref.file.name = NULL,
   norm.standardise.gag.pol = F,
   norm.constants = NULL,
+  allow.mt = F,
+  strict.ancestry = T,
   parsimony.blacklist.k = 0,
   raw.blacklist.threshold = 0,
   ratio.blacklist.threshold = 0,
   do.dual.blacklisting = F,
   max.reads.per.host = Inf,
   blacklist.underrepresented = F,
+  min.reads.per.host = 1,
+  min.tips.per.host = 1,
   use.ff = F,
   prune.blacklist = F,
   count.reads.in.parsimony = T,
@@ -966,6 +998,8 @@ phyloscanner.analyse.tree <- function(
     norm.ref.file.name, 
     norm.standardise.gag.pol, 
     norm.constants, 
+    allow.mt,
+    strict.ancestry,
     parsimony.blacklist.k, 
     raw.blacklist.threshold, 
     ratio.blacklist.threshold,
@@ -981,7 +1015,6 @@ phyloscanner.analyse.tree <- function(
 
 #' @export
 #' @rdname phyloscanner.analyse.trees
-
 
 phyloscanner.generate.blacklist <- function(
   tree.file.directory,
@@ -1007,6 +1040,8 @@ phyloscanner.generate.blacklist <- function(
   do.dual.blacklisting = F,
   max.reads.per.host = Inf,
   blacklist.underrepresented = F,
+  min.reads.per.host = 1,
+  min.tips.per.host = 1,
   count.reads.in.parsimony = F,
   verbosity = 0){
   
@@ -1050,6 +1085,8 @@ phyloscanner.generate.blacklist <- function(
                       tip.regex,
                       max.reads.per.host,
                       blacklist.underrepresented,
+                      min.reads.per.host,
+                      min.tips.per.host,
                       do.dup.blacklisting,
                       do.dual.blacklisting,
                       outgroup.name,
@@ -1285,18 +1322,13 @@ write.annotated.tree <- function(ptree, file.name, format = c("pdf", "nex"), pdf
       tree.display <- tree.display + geom_point2(aes(color=INDIVIDUAL, size=READ_COUNT, shape=BLACKLISTED), alpha=0.5)
     }
     
-    x.max <- ggplot_build(tree.display)$layout$panel_scales_x[[1]]$range$range[2]
+    x.max <- ggplot_build(tree.display)$layout$panel_ranges[[1]]$x.range[2]
     
-    # for ggplot2 version compatibility. This keeps changing!
+    # for ggplot2 version compatibility
     
     if(is.null(x.max)){
       x.max <- ggplot_build(tree.display)$layout$panel_params[[1]]$x.range[2]
     }
-    
-    if(is.null(x.max)){
-      x.max <- ggplot_build(tree.display)$layout$panel_ranges[[1]]$x.range[2]
-    }
-    
     
     tree.display <- tree.display + ggplot2::xlim(0, 1.1*x.max)
     tree.display
@@ -1313,18 +1345,19 @@ write.annotated.tree <- function(ptree, file.name, format = c("pdf", "nex"), pdf
 #' @param phyloscanner.trees A list of class \code{phyloscanner.trees}
 #' @param win.threshold The proportion of windows that a pair of hosts need to be related (adjacent and within \code{dist.threshold} of each other) in order for them to appear in the summary.
 #' @param dist.threshold The patristic distance within which the subgraphs from two hosts need to be in order for them to be declared related (default is infinity, so adjacent hosts are always related).
-#' @param allow.mt If FALSE, directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative.
+#' @param tip.regex Regular expression identifying tips from the dataset. This expects up to three capture groups, for host ID, read ID, and read count (in that order). If the latter two groups are missing then read information will not be used. The default matches input from the phyloscanner pipeline where the host ID is the BAM file name.
+#' @param min.tips The minimum number of tips that a host must have in each tree for it to be counted in that tree (A legacy option - we recommend using the blacklist functionality.)
+#' @param min.reads The minimum number of reads that a host must have in each tree for it to be counted in that tree (A legacy option - we recommend using the blacklist functionality.)
 #' @param close.sib.only If TRUE, then the distance threshold applies only to hosts in sibling clades. Any ancestry is automatically a relationship.
 #' @param verbose Give verbose output
 #' @return A \code{tibble}, every line of which counts the number of pairwise relationships of a particular type between a pair of hosts
 #' @export transmission.summary
 
-
-transmission.summary <- function(ptrees, win.threshold=0, dist.threshold=Inf, allow.mt=T, close.sib.only = F, verbose = F){
+transmission.summary <- function(ptrees, win.threshold=0, dist.threshold=Inf, tip.regex, min.tips = 1, min.reads = 1, close.sib.only = F, verbose = F){
   if(length(ptrees)==1){
     stop("Can't summarise transmission information on a single tree. Use the collapsed tree instead?")
   }
-  out <- summarise.classifications(ptrees, win.threshold*length(ptrees), dist.threshold, allow.mt, close.sib.only, verbose, F)
+  out <- summarise.classifications(ptrees, win.threshold*length(ptrees), dist.threshold, tip.regex, min.tips, min.reads, close.sib.only, verbose, F)
   out$ancestry <- as.character(out$ancestry)
   out
 }
@@ -1365,7 +1398,7 @@ attach.tree <- function(ptree, verbose) {
   if(verbose){
     cat("Reading tree file",ptree$tree.file.name,'\n')
   }
-
+  
   first.line        <- readLines(ptree$tree.file.name, n=1)
   
   if(first.line == "#NEXUS"){
@@ -1423,12 +1456,12 @@ prepare.tree <- function(ptree, outgroup.name, tip.regex, guess.multifurcation.t
       
       if(minimum.bl > 0.25*one.snp){
         if(verbose){
-          cat("In tree ID ",ptree$id," the minimum branch length is ",minimum.bl,", which is equivalent to ",minimum.bl/one.snp," SNPs. Assuming this tree has no multifurcations.\n", sep="")
+          cat("In tree ID ", ptree$id," the minimum branch length is ", minimum.bl,", which is equivalent to ", minimum.bl/one.snp, " SNPs. Assuming this tree has no multifurcations.\n", sep="")
         }
         multifurcation.threshold                      <- -1
       } else {
         if(verbose) {
-          cat("In tree ID ",ptree$id," the minimum branch length is ",minimum.bl,", which is equivalent to ",minimum.bl/one.snp," SNPs. Using this branch length as a multifurcation threshold.\n", sep="")
+          cat("In tree ID ", ptree$id," the minimum branch length is ", minimum.bl, ", which is equivalent to ", minimum.bl/one.snp, " SNPs. Using this branch length as a multifurcation threshold.\n", sep="")
         }
         if(minimum.bl==0){
           multifurcation.threshold                    <- 1E-9
@@ -1440,7 +1473,7 @@ prepare.tree <- function(ptree, outgroup.name, tip.regex, guess.multifurcation.t
     } else {
       warning("Attempting to guess a branch length threshold for multifurcations from the tree. Please ensure that the tree has multifurcations before using the results of this analysis.")
       if(verbose){
-        cat("In tree ID ",ptree$id," the minimum branch length is ",minimum.bl,". Using this as a multifurcation threshold.\n", sep="")
+        cat("In tree ID ", ptree$id, " the minimum branch length is ", minimum.bl, ". Using this as a multifurcation threshold.\n", sep="")
       }
       if(minimum.bl==0){
         multifurcation.threshold                    <- 1E-9
@@ -1565,7 +1598,7 @@ blacklist.from.duplicates.vector <- function(ptree, raw.blacklist.threshold, rat
   
   if(!is.null(ptree$duplicate.tips)){
     
-    duplicated                                   <- blacklist.exact.duplicates(ptree, raw.blacklist.threshold, ratio.blacklist.threshold, tip.regex, verbose)
+    duplicated                                     <- blacklist.exact.duplicates(ptree, raw.blacklist.threshold, ratio.blacklist.threshold, tip.regex, verbose)
     
     if(nrow(duplicated) > 0){
       duplicate.nos                                <- which(ptree$original.tip.labels %in% duplicated$tip.2)
@@ -1574,7 +1607,7 @@ blacklist.from.duplicates.vector <- function(ptree, raw.blacklist.threshold, rat
       
       if(verbose & length(newly.blacklisted > 0)) cat(length(newly.blacklisted), " tips blacklisted as duplicates for tree ID ",ptree$id, "\n", sep="")
       
-      ptree$hosts.for.tips[newly.blacklisted]  <- NA
+      ptree$hosts.for.tips[newly.blacklisted]      <- NA
       
       if(length(newly.blacklisted)>0){
         ptree$tree                                 <- ptree$tree %>% rename.blacklisted.tips(newly.blacklisted, "DUPLICATE")
@@ -1620,7 +1653,7 @@ blacklist.using.parsimony <- function(ptree, tip.regex, outgroup.name, raw.black
   
   if(verbose & length(newly.blacklisted)>0) cat(length(newly.blacklisted), " tips blacklisted as probable contaminants by parsimony reconstruction for tree ID ",ptree$id, "\n", sep="")
   
-  ptree$hosts.for.tips[newly.blacklisted] <- NA
+  ptree$hosts.for.tips[newly.blacklisted]     <- NA
   
   if(length(newly.blacklisted)>0){
     ptree$tree                                <- ptree$tree %>% rename.blacklisted.tips(newly.blacklisted, "CONTAMINANT")
@@ -1643,11 +1676,11 @@ blacklist.using.parsimony <- function(ptree, tip.regex, outgroup.name, raw.black
   ptree$dual.detection.splits                 <- multiplicity.table
   
   repeat.column <- as.vector(unlist(sapply(results, function (x) rep(x$id, length(x$tip.names)) )))
-  mi.df                                     <- tibble(host = repeat.column,
-                                                      tip.name = unlist(lapply(results, "[[", 3)),
-                                                      reads.in.subtree = unlist(lapply(results, "[[", 4)),
-                                                      split.ids = unlist(lapply(results, "[[", 5)),
-                                                      tips.in.subtree = unlist(lapply(results, "[[", 6)))
+  mi.df                                       <- tibble(host = repeat.column,
+                                                        tip.name = unlist(lapply(results, "[[", 3)),
+                                                        reads.in.subtree = unlist(lapply(results, "[[", 4)),
+                                                        split.ids = unlist(lapply(results, "[[", 5)),
+                                                        tips.in.subtree = unlist(lapply(results, "[[", 6)))
   
   mi.df <- mi.df %>% mutate(dual = host != split.ids)
   
@@ -1672,7 +1705,7 @@ blacklist.from.duals.list <- function(ptree, dual.results, verbose) {
     
     if(verbose & length(newly.blacklisted)>0) cat(length(newly.blacklisted), " tips blacklisted for belonging to minor subgraphs in tree ID ",ptree$id, "\n", sep="")
     
-    ptree$hosts.for.tips[newly.blacklisted] <- NA
+    ptree$hosts.for.tips[newly.blacklisted]     <- NA
     
     if(length(newly.blacklisted)>0){
       ptree$tree                                <- ptree$tree %>% rename.blacklisted.tips(newly.blacklisted, "DUAL")
@@ -1688,6 +1721,49 @@ blacklist.from.duals.list <- function(ptree, dual.results, verbose) {
   }
   ptree
 }
+
+#' @export
+#' @keywords internal
+
+blacklist.using.min.tips.or.reads <- function(ptree, minimum, type=c("tips", "reads"), tip.regex, verbose) {
+  
+  tree      <- ptree$tree
+  tip.hosts <- sapply(tree$tip.label, function(x) host.from.label(x, tip.regex))
+  
+  tip.hosts[ptree$blacklist] <- NA
+  
+  hosts   <- unique(na.omit(tip.hosts))
+  
+  if(type == "tips"){
+    newly.blacklisted                           <-blacklist.by.tip.count(ptree, hosts, minimum)
+    if(verbose & length(newly.blacklisted)>0) cat(length(newly.blacklisted), " tips blacklisted from hosts with fewer than ",minimum," tips total in tree ID ",ptree$id, "\n", sep="")
+    
+  } else {
+    newly.blacklisted                           <- blacklist.by.read.count(ptree, hosts, minimum, tip.regex)
+    if(verbose & length(newly.blacklisted)>0) cat(length(newly.blacklisted), " tips blacklisted from hosts with fewer than ",minimum," reads total in tree ID ",ptree$id, "\n", sep="")
+  }
+  
+  ptree$hosts.for.tips[newly.blacklisted] <- NA
+  
+  if(length(newly.blacklisted)>0){
+    ptree$tree                                  <- ptree$tree %>% rename.blacklisted.tips(newly.blacklisted, paste0("TOOFEW", toupper(type)))
+
+    ptree$bl.report$status[newly.blacklisted]   <- paste0("bl_too_few_", type)
+    ptree$bl.report$kept[newly.blacklisted]     <- F
+    
+    if(!is.null(ptree$blacklist)){
+      ptree$blacklist                             <- newly.blacklisted
+      ptree$blacklist                             <- ptree$blacklist[order(ptree$blacklist)]
+    } else {
+      ptree$blacklist                             <- unique(c(ptree$blacklist, newly.blacklisted))
+      ptree$blacklist                             <- ptree$blacklist[order(ptree$blacklist)]
+    }
+  }
+  
+
+  ptree
+}
+
 
 #' @export
 #' @keywords internal
