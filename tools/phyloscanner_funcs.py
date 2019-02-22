@@ -645,19 +645,19 @@ class PseudoRead:
     merged_positions = LeftRead.positions[:OverlapStartInLeftRead] +\
     RightRead.positions +\
     LeftRead.positions[OverlapStartInLeftRead+Length_RightRead:]
-    merged_qualities = LeftRead.sequence[:OverlapStartInLeftRead]
+    merged_qualities = LeftRead.qualities[:OverlapStartInLeftRead]
     for j in range(
     max(Length_LeftRead - OverlapStartInLeftRead, Length_RightRead)):
       try:
-        BaseQLeftRead = LeftRead.sequence[OverlapStartInLeftRead+j]
+        BaseQLeftRead = LeftRead.qualities[OverlapStartInLeftRead+j]
       except IndexError:
         BaseQLeftRead  = float('-inf')
       try:
-        BaseQRightRead = RightRead.sequence[j]
+        BaseQRightRead = RightRead.qualities[j]
       except IndexError:
         BaseQRightRead = float('-inf')
       BestBaseQ = max(BaseQLeftRead, BaseQRightRead)
-      merged_qualities += BestBaseQ
+      merged_qualities.append(BestBaseQ)
     assert len(merged_qualities) == len(merged_sequence)
     MergedRead = PseudoRead(self.name, merged_sequence,
     merged_positions, merged_qualities)
