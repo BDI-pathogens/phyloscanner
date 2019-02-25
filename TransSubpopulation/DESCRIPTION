@@ -1,11 +1,14 @@
 Package: TransSubpopulation
 Type: Package
 Title: Estimated transmission flows between subpopulations
-Version: 0.1.0
-Author: Xiaoyue Xi and Oliver Ratmann
+Version: 0.2.0
+Author: Xiaoyue Xi, Oliver Ratmann, Matthew Hall, Chris Wymant, Christophe Fraser
 Maintainer: Xiaoyue Xi <xiaoyue.xi94@gmail.com>
 Description: This package infers the proportion of transmissions among subpopulations from the outputs of phyloscanner while accounting for sampling differences.
 License: GPL-2 
 Encoding: UTF-8
 LazyData: true
-Imports: Boom,data.table,coda,rethinking,fitdistrplus
+Imports: gtools,data.table,coda,rstan,fitdistrplus
+Suggests: knitr,rmarkdown
+VignetteBuilder: knitr
+RoxygenNote: 6.1.1

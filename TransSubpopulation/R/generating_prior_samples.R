@@ -1,188 +1,170 @@
-# input dp: individual covariates, PART, ELIG
-#       dg: individual covariates, HIV, SEQ
+# input df.sampling: individual covariates, the number of trials and success
 #       dc: transmission pairs, covariates for transmitters' group and recipients' group
-#       method: 'empirical' and 'betaapprox'
-#       biastype: 'sequence' and 'sampling'
-samples.from.GLM.prior<-function(dp=NULL,dg,dc,iteration,method,biastype){
-  # number of prior samples
-  nprior<-ceiling(iteration/(nrow(dc)+1))+1
+#       iteration: the number of iterations
+#       sample.method: 'empirical' and 'betaapprox'
+#       glm.model: choice of binomial or beta-binomial model for inferring sampling rate
+#                  it has the same length as the number of data table in df.sampling
+#       seed: random seeds
+samples.from.GLM.prior<-function(df.sampling,dc,iteration,sample.method,glm.model,seed=NULL){
+  library(data.table)
+  library(rstan)
+  library(fitdistrplus)
+  set.seed(seed)
 
-  require(data.table)
-  require(rethinking)
-  require(fitdistrplus)
+  # take unique subpopulation that appears in transmitters and recipients in dc
+  tr<-dc[, grep("TR_", names(dc)), with = FALSE]
+  setnames(tr, colnames(tr), gsub('TR_','',colnames(tr)))
+  tr<-unique(tr)
+  rec<-dc[, grep("REC_", names(dc)), with = FALSE]
+  setnames(rec, colnames(rec), gsub('REC_','',colnames(rec)))
+  rec<-unique(rec)
+  unique.group<-unique(rbind(tr,rec))
+  # setkey(unique.group,COMM_NUM_A,SEX,AGE_AT_MID_C,INMIGRANT)
+  setkey(unique.group,CATEGORY)
+  unique.group<-merge(subset(unique.group,select = 'CATEGORY'),dg,by='CATEGORY')
+  unique.group[,CATEGORY_ID:=1:nrow(unique.group)]
+
+  # take unique pairs of subpopulations for transmission flows
+  unique.pairs<-subset(dc,select=c('COUNT_ID','TR_CATEGORY','REC_CATEGORY'))
+  tmp<-subset(unique.group,select = c('CATEGORY','CATEGORY_ID'))
+  setnames(tmp,colnames(tmp),paste0('TR_',colnames(tmp)))
+  unique.pairs<-merge(unique.pairs,tmp,by='TR_CATEGORY')
+  setnames(tmp,colnames(tmp),gsub('TR_','REC_',colnames(tmp)))
+  unique.pairs<-merge(unique.pairs,tmp,by='REC_CATEGORY')
+  setkey(unique.pairs,COUNT_ID)
+
+  # number of prior samples
+  nprior<-ceiling(iteration/(nrow(unique.group)+1))+1
 
   S.DTL.prior<-list()
-  S.DTL.prior$TR_SEQ_P<-matrix(NA_real_,nrow=nprior,ncol=nrow(dc))
-  S.DTL.prior$TR_SEQ_P_LOGD<-matrix(NA_real_,nrow=nprior,ncol=nrow(dc))
-  S.DTL.prior$REC_SEQ_P<-matrix(NA_real_,nrow=nprior,ncol=nrow(dc))
-  S.DTL.prior$REC_SEQ_P_LOGD<-matrix(NA_real_,nrow=nprior,ncol=nrow(dc))
+  fit.list<-list() #model
+  S.DTL.prior$SAM_P<-matrix(1,nrow=nprior,ncol=nrow(unique.group)) # sampling rate
+  S.DTL.prior$SAM_P_LOGD<-matrix(0,nrow=nprior,ncol=nrow(unique.group)) # log density
+  S.DTL.prior$EMP_S<-1
 
-  # predict sampling rates for stratum a using logistic regression
-  ms 	<- map2stan(
-    alist(
-      SEQ ~ dbinom(HIV, p_seq),
-      logit(p_seq) <- a + comm[COMM_NUM_B] + trading*COMM_TYPE_T +
-        fishing*COMM_TYPE_F + male*MALE + young*AGE_YOUNG + midage*AGE_MID,
-      a ~ dnorm(0, 100),
-      comm ~ dnorm(0, sig_comm),
-      sig_comm ~ dcauchy(0,1),
-      c(trading, fishing, male, young, midage) ~ dnorm(0,10)
-    ),
-    data=as.data.frame(dg),
-    start=list(a=0, comm=rep(0,36), sig_comm=1, trading=0, fishing=0, male=0, young=0, midage=0),
-    warmup=5e2, iter=1e4, chains=1, cores=4
-  )		 # iteration should be larger than the number of samples needed
+  for (i in 1L:length(df.sampling)){
+    # record priors of sampling rate for the ith source of bias
+    SAM_P<-matrix(NA_real_,nrow=nprior,ncol=nrow(unique.group))
+    SAM_P_LOGD<-matrix(NA_real_,nrow=nprior,ncol=nrow(unique.group))
+    EMP_S<-(sum(df.sampling[[i]]$SUC)/sum(df.sampling[[i]]$TRIAL))^2
 
-  # # posterior predictive check
-  # sims 	<- sim(ms, n=1000)
-  # tmp		<- apply(sims, 2, median)
-  # dpp 	<- apply(sims, 2, PI, prob=0.95)
-  # dpp		<- rbind(tmp, dpp)
-  # rownames(dpp)	<-  c('predicted_obs_median','predicted_obs_l95','predicted_obs_u95')
-  # dpp		<- as.data.table(t(dpp))
-  # dpp		<- cbind(dg, dpp)
-  # dpp[, c(mean(SEQ<predicted_obs_l95 | SEQ>predicted_obs_u95), sum(SEQ<predicted_obs_l95 | SEQ>predicted_obs_u95))]
-
-  # extract posterior samples
-  tmp		<- extract.samples(ms)
-
-  if(method=='empirical'){
-    for (i in 1:nrow(dc)){
-      tmp2<-tmp$a + tmp$comm[,dc$TR_COMM_NUM_B[i]] + tmp$trading*dc$TR_COMM_TYPE_T[i] + tmp$fishing*dc$TR_COMM_TYPE_F[i] + tmp$male*dc$TR_MALE[i] +
-        tmp$young*dc$TR_AGE_YOUNG[i] + tmp$midage*dc$TR_AGE_MID[i]
-      tmpp<-exp(tmp2)/(1+exp(tmp2))
-      S.DTL.prior$TR_SEQ_P[,i]<-sample(tmpp,nprior,replace=FALSE)
-      d.tr.seq<-approxfun(density(tmpp))
-      S.DTL.prior$TR_SEQ_P_LOGD[,i]<-d.tr.seq(S.DTL.prior$TR_SEQ_P[,i])
-
-      tmp2<-tmp$a + tmp$comm[,dc$REC_COMM_NUM_B[i]] + tmp$trading*dc$REC_COMM_TYPE_T[i] + tmp$fishing*dc$REC_COMM_TYPE_F[i] + tmp$male*dc$REC_MALE[i] +
-        tmp$young*dc$REC_AGE_YOUNG[i] + tmp$midage*dc$REC_AGE_MID[i]
-      tmpp<-exp(tmp2)/(1+exp(tmp2))
-      S.DTL.prior$REC_SEQ_P[,i]<-sample(tmpp,nprior,replace=FALSE)
-      d.rec.seq<-approxfun(density(tmpp))
-      S.DTL.prior$REC_SEQ_P_LOGD[,i]<-d.rec.seq(S.DTL.prior$REC_SEQ_P[,i])
+    # predict sampling rates for stratum a using logistic regression
+    ######################## will depend on covariates??? not general???
+    if (glm.model[i]=='binomial'){
+      data.glm<-as.list(subset(df.sampling[[i]],select=c('COMM_NUM_B','TRIAL','AGE1','AGE2','MALE','SUC')))
+      data.glm$N<-nrow(df.sampling[[i]])
+      fit <- stan(file = 'glm_age3sex2comm2bin.stan', data = data.glm, iter=max(1e4,5e2+nprior),warmup = 5e2,
+                  cores = 4,chains = 1,init = list(list(a=0, comm=rep(0,2), sig_comm=1, male=0, age1=0, age2=0)))
+    }else if(glm.model[i]=='beta_binomial'){
+      data.glm<-as.list(subset(df.sampling[[i]],select=c('COMM_NUM_B','TRIAL','AGE1','AGE2','MALE','SUC')))
+      data.glm$N<-nrow(df.sampling[[i]])
+      fit <- stan(file = 'glm_age3sex2comm2betabin.stan', data = data.glm, iter=max(1e4,5e2+nprior),warmup = 5e2,
+                  cores = 4,chains = 1,init = list(a=0, comm=rep(0,2), sig_comm=1, male=0, age1=0, age2=0,dispersion=1))
     }
-  }else if(method=='betaapprox'){
-    for (i in 1:nrow(dc)){
-      tmp2<-tmp$a + tmp$comm[,dc$TR_COMM_NUM_B[i]] + tmp$trading*dc$TR_COMM_TYPE_T[i] + tmp$fishing*dc$TR_COMM_TYPE_F[i] + tmp$male*dc$TR_MALE[i] +
-        tmp$young*dc$TR_AGE_YOUNG[i] + tmp$midage*dc$TR_AGE_MID[i]
-      tmpp<-exp(tmp2)/(1+exp(tmp2))
-      betapar<-fitdist(as.vector(tmpp),"beta")
-      S.DTL.prior$TR_SEQ_P[,i]<-rbeta(nprior,betapar$estimate[1],betapar$estimate[2])
-      S.DTL.prior$TR_SEQ_P_LOGD[,i]<-dbeta(S.DTL.prior$TR_SEQ_P[,i],shape1 = betapar$estimate[1], shape2 = betapar$estimate[2],log=TRUE)
-
-      tmp2<-tmp$a + tmp$comm[,dc$REC_COMM_NUM_B[i]] + tmp$trading*dc$REC_COMM_TYPE_T[i] + tmp$fishing*dc$REC_COMM_TYPE_F[i] + tmp$male*dc$REC_MALE[i] +
-        tmp$young*dc$REC_AGE_YOUNG[i] + tmp$midage*dc$REC_AGE_MID[i]
-      tmpp<-exp(tmp2)/(1+exp(tmp2))
-      betapar<-fitdist(as.vector(tmpp),"beta")
-      S.DTL.prior$REC_SEQ_P[,i]<-rbeta(nprior,betapar$estimate[1],betapar$estimate[2])
-      S.DTL.prior$REC_SEQ_P_LOGD[,i]<-dbeta(S.DTL.prior$REC_SEQ_P[,i],shape1 = betapar$estimate[1], shape2 = betapar$estimate[2],log=TRUE)
-    }
-  }
-
-  if (biastype=='sampling'){
-    S.DTL.prior$TR_PART_P<-matrix(NA_real_,nrow=nprior,ncol=nrow(dc))
-    S.DTL.prior$TR_PART_P_LOGD<-matrix(NA_real_,nrow=nprior,ncol=nrow(dc))
-    S.DTL.prior$REC_PART_P<-matrix(NA_real_,nrow=nprior,ncol=nrow(dc))
-    S.DTL.prior$REC_PART_P_LOGD<-matrix(NA_real_,nrow=nprior,ncol=nrow(dc))
-
-    ms <- map2stan(
-      alist(
-        PART ~ dbetabinom(ELIG, p_part, dispersion),
-        logit(p_part) <- a + comm[COMM_NUM_B] + trading*COMM_TYPE_T + fishing*COMM_TYPE_F +
-          male*MALE + young*AGE_YOUNG + midage*AGE_MID,
-        a ~ dnorm(0, 100),
-        comm ~ dnorm(0, sig_comm),
-        sig_comm ~ dcauchy(0,1),
-        dispersion ~ dexp(1),
-        c(trading, fishing, male, young, midage) ~ dnorm(0,10)
-      ),
-      data=as.data.frame(dp),
-      start=list(	a=0, comm=rep(0,36), dispersion=10, sig_comm=1, trading=0, fishing=0, male=0, young=0, midage=0),
-      warmup=5e2, iter=1e4, chains=1, cores=4
-    )		# note ms2 and ms4 don't work well
-
-    # # posterior predictive check
-    # sims 	<- sim(ms, n=1000)
-    # tmp		<- apply(sims, 2, median)
-    # dpp 	<- apply(sims, 2, PI, prob=0.95)
-    # dpp		<- rbind(tmp, dpp)
-    # rownames(dpp)	<-  c('predicted_obs_median','predicted_obs_l95','predicted_obs_u95')
-    # dpp		<- as.data.table(t(dpp))
-    # dpp		<- cbind(dp, dpp)
-    # dpp[, c(mean(PART<predicted_obs_l95 | PART>predicted_obs_u95), sum(PART<predicted_obs_l95 | PART>predicted_obs_u95))]
-    # #	  0.01388889 6.00000000
-
-    tmp		<- extract.samples(ms)
-
-    if(method=='empirical'){
-      for (i in 1:nrow(dc)){
-        tmp2<-tmp$a + tmp$comm[,dc$TR_COMM_NUM_B[i]] + tmp$trading*dc$TR_COMM_TYPE_T[i] + tmp$fishing*dc$TR_COMM_TYPE_F[i] + tmp$male*dc$TR_MALE[i] +
-          tmp$young*dc$TR_AGE_YOUNG[i] + tmp$midage*dc$TR_AGE_MID[i]
+    # extract samples for the parameters
+    tmp		<- extract(fit,permute=TRUE)
+    if(sample.method=='empirical'){
+      for (j in 1:nrow(unique.group)){
+        # posterior samples of p_suc
+        # tmp2<-tmp$a + tmp$comm[,unique.group$COMM_NUM_B[j]] + tmp$trading*unique.group$COMM_TYPE_T[j] + tmp$fishing*unique.group$COMM_TYPE_F[j] + tmp$male*unique.group$MALE[j] +
+        #   tmp$age1*unique.group$AGE1[j] + tmp$age2*unique.group$AGE2[j] + tmp$age3*unique.group$AGE3[j] +  tmp$age4*unique.group$AGE4[j] +
+        #   tmp$age5*unique.group$AGE5[j]  + tmp$age6*unique.group$AGE6[j] + tmp$inmigrant*unique.group$INMIGRANT[j]
+        tmp2<-tmp$a + tmp$comm[,unique.group$COMM_NUM_B[j]]  + tmp$male*unique.group$MALE[j] +
+          tmp$age1*unique.group$AGE1[j] + tmp$age2*unique.group$AGE2[j]
         tmpp<-exp(tmp2)/(1+exp(tmp2))
-        S.DTL.prior$TR_PART_P[,i]<-sample(tmpp,nprior,replace=FALSE)
-        d.tr.part<-approxfun(density(tmpp))
-        S.DTL.prior$TR_PART_P_LOGD[,i]<-d.tr.part(S.DTL.prior$TR_PART_P[,i])
-
-        tmp2<-tmp$a + tmp$comm[,dc$REC_COMM_NUM_B[i]] + tmp$trading*dc$REC_COMM_TYPE_T[i] + tmp$fishing*dc$REC_COMM_TYPE_F[i] + tmp$male*dc$REC_MALE[i] +
-          tmp$young*dc$REC_AGE_YOUNG[i] + tmp$midage*dc$REC_AGE_MID[i]
-        tmpp<-exp(tmp2)/(1+exp(tmp2))
-        S.DTL.prior$REC_PART_P[,i]<-sample(tmpp,nprior,replace=FALSE)
-        d.rec.part<-approxfun(density(tmpp))
-        S.DTL.prior$REC_PART_P_LOGD[,i]<-d.rec.part(S.DTL.prior$REC_PART_P[,i])
+        # draw samples from posterior samples of p_suc
+        SAM_P[,j]<-sample(tmpp,nprior,replace=TRUE)
+        # calculate the log empirical density estimate
+        d.sam<-approxfun(density(tmpp))
+        SAM_P_LOGD[,j]<-log(d.sam(SAM_P[,j]))
       }
-    }else if(method=='betaapprox'){
-      for (i in 1:nrow(dc)){
-        tmp2<-tmp$a + tmp$comm[,dc$TR_COMM_NUM_B[i]] + tmp$trading*dc$TR_COMM_TYPE_T[i] + tmp$fishing*dc$TR_COMM_TYPE_F[i] + tmp$male*dc$TR_MALE[i] +
-          tmp$young*dc$TR_AGE_YOUNG[i] + tmp$midage*dc$TR_AGE_MID[i]
+    }else if(sample.method=='betaapprox'){
+      for (j in 1:nrow(unique.group)){
+        # posterior samples of p_suc
+        # tmp2<-tmp$a + tmp$comm[,unique.group$COMM_NUM_B[j]] + tmp$trading*unique.group$COMM_TYPE_T[j] + tmp$fishing*unique.group$COMM_TYPE_F[j] + tmp$male*unique.group$MALE[j] +
+        #   tmp$age1*unique.group$AGE1[j] + tmp$age2*unique.group$AGE2[j] + tmp$age3*unique.group$AGE3[j] +  tmp$age4*unique.group$AGE4[j] +
+        #   tmp$age5*unique.group$AGE5[j]  + tmp$age6*unique.group$AGE6[j] + tmp$inmigrant*unique.group$INMIGRANT[j]
+        tmp2<-tmp$a + tmp$comm[,unique.group$COMM_NUM_B[j]]  + tmp$male*unique.group$MALE[j] +
+          tmp$age1*unique.group$AGE1[j] + tmp$age2*unique.group$AGE2[j]
         tmpp<-exp(tmp2)/(1+exp(tmp2))
+        # fit a beta distribution for p_suc
         betapar<-fitdist(as.vector(tmpp),"beta")
-        S.DTL.prior$TR_PART_P[,i]<-rbeta(nprior,betapar$estimate[1],betapar$estimate[2])
-        S.DTL.prior$TR_PART_P_LOGD[,i]<-dbeta(S.DTL.prior$TR_PART_P[,i],shape1 = betapar$estimate[1], shape2 = betapar$estimate[2],log=TRUE)
-
-        tmp2<-tmp$a + tmp$comm[,dc$REC_COMM_NUM_B[i]] + tmp$trading*dc$REC_COMM_TYPE_T[i] + tmp$fishing*dc$REC_COMM_TYPE_F[i] + tmp$male*dc$REC_MALE[i] +
-          tmp$young*dc$REC_AGE_YOUNG[i] + tmp$midage*dc$REC_AGE_MID[i]
-        tmpp<-exp(tmp2)/(1+exp(tmp2))
-        betapar<-fitdist(as.vector(tmpp),"beta")
-        S.DTL.prior$REC_PART_P[,i]<-rbeta(nprior,betapar$estimate[1],betapar$estimate[2])
-        S.DTL.prior$REC_PART_P_LOGD[,i]<-dbeta(S.DTL.prior$REC_PART_P[,i],shape1 = betapar$estimate[1], shape2 = betapar$estimate[2],log=TRUE)
+        # draw samples from the fitted beta distribution
+        SAM_P[,j]<-rbeta(nprior,betapar$estimate[1],betapar$estimate[2])
+        # calculate the log density from the fitted beta distribution
+        SAM_P_LOGD[,j]<-dbeta(S.DTL.prior$SEQ_P[,j],shape1 = betapar$estimate[1], shape2 = betapar$estimate[2],log=TRUE)
       }
     }
+    S.DTL.prior$SAM_P<-S.DTL.prior$SAM_P*SAM_P
+    S.DTL.prior$SAM_P_LOGD<-S.DTL.prior$SAM_P+SAM_P_LOGD
+    S.DTL.prior$EMP_S<-S.DTL.prior$EMP_S*EMP_S
+    fit.list[[i]]<-fit
   }
-  S.DTL.prior$EMP_S<-dc$S
-  return(S.DTL.prior)
+  S.DTL.prior$method<-'GLM'
+  TR.OBS<-data.table(OBS=dc$OBS,TR_CATEGORY_ID=unique.pairs$TR_CATEGORY_ID,
+                     REC_CATEGORY_ID=unique.pairs$REC_CATEGORY_ID)
+  save(S.DTL.prior,fit.list,TR.OBS,file=paste0('InputsMCMC_GLM',iteration,'.rda'))
 }
 
-samples.from.SARWS.prior<-function(dc,iteration,biastype){
-  nprior<-ceiling(iteration/(nrow(dc)+1))+1
+
+
+samples.from.SARWS.prior<-function(df.sampling,dc,iteration,seed=NULL){
+  library(data.table)
+
+  # take unique subpopulation that appears in transmitters and recipients in dc
+  tr<-dc[, grep("TR_", names(dc)), with = FALSE]
+  setnames(tr, colnames(tr), gsub('TR_','',colnames(tr)))
+  tr<-unique(tr)
+  rec<-dc[, grep("REC_", names(dc)), with = FALSE]
+  setnames(rec, colnames(rec), gsub('REC_','',colnames(rec)))
+  rec<-unique(rec)
+  unique.group<-unique(rbind(tr,rec))
+  # setkey(unique.group,COMM_NUM_A,SEX,AGE_AT_MID_C)
+  setkey(unique.group,CATEGORY)
+  unique.group[,CATEGORY_ID:=1:nrow(unique.group)]
+
+  # take unique pairs of subpopulations for transmission flows
+  unique.pairs<-subset(dc,select=c('COUNT_ID','TR_CATEGORY','REC_CATEGORY'))
+  tmp<-subset(unique.group,select = c('CATEGORY','CATEGORY_ID'))
+  setnames(tmp,colnames(tmp),paste0('TR_',colnames(tmp)))
+  unique.pairs<-merge(unique.pairs,tmp,by='TR_CATEGORY')
+  setnames(tmp,colnames(tmp),gsub('TR_','REC_',colnames(tmp)))
+  unique.pairs<-merge(unique.pairs,tmp,by='REC_CATEGORY')
+  setkey(unique.pairs,COUNT_ID)
+
+  # number of prior samples
+  nprior<-ceiling(iteration/(nrow(unique.group)+1))+1
 
   S.DTL.prior<-list()
-  S.DTL.prior$TR_SEQ_P<-matrix(NA_real_,nrow=nprior,ncol=nrow(dc))
-  S.DTL.prior$TR_SEQ_P_LOGD<-matrix(NA_real_,nrow=nprior,ncol=nrow(dc))
-  S.DTL.prior$REC_SEQ_P<-matrix(NA_real_,nrow=nprior,ncol=nrow(dc))
-  S.DTL.prior$REC_SEQ_P_LOGD<-matrix(NA_real_,nrow=nprior,ncol=nrow(dc))
+  fit.list<-list() #model
+  S.DTL.prior$SAM_P<-matrix(1,nrow=nprior,ncol=nrow(unique.group)) # sampling rate
+  S.DTL.prior$SAM_P_LOGD<-matrix(0,nrow=nprior,ncol=nrow(unique.group)) # log density
+  S.DTL.prior$EMP_S<-1
 
-  for (i in 1:nrow(dc)){
-    S.DTL.prior$TR_SEQ_P[,i]<-rbeta(nprior,dc$TR_P_SEQ_ALPHA[i],dc$TR_P_SEQ_BETA[i])
-    S.DTL.prior$TR_SEQ_P_LOGD[,i]<-dbeta(S.DTL.prior$TR_SEQ_P[,i],dc$TR_P_SEQ_ALPHA[i],dc$TR_P_SEQ_BETA[i],log=TRUE)
-    S.DTL.prior$REC_SEQ_P[,i]<-rbeta(nprior,dc$REC_P_SEQ_ALPHA[i],dc$REC_P_SEQ_BETA[i])
-    S.DTL.prior$REC_SEQ_P_LOGD[,i]<-dbeta(S.DTL.prior$REC_SEQ_P[,i],dc$REC_P_SEQ_ALPHA[i],dc$REC_P_SEQ_BETA[i],log=TRUE)
-  }
+  for (i in 1L:length(df.sampling)){
+    # record priors of sampling rate for the ith source of bias
+    SAM_P<-matrix(NA_real_,nrow=nprior,ncol=nrow(unique.group))
+    SAM_P_LOGD<-matrix(NA_real_,nrow=nprior,ncol=nrow(unique.group))
+    EMP_S<-NA_real_
+    #unique.group.tmp<-merge(unique.group,df.sampling[[i]],by=c('COMM_NUM_A','SEX','AGE_AT_MID_C','INMIGRANT'))
+    unique.group.tmp<-merge(unique.group,df.sampling[[i]],by=c('CATEGORY'))
 
-  if (biastype=='sampling'){
-    S.DTL.prior$TR_PART_P<-matrix(NA_real_,nrow=nprior,ncol=nrow(dc))
-    S.DTL.prior$TR_PART_P_LOGD<-matrix(NA_real_,nrow=nprior,ncol=nrow(dc))
-    S.DTL.prior$REC_PART_P<-matrix(NA_real_,nrow=nprior,ncol=nrow(dc))
-    S.DTL.prior$REC_PART_P_LOGD<-matrix(NA_real_,nrow=nprior,ncol=nrow(dc))
+    unique.group.tmp[,ALPHA:=SUC+1]
+    unique.group.tmp[,BETA:=TRIAL-SUC+1]
+    EMP_S<-(sum(df.sampling[[i]]$SUC)/sum(df.sampling[[i]]$TRIAL))^2
 
-    for (i in 1:nrow(dc)){
-      S.DTL.prior$TR_PART_P[,i]<-rbeta(nprior,dc$TR_P_PART_ALPHA[i],dc$TR_P_PART_BETA[i])
-      S.DTL.prior$TR_PART_P_LOGD[,i]<-dbeta(S.DTL.prior$TR_PART_P[,i],dc$TR_P_PART_ALPHA[i],dc$TR_P_PART_BETA[i],log=TRUE)
-      S.DTL.prior$REC_PART_P[,i]<-rbeta(nprior,dc$REC_P_PART_ALPHA[i],dc$REC_P_PART_BETA[i])
-      S.DTL.prior$REC_PART_P_LOGD[,i]<-dbeta(S.DTL.prior$REC_PART_P[,i],dc$REC_P_PART_ALPHA[i],dc$REC_P_PART_BETA[i],log=TRUE)
+    for (j in 1:nrow(unique.group)){
+      SAM_P[,j]<-rbeta(nprior,unique.group.tmp$ALPHA[j],unique.group.tmp$BETA[j])
+      SAM_P_LOGD[,j]<-dbeta(SAM_P[,j],unique.group.tmp$ALPHA[j],unique.group.tmp$BETA[j],log=TRUE)
     }
-  }
-  S.DTL.prior$EMP_S<-dc$S
 
-  return(S.DTL.prior)
+    S.DTL.prior$SAM_P<-S.DTL.prior$SAM_P*SAM_P
+    S.DTL.prior$SAM_P_LOGD<-S.DTL.prior$SAM_P+SAM_P_LOGD
+    S.DTL.prior$EMP_S<-S.DTL.prior$EMP_S*EMP_S
+  }
+  S.DTL.prior$method<-'SARWS'
+  # extract corresponding groups for pairs
+  TR.OBS<-data.table(OBS=dc$OBS,TR_CATEGORY_ID=unique.pairs$TR_CATEGORY_ID,
+                     REC_CATEGORY_ID=unique.pairs$REC_CATEGORY_ID)
+  save(S.DTL.prior,TR.OBS,file=paste0('InputsMCMC_SARWS',iteration,'.rda'))
 }
