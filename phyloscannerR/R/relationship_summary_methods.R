@@ -722,6 +722,7 @@ simplify.summary.multinomial <- function(summary, win.threshold, arrow.threshold
              
            })
     ) %>%
+    filter(total > 0) %>%
     select(host.1, host.2, arrow, label)
   
   relevant.lines[which(relevant.lines$arrow=="backwards"),c(1,2)] <- relevant.lines[which(relevant.lines$arrow=="backwards"),c(2,1)] 
