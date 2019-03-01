@@ -676,7 +676,6 @@ simplify.summary <- function(summary, arrow.threshold, total.trees, plot = F){
 #' @keywords internal
 #' @export simplify.summary.multinomial
 
-
 simplify.summary.multinomial <- function(summary, win.threshold, arrow.threshold, contiguous = F, plot = F){
   
   if(contiguous){
@@ -691,9 +690,16 @@ simplify.summary.multinomial <- function(summary, win.threshold, arrow.threshold
     filter(type != "not.close.or.nonadjacent" & type != "not.close.or.noncontiguous") %>%
     group_by(host.1, host.2) %>%
     mutate(total.score = sum(score)) %>% 
-    filter(total.score >= win.threshold) %>%
+    filter(total.score >= win.threshold) 
+  
+  if(nrow(relevant.lines) == 0){
+    return(NULL)
+  }
+  
+  relevant.lines <- relevant.lines %>%
     select(host.1, host.2, type, score) %>%
-    spread(type, score, fill = 0) %>%
+    mutate(type = factor(type, levels = c("12", "21", "complex.or.no.ancestry"))) %>%
+    spread(type, score, fill = 0, drop=F) %>%
     rename(total.12 = `12`, total.21 = `21`, total.equiv = complex.or.no.ancestry) %>% 
     mutate(total = total.21 + total.12 + total.equiv,
            dir = total.12 >= arrow.threshold | total.21 >= arrow.threshold,
