@@ -248,7 +248,7 @@ silent <- sapply(ptrees, function(ptree){
     seqs     <- read.dna(ptree$alignment.file.name, format="fasta")
     
     if(!setequal(labels(seqs), ptree$original.tip.labels)){
-      stop(paste0("Sequence labels in ",ptree$alignment.file.name, " and tip labels in ",ptree$tree.file.name," do not match.")
+      stop(paste0("Sequence labels in ",ptree$alignment.file.name, " and tip labels in ",ptree$tree.file.name," do not match."))
     }
     
     new.seqs <- seqs[which(!(labels(seqs) %in% ptree$original.tip.labels[ptree$blacklist])),]
