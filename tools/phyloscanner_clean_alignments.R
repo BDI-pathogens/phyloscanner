@@ -182,8 +182,7 @@ if(do.dup.blacklisting & bl.raw.threshold == 0 & bl.ratio.threshold == 0){
   stop("Duplicate blacklisting requested but no thresholds specified with -rwt or -rtt")
 }
 
-min.reads.per.host    <- args$minReadsPerHost
-min.tips.per.host     <- args$minTipsPerHost
+
 
 downsample            <- !is.null(args$maxReadsPerHost)
 downsampling.limit    <- args$maxReadsPerHost
@@ -247,6 +246,11 @@ silent <- sapply(ptrees, function(ptree){
   if(!is.null(ptree$alignment.file.name)){
     
     seqs     <- read.dna(ptree$alignment.file.name, format="fasta")
+    
+    if(!setequal(labels(seqs), ptree$original.tip.labels)){
+      stop(paste0("Sequence labels in ",ptree$alignment.file.name, " and tip labels in ",ptree$tree.file.name," do not match.")
+    }
+    
     new.seqs <- seqs[which(!(labels(seqs) %in% ptree$original.tip.labels[ptree$blacklist])),]
     new.afn  <- paste0(output.string, "_", ptree$id, ".fasta")
     
