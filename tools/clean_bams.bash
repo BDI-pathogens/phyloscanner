@@ -71,9 +71,9 @@ done
 
 # This script takes the same arguments as phyloscanner_clean_alignments.R except -i and -p. Delete these
 
-pcaopts=$(echo $fullOpts sed s/-[ip]\ [^\ ]*\ //g)
-pcaopts=$(echo $pcaopts sed s/--phyloscannerPath\ [^\ ]*\ //g)
-pcaopts=$(echo $pcaopts sed s/--baminput\ [^\ ]*\ //g)
+pcaopts=$(echo $fullOpts | sed s/-[ip]\ [^\ ]*//g)
+pcaopts=$(echo $pcaopts | sed s/--phyloscannerPath\ [^\ ]*//g)
+pcaopts=$(echo $pcaopts | sed s/--baminput\ [^\ ]*//g)
 
 runName=$3
 
