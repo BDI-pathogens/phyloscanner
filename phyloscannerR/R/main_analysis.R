@@ -222,6 +222,22 @@ initialise.phyloscanner <- function(
       }
     }
     
+    # this step won't do anything if input is anything other than phyloscanner standard, and should be safe
+    
+    if(match.mode != "coords"){
+      full.alignment.file.names <- map_chr(1:length(full.alignment.file.names), function(x){
+        
+        unexcised.file.name <- full.alignment.file.names[x]
+        window.coords.string <- alignment.identifiers[x]
+        excised.fn <- paste0(alignment.file.regex, "PositionsExcised_", window.coords.string, ".fasta")
+        if(file.exists(excised.fn)){
+          excised.fn
+        } else {
+          x
+        }
+      })
+    }
+    
     ptrees <- sapply(ptrees, function(ptree) attach.file.names(ptree, full.alignment.file.names, alignment.identifiers, "alignment.file.name"), simplify = F, USE.NAMES = T)
   }
   
