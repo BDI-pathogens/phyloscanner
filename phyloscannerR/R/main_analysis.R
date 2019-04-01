@@ -229,11 +229,12 @@ initialise.phyloscanner <- function(
         
         unexcised.file.name <- full.alignment.file.names[x]
         window.coords.string <- alignment.identifiers[x]
-        excised.fn <- paste0(alignment.file.regex, "PositionsExcised_", window.coords.string, ".fasta")
+        excised.fn <- paste0(unlist(strsplit(unexcised.file.name, window.coords.string))[1], "PositionsExcised_", window.coords.string, ".fasta")
+        print(excised.fn)
         if(file.exists(excised.fn)){
           excised.fn
         } else {
-          x
+          unexcised.file.name
         }
       })
     }
