@@ -378,11 +378,7 @@ initialise.phyloscanner <- function(
           }, simplify = F, USE.NAMES = T)
         }
       } else {
-        warning(paste0("Unknown input file format for normalisation file; tree branch lengths will not be normalised.\n"))
-        ptrees <- sapply(ptrees, function(ptree) {
-          ptree$normalisation.constant  <- 1
-          ptree
-        }, simplify = F, USE.NAMES = T)
+        stop(paste0("Unknown input file format for normalisation file.\n"))
       }
     } else {
       warning(paste0("Cannot normalise branch lengths from file without window cooardinates in file suffixes; tree branch lengths will not be normalised.\n"))
