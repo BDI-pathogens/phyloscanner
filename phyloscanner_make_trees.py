@@ -1361,8 +1361,8 @@ OutputFilesByDestinationDir = {}
 OutputDirs['raxml'] = 'RAxMLfiles'
 
 FileForAlignedReads_basename = 'AlignedReads'
-FileForAlignedReads_PositionsExcised_basename = FileForAlignedReads_basename + \
-'_PositionsExcised_'
+FileForAlignedReads_PositionsExcised_basename = \
+'AlignedReadsInWindow_PositionsExcised_'
 OutputDirs['AlignedReads'] = 'AlignedReads'
 OutputFilesByDestinationDir['AlignedReads'] = []
 
@@ -1406,8 +1406,9 @@ for window in range(NumCoords / 2):
   # keep labels intuitive for the user.
   UserLeftWindowEdge  = UserCoords[window*2]
   UserRightWindowEdge = UserCoords[window*2 +1]
-  ThisWindowSuffix = 'InWindow_'+str(UserLeftWindowEdge)+'_to_'+\
+  ThisWindowSuffix2 = str(UserLeftWindowEdge) + '_to_' + \
   str(UserRightWindowEdge)
+  ThisWindowSuffix = 'InWindow_' + ThisWindowSuffix2
   ThisWindowAsStr = str(UserLeftWindowEdge) + '-' + str(UserRightWindowEdge)
 
   if PrintInfo:
@@ -1969,7 +1970,7 @@ for window in range(NumCoords / 2):
   # See if there are positions to excise in this window.
   if ExcisePositions:
     FileForAlignedReads_PositionsExcised = \
-    FileForAlignedReads_PositionsExcised_basename + ThisWindowSuffix +'.fasta'
+    FileForAlignedReads_PositionsExcised_basename + ThisWindowSuffix2 +'.fasta'
     if PairwiseAlign:
       CoordsToExciseInThisWindow = [coord for coord in args.excision_coords \
       if LeftWindowEdge <= coord <= RightWindowEdge]
