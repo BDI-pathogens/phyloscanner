@@ -4,10 +4,23 @@ lddirichlet_vector	<- function(x, nu){
 	ans
 }
 
-
+#' @title Source attribution while adjusting for sampling bias  
+#' @export
+#' @import data.table 
+#' @importFrom gtools rdirichlet
+#' @author Xiaoyue Xi, Oliver Ratmann
+#' @param dobs Data.table of observed number of transmission events for each transmission pair category. 
+#' @param dprior Data.table of draws from the prior distribution of sampling probabilities.
+#' @param control List of input arguments that control the behaviour of the source attribution algorithm:
+#' \itemize{
+#'  \item{"seed"}{Random number seed, for reproducibility.}
+#'  \item{"mcmc.n"}{Guide on the number of MCMC iterations. The actual number of iterations will be slightly larger, and a multiple of the number of iterations needed to complete one MCMC sweep through all free parameters.}
+#'  \item{"verbose"}{Flag to switch on/off verbose output.}
+#'  \item{"outfile"}{Full path name to which the MCMC output is saved to in RDA format, in an object called \code{mc}.}
+#' }
+#' @return NULL. MCMC output is written to file.
 source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1e3, verbose=1, outfile='SAMCMCv190327.rda')){
-  library(data.table)
-  library(gtools)
+  #library(data.table); library(gtools)
   
   #	
   # basic checks
@@ -236,15 +249,25 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
   NULL
 }
 
-source.attribution.mcmc.diagnostics	<- function(mcmc.file, control=list(burnin.p=0.2, regex_pars='*', pdf.height.per.par=1.2, outfile.base='SAMCMCv190327')){
-  library(coda)
-  library(data.table)
-  library(bayesplot)
-  diagnostic<-list()
-
-  
-  mcmc.file	<- "~/Dropbox (SPH Imperial College)/Rakai Fish Analysis/full_run/190327_SAMCMCv190327_mcmc.rda"
-  control=list(burnin.p=0.2, regex_pars='PI', pdf.height.per.par=1.2, outfile.base=gsub('\\.rda','',mcmc.file))
+#' @title MCMC diagnostics for the source attribution algorithm  
+#' @export
+#' @import data.table 
+#' @importFrom bayesplot mcmc_trace mcmc_acf_bar mcmc_hist
+#' @importFrom coda mcmc effectiveSize
+#' @author Xiaoyue Xi, Oliver Ratmann
+#' @param mcmc.file Full file name to MCMC output from function \code{source.attribution.mcmc} 
+#' @param control List of input arguments that control the behaviour of the source attribution algorithm:
+#' \itemize{
+#'  \item{"burnin.p"}{Proportion of MCMC iterations that are removed as burn-in period.}
+#'  \item{"regex_pars"}{Regular expression to select the parameter names for which diagnostics are computed. The default is all parameters, which is '*'.}
+#'  \item{"credibility.interval"}{Width of the marginal posterior credibility intervals.}
+#'  \item{"pdf.plot.n.worst.case.parameters"}{Integer which specifies the number of parameters with smallest effective sample size that are inspected in detail. If set to 0, worst case analyses are not performed.}
+#'  \item{"pdf.height.per.par"}{Most plots show diagnostics with parameters listed on the y-axis. This value controls the plot height in inches for each free parameter.}
+#'  \item{"outfile.base"}{Start of the full file name for all output files.}
+#' }
+#' @return NULL. Diagnostic plots and csv files are written to file.
+source.attribution.mcmc.diagnostics	<- function(mcmc.file, control=list(burnin.p=0.2, regex_pars='*', credibility.interval=0.95, pdf.plot.n.worst.case.parameters=10, pdf.height.per.par=1.2, outfile.base=gsub('\\.rda','',mcmc.file))){
+  #library(coda); library(data.table); library(bayesplot)
   
   load(mcmc.file)
   burnin.n	<- floor(control$burnin.p*nrow(mc$pars$S))
@@ -276,7 +299,7 @@ source.attribution.mcmc.diagnostics	<- function(mcmc.file, control=list(burnin.p
 
   #	traces for parameters
   p		<- mcmc_trace(pars, pars=colnames(pars), facet_args = list(ncol = 1), n_warmup=burnin.n)
-  pdf(file=paste0(control$outfile.base,'_marginaltraces.pdf'), w=7, h=control$pdf.height.per.par*ncol(pars))
+  pdf(file=paste0(control$outfile.base,'_marginaltraces.pdf'), w=7, h=control$pdf.height.per.par*ncol(pars), limitsize=FALSE)
   p
   dev.off()
   
@@ -292,6 +315,7 @@ source.attribution.mcmc.diagnostics	<- function(mcmc.file, control=list(burnin.p
 		  scale_y_continuous(label=scales:::percent) +
 		  labs(	x='\nNumber of transmission pair categories updated per sampling category',
 				y='Acceptance rate\n')
+  ggsave(file=paste0(control$outfile.base,'_acceptance_per_updateID.pdf'), w=6, h=6)
   cat('\nAverage acceptance rate= ',subset(mc$it.info, !is.na(PAR_ID) & PAR_ID>0)[, round(mean(ACCEPT), d=3)])
   cat('\nUpdate IDs with lowest acceptance rates')
   print( da[order(ACC_RATE)[1:10],] )
@@ -300,180 +324,53 @@ source.attribution.mcmc.diagnostics	<- function(mcmc.file, control=list(burnin.p
   cat('\nRemoving burnin in set to ', 100*control$burnin.p,'% of chain, total iterations=',burnin.n)
   it.rm.burnin	<- seq.int(burnin.n,nrow(mc$pars$S))
   pars	<- pars[it.rm.burnin,,drop=FALSE]
-  
-  
+    
   # effective sampling sizes 
   tmp	<- mcmc(pars)
-  ans	<- data.table(VAR= colnames(pars), NEFF=as.numeric(effectiveSize(tmp)))
-  ggplot(ans, aes(x=NEFF, y=VAR)) + 
+  ans	<- data.table(ID= seq_len(ncol(pars)), VAR= colnames(pars), NEFF=as.numeric(effectiveSize(tmp)))
+  set(ans, NULL, 'ID', ans[, factor(ID, labels=VAR)])
+  ggplot(ans, aes(x=NEFF, y=ID)) + 
 		  geom_point() + 	
 		  theme_bw() +
-
-  eff.size.PI<-matrix(NA_real_,nrow=1,ncol=ncol(mc$pars$Z))
-  for(i in 1:ncol(mc$pars$Z)){
-    eff.size.PI[i]<-effectiveSize(PI[,i])
+		  labs(x='\neffective sample size', y='')
+  ggsave(file=paste0(control$outfile.base,'_neff.pdf'), w=6, h=control$pdf.height.per.par*ncol(pars)*0.15, limitsize=FALSE)
+  
+  # summarise mean, sd, quantiles
+  tmp	<- apply(pars, 2, function(x) quantile(x, p=c((1-control$credibility.interval)/2, 0.5, control$credibility.interval+(1-control$credibility.interval)/2)))
+  tmp	<- data.table(	VAR= colnames(pars),
+		  				MEAN= apply(pars, 2, mean),
+						SD= apply(pars, 2, sd),
+		  				MEDIAN=tmp[2,], 
+						CI_L=tmp[1,], 
+						CI_U=tmp[3,])  
+  ans	<- merge(tmp, ans, by='VAR')
+  cat('\nParameters with lowest effective samples')
+  print( ans[order(NEFF)[1:10],] )
+  
+  # write to file
+  setkey(ans, ID)
+  write.csv(ans, file=paste0(control$outfile.base,'_summary.csv'))
+  
+  # plots for worst case parameters
+  if(control$pdf.plot.n.worst.case.parameters>0)
+  {
+	  worst.pars	<- pars[, ans[order(NEFF)[1:10], VAR]]
+	  #	traces
+	  p				<- mcmc_trace(worst.pars, pars=colnames(worst.pars), facet_args = list(ncol=1))
+	  pdf(file=paste0(control$outfile.base,'_worst_traces.pdf'), w=7, h=control$pdf.height.per.par*ncol(worst.pars))
+	  p
+	  dev.off()
+	  
+	  #	histograms
+	  p				<- mcmc_hist(worst.pars, pars=colnames(worst.pars), facet_args = list(ncol=4))
+	  pdf(file=paste0(control$outfile.base,'_worst_marginalposteriors.pdf'), w=10, h=control$pdf.height.per.par*ncol(worst.pars)/4)
+	  p
+	  dev.off()
+	
+	  #	autocorrelations
+	  p				<- mcmc_acf_bar(worst.pars, pars=colnames(worst.pars), facet_args = list(ncol = 1))
+	  pdf(file=paste0(control$outfile.base,'_worst_acf.pdf'), w=7, h=control$pdf.height.per.par*ncol(worst.pars))
+	  p
+	  dev.off()
   }
-
-  sort.effsize.PI<-sort(eff.size.PI,index.return=TRUE)
-  if (length(sort.effsize.PI$x)<6){
-    worst.effsize.PI.index<-sort.effsize.PI$ix
-    worst.effsize.PI<-sort.effsize.PI$x
-    print(paste0("The worst effective sample sizes for PI ", worst.effsize.PI.index, " are ", worst.effsize.PI," out of ", length(PI[,1])," samples."))
-  }else{
-    worst.effsize.PI.index<-sort.effsize.PI$ix[1:6]
-    worst.effsize.PI<-sort.effsize.PI$x[1:6]
-    print(paste0("The worst effective sample sizes for PI ", worst.effsize.PI.index, " are ", worst.effsize.PI," out of ", length(PI[,1])," samples."))
-  }
-
-  diagnostic$PI$eff.size.index<-worst.effsize.PI.index
-  diagnostic$PI$eff.size<-worst.effsize.PI
-
-  # traceplot for PI
-  png(paste0('traceplot_PI_',mc$method,'.png'), width = 1400, height = 800)
-  par(ps = 12, cex = 1, cex.main = 2.5)
-  par(mfrow=c(2,3))
-  for (i in worst.effsize.PI.index){
-    coda::traceplot(mcmc(PI[,i]),main=paste('Traceplot of Pi',i),cex.lab=2.5, cex.axis=1.5, cex.main=2.5, cex.sub=2.5)
-  }
-  dev.off()
-
-  # autocorrelation plot for PI
-  png(paste0('autocorrelation_PI_',mc$method,'.png'), width = 1400, height = 800)
-  par(mfrow=c(2,3))
-  for (i in worst.effsize.PI.index){
-    acf(mcmc(PI[,i]),main='')
-    mtext(sprintf(paste('Autocorrelation plot of PI',i)), side=3,cex=2,line = 1,font=2)
-  }
-  dev.off()
-
-  # density plot for PI
-  png(paste0('density_PI_',mc$method,'.png'), width = 1400, height = 800)
-  par(mfrow=c(2,3))
-  for (i in worst.effsize.PI.index){
-    densplot(mcmc(PI[,i]),main=paste('Density plot of Pi',i),cex.lab=2.5, cex.axis=1.5, cex.main=2.5, cex.sub=2.5)
-  }
-  dev.off()
-
-  # effetive sampling size for S
-  eff.size.S<-matrix(NA_real_,nrow=1,ncol=ncol(mc$pars$S))
-  for(i in 1:ncol(mc$pars$S)){
-    eff.size.S[i]<-effectiveSize(S[,i])
-  }
-
-  sort.effsize.S<-sort(eff.size.S,index.return=TRUE)
-  if (length(sort.effsize.S$x)<6){
-    worst.effsize.S.index<-sort.effsize.S$ix
-    worst.effsize.S<-sort.effsize.S$x
-    print(paste0("The worst effective sample sizes for S ", worst.effsize.S.index, " are ", worst.effsize.S," out of ", length(S[,1])," samples."))
-  }else{
-    worst.effsize.S.index<-sort.effsize.S$ix[1:6]
-    worst.effsize.S<-sort.effsize.S$x[1:6]
-    print(paste0("The worst effective sample sizes for S are ", worst.effsize.S.index, " are ", worst.effsize.S," out of ", length(S[,1])," samples."))
-  }
-
-  diagnostic$S$eff.size.index<-worst.effsize.S.index
-  diagnostic$S$eff.size<-worst.effsize.S
-
-  # traceplot for S
-  png(paste0('traceplot_S_',mc$method,'.png'), width = 1400, height = 800)
-  par(ps = 12, cex = 1, cex.main = 2.5)
-  par(mfrow=c(2,3))
-  for (i in worst.effsize.S.index){
-    coda::traceplot(mcmc(S[,i]),main=paste('Traceplot of S',i),cex.lab=2.5, cex.axis=1.5, cex.main=2.5, cex.sub=2.5)
-  }
-  dev.off()
-
-  # autocorrelation plot for S
-  png(paste0('autocorrelation_S_',mc$method,'.png'), width = 1400, height = 800)
-  par(mfrow=c(2,3))
-  for (i in worst.effsize.S.index){
-    acf(mcmc(S[,i]),main='')
-    mtext(sprintf(paste('Autocorrelation plot of S',i)), side=3,cex=2,line = 1,font=2)
-  }
-  dev.off()
-
-  # density plot for S
-  png(paste0('density_S_',mc$method,'.png'), width = 1400, height = 800)
-  par(mfrow=c(2,3))
-  for (i in worst.effsize.S.index){
-    densplot(mcmc(S[,i]),main=paste('Density plot of S',i),cex.lab=2.5, cex.axis=1.5, cex.main=2.5, cex.sub=2.5)
-  }
-  dev.off()
-
-  # effetive sampling size for Z
-  eff.size.Z<-matrix(NA_real_,nrow=1,ncol=ncol(mc$pars$Z))
-  for(i in 1:ncol(mc$pars$Z)){
-    eff.size.Z[i]<-effectiveSize(Z[,i])
-  }
-
-  sort.effsize.Z<-sort(eff.size.Z,index.return=TRUE)
-  if (length(sort.effsize.Z$x)<6){
-    worst.effsize.Z.index<-sort.effsize.Z$ix
-    worst.effsize.Z<-sort.effsize.Z$x
-    print(paste0("The worst effective sample sizes for Z are ", worst.effsize.Z.index, " are ", worst.effsize.Z," out of ", length(Z[,1])," samples."))
-  }else{
-    worst.effsize.Z.index<-sort.effsize.Z$ix[1:6]
-    worst.effsize.Z<-sort.effsize.Z$x[1:6]
-    print(paste0("The worst effective sample sizes for Z are ", worst.effsize.Z.index, " are ", worst.effsize.Z," out of ", length(Z[,1])," samples."))
-  }
-
-  diagnostic$Z$eff.size.index<-worst.effsize.Z.index
-  diagnostic$Z$eff.size<-worst.effsize.Z
-
-
-  # traceplot for Z
-  png(paste0('traceplot_Z_',mc$method,'.png'), width = 1400, height = 800)
-  par(ps = 12, cex = 1, cex.main = 2.5)
-  par(mfrow=c(2,3))
-  for (i in worst.effsize.Z.index){
-    coda::traceplot(mcmc(Z[,i]),main=paste('Traceplot of Z',i),cex.lab=2.5, cex.axis=1.5, cex.main=2.5, cex.sub=2.5)
-  }
-  dev.off()
-
-  # autocorrelation plot for Z
-  png(paste0('autocorrelation_Z_',mc$method,'.png'), width = 1400, height = 800)
-  par(mfrow=c(2,3))
-  for (i in worst.effsize.Z.index){
-    acf(mcmc(Z[,i]),main='')
-    mtext(sprintf(paste('Autocorrelation plot of Z',i)), side=3,cex=2,line = 1,font=2)
-  }
-  dev.off()
-
-  # density plot for Z:
-  png(paste0('density_Z_',mc$method,'.png'), width = 1400, height = 800)
-  par(mfrow=c(2,3))
-  for (i in worst.effsize.Z.index){
-    densplot(mcmc(Z[,i]),main=paste('Density plot of Z',i),cex.lab=2.5, cex.axis=1.5, cex.main=2.5, cex.sub=2.5)
-  }
-  dev.off()
-
-  #########################################N###################################################
-  # effetive sampling size for N
-  eff.size.N<-effectiveSize(N)
-  diagnostic$N$eff.size<-eff.size.N
-
-  print(paste0("The worst effective sample size is ",eff.size.N))
-
-
-  # traceplot for N
-  png(paste0('traceplot_N_',mc$method,'.png'), width = 600, height = 500)
-  par(ps = 12, cex = 1, cex.main = 2.5)
-  par(mfrow=c(1,1))
-  coda::traceplot(mcmc(N),main='Traceplot of N',cex.lab=2.5, cex.axis=1.5, cex.main=2.5, cex.sub=2.5)
-  dev.off()
-
-  # autocorrelation plot for N
-  png(paste0('autocorrelation_N_',mc$method,'.png'), width = 600, height = 500)
-  par(mfrow=c(1,1))
-  acf(mcmc(N),main='')
-  mtext(sprintf('Autocorrelation plot of N'), side=3,cex=2,line = 1,font=2)
-  dev.off()
-
-  # density plot for N
-  png(paste0('density_N_',mc$method,'.png'), width = 600, height = 500)
-  par(mfrow=c(1,1))
-  densplot(mcmc(N),main='Density plot of N',cex.lab=2.5, cex.axis=1.5, cex.main=2.5, cex.sub=2.5)
-  dev.off()
-
-  save(diagnostic,file=paste0('core_inference_diagnostic_',mc$method,'.rda'))
 }
