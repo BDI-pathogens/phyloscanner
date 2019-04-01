@@ -1,6 +1,4 @@
 exportPattern("^[[:alpha:]]+")
 import(data.table)
 import(coda)
-import(fitdistrplus)
-import(rstan)
 importFrom(gtools, rdirichlet)

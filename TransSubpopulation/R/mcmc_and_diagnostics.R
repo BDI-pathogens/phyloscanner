@@ -1,219 +1,314 @@
-mcmc.core.inference<-function(s.dtl.prior,tr.obs,seed){
+lddirichlet_vector	<- function(x, nu){
+	ans	<- sum((nu - 1) * log(x)) + sum(lgamma(nu)) - lgamma(sum(nu))
+	stopifnot(is.finite(ans))
+	ans
+}
+
+
+source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1e3, verbose=1, outfile='SAMCMCv190327.rda')){
   library(data.table)
   library(gtools)
-  ptm<-Sys.time()
-
-  set.seed(seed)
-  TR_OBS<-tr.obs$OBS
-  pair<-cbind(tr.obs$TR_CATEGORY_ID,tr.obs$REC_CATEGORY_ID)
-
-  update.dim.list<-list()
-  for (i in 1:ncol(s.dtl.prior$SAM_P)){
-    tmp<-which(pair[,1]==i|pair[,2]==i)
-    update.dim.list[[i]]<-tmp
+  
+  #	
+  # basic checks
+  #
+  if(!all(dobs$TR_SAMPLING_CATEGORY %in% dprior$SAMPLING_CATEGORY))
+	  stop('Did not find prior samples of a sampling category for TR_SAMPLING_CATEGORY')
+  if(!all(dobs$REC_SAMPLING_CATEGORY %in% dprior$SAMPLING_CATEGORY))
+	  stop('Did not find prior samples of a sampling category for REC_SAMPLING_CATEGORY')
+  
+  ptm	<- Sys.time()
+  set.seed(control$seed)
+  
+  #	
+  # set up mcmc 
+  #
+  mc				<- list()
+  mc$time			<- NA_real_
+  # construct look-up table so we know which transmission pair categories need to be updated 
+  # at every MCMC iteration
+  tmp				<- subset(dobs, select=c(TRM_CAT_PAIR_ID, TR_SAMPLING_CATEGORY, REC_SAMPLING_CATEGORY))
+  tmp				<- melt(tmp, id.vars='TRM_CAT_PAIR_ID', value.name='SAMPLING_CATEGORY', variable.name='WHO')
+  mc$dl				<- unique(subset(tmp, select=c(WHO, SAMPLING_CATEGORY)))
+  mc$dl[, UPDATE_ID:= seq_len(nrow(mc$dl))]
+  mc$dl				<- merge(mc$dl, tmp, by=c('WHO','SAMPLING_CATEGORY'))
+  setkey(mc$dl, UPDATE_ID)
+  mc$dlt			<- dcast.data.table(mc$dl, TRM_CAT_PAIR_ID~WHO, value.var='UPDATE_ID')
+  setnames(mc$dlt, c('TR_SAMPLING_CATEGORY','REC_SAMPLING_CATEGORY'), c('TR_UPDATE_ID','REC_UPDATE_ID'))
+  #	every transmission category pair needs to be updated at least one as we sweep through the sampling categories
+  # I don t think this is guaranteed, hence the check
+  if( !all(dobs$TRM_CAT_PAIR_ID %in% sort(unique(mc$dl$TRM_CAT_PAIR_ID))) )
+	  stop('Fatal error. Contact the package maintainer with your input data.')
+  mc$nprior			<- max(dprior$SAMPLE)
+  mc$sweep			<- max(mc$dl$UPDATE_ID)+1L
+  mc$nsweep			<- ceiling( control$mcmc.n/mc$sweep )  
+  mc$n				<- mc$nsweep*mc$sweep
+  mc$pars			<- list()
+  mc$pars$LAMBDA	<- matrix(NA_real_, ncol=nrow(dobs), nrow=1)		#prior for proportions
+  mc$pars$XI		<- matrix(NA_real_, ncol=mc$sweep-1L, nrow=mc$nsweep+1L) # prior for sampling in transmitter categories and sampling in recipient categories, concatenated
+  mc$pars$XI_LP		<- matrix(NA_real_, ncol=mc$sweep-1L, nrow=mc$nsweep+1L) # log prior density for sampling in transmitter categories and sampling in recipient categories, concatenated   
+  mc$pars$S			<- matrix(NA_integer_, ncol=nrow(dobs), nrow=mc$nsweep+1L) # prior probability of sampling transmission pair categories
+  mc$pars$S_LP		<- matrix(NA_integer_, ncol=nrow(dobs), nrow=mc$nsweep+1L) # log prior density of sampling transmission pair categories
+  mc$pars$Z			<- matrix(NA_integer_, ncol=nrow(dobs), nrow=mc$nsweep+1L) #augmented data
+  mc$pars$NU		<- NA_real_															#prior for N
+  mc$pars$N			<- matrix(NA_integer_, ncol=1, nrow=mc$nsweep+1L)							#total number of counts on augmented data
+  mc$pars$PI		<- matrix(NA_real_, ncol=nrow(dobs), nrow=mc$nsweep+1L)	#proportions
+  mc$it.info		<- data.table(	IT= seq.int(0,mc$n),
+									PAR_ID= rep(NA_integer_, mc$n+1L),
+									BLOCK= rep(NA_character_, mc$n+1L),
+									MHRATIO= rep(NA_real_, mc$n+1L),
+									ACCEPT=rep(NA_integer_, mc$n+1L), 
+									LOG_LKL=rep(NA_real_, mc$n+1L),
+									LOG_PRIOR=rep(NA_real_, mc$n+1L))  
+  
+  if(1)
+  {
+	  cat('\nNumber of parameters:\t', ncol(mc$pars$PI)+ncol(mc$pars$N)+ncol(mc$pars$Z)+ncol(mc$pars$S)+ncol(mc$pars$XI) )
+	  cat('\nDimension of PI:\t', ncol(mc$pars$PI))
+	  cat('\nSweep length:\t', mc$sweep)
+	  cat('\nNumber of sweeps:\t', mc$nsweep)
+	  cat('\nNumber of iterations:\t', mc$n)
+	  tmp				<- mc$dl[, list(N_PAIRS=length(TRM_CAT_PAIR_ID)), by='UPDATE_ID']
+	  cat('\nNumber of transmission pair categories updated per iteration, and their frequencies:\n')
+	  print(table(tmp$N_PAIRS))	  
   }
-
-  # set up mcmc objects
-  mc<-list()
-  nsweep<-nrow(s.dtl.prior$SAM_P) # number of samples after thining
-  mc$n<-(nrow(s.dtl.prior$SAM_P)-1)*(ncol(s.dtl.prior$SAM_P)+1)+1 # the number of iterations
-
-  mc$pars<-list()
-  mc$pars$LAMBDA<-matrix(NA_real_, ncol=length(TR_OBS), nrow=1)		#prior for proportions
-
-  mc$pars$SAM_P<-matrix(NA_real_,ncol = ncol(s.dtl.prior$SAM_P),nrow=nsweep)
-  mc$pars$SAM_P_LOGD<-matrix(NA_real_,ncol = ncol(s.dtl.prior$SAM_P),nrow=nsweep)
-  mc$pars$S<-matrix(NA_integer_, ncol=length(TR_OBS), nrow=nsweep)
-  mc$pars$Z<-matrix(NA_integer_, ncol=length(TR_OBS), nrow=nsweep) #augmented data
-  mc$pars$NU<-NA_real_															#prior for N
-  mc$pars$N<-matrix(NA_integer_, ncol=1, nrow=nsweep)							#total number of counts on augmented data
-  mc$pars$PI<-matrix(NA_real_, ncol=length(TR_OBS), nrow=nsweep)	#proportions
-
-  mc$it.info<-data.table(	IT= seq.int(1,nsweep),
-                          LOG_LKL=rep(NA_real_, nsweep),
-                          LOG_PRIOR=rep(NA_real_, nsweep))
-
-  mc$z.acc.count<-matrix(NA_integer_, ncol=1, nrow=length(TR_OBS))
-  mc$xi.acc.count<-matrix(NA_integer_, ncol=1, nrow=ncol(s.dtl.prior$SAM_P))
-  mc$z.total.count<-matrix(NA_integer_, ncol=1, nrow=length(TR_OBS))
-  mc$xi.total.count<-matrix(NA_integer_, ncol=1, nrow=ncol(s.dtl.prior$SAM_P))
-
-  # define helper functions
-  lddirichlet_vector	<- function(x, nu){
-    ans	<- sum((nu - 1) * log(x)) + sum(lgamma(nu)) - lgamma(sum(nu))
-    stopifnot(is.finite(ans))
-    ans
-  }
-
-
+  
+	
+  #
   # initialise MCMC
-  #  mc$verbose			<- 0L
+  #	  
   mc$curr.it			<- 1L
-  #mc$seed				<- seed
-  #set.seed( mc$seed )
-
+  set(mc$it.info, mc$curr.it, 'BLOCK', 'INIT')
+  set(mc$it.info, mc$curr.it, 'PAR_ID', 0L)
+  set(mc$it.info, mc$curr.it, 'MHRATIO', 1)
+  set(mc$it.info, mc$curr.it, 'ACCEPT', 1L)  
   #	prior lambda: use the Berger objective prior with minimal loss compared to marginal Beta reference prior
   #	(https://projecteuclid.org/euclid.ba/1422556416)
-  mc$pars$LAMBDA[1,]	<- 0.8/length(TR_OBS)
-
-  mc$pars$SAM_P[1,] <- s.dtl.prior$SAM_P[1,]
-  mc$pars$SAM_P_LOGD[1,] <- s.dtl.prior$SAM_P_LOGD[1,]
-  mc$pars$S[1,]	<- mc$pars$SAM_P[1,][pair[,1]]*mc$pars$SAM_P[1,][pair[,2]]
+  mc$pars$LAMBDA[1,]	<- 0.8/nrow(dobs)
+  # prior for sampling in transmitter categories
+  tmp					<- subset(dprior, SAMPLE==sample(mc$nprior,1))
+  tmp					<- merge(unique(subset(mc$dl, WHO=='TR_SAMPLING_CATEGORY', c(SAMPLING_CATEGORY, UPDATE_ID))), tmp, by='SAMPLING_CATEGORY')
+  setkey(tmp, UPDATE_ID)
+  mc$pars$XI[1, tmp$UPDATE_ID]		<- tmp$P
+  mc$pars$XI_LP[1, tmp$UPDATE_ID]	<- tmp$LP
+  # prior for sampling in in recipient categories
+  tmp					<- subset(dprior, SAMPLE==sample(mc$nprior,1))
+  tmp					<- merge(unique(subset(mc$dl, WHO=='REC_SAMPLING_CATEGORY', c(SAMPLING_CATEGORY, UPDATE_ID))), tmp, by='SAMPLING_CATEGORY')
+  setkey(tmp, UPDATE_ID)
+  mc$pars$XI[1, tmp$UPDATE_ID]		<- tmp$P
+  mc$pars$XI_LP[1, tmp$UPDATE_ID]	<- tmp$LP
+  # prior for sampling in transmission pair categories
+  tmp					<- mc$dl[,  list( 	TR_UPDATE_ID= UPDATE_ID[WHO=='TR_SAMPLING_CATEGORY'][1],
+											REC_UPDATE_ID= UPDATE_ID[WHO=='REC_SAMPLING_CATEGORY'][1]), 
+										by='TRM_CAT_PAIR_ID']
+  setkey(tmp,TRM_CAT_PAIR_ID)
+  mc$pars$S[1,]			<- mc$pars$XI[1, tmp$TR_UPDATE_ID] * mc$pars$XI[1, tmp$REC_UPDATE_ID]
+  mc$pars$S_LP[1,]		<- mc$pars$XI_LP[1, tmp$TR_UPDATE_ID] + mc$pars$XI_LP[1, tmp$REC_UPDATE_ID]
   #	augmented data: proposal draw under sampling probability
-  mc$pars$Z[1,]		<- TR_OBS + rnbinom(length(TR_OBS),TR_OBS,mc$pars$S[1,])
+  mc$pars$Z[1,]			<- dobs$TRM_OBS + rnbinom(nrow(dobs),dobs$TRM_OBS,mc$pars$S[1,])
   #	prior nu: set Poisson rate to the expected augmented counts, under average sampling probability
-  mc$pars$NU			<- sum(TR_OBS) / mean(mc$pars$S[1,])
+  mc$pars$NU			<- sum(dobs$TRM_OBS) / mean(mc$pars$S[1,])
   #	total count: that s just the sum of Z
-  mc$pars$N[1,]		<- sum(mc$pars$Z[1,])
+  mc$pars$N[1,]			<- sum(mc$pars$Z[1,])
   #	proportions: draw from full conditional
   mc$pars$PI[1,]		<- rdirichlet(1, mc$pars$Z[1,] + mc$pars$LAMBDA[1,])
-
-
   #	store log likelihood
-  tmp	<- sum( dbinom(TR_OBS, size=mc$pars$Z[1,], prob=mc$pars$S[1,], log=TRUE) ) +
+  tmp	<- sum( dbinom(dobs$TRM_OBS, size=mc$pars$Z[1,], prob=mc$pars$S[1,], log=TRUE) ) +
     dmultinom(mc$pars$Z[1,], size=mc$pars$N[1,], prob=mc$pars$PI[1,], log=TRUE)
   set(mc$it.info, 1L, 'LOG_LKL', tmp)
   # 	store log prior
   tmp	<- dpois(mc$pars$N[1,], lambda=mc$pars$NU, log=TRUE) +
     lddirichlet_vector(mc$pars$PI[1,], nu=mc$pars$LAMBDA[1,]) +
-    sum(mc$pars$SAM_P_LOGD[1,])
+    sum(mc$pars$S_LP[1,])
   set(mc$it.info, 1L, 'LOG_PRIOR', tmp)
 
-  mc$z.acc.count<-rep(0,length(TR_OBS))
-  mc$xi.acc.count<-rep(0,ncol(s.dtl.prior$SAM_P))
-  mc$z.total.count<-rep(0,length(TR_OBS))
-  mc$xi.total.count<-rep(0,ncol(s.dtl.prior$SAM_P))
-
+  
   # parameter value at the current step
-  SAM_P_CURR<-mc$pars$SAM_P[1,]
-  SAM_P_LOGD_CURR<-mc$pars$SAM_P_LOGD[1,]
-  S_CURR<-mc$pars$S[1,]
-  PI_CURR<-mc$pars$PI[1,]
-  N_CURR<-mc$pars$N[1,]
-  Z_CURR<-mc$pars$Z[1,]
+  XI.curr	<- mc$pars$XI[1,]
+  XI_LP.curr<- mc$pars$XI_LP[1,]
+  S.curr	<- mc$pars$S[1,]
+  S_LP.curr	<- mc$pars$S_LP[1,]
+  PI.curr	<- mc$pars$PI[1,]
+  N.curr	<- mc$pars$N[1,]
+  Z.curr	<- mc$pars$Z[1,]
 
   # run mcmc
-  options(warn=0)
-  mc$sweep<-ncol(s.dtl.prior$SAM_P) + 1L
-  for(i in 1L:(mc$n-1L)){
+  options(warn=0)  
+  for(i in 1L:mc$n){
     mc$curr.it		<- i
     # determine source-recipient combination that will be updated in this iteration
     update.count	<- (i-1L) %% mc$sweep + 1L
-    update.round <- (i-1L) %/% mc$sweep + 1L
-    # update S, Z, N for the source-recipient combination 'update.count'
+    update.round 	<- (i-1L) %/% mc$sweep + 1L
+	# update in one go S, Z, N for the ith XI
     if(update.count<mc$sweep)
     {
-      update.dim<-update.dim.list[[update.count]]
-      # update S
-      SAM_P.prop<-SAM_P_CURR
-      SAM_P.prop[update.count]<-s.dtl.prior$SAM_P[update.round+1L,update.count]
-      SAM_P_LOGD.prop<-SAM_P_LOGD_CURR
-      SAM_P_LOGD.prop[update.count]<-s.dtl.prior$SAM_P_LOGD[update.round+1L,update.count]
-
-      S.prop<-S_CURR
-      S.prop[update.dim]<-SAM_P.prop[pair[update.dim,1]]*SAM_P.prop[pair[update.dim,2]]
-
-      #	calculate MH ratio
-      log.fc					<- sum(dbinom(TR_OBS[update.dim], size=Z_CURR[update.dim], prob=S_CURR[update.dim], log=TRUE))
-      log.fc.prop				<- sum(dbinom(TR_OBS[update.dim], size=Z_CURR[update.dim], prob=S.prop[update.dim], log=TRUE))
-      log.mh.ratio			<- log.fc.prop - log.fc
-
-      mh.ratio				<- min(1,exp(log.mh.ratio))
-
-      mc$xi.total.count[update.count]<-mc$xi.total.count[update.count]+1
-
-      #	update
-      if(runif(1) < mh.ratio)
-      {
-        mc$xi.acc.count[update.count]<-mc$xi.acc.count[update.count]+1
-        SAM_P_CURR<-SAM_P.prop
-        SAM_P_LOGD_CURR<-SAM_P_LOGD.prop
-        S_CURR<- S.prop
-      }
-
-
-      # update z for update.dim
-      Z.prop					<- Z_CURR
-
-      for (j in 1:length(update.dim)){
-        Z.prop[update.dim[j]]<-TR_OBS[update.dim[j]]+rnbinom(1L, TR_OBS[update.dim[j]], S_CURR[update.dim[j]])
-        N.prop<-sum(Z.prop)
-        log.prop.ratio <- sum(dnbinom(Z_CURR[update.dim[j]]-TR_OBS[update.dim[j]], size=TR_OBS[update.dim[j]], prob= S_CURR[update.dim[j]], log=TRUE)) -
-          sum(dnbinom(Z.prop[update.dim[j]]-TR_OBS[update.dim[j]], size=TR_OBS[update.dim[j]], prob=S_CURR[update.dim[j]], log=TRUE))
-        log.fc	<- sum(dbinom(TR_OBS[update.dim[j]], size=Z_CURR[update.dim[j]], prob=S_CURR[update.dim[j]], log=TRUE)) +
-          dmultinom(Z_CURR, prob=PI_CURR, log=TRUE) +
-          dpois(N_CURR, lambda=mc$pars$NU, log=TRUE)
-        log.fc.prop				<- sum(dbinom(TR_OBS[update.dim[j]], size=Z.prop[update.dim[j]], prob=S_CURR[update.dim[j]], log=TRUE)) +
-          dmultinom(Z.prop, prob=PI_CURR, log=TRUE) +
-          dpois(N.prop, lambda=mc$pars$NU, log=TRUE)
-        log.mh.ratio			<- log.fc.prop - log.fc + log.prop.ratio
-        mh.ratio				<- min(1,exp(log.mh.ratio))
-        #	update
-
-        mc$z.total.count[update.dim[j]]<-mc$z.total.count[update.dim[j]]+1
-
-        if(runif(1) < mh.ratio)
-        {
-          Z_CURR	<- Z.prop
-          N_CURR	<- N.prop
-          mc$z.acc.count[update.dim[j]]<-mc$z.acc.count[update.dim[j]]+1
-        }
-      }
+	  update.info	<- subset(mc$dl, UPDATE_ID==update.count)	
+	  # propose single XI
+	  XI.prop		<- XI.curr
+	  XI_LP.prop	<- XI_LP.curr
+	  tmp			<- subset(dprior, SAMPLING_CATEGORY==update.info$SAMPLING_CATEGORY[1] & SAMPLE==sample(mc$nprior,1))
+	  XI.prop[ update.info$UPDATE_ID[1] ]	<- tmp$P	  
+	  XI_LP.prop[ update.info$UPDATE_ID[1] ]<- tmp$LP
+	  # propose all S that involve the one XI from above 
+	  S.prop						<- S.curr
+	  S_LP.prop						<- S_LP.curr
+	  tmp							<- subset(mc$dlt, TR_UPDATE_ID==update.count | REC_UPDATE_ID==update.count)
+	  setkey(tmp,TRM_CAT_PAIR_ID)
+	  S.prop[tmp$TRM_CAT_PAIR_ID]	<- XI.prop[tmp$TR_UPDATE_ID] * XI.prop[tmp$REC_UPDATE_ID]
+	  S_LP.prop[tmp$TRM_CAT_PAIR_ID]<- XI_LP.prop[tmp$TR_UPDATE_ID] + XI_LP.prop[tmp$REC_UPDATE_ID]
+	  # propose all Z that involve a new S
+	  Z.prop						<- Z.curr
+	  trm.obs 						<- merge(tmp, dobs, by='TRM_CAT_PAIR_ID')[, TRM_OBS]	   
+	  Z.prop[tmp$TRM_CAT_PAIR_ID]	<- trm.obs + rnbinom(length(trm.obs), trm.obs, S.prop[tmp$TRM_CAT_PAIR_ID])
+	  # propose total of Z
+	  N.prop						<- sum(Z.prop)
+	  #	calculate MH ratio
+	  log.prop.ratio	<- sum(dnbinom(Z.curr[tmp$TRM_CAT_PAIR_ID]-trm.obs, size=trm.obs, prob=S.curr[tmp$TRM_CAT_PAIR_ID], log=TRUE)) - 
+						   sum(dnbinom(Z.prop[tmp$TRM_CAT_PAIR_ID]-trm.obs, size=trm.obs, prob=S.prop[tmp$TRM_CAT_PAIR_ID], log=TRUE))		
+	  log.fc			<- sum(dbinom(trm.obs, size=Z.curr[tmp$TRM_CAT_PAIR_ID], prob=S.curr[tmp$TRM_CAT_PAIR_ID], log=TRUE)) +
+						   dmultinom(Z.curr[tmp$TRM_CAT_PAIR_ID], prob=PI.curr[tmp$TRM_CAT_PAIR_ID], log=TRUE) +
+						   dpois(N.curr, lambda=mc$pars$NU, log=TRUE)
+	  log.fc.prop		<- sum(dbinom(trm.obs, size=Z.prop[tmp$TRM_CAT_PAIR_ID], prob=S.prop[tmp$TRM_CAT_PAIR_ID], log=TRUE)) +
+			  			   dmultinom(Z.prop[tmp$TRM_CAT_PAIR_ID], prob=PI.curr[tmp$TRM_CAT_PAIR_ID], log=TRUE) +
+			  			   dpois(N.prop, lambda=mc$pars$NU, log=TRUE)
+	  log.mh.ratio		<- log.fc.prop - log.fc + log.prop.ratio
+	  mh.ratio			<- min(1,exp(log.mh.ratio))	
+	  #	update
+	  mc$curr.it				<- mc$curr.it+1L
+	  set(mc$it.info, mc$curr.it, 'BLOCK', 'S-Z-N')
+	  set(mc$it.info, mc$curr.it, 'PAR_ID', update.count)
+	  set(mc$it.info, mc$curr.it, 'MHRATIO', mh.ratio)
+	  set(mc$it.info, mc$curr.it, 'ACCEPT', as.integer(runif(1) < mh.ratio))
+	  if(control$verbose & mc$it.info[mc$curr.it, ACCEPT])
+	  {
+		  cat('\nit ',mc$curr.it,' ACCEPT S-Z-N block ',update.count)
+	  }
+	  if(mc$it.info[mc$curr.it, ACCEPT])
+	  {
+		  XI.curr	<- XI.prop
+		  XI_LP.curr<- XI_LP.prop
+		  S.curr	<- S.prop
+		  S_LP.curr	<- S_LP.prop
+		  Z.curr	<- Z.prop
+		  N.curr	<- N.prop				  				
+	  }	  
     }
     # update PI
     if(update.count==mc$sweep)
     {
       #	propose
-      PI.prop					<- rdirichlet(1L, Z_CURR + mc$pars$LAMBDA[1,])
+      PI.prop		<- rdirichlet(1L, Z.curr + mc$pars$LAMBDA[1,])
       #	this is the full conditional of PI given S, N, Z
       #	always accept
       #	update
-      PI_CURR	<- PI.prop
+	  mc$curr.it	<- mc$curr.it+1L
+	  set(mc$it.info, mc$curr.it, 'BLOCK', 'PI')
+	  set(mc$it.info, mc$curr.it, 'PAR_ID', NA_integer_)
+	  set(mc$it.info, mc$curr.it, 'MHRATIO', 1L)
+	  set(mc$it.info, mc$curr.it, 'ACCEPT', 1L)		
+      PI.curr		<- PI.prop
 
-      # store values
-      mc$pars$SAM_P[update.round+1L,]<-SAM_P_CURR
-      mc$pars$SAM_P_LOGD[update.round+1L,]<-SAM_P_LOGD_CURR
-      mc$pars$Z[update.round+1L,]<-Z_CURR
-      mc$pars$S[update.round+1L,]<-S_CURR
-      mc$pars$N[update.round+1L,]<-N_CURR
-      mc$pars$PI[update.round+1L,]<-PI_CURR
-
-      tmp	<- sum(dbinom(TR_OBS, size=Z_CURR, prob=S_CURR, log=TRUE) ) +
-        dmultinom(Z_CURR, size=N_CURR, prob=PI_CURR, log=TRUE)
-      set(mc$it.info, update.round+1L, 'LOG_LKL', tmp)
-      # 	store log prior
-      tmp	<- dpois(N_CURR, lambda=mc$pars$NU, log=TRUE) +
-        lddirichlet_vector(PI_CURR, nu=mc$pars$LAMBDA[1,]) +
-        sum(SAM_P_LOGD_CURR)
-      set(mc$it.info, update.round+1L, 'LOG_PRIOR', tmp)
+	  # at the end of sweep, record current parameters
+      mc$pars$XI[update.round+1L,]		<- XI.curr
+	  mc$pars$XI_LP[update.round+1L,]	<- XI_LP.curr
+      mc$pars$S[update.round+1L,]		<- S.curr
+	  mc$pars$S_LP[update.round+1L,]	<- S_LP.curr
+      mc$pars$Z[update.round+1L,]		<- Z.curr      
+      mc$pars$N[update.round+1L,]		<- N.curr
+      mc$pars$PI[update.round+1L,]		<- PI.curr
     }
+	# 	record log likelihood
+	tmp	<- sum(dbinom(dobs$TRM_OBS, size=Z.curr, prob=S.curr, log=TRUE) ) +
+			dmultinom(Z.curr, size=N.curr, prob=PI.curr, log=TRUE)
+	set(mc$it.info, mc$curr.it, 'LOG_LKL', tmp)
+	# 	record log prior
+	tmp	<- dpois(N.curr, lambda=mc$pars$NU, log=TRUE) +
+			lddirichlet_vector(PI.curr, nu=mc$pars$LAMBDA[1,]) +
+			sum(S_LP.curr)
+	set(mc$it.info, mc$curr.it, 'LOG_PRIOR', tmp)
+	#
+	if(update.count==mc$sweep & update.round %% 100 == 0)
+		cat('\nSweeps done:\t',update.round)	
   }
-  mc$method<-s.dtl.prior$method
-  time<-Sys.time()-ptm
-  save(time,mc,file=paste0('core_inference_SNPIZ_mcmcEachCount_',mc$method,'.rda'))
+  
+  mc$time	<- Sys.time()-ptm
+  save(mc,	file=control$outfile)
+  NULL
 }
 
-mcmc.core.inference.diagnostics<-function(mc,burnin){
+source.attribution.mcmc.diagnostics	<- function(mcmc.file, control=list(burnin.p=0.2, regex_pars='*', pdf.height.per.par=1.2, outfile.base='SAMCMCv190327')){
   library(coda)
   library(data.table)
+  library(bayesplot)
   diagnostic<-list()
 
-  # take indexes
-  it<-1:nrow(mc$pars$S)
-  it.rm.burnin<-it[it>burnin]
+  
+  mcmc.file	<- "~/Dropbox (SPH Imperial College)/Rakai Fish Analysis/full_run/190327_SAMCMCv190327_mcmc.rda"
+  control=list(burnin.p=0.2, regex_pars='PI', pdf.height.per.par=1.2, outfile.base=gsub('\\.rda','',mcmc.file))
+  
+  load(mcmc.file)
+  burnin.n	<- floor(control$burnin.p*nrow(mc$pars$S))
+  pars		<- matrix(NA,nrow=nrow(mc$pars$S),ncol=0)	
+  if(grepl(regex_pars,'S'))
+  {
+	  tmp	<- mc$pars$S
+	  colnames(tmp)	<- paste0('S-',1:ncol(tmp))	   
+	  pars	<- cbind(pars, tmp)  
+  }	
+  if(grepl(regex_pars,'Z'))
+  {
+	  tmp	<- mc$pars$Z
+	  colnames(tmp)	<- paste0('Z-',1:ncol(tmp))	   
+	  pars	<- cbind(pars, tmp)  
+  }
+  if(grepl(regex_pars,'N'))
+  {
+	  tmp	<- mc$pars$N
+	  colnames(tmp)	<- paste0('N-',1:ncol(tmp))	   
+	  pars	<- cbind(pars, tmp)  
+  }
+ if(grepl(regex_pars,'PI'))
+ {
+	 tmp	<- mc$pars$PI
+	 colnames(tmp)	<- paste0('PI-',1:ncol(tmp))	   
+	 pars	<- cbind(pars, tmp)  
+ }
 
-  S<-mc$pars$S[it.rm.burnin,]
-  Z<-mc$pars$Z[it.rm.burnin,]
-  N<-mc$pars$N[it.rm.burnin,]
-  PI<-mc$pars$PI[it.rm.burnin,]
+  #	traces for parameters
+  p		<- mcmc_trace(pars, pars=colnames(pars), facet_args = list(ncol = 1), n_warmup=burnin.n)
+  pdf(file=paste0(control$outfile.base,'_marginaltraces.pdf'), w=7, h=control$pdf.height.per.par*ncol(pars))
+  p
+  dev.off()
+  
+  
+  #	acceptance rate per MCMC update ID
+  da	<- subset(mc$it.info, !is.na(PAR_ID) & PAR_ID>0)[, list(ACC_RATE=mean(ACCEPT)), by='PAR_ID']
+  setnames(da, 'PAR_ID', 'UPDATE_ID')
+  tmp	<- mc$dl[, list(N_TRM_CAT_PAIRS=length(TRM_CAT_PAIR_ID)), by='UPDATE_ID']
+  da	<- merge(da, tmp, by='UPDATE_ID')
+  ggplot(da, aes(x=N_TRM_CAT_PAIRS, y=ACC_RATE)) + 
+		  geom_point() +
+		  theme_bw() +
+		  scale_y_continuous(label=scales:::percent) +
+		  labs(	x='\nNumber of transmission pair categories updated per sampling category',
+				y='Acceptance rate\n')
+  cat('\nAverage acceptance rate= ',subset(mc$it.info, !is.na(PAR_ID) & PAR_ID>0)[, round(mean(ACCEPT), d=3)])
+  cat('\nUpdate IDs with lowest acceptance rates')
+  print( da[order(ACC_RATE)[1:10],] )
+  
+  # remove burn-in
+  cat('\nRemoving burnin in set to ', 100*control$burnin.p,'% of chain, total iterations=',burnin.n)
+  it.rm.burnin	<- seq.int(burnin.n,nrow(mc$pars$S))
+  pars	<- pars[it.rm.burnin,,drop=FALSE]
+  
+  
+  # effective sampling sizes 
+  tmp	<- mcmc(pars)
+  ans	<- data.table(VAR= colnames(pars), NEFF=as.numeric(effectiveSize(tmp)))
+  ggplot(ans, aes(x=NEFF, y=VAR)) + 
+		  geom_point() + 	
+		  theme_bw() +
 
-  diagnostic$xi.acc.rate<-mc$xi.acc.count/mc$xi.total.count
-  diagnostic$xi.acc.rate.sorted<-sort(diagnostic$xi.acc.rate,index.return=TRUE)
-  diagnostic$z.acc.rate<-mc$z.acc.count/mc$z.total.count
-  diagnostic$z.acc.rate.sorted<-sort(diagnostic$z.acc.rate,index.return=TRUE)
-
-
-  # effetive sampling size for PI
   eff.size.PI<-matrix(NA_real_,nrow=1,ncol=ncol(mc$pars$Z))
   for(i in 1:ncol(mc$pars$Z)){
     eff.size.PI[i]<-effectiveSize(PI[,i])

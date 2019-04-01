@@ -7,8 +7,8 @@
 #       seed: random seeds
 samples.from.GLM.prior<-function(df.sampling,dc,iteration,sample.method,glm.model,seed=NULL){
   library(data.table)
-  library(rstan)
-  library(fitdistrplus)
+  #library(rstan)
+  #library(fitdistrplus)
   set.seed(seed)
 
   # take unique subpopulation that appears in transmitters and recipients in dc
