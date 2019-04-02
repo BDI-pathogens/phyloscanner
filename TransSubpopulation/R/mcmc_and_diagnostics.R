@@ -249,9 +249,94 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
   NULL
 }
 
+#' @title Aggregate MCMC output to target parameters  
+#' @export
+#' @import data.table 
+#' @param mcmc.file Full file name to MCMC output from function \code{source.attribution.mcmc}
+#' @param daggregateTo Data.table that maps the categories of transmission pairs used in the MCMC to lower-dimensional categories that are of primary interest. 
+#' @param control List of input arguments that control the behaviour of the source attribution algorithm:
+#' \itemize{
+#'  \item{"burnin.p"}{Proportion of MCMC iterations that are removed as burn-in period.}
+#'  \item{"thin"}{Thin MCMC output to every nth MCMC iteration.}
+#'  \item{"regex_pars"}{Regular expression to select the parameters that are to be aggregated.}
+#'  \item{"outfile"}{Full file name of the output csv file.}
+#' }
+#' @return NULL. Monte Carlo samples are written to a csv file.
+source.attribution.mcmc.aggregateToTarget	<- function(mcmc.file, daggregateTo, control=list(burnin.p=NA_real_, thin=NA_integer_, regex_pars='*', outfile=gsub('\\.rda','_aggregated.csv',mcmc.file))){
+	#	basic checks
+	if(!'data.table'%in%class(daggregateTo))
+		stop('daggregateTo is not a data.table')	
+	if(!all(c('TRM_CAT_PAIR_ID','TR_TARGETCAT','REC_TARGETCAT')%in%colnames(daggregateTo)))
+		stop('daggregateTo does not contain one of the required columns TRM_CAT_PAIR_ID, TR_TARGETCAT, REC_TARGETCAT')
+	
+	#	load MCMC output
+	cat('\nLoading MCMC output...')
+	load(mcmc.file)
+	
+	#	define internal control variables
+	burnin.p	<- control$burnin.p
+	if(is.na(burnin.p))
+		burnin.p<- 0
+	burnin.n	<- floor(burnin.p*nrow(mc$pars$S))
+	thin		<- control$thin
+	if(is.na(thin))
+		thin	<- 1
+	
+	#	collect parameters
+	cat('\nCollecting parameters...')
+	pars		<- matrix(NA,nrow=nrow(mc$pars$S),ncol=0)		
+	if(grepl(control$regex_pars,'Z'))
+	{
+		tmp	<- mc$pars$Z
+		colnames(tmp)	<- paste0('Z-',1:ncol(tmp))	   
+		pars	<- cbind(pars, tmp)  
+	}	
+	if(grepl(control$regex_pars,'PI'))
+	{
+		tmp	<- mc$pars$PI
+		colnames(tmp)	<- paste0('PI-',1:ncol(tmp))	   
+		pars	<- cbind(pars, tmp)  
+	}
+	
+	# remove burn-in
+	if(burnin.n>0)
+	{
+		cat('\nRemoving burnin in set to ', 100*burnin.p,'% of chain, total iterations=',burnin.n)
+		tmp		<- seq.int(burnin.n,nrow(mc$pars$S))
+		pars	<- pars[tmp,,drop=FALSE]		
+	}
+	
+	# thin
+	if(thin>1)
+	{
+		cat('\nThinning to every', thin,'th iteration')
+		tmp		<- seq.int(1,nrow(pars),thin)
+		pars	<- pars[tmp,,drop=FALSE]
+	}
+	
+	cat('\nMaking aggregated MCMC output...')
+	# make data.table in long format
+	pars	<- as.data.table(pars)
+	pars[, SAMPLE:= seq_len(nrow(pars))]
+	pars	<- melt(pars, id.vars='SAMPLE')
+	pars[, VARIABLE:= pars[, gsub('([A-Z]+)-([0-9]+)','\\1',variable)]]
+	pars[, TRM_CAT_PAIR_ID:= pars[, as.integer(gsub('([A-Z]+)-([0-9]+)','\\2',variable))]]
+	
+	# aggregate MCMC samples
+	if(!all(sort(unique(pars$TRM_CAT_PAIR_ID))==sort(unique(daggregateTo$TRM_CAT_PAIR_ID))))
+		stop('The transmission count categories in the MCMC output do not match the transmission count categories in the aggregateTo data table.')
+	pars	<- merge(pars, daggregateTo, by='TRM_CAT_PAIR_ID')
+	pars	<- pars[, list(VALUE=sum(value)), by=c('VARIABLE','TR_TARGETCAT','REC_TARGETCAT','SAMPLE')]
+	
+	# save
+	cat('\nWriting csv file to',control$outfile)
+	write.csv(pars, row.names=FALSE, file=control$outfile)
+}
+
 #' @title MCMC diagnostics for the source attribution algorithm  
 #' @export
 #' @import data.table 
+#' @import ggplot2 
 #' @importFrom bayesplot mcmc_trace mcmc_acf_bar mcmc_hist
 #' @importFrom coda mcmc effectiveSize
 #' @author Xiaoyue Xi, Oliver Ratmann
@@ -262,35 +347,40 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
 #'  \item{"regex_pars"}{Regular expression to select the parameter names for which diagnostics are computed. The default is all parameters, which is '*'.}
 #'  \item{"credibility.interval"}{Width of the marginal posterior credibility intervals.}
 #'  \item{"pdf.plot.n.worst.case.parameters"}{Integer which specifies the number of parameters with smallest effective sample size that are inspected in detail. If set to 0, worst case analyses are not performed.}
+#'  \item{"pdf.plot.all.parameters"}{Flag which specifies if traces shall be plotted for all parameters. If set to TRUE, very large pdfs may be created.}
 #'  \item{"pdf.height.per.par"}{Most plots show diagnostics with parameters listed on the y-axis. This value controls the plot height in inches for each free parameter.}
 #'  \item{"outfile.base"}{Start of the full file name for all output files.}
 #' }
 #' @return NULL. Diagnostic plots and csv files are written to file.
-source.attribution.mcmc.diagnostics	<- function(mcmc.file, control=list(burnin.p=0.2, regex_pars='*', credibility.interval=0.95, pdf.plot.n.worst.case.parameters=10, pdf.height.per.par=1.2, outfile.base=gsub('\\.rda','',mcmc.file))){
+source.attribution.mcmc.diagnostics	<- function(mcmc.file, control=list(burnin.p=0.2, regex_pars='*', credibility.interval=0.95, pdf.plot.n.worst.case.parameters=10, pdf.plot.all.parameters=FALSE, pdf.height.per.par=1.2, outfile.base=gsub('\\.rda','',mcmc.file))){
   #library(coda); library(data.table); library(bayesplot)
   
+  cat('\nLoading MCMC output...')
   load(mcmc.file)
+  
   burnin.n	<- floor(control$burnin.p*nrow(mc$pars$S))
+  
+  cat('\nCollecting parameters...')
   pars		<- matrix(NA,nrow=nrow(mc$pars$S),ncol=0)	
-  if(grepl(regex_pars,'S'))
+  if(grepl(control$regex_pars,'S'))
   {
 	  tmp	<- mc$pars$S
 	  colnames(tmp)	<- paste0('S-',1:ncol(tmp))	   
 	  pars	<- cbind(pars, tmp)  
   }	
-  if(grepl(regex_pars,'Z'))
+  if(grepl(control$regex_pars,'Z'))
   {
 	  tmp	<- mc$pars$Z
 	  colnames(tmp)	<- paste0('Z-',1:ncol(tmp))	   
 	  pars	<- cbind(pars, tmp)  
   }
-  if(grepl(regex_pars,'N'))
+  if(grepl(control$regex_pars,'N'))
   {
 	  tmp	<- mc$pars$N
 	  colnames(tmp)	<- paste0('N-',1:ncol(tmp))	   
 	  pars	<- cbind(pars, tmp)  
   }
- if(grepl(regex_pars,'PI'))
+ if(grepl(control$regex_pars,'PI'))
  {
 	 tmp	<- mc$pars$PI
 	 colnames(tmp)	<- paste0('PI-',1:ncol(tmp))	   
@@ -298,13 +388,17 @@ source.attribution.mcmc.diagnostics	<- function(mcmc.file, control=list(burnin.p
  }
 
   #	traces for parameters
-  p		<- mcmc_trace(pars, pars=colnames(pars), facet_args = list(ncol = 1), n_warmup=burnin.n)
-  pdf(file=paste0(control$outfile.base,'_marginaltraces.pdf'), w=7, h=control$pdf.height.per.par*ncol(pars), limitsize=FALSE)
-  p
-  dev.off()
-  
+  if(control$pdf.plot.all.parameters)
+  {
+	  cat('\nPlotting traces for all parameters...')
+	  p		<- mcmc_trace(pars, pars=colnames(pars), facet_args = list(ncol = 1), n_warmup=burnin.n)
+	  pdf(file=paste0(control$outfile.base,'_marginaltraces.pdf'), w=7, h=control$pdf.height.per.par*ncol(pars))
+	  p
+	  dev.off()	  
+  }
   
   #	acceptance rate per MCMC update ID
+	cat('\nPlotting acceptance rates...')
   da	<- subset(mc$it.info, !is.na(PAR_ID) & PAR_ID>0)[, list(ACC_RATE=mean(ACCEPT)), by='PAR_ID']
   setnames(da, 'PAR_ID', 'UPDATE_ID')
   tmp	<- mc$dl[, list(N_TRM_CAT_PAIRS=length(TRM_CAT_PAIR_ID)), by='UPDATE_ID']
@@ -326,16 +420,21 @@ source.attribution.mcmc.diagnostics	<- function(mcmc.file, control=list(burnin.p
   pars	<- pars[it.rm.burnin,,drop=FALSE]
     
   # effective sampling sizes 
+  cat('\nCalculating effective sample size for all parameters...')
   tmp	<- mcmc(pars)
   ans	<- data.table(ID= seq_len(ncol(pars)), VAR= colnames(pars), NEFF=as.numeric(effectiveSize(tmp)))
   set(ans, NULL, 'ID', ans[, factor(ID, labels=VAR)])
-  ggplot(ans, aes(x=NEFF, y=ID)) + 
-		  geom_point() + 	
-		  theme_bw() +
-		  labs(x='\neffective sample size', y='')
-  ggsave(file=paste0(control$outfile.base,'_neff.pdf'), w=6, h=control$pdf.height.per.par*ncol(pars)*0.15, limitsize=FALSE)
+  if(control$pdf.plot.all.parameters)
+  {
+	  ggplot(ans, aes(x=NEFF, y=ID)) + 
+			  geom_point() + 	
+			  theme_bw() +
+			  labs(x='\neffective sample size', y='')
+	  ggsave(file=paste0(control$outfile.base,'_neff.pdf'), w=6, h=control$pdf.height.per.par*ncol(pars)*0.15, limitsize=FALSE)	  
+  }
   
   # summarise mean, sd, quantiles
+  cat('\nCalculating posterior summaries for all parameters...')
   tmp	<- apply(pars, 2, function(x) quantile(x, p=c((1-control$credibility.interval)/2, 0.5, control$credibility.interval+(1-control$credibility.interval)/2)))
   tmp	<- data.table(	VAR= colnames(pars),
 		  				MEAN= apply(pars, 2, mean),
@@ -348,6 +447,7 @@ source.attribution.mcmc.diagnostics	<- function(mcmc.file, control=list(burnin.p
   print( ans[order(NEFF)[1:10],] )
   
   # write to file
+  cat('\nWriting summary file to',paste0(control$outfile.base,'_summary.csv'))
   setkey(ans, ID)
   write.csv(ans, file=paste0(control$outfile.base,'_summary.csv'))
   
@@ -356,18 +456,21 @@ source.attribution.mcmc.diagnostics	<- function(mcmc.file, control=list(burnin.p
   {
 	  worst.pars	<- pars[, ans[order(NEFF)[1:10], VAR]]
 	  #	traces
+	  cat('\nPlotting traces for worst parameters...')
 	  p				<- mcmc_trace(worst.pars, pars=colnames(worst.pars), facet_args = list(ncol=1))
 	  pdf(file=paste0(control$outfile.base,'_worst_traces.pdf'), w=7, h=control$pdf.height.per.par*ncol(worst.pars))
 	  p
 	  dev.off()
 	  
 	  #	histograms
+	  cat('\nPlotting marginal posterior densities for worst parameters...')
 	  p				<- mcmc_hist(worst.pars, pars=colnames(worst.pars), facet_args = list(ncol=4))
 	  pdf(file=paste0(control$outfile.base,'_worst_marginalposteriors.pdf'), w=10, h=control$pdf.height.per.par*ncol(worst.pars)/4)
 	  p
 	  dev.off()
 	
 	  #	autocorrelations
+	  cat('\nPlotting autocorrelations for worst parameters...')
 	  p				<- mcmc_acf_bar(worst.pars, pars=colnames(worst.pars), facet_args = list(ncol = 1))
 	  pdf(file=paste0(control$outfile.base,'_worst_acf.pdf'), w=7, h=control$pdf.height.per.par*ncol(worst.pars))
 	  p
