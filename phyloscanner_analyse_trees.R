@@ -426,7 +426,7 @@ if(single.tree){
 
 hosts <- all.hosts.from.trees(phyloscanner.trees)
 
-if(length(hosts)<=1 & (do.collapsed | do.class.detail)){
+if(length(hosts) <= 1 & (do.collapsed | do.class.detail)){
   do.collapsed <- F
   do.class.detail <- F
 }
