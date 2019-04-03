@@ -37,6 +37,9 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
   # set up mcmc 
   #
   mc				<- list()
+  #	determine if the sampling probabilities are <1.  
+  # If they are NOT, Z will be the same as TRM_OBS, and the algorithm only updates PI  	
+  mc$with.sampling	<- dprior[, list(ALL_ONE=all(P==1)), by='SAMPLING_CATEGORY'][, !all(ALL_ONE)] 
   mc$time			<- NA_real_
   # construct look-up table so we know which transmission pair categories need to be updated 
   # at every MCMC iteration
@@ -153,7 +156,7 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
     update.count	<- (i-1L) %% mc$sweep + 1L
     update.round 	<- (i-1L) %/% mc$sweep + 1L
 	# update in one go S, Z, N for the ith XI
-    if(update.count<mc$sweep)
+    if(mc$with.sampling & update.count<mc$sweep)
     {
 	  update.info	<- subset(mc$dl, UPDATE_ID==update.count)	
 	  # propose single XI
@@ -207,7 +210,7 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
 	  }	  
     }
     # update PI
-    if(update.count==mc$sweep)
+    if(!mc$with.sampling | update.count==mc$sweep)
     {
       #	propose
       PI.prop		<- rdirichlet(1L, Z.curr + mc$pars$LAMBDA[1,])
