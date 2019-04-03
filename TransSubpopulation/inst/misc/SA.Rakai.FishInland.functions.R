@@ -649,7 +649,7 @@ Rakai190327.analysispipeline.age3model<- function(infile.inference=NULL, infile.
 	#	run MCMC
 	mcmc.file	<- paste0(outfile.base,"samcmc190327_nsweep1e5_opt",paste0(opt, collapse=''),".rda")
 	control		<- list(	seed=42, 
-							mcmc.n=238000*1, 
+							mcmc.n=238000*100, 
 							verbose=0, 
 							outfile=mcmc.file)
 	source.attribution.mcmc(dobs, dprior, control=control)
