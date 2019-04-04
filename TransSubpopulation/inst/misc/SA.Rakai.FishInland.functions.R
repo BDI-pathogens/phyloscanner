@@ -96,7 +96,8 @@ Rakai190327.participitation.differences.betabinomialmodel3<- function()
 					"fus:M:35+:1", "fwd:F:15-24:0", "fwd:F:15-24:1", "fwd:F:25-34:0", "fwd:F:25-34:1", "fwd:F:35+:0", "fwd:F:35+:1", "fwd:M:15-24:0", "fwd:M:15-24:1", "fwd:M:25-34:0", "fwd:M:25-34:1", 
 					"fwd:M:35+:0", "fwd:M:35+:1", "thd:F:15-24:0", "thd:F:25-34:0", "thd:F:25-34:1", "thd:F:35+:0", "thd:M:25-34:0", "thd:M:35+:0", "thd:M:35+:1", "tpq:F:15-24:1", "tpq:F:25-34:0", 
 					"tpq:M:15-24:0", "tpq:M:25-34:0", "tpq:M:25-34:1", "tpq:M:35+:0", "ttp:F:25-34:0", "ttp:F:35+:1", "ttp:M:35+:0", "twr:F:15-24:0", "twr:F:15-24:1", "twr:F:25-34:0", "twr:F:25-34:1", 
-					"twr:F:35+:0", "twr:M:15-24:1", "twr:M:25-34:0", "twr:M:25-34:1", "twr:M:35+:0"))
+					"twr:F:35+:0", "twr:M:15-24:1", "twr:M:25-34:0", "twr:M:25-34:1", "twr:M:35+:0", "ait:M:25-34:0", "akh:F:35+:0", "aur:M:25-34:0", "awr:F:25-34:0", "abm:F:35+:1", "aev:M:25-34:1", 
+					"aev:F:35+:1", "alr:F:35+:1", "aam:F:15-24:1", "agf:F:25-34:1", "awa:F:25-34:1", "akh:M:15-24:1"))
 	dps[, COMM_NUM_A:= dps[, gsub('^(.+)\\:(.)\\:(.+)\\:(.)$','\\1',CATEGORY)]]
 	dps[, SEX:= dps[,gsub('^(.+)\\:(.)\\:(.+)\\:(.)$','\\2',CATEGORY)]]
 	dps[, AGE_AT_MID_C:= dps[, gsub('^(.+)\\:(.)\\:(.+)\\:(.)$','\\3',CATEGORY)]]
@@ -348,7 +349,8 @@ Rakai190327.sequencing.differences.binomialmodel1<- function()
 					"fus:M:35+:1", "fwd:F:15-24:0", "fwd:F:15-24:1", "fwd:F:25-34:0", "fwd:F:25-34:1", "fwd:F:35+:0", "fwd:F:35+:1", "fwd:M:15-24:0", "fwd:M:15-24:1", "fwd:M:25-34:0", "fwd:M:25-34:1", 
 					"fwd:M:35+:0", "fwd:M:35+:1", "thd:F:15-24:0", "thd:F:25-34:0", "thd:F:25-34:1", "thd:F:35+:0", "thd:M:25-34:0", "thd:M:35+:0", "thd:M:35+:1", "tpq:F:15-24:1", "tpq:F:25-34:0", 
 					"tpq:M:15-24:0", "tpq:M:25-34:0", "tpq:M:25-34:1", "tpq:M:35+:0", "ttp:F:25-34:0", "ttp:F:35+:1", "ttp:M:35+:0", "twr:F:15-24:0", "twr:F:15-24:1", "twr:F:25-34:0", "twr:F:25-34:1", 
-					"twr:F:35+:0", "twr:M:15-24:1", "twr:M:25-34:0", "twr:M:25-34:1", "twr:M:35+:0"))
+					"twr:F:35+:0", "twr:M:15-24:1", "twr:M:25-34:0", "twr:M:25-34:1", "twr:M:35+:0", "ait:M:25-34:0", "akh:F:35+:0", "aur:M:25-34:0", "awr:F:25-34:0", "abm:F:35+:1", "aev:M:25-34:1", 
+					"aev:F:35+:1", "alr:F:35+:1", "aam:F:15-24:1", "agf:F:25-34:1", "awa:F:25-34:1", "akh:M:15-24:1"))	 	    
 	dss[, COMM_NUM_A:= dss[, gsub('^(.+)\\:(.)\\:(.+)\\:(.)$','\\1',CATEGORY)]]
 	dss[, SEX:= dss[,gsub('^(.+)\\:(.)\\:(.+)\\:(.)$','\\2',CATEGORY)]]
 	dss[, AGE_AT_MID_C:= dss[, gsub('^(.+)\\:(.)\\:(.+)\\:(.)$','\\3',CATEGORY)]]
@@ -506,7 +508,7 @@ Rakai190327.analysispipeline.age3model<- function(infile.inference=NULL, infile.
 		opt									<- list()
 		opt$adjust.sequencing.bias			<- 0
 		opt$adjust.participation.bias		<- 1
-		opt$migration.def.code				<- '24'
+		opt$migration.def.code				<- '36'
 		opt$set.missing.migloc.to.inland	<- 0
 		opt$set.missing.migloc.to.fishing	<- 1-opt$set.missing.migloc.to.inland		
 	}
