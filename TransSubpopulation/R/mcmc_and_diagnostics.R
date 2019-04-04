@@ -45,16 +45,32 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
   # at every MCMC iteration
   tmp				<- subset(dobs, select=c(TRM_CAT_PAIR_ID, TR_SAMPLING_CATEGORY, REC_SAMPLING_CATEGORY))
   tmp				<- melt(tmp, id.vars='TRM_CAT_PAIR_ID', value.name='SAMPLING_CATEGORY', variable.name='WHO')
-  mc$dl				<- unique(subset(tmp, select=c(WHO, SAMPLING_CATEGORY)))
-  mc$dl[, UPDATE_ID:= seq_len(nrow(mc$dl))]
-  mc$dl				<- merge(mc$dl, tmp, by=c('WHO','SAMPLING_CATEGORY'))
+  mc$dlu				<- unique(subset(tmp, select=c(WHO, SAMPLING_CATEGORY)))
+  mc$dlu[, UPDATE_ID:= seq_len(nrow(mc$dlu))]
+  mc$dl				<- merge(mc$dlu, tmp, by=c('WHO','SAMPLING_CATEGORY'))
   setkey(mc$dl, UPDATE_ID)
   mc$dlt			<- dcast.data.table(mc$dl, TRM_CAT_PAIR_ID~WHO, value.var='UPDATE_ID')
   setnames(mc$dlt, c('TR_SAMPLING_CATEGORY','REC_SAMPLING_CATEGORY'), c('TR_UPDATE_ID','REC_UPDATE_ID'))
+  
   #	every transmission category pair needs to be updated at least one as we sweep through the sampling categories
   # I don t think this is guaranteed, hence the check
   if( !all(dobs$TRM_CAT_PAIR_ID %in% sort(unique(mc$dl$TRM_CAT_PAIR_ID))) )
 	  stop('Fatal error. Contact the package maintainer with your input data.')
+  
+  mc$dlt<-merge(mc$dlt,subset(dobs,select=c('TRM_CAT_PAIR_ID','TRM_OBS')),by='TRM_CAT_PAIR_ID')
+  setkey(mc$dlt,TRM_CAT_PAIR_ID)
+  
+  cat<-mc$dlu$SAMPLING_CATEGORY
+  tr.id<-mc$dlt$TR_UPDATE_ID
+  rec.id<-mc$dlt$TR_UPDATE_ID
+  trm.obs<-mc$dlt$TRM_OBS
+  
+  update.info<-list()
+  for (i in 1:max(mc$dl[,UPDATE_ID])){
+    update.info[[i]]<-mc$dl[UPDATE_ID==i,TRM_CAT_PAIR_ID]
+  }
+  
+  
   mc$nprior			<- max(dprior$SAMPLE)
   mc$sweep			<- max(mc$dl$UPDATE_ID)+1L
   mc$nsweep			<- ceiling( control$mcmc.n/mc$sweep )  
@@ -114,12 +130,12 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
   mc$pars$XI[1, tmp$UPDATE_ID]		<- tmp$P
   mc$pars$XI_LP[1, tmp$UPDATE_ID]	<- tmp$LP
   # prior for sampling in transmission pair categories
-  tmp					<- mc$dl[,  list( 	TR_UPDATE_ID= UPDATE_ID[WHO=='TR_SAMPLING_CATEGORY'][1],
-											REC_UPDATE_ID= UPDATE_ID[WHO=='REC_SAMPLING_CATEGORY'][1]), 
-										by='TRM_CAT_PAIR_ID']
-  setkey(tmp,TRM_CAT_PAIR_ID)
-  mc$pars$S[1,]			<- mc$pars$XI[1, tmp$TR_UPDATE_ID] * mc$pars$XI[1, tmp$REC_UPDATE_ID]
-  mc$pars$S_LP[1,]		<- mc$pars$XI_LP[1, tmp$TR_UPDATE_ID] + mc$pars$XI_LP[1, tmp$REC_UPDATE_ID]
+#   tmp					<- mc$dl[,  list( 	TR_UPDATE_ID= UPDATE_ID[WHO=='TR_SAMPLING_CATEGORY'][1],
+# 											REC_UPDATE_ID= UPDATE_ID[WHO=='REC_SAMPLING_CATEGORY'][1]), 
+# 										by='TRM_CAT_PAIR_ID']
+  # setkey(tmp,TRM_CAT_PAIR_ID) ## the same as mc$dlt
+  mc$pars$S[1,]			<- mc$pars$XI[1, mc$dlt$TR_UPDATE_ID] * mc$pars$XI[1, mc$dlt$REC_UPDATE_ID]
+  mc$pars$S_LP[1,]		<- mc$pars$XI_LP[1, mc$dlt$TR_UPDATE_ID] + mc$pars$XI_LP[1, mc$dlt$REC_UPDATE_ID]
   #	augmented data: proposal draw under sampling probability
   mc$pars$Z[1,]			<- dobs$TRM_OBS + rnbinom(nrow(dobs),dobs$TRM_OBS,mc$pars$S[1,])
   #	prior nu: set Poisson rate to the expected augmented counts, under average sampling probability
@@ -158,34 +174,38 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
 	# update in one go S, Z, N for the ith XI
     if(mc$with.sampling & update.count<mc$sweep)
     {
-	  update.info	<- subset(mc$dl, UPDATE_ID==update.count)	
-	  # propose single XI
+	  # update.info	<- subset(mc$dl, UPDATE_ID==update.count)	# recompute for each sweep + the category and the pair id
+	  
+    update.cat<-cat[update.count]  
+    update.pair<-update.info[[update.count]]
+    
+    # propose single XI
 	  XI.prop		<- XI.curr
 	  XI_LP.prop	<- XI_LP.curr
-	  tmp			<- subset(dprior, SAMPLING_CATEGORY==update.info$SAMPLING_CATEGORY[1] & SAMPLE==sample(mc$nprior,1))
-	  XI.prop[ update.info$UPDATE_ID[1] ]	<- tmp$P	  
-	  XI_LP.prop[ update.info$UPDATE_ID[1] ]<- tmp$LP
+	  tmp			<- subset(dprior, SAMPLING_CATEGORY==update.cat & SAMPLE==sample(mc$nprior,1))
+	  XI.prop[ update.count ]	<- tmp$P	  
+	  XI_LP.prop[ update.count ]<- tmp$LP
 	  # propose all S that involve the one XI from above 
 	  S.prop						<- S.curr
 	  S_LP.prop						<- S_LP.curr
-	  tmp							<- subset(mc$dlt, TR_UPDATE_ID==update.count | REC_UPDATE_ID==update.count)
-	  setkey(tmp,TRM_CAT_PAIR_ID)
-	  S.prop[tmp$TRM_CAT_PAIR_ID]	<- XI.prop[tmp$TR_UPDATE_ID] * XI.prop[tmp$REC_UPDATE_ID]
-	  S_LP.prop[tmp$TRM_CAT_PAIR_ID]<- XI_LP.prop[tmp$TR_UPDATE_ID] + XI_LP.prop[tmp$REC_UPDATE_ID]
+	  # tmp							<- subset(mc$dlt, TR_UPDATE_ID==update.count | REC_UPDATE_ID==update.count) # recompute for each sweep + decomposition of the pairs
+	  # setkey(tmp,TRM_CAT_PAIR_ID)
+	  S.prop[update.pair]	<- XI.prop[tr.id[update.pair]] * XI.prop[rec.id[update.pair]]
+	  S_LP.prop[tmp$TRM_CAT_PAIR_ID]<- XI_LP.prop[tr.id[update.pair]] + XI_LP.prop[rec.id[update.pair]]
 	  # propose all Z that involve a new S
 	  Z.prop						<- Z.curr
-	  trm.obs 						<- merge(tmp, dobs, by='TRM_CAT_PAIR_ID')[, TRM_OBS]	   
-	  Z.prop[tmp$TRM_CAT_PAIR_ID]	<- trm.obs + rnbinom(length(trm.obs), trm.obs, S.prop[tmp$TRM_CAT_PAIR_ID])
+#	  trm.obs 						<- merge(tmp, dobs, by='TRM_CAT_PAIR_ID')[, TRM_OBS]	 # do it before the loop
+	  Z.prop[update.pair]	<- trm.obs[update.pair] + rnbinom(length(update.pair), trm.obs[update.pair], S.prop[update.pair])
 	  # propose total of Z
 	  N.prop						<- sum(Z.prop)
 	  #	calculate MH ratio
-	  log.prop.ratio	<- sum(dnbinom(Z.curr[tmp$TRM_CAT_PAIR_ID]-trm.obs, size=trm.obs, prob=S.curr[tmp$TRM_CAT_PAIR_ID], log=TRUE)) - 
-						   sum(dnbinom(Z.prop[tmp$TRM_CAT_PAIR_ID]-trm.obs, size=trm.obs, prob=S.prop[tmp$TRM_CAT_PAIR_ID], log=TRUE))		
-	  log.fc			<- sum(dbinom(trm.obs, size=Z.curr[tmp$TRM_CAT_PAIR_ID], prob=S.curr[tmp$TRM_CAT_PAIR_ID], log=TRUE)) +
-						   dmultinom(Z.curr[tmp$TRM_CAT_PAIR_ID], prob=PI.curr[tmp$TRM_CAT_PAIR_ID], log=TRUE) +
+	  log.prop.ratio	<- sum(dnbinom(Z.curr[update.pair]-trm.obs[update.pair], size=trm.obs[update.pair], prob=S.curr[update.pair], log=TRUE)) - 
+						   sum(dnbinom(Z.prop[update.pair]-trm.obs[update.pair], size=trm.obs[update.pair], prob=S.prop[update.pair], log=TRUE))		
+	  log.fc			<- sum(dbinom(trm.obs[update.pair], size=Z.curr[update.pair], prob=S.curr[update.pair], log=TRUE)) +
+						   dmultinom(Z.curr, prob=PI.curr, log=TRUE) +
 						   dpois(N.curr, lambda=mc$pars$NU, log=TRUE)
-	  log.fc.prop		<- sum(dbinom(trm.obs, size=Z.prop[tmp$TRM_CAT_PAIR_ID], prob=S.prop[tmp$TRM_CAT_PAIR_ID], log=TRUE)) +
-			  			   dmultinom(Z.prop[tmp$TRM_CAT_PAIR_ID], prob=PI.curr[tmp$TRM_CAT_PAIR_ID], log=TRUE) +
+	  log.fc.prop		<- sum(dbinom(trm.obs[update.pair], size=Z.prop[update.pair], prob=S.prop[update.pair], log=TRUE)) +
+			  			   dmultinom(Z.prop, prob=PI.curr, log=TRUE) +
 			  			   dpois(N.prop, lambda=mc$pars$NU, log=TRUE)
 	  log.mh.ratio		<- log.fc.prop - log.fc + log.prop.ratio
 	  mh.ratio			<- min(1,exp(log.mh.ratio))	
@@ -194,12 +214,14 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
 	  set(mc$it.info, mc$curr.it, 'BLOCK', 'S-Z-N')
 	  set(mc$it.info, mc$curr.it, 'PAR_ID', update.count)
 	  set(mc$it.info, mc$curr.it, 'MHRATIO', mh.ratio)
-	  set(mc$it.info, mc$curr.it, 'ACCEPT', as.integer(runif(1) < mh.ratio))
-	  if(control$verbose & mc$it.info[mc$curr.it, ACCEPT])
+	  accept <-as.integer(runif(1) < mh.ratio)
+	  set(mc$it.info, mc$curr.it, 'ACCEPT', accept)
+
+	  if(control$verbose & accept)
 	  {
 		  cat('\nit ',mc$curr.it,' ACCEPT S-Z-N block ',update.count)
 	  }
-	  if(mc$it.info[mc$curr.it, ACCEPT])
+	  if(accept)
 	  {
 		  XI.curr	<- XI.prop
 		  XI_LP.curr<- XI_LP.prop
@@ -209,6 +231,7 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
 		  N.curr	<- N.prop				  				
 	  }	  
     }
+
     # update PI
     if(!mc$with.sampling | update.count==mc$sweep)
     {
@@ -217,34 +240,35 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
       #	this is the full conditional of PI given S, N, Z
       #	always accept
       #	update
-	  mc$curr.it	<- mc$curr.it+1L
-	  set(mc$it.info, mc$curr.it, 'BLOCK', 'PI')
-	  set(mc$it.info, mc$curr.it, 'PAR_ID', NA_integer_)
-	  set(mc$it.info, mc$curr.it, 'MHRATIO', 1L)
-	  set(mc$it.info, mc$curr.it, 'ACCEPT', 1L)		
+	    mc$curr.it	<- mc$curr.it+1L
+	    set(mc$it.info, mc$curr.it, 'BLOCK', 'PI')
+	    set(mc$it.info, mc$curr.it, 'PAR_ID', NA_integer_)
+	    set(mc$it.info, mc$curr.it, 'MHRATIO', 1L)
+	    set(mc$it.info, mc$curr.it, 'ACCEPT', 1L)		
       PI.curr		<- PI.prop
 
 	  # at the end of sweep, record current parameters
       mc$pars$XI[update.round+1L,]		<- XI.curr
-	  mc$pars$XI_LP[update.round+1L,]	<- XI_LP.curr
+	    mc$pars$XI_LP[update.round+1L,]	<- XI_LP.curr
       mc$pars$S[update.round+1L,]		<- S.curr
-	  mc$pars$S_LP[update.round+1L,]	<- S_LP.curr
+	    mc$pars$S_LP[update.round+1L,]	<- S_LP.curr
       mc$pars$Z[update.round+1L,]		<- Z.curr      
       mc$pars$N[update.round+1L,]		<- N.curr
       mc$pars$PI[update.round+1L,]		<- PI.curr
     }
-	# 	record log likelihood
-	tmp	<- sum(dbinom(dobs$TRM_OBS, size=Z.curr, prob=S.curr, log=TRUE) ) +
-			dmultinom(Z.curr, size=N.curr, prob=PI.curr, log=TRUE)
-	set(mc$it.info, mc$curr.it, 'LOG_LKL', tmp)
-	# 	record log prior
-	tmp	<- dpois(N.curr, lambda=mc$pars$NU, log=TRUE) +
-			lddirichlet_vector(PI.curr, nu=mc$pars$LAMBDA[1,]) +
-			sum(S_LP.curr)
-	set(mc$it.info, mc$curr.it, 'LOG_PRIOR', tmp)
+	  # 	record log likelihood
+	  tmp	<- sum(dbinom(dobs$TRM_OBS, size=Z.curr, prob=S.curr, log=TRUE) ) +
+	    dmultinom(Z.curr, size=N.curr, prob=PI.curr, log=TRUE)
+	  set(mc$it.info, mc$curr.it, 'LOG_LKL', tmp)
+	  # 	record log prior
+	  tmp	<- dpois(N.curr, lambda=mc$pars$NU, log=TRUE) +
+	  		lddirichlet_vector(PI.curr, nu=mc$pars$LAMBDA[1,]) +
+			  sum(S_LP.curr)
+	  set(mc$it.info, mc$curr.it, 'LOG_PRIOR', tmp)
 	#
-	if(update.count==mc$sweep & update.round %% 100 == 0)
-		cat('\nSweeps done:\t',update.round)	
+	  if(update.count==mc$sweep & update.round %% 100 == 0){
+		  cat('\nSweeps done:\t',update.round)	
+	  }
   }
   
   mc$time	<- Sys.time()-ptm
@@ -480,3 +504,5 @@ source.attribution.mcmc.diagnostics	<- function(mcmc.file, control=list(burnin.p
 	  dev.off()
   }
 }
+
+
