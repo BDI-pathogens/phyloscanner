@@ -33,6 +33,7 @@ trying to be as concise as possible here.'''
 ################################################################################
 # The names of some files we'll create.
 FileForAlignedRefs = 'RefsAln.fasta'
+FileForCoords = "WindowCoordinateCorrespondence.csv"
 
 # Some temporary working files we'll create
 TempFileForRefs = 'temp_refs.fasta'
@@ -55,6 +56,7 @@ import glob
 import time
 import argparse
 import pysam
+import csv
 from Bio import SeqIO
 from Bio import Seq
 from Bio import AlignIO
@@ -311,6 +313,9 @@ StopEarlyArgs.add_argument('-NRN', '--no-read-names', action='store_true',
 help='''Do not record the correspondence between each unique sequence retained
 by phyloscanner, and the reads that went into this sequence (as they are named
 in the bam file), as is done by default.''')
+StopEarlyArgs.add_argument('-CCO', '--coordinate-correspondence-only',
+action='store_true', help="Stop straight away after producing " + \
+FileForCoords + ", which shows the correspondence in window coordinates.")
 
 DeprecatedArgs = parser.add_argument_group('Deprecated options, left here for'
 'backward compatability or interest.')
@@ -403,6 +408,13 @@ if not args.no_trees and glob.glob('RAxML*'):
   print('Warning: RAxML files are present in the working directory. If their',
   'names clash with those that phyloscanner will try to create, RAxML will',
   'fail to run. Continuing.', file=sys.stderr)
+
+## Quit if the FileForCoords exists already.
+#if os.path.isfile(FileForCoords):
+#  print('Error:', FileForCoords, 'exists already; quitting to prevent',
+#  'overwriting. Please move, rename or delete this file as desired.',
+#  file=sys.stderr)
+#  exit(1)
 
 TempFiles = set([])
 
@@ -1031,6 +1043,25 @@ else:
       'in the output of', TranslateCoordsCode, 'and those in',
       FileForAlignedRefs +'. Quitting.', file=sys.stderr)
       exit(1)
+
+# Output the dict of correspondence between window coordinates.
+WindowBoundaryColName = "Window boundary (position in "
+if PairwiseAlign:
+  WindowBoundaryColName += args.pairwise_align_to + ")"
+elif args.ref_for_coords != None:
+  WindowBoundaryColName += args.ref_for_coords + ")"
+else:
+  WindowBoundaryColName += FileForAlignedRefs + ")" 
+CoordsInRefsForFile = collections.OrderedDict({WindowBoundaryColName : \
+UserCoords})
+for alias in BamAliases:
+  CoordsInRefsForFile["Position in " + alias +" ref"] = CoordsInRefs[alias]
+with open(FileForCoords, "w") as f:
+  writer = csv.writer(f)
+  writer.writerow(CoordsInRefsForFile.keys())
+  writer.writerows(zip(*CoordsInRefsForFile.values()))
+if args.coordinate_correspondence_only:
+  exit(0)
 
 # Make index files for the bam files if needed.
 pf.MakeBamIndices(BamFiles, args.x_samtools)
