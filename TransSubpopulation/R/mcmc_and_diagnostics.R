@@ -167,7 +167,8 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
 
   # run mcmc
   options(warn=0)  
-  for(i in 1L:mc$n){
+  for(i in 1L:mc$n)
+  {
     mc$curr.it		<- i
     # determine source-recipient combination that will be updated in this iteration
     update.count	<- (i-1L) %% mc$sweep + 1L
@@ -255,19 +256,20 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
       mc$pars$N[update.round+1L,]		<- N.curr
       mc$pars$PI[update.round+1L,]		<- PI.curr
     }
-	  # 	record log likelihood
-	  tmp	<- sum(dbinom(dobs$TRM_OBS, size=Z.curr, prob=S.curr, log=TRUE) ) +
+	
+	# 	record log likelihood
+	tmp	<- sum(dbinom(dobs$TRM_OBS, size=Z.curr, prob=S.curr, log=TRUE) ) +
 	    		dmultinom(Z.curr, size=N.curr, prob=PI.curr, log=TRUE)
-	  set(mc$it.info, mc$curr.it, 'LOG_LKL', tmp)
-	  # 	record log prior
-	  tmp	<- dpois(N.curr, lambda=mc$pars$NU, log=TRUE) +
+	set(mc$it.info, mc$curr.it, 'LOG_LKL', tmp)
+	# 	record log prior
+	tmp	<- dpois(N.curr, lambda=mc$pars$NU, log=TRUE) +
 	  			lddirichlet_vector(PI.curr, nu=mc$pars$LAMBDA[1,]) +
 			  	sum(S_LP.curr)
-	  set(mc$it.info, mc$curr.it, 'LOG_PRIOR', tmp)
-	  #
-	  if(update.count==mc$sweep & update.round %% 100 == 0){
-		  cat('\nSweeps done:\t',update.round)	
-	  }
+	set(mc$it.info, mc$curr.it, 'LOG_PRIOR', tmp)
+	#
+	if(update.count==mc$sweep & update.round %% 100 == 0){
+		cat('\nSweeps done:\t',update.round)	
+	}
   }
   
   mc$time	<- Sys.time()-ptm
