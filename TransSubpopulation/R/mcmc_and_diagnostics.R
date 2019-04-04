@@ -72,8 +72,8 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
   dprior2		<- vector('list', nrow(mc$dlu))
   for (i in 1:nrow(mc$dlu))
   {
-	  tmp				<- mc$dlu[UPDATE_ID==i,SAMPLING_CATEGORY]
-	  dprior2[[i]]		<- subset(dprior, SAMPLING_CATEGORY==tmp)			  
+    tmp				<- mc$dlu[UPDATE_ID==i,SAMPLING_CATEGORY]
+    dprior2[[i]]<-dprior[J(tmp),nomatch=0L]
   }
   
   mc$nprior			<- max(dprior$SAMPLE)
