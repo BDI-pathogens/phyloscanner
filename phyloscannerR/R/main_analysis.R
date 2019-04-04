@@ -222,6 +222,23 @@ initialise.phyloscanner <- function(
       }
     }
     
+    # this step won't do anything if input is anything other than phyloscanner standard, and should be safe
+    
+    if(match.mode != "coords"){
+      full.alignment.file.names <- map_chr(1:length(full.alignment.file.names), function(x){
+        
+        unexcised.file.name <- full.alignment.file.names[x]
+        window.coords.string <- alignment.identifiers[x]
+        excised.fn <- paste0(unlist(strsplit(unexcised.file.name, window.coords.string))[1], "PositionsExcised_", window.coords.string, ".fasta")
+        print(excised.fn)
+        if(file.exists(excised.fn)){
+          excised.fn
+        } else {
+          unexcised.file.name
+        }
+      })
+    }
+    
     ptrees <- sapply(ptrees, function(ptree) attach.file.names(ptree, full.alignment.file.names, alignment.identifiers, "alignment.file.name"), simplify = F, USE.NAMES = T)
   }
   
@@ -330,7 +347,7 @@ initialise.phyloscanner <- function(
         
         if(ncol(norm.table)!=2){
           stop(paste0(norm.ref.file.name," is not formatted as expected for a normalisation lookup file; expecting two columns.\n"))
-        } else if(!is.numeric(norm.table[,1] | !is.numeric(norm.table[,2])){
+        } else if(!is.numeric(norm.table[,1] | !is.numeric(norm.table[,2]))){
           stop(paste0(norm.ref.file.name," is not formatted as expected for a normalisation lookup file; expecting numerical columns.\n"))
         } else {
           names(norm.table) <- c('POSITION', 'NORM_CONST')

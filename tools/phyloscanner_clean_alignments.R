@@ -81,7 +81,7 @@ tree.file.regex               <- paste0("^", basename(tree.input), "(.*)\\.",tre
 alignment.input               <- args$alignment
 
 alignment.directory           <- dirname(alignment.input)
-alignment.file.regex          <- paste0("^", basename(alignment.input), "(.*)\\.[A-Za-z]+$")
+alignment.file.regex          <- paste0("^", basename(alignment.input), "([0-9].*)\\.[A-Za-z]+$")
 
 blacklist.input               <- args$blacklist
 
