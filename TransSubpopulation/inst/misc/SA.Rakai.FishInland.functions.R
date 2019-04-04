@@ -508,7 +508,7 @@ Rakai190327.analysispipeline.age3model<- function(infile.inference=NULL, infile.
 		opt									<- list()
 		opt$adjust.sequencing.bias			<- 0
 		opt$adjust.participation.bias		<- 1
-		opt$migration.def.code				<- '36'
+		opt$migration.def.code				<- '24'
 		opt$set.missing.migloc.to.inland	<- 0
 		opt$set.missing.migloc.to.fishing	<- 1-opt$set.missing.migloc.to.inland		
 	}
