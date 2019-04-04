@@ -69,6 +69,7 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
 	  update.info[[i]]	<- mc$dl[UPDATE_ID==i,TRM_CAT_PAIR_ID]
   }
   # make indexed prior samples for speed
+  setkey(dprior,SAMPLING_CATEGORY)
   dprior2		<- vector('list', nrow(mc$dlu))
   for (i in 1:nrow(mc$dlu))
   {
