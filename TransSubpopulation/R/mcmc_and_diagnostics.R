@@ -438,7 +438,7 @@ source.attribution.mcmc.diagnostics	<- function(mcmc.file, control=list(burnin.p
 	  cat('\nPlotting traces for all parameters...')
 	  p		<- mcmc_trace(pars, pars=colnames(pars), facet_args = list(ncol = 1), n_warmup=burnin.n)
 	  pdf(file=paste0(control$outfile.base,'_marginaltraces.pdf'), w=7, h=control$pdf.height.per.par*ncol(pars))
-	  p
+	  print(p)
 	  dev.off()	  
   }
   
@@ -461,8 +461,8 @@ source.attribution.mcmc.diagnostics	<- function(mcmc.file, control=list(burnin.p
   
   # remove burn-in
   cat('\nRemoving burnin in set to ', 100*control$burnin.p,'% of chain, total iterations=',burnin.n)
-  it.rm.burnin	<- seq.int(burnin.n,nrow(mc$pars$S))
-  pars	<- pars[it.rm.burnin,,drop=FALSE]
+  tmp	<- seq.int(burnin.n+1L,nrow(mc$pars$S))
+  pars	<- pars[tmp,,drop=FALSE]
     
   # effective sampling sizes 
   cat('\nCalculating effective sample size for all parameters...')
@@ -504,21 +504,21 @@ source.attribution.mcmc.diagnostics	<- function(mcmc.file, control=list(burnin.p
 	  cat('\nPlotting traces for worst parameters...')
 	  p				<- mcmc_trace(worst.pars, pars=colnames(worst.pars), facet_args = list(ncol=1))
 	  pdf(file=paste0(control$outfile.base,'_worst_traces.pdf'), w=7, h=control$pdf.height.per.par*ncol(worst.pars))
-	  p
+	  print(p)
 	  dev.off()
 	  
 	  #	histograms
 	  cat('\nPlotting marginal posterior densities for worst parameters...')
 	  p				<- mcmc_hist(worst.pars, pars=colnames(worst.pars), facet_args = list(ncol=4))
 	  pdf(file=paste0(control$outfile.base,'_worst_marginalposteriors.pdf'), w=10, h=control$pdf.height.per.par*ncol(worst.pars)/4)
-	  p
+	  print(p)
 	  dev.off()
 	
 	  #	autocorrelations
 	  cat('\nPlotting autocorrelations for worst parameters...')
 	  p				<- mcmc_acf_bar(worst.pars, pars=colnames(worst.pars), facet_args = list(ncol = 1))
 	  pdf(file=paste0(control$outfile.base,'_worst_acf.pdf'), w=7, h=control$pdf.height.per.par*ncol(worst.pars))
-	  p
+	  print(p)
 	  dev.off()
   }
 }
