@@ -31,8 +31,12 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
 	  stop('Did not find prior samples of a sampling category for REC_SAMPLING_CATEGORY')
   
   ptm	<- Sys.time()
-  set.seed(control$seed)
-  
+  if('seed'%in%names(control))
+  {
+	  cat('\nSetting seed to',control$seed)
+	  set.seed(control$seed)  
+  }
+  	
   #	
   # set up mcmc 
   #
@@ -274,6 +278,8 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
   }
   
   mc$time	<- Sys.time()-ptm
+  if(!'outfile'%in%names(control))
+	  return(mc)
   save(mc,	file=control$outfile)
   NULL
 }
