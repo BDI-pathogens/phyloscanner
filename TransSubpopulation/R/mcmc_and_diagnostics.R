@@ -356,9 +356,19 @@ source.attribution.mcmc.aggregateToTarget	<- function(mcmc.file, daggregateTo, c
 	pars	<- merge(pars, daggregateTo, by='TRM_CAT_PAIR_ID')
 	pars	<- pars[, list(VALUE=sum(value)), by=c('VARIABLE','TR_TARGETCAT','REC_TARGETCAT','SAMPLE')]
 	
-	# save
-	cat('\nWriting csv file to',control$outfile)
-	write.csv(pars, row.names=FALSE, file=control$outfile)
+	# save or return
+	if(!'outfile'%in%names(control))
+		return(pars)
+	if(grepl('csv$',control$outfile))
+	{
+		cat('\nWriting csv file to',control$outfile)
+		write.csv(pars, row.names=FALSE, file=control$outfile)	
+	}
+	if(grepl('rda$',control$outfile))
+	{
+		cat('\nSaving rda file to',control$outfile)
+		save(pars, file=control$outfile)	
+	}
 }
 
 #' @title MCMC diagnostics for the source attribution algorithm  
