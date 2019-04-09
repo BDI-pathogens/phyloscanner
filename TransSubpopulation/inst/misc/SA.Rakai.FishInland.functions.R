@@ -506,7 +506,7 @@ Rakai190327.analysispipeline.age3model<- function(infile.inference=NULL, infile.
 	if(is.null(opt))
 	{
 		opt									<- list()
-		opt$adjust.sequencing.bias			<- 0
+		opt$adjust.sequencing.bias			<- 1
 		opt$adjust.participation.bias		<- 1
 		opt$migration.def.code				<- '24'
 		opt$set.missing.migloc.to.inland	<- 0
@@ -648,6 +648,18 @@ Rakai190327.analysispipeline.age3model<- function(infile.inference=NULL, infile.
 	set(dprior, NULL, c('P.x','LP.x','P.y','LP.y'), NULL)
 	setnames(dprior, 'CATEGORY', 'SAMPLING_CATEGORY')
 
+	#	plot prior densities
+	if(0)
+	{
+		ggplot(dprior, aes(x=P)) + 
+				geom_histogram(bins=50) +
+				coord_cartesian(xlim=c(0,1)) +
+				labs(x='sampling probability') + 
+				theme_bw() +
+				facet_grid(SAMPLING_CATEGORY~.)
+		ggsave( file=paste0(outfile.base,"saprior190327_samplingprob.pdf"), w=7, h=250, limitsize=FALSE)		
+	}
+	
 	#	run MCMC
 	mcmc.file	<- paste0(outfile.base,"samcmc190327_nsweep1e5_opt",paste0(opt, collapse=''),".rda")
 	control		<- list(	seed=42, 
@@ -658,7 +670,7 @@ Rakai190327.analysispipeline.age3model<- function(infile.inference=NULL, infile.
 	
 	#	run diagnostics
 	#mcmc.file	<- "~/Dropbox (SPH Imperial College)/Rakai Fish Analysis/full_run/190327_SAMCMCv190327_mcmc.rda"
-	#mcmc.file	<- '~/Dropbox (SPH Imperial College)/Rakai Fish Analysis/full_run/todi_pairs_181006_cl25_d50_prior23_min30_phylogeography_samcmc190327_nsweep1e5_opt11101.rda'
+	#mcmc.file	<- '~/Dropbox (SPH Imperial College)/Rakai Fish Analysis/full_run/RakaiAll_output_181006_w250_s20_p25_d50_stagetwo_rerun23_min30_conf60_phylogeography_samcmc190327_nsweep1e5_opt112401.rda'
 	control		<- list(	burnin.p=0.05, 
 							regex_pars='*', 
 							credibility.interval=0.95, 

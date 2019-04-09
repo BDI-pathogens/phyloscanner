@@ -25,7 +25,7 @@ source.attribution.mcmc.diagnostics(mcmc.file, control = list(burnin.p =
 }}
 }
 \value{
-NULL. Diagnostic plots and csv files are written to file.
+NULL. Diagnostic plots and csv files are written to disk.
 }
 \description{
 MCMC diagnostics for the source attribution algorithm

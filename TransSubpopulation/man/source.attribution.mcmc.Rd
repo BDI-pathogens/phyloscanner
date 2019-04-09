@@ -21,7 +21,7 @@ source.attribution.mcmc(dobs, dprior, control = list(seed = 42, mcmc.n =
 }}
 }
 \value{
-NULL. MCMC output is written to file.
+NULL. MCMC output is written to an RDA file.
 }
 \description{
 Source attribution while adjusting for sampling bias
