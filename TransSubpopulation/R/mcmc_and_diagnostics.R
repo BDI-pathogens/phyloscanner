@@ -22,6 +22,10 @@ lddirichlet_vector	<- function(x, nu){
 source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1e3, verbose=1, outfile='SAMCMCv190327.rda')){
   #library(data.table); library(gtools)
   
+  dmode <- function(x) {
+    den <- density(x, kernel=c("gaussian"))
+    (den$x[den$y==max(den$y)])   
+  }  
   #	
   # basic checks
   #
@@ -80,6 +84,14 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
     tmp				<- mc$dlu[UPDATE_ID==i,SAMPLING_CATEGORY]
     dprior2[[i]]<-dprior[J(tmp),nomatch=0L]
   }
+  
+  dprior3   <- dprior[,list(EST_SAMPLING_RATE=dmode(P)),by=SAMPLING_CATEGORY]
+  dobs2   <- subset(dobs,select = c('TR_SAMPLING_CATEGORY','REC_SAMPLING_CATEGORY','TRM_CAT_PAIR_ID'))
+  setnames(dprior3,colnames(dprior3),paste0('TR_',colnames(dprior3)))
+  dobs2   <- merge(dobs2,dprior3,by='TR_SAMPLING_CATEGORY')
+  setnames(dprior3,colnames(dprior3),gsub('TR_','REC_',colnames(dprior3)))
+  dobs2   <- merge(dobs2,dprior3,by='REC_SAMPLING_CATEGORY')
+  dobs2[,EST_SAMPLING_RATE:=TR_EST_SAMPLING_RATE * REC_EST_SAMPLING_RATE]
   
   mc$nprior			<- max(dprior$SAMPLE)
   mc$sweep			<- nrow(mc$dlu)+1L
@@ -145,7 +157,7 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
   #	augmented data: proposal draw under sampling probability
   mc$pars$Z[1,]			<- dobs$TRM_OBS + rnbinom(nrow(dobs),dobs$TRM_OBS,mc$pars$S[1,])
   #	prior nu: set Poisson rate to the expected augmented counts, under average sampling probability
-  mc$pars$NU			<- sum(dobs$TRM_OBS) / mean(mc$pars$S[1,])
+  mc$pars$NU			<- sum(dobs$TRM_OBS) / mean(dobs2$EST_SAMPLING_RATE)
   #	total count: that s just the sum of Z
   mc$pars$N[1,]			<- sum(mc$pars$Z[1,])
   #	proportions: draw from full conditional
