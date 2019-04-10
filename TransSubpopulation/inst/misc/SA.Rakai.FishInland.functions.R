@@ -3,7 +3,6 @@ Rakai190327.participitation.differences.betabinomialmodel3<- function()
 	require(data.table)
 	require(rstan)
 	require(extraDistr)
-  require(bayesplot)
 	
 	indir		<- '~/Dropbox (SPH Imperial College)/Rakai Fish Analysis'
 	infile.data	<- file.path(indir,"180322_sampling_by_gender_age.rda")
@@ -146,7 +145,6 @@ Rakai190327.participitation.differences.betabinomialmodel4<- function()
 	require(data.table)
 	require(rstan)
 	require(extraDistr)
-  require(bayesplot)
 	
 	indir		<- '~/Dropbox (SPH Imperial College)/Rakai Fish Analysis'
 	infile.data	<- file.path(indir,"180322_sampling_by_gender_age.rda")
@@ -224,27 +222,10 @@ Rakai190327.participitation.differences.betabinomialmodel4<- function()
 	
 	# extract samples for unique strata levels
 	nprior		<- 1e3
-	dps   <- data.table(CATEGORY=unique(c(dobs$REC_SAMPLING_CATEGORY,dobs$TR_SAMPLING_CATEGORY)))
-	
-	dps[, COMM_NUM_A:= dps[, gsub('^(.+)\\:(.)\\:(.+)\\:(.)$','\\1',CATEGORY)]]
-	dps[, SEX:= dps[,gsub('^(.+)\\:(.)\\:(.+)\\:(.)$','\\2',CATEGORY)]]
-	dps[, AGE_AT_MID_C:= dps[, gsub('^(.+)\\:(.)\\:(.+)\\:(.)$','\\3',CATEGORY)]]
-	dps[, INMIGRANT:= dps[, as.integer(gsub('^(.+)\\:(.)\\:(.+)\\:(.)$','\\4',CATEGORY))]]        
-	dps[, AGE1:= as.integer(AGE_AT_MID_C=='20-')]
-	dps[, AGE2:= as.integer(AGE_AT_MID_C=='20-24')]
-	dps[, AGE3:= as.integer(AGE_AT_MID_C=='25-29')]
-	dps[, AGE4:= as.integer(AGE_AT_MID_C=='30-34')]
-	dps[, AGE5:= as.integer(AGE_AT_MID_C=='35-39')]
-	dps[, AGE6:= as.integer(AGE_AT_MID_C=='40-44')]
-	dps[, MALE:= as.integer(SEX=='M')]
-	dps[, COMM_TYPE_F:= as.integer(substr(COMM_NUM_A,1,1)=='f')]
-	dps[, COMM_TYPE_T:= as.integer(substr(COMM_NUM_A,1,1)=='t')]
-	dps                        <- merge(dps, unique(subset(dp, select=c(COMM_NUM_A,COMM_NUM_B))), by='COMM_NUM_A')
-	
 	fit.e		<- extract(fit.par)
 	set.seed(42)
 	tmp			<- sample(length(fit.e$a), nprior)
-	dps			<- dps[,	
+	dps			<- dp[,	
 			{
 				z<- with(fit.e, a + comm[,COMM_NUM_B] + male * MALE + 
 								trading*COMM_TYPE_T  + fishing*COMM_TYPE_F +
@@ -254,27 +235,10 @@ Rakai190327.participitation.differences.betabinomialmodel4<- function()
 								age3*AGE3 + age4*AGE4 + age5*AGE5 + age6*AGE6)
 				list(SAMPLE=1:nprior, ETA=as.numeric(z[tmp]), DISPERSION=as.numeric(fit.e$dispersion[tmp]))
 			},	
-			by=c('CATEGORY')]
+			by=c('CATEGORY','TRIAL','SUC')]
 	dps[, P:= exp(ETA)/(1+exp(ETA))]
-
-	#        fit kernel density to prior samples with Gourierous and Monfort, 2006 macrobetakernel bounded density estimator, and then estimate log density
-	dps[, LP:= dbbinom(SUC, TRIAL, alpha= P*DISPERSION, beta= (1-P)*DISPERSION, log=TRUE)]        
-	#tmp        <- subset(dps, CATEGORY=='aam:F:15-24:0')        
-	#tmp2<- bde(tmp$P, dataPointsCache=tmp$P, b=0.001, estimator='betakernel', lower.limit=0, upper.limit=1, options=list(modified=FALSE, normalization='densitywise', mbc='none', c=0.5))
-	#tmp3<- data.table(DX=seq(0,1,0.001), DY=density(tmp2, seq(0,1,0.001)))
-	#tmp4<- data.table(DX=tmp$P, DY=density(tmp2, tmp$P))
-	#ggplot(tmp) + geom_histogram(aes(x=P, y=stat(density)), bins=50) +
-	#                geom_line(data=tmp3, aes(x=DX, y=DY)) +
-	#                geom_point(data=tmp4, aes(x=DX, y=DY), colour='red') +
-	#                coord_cartesian(xlim=c(0,1))
-
-	require(bde)
-	tmp        <- dps[, {
-	  bdest<- bde(P, dataPointsCache=sort(P), b=0.001, estimator='betakernel', lower.limit=0, upper.limit=1, options=list(modified=FALSE, normalization='densitywise', mbc='none', c=0.5))
-	  list(SAMPLE=SAMPLE, LP=log(density(bdest, P)))
-	}, by='CATEGORY']
-	dps        <- merge(dps, tmp, by=c('CATEGORY','SAMPLE'))
-	set(dps, NULL, c('ETA','DISPERSION'), NULL)                
+	dps[, LP:= dbbinom(SUC, TRIAL, alpha= P*DISPERSION, beta= (1-P)*DISPERSION, log=TRUE)]	
+	set(dps, NULL, c('TRIAL','SUC','ETA','DISPERSION'), NULL)
 	
 	save(dp, dps, fit.par, file=paste0(outfile.base,'190327_participation_modelage6_samples.rda'))
 }
@@ -510,27 +474,10 @@ Rakai190327.sequencing.differences.binomialmodel2<- function()
 	
 	# extract samples for unique strata levels
 	nprior		<- 1e3
-	dss   <- data.table(CATEGORY=unique(c(dobs$TR_SAMPLING_CATEGORY,dobs$REC_SAMPLING_CATEGORY)))
-	dss[, COMM_NUM_A:= dss[, gsub('^(.+)\\:(.)\\:(.+)\\:(.)$','\\1',CATEGORY)]]
-	dss[, SEX:= dss[,gsub('^(.+)\\:(.)\\:(.+)\\:(.)$','\\2',CATEGORY)]]
-	dss[, AGE_AT_MID_C:= dss[, gsub('^(.+)\\:(.)\\:(.+)\\:(.)$','\\3',CATEGORY)]]
-	dss[, INMIGRANT:= dss[, as.integer(gsub('^(.+)\\:(.)\\:(.+)\\:(.)$','\\4',CATEGORY))]]        
-	dss[, AGE1:= as.integer(AGE_AT_MID_C=='20-')]
-	dss[, AGE2:= as.integer(AGE_AT_MID_C=='20-24')]
-	dss[, AGE3:= as.integer(AGE_AT_MID_C=='25-29')]
-	dss[, AGE4:= as.integer(AGE_AT_MID_C=='30-34')]
-	dss[, AGE5:= as.integer(AGE_AT_MID_C=='35-39')]
-	dss[, AGE6:= as.integer(AGE_AT_MID_C=='40-44')]
-
-	dss[, MALE:= as.integer(SEX=='M')]
-	dss[, COMM_TYPE_F:= as.integer(substr(COMM_NUM_A,1,1)=='f')]
-	dss[, COMM_TYPE_T:= as.integer(substr(COMM_NUM_A,1,1)=='t')]
-	dss                        <- merge(dss, unique(subset(ds, select=c(COMM_NUM_A,COMM_NUM_B))), by='COMM_NUM_A')
-	
 	fit.e		<- extract(fit.seq)
 	set.seed(42)
 	tmp			<- sample(length(fit.e$a), nprior)
-	dss			<- dss[,	
+	dss			<- ds[,	
 			{
 				z<- with(fit.e, a + comm[,COMM_NUM_B] + male * MALE + 
 								trading*COMM_TYPE_T  + fishing*COMM_TYPE_F +
@@ -538,17 +485,10 @@ Rakai190327.sequencing.differences.binomialmodel2<- function()
 								age1*AGE1 + age2*AGE2 + age3*AGE3 + age4*AGE4 + age5*AGE5 + age6*AGE6)
 				list(SAMPLE=1:nprior, ETA=as.numeric(z[tmp]))
 			},	
-			by=c('CATEGORY')]
+			by=c('CATEGORY','TRIAL','SUC')]
 	dss[, P:= exp(ETA)/(1+exp(ETA))]
-
-	#        fit kernel density to prior samples with Gourierous and Monfort, 2006 macrobetakernel bounded density estimator, and then estimate log density
-	require(bde)
-	tmp        <- dss[, {
-	  bdest<- bde(P, dataPointsCache=sort(P), b=0.001, estimator='betakernel', lower.limit=0, upper.limit=1, options=list(modified=FALSE, normalization='densitywise', mbc='none', c=0.5))
-	  list(SAMPLE=SAMPLE, LP=log(density(bdest, P)))
-	}, by='CATEGORY']
-	dss        <- merge(dss, tmp, by=c('CATEGORY','SAMPLE'))
-	set(dss, NULL, c('ETA'), NULL)                
+	dss[, LP:= dbinom(SUC, TRIAL, prob=P, log=TRUE)]	
+	set(dss, NULL, c('TRIAL','SUC','ETA'), NULL)
 	
 	save(ds, dss, fit.seq, file=paste0(outfile.base,'190327_sequencing_modelage6_samples.rda'))
 }
@@ -708,6 +648,18 @@ Rakai190327.analysispipeline.age3model<- function(infile.inference=NULL, infile.
 	set(dprior, NULL, c('P.x','LP.x','P.y','LP.y'), NULL)
 	setnames(dprior, 'CATEGORY', 'SAMPLING_CATEGORY')
 
+	#	plot prior densities
+	if(0)
+	{
+		ggplot(dprior, aes(x=P)) + 
+				geom_histogram(bins=50) +
+				coord_cartesian(xlim=c(0,1)) +
+				labs(x='sampling probability') + 
+				theme_bw() +
+				facet_grid(SAMPLING_CATEGORY~.)
+		ggsave( file=paste0(outfile.base,"saprior190327_samplingprob.pdf"), w=7, h=250, limitsize=FALSE)		
+	}
+	
 	#	run MCMC
 	mcmc.file	<- paste0(outfile.base,"samcmc190327_nsweep1e5_opt",paste0(opt, collapse=''),".rda")
 	control		<- list(	seed=42, 
@@ -718,7 +670,7 @@ Rakai190327.analysispipeline.age3model<- function(infile.inference=NULL, infile.
 	
 	#	run diagnostics
 	#mcmc.file	<- "~/Dropbox (SPH Imperial College)/Rakai Fish Analysis/full_run/190327_SAMCMCv190327_mcmc.rda"
-	#mcmc.file	<- '~/Dropbox (SPH Imperial College)/Rakai Fish Analysis/full_run/todi_pairs_181006_cl25_d50_prior23_min30_phylogeography_samcmc190327_nsweep1e5_opt11101.rda'
+	#mcmc.file	<- '~/Dropbox (SPH Imperial College)/Rakai Fish Analysis/full_run/RakaiAll_output_181006_w250_s20_p25_d50_stagetwo_rerun23_min30_conf60_phylogeography_samcmc190327_nsweep1e5_opt112401.rda'
 	control		<- list(	burnin.p=0.05, 
 							regex_pars='*', 
 							credibility.interval=0.95, 
@@ -902,25 +854,12 @@ Rakai190327.analysispipeline.age6model<- function(infile.inference=NULL, opt=NUL
 	load(infile.participation.prior.samples)
 	load(infile.sequencing.prior.samples)
 	dprior	<- merge(dps, dss, by=c('CATEGORY','SAMPLE'))
-	
-	if(opt$adjust.sequencing.bias==0){
-	  set(dprior, NULL, 'P.y', 1)
-	  set(dprior, NULL, 'LP.y', 0)
-	}
-	if(opt$adjust.participation.bias==0){
-	  set(dprior, NULL, 'P.x', 1)
-	  set(dprior, NULL, 'LP.x', 0)
-	}
 	dprior[, P:= P.x*P.y]		# multiply participation and sequencing probabilities 
 	dprior[, LP:= LP.x+LP.y]	# add log posterior densities
 	set(dprior, NULL, c('P.x','LP.x','P.y','LP.y'), NULL)
 	setnames(dprior, 'CATEGORY', 'SAMPLING_CATEGORY')
 	
 	#	run MCMC
-	mcmc.file        <- paste0(outfile.base,"samcmc190327_nsweep1e5_opt",paste0(opt, collapse=''),".rda")
-	control        <- list(seed=42, mcmc.n=2380000, verbose=0, outfile="~/Dropbox (SPH Imperial College)/Rakai Fish Analysis/full_run/190327_SAMCMCv190327_age6_mcmc.rda")
-	control                <- list(seed=42,mcmc.n=238000*100,verbose=0,outfile=mcmc.file)
-	source.attribution.mcmc(dobs, dprior, control=control)
 	control	<- list(seed=42, mcmc.n=238000, verbose=0, outfile="~/Dropbox (SPH Imperial College)/Rakai Fish Analysis/full_run/190327_SAMCMCv190327_age6_mcmc.rda")
 	mcmc.core.inference(dobs, dprior, control=control)
 	
