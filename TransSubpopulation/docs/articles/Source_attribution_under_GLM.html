@@ -5,11 +5,11 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Source attribution while sampling are structured under the GLM assumption • TransSubpopulation</title>
+<title>Source attribution when adjustment for sampling differences uses individual covariates • TransSubpopulation</title>
 <!-- jquery --><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script><!-- Bootstrap --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha256-916EbMg70RQy9LHiGkXzG8hSg9EdNy97GazNG/aiY1w=" crossorigin="anonymous">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha256-U5ZEeKfGNOja007MMD3YBI0A3OSZOQbeG6z2f2Y0hu8=" crossorigin="anonymous"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha256-eZrrJcwDc/3uDhsdt61sL2oOBY362qM3lon1gyExkL0=" crossorigin="anonymous">
 <!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.4/clipboard.min.js" integrity="sha256-FiZwavyI2V6+EXO1U+xzLG3IKldpiTFf3153ea9zikQ=" crossorigin="anonymous"></script><!-- sticky kit --><script src="https://cdnjs.cloudflare.com/ajax/libs/sticky-kit/1.1.3/sticky-kit.min.js" integrity="sha256-c4Rlo1ZozqTPE2RLuvbusY3+SU1pQaJC0TjuhygMipw=" crossorigin="anonymous"></script><!-- pkgdown --><link href="../pkgdown.css" rel="stylesheet">
-<script src="../pkgdown.js"></script><meta property="og:title" content="Source attribution while sampling are structured under the GLM assumption">
+<script src="../pkgdown.js"></script><meta property="og:title" content="Source attribution when adjustment for sampling differences uses individual covariates">
 <meta property="og:description" content="">
 <meta name="twitter:card" content="summary">
 <!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" integrity="sha256-nvJJv9wWKEm88qvoQl9ekL2J+k/RWIsaSScxxlsrv8k=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_HTMLorMML.js" integrity="sha256-84DKXVJXs0/F8OTMzX4UR909+jtl4G7SPypPavF+GfA=" crossorigin="anonymous"></script><!--[if lt IE 9]>
@@ -30,7 +30,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">TransSubpopulation</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.2.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.3.0</span>
       </span>
     </div>
 
@@ -53,15 +53,12 @@
   </a>
   <ul class="dropdown-menu" role="menu">
 <li>
-      <a href="../articles/Source_attribution_under_GLM.html">Source attribution while sampling are structured under the GLM assumption</a>
+      <a href="../articles/Source_attribution_under_GLM.html">Source attribution when adjustment for sampling differences uses individual covariates</a>
     </li>
     <li>
-      <a href="../articles/Source_attribution_under_SARWS_assumption.html">Source attribution while sampling are structured under the SARWS assumption</a>
+      <a href="../articles/Source_attribution_under_SARWS_assumption.html">Source attribution on the assumption of SARWS for sampling</a>
     </li>
   </ul>
-</li>
-<li>
-  <a href="../news/index.html">Changelog</a>
 </li>
       </ul>
 <ul class="nav navbar-nav navbar-right"></ul>
@@ -76,7 +73,7 @@
       </header><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
-      <h1>Source attribution while sampling are structured under the GLM assumption</h1>
+      <h1>Source attribution when adjustment for sampling differences uses individual covariates</h1>
             
       
       
@@ -86,1307 +83,873 @@
 
     
     
-<div id="simulating-sampling-data" class="section level2">
+<p><a href="Source_attribution_under_SARWS_assumption.html">In the previous tutorial</a>, we inferred transmission flows between subpopulations when sampling differences are corrected by using the number of eligible and sampled individuals. <strong>In this tutorial, we will give an example to infer the transmission between community 1 and 2 while sampling differences are corrected by using individual covariates through generalised linear model.</strong> We will:</p>
+<ol style="list-style-type: decimal">
+<li>Introduce data for using this source attribution method.</li>
+<li>Generate samples from the prior distribution of sampling probability predicted by generalised linear model.</li>
+<li>Estimate transmission flows while accounting for sampling differences.</li>
+</ol>
+<div id="simulating-data" class="section level2">
 <h2 class="hasAnchor">
-<a href="#simulating-sampling-data" class="anchor"></a>Simulating sampling data</h2>
-<p>We start by simulating data required for this task. ‘dg’ is a data table containing the number of individuals who are eligible (<strong>TRIAL</strong>) and sampled (<strong>SUC</strong>) and covarites for each subpopulation (<strong>CATEGORY</strong>). Assume there are two locations where the numbers of infected individuals are 120 and 80.</p>
-<p>Now we generate covariates for individuals (gender and age). Assume 70% infected individuals are women in location 1, among which 25%, 60% and 15% are aged 15-24, 25-34 and 35+; among men in location 1, 20%, 50% and 30% are aged 15-24, 25-34 and 35+. Assume 60% infected individuals are women in location 1, among which 25%, 50% and 25% are aged 15-24, 25-34 and 35+; among men in location 1, 20%, 40% and 40% are aged 15-24, 25-34 and 35+.</p>
+<a href="#simulating-data" class="anchor"></a>Simulating data</h2>
+<p><strong>We first simulate data for sampling.</strong> ‘dp’ is a data table containing the number of individuals who are eligible (<strong>TRIAL</strong>) and sampled (<strong>SUC</strong>) in each subpopulation (<strong>CATEGORY</strong>). Assume there are two subpopulations defined by communities where the number of infected and ART-naive individuals are 2000 and 2500 in community 1 and 2 repectively.</p>
+<p>We then generate individual covariates including gender and age. Assume 70% infected individuals are women in location 1, among which 25%, 60% and 15% are aged 15-24, 25-34 and 35+; among men in location 1, 20%, 50% and 30% are aged 15-24, 25-34 and 35+. Assume 60% infected individuals are women in location 2, among which 25%, 50% and 25% are aged 15-24, 25-34 and 35+; among men in location 2, 20%, 40% and 40% are aged 15-24, 25-34 and 35+.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/library">library</a></span>(data.table)</a>
 <a class="sourceLine" id="cb1-2" data-line-number="2"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/library">library</a></span>(gtools)</a>
-<a class="sourceLine" id="cb1-3" data-line-number="3"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/library">library</a></span>(TransSubpopulation)</a></code></pre></div>
-<pre><code>## Warning: replacing previous import 'coda::traceplot' by 'rstan::traceplot'
-## when loading 'TransSubpopulation'</code></pre>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Random">set.seed</a></span>(<span class="dv">123</span>)</a>
-<a class="sourceLine" id="cb3-2" data-line-number="2">dg&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/data.table">data.table</a></span>(<span class="dt">COMM_NUM_B=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="dv">1</span>,<span class="dv">120</span>),<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="dv">2</span>,<span class="dv">80</span>)),<span class="dt">INF=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="dv">1</span>,<span class="dv">200</span>))</a>
-<a class="sourceLine" id="cb3-3" data-line-number="3">num.f<span class="fl">.1</span>&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(<span class="dv">120</span><span class="op">*</span><span class="fl">0.7</span>)</a>
-<a class="sourceLine" id="cb3-4" data-line-number="4">num.m<span class="fl">.1</span>&lt;-<span class="dv">120</span><span class="op">-</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(<span class="dv">120</span><span class="op">*</span><span class="fl">0.7</span>)</a>
-<a class="sourceLine" id="cb3-5" data-line-number="5">num.f<span class="fl">.2</span>&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(<span class="dv">80</span><span class="op">*</span><span class="fl">0.6</span>)</a>
-<a class="sourceLine" id="cb3-6" data-line-number="6">num.m<span class="fl">.2</span>&lt;-<span class="dv">80</span><span class="op">-</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(<span class="dv">80</span><span class="op">*</span><span class="fl">0.6</span>)</a>
-<a class="sourceLine" id="cb3-7" data-line-number="7"></a>
-<a class="sourceLine" id="cb3-8" data-line-number="8">dg<span class="op">$</span>SEX&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'F'</span>,num.f<span class="fl">.1</span>),</a>
-<a class="sourceLine" id="cb3-9" data-line-number="9">          <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'M'</span>,num.m<span class="fl">.1</span>),</a>
-<a class="sourceLine" id="cb3-10" data-line-number="10">          <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'F'</span>,num.f<span class="fl">.2</span>),</a>
-<a class="sourceLine" id="cb3-11" data-line-number="11">          <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'M'</span>,num.m<span class="fl">.2</span>))</a>
-<a class="sourceLine" id="cb3-12" data-line-number="12">dg<span class="op">$</span>AGE_AT_MID_C&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'15-24'</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.f<span class="fl">.1</span><span class="op">*</span><span class="fl">0.25</span>)),</a>
-<a class="sourceLine" id="cb3-13" data-line-number="13">                   <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'25-34'</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.f<span class="fl">.1</span><span class="op">*</span><span class="fl">0.6</span>)),</a>
-<a class="sourceLine" id="cb3-14" data-line-number="14">                   <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'35+'</span>,num.f<span class="fl">.1</span><span class="op">-</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.f<span class="fl">.1</span><span class="op">*</span><span class="fl">0.25</span>)<span class="op">-</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.f<span class="fl">.1</span><span class="op">*</span><span class="fl">0.6</span>)),</a>
-<a class="sourceLine" id="cb3-15" data-line-number="15">                   <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'15-24'</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.m<span class="fl">.1</span><span class="op">*</span><span class="fl">0.2</span>)),</a>
-<a class="sourceLine" id="cb3-16" data-line-number="16">                   <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'25-34'</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.m<span class="fl">.1</span><span class="op">*</span><span class="fl">0.5</span>)),</a>
-<a class="sourceLine" id="cb3-17" data-line-number="17">                   <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'35+'</span>,num.m<span class="fl">.1</span><span class="op">-</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.m<span class="fl">.1</span><span class="op">*</span><span class="fl">0.2</span>)<span class="op">-</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.m<span class="fl">.1</span><span class="op">*</span><span class="fl">0.5</span>)),</a>
-<a class="sourceLine" id="cb3-18" data-line-number="18">                   <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'15-24'</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.f<span class="fl">.2</span><span class="op">*</span><span class="fl">0.25</span>)),</a>
-<a class="sourceLine" id="cb3-19" data-line-number="19">                   <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'25-34'</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.f<span class="fl">.2</span><span class="op">*</span><span class="fl">0.5</span>)),</a>
-<a class="sourceLine" id="cb3-20" data-line-number="20">                   <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'35+'</span>,num.f<span class="fl">.2</span><span class="op">-</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.f<span class="fl">.2</span><span class="op">*</span><span class="fl">0.25</span>)<span class="op">-</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.f<span class="fl">.2</span><span class="op">*</span><span class="fl">0.5</span>)),</a>
-<a class="sourceLine" id="cb3-21" data-line-number="21">                   <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'15-24'</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.m<span class="fl">.2</span><span class="op">*</span><span class="fl">0.2</span>)),</a>
-<a class="sourceLine" id="cb3-22" data-line-number="22">                   <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'25-34'</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.m<span class="fl">.2</span><span class="op">*</span><span class="fl">0.4</span>)),</a>
-<a class="sourceLine" id="cb3-23" data-line-number="23">                   <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'35+'</span>,num.m<span class="fl">.2</span><span class="op">-</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.m<span class="fl">.2</span><span class="op">*</span><span class="fl">0.2</span>)<span class="op">-</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.m<span class="fl">.2</span><span class="op">*</span><span class="fl">0.4</span>))</a>
-<a class="sourceLine" id="cb3-24" data-line-number="24">                   )</a></code></pre></div>
-<p>Based on these covariates, we compute the number of infected individuals <span class="math inline">\(X_a^i\)</span> in each subpopulation stratified by age, gender and locations. Assume regression coefficients as follows:</p>
+<a class="sourceLine" id="cb1-3" data-line-number="3"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/library">library</a></span>(TransSubpopulation)</a>
+<a class="sourceLine" id="cb1-4" data-line-number="4"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/getwd">setwd</a></span>(<span class="st">"~/phyloscanner/TransSubpopulation/vignettes/"</span>)</a>
+<a class="sourceLine" id="cb1-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb1-6" data-line-number="6"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Random">set.seed</a></span>(<span class="dv">42</span>)</a>
+<a class="sourceLine" id="cb1-7" data-line-number="7">num.inf<span class="fl">.1</span>&lt;-<span class="dv">2000</span></a>
+<a class="sourceLine" id="cb1-8" data-line-number="8">num.inf<span class="fl">.2</span>&lt;-<span class="dv">2500</span></a>
+<a class="sourceLine" id="cb1-9" data-line-number="9">ds&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/data.table">data.table</a></span>(<span class="dt">COMM_NUM_B=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="dv">1</span>,num.inf<span class="fl">.1</span>),<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="dv">2</span>,num.inf<span class="fl">.2</span>)),<span class="dt">INF=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="dv">1</span>,num.inf<span class="fl">.1</span><span class="op">+</span>num.inf<span class="fl">.2</span>))</a>
+<a class="sourceLine" id="cb1-10" data-line-number="10">num.f<span class="fl">.1</span>&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.inf<span class="fl">.1</span><span class="op">*</span><span class="fl">0.7</span>)</a>
+<a class="sourceLine" id="cb1-11" data-line-number="11">num.m<span class="fl">.1</span>&lt;-num.inf<span class="fl">.1</span><span class="op">-</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.inf<span class="fl">.1</span><span class="op">*</span><span class="fl">0.7</span>)</a>
+<a class="sourceLine" id="cb1-12" data-line-number="12">num.f<span class="fl">.2</span>&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.inf<span class="fl">.2</span><span class="op">*</span><span class="fl">0.6</span>)</a>
+<a class="sourceLine" id="cb1-13" data-line-number="13">num.m<span class="fl">.2</span>&lt;-num.inf<span class="fl">.2</span><span class="op">-</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.inf<span class="fl">.2</span><span class="op">*</span><span class="fl">0.6</span>)</a>
+<a class="sourceLine" id="cb1-14" data-line-number="14"></a>
+<a class="sourceLine" id="cb1-15" data-line-number="15">ds<span class="op">$</span>SEX&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'F'</span>,num.f<span class="fl">.1</span>),</a>
+<a class="sourceLine" id="cb1-16" data-line-number="16">          <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'M'</span>,num.m<span class="fl">.1</span>),</a>
+<a class="sourceLine" id="cb1-17" data-line-number="17">          <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'F'</span>,num.f<span class="fl">.2</span>),</a>
+<a class="sourceLine" id="cb1-18" data-line-number="18">          <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'M'</span>,num.m<span class="fl">.2</span>))</a>
+<a class="sourceLine" id="cb1-19" data-line-number="19"></a>
+<a class="sourceLine" id="cb1-20" data-line-number="20">ds<span class="op">$</span>AGE_AT_MID_C&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'15-24'</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.f<span class="fl">.1</span><span class="op">*</span><span class="fl">0.25</span>)),</a>
+<a class="sourceLine" id="cb1-21" data-line-number="21">                   <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'25-34'</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.f<span class="fl">.1</span><span class="op">*</span><span class="fl">0.6</span>)),</a>
+<a class="sourceLine" id="cb1-22" data-line-number="22">                   <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'35+'</span>,num.f<span class="fl">.1</span><span class="op">-</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.f<span class="fl">.1</span><span class="op">*</span><span class="fl">0.25</span>)<span class="op">-</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.f<span class="fl">.1</span><span class="op">*</span><span class="fl">0.6</span>)),</a>
+<a class="sourceLine" id="cb1-23" data-line-number="23">                   <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'15-24'</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.m<span class="fl">.1</span><span class="op">*</span><span class="fl">0.2</span>)),</a>
+<a class="sourceLine" id="cb1-24" data-line-number="24">                   <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'25-34'</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.m<span class="fl">.1</span><span class="op">*</span><span class="fl">0.5</span>)),</a>
+<a class="sourceLine" id="cb1-25" data-line-number="25">                   <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'35+'</span>,num.m<span class="fl">.1</span><span class="op">-</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.m<span class="fl">.1</span><span class="op">*</span><span class="fl">0.2</span>)<span class="op">-</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.m<span class="fl">.1</span><span class="op">*</span><span class="fl">0.5</span>)),</a>
+<a class="sourceLine" id="cb1-26" data-line-number="26">                   <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'15-24'</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.f<span class="fl">.2</span><span class="op">*</span><span class="fl">0.25</span>)),</a>
+<a class="sourceLine" id="cb1-27" data-line-number="27">                   <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'25-34'</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.f<span class="fl">.2</span><span class="op">*</span><span class="fl">0.5</span>)),</a>
+<a class="sourceLine" id="cb1-28" data-line-number="28">                   <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'35+'</span>,num.f<span class="fl">.2</span><span class="op">-</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.f<span class="fl">.2</span><span class="op">*</span><span class="fl">0.25</span>)<span class="op">-</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.f<span class="fl">.2</span><span class="op">*</span><span class="fl">0.5</span>)),</a>
+<a class="sourceLine" id="cb1-29" data-line-number="29">                   <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'15-24'</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.m<span class="fl">.2</span><span class="op">*</span><span class="fl">0.2</span>)),</a>
+<a class="sourceLine" id="cb1-30" data-line-number="30">                   <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'25-34'</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.m<span class="fl">.2</span><span class="op">*</span><span class="fl">0.4</span>)),</a>
+<a class="sourceLine" id="cb1-31" data-line-number="31">                   <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="st">'35+'</span>,num.m<span class="fl">.2</span><span class="op">-</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.m<span class="fl">.2</span><span class="op">*</span><span class="fl">0.2</span>)<span class="op">-</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(num.m<span class="fl">.2</span><span class="op">*</span><span class="fl">0.4</span>))</a>
+<a class="sourceLine" id="cb1-32" data-line-number="32">)</a></code></pre></div>
+<p>We can aggregate the number of infected people by age, gender and communities. Assume regression coefficients are as follows:</p>
 <ol style="list-style-type: decimal">
-<li>intercept: 0.4</li>
-<li>varying intercepts for location 1 and 2: 0.5,-0.5</li>
+<li>the overall intercept: 0.4.</li>
+<li>deviations from the overall intercepts for location 1 and 2: 0.5 and -0.5.</li>
 <li>regression coefficients for the variables ‘being male’, ‘being young’ and ‘being mid-age’ are 0.4, 0.3 and 0.2.</li>
 </ol>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1">dg      &lt;-<span class="st"> </span>dg[, <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/list">list</a></span>(<span class="dt">TRIAL=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(INF)),by=<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'AGE_AT_MID_C'</span>,<span class="st">'SEX'</span>,<span class="st">'COMM_NUM_B'</span>)]</a>
-<a class="sourceLine" id="cb4-2" data-line-number="2">comm&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="fl">0.5</span>,<span class="op">-</span><span class="fl">0.5</span>)</a>
-<a class="sourceLine" id="cb4-3" data-line-number="3">a&lt;-<span class="fl">0.4</span></a>
-<a class="sourceLine" id="cb4-4" data-line-number="4">male&lt;-<span class="fl">0.4</span></a>
-<a class="sourceLine" id="cb4-5" data-line-number="5">young&lt;-<span class="fl">0.3</span></a>
-<a class="sourceLine" id="cb4-6" data-line-number="6">midage&lt;-<span class="fl">0.2</span></a></code></pre></div>
-<p>Age and genders are then binarised for regression covariates which are then used to evaluate the sampling rate of group a <span class="math inline">\(\mbox{logit}(\xi_a)\)</span>. Based on <span class="math inline">\(\xi_a\)</span>, the number of individuals being sequenced <span class="math inline">\(X_a^s\)</span> is generated by a Binomial distribution <span class="math inline">\(\mbox{Binomial}(X_a^i,\xi_a)\)</span>.</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1">dg[, AGE1<span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/integer">as.integer</a></span>(AGE_AT_MID_C<span class="op">==</span><span class="st">'15-24'</span>)]</a>
-<a class="sourceLine" id="cb5-2" data-line-number="2">dg[, AGE2<span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/integer">as.integer</a></span>(AGE_AT_MID_C<span class="op">==</span><span class="st">'25-34'</span>)]</a>
-<a class="sourceLine" id="cb5-3" data-line-number="3">dg[, MALE<span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/integer">as.integer</a></span>(SEX<span class="op">==</span><span class="st">'M'</span>)]</a>
-<a class="sourceLine" id="cb5-4" data-line-number="4"></a>
-<a class="sourceLine" id="cb5-5" data-line-number="5">dg[,LOGIT_P_SEQ<span class="op">:</span><span class="er">=</span>a <span class="op">+</span><span class="st"> </span>comm[COMM_NUM_B] <span class="op">+</span><span class="st"> </span>male<span class="op">*</span>MALE <span class="op">+</span><span class="st"> </span>young<span class="op">*</span>AGE1 <span class="op">+</span><span class="st"> </span>midage<span class="op">*</span>AGE2]</a>
-<a class="sourceLine" id="cb5-6" data-line-number="6">dg[,P_SEQ<span class="op">:</span><span class="er">=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Log">exp</a></span>(LOGIT_P_SEQ)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Log">exp</a></span>(LOGIT_P_SEQ))]</a>
-<a class="sourceLine" id="cb5-7" data-line-number="7">dg[,SUC<span class="op">:</span><span class="er">=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/Binomial">rbinom</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/nrow">nrow</a></span>(dg),TRIAL,P_SEQ)]</a>
-<a class="sourceLine" id="cb5-8" data-line-number="8"></a>
-<a class="sourceLine" id="cb5-9" data-line-number="9">dg[,CATEGORY<span class="op">:</span><span class="er">=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/paste">paste0</a></span>(COMM_NUM_B,<span class="st">':'</span>,SEX,<span class="st">':'</span>,AGE_AT_MID_C)]</a>
-<a class="sourceLine" id="cb5-10" data-line-number="10">dg[,COMM_NUM_B<span class="op">:</span><span class="er">=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/integer">as.integer</a></span>(COMM_NUM_B)]</a></code></pre></div>
-</div>
-<div id="simulating-transmission-data" class="section level2">
-<h2 class="hasAnchor">
-<a href="#simulating-transmission-data" class="anchor"></a>Simulating transmission data</h2>
-<p>‘dc’ is created by all ordered combination of subpopulations in ‘dg’ and only heterosexual transmission pairs are kept.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1">dc&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/as.data.table">as.data.table</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/expand.grid">expand.grid</a></span>(<span class="dt">TR_CATEGORY=</span>dg<span class="op">$</span>CATEGORY,<span class="dt">REC_CATEGORY=</span>dg<span class="op">$</span>CATEGORY))</a>
-<a class="sourceLine" id="cb6-2" data-line-number="2">dc[,COUNT_ID<span class="op">:</span><span class="er">=</span><span class="dv">1</span><span class="op">:</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/nrow">nrow</a></span>(dc)]</a>
-<a class="sourceLine" id="cb6-3" data-line-number="3">dc[, <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">"TR_COMM_NUM_B"</span>,<span class="st">"TR_SEX"</span>, <span class="st">"TR_AGE_AT_MID_C"</span>) <span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/tstrsplit">tstrsplit</a></span>(TR_CATEGORY, <span class="st">":"</span>, <span class="dt">fixed=</span><span class="ot">TRUE</span>)]</a>
-<a class="sourceLine" id="cb6-4" data-line-number="4">dc[, <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">"REC_COMM_NUM_B"</span>,<span class="st">"REC_SEX"</span>, <span class="st">"REC_AGE_AT_MID_C"</span>) <span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/tstrsplit">tstrsplit</a></span>(REC_CATEGORY, <span class="st">":"</span>, <span class="dt">fixed=</span><span class="ot">TRUE</span>)]</a>
-<a class="sourceLine" id="cb6-5" data-line-number="5"></a>
-<a class="sourceLine" id="cb6-6" data-line-number="6">dc&lt;-dc[TR_SEX<span class="op">!=</span>REC_SEX,]</a></code></pre></div>
-<p>Assume transmissions are less likely to occur between different locations, to elder individuals in male-female transmissions and to younger individuals in female-male transmissions. Dirichlet hyperparameters are set to be around 1 for these less probable pairs and around 2 for the rest of pairs. The probabilities of transmissions between subpopulations are then given by the mean of the Dirichlet distribution.</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" data-line-number="1">lbd&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/matrix">matrix</a></span>(<span class="ot">NA_real_</span>,<span class="dt">nrow =</span> <span class="dv">1</span>, <span class="dt">ncol =</span> <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/nrow">nrow</a></span>(dc))</a>
-<a class="sourceLine" id="cb7-2" data-line-number="2"><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/nrow">nrow</a></span>(dc)){</a>
-<a class="sourceLine" id="cb7-3" data-line-number="3">  <span class="cf">if</span> (dc<span class="op">$</span>TR_COMM_NUM_B[i]<span class="op">==</span>dc<span class="op">$</span>REC_COMM_NUM_B[i]){</a>
-<a class="sourceLine" id="cb7-4" data-line-number="4">    <span class="cf">if</span> ( (dc<span class="op">$</span>TR_AGE_AT_MID_C[i]<span class="op">==</span><span class="st">'15-24'</span> <span class="op">&amp;</span><span class="st"> </span>dc<span class="op">$</span>REC_AGE_AT_MID_C[i]<span class="op">==</span><span class="st">'25-34'</span>) <span class="op">|</span></a>
-<a class="sourceLine" id="cb7-5" data-line-number="5"><span class="st">         </span>(dc<span class="op">$</span>TR_AGE_AT_MID_C[i]<span class="op">==</span><span class="st">'15-24'</span> <span class="op">&amp;</span><span class="st"> </span>dc<span class="op">$</span>REC_AGE_AT_MID_C[i]<span class="op">==</span><span class="st">'35+'</span>) <span class="op">|</span></a>
-<a class="sourceLine" id="cb7-6" data-line-number="6"><span class="st">         </span>(dc<span class="op">$</span>TR_AGE_AT_MID_C[i]<span class="op">==</span><span class="st">'25-34'</span> <span class="op">&amp;</span><span class="st"> </span>dc<span class="op">$</span>REC_AGE_AT_MID_C[i]<span class="op">==</span><span class="st">'35+'</span>)){</a>
-<a class="sourceLine" id="cb7-7" data-line-number="7">      <span class="cf">if</span> (dc<span class="op">$</span>TR_SEX[i]<span class="op">==</span><span class="st">'M'</span>){</a>
-<a class="sourceLine" id="cb7-8" data-line-number="8">        lbd[i]&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/Normal">rnorm</a></span>(<span class="dv">1</span>,<span class="dv">1</span>,<span class="fl">0.2</span>)</a>
-<a class="sourceLine" id="cb7-9" data-line-number="9">      }<span class="cf">else</span>{</a>
-<a class="sourceLine" id="cb7-10" data-line-number="10">        lbd[i]&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/Normal">rnorm</a></span>(<span class="dv">1</span>,<span class="dv">2</span>,<span class="fl">0.2</span>)</a>
-<a class="sourceLine" id="cb7-11" data-line-number="11">      }</a>
-<a class="sourceLine" id="cb7-12" data-line-number="12">    }<span class="cf">else</span> <span class="cf">if</span> ( (dc<span class="op">$</span>REC_AGE_AT_MID_C[i]<span class="op">==</span><span class="st">'15-24'</span> <span class="op">&amp;</span><span class="st"> </span>dc<span class="op">$</span>TR_AGE_AT_MID_C[i]<span class="op">==</span><span class="st">'25-34'</span>) <span class="op">|</span></a>
-<a class="sourceLine" id="cb7-13" data-line-number="13"><span class="st">               </span>(dc<span class="op">$</span>REC_AGE_AT_MID_C[i]<span class="op">==</span><span class="st">'15-24'</span> <span class="op">&amp;</span><span class="st"> </span>dc<span class="op">$</span>TR_AGE_AT_MID_C[i]<span class="op">==</span><span class="st">'35+'</span>) <span class="op">|</span></a>
-<a class="sourceLine" id="cb7-14" data-line-number="14"><span class="st">               </span>(dc<span class="op">$</span>REC_AGE_AT_MID_C[i]<span class="op">==</span><span class="st">'25-34'</span> <span class="op">&amp;</span><span class="st"> </span>dc<span class="op">$</span>TR_AGE_AT_MID_C[i]<span class="op">==</span><span class="st">'35+'</span>)){</a>
-<a class="sourceLine" id="cb7-15" data-line-number="15">      <span class="cf">if</span> (dc<span class="op">$</span>TR_SEX[i]<span class="op">==</span><span class="st">'M'</span>){</a>
-<a class="sourceLine" id="cb7-16" data-line-number="16">        lbd[i]&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/Normal">rnorm</a></span>(<span class="dv">1</span>,<span class="dv">2</span>,<span class="fl">0.2</span>)</a>
-<a class="sourceLine" id="cb7-17" data-line-number="17">      }<span class="cf">else</span>{</a>
-<a class="sourceLine" id="cb7-18" data-line-number="18">        lbd[i]&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/Normal">rnorm</a></span>(<span class="dv">1</span>,<span class="dv">1</span>,<span class="fl">0.2</span>)</a>
-<a class="sourceLine" id="cb7-19" data-line-number="19">      }</a>
-<a class="sourceLine" id="cb7-20" data-line-number="20">    }<span class="cf">else</span> <span class="cf">if</span>(dc<span class="op">$</span>TR_AGE_AT_MID_C[i]<span class="op">==</span>dc<span class="op">$</span>REC_AGE_AT_MID_C[i]){</a>
-<a class="sourceLine" id="cb7-21" data-line-number="21">      lbd[i]&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/Normal">rnorm</a></span>(<span class="dv">1</span>,<span class="dv">2</span>,<span class="fl">0.2</span>)</a>
-<a class="sourceLine" id="cb7-22" data-line-number="22">    }</a>
-<a class="sourceLine" id="cb7-23" data-line-number="23">  }<span class="cf">else</span>{</a>
-<a class="sourceLine" id="cb7-24" data-line-number="24">    lbd[i]&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/Normal">rnorm</a></span>(<span class="dv">1</span>,<span class="dv">1</span>,<span class="fl">0.2</span>)</a>
-<a class="sourceLine" id="cb7-25" data-line-number="25">  }</a>
-<a class="sourceLine" id="cb7-26" data-line-number="26">}</a>
-<a class="sourceLine" id="cb7-27" data-line-number="27">TRUE_PI&lt;-lbd<span class="op">/</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/sum">sum</a></span>(lbd)</a>
-<a class="sourceLine" id="cb7-28" data-line-number="28">dc[,TRUE_PI<span class="op">:</span><span class="er">=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/vector">as.vector</a></span>(TRUE_PI)]</a></code></pre></div>
-<p>Here presented the assymmetric transmission matrix</p>
-<table class="table">
-<thead><tr class="header">
-<th></th>
-<th align="right">1:F:15-24</th>
-<th align="right">1:F:25-34</th>
-<th align="right">1:F:35+</th>
-<th align="right">1:M:15-24</th>
-<th align="right">1:M:25-34</th>
-<th align="right">1:M:35+</th>
-<th align="right">2:F:15-24</th>
-<th align="right">2:F:25-34</th>
-<th align="right">2:F:35+</th>
-<th align="right">2:M:15-24</th>
-<th align="right">2:M:25-34</th>
-<th align="right">2:M:35+</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td>1:F:15-24</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0196</td>
-<td align="right">0.0218</td>
-<td align="right">0.0220</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0112</td>
-<td align="right">0.0114</td>
-<td align="right">0.0125</td>
-</tr>
-<tr class="even">
-<td>1:F:25-34</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0069</td>
-<td align="right">0.0203</td>
-<td align="right">0.0208</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0094</td>
-<td align="right">0.0106</td>
-<td align="right">0.0090</td>
-</tr>
-<tr class="odd">
-<td>1:F:35+</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0122</td>
-<td align="right">0.0123</td>
-<td align="right">0.0202</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0097</td>
-<td align="right">0.0124</td>
-<td align="right">0.0090</td>
-</tr>
-<tr class="even">
-<td>1:M:15-24</td>
-<td align="right">0.0218</td>
-<td align="right">0.0113</td>
-<td align="right">0.0119</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0078</td>
-<td align="right">0.0121</td>
-<td align="right">0.0100</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-</tr>
-<tr class="odd">
-<td>1:M:25-34</td>
-<td align="right">0.0182</td>
-<td align="right">0.0211</td>
-<td align="right">0.0095</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0150</td>
-<td align="right">0.0103</td>
-<td align="right">0.0136</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-</tr>
-<tr class="even">
-<td>1:M:35+</td>
-<td align="right">0.0195</td>
-<td align="right">0.0197</td>
-<td align="right">0.0187</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0130</td>
-<td align="right">0.0110</td>
-<td align="right">0.0072</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-</tr>
-<tr class="odd">
-<td>2:F:15-24</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0108</td>
-<td align="right">0.0123</td>
-<td align="right">0.0096</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0188</td>
-<td align="right">0.0252</td>
-<td align="right">0.0230</td>
-</tr>
-<tr class="even">
-<td>2:F:25-34</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0081</td>
-<td align="right">0.0122</td>
-<td align="right">0.0090</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0082</td>
-<td align="right">0.0199</td>
-<td align="right">0.0203</td>
-</tr>
-<tr class="odd">
-<td>2:F:35+</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0131</td>
-<td align="right">0.0119</td>
-<td align="right">0.0100</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0111</td>
-<td align="right">0.0056</td>
-<td align="right">0.0183</td>
-</tr>
-<tr class="even">
-<td>2:M:15-24</td>
-<td align="right">0.0095</td>
-<td align="right">0.0142</td>
-<td align="right">0.0100</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0185</td>
-<td align="right">0.0104</td>
-<td align="right">0.0117</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-</tr>
-<tr class="odd">
-<td>2:M:25-34</td>
-<td align="right">0.0130</td>
-<td align="right">0.0115</td>
-<td align="right">0.0083</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0200</td>
-<td align="right">0.0208</td>
-<td align="right">0.0107</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-</tr>
-<tr class="even">
-<td>2:M:35+</td>
-<td align="right">0.0112</td>
-<td align="right">0.0063</td>
-<td align="right">0.0089</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0199</td>
-<td align="right">0.0237</td>
-<td align="right">0.0213</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-<td align="right">0.0000</td>
-</tr>
-</tbody>
-</table>
-<p>Predicted sequencing rates for each subpopulation in ‘dg’ are used to evaluate the probability of a transmission between two subpopulations being observed.</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" data-line-number="1">tmp&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/subset.data.table">subset</a></span>(dg,<span class="dt">select=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'CATEGORY'</span>,<span class="st">'P_SEQ'</span>))</a>
-<a class="sourceLine" id="cb8-2" data-line-number="2"><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/setattr">setnames</a></span>(tmp,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/colnames">colnames</a></span>(tmp),<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/paste">paste0</a></span>(<span class="st">'TR_'</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/colnames">colnames</a></span>(tmp)))</a>
-<a class="sourceLine" id="cb8-3" data-line-number="3">dc&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/merge">merge</a></span>(dc,tmp,<span class="dt">by=</span><span class="st">'TR_CATEGORY'</span>)</a>
-<a class="sourceLine" id="cb8-4" data-line-number="4"><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/setattr">setnames</a></span>(tmp,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/colnames">colnames</a></span>(tmp),<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/grep">gsub</a></span>(<span class="st">'TR_'</span>,<span class="st">'REC_'</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/colnames">colnames</a></span>(tmp)))</a>
-<a class="sourceLine" id="cb8-5" data-line-number="5">dc&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/merge">merge</a></span>(dc,tmp,<span class="dt">by=</span><span class="st">'REC_CATEGORY'</span>)</a>
-<a class="sourceLine" id="cb8-6" data-line-number="6">dc[,S<span class="op">:</span><span class="er">=</span>TR_P_SEQ<span class="op">*</span>REC_P_SEQ]</a></code></pre></div>
-<p>Assume the observed transmission count is 20, and the observed transmissions between subpopulations could be simulated as follows:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1">ds      &lt;-<span class="st"> </span>ds[, <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/list">list</a></span>(<span class="dt">TRIAL=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(INF)),by=<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'AGE_AT_MID_C'</span>,<span class="st">'SEX'</span>,<span class="st">'COMM_NUM_B'</span>)]</a>
+<a class="sourceLine" id="cb2-2" data-line-number="2">comm&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="fl">0.5</span>,<span class="op">-</span><span class="fl">0.5</span>)</a>
+<a class="sourceLine" id="cb2-3" data-line-number="3">a&lt;-<span class="fl">0.4</span></a>
+<a class="sourceLine" id="cb2-4" data-line-number="4">male&lt;-<span class="fl">0.4</span></a>
+<a class="sourceLine" id="cb2-5" data-line-number="5">young&lt;-<span class="fl">0.3</span></a>
+<a class="sourceLine" id="cb2-6" data-line-number="6">midage&lt;-<span class="fl">0.2</span></a></code></pre></div>
+<p>Ages and genders are binarised to create regression covariates, through which we could predict the sampling probability of the subpopulation <span class="math inline">\(a\)</span>, <span class="math inline">\(\xi_a\)</span>, and the number of sequenced individuals in <span class="math inline">\(a\)</span>, <span class="math inline">\(X_a^s \sim \mbox{Binomial}(X_a^i,\xi_a)\)</span>.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1">ds[, AGE1<span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/integer">as.integer</a></span>(AGE_AT_MID_C<span class="op">==</span><span class="st">'15-24'</span>)]</a>
+<a class="sourceLine" id="cb3-2" data-line-number="2">ds[, AGE2<span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/integer">as.integer</a></span>(AGE_AT_MID_C<span class="op">==</span><span class="st">'25-34'</span>)]</a>
+<a class="sourceLine" id="cb3-3" data-line-number="3">ds[, MALE<span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/integer">as.integer</a></span>(SEX<span class="op">==</span><span class="st">'M'</span>)]</a>
+<a class="sourceLine" id="cb3-4" data-line-number="4"></a>
+<a class="sourceLine" id="cb3-5" data-line-number="5">ds[,LOGIT_P_SEQ<span class="op">:</span><span class="er">=</span>a <span class="op">+</span><span class="st"> </span>comm[COMM_NUM_B] <span class="op">+</span><span class="st"> </span>male<span class="op">*</span>MALE <span class="op">+</span><span class="st"> </span>young<span class="op">*</span>AGE1 <span class="op">+</span><span class="st"> </span>midage<span class="op">*</span>AGE2]</a>
+<a class="sourceLine" id="cb3-6" data-line-number="6">ds[,P_SEQ<span class="op">:</span><span class="er">=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Log">exp</a></span>(LOGIT_P_SEQ)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Log">exp</a></span>(LOGIT_P_SEQ))]</a>
+<a class="sourceLine" id="cb3-7" data-line-number="7">ds[,SUC<span class="op">:</span><span class="er">=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/Binomial">rbinom</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/nrow">nrow</a></span>(ds),TRIAL,P_SEQ)]</a>
+<a class="sourceLine" id="cb3-8" data-line-number="8"></a>
+<a class="sourceLine" id="cb3-9" data-line-number="9">ds[,CATEGORY<span class="op">:</span><span class="er">=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/paste">paste0</a></span>(COMM_NUM_B,<span class="st">':'</span>,SEX,<span class="st">':'</span>,AGE_AT_MID_C)]</a>
+<a class="sourceLine" id="cb3-10" data-line-number="10">ds[,COMM_NUM_B<span class="op">:</span><span class="er">=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/integer">as.integer</a></span>(COMM_NUM_B)]</a></code></pre></div>
+<p><strong>We then simulate transmissions between subpopulations.</strong> ‘dobs’ a data table containing all the combinations of subpopulations transmitting (<strong>TR_TRM_CATEGORY</strong>) and receiving (<strong>REC_TRM_CATEGORY</strong>) the disease. Heterosexual transmission pairs are kept only.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1">dobs&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/as.data.table">as.data.table</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/expand.grid">expand.grid</a></span>(<span class="dt">TR_TRM_CATEGORY=</span>ds<span class="op">$</span>CATEGORY,<span class="dt">REC_TRM_CATEGORY=</span>ds<span class="op">$</span>CATEGORY))</a>
+<a class="sourceLine" id="cb4-2" data-line-number="2">dobs[, <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">"TR_COMM_NUM_B"</span>,<span class="st">"TR_SEX"</span>, <span class="st">"TR_AGE_AT_MID_C"</span>) <span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/tstrsplit">tstrsplit</a></span>(TR_TRM_CATEGORY, <span class="st">":"</span>, <span class="dt">fixed=</span><span class="ot">TRUE</span>)]</a>
+<a class="sourceLine" id="cb4-3" data-line-number="3">dobs[, <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">"REC_COMM_NUM_B"</span>,<span class="st">"REC_SEX"</span>, <span class="st">"REC_AGE_AT_MID_C"</span>) <span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/tstrsplit">tstrsplit</a></span>(REC_TRM_CATEGORY, <span class="st">":"</span>, <span class="dt">fixed=</span><span class="ot">TRUE</span>)]</a>
+<a class="sourceLine" id="cb4-4" data-line-number="4">dobs&lt;-dobs[TR_SEX<span class="op">!=</span>REC_SEX,]</a>
+<a class="sourceLine" id="cb4-5" data-line-number="5">dobs[, TRM_CAT_PAIR_ID<span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/seq">seq_len</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/nrow">nrow</a></span>(dobs))]</a></code></pre></div>
+<p>Transmission probabilities are assigned to each transmission pair. Assume transmissions are less likely to occur between different locations, to elder individuals in male-female transmissions and to younger individuals in female-male transmissions. Transmission probabilities are modelled by Dirichlet distribution where hyperparameters are set to be around 1 for these less probable pairs and around 2 for the rest of pairs. We set the transmission probabilities to be the mean of Dirichlet distribution.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1">lbd   &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/Normal">rnorm</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/nrow">nrow</a></span>(dobs),<span class="dv">2</span>,<span class="fl">0.2</span>)</a>
+<a class="sourceLine" id="cb5-2" data-line-number="2">tmp   &lt;-<span class="st"> </span>dobs[TR_COMM_NUM_B<span class="op">!=</span>REC_COMM_NUM_B,TRM_CAT_PAIR_ID]</a>
+<a class="sourceLine" id="cb5-3" data-line-number="3">lbd[tmp]  &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/Normal">rnorm</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(tmp),<span class="dv">1</span>,<span class="fl">0.2</span>)</a>
+<a class="sourceLine" id="cb5-4" data-line-number="4">tmp   &lt;-<span class="st"> </span>dobs[TR_COMM_NUM_B<span class="op">==</span>REC_COMM_NUM_B <span class="op">&amp;</span><span class="st"> </span>TR_SEX<span class="op">==</span><span class="st">'M'</span> <span class="op">&amp;</span></a>
+<a class="sourceLine" id="cb5-5" data-line-number="5"><span class="st">                </span>( (TR_AGE_AT_MID_C<span class="op">==</span><span class="st">'15-24'</span> <span class="op">&amp;</span><span class="st"> </span>REC_AGE_AT_MID_C<span class="op">==</span><span class="st">'25-34'</span>)<span class="op">|</span></a>
+<a class="sourceLine" id="cb5-6" data-line-number="6"><span class="st">                    </span>(TR_AGE_AT_MID_C<span class="op">==</span><span class="st">'25-34'</span> <span class="op">&amp;</span><span class="st"> </span>REC_AGE_AT_MID_C<span class="op">==</span><span class="st">'35+'</span>)<span class="op">|</span></a>
+<a class="sourceLine" id="cb5-7" data-line-number="7"><span class="st">                    </span>(TR_AGE_AT_MID_C<span class="op">==</span><span class="st">'15-24'</span> <span class="op">&amp;</span><span class="st"> </span>REC_AGE_AT_MID_C<span class="op">==</span><span class="st">'35+'</span>) ),TRM_CAT_PAIR_ID]</a>
+<a class="sourceLine" id="cb5-8" data-line-number="8">lbd[tmp]  &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/Normal">rnorm</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(tmp),<span class="dv">1</span>,<span class="fl">0.2</span>)</a>
+<a class="sourceLine" id="cb5-9" data-line-number="9">tmp   &lt;-<span class="st"> </span>dobs[TR_COMM_NUM_B<span class="op">==</span>REC_COMM_NUM_B <span class="op">&amp;</span><span class="st"> </span>TR_SEX<span class="op">==</span><span class="st">'F'</span> <span class="op">&amp;</span></a>
+<a class="sourceLine" id="cb5-10" data-line-number="10"><span class="st">                </span>( (TR_AGE_AT_MID_C<span class="op">==</span><span class="st">'25-34'</span> <span class="op">&amp;</span><span class="st"> </span>REC_AGE_AT_MID_C<span class="op">==</span><span class="st">'15-24'</span>)<span class="op">|</span></a>
+<a class="sourceLine" id="cb5-11" data-line-number="11"><span class="st">                    </span>(TR_AGE_AT_MID_C<span class="op">==</span><span class="st">'35+'</span> <span class="op">&amp;</span><span class="st"> </span>REC_AGE_AT_MID_C<span class="op">==</span><span class="st">'15-24'</span>)<span class="op">|</span></a>
+<a class="sourceLine" id="cb5-12" data-line-number="12"><span class="st">                    </span>(TR_AGE_AT_MID_C<span class="op">==</span><span class="st">'35+'</span> <span class="op">&amp;</span><span class="st"> </span>REC_AGE_AT_MID_C<span class="op">==</span><span class="st">'25-34'</span>) ),TRM_CAT_PAIR_ID]</a>
+<a class="sourceLine" id="cb5-13" data-line-number="13">lbd[tmp]  &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/Normal">rnorm</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(tmp),<span class="dv">1</span>,<span class="fl">0.2</span>)</a>
+<a class="sourceLine" id="cb5-14" data-line-number="14">TRUE_PI&lt;-lbd<span class="op">/</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/sum">sum</a></span>(lbd)</a>
+<a class="sourceLine" id="cb5-15" data-line-number="15">dobs[,TRUE_PI<span class="op">:</span><span class="er">=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/vector">as.vector</a></span>(TRUE_PI)]</a>
+<a class="sourceLine" id="cb5-16" data-line-number="16"></a>
+<a class="sourceLine" id="cb5-17" data-line-number="17">tmp&lt;-dobs[,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/sum">sum</a></span>(TRUE_PI),by=<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'TR_COMM_NUM_B'</span>,<span class="st">'REC_COMM_NUM_B'</span>)]</a>
+<a class="sourceLine" id="cb5-18" data-line-number="18"><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/setkey">setkey</a></span>(tmp,TR_COMM_NUM_B,REC_COMM_NUM_B)</a>
+<a class="sourceLine" id="cb5-19" data-line-number="19">TRUE_PI_V&lt;-tmp<span class="op">$</span>V1</a></code></pre></div>
+<p>The probability of sampling a transmission event from one subpopulation to another is calculated by the product of sampling probability of transmitters and recipients.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1">tmp&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/subset.data.table">subset</a></span>(ds,<span class="dt">select=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'CATEGORY'</span>,<span class="st">'P_SEQ'</span>))</a>
+<a class="sourceLine" id="cb6-2" data-line-number="2"><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/setattr">setnames</a></span>(tmp,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/colnames">colnames</a></span>(tmp),<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/paste">paste0</a></span>(<span class="st">'TR_TRM_'</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/colnames">colnames</a></span>(tmp)))</a>
+<a class="sourceLine" id="cb6-3" data-line-number="3">dobs&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/merge">merge</a></span>(dobs,tmp,<span class="dt">by=</span><span class="st">'TR_TRM_CATEGORY'</span>)</a>
+<a class="sourceLine" id="cb6-4" data-line-number="4"><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/setattr">setnames</a></span>(tmp,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/colnames">colnames</a></span>(tmp),<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/grep">gsub</a></span>(<span class="st">'TR_'</span>,<span class="st">'REC_'</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/colnames">colnames</a></span>(tmp)))</a>
+<a class="sourceLine" id="cb6-5" data-line-number="5">dobs&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/merge">merge</a></span>(dobs,tmp,<span class="dt">by=</span><span class="st">'REC_TRM_CATEGORY'</span>)</a>
+<a class="sourceLine" id="cb6-6" data-line-number="6">dobs[, S<span class="op">:</span><span class="er">=</span><span class="st"> </span>TR_TRM_P_SEQ <span class="op">*</span><span class="st"> </span>REC_TRM_P_SEQ]</a></code></pre></div>
+<p>Assume the observed transmission count is 300, and the observed transmissions between subpopulations could be simulated as follows:</p>
 <ol style="list-style-type: decimal">
-<li>generate the true transmission count <span class="math inline">\(Z \sim \mbox{Poisson} (20/S)\)</span>
-</li>
-<li>generate the true transmissions between groups <span class="math inline">\(z \sim \mbox{Multinomial} (Z,\pi)\)</span>
-</li>
-<li>generate the observed transmissions between groups <span class="math inline">\(n_{ab} \sim \mbox{Binomial} (z_{ab},\vartheta_{ab}), \forall a,b\)</span>
-</li>
+<li>generate the true transmission count <span class="math inline">\(Z\)</span> by a Poisson distribution with the parameter 300/ the mean sampling rates of pairs.</li>
+<li>generate the true transmissions between groups by <span class="math inline">\(z \sim \mbox{Multinomial} (Z,\pi)\)</span>.</li>
+<li>generate the observed transmissions from <span class="math inline">\(a\)</span> to <span class="math inline">\(b\)</span> by <span class="math inline">\(n_{ab} \sim \mbox{Binomial} (z_{ab},\vartheta_{ab}), \forall a,b\)</span> where <span class="math inline">\(\vartheta_{ab}\)</span> is the probability of sampling a transmission event from <span class="math inline">\(a\)</span> to <span class="math inline">\(b\)</span>.</li>
 </ol>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" data-line-number="1">N&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/Poisson">rpois</a></span>(<span class="dv">1</span>,<span class="dv">20</span><span class="op">/</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/mean">mean</a></span>(dc<span class="op">$</span>S))</a>
-<a class="sourceLine" id="cb9-2" data-line-number="2">z&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/Multinom">rmultinom</a></span>(<span class="dv">1</span>,<span class="dt">size=</span>N,<span class="dt">prob=</span>TRUE_PI)</a>
-<a class="sourceLine" id="cb9-3" data-line-number="3">n&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/matrix">matrix</a></span>(<span class="ot">NA_integer_</span>,<span class="dt">ncol=</span><span class="dv">1</span>,<span class="dt">nrow=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(TRUE_PI))</a>
-<a class="sourceLine" id="cb9-4" data-line-number="4"><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(TRUE_PI)){</a>
-<a class="sourceLine" id="cb9-5" data-line-number="5">  n[i]&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/Binomial">rbinom</a></span>(<span class="dv">1</span>,<span class="dt">size=</span>z[i],dc<span class="op">$</span>S[i])</a>
-<a class="sourceLine" id="cb9-6" data-line-number="6">}</a></code></pre></div>
-<p>Observed transmissions between groups are recorded from the simulation and id numbers are set for the stratified transmissions.</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" data-line-number="1">dc<span class="op">$</span>OBS&lt;-n</a>
-<a class="sourceLine" id="cb10-2" data-line-number="2">dc.obs.zero&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/which">which</a></span>(dc<span class="op">$</span>OBS<span class="op">==</span><span class="dv">0</span>)</a>
-<a class="sourceLine" id="cb10-3" data-line-number="3">dc&lt;-dc[<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/which">which</a></span>(dc<span class="op">$</span>OBS<span class="op">!=</span><span class="dv">0</span>),]</a>
-<a class="sourceLine" id="cb10-4" data-line-number="4">dc<span class="op">$</span>COUNT_ID&lt;-<span class="dv">1</span><span class="op">:</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/nrow">nrow</a></span>(dc)</a>
-<a class="sourceLine" id="cb10-5" data-line-number="5"></a>
-<a class="sourceLine" id="cb10-6" data-line-number="6"><span class="co"># remove irrelevant terms</span></a>
-<a class="sourceLine" id="cb10-7" data-line-number="7">dg<span class="op">$</span>P_SEQ&lt;-<span class="ot">NULL</span></a>
-<a class="sourceLine" id="cb10-8" data-line-number="8">dg<span class="op">$</span>LOGIT_P_SEQ&lt;-<span class="ot">NULL</span></a>
-<a class="sourceLine" id="cb10-9" data-line-number="9">dc<span class="op">$</span>TR_P_SEQ&lt;-<span class="ot">NULL</span></a>
-<a class="sourceLine" id="cb10-10" data-line-number="10">dc<span class="op">$</span>REC_P_SEQ&lt;-<span class="ot">NULL</span></a>
-<a class="sourceLine" id="cb10-11" data-line-number="11">dc<span class="op">$</span>S&lt;-<span class="ot">NULL</span></a>
-<a class="sourceLine" id="cb10-12" data-line-number="12">dc<span class="op">$</span>TRUE_PI&lt;-<span class="ot">NULL</span></a>
-<a class="sourceLine" id="cb10-13" data-line-number="13">dc[,TR_COMM_NUM_B<span class="op">:</span><span class="er">=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/integer">as.integer</a></span>(TR_COMM_NUM_B)]</a>
-<a class="sourceLine" id="cb10-14" data-line-number="14">dc[,REC_COMM_NUM_B<span class="op">:</span><span class="er">=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/integer">as.integer</a></span>(REC_COMM_NUM_B)]</a></code></pre></div>
-<p>‘df.sampling’ is a list of data table composed of ‘dg’.</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" data-line-number="1">df.sampling&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/list">list</a></span>()</a>
-<a class="sourceLine" id="cb11-2" data-line-number="2">df.sampling[[<span class="dv">1</span>]]&lt;-dg</a></code></pre></div>
-<p>Here we present the form of the inputs of prior generator under GLM, i.e. <strong>df.sampling</strong> and <strong>dc</strong>.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" data-line-number="1">N&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/Poisson">rpois</a></span>(<span class="dv">1</span>,<span class="dv">300</span><span class="op">/</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/mean">mean</a></span>(dobs<span class="op">$</span>S))</a>
+<a class="sourceLine" id="cb7-2" data-line-number="2">z&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/Multinom">rmultinom</a></span>(<span class="dv">1</span>,<span class="dt">size=</span>N,<span class="dt">prob=</span>TRUE_PI)</a>
+<a class="sourceLine" id="cb7-3" data-line-number="3">n&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/matrix">matrix</a></span>(<span class="ot">NA_integer_</span>,<span class="dt">ncol=</span><span class="dv">1</span>,<span class="dt">nrow=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(TRUE_PI))</a>
+<a class="sourceLine" id="cb7-4" data-line-number="4"><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(TRUE_PI)){</a>
+<a class="sourceLine" id="cb7-5" data-line-number="5">  n[i]&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/Binomial">rbinom</a></span>(<span class="dv">1</span>,<span class="dt">size=</span>z[i],dobs<span class="op">$</span>S[i])</a>
+<a class="sourceLine" id="cb7-6" data-line-number="6">}</a></code></pre></div>
+<p>Then, we record the observed count in ‘dobs’:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" data-line-number="1">dobs[, TRM_OBS<span class="op">:</span><span class="er">=</span><span class="st"> </span>n]</a>
+<a class="sourceLine" id="cb8-2" data-line-number="2">dobs&lt;-dobs[TRM_OBS<span class="op">!=</span><span class="dv">0</span>,]</a>
+<a class="sourceLine" id="cb8-3" data-line-number="3">dobs[, TRM_CAT_PAIR_ID<span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/seq">seq_len</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/nrow">nrow</a></span>(dobs))]</a>
+<a class="sourceLine" id="cb8-4" data-line-number="4"></a>
+<a class="sourceLine" id="cb8-5" data-line-number="5"><span class="co"># remove irrelevant terms</span></a>
+<a class="sourceLine" id="cb8-6" data-line-number="6"><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/assign">set</a></span>(ds,<span class="ot">NULL</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'P_SEQ'</span>,<span class="st">'LOGIT_P_SEQ'</span>),<span class="ot">NULL</span>)</a>
+<a class="sourceLine" id="cb8-7" data-line-number="7"><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/assign">set</a></span>(dobs,<span class="ot">NULL</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'TR_TRM_P_SEQ'</span>,<span class="st">'REC_TRM_P_SEQ'</span>,<span class="st">'S'</span>,<span class="st">'TRUE_PI'</span>,</a>
+<a class="sourceLine" id="cb8-8" data-line-number="8">                <span class="st">'TR_COMM_NUM_B'</span>, <span class="st">'TR_SEX'</span>, <span class="st">'TR_AGE_AT_MID_C'</span>, <span class="st">'REC_COMM_NUM_B'</span>, <span class="st">'REC_SEX'</span>,</a>
+<a class="sourceLine" id="cb8-9" data-line-number="9">                <span class="st">'REC_AGE_AT_MID_C'</span>),<span class="ot">NULL</span>)</a></code></pre></div>
+<p>No immigration is considered in this example. Transmission categories are, thus, consistent with sampling categories; that is, if an individual is sampled in a subpopulation and he/she transmits HIV, the transmission originates from this subpopulation.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" data-line-number="1">dobs[,TR_SAMPLING_CATEGORY<span class="op">:</span><span class="er">=</span>TR_TRM_CATEGORY]</a>
+<a class="sourceLine" id="cb9-2" data-line-number="2">dobs[,REC_SAMPLING_CATEGORY<span class="op">:</span><span class="er">=</span>REC_TRM_CATEGORY]</a></code></pre></div>
+<p>Here, we present the form of <strong>dobs</strong>.</p>
 <table class="table">
-<caption>df.sampling[[1]]</caption>
+<caption>Data on transmission events (dobs)</caption>
 <thead><tr class="header">
-<th align="left">AGE_AT_MID_C</th>
-<th align="left">SEX</th>
-<th align="right">COMM_NUM_B</th>
-<th align="right">TRIAL</th>
-<th align="right">AGE1</th>
-<th align="right">AGE2</th>
-<th align="right">MALE</th>
-<th align="right">SUC</th>
-<th align="left">CATEGORY</th>
+<th align="left">REC_TRM_CATEGORY</th>
+<th align="left">TR_TRM_CATEGORY</th>
+<th align="right">TRM_CAT_PAIR_ID</th>
+<th align="right">TRM_OBS</th>
+<th align="left">TR_SAMPLING_CATEGORY</th>
+<th align="left">REC_SAMPLING_CATEGORY</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="left">15-24</td>
-<td align="left">F</td>
+<td align="left">1:F:15-24</td>
+<td align="left">1:M:15-24</td>
 <td align="right">1</td>
-<td align="right">21</td>
-<td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">17</td>
+<td align="right">10</td>
+<td align="left">1:M:15-24</td>
 <td align="left">1:F:15-24</td>
 </tr>
 <tr class="even">
-<td align="left">25-34</td>
-<td align="left">F</td>
-<td align="right">1</td>
-<td align="right">50</td>
-<td align="right">0</td>
-<td align="right">1</td>
-<td align="right">0</td>
-<td align="right">35</td>
+<td align="left">1:F:15-24</td>
+<td align="left">1:M:25-34</td>
+<td align="right">2</td>
+<td align="right">10</td>
+<td align="left">1:M:25-34</td>
+<td align="left">1:F:15-24</td>
+</tr>
+<tr class="odd">
+<td align="left">1:F:15-24</td>
+<td align="left">1:M:35+</td>
+<td align="right">3</td>
+<td align="right">9</td>
+<td align="left">1:M:35+</td>
+<td align="left">1:F:15-24</td>
+</tr>
+<tr class="even">
+<td align="left">1:F:15-24</td>
+<td align="left">2:M:15-24</td>
+<td align="right">4</td>
+<td align="right">3</td>
+<td align="left">2:M:15-24</td>
+<td align="left">1:F:15-24</td>
+</tr>
+<tr class="odd">
+<td align="left">1:F:15-24</td>
+<td align="left">2:M:25-34</td>
+<td align="right">5</td>
+<td align="right">4</td>
+<td align="left">2:M:25-34</td>
+<td align="left">1:F:15-24</td>
+</tr>
+<tr class="even">
+<td align="left">1:F:15-24</td>
+<td align="left">2:M:35+</td>
+<td align="right">6</td>
+<td align="right">2</td>
+<td align="left">2:M:35+</td>
+<td align="left">1:F:15-24</td>
+</tr>
+<tr class="odd">
+<td align="left">1:F:25-34</td>
+<td align="left">1:M:15-24</td>
+<td align="right">7</td>
+<td align="right">3</td>
+<td align="left">1:M:15-24</td>
+<td align="left">1:F:25-34</td>
+</tr>
+<tr class="even">
+<td align="left">1:F:25-34</td>
+<td align="left">1:M:25-34</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="left">1:M:25-34</td>
 <td align="left">1:F:25-34</td>
 </tr>
 <tr class="odd">
-<td align="left">35+</td>
-<td align="left">F</td>
-<td align="right">1</td>
-<td align="right">13</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
+<td align="left">1:F:25-34</td>
+<td align="left">1:M:35+</td>
+<td align="right">9</td>
 <td align="right">10</td>
+<td align="left">1:M:35+</td>
+<td align="left">1:F:25-34</td>
+</tr>
+<tr class="even">
+<td align="left">1:F:25-34</td>
+<td align="left">2:M:15-24</td>
+<td align="right">10</td>
+<td align="right">4</td>
+<td align="left">2:M:15-24</td>
+<td align="left">1:F:25-34</td>
+</tr>
+<tr class="odd">
+<td align="left">1:F:25-34</td>
+<td align="left">2:M:35+</td>
+<td align="right">11</td>
+<td align="right">1</td>
+<td align="left">2:M:35+</td>
+<td align="left">1:F:25-34</td>
+</tr>
+<tr class="even">
+<td align="left">1:F:35+</td>
+<td align="left">1:M:15-24</td>
+<td align="right">12</td>
+<td align="right">6</td>
+<td align="left">1:M:15-24</td>
+<td align="left">1:F:35+</td>
+</tr>
+<tr class="odd">
+<td align="left">1:F:35+</td>
+<td align="left">1:M:25-34</td>
+<td align="right">13</td>
+<td align="right">5</td>
+<td align="left">1:M:25-34</td>
 <td align="left">1:F:35+</td>
 </tr>
 <tr class="even">
-<td align="left">15-24</td>
-<td align="left">M</td>
-<td align="right">1</td>
-<td align="right">7</td>
-<td align="right">1</td>
-<td align="right">0</td>
-<td align="right">1</td>
+<td align="left">1:F:35+</td>
+<td align="left">1:M:35+</td>
+<td align="right">14</td>
 <td align="right">5</td>
+<td align="left">1:M:35+</td>
+<td align="left">1:F:35+</td>
+</tr>
+<tr class="odd">
+<td align="left">1:F:35+</td>
+<td align="left">2:M:15-24</td>
+<td align="right">15</td>
+<td align="right">6</td>
+<td align="left">2:M:15-24</td>
+<td align="left">1:F:35+</td>
+</tr>
+<tr class="even">
+<td align="left">1:F:35+</td>
+<td align="left">2:M:25-34</td>
+<td align="right">16</td>
+<td align="right">1</td>
+<td align="left">2:M:25-34</td>
+<td align="left">1:F:35+</td>
+</tr>
+<tr class="odd">
+<td align="left">1:F:35+</td>
+<td align="left">2:M:35+</td>
+<td align="right">17</td>
+<td align="right">2</td>
+<td align="left">2:M:35+</td>
+<td align="left">1:F:35+</td>
+</tr>
+<tr class="even">
+<td align="left">1:M:15-24</td>
+<td align="left">1:F:15-24</td>
+<td align="right">18</td>
+<td align="right">4</td>
+<td align="left">1:F:15-24</td>
 <td align="left">1:M:15-24</td>
 </tr>
 <tr class="odd">
-<td align="left">25-34</td>
-<td align="left">M</td>
-<td align="right">1</td>
-<td align="right">18</td>
-<td align="right">0</td>
-<td align="right">1</td>
-<td align="right">1</td>
-<td align="right">12</td>
+<td align="left">1:M:15-24</td>
+<td align="left">1:F:25-34</td>
+<td align="right">19</td>
+<td align="right">6</td>
+<td align="left">1:F:25-34</td>
+<td align="left">1:M:15-24</td>
+</tr>
+<tr class="even">
+<td align="left">1:M:15-24</td>
+<td align="left">1:F:35+</td>
+<td align="right">20</td>
+<td align="right">7</td>
+<td align="left">1:F:35+</td>
+<td align="left">1:M:15-24</td>
+</tr>
+<tr class="odd">
+<td align="left">1:M:15-24</td>
+<td align="left">2:F:15-24</td>
+<td align="right">21</td>
+<td align="right">6</td>
+<td align="left">2:F:15-24</td>
+<td align="left">1:M:15-24</td>
+</tr>
+<tr class="even">
+<td align="left">1:M:15-24</td>
+<td align="left">2:F:25-34</td>
+<td align="right">22</td>
+<td align="right">3</td>
+<td align="left">2:F:25-34</td>
+<td align="left">1:M:15-24</td>
+</tr>
+<tr class="odd">
+<td align="left">1:M:15-24</td>
+<td align="left">2:F:35+</td>
+<td align="right">23</td>
+<td align="right">2</td>
+<td align="left">2:F:35+</td>
+<td align="left">1:M:15-24</td>
+</tr>
+<tr class="even">
+<td align="left">1:M:25-34</td>
+<td align="left">1:F:15-24</td>
+<td align="right">24</td>
+<td align="right">6</td>
+<td align="left">1:F:15-24</td>
+<td align="left">1:M:25-34</td>
+</tr>
+<tr class="odd">
+<td align="left">1:M:25-34</td>
+<td align="left">1:F:25-34</td>
+<td align="right">25</td>
+<td align="right">5</td>
+<td align="left">1:F:25-34</td>
 <td align="left">1:M:25-34</td>
 </tr>
 <tr class="even">
-<td align="left">35+</td>
-<td align="left">M</td>
+<td align="left">1:M:25-34</td>
+<td align="left">1:F:35+</td>
+<td align="right">26</td>
+<td align="right">4</td>
+<td align="left">1:F:35+</td>
+<td align="left">1:M:25-34</td>
+</tr>
+<tr class="odd">
+<td align="left">1:M:25-34</td>
+<td align="left">2:F:15-24</td>
+<td align="right">27</td>
 <td align="right">1</td>
-<td align="right">11</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">1</td>
-<td align="right">11</td>
+<td align="left">2:F:15-24</td>
+<td align="left">1:M:25-34</td>
+</tr>
+<tr class="even">
+<td align="left">1:M:25-34</td>
+<td align="left">2:F:35+</td>
+<td align="right">28</td>
+<td align="right">2</td>
+<td align="left">2:F:35+</td>
+<td align="left">1:M:25-34</td>
+</tr>
+<tr class="odd">
+<td align="left">1:M:35+</td>
+<td align="left">1:F:15-24</td>
+<td align="right">29</td>
+<td align="right">7</td>
+<td align="left">1:F:15-24</td>
+<td align="left">1:M:35+</td>
+</tr>
+<tr class="even">
+<td align="left">1:M:35+</td>
+<td align="left">1:F:25-34</td>
+<td align="right">30</td>
+<td align="right">5</td>
+<td align="left">1:F:25-34</td>
 <td align="left">1:M:35+</td>
 </tr>
 <tr class="odd">
-<td align="left">15-24</td>
-<td align="left">F</td>
-<td align="right">2</td>
-<td align="right">12</td>
+<td align="left">1:M:35+</td>
+<td align="left">1:F:35+</td>
+<td align="right">31</td>
+<td align="right">8</td>
+<td align="left">1:F:35+</td>
+<td align="left">1:M:35+</td>
+</tr>
+<tr class="even">
+<td align="left">1:M:35+</td>
+<td align="left">2:F:15-24</td>
+<td align="right">32</td>
+<td align="right">8</td>
+<td align="left">2:F:15-24</td>
+<td align="left">1:M:35+</td>
+</tr>
+<tr class="odd">
+<td align="left">1:M:35+</td>
+<td align="left">2:F:25-34</td>
+<td align="right">33</td>
+<td align="right">4</td>
+<td align="left">2:F:25-34</td>
+<td align="left">1:M:35+</td>
+</tr>
+<tr class="even">
+<td align="left">1:M:35+</td>
+<td align="left">2:F:35+</td>
+<td align="right">34</td>
 <td align="right">1</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">6</td>
+<td align="left">2:F:35+</td>
+<td align="left">1:M:35+</td>
+</tr>
+<tr class="odd">
+<td align="left">2:F:15-24</td>
+<td align="left">1:M:25-34</td>
+<td align="right">35</td>
+<td align="right">4</td>
+<td align="left">1:M:25-34</td>
 <td align="left">2:F:15-24</td>
 </tr>
 <tr class="even">
-<td align="left">25-34</td>
-<td align="left">F</td>
+<td align="left">2:F:15-24</td>
+<td align="left">1:M:35+</td>
+<td align="right">36</td>
 <td align="right">2</td>
-<td align="right">24</td>
-<td align="right">0</td>
-<td align="right">1</td>
-<td align="right">0</td>
-<td align="right">10</td>
+<td align="left">1:M:35+</td>
+<td align="left">2:F:15-24</td>
+</tr>
+<tr class="odd">
+<td align="left">2:F:15-24</td>
+<td align="left">2:M:15-24</td>
+<td align="right">37</td>
+<td align="right">4</td>
+<td align="left">2:M:15-24</td>
+<td align="left">2:F:15-24</td>
+</tr>
+<tr class="even">
+<td align="left">2:F:15-24</td>
+<td align="left">2:M:25-34</td>
+<td align="right">38</td>
+<td align="right">6</td>
+<td align="left">2:M:25-34</td>
+<td align="left">2:F:15-24</td>
+</tr>
+<tr class="odd">
+<td align="left">2:F:15-24</td>
+<td align="left">2:M:35+</td>
+<td align="right">39</td>
+<td align="right">4</td>
+<td align="left">2:M:35+</td>
+<td align="left">2:F:15-24</td>
+</tr>
+<tr class="even">
+<td align="left">2:F:25-34</td>
+<td align="left">1:M:15-24</td>
+<td align="right">40</td>
+<td align="right">3</td>
+<td align="left">1:M:15-24</td>
 <td align="left">2:F:25-34</td>
 </tr>
 <tr class="odd">
-<td align="left">35+</td>
-<td align="left">F</td>
-<td align="right">2</td>
-<td align="right">12</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">6</td>
+<td align="left">2:F:25-34</td>
+<td align="left">1:M:25-34</td>
+<td align="right">41</td>
+<td align="right">3</td>
+<td align="left">1:M:25-34</td>
+<td align="left">2:F:25-34</td>
+</tr>
+<tr class="even">
+<td align="left">2:F:25-34</td>
+<td align="left">1:M:35+</td>
+<td align="right">42</td>
+<td align="right">4</td>
+<td align="left">1:M:35+</td>
+<td align="left">2:F:25-34</td>
+</tr>
+<tr class="odd">
+<td align="left">2:F:25-34</td>
+<td align="left">2:M:15-24</td>
+<td align="right">43</td>
+<td align="right">4</td>
+<td align="left">2:M:15-24</td>
+<td align="left">2:F:25-34</td>
+</tr>
+<tr class="even">
+<td align="left">2:F:25-34</td>
+<td align="left">2:M:25-34</td>
+<td align="right">44</td>
+<td align="right">4</td>
+<td align="left">2:M:25-34</td>
+<td align="left">2:F:25-34</td>
+</tr>
+<tr class="odd">
+<td align="left">2:F:25-34</td>
+<td align="left">2:M:35+</td>
+<td align="right">45</td>
+<td align="right">4</td>
+<td align="left">2:M:35+</td>
+<td align="left">2:F:25-34</td>
+</tr>
+<tr class="even">
+<td align="left">2:F:35+</td>
+<td align="left">1:M:15-24</td>
+<td align="right">46</td>
+<td align="right">7</td>
+<td align="left">1:M:15-24</td>
+<td align="left">2:F:35+</td>
+</tr>
+<tr class="odd">
+<td align="left">2:F:35+</td>
+<td align="left">1:M:25-34</td>
+<td align="right">47</td>
+<td align="right">4</td>
+<td align="left">1:M:25-34</td>
 <td align="left">2:F:35+</td>
 </tr>
 <tr class="even">
-<td align="left">15-24</td>
-<td align="left">M</td>
-<td align="right">2</td>
-<td align="right">6</td>
-<td align="right">1</td>
-<td align="right">0</td>
-<td align="right">1</td>
+<td align="left">2:F:35+</td>
+<td align="left">1:M:35+</td>
+<td align="right">48</td>
 <td align="right">4</td>
+<td align="left">1:M:35+</td>
+<td align="left">2:F:35+</td>
+</tr>
+<tr class="odd">
+<td align="left">2:F:35+</td>
+<td align="left">2:M:15-24</td>
+<td align="right">49</td>
+<td align="right">1</td>
+<td align="left">2:M:15-24</td>
+<td align="left">2:F:35+</td>
+</tr>
+<tr class="even">
+<td align="left">2:F:35+</td>
+<td align="left">2:M:25-34</td>
+<td align="right">50</td>
+<td align="right">3</td>
+<td align="left">2:M:25-34</td>
+<td align="left">2:F:35+</td>
+</tr>
+<tr class="odd">
+<td align="left">2:F:35+</td>
+<td align="left">2:M:35+</td>
+<td align="right">51</td>
+<td align="right">5</td>
+<td align="left">2:M:35+</td>
+<td align="left">2:F:35+</td>
+</tr>
+<tr class="even">
+<td align="left">2:M:15-24</td>
+<td align="left">1:F:15-24</td>
+<td align="right">52</td>
+<td align="right">8</td>
+<td align="left">1:F:15-24</td>
 <td align="left">2:M:15-24</td>
 </tr>
 <tr class="odd">
-<td align="left">25-34</td>
-<td align="left">M</td>
-<td align="right">2</td>
-<td align="right">13</td>
-<td align="right">0</td>
-<td align="right">1</td>
-<td align="right">1</td>
+<td align="left">2:M:15-24</td>
+<td align="left">1:F:25-34</td>
+<td align="right">53</td>
 <td align="right">5</td>
+<td align="left">1:F:25-34</td>
+<td align="left">2:M:15-24</td>
+</tr>
+<tr class="even">
+<td align="left">2:M:15-24</td>
+<td align="left">1:F:35+</td>
+<td align="right">54</td>
+<td align="right">4</td>
+<td align="left">1:F:35+</td>
+<td align="left">2:M:15-24</td>
+</tr>
+<tr class="odd">
+<td align="left">2:M:15-24</td>
+<td align="left">2:F:15-24</td>
+<td align="right">55</td>
+<td align="right">4</td>
+<td align="left">2:F:15-24</td>
+<td align="left">2:M:15-24</td>
+</tr>
+<tr class="even">
+<td align="left">2:M:15-24</td>
+<td align="left">2:F:25-34</td>
+<td align="right">56</td>
+<td align="right">1</td>
+<td align="left">2:F:25-34</td>
+<td align="left">2:M:15-24</td>
+</tr>
+<tr class="odd">
+<td align="left">2:M:15-24</td>
+<td align="left">2:F:35+</td>
+<td align="right">57</td>
+<td align="right">3</td>
+<td align="left">2:F:35+</td>
+<td align="left">2:M:15-24</td>
+</tr>
+<tr class="even">
+<td align="left">2:M:25-34</td>
+<td align="left">1:F:25-34</td>
+<td align="right">58</td>
+<td align="right">3</td>
+<td align="left">1:F:25-34</td>
+<td align="left">2:M:25-34</td>
+</tr>
+<tr class="odd">
+<td align="left">2:M:25-34</td>
+<td align="left">1:F:35+</td>
+<td align="right">59</td>
+<td align="right">4</td>
+<td align="left">1:F:35+</td>
 <td align="left">2:M:25-34</td>
 </tr>
 <tr class="even">
-<td align="left">35+</td>
-<td align="left">M</td>
+<td align="left">2:M:25-34</td>
+<td align="left">2:F:15-24</td>
+<td align="right">60</td>
+<td align="right">9</td>
+<td align="left">2:F:15-24</td>
+<td align="left">2:M:25-34</td>
+</tr>
+<tr class="odd">
+<td align="left">2:M:25-34</td>
+<td align="left">2:F:25-34</td>
+<td align="right">61</td>
 <td align="right">2</td>
-<td align="right">13</td>
-<td align="right">0</td>
-<td align="right">0</td>
-<td align="right">1</td>
-<td align="right">8</td>
+<td align="left">2:F:25-34</td>
+<td align="left">2:M:25-34</td>
+</tr>
+<tr class="even">
+<td align="left">2:M:25-34</td>
+<td align="left">2:F:35+</td>
+<td align="right">62</td>
+<td align="right">4</td>
+<td align="left">2:F:35+</td>
+<td align="left">2:M:25-34</td>
+</tr>
+<tr class="odd">
+<td align="left">2:M:35+</td>
+<td align="left">1:F:15-24</td>
+<td align="right">63</td>
+<td align="right">2</td>
+<td align="left">1:F:15-24</td>
+<td align="left">2:M:35+</td>
+</tr>
+<tr class="even">
+<td align="left">2:M:35+</td>
+<td align="left">1:F:25-34</td>
+<td align="right">64</td>
+<td align="right">2</td>
+<td align="left">1:F:25-34</td>
+<td align="left">2:M:35+</td>
+</tr>
+<tr class="odd">
+<td align="left">2:M:35+</td>
+<td align="left">1:F:35+</td>
+<td align="right">65</td>
+<td align="right">2</td>
+<td align="left">1:F:35+</td>
+<td align="left">2:M:35+</td>
+</tr>
+<tr class="even">
+<td align="left">2:M:35+</td>
+<td align="left">2:F:15-24</td>
+<td align="right">66</td>
+<td align="right">2</td>
+<td align="left">2:F:15-24</td>
+<td align="left">2:M:35+</td>
+</tr>
+<tr class="odd">
+<td align="left">2:M:35+</td>
+<td align="left">2:F:25-34</td>
+<td align="right">67</td>
+<td align="right">4</td>
+<td align="left">2:F:25-34</td>
+<td align="left">2:M:35+</td>
+</tr>
+<tr class="even">
+<td align="left">2:M:35+</td>
+<td align="left">2:F:35+</td>
+<td align="right">68</td>
+<td align="right">4</td>
+<td align="left">2:F:35+</td>
 <td align="left">2:M:35+</td>
 </tr>
 </tbody>
 </table>
+<p>In practice, <strong>dobs</strong> could be aggregated from transmission events inferred from <strong>phyloscanner</strong>.</p>
+</div>
+<div id="generating-samples-from-the-prior-of-the-sampling-rates" class="section level2">
+<h2 class="hasAnchor">
+<a href="#generating-samples-from-the-prior-of-the-sampling-rates" class="anchor"></a>Generating samples from the prior of the sampling rates</h2>
+<p>Assume an individual in community <span class="math inline">\(a\)</span> is sampled at random with probability <span class="math inline">\(\xi_a\)</span>. If we know the number of infected <span class="math inline">\(X_a^i\)</span> and sequenced individuals <span class="math inline">\(X_a^s\)</span> in all the subpopulations, and individual covariates, we could infer the posterial distribution <span class="math inline">\(\xi_a\)</span> through stan.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" data-line-number="1"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/library">library</a></span>(rstan)</a>
+<a class="sourceLine" id="cb10-2" data-line-number="2"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/library">library</a></span>(bayesplot)</a>
+<a class="sourceLine" id="cb10-3" data-line-number="3">infile.sequencing.stan.model&lt;-<span class="st">'glm_age3sex2comm2bin.stan'</span></a>
+<a class="sourceLine" id="cb10-4" data-line-number="4"><span class="co">#   run STAN </span></a>
+<a class="sourceLine" id="cb10-5" data-line-number="5">    tmp         &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/list">as.list</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/subset.data.table">subset</a></span>(ds,<span class="dt">select=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'COMM_NUM_B'</span>,<span class="st">'TRIAL'</span>,<span class="st">'SUC'</span>,<span class="st">'MALE'</span>,<span class="st">'AGE1'</span>,<span class="st">'AGE2'</span>)))</a>
+<a class="sourceLine" id="cb10-6" data-line-number="6">    tmp<span class="op">$</span>N       &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/nrow">nrow</a></span>(ds)</a>
+<a class="sourceLine" id="cb10-7" data-line-number="7">    tmp<span class="op">$</span>N_COMM  &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/duplicated">unique</a></span>(ds<span class="op">$</span>COMM_NUM_B))</a>
+<a class="sourceLine" id="cb10-8" data-line-number="8">    fit.par     &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/rstan/topics/stan">stan</a></span>(    <span class="dt">file =</span> infile.sequencing.stan.model, </a>
+<a class="sourceLine" id="cb10-9" data-line-number="9">                        <span class="dt">data =</span> tmp, </a>
+<a class="sourceLine" id="cb10-10" data-line-number="10">                        <span class="dt">iter =</span> <span class="fl">10e3</span>,</a>
+<a class="sourceLine" id="cb10-11" data-line-number="11">                        <span class="dt">warmup =</span> <span class="fl">5e2</span>,</a>
+<a class="sourceLine" id="cb10-12" data-line-number="12">                        <span class="dt">cores =</span> <span class="dv">1</span>,</a>
+<a class="sourceLine" id="cb10-13" data-line-number="13">                        <span class="dt">chains =</span> <span class="dv">1</span>,</a>
+<a class="sourceLine" id="cb10-14" data-line-number="14">                        <span class="dt">init =</span> <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/list">list</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/list">list</a></span>(<span class="dt">a=</span><span class="dv">0</span>, <span class="dt">comm=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="dv">0</span>,<span class="dv">2</span>), <span class="dt">sig_comm=</span><span class="dv">1</span>, <span class="dt">male=</span><span class="dv">0</span>, <span class="dt">age1=</span><span class="dv">0</span>, <span class="dt">age2=</span><span class="dv">0</span>)))</a></code></pre></div>
+<p>The convergence of the stan code can be examined by effective sample size and trace plots.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" data-line-number="1">    fit.pars    &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'a'</span>,<span class="st">'comm'</span>,<span class="st">'sig_comm'</span>,<span class="st">'male'</span>,<span class="st">'age1'</span>,<span class="st">'age2'</span>)</a>
+<a class="sourceLine" id="cb11-2" data-line-number="2">    <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/any">any</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/bayesplot/topics/bayesplot-extractors">rhat</a></span>(fit.par, <span class="dt">pars=</span>fit.pars)<span class="op">&gt;</span><span class="fl">1.02</span>)</a>
+<a class="sourceLine" id="cb11-3" data-line-number="3">    <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/any">any</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/bayesplot/topics/bayesplot-extractors">neff_ratio</a></span>(fit.par, <span class="dt">pars=</span>fit.pars) <span class="op">*</span><span class="st"> </span><span class="fl">9.5e3</span> <span class="op">&lt;</span><span class="st"> </span><span class="dv">500</span>)</a>
+<a class="sourceLine" id="cb11-4" data-line-number="4">    po              &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/as.matrix">as.matrix</a></span>(fit.par) </a>
+<a class="sourceLine" id="cb11-5" data-line-number="5">    po              &lt;-<span class="st"> </span>po[, <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/colnames">colnames</a></span>(po)[<span class="op">!</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/grep">grepl</a></span>(<span class="st">'p_suc|lp__'</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/colnames">colnames</a></span>(po))]]    </a>
+<a class="sourceLine" id="cb11-6" data-line-number="6">    p   &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/bayesplot/topics/MCMC-traces">mcmc_trace</a></span>(po, <span class="dt">pars=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/colnames">colnames</a></span>(po), <span class="dt">facet_args =</span> <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/list">list</a></span>(<span class="dt">ncol =</span> <span class="dv">1</span>)) </a>
+<a class="sourceLine" id="cb11-7" data-line-number="7">    <span class="kw"><a href="https://www.rdocumentation.org/packages/grDevices/topics/pdf">pdf</a></span>(<span class="dt">file=</span><span class="st">'190327_participation_model_marginaltraces.pdf'</span>, <span class="dt">w=</span><span class="dv">7</span>, <span class="dt">h=</span><span class="dv">100</span>)</a>
+<a class="sourceLine" id="cb11-8" data-line-number="8">    p</a>
+<a class="sourceLine" id="cb11-9" data-line-number="9">    <span class="kw"><a href="https://www.rdocumentation.org/packages/grDevices/topics/dev">dev.off</a></span>()</a></code></pre></div>
+<p>We can extract samples from the posterior distribution of <span class="math inline">\(\xi_a\)</span> and use them as samples from the informative prior distribution. These samples are recorded in <strong>dprior</strong>.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" data-line-number="1">    nprior  &lt;-<span class="st"> </span><span class="dv">1000</span></a>
+<a class="sourceLine" id="cb12-2" data-line-number="2">    <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Random">set.seed</a></span>(<span class="dv">42</span>)</a>
+<a class="sourceLine" id="cb12-3" data-line-number="3">    dprior   &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/data.table">data.table</a></span>(<span class="dt">CATEGORY=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/duplicated">unique</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(dobs<span class="op">$</span>TR_TRM_CATEGORY,dobs<span class="op">$</span>REC_TRM_CATEGORY)))</a>
+<a class="sourceLine" id="cb12-4" data-line-number="4">    dprior[, COMM_NUM_B<span class="op">:</span><span class="er">=</span><span class="st"> </span>dprior[, <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/grep">gsub</a></span>(<span class="st">'^(.+)</span><span class="ch">\\</span><span class="st">:(.)</span><span class="ch">\\</span><span class="st">:(.+)$'</span>,<span class="st">'</span><span class="ch">\\</span><span class="st">1'</span>,CATEGORY)]]</a>
+<a class="sourceLine" id="cb12-5" data-line-number="5">    dprior[, SEX<span class="op">:</span><span class="er">=</span><span class="st"> </span>dprior[,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/grep">gsub</a></span>(<span class="st">'^(.+)</span><span class="ch">\\</span><span class="st">:(.)</span><span class="ch">\\</span><span class="st">:(.+)'</span>,<span class="st">'</span><span class="ch">\\</span><span class="st">2'</span>,CATEGORY)]]</a>
+<a class="sourceLine" id="cb12-6" data-line-number="6">    dprior[, AGE_AT_MID_C<span class="op">:</span><span class="er">=</span><span class="st"> </span>dprior[, <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/grep">gsub</a></span>(<span class="st">'^(.+)</span><span class="ch">\\</span><span class="st">:(.)</span><span class="ch">\\</span><span class="st">:(.+)$'</span>,<span class="st">'</span><span class="ch">\\</span><span class="st">3'</span>,CATEGORY)]]</a>
+<a class="sourceLine" id="cb12-7" data-line-number="7">    dprior[, AGE1<span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/integer">as.integer</a></span>(AGE_AT_MID_C<span class="op">==</span><span class="st">'15-24'</span>)]</a>
+<a class="sourceLine" id="cb12-8" data-line-number="8">    dprior[, AGE2<span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/integer">as.integer</a></span>(AGE_AT_MID_C<span class="op">==</span><span class="st">'25-34'</span>)]</a>
+<a class="sourceLine" id="cb12-9" data-line-number="9">    dprior[, MALE<span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/integer">as.integer</a></span>(SEX<span class="op">==</span><span class="st">'M'</span>)]</a>
+<a class="sourceLine" id="cb12-10" data-line-number="10">    dprior[, COMM_NUM_B<span class="op">:</span><span class="er">=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/integer">as.integer</a></span>(COMM_NUM_B)]</a>
+<a class="sourceLine" id="cb12-11" data-line-number="11">    </a>
+<a class="sourceLine" id="cb12-12" data-line-number="12">    fit.e       &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/rstan/topics/stanfit-method-extract">extract</a></span>(fit.par)</a>
+<a class="sourceLine" id="cb12-13" data-line-number="13">    tmp         &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/sample">sample</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(fit.e<span class="op">$</span>a), nprior)</a>
+<a class="sourceLine" id="cb12-14" data-line-number="14">    dprior          &lt;-<span class="st"> </span>dprior[, </a>
+<a class="sourceLine" id="cb12-15" data-line-number="15">            {</a>
+<a class="sourceLine" id="cb12-16" data-line-number="16">                z&lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/with">with</a></span>(fit.e, a <span class="op">+</span><span class="st"> </span>comm[,COMM_NUM_B] <span class="op">+</span><span class="st"> </span>male <span class="op">*</span><span class="st"> </span>MALE <span class="op">+</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb12-17" data-line-number="17"><span class="st">                                </span>age1 <span class="op">*</span><span class="st"> </span>AGE1 <span class="op">+</span><span class="st"> </span>age2 <span class="op">*</span><span class="st"> </span>AGE2)</a>
+<a class="sourceLine" id="cb12-18" data-line-number="18">                <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/list">list</a></span>(<span class="dt">SAMPLE=</span><span class="dv">1</span><span class="op">:</span>nprior, <span class="dt">ETA=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/numeric">as.numeric</a></span>(z[tmp]))</a>
+<a class="sourceLine" id="cb12-19" data-line-number="19">            },  </a>
+<a class="sourceLine" id="cb12-20" data-line-number="20">            by=<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'CATEGORY'</span>)]</a>
+<a class="sourceLine" id="cb12-21" data-line-number="21">    dprior[, P<span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Log">exp</a></span>(ETA)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Log">exp</a></span>(ETA))]</a>
+<a class="sourceLine" id="cb12-22" data-line-number="22">    </a>
+<a class="sourceLine" id="cb12-23" data-line-number="23">    <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/library">require</a></span>(bde)</a>
+<a class="sourceLine" id="cb12-24" data-line-number="24">    tmp &lt;-<span class="st"> </span>dprior[, {</a>
+<a class="sourceLine" id="cb12-25" data-line-number="25">                bdest&lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/bde/topics/bde">bde</a></span>(P, <span class="dt">dataPointsCache=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/sort">sort</a></span>(P), <span class="dt">b=</span><span class="fl">0.001</span>, <span class="dt">estimator=</span><span class="st">'betakernel'</span>, <span class="dt">lower.limit=</span><span class="dv">0</span>, <span class="dt">upper.limit=</span><span class="dv">1</span>,</a>
+<a class="sourceLine" id="cb12-26" data-line-number="26">                            <span class="dt">options=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/list">list</a></span>(<span class="dt">modified=</span><span class="ot">FALSE</span>, <span class="dt">normalization=</span><span class="st">'densitywise'</span>, <span class="dt">mbc=</span><span class="st">'none'</span>, <span class="dt">c=</span><span class="fl">0.5</span>))</a>
+<a class="sourceLine" id="cb12-27" data-line-number="27">                <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/list">list</a></span>(<span class="dt">SAMPLE=</span>SAMPLE, <span class="dt">LP=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Log">log</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/bde/topics/density">density</a></span>(bdest, P)))</a>
+<a class="sourceLine" id="cb12-28" data-line-number="28">            }, by=<span class="st">'CATEGORY'</span>]</a>
+<a class="sourceLine" id="cb12-29" data-line-number="29">    dprior  &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/merge">merge</a></span>(dprior, tmp, <span class="dt">by=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'CATEGORY'</span>,<span class="st">'SAMPLE'</span>))</a>
+<a class="sourceLine" id="cb12-30" data-line-number="30">    <span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/assign">set</a></span>(dprior, <span class="ot">NULL</span>, <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'ETA'</span>), <span class="ot">NULL</span>)   </a>
+<a class="sourceLine" id="cb12-31" data-line-number="31">    <span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/setattr">setnames</a></span>(dprior, <span class="st">'CATEGORY'</span>, <span class="st">'SAMPLING_CATEGORY'</span>)</a></code></pre></div>
+<p>Here, we present the form of <strong>dobs</strong>.</p>
 <table class="table">
-<caption>dc</caption>
+<caption>the first 6 rows of dprior</caption>
 <thead><tr class="header">
-<th align="left">REC_CATEGORY</th>
-<th align="left">TR_CATEGORY</th>
-<th align="right">COUNT_ID</th>
-<th align="right">TR_COMM_NUM_B</th>
-<th align="left">TR_SEX</th>
-<th align="left">TR_AGE_AT_MID_C</th>
-<th align="right">REC_COMM_NUM_B</th>
-<th align="left">REC_SEX</th>
-<th align="left">REC_AGE_AT_MID_C</th>
-<th align="right">OBS</th>
+<th align="left">SAMPLING_CATEGORY</th>
+<th align="right">SAMPLE</th>
+<th align="right">P</th>
+<th align="right">LP</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="left">1:F:25-34</td>
-<td align="left">1:M:25-34</td>
+<td align="left">1:F:15-24</td>
 <td align="right">1</td>
-<td align="right">1</td>
-<td align="left">M</td>
-<td align="left">25-34</td>
-<td align="right">1</td>
-<td align="left">F</td>
-<td align="left">25-34</td>
-<td align="right">1</td>
+<td align="right">0.8201782</td>
+<td align="right">2.507873</td>
 </tr>
 <tr class="even">
-<td align="left">1:F:25-34</td>
-<td align="left">1:M:35+</td>
+<td align="left">1:F:15-24</td>
 <td align="right">2</td>
-<td align="right">1</td>
-<td align="left">M</td>
-<td align="left">35+</td>
-<td align="right">1</td>
-<td align="left">F</td>
-<td align="left">25-34</td>
-<td align="right">1</td>
+<td align="right">0.8064261</td>
+<td align="right">3.045285</td>
 </tr>
 <tr class="odd">
-<td align="left">1:F:35+</td>
-<td align="left">1:M:15-24</td>
+<td align="left">1:F:15-24</td>
 <td align="right">3</td>
-<td align="right">1</td>
-<td align="left">M</td>
-<td align="left">15-24</td>
-<td align="right">1</td>
-<td align="left">F</td>
-<td align="left">35+</td>
-<td align="right">1</td>
+<td align="right">0.7869429</td>
+<td align="right">2.799429</td>
 </tr>
 <tr class="even">
-<td align="left">1:F:35+</td>
-<td align="left">1:M:35+</td>
+<td align="left">1:F:15-24</td>
 <td align="right">4</td>
-<td align="right">1</td>
-<td align="left">M</td>
-<td align="left">35+</td>
-<td align="right">1</td>
-<td align="left">F</td>
-<td align="left">35+</td>
-<td align="right">1</td>
+<td align="right">0.7852621</td>
+<td align="right">2.728961</td>
 </tr>
 <tr class="odd">
-<td align="left">1:M:25-34</td>
 <td align="left">1:F:15-24</td>
 <td align="right">5</td>
-<td align="right">1</td>
-<td align="left">F</td>
-<td align="left">15-24</td>
-<td align="right">1</td>
-<td align="left">M</td>
-<td align="left">25-34</td>
-<td align="right">1</td>
+<td align="right">0.8046598</td>
+<td align="right">3.068726</td>
 </tr>
 <tr class="even">
-<td align="left">1:M:25-34</td>
-<td align="left">1:F:35+</td>
+<td align="left">1:F:15-24</td>
 <td align="right">6</td>
-<td align="right">1</td>
-<td align="left">F</td>
-<td align="left">35+</td>
-<td align="right">1</td>
-<td align="left">M</td>
-<td align="left">25-34</td>
-<td align="right">1</td>
-</tr>
-<tr class="odd">
-<td align="left">1:M:25-34</td>
-<td align="left">2:F:35+</td>
-<td align="right">7</td>
-<td align="right">2</td>
-<td align="left">F</td>
-<td align="left">35+</td>
-<td align="right">1</td>
-<td align="left">M</td>
-<td align="left">25-34</td>
-<td align="right">1</td>
-</tr>
-<tr class="even">
-<td align="left">1:M:35+</td>
-<td align="left">1:F:15-24</td>
-<td align="right">8</td>
-<td align="right">1</td>
-<td align="left">F</td>
-<td align="left">15-24</td>
-<td align="right">1</td>
-<td align="left">M</td>
-<td align="left">35+</td>
-<td align="right">3</td>
-</tr>
-<tr class="odd">
-<td align="left">1:M:35+</td>
-<td align="left">1:F:25-34</td>
-<td align="right">9</td>
-<td align="right">1</td>
-<td align="left">F</td>
-<td align="left">25-34</td>
-<td align="right">1</td>
-<td align="left">M</td>
-<td align="left">35+</td>
-<td align="right">1</td>
-</tr>
-<tr class="even">
-<td align="left">2:F:15-24</td>
-<td align="left">1:M:15-24</td>
-<td align="right">10</td>
-<td align="right">1</td>
-<td align="left">M</td>
-<td align="left">15-24</td>
-<td align="right">2</td>
-<td align="left">F</td>
-<td align="left">15-24</td>
-<td align="right">1</td>
-</tr>
-<tr class="odd">
-<td align="left">2:F:15-24</td>
-<td align="left">2:M:35+</td>
-<td align="right">11</td>
-<td align="right">2</td>
-<td align="left">M</td>
-<td align="left">35+</td>
-<td align="right">2</td>
-<td align="left">F</td>
-<td align="left">15-24</td>
-<td align="right">1</td>
-</tr>
-<tr class="even">
-<td align="left">2:F:25-34</td>
-<td align="left">1:M:25-34</td>
-<td align="right">12</td>
-<td align="right">1</td>
-<td align="left">M</td>
-<td align="left">25-34</td>
-<td align="right">2</td>
-<td align="left">F</td>
-<td align="left">25-34</td>
-<td align="right">2</td>
-</tr>
-<tr class="odd">
-<td align="left">2:F:25-34</td>
-<td align="left">1:M:35+</td>
-<td align="right">13</td>
-<td align="right">1</td>
-<td align="left">M</td>
-<td align="left">35+</td>
-<td align="right">2</td>
-<td align="left">F</td>
-<td align="left">25-34</td>
-<td align="right">1</td>
-</tr>
-<tr class="even">
-<td align="left">2:M:15-24</td>
-<td align="left">1:F:25-34</td>
-<td align="right">14</td>
-<td align="right">1</td>
-<td align="left">F</td>
-<td align="left">25-34</td>
-<td align="right">2</td>
-<td align="left">M</td>
-<td align="left">15-24</td>
-<td align="right">1</td>
-</tr>
-<tr class="odd">
-<td align="left">2:M:25-34</td>
-<td align="left">1:F:15-24</td>
-<td align="right">15</td>
-<td align="right">1</td>
-<td align="left">F</td>
-<td align="left">15-24</td>
-<td align="right">2</td>
-<td align="left">M</td>
-<td align="left">25-34</td>
-<td align="right">1</td>
-</tr>
-<tr class="even">
-<td align="left">2:M:25-34</td>
-<td align="left">1:F:25-34</td>
-<td align="right">16</td>
-<td align="right">1</td>
-<td align="left">F</td>
-<td align="left">25-34</td>
-<td align="right">2</td>
-<td align="left">M</td>
-<td align="left">25-34</td>
-<td align="right">2</td>
-</tr>
-<tr class="odd">
-<td align="left">2:M:35+</td>
-<td align="left">2:F:15-24</td>
-<td align="right">17</td>
-<td align="right">2</td>
-<td align="left">F</td>
-<td align="left">15-24</td>
-<td align="right">2</td>
-<td align="left">M</td>
-<td align="left">35+</td>
-<td align="right">1</td>
-</tr>
-<tr class="even">
-<td align="left">2:M:35+</td>
-<td align="left">2:F:25-34</td>
-<td align="right">18</td>
-<td align="right">2</td>
-<td align="left">F</td>
-<td align="left">25-34</td>
-<td align="right">2</td>
-<td align="left">M</td>
-<td align="left">35+</td>
-<td align="right">1</td>
-</tr>
-<tr class="odd">
-<td align="left">2:M:35+</td>
-<td align="left">2:F:35+</td>
-<td align="right">19</td>
-<td align="right">2</td>
-<td align="left">F</td>
-<td align="left">35+</td>
-<td align="right">2</td>
-<td align="left">M</td>
-<td align="left">35+</td>
-<td align="right">1</td>
+<td align="right">0.8211062</td>
+<td align="right">2.447583</td>
 </tr>
 </tbody>
 </table>
 </div>
-<div id="implementing-the-bias-adjusted-algorithm" class="section level2">
+<div id="source-attribution-while-adjusting-for-sampling-bias" class="section level2">
 <h2 class="hasAnchor">
-<a href="#implementing-the-bias-adjusted-algorithm" class="anchor"></a>Implementing the bias-adjusted algorithm</h2>
-<p>We now draw samples from the prior distribution using GLM. The function will depend on covariates and the function ‘samples.from.GLM.prior’ from this package is an example. Running the following lines gives you information required for MCMC algorithm, i.e. S.DTL.prior and TR.OBS and save data under your working directory.</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" data-line-number="1"><span class="kw"><a href="../reference/samples.from.GLM.prior.html">samples.from.GLM.prior</a></span>(<span class="dt">df.sampling=</span>df.sampling,<span class="dt">dc=</span>dc,<span class="dt">iteration=</span><span class="fl">3e6</span>,<span class="dt">sample.method=</span><span class="st">'empirical'</span>,<span class="dt">glm.model=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'binomial'</span>),<span class="dt">seed=</span><span class="dv">123</span>)</a></code></pre></div>
-<p>After loading the samples from the prior distribution, we can use the following algorithm to estimate the proportion of transmissions between subpopulations when correcting for sampling differences.</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" data-line-number="1"><span class="kw"><a href="../reference/mcmc.core.inference.html">mcmc.core.inference</a></span>(<span class="dt">s.dtl.prior=</span>S.DTL.prior,<span class="dt">tr.obs=</span>TR.OBS,<span class="dt">seed=</span><span class="dv">123</span>)</a></code></pre></div>
-<p>The estimated proportions of transmissions between subpopulations are summerised as follows.</p>
-<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" data-line-number="1"><span class="co"># runtime of the algorithm</span></a>
-<a class="sourceLine" id="cb14-2" data-line-number="2"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/print">print</a></span>(time)</a></code></pre></div>
-<pre><code>## Time difference of 49.85022 mins</code></pre>
-<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb16-1" data-line-number="1">dc.obs.nonzero&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/setops">setdiff</a></span>(<span class="dv">1</span><span class="op">:</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(TRUE_PI),dc.obs.zero)</a>
-<a class="sourceLine" id="cb16-2" data-line-number="2">PI.summary&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/data.table">data.table</a></span>(<span class="dt">PI_MEDIAN=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="dv">0</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(TRUE_PI)),</a>
-<a class="sourceLine" id="cb16-3" data-line-number="3">                       <span class="dt">PI_LOWER=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="dv">0</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(TRUE_PI)),</a>
-<a class="sourceLine" id="cb16-4" data-line-number="4">                       <span class="dt">PI_UPPER=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="dv">0</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(TRUE_PI)),</a>
-<a class="sourceLine" id="cb16-5" data-line-number="5">                       <span class="dt">PI_TRUE=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/vector">as.vector</a></span>(TRUE_PI),</a>
-<a class="sourceLine" id="cb16-6" data-line-number="6">                       <span class="dt">ID=</span><span class="dv">1</span><span class="op">:</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(TRUE_PI))</a>
-<a class="sourceLine" id="cb16-7" data-line-number="7">PI.summary<span class="op">$</span>PI_MEDIAN[dc.obs.nonzero]&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/apply">apply</a></span>(mc<span class="op">$</span>pars<span class="op">$</span>PI,<span class="dv">2</span>,median)</a>
-<a class="sourceLine" id="cb16-8" data-line-number="8">PI.summary<span class="op">$</span>PI_LOWER[dc.obs.nonzero]&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/apply">apply</a></span>(mc<span class="op">$</span>pars<span class="op">$</span>PI,<span class="dv">2</span>,<span class="cf">function</span>(x){<span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/quantile">quantile</a></span>(x,<span class="fl">0.025</span>)})</a>
-<a class="sourceLine" id="cb16-9" data-line-number="9">PI.summary<span class="op">$</span>PI_UPPER[dc.obs.nonzero]&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/apply">apply</a></span>(mc<span class="op">$</span>pars<span class="op">$</span>PI,<span class="dv">2</span>,<span class="cf">function</span>(x){<span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/quantile">quantile</a></span>(x,<span class="fl">0.975</span>)})</a></code></pre></div>
+<a href="#source-attribution-while-adjusting-for-sampling-bias" class="anchor"></a>Source attribution while adjusting for sampling bias</h2>
+<p>After preparing <strong>dobs</strong> and <strong>dprior</strong>, we can infer the transmissions between subpopulations while adjusting for sampling bias through the function <strong>source.attribution.mcmc</strong>.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" data-line-number="1">mcmc.file&lt;-<span class="st">'S1MCMC_GLM.rda'</span></a></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" data-line-number="1">control=<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/list">list</a></span>(<span class="dt">seed=</span><span class="dv">42</span>, <span class="dt">mcmc.n=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/nrow">nrow</a></span>(dobs)<span class="op">*</span><span class="fl">1e5</span>, <span class="dt">verbose=</span><span class="dv">0</span>, <span class="dt">outfile=</span>mcmc.file)</a>
+<a class="sourceLine" id="cb14-2" data-line-number="2"><span class="kw"><a href="../reference/source.attribution.mcmc.html">source.attribution.mcmc</a></span>(dobs, dprior, control)</a></code></pre></div>
+<p>The source attribution methods takes 8.03 minutes. The convergence and mixing of the algorithm could be examined through <strong>source.attribution.mcmc.diagnostics</strong>.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb15-1" data-line-number="1">control     &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/list">list</a></span>(    <span class="dt">burnin.p=</span><span class="fl">0.05</span>, </a>
+<a class="sourceLine" id="cb15-2" data-line-number="2">                  <span class="dt">regex_pars=</span><span class="st">'*'</span>, </a>
+<a class="sourceLine" id="cb15-3" data-line-number="3">                                <span class="dt">credibility.interval=</span><span class="fl">0.95</span>, </a>
+<a class="sourceLine" id="cb15-4" data-line-number="4">                                <span class="dt">pdf.plot.all.parameters=</span><span class="ot">FALSE</span>, </a>
+<a class="sourceLine" id="cb15-5" data-line-number="5">                                <span class="dt">pdf.plot.n.worst.case.parameters=</span><span class="dv">10</span>, </a>
+<a class="sourceLine" id="cb15-6" data-line-number="6">                                <span class="dt">pdf.height.per.par=</span><span class="fl">1.2</span>, </a>
+<a class="sourceLine" id="cb15-7" data-line-number="7">                            <span class="dt">outfile.base=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/grep">gsub</a></span>(<span class="st">'</span><span class="ch">\\</span><span class="st">.rda'</span>,<span class="st">''</span>,mcmc.file))</a>
+<a class="sourceLine" id="cb15-8" data-line-number="8"><span class="kw"><a href="../reference/source.attribution.mcmc.diagnostics.html">source.attribution.mcmc.diagnostics</a></span>(mcmc.file, <span class="dt">control=</span>control)</a></code></pre></div>
+<p>Aggregating outputs from MCMC gives transmissions between community 1 and 2.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb16-1" data-line-number="1"><span class="co">#   aggregate MCMC output to 1&lt;-&gt;2</span></a>
+<a class="sourceLine" id="cb16-2" data-line-number="2">  aggregate.file    &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/grep">gsub</a></span>(<span class="st">'</span><span class="ch">\\</span><span class="st">.rda'</span>,<span class="st">'_aggregatedCommunity.csv'</span>,mcmc.file)</a>
+<a class="sourceLine" id="cb16-3" data-line-number="3">  daggregateTo  &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/subset.data.table">subset</a></span>(dobs, <span class="dt">select=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(TRM_CAT_PAIR_ID, TR_TRM_CATEGORY, REC_TRM_CATEGORY))</a>
+<a class="sourceLine" id="cb16-4" data-line-number="4">  daggregateTo[, TR_TARGETCAT<span class="op">:</span><span class="er">=</span>dobs[, <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/grep">gsub</a></span>(<span class="st">'^(.+)</span><span class="ch">\\</span><span class="st">:(.)</span><span class="ch">\\</span><span class="st">:(.+)$'</span>,<span class="st">'</span><span class="ch">\\</span><span class="st">1'</span>,TR_TRM_CATEGORY)]]</a>
+<a class="sourceLine" id="cb16-5" data-line-number="5">  daggregateTo[, REC_TARGETCAT<span class="op">:</span><span class="er">=</span>dobs[, <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/grep">gsub</a></span>(<span class="st">'^(.+)</span><span class="ch">\\</span><span class="st">:(.)</span><span class="ch">\\</span><span class="st">:(.+)$'</span>,<span class="st">'</span><span class="ch">\\</span><span class="st">1'</span>,REC_TRM_CATEGORY)]]</a>
+<a class="sourceLine" id="cb16-6" data-line-number="6">    </a>
+<a class="sourceLine" id="cb16-7" data-line-number="7">  <span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/assign">set</a></span>(daggregateTo, <span class="ot">NULL</span>, <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'TR_TRM_CATEGORY'</span>,<span class="st">'REC_TRM_CATEGORY'</span>), <span class="ot">NULL</span>)    </a>
+<a class="sourceLine" id="cb16-8" data-line-number="8">  control           &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/list">list</a></span>(    <span class="dt">burnin.p=</span><span class="fl">0.05</span>, </a>
+<a class="sourceLine" id="cb16-9" data-line-number="9">                     <span class="dt">thin=</span><span class="ot">NA_integer_</span>, </a>
+<a class="sourceLine" id="cb16-10" data-line-number="10">                     <span class="dt">regex_pars=</span><span class="st">'*'</span>, </a>
+<a class="sourceLine" id="cb16-11" data-line-number="11">                     <span class="dt">outfile=</span>aggregate.file)</a>
+<a class="sourceLine" id="cb16-12" data-line-number="12">  <span class="kw"><a href="../reference/source.attribution.mcmc.aggregateToTarget.html">source.attribution.mcmc.aggregateToTarget</a></span>(mcmc.file, daggregateTo, <span class="dt">control=</span>control)</a></code></pre></div>
+<p>Outputs are summarised by median and 95% credible interval, which is illustrated together with the true transmission probabilities as follows:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb17-1" data-line-number="1">  <span class="co"># calculate flows sources WAIFM flow_ratio overall        </span></a>
+<a class="sourceLine" id="cb17-2" data-line-number="2">  control           &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/list">list</a></span>(    <span class="dt">quantiles=</span> <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'CL'</span>=<span class="fl">0.025</span>,<span class="st">'IL'</span>=<span class="fl">0.25</span>,<span class="st">'M'</span>=<span class="fl">0.5</span>,<span class="st">'IU'</span>=<span class="fl">0.75</span>,<span class="st">'CU'</span>=<span class="fl">0.975</span>),</a>
+<a class="sourceLine" id="cb17-3" data-line-number="3">                     <span class="dt">flowratios=</span> <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/list">list</a></span>(),</a>
+<a class="sourceLine" id="cb17-4" data-line-number="4">                     <span class="dt">outfile=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/grep">gsub</a></span>(<span class="st">'</span><span class="ch">\\</span><span class="st">.csv'</span>,<span class="st">'_flowsetc.csv'</span>,aggregate.file))</a>
+<a class="sourceLine" id="cb17-5" data-line-number="5">  <span class="kw"><a href="../reference/source.attribution.aggmcmc.getKeyQuantities.html">source.attribution.aggmcmc.getKeyQuantities</a></span>(aggregate.file, control)</a></code></pre></div>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb18-1" data-line-number="1">da&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/as.data.table">as.data.table</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/utils/topics/read.table">read.csv</a></span>(<span class="st">'S1MCMC_GLM_aggregatedCommunity_flowsetc.csv'</span>))</a>
+<a class="sourceLine" id="cb18-2" data-line-number="2">da&lt;-da[STAT<span class="op">==</span><span class="st">'flows'</span>,]</a>
+<a class="sourceLine" id="cb18-3" data-line-number="3">da&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/subset.data.table">subset</a></span>(da,<span class="dt">select=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'TR_TARGETCAT'</span>,<span class="st">'REC_TARGETCAT'</span>,<span class="st">'LABEL2'</span>))</a>
+<a class="sourceLine" id="cb18-4" data-line-number="4">da[,TRUE_PI<span class="op">:</span><span class="er">=</span>TRUE_PI_V]</a></code></pre></div>
 <table class="table">
-<caption>summary of PI</caption>
+<caption>comparison of actual and inferred transmission flows</caption>
 <thead><tr class="header">
-<th align="right">PI_MEDIAN</th>
-<th align="right">PI_LOWER</th>
-<th align="right">PI_UPPER</th>
-<th align="right">PI_TRUE</th>
-<th align="right">ID</th>
+<th align="right">TR_TARGETCAT</th>
+<th align="right">REC_TARGETCAT</th>
+<th align="left">LABEL2</th>
+<th align="right">TRUE_PI</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0218476</td>
 <td align="right">1</td>
+<td align="right">1</td>
+<td align="left">29.5% (24.9%-34.5%)</td>
+<td align="right">0.3141906</td>
 </tr>
 <tr class="even">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0182429</td>
+<td align="right">1</td>
 <td align="right">2</td>
+<td align="left">21.2% (16.8%-26.4%)</td>
+<td align="right">0.1871664</td>
 </tr>
 <tr class="odd">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0194505</td>
-<td align="right">3</td>
+<td align="right">2</td>
+<td align="right">1</td>
+<td align="left">16.8% (12.8%-21.3%)</td>
+<td align="right">0.1874141</td>
 </tr>
 <tr class="even">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0095117</td>
-<td align="right">4</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0129990</td>
-<td align="right">5</td>
-</tr>
-<tr class="even">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0111940</td>
-<td align="right">6</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0112795</td>
-<td align="right">7</td>
-</tr>
-<tr class="even">
-<td align="right">0.0254253</td>
-<td align="right">0.0010599</td>
-<td align="right">0.1286620</td>
-<td align="right">0.0211161</td>
-<td align="right">8</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0228927</td>
-<td align="right">0.0009390</td>
-<td align="right">0.1156312</td>
-<td align="right">0.0197241</td>
-<td align="right">9</td>
-</tr>
-<tr class="even">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0141744</td>
-<td align="right">10</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0114822</td>
-<td align="right">11</td>
-</tr>
-<tr class="even">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0063352</td>
-<td align="right">12</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0208898</td>
-<td align="right">0.0008646</td>
-<td align="right">0.1060462</td>
-<td align="right">0.0119073</td>
-<td align="right">13</td>
-</tr>
-<tr class="even">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0094551</td>
-<td align="right">14</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0202265</td>
-<td align="right">0.0008113</td>
-<td align="right">0.1020357</td>
-<td align="right">0.0186548</td>
-<td align="right">15</td>
-</tr>
-<tr class="even">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0099872</td>
-<td align="right">16</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0082997</td>
-<td align="right">17</td>
-</tr>
-<tr class="even">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0089202</td>
-<td align="right">18</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0195796</td>
-<td align="right">19</td>
-</tr>
-<tr class="even">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0069198</td>
-<td align="right">20</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0121922</td>
-<td align="right">21</td>
-</tr>
-<tr class="even">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0107628</td>
-<td align="right">22</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0080655</td>
-<td align="right">23</td>
-</tr>
-<tr class="even">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0130611</td>
-<td align="right">24</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0231217</td>
-<td align="right">0.0009389</td>
-<td align="right">0.1170760</td>
-<td align="right">0.0217756</td>
-<td align="right">25</td>
-</tr>
-<tr class="even">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0202687</td>
-<td align="right">26</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0232122</td>
-<td align="right">0.0009536</td>
-<td align="right">0.1184109</td>
-<td align="right">0.0123119</td>
-<td align="right">27</td>
-</tr>
-<tr class="even">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0122765</td>
-<td align="right">28</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0121584</td>
-<td align="right">29</td>
-</tr>
-<tr class="even">
-<td align="right">0.0295577</td>
-<td align="right">0.0012147</td>
-<td align="right">0.1530335</td>
-<td align="right">0.0118807</td>
-<td align="right">30</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0812396</td>
-<td align="right">0.0191991</td>
-<td align="right">0.2115953</td>
-<td align="right">0.0220418</td>
-<td align="right">31</td>
-</tr>
-<tr class="even">
-<td align="right">0.0232333</td>
-<td align="right">0.0009603</td>
-<td align="right">0.1179582</td>
-<td align="right">0.0207557</td>
-<td align="right">32</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0202460</td>
-<td align="right">33</td>
-</tr>
-<tr class="even">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0096479</td>
-<td align="right">34</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0089916</td>
-<td align="right">35</td>
-</tr>
-<tr class="even">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0100082</td>
-<td align="right">36</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0290112</td>
-<td align="right">0.0011838</td>
-<td align="right">0.1500994</td>
-<td align="right">0.0077997</td>
-<td align="right">37</td>
-</tr>
-<tr class="even">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0149723</td>
-<td align="right">38</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0129653</td>
-<td align="right">39</td>
-</tr>
-<tr class="even">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0185394</td>
-<td align="right">40</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0200435</td>
-<td align="right">41</td>
-</tr>
-<tr class="even">
-<td align="right">0.0337314</td>
-<td align="right">0.0013732</td>
-<td align="right">0.1738769</td>
-<td align="right">0.0199104</td>
-<td align="right">42</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0120714</td>
-<td align="right">43</td>
-</tr>
-<tr class="even">
-<td align="right">0.1001121</td>
-<td align="right">0.0149018</td>
-<td align="right">0.2991336</td>
-<td align="right">0.0102684</td>
-<td align="right">44</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0365738</td>
-<td align="right">0.0014877</td>
-<td align="right">0.1807646</td>
-<td align="right">0.0109715</td>
-<td align="right">45</td>
-</tr>
-<tr class="even">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0103829</td>
-<td align="right">46</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0207954</td>
-<td align="right">47</td>
-</tr>
-<tr class="even">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0237433</td>
-<td align="right">48</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0099710</td>
-<td align="right">49</td>
-</tr>
-<tr class="even">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0136096</td>
-<td align="right">50</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0072079</td>
-<td align="right">51</td>
-</tr>
-<tr class="even">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0116634</td>
-<td align="right">52</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0107012</td>
-<td align="right">53</td>
-</tr>
-<tr class="even">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0213360</td>
-<td align="right">54</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0112354</td>
-<td align="right">55</td>
-</tr>
-<tr class="even">
-<td align="right">0.0352941</td>
-<td align="right">0.0014516</td>
-<td align="right">0.1756738</td>
-<td align="right">0.0093934</td>
-<td align="right">56</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0097466</td>
-<td align="right">57</td>
-</tr>
-<tr class="even">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0187577</td>
-<td align="right">58</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0082040</td>
-<td align="right">59</td>
-</tr>
-<tr class="even">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0110764</td>
-<td align="right">60</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0351082</td>
-<td align="right">0.0014369</td>
-<td align="right">0.1769355</td>
-<td align="right">0.0113786</td>
-<td align="right">61</td>
-</tr>
-<tr class="even">
-<td align="right">0.1085140</td>
-<td align="right">0.0167311</td>
-<td align="right">0.3143462</td>
-<td align="right">0.0105532</td>
-<td align="right">62</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0123686</td>
-<td align="right">63</td>
-</tr>
-<tr class="even">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0251666</td>
-<td align="right">64</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0198594</td>
-<td align="right">65</td>
-</tr>
-<tr class="even">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0056198</td>
-<td align="right">66</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0125430</td>
-<td align="right">67</td>
-</tr>
-<tr class="even">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0089613</td>
-<td align="right">68</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0000000</td>
-<td align="right">0.0090056</td>
-<td align="right">69</td>
-</tr>
-<tr class="even">
-<td align="right">0.0350984</td>
-<td align="right">0.0014260</td>
-<td align="right">0.1776609</td>
-<td align="right">0.0230269</td>
-<td align="right">70</td>
-</tr>
-<tr class="odd">
-<td align="right">0.0443699</td>
-<td align="right">0.0018305</td>
-<td align="right">0.2154691</td>
-<td align="right">0.0202902</td>
-<td align="right">71</td>
-</tr>
-<tr class="even">
-<td align="right">0.0393753</td>
-<td align="right">0.0016439</td>
-<td align="right">0.1888486</td>
-<td align="right">0.0183355</td>
-<td align="right">72</td>
+<td align="right">2</td>
+<td align="right">2</td>
+<td align="left">32.2% (26.5%-38.1%)</td>
+<td align="right">0.3112289</td>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb17-1" data-line-number="1"><span class="co"># runtime of the algorithm</span></a>
-<a class="sourceLine" id="cb17-2" data-line-number="2"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/print">print</a></span>(time)</a></code></pre></div>
-<pre><code>## Time difference of 49.85022 mins</code></pre>
-<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb19-1" data-line-number="1">dc.obs.nonzero&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/setops">setdiff</a></span>(<span class="dv">1</span><span class="op">:</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(TRUE_PI),dc.obs.zero)</a>
-<a class="sourceLine" id="cb19-2" data-line-number="2">PI.summary&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/data.table">data.table</a></span>(<span class="dt">PI_MEDIAN=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="dv">0</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(TRUE_PI)),</a>
-<a class="sourceLine" id="cb19-3" data-line-number="3">                       <span class="dt">PI_LOWER=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="dv">0</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(TRUE_PI)),</a>
-<a class="sourceLine" id="cb19-4" data-line-number="4">                       <span class="dt">PI_UPPER=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="dv">0</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(TRUE_PI)),</a>
-<a class="sourceLine" id="cb19-5" data-line-number="5">                       <span class="dt">PI_TRUE=</span>TRUE_PI,</a>
-<a class="sourceLine" id="cb19-6" data-line-number="6">                       <span class="dt">ID=</span><span class="dv">1</span><span class="op">:</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(TRUE_PI))</a>
-<a class="sourceLine" id="cb19-7" data-line-number="7">PI.summary<span class="op">$</span>PI_MEDIAN[dc.obs.nonzero]&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/apply">apply</a></span>(mc<span class="op">$</span>pars<span class="op">$</span>PI,<span class="dv">2</span>,median)</a>
-<a class="sourceLine" id="cb19-8" data-line-number="8">PI.summary<span class="op">$</span>PI_LOWER[dc.obs.nonzero]&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/apply">apply</a></span>(mc<span class="op">$</span>pars<span class="op">$</span>PI,<span class="dv">2</span>,<span class="cf">function</span>(x){<span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/quantile">quantile</a></span>(x,<span class="fl">0.025</span>)})</a>
-<a class="sourceLine" id="cb19-9" data-line-number="9">PI.summary<span class="op">$</span>PI_UPPER[dc.obs.nonzero]&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/apply">apply</a></span>(mc<span class="op">$</span>pars<span class="op">$</span>PI,<span class="dv">2</span>,<span class="cf">function</span>(x){<span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/quantile">quantile</a></span>(x,<span class="fl">0.975</span>)})</a></code></pre></div>
-<p>If you want to visualise MCMC convergence diagnostics, you may use the function ‘mcmc.core.inference.diagnostics’ and all the results are saved in your computer.</p>
-<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb20-1" data-line-number="1"><span class="kw"><a href="../reference/mcmc.core.inference.diagnostics.html">mcmc.core.inference.diagnostics</a></span>(mc,<span class="fl">2e3</span>)</a></code></pre></div>
-<pre><code>## [1] "The worst effective sample sizes for PI 18 are 27728.4099374372 out of 228771 samples."
-## [2] "The worst effective sample sizes for PI 16 are 28120.6026583684 out of 228771 samples."
-## [3] "The worst effective sample sizes for PI 19 are 31373.1828815832 out of 228771 samples."
-## [4] "The worst effective sample sizes for PI 13 are 40189.6158377538 out of 228771 samples."
-## [5] "The worst effective sample sizes for PI 17 are 42673.6920435542 out of 228771 samples."
-## [6] "The worst effective sample sizes for PI 12 are 44061.1190861027 out of 228771 samples."</code></pre>
-<pre><code>## [1] "The worst effective sample sizes for S are 16 are 96735.8604588647 out of 228771 samples."
-## [2] "The worst effective sample sizes for S are 13 are 96853.9902559319 out of 228771 samples."
-## [3] "The worst effective sample sizes for S are 12 are 98828.7470020943 out of 228771 samples."
-## [4] "The worst effective sample sizes for S are 18 are 100779.691672592 out of 228771 samples."
-## [5] "The worst effective sample sizes for S are 15 are 101215.109431963 out of 228771 samples."
-## [6] "The worst effective sample sizes for S are 11 are 105469.752264664 out of 228771 samples."</code></pre>
-<pre><code>## [1] "The worst effective sample sizes for Z are 18 are 22058.4323487105 out of 228771 samples."
-## [2] "The worst effective sample sizes for Z are 16 are 22838.3921120735 out of 228771 samples."
-## [3] "The worst effective sample sizes for Z are 19 are 23502.4607922624 out of 228771 samples."
-## [4] "The worst effective sample sizes for Z are 13 are 31344.9787151132 out of 228771 samples."
-## [5] "The worst effective sample sizes for Z are 17 are 33651.317680173 out of 228771 samples." 
-## [6] "The worst effective sample sizes for Z are 14 are 36847.046426429 out of 228771 samples."</code></pre>
-<pre><code>## [1] "The worst effective sample size is 75160.5048325214"</code></pre>
 </div>
   </div>
 
@@ -1395,9 +958,9 @@
       <h2 class="hasAnchor">
 <a href="#tocnav" class="anchor"></a>Contents</h2>
       <ul class="nav nav-pills nav-stacked">
-<li><a href="#simulating-sampling-data">Simulating sampling data</a></li>
-      <li><a href="#simulating-transmission-data">Simulating transmission data</a></li>
-      <li><a href="#implementing-the-bias-adjusted-algorithm">Implementing the bias-adjusted algorithm</a></li>
+<li><a href="#simulating-data">Simulating data</a></li>
+      <li><a href="#generating-samples-from-the-prior-of-the-sampling-rates">Generating samples from the prior of the sampling rates</a></li>
+      <li><a href="#source-attribution-while-adjusting-for-sampling-bias">Source attribution while adjusting for sampling bias</a></li>
       </ul>
 </div>
       </div>
@@ -1406,7 +969,7 @@
 
 
       <footer><div class="copyright">
-  <p>Developed by Xiaoyue Xi.</p>
+  <p>Developed by Xiaoyue Xi, Oliver Ratmann.</p>
 </div>
 
 <div class="pkgdown">

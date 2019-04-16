@@ -18,7 +18,7 @@
 <![endif]-->
 </head>
 <body>
-    <div class="container template-article">
+    <div class="container template-home">
       <header><div class="navbar navbar-default navbar-fixed-top" role="navigation">
   <div class="container">
     <div class="navbar-header">
@@ -30,7 +30,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">TransSubpopulation</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.2.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.3.0</span>
       </span>
     </div>
 
@@ -53,15 +53,12 @@
   </a>
   <ul class="dropdown-menu" role="menu">
 <li>
-      <a href="articles/Source_attribution_under_GLM.html">Source attribution while sampling are structured under the GLM assumption</a>
+      <a href="articles/Source_attribution_under_GLM.html">Source attribution when adjustment for sampling differences uses individual covariates</a>
     </li>
     <li>
-      <a href="articles/Source_attribution_under_SARWS_assumption.html">Source attribution while sampling are structured under the SARWS assumption</a>
+      <a href="articles/Source_attribution_under_SARWS_assumption.html">Source attribution on the assumption of SARWS for sampling</a>
     </li>
   </ul>
-</li>
-<li>
-  <a href="news/index.html">Changelog</a>
 </li>
       </ul>
 <ul class="nav navbar-nav navbar-right"></ul>
@@ -74,31 +71,42 @@
 
       
       </header><div class="row">
-  <div class="col-md-9 contents">
-    
-
-    
-    
-<!-- README.md is generated from README.Rmd. Please edit that file -->
+  <div class="contents col-md-9">
 <div id="transsubpopulation" class="section level1">
 <div class="page-header"><h1 class="hasAnchor">
 <a href="#transsubpopulation" class="anchor"></a>TransSubpopulation</h1></div>
-<p>The goal of TransSubpopulation is to infer the proportions of transmissions from transmission pairs resolved by <a href="https://github.com/BDI-pathogens/phyloscanner">phyloscanner</a> while accounting for structured sampling.</p>
-<p>The sofeware package comprises</p>
-<ol style="list-style-type: decimal">
-<li><p>R functions to implement MCMC algorithm and infer transmission flows between subpopulations while correcting for sampling differences and visualise the convergence diagnostics.</p></li>
-<li><p>R functions to generate samples from the informative prior distribution of sampling rates under different assumptions.</p></li>
+<p><em>TransSubpopulation</em> analyses transmissions between subpopulations while considering variation in sampling intensity. Inputs for this analysis are transmission networks inferred from <a href="https://github.com/BDI-pathogens/phyloscanner">phyloscanner</a> and demographic data. The software package comprises</p>
+<ol>
+<li>R functions for implementing Markov Chain Monte Carlo to estimate probabilities of transmission between subpopulations.</li>
+<li>R functions for analysing outputs from MCMC including diagnostics, aggregation to the transmission flows of interest and key statistics on the aggregated flows.</li>
 </ol>
-<div id="installation" class="section level2">
-<h2 class="hasAnchor">
-<a href="#installation" class="anchor"></a>Installation</h2>
-<p>You can install the released version of TransSubpopulation from <a href="https://CRAN.R-project.org">CRAN</a> with:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw"><a href="https://www.rdocumentation.org/packages/utils/topics/install.packages">install.packages</a></span>(<span class="st">"TransSubpopulation"</span>)</a></code></pre></div>
+<div id="installing" class="section level3">
+<h3 class="hasAnchor">
+<a href="#installing" class="anchor"></a>Installing</h3>
+<p>You can install TransSubpopulation in R</p>
+<pre class="{r}"><code>install_github("BDI-pathogens/phyloscanner/TransSubpopulation", dependencies=FALSE, build_vignettes=FALSE)
+require(TransSubpopulation)</code></pre>
+<p>This step takes less than XX minutes. If you have issues with installation/running of TransSubpopulation, please report it here and we will get back to you.</p>
 </div>
-<div id="example" class="section level2">
+<div id="tutorials-for-transmission-flow-analysis-" class="section level2">
 <h2 class="hasAnchor">
-<a href="#example" class="anchor"></a>Example</h2>
-<p>Tutorials are given in vignettes.</p>
+<a href="#tutorials-for-transmission-flow-analysis-" class="anchor"></a>Tutorials for transmission flow analysis.</h2>
+<p>Transmission networks resolved by phyloscanner could be analysed through TransSubpopulation:</p>
+<ol>
+<li>generate samples from the prior distribution of the sampling probabilities under SARWS/GLM assumptions.
+<ul>
+<li>if you have the number of eligible and sampled individuals, please use SARWS assumption.</li>
+<li>if you have additional individual covariates data, please use GLM assumption.</li>
+</ul>
+</li>
+<li>implement MCMC algorithm through <em>source.attribution.mcmc</em>.</li>
+<li>apply diagnostic tools for the MCMC algorithm through <em>source.attribution.mcmc.diagnostics</em>.</li>
+<li>aggreagate to the transmission flows of interests through <em>source.attribution.mcmc.aggregateToTarget</em>.</li>
+<li>extract key statistics on the aggregated flows through <em>source.attribution.aggmcmc.getKeyQuantities</em>.</li>
+</ol>
+<p>We provide two tutorials on simulated data to to demonstrate analysis of reconstructed networks.</p>
+<p><strong>Source_attribution_under_SARWS_assumption</strong> <a href="Source_attribution_under_SARWS_assumption.html">This tutorial</a> uses the generated transmission networks to understand transmissions between subpopulations under the assumption that individuals are sampled at random within subpopulation.</p>
+<p><strong>Source_attribution_under_GLM_assumption</strong> <a href="Source_attribution_under_GLM_assumption.html">This tutorial</a> uses the generated transmission networks to understand transmissions between subpopulations under the assumption that the probability of an individual being sampled depends on his/her characteristics.</p>
 </div>
 </div>
   </div>
@@ -114,17 +122,17 @@
 <div class="developers">
 <h2>Developers</h2>
 <ul class="list-unstyled">
-<li>Xiaoyue Xi <br><small class="roles"> Maintainer </small>  </li>
+<li>Xiaoyue Xi <br><small class="roles"> Author, maintainer </small>  </li>
+<li>Oliver Ratmann <br><small class="roles"> Author </small>  </li>
+<li><a href="authors.html">All authors...</a></li>
 </ul>
 </div>
 
-      </div>
-
+  </div>
 </div>
 
-
       <footer><div class="copyright">
-  <p>Developed by Xiaoyue Xi.</p>
+  <p>Developed by Xiaoyue Xi, Oliver Ratmann.</p>
 </div>
 
 <div class="pkgdown">

@@ -1,115 +1,151 @@
 ---
-title: "Source attribution while sampling are structured under the SARWS assumption"
-output: html_document
+title: "Source attribution on the assumption of SARWS for sampling"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Simulating sampling data
+**In this tutorial, we will give an example to infer the transmission between community 1 and 2 under the assumption that sampling is at random within each community.** We will:
 
-We start by simulating data required for this task. 'dg' is a data table containing the number of individuals who are eligible (**TRIAL**) and sampled (**SUC**) for each subpopulation (**CATEGORY**). Assume there are two subpopulations where the numbers of infected individuals are 2000 and 2500 and sequencing rates are 0.6 and 0.45.
+1. Introduce data for using the source attribution method.
+2. Generate samples from the prior distribution of sampling probability on the assumption of SARWS.
+3. Estimate transmission flows while accounting for sampling differences.
 
-```{r, include=FALSE} 
+
+## Simulating data
+
+**We first simulate data for sampling.** 'ds' is a data table containing the number of individuals who are eligible (**TRIAL**) and sampled (**SUC**) in each subpopulation (**CATEGORY**). Assume there are two subpopulations defined by communities where the number of infected and ART-naive individuals are 2000 and 2500 and sequencing rates are 0.6 and 0.45 in community 1 and 2 respectively.
+
+```{r, include=FALSE,} 
 library(knitr)
 ```
 
-```{r} 
+```{r, results='hide', message=FALSE, warning=FALSE} 
 library(data.table)
 library(TransSubpopulation)
-set.seed(123)
-dg<-data.table(CATEGORY=c(1,2),TRIAL=c(2000,2500),P_SEQ_EMP=c(0.6,0.45))
-dg[,SUC:=TRIAL*P_SEQ_EMP]
+setwd("~/phyloscanner/TransSubpopulation/vignettes/")
+
+set.seed(42)
+ds<-data.table(CATEGORY=c(1,2),TRIAL=c(2000,2500),P_SEQ_EMP=c(0.6,0.45))
+ds[,SUC:=TRIAL*P_SEQ_EMP]
 ```
 
-## Simulating transmission data
-
-'dc' a data table containing subpopulations transmitting (**TR_CATEGORY**) and receiving (**REC_CATEGORY**) the disease. Empirical sequencing rates for each subpopulation are used to evaluate the probability of a transmission between two subpopulations being observed (**S**).
+**We then simulate transmissions between community 1 and 2.** 'dobs' a data table containing subpopulations transmitting (**TR_TRM_CATEGORY**) and receiving (**REC_TRM_CATEGORY**) the disease. 
 
 ```{r} 
-dc<-data.table(TR_CATEGORY=c(1,2,1,2),REC_CATEGORY=c(1,1,2,2))
-tmp<-subset(dg,select=c('CATEGORY','P_SEQ_EMP'))
-setnames(tmp,colnames(tmp),paste0('TR_',colnames(tmp)))
-dc<-merge(dc,tmp,by='TR_CATEGORY')
+dobs<-data.table(TR_TRM_CATEGORY=c(1,1,2,2),REC_TRM_CATEGORY=c(1,2,1,2))
+tmp<-subset(ds,select=c('CATEGORY','P_SEQ_EMP'))
+setnames(tmp,colnames(tmp),paste0('TR_TRM_',colnames(tmp)))
+dobs<-merge(dobs,tmp,by='TR_TRM_CATEGORY')
 setnames(tmp,colnames(tmp),gsub('TR_','REC_',colnames(tmp)))
-dc<-merge(dc,tmp,by='REC_CATEGORY')
-dc[,S:=TR_P_SEQ_EMP*REC_P_SEQ_EMP]
+dobs<-merge(dobs,tmp,by='REC_TRM_CATEGORY')
+dobs[, S:= TR_TRM_P_SEQ_EMP * REC_TRM_P_SEQ_EMP]
 ```
 
-Assume the probability of transmissions between subpopulations to be $\pi=(0.36,0.04,0.06,0.54)$.
+No immigration is considered in this example. Transmission categories are, thus, consistent with sampling categories; that is, if an individual is sampled in a subpopulation and he/she transmits HIV, the transmission originates from this subpopulation.
+
+```{r} 
+dobs[,TR_SAMPLING_CATEGORY:=TR_TRM_CATEGORY]
+dobs[,REC_SAMPLING_CATEGORY:=REC_TRM_CATEGORY]
+```
+
+
+Assume 36\% and 54\% transmissions are within community 1 and 2 respectively, 4\% are from community 1 to 2 and 6\% are from community 2 to 1; that is, $\pi=(0.36,0.04,0.06,0.54)$. 
+
 ```{r} 
 TRUE_PI<-c(0.36,0.04,0.06,0.54)
 ```
 
-Assume the observed transmission count is 300, and the observed transmissions between subpopulations can be simulated as follows:
-
-1. generate the true transmission count $Z \sim \mbox{Poisson} (300/S)$
-2. generate the true transmissions between groups $z \sim \mbox{Multinomial} (Z,\pi)$
-3. generate the observed transmissions between groups $n_{ab} \sim \mbox{Binomial} (z_{ab},\vartheta_{ab}), \forall a,b$
-
+Assume the observed transmission count is 300. The observed transmissions between subpopulations can be then simulated as follows:
+  
+  1. generate the true transmission count $Z$ by a Poisson distribution with the parameter 300/ the mean sampling rates of pairs.
+  2. generate the true transmissions between groups by $z \sim \mbox{Multinomial} (Z,\pi)$.
+  3. generate the observed transmissions from $a$ to $b$ by $n_{ab} \sim \mbox{Binomial} (z_{ab},\vartheta_{ab}), \forall a,b$ where $\vartheta_{ab}$ is the probability of sampling a transmission event from $a$ to $b$.
+  
 ```{r} 
-N<-rpois(1,300/mean(dc$S))
+N<-rpois(1,300/mean(dobs$S))
 z<-rmultinom(1,size=N,prob=TRUE_PI)
 n<-matrix(NA_integer_,ncol=1,nrow=length(TRUE_PI))
 for (i in 1:length(TRUE_PI)){
-  n[i]<-rbinom(1,size=z[i],dc$S[i])
+  n[i]<-rbinom(1,size=z[i],dobs$S[i])
 }
 ```
-
-Observed transmissions between groups are recorded from the simulation and id numbers are set for stratified transmissions. 
+  
+Then, we record the observed count in 'dobs':
 ```{r} 
-dc$OBS<-n
-dc$COUNT_ID<-1:nrow(dc)
-
+dobs[, TRM_OBS:= n]
+setkey(dobs,TR_TRM_CATEGORY,REC_TRM_CATEGORY)
+dobs[, TRM_CAT_PAIR_ID:= seq_len(nrow(dobs))]
+	
 # remove irrelevant terms
-dg$P_SEQ_EMP<-NULL
-dc$TR_P_SEQ_EMP<-NULL
-dc$REC_P_SEQ_EMP<-NULL
-dc$S<-NULL
+ds[,P_SEQ_EMP:=NULL]
+set(dobs,NULL,c('TR_TRM_P_SEQ_EMP','REC_TRM_P_SEQ_EMP','S'),NULL)
 ```
 
-'df.sampling' is a list of data table composed of 'dg'.
-```{r} 
-df.sampling<-list()
-df.sampling[[1]]<-dg
-```
-
-Here we present the form of the inputs of prior generator under SARWS, i.e. **df.sampling** and **dc**.
+Here, we present the form of **dobs**.
 ```{r,echo=FALSE} 
 library(knitr)
-kable(df.sampling[[1]],caption = 'df.sampling[[1]]')
-kable(dc,caption = 'dc')
+kable(dobs,caption = 'Data on transmission events (dobs)')
 ```
 
-## Implementing the bias-adjusted algorithm
+In practice, **dobs** could be aggregated from transmission events inferred by **phyloscanner**.
 
-We now draw samples from the prior distribution under SARWS assumption using the function 'samples.from.SARWS.prior'. Running the following lines gives you information required for MCMC algorithm, i.e. S.DTL.prior and TR.OBS and save data under your working directory. 
+## Generating samples from the prior of the sampling rates
 
-```{r,eval=FALSE}
-samples.from.SARWS.prior(df.sampling=df.sampling,dc=dc,iteration=1e6,seed=123)
+Assume an individual in community $a$ is sampled at random with probability $\xi_a$. If we know the number of infected $X_a^i$ and sequenced individuals $X_a^s$ in both communities, the informative prior of $\xi_a$ is $\mbox{Beta}(X_a^s+1,X_a^i-X_a^s+1)$ from which we could draw samples. The information on samples from the prior distribution is in the data table **dprior**.
+```{r} 
+nprior<-1000
+dprior<-ds[,list(P=rbeta(nprior,SUC+1,TRIAL-SUC+1),
+         SAMPLE=1:nprior),
+   by='CATEGORY']
+dprior<-merge(dprior,ds,by='CATEGORY')
+dprior[,LP:=dbeta(P,SUC+1,TRIAL-SUC+1,log=TRUE)]
+set(dprior,NULL,c('TRIAL','SUC'),NULL)
+setnames(dprior, 'CATEGORY', 'SAMPLING_CATEGORY')
 ```
 
-After loading the samples from the prior distribution, we can use the following algorithm to estimate the proportion of transmissions between subpopulations when correcting for sampling differences.
+Here, we present the form of **dobs**.
+```{r,echo=FALSE} 
+kable(head(dprior),caption = 'The first 6 rows of dprior')
+```
+
+
+## Source attribution while adjusting for sampling bias  
+After preparing **dobs** and **dprior**, we can infer the transmissions between community 1 and 2 while adjusting for sampling bias through the function **source.attribution.mcmc**.
+
+```{r} 
+mcmc.file<-'S1MCMC_SARWS.rda'
+```
+
+```{r, results='hide', message=FALSE, warning=FALSE} 
+control=list(seed=42, mcmc.n=nrow(dobs)*1e5, verbose=0, outfile=mcmc.file)
+source.attribution.mcmc(dobs, dprior, control)
+```
 
 ```{r,include = FALSE}
-load('InputsMCMC_SARWS1e+06.rda')
+load(mcmc.file)
 ```
 
-```{r,eval=FALSE}
-mcmc.core.inference(s.dtl.prior=S.DTL.prior,tr.obs=TR.OBS,seed=123)
+The source attribution methods takes `r round(mc$time,2)` minutes. The convergence and mixing of the algorithm could be examined through **source.attribution.mcmc.diagnostics**.
+```{r, results='hide', message=FALSE, warning=FALSE} 
+control		<- list(	burnin.p=0.05, 
+                  regex_pars='*', 
+							    credibility.interval=0.95, 
+							    pdf.plot.all.parameters=FALSE, 
+							    pdf.plot.n.worst.case.parameters=10, 
+							    pdf.height.per.par=1.2, 
+							outfile.base=gsub('\\.rda','',mcmc.file))
+source.attribution.mcmc.diagnostics(mcmc.file, control=control)
 ```
 
-
-The estimated proportions of transmissions between subpopulations are summerised as follows.
-```{r,include = FALSE}
-load('core_inference_SNPIZ_mcmcEachCount_SARWS.rda')
-```
-
+Outputs are summarised by median and 95\% credible interval, which is illustrated together with the true transmission probabilities as follows:
 ```{r}
-# runtime of the algorithm
-print(time)
-
 PI.summary<-data.table(PI_MEDIAN=apply(mc$pars$PI,2,median),
                        PI_LOWER=apply(mc$pars$PI,2,function(x){quantile(x,0.025)}),
                        PI_UPPER=apply(mc$pars$PI,2,function(x){quantile(x,0.975)}),
@@ -120,10 +156,5 @@ PI.summary<-data.table(PI_MEDIAN=apply(mc$pars$PI,2,median),
 
 ```{r,echo=FALSE}
 kable(PI.summary,caption = 'summary of PI')
-```
-
-If you want to visualise MCMC convergence diagnostics, you may use the function 'mcmc.core.inference.diagnostics' and all the results are saved in your computer.
-```{r}
-mcmc.core.inference.diagnostics(mc,2e3)
 ```
 
