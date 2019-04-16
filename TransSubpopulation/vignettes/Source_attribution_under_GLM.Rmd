@@ -273,7 +273,7 @@ source.attribution.mcmc(dobs, dprior, control)
 load(mcmc.file)
 ```
 
-The source attribution methods takes `r round(mc$time,2)` minutes. The convergence and mixing of the algorithm could be examined through **source.attribution.mcmc.diagnostics**.
+The source attribution methods takes `r round(mc$time,2)` hours. The convergence and mixing of the algorithm could be examined through **source.attribution.mcmc.diagnostics**.
 ```{r, results='hide', message=FALSE, warning=FALSE} 
 control		<- list(	burnin.p=0.05, 
                   regex_pars='*', 
