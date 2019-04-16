@@ -264,7 +264,7 @@ After preparing **dobs** and **dprior**, we can infer the transmissions between 
 mcmc.file<-'S1MCMC_GLM.rda'
 ```
 
-```{r, results='hide', message=FALSE, warning=FALSE,eval=FALSE} 
+```{r, results='hide', message=FALSE, warning=FALSE} 
 control=list(seed=42, mcmc.n=nrow(dobs)*1e5, verbose=0, outfile=mcmc.file)
 source.attribution.mcmc(dobs, dprior, control)
 ```
