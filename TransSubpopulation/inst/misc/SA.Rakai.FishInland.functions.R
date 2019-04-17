@@ -3,6 +3,7 @@ Rakai190327.participitation.differences.betabinomialmodel3<- function()
 	require(data.table)
 	require(rstan)
 	require(extraDistr)
+  require(bayesplot)
 	
 	indir		<- '~/Dropbox (SPH Imperial College)/Rakai Fish Analysis'
 	infile.data	<- file.path(indir,"180322_sampling_by_gender_age.rda")
@@ -145,6 +146,7 @@ Rakai190327.participitation.differences.betabinomialmodel4<- function()
 	require(data.table)
 	require(rstan)
 	require(extraDistr)
+  require(bayesplot)
 	
 	indir		<- '~/Dropbox (SPH Imperial College)/Rakai Fish Analysis'
 	infile.data	<- file.path(indir,"180322_sampling_by_gender_age.rda")

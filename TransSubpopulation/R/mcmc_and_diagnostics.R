@@ -4,12 +4,12 @@ lddirichlet_vector	<- function(x, nu){
 	ans
 }
 
-#' @title Source attribution while adjusting for sampling bias  
+#' @title Source attribution while adjusting for sampling bias
 #' @export
-#' @import data.table 
+#' @import data.table
 #' @importFrom gtools rdirichlet
 #' @author Xiaoyue Xi, Oliver Ratmann
-#' @param dobs Data.table of observed number of transmission events for each transmission pair category. 
+#' @param dobs Data.table of observed number of transmission events for each transmission pair category.
 #' @param dprior Data.table of draws from the prior distribution of sampling probabilities.
 #' @param control List of input arguments that control the behaviour of the source attribution algorithm:
 #' \itemize{
@@ -21,31 +21,35 @@ lddirichlet_vector	<- function(x, nu){
 #' @return NULL. MCMC output is written to an RDA file.
 source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1e3, verbose=1, outfile='SAMCMCv190327.rda')){
   #library(data.table); library(gtools)
-  
-  #	
+
+  dmode <- function(x) {
+    den <- density(x, kernel=c("gaussian"))
+    (den$x[den$y==max(den$y)])
+  }
+  #
   # basic checks
   #
   if(!all(dobs$TR_SAMPLING_CATEGORY %in% dprior$SAMPLING_CATEGORY))
 	  stop('Did not find prior samples of a sampling category for TR_SAMPLING_CATEGORY')
   if(!all(dobs$REC_SAMPLING_CATEGORY %in% dprior$SAMPLING_CATEGORY))
 	  stop('Did not find prior samples of a sampling category for REC_SAMPLING_CATEGORY')
-  
+
   ptm	<- Sys.time()
   if('seed'%in%names(control))
   {
 	  cat('\nSetting seed to',control$seed)
-	  set.seed(control$seed)  
+	  set.seed(control$seed)
   }
-  	
-  #	
-  # set up mcmc 
+
+  #
+  # set up mcmc
   #
   mc				<- list()
-  #	determine if the sampling probabilities are <1.  
-  # If they are NOT, Z will be the same as TRM_OBS, and the algorithm only updates PI  	
-  mc$with.sampling	<- dprior[, list(ALL_ONE=all(P==1)), by='SAMPLING_CATEGORY'][, !all(ALL_ONE)] 
+  #	determine if the sampling probabilities are <1.
+  # If they are NOT, Z will be the same as TRM_OBS, and the algorithm only updates PI
+  mc$with.sampling	<- dprior[, list(ALL_ONE=all(P==1)), by='SAMPLING_CATEGORY'][, !all(ALL_ONE)]
   mc$time			<- NA_real_
-  # construct look-up table so we know which transmission pair categories need to be updated 
+  # construct look-up table so we know which transmission pair categories need to be updated
   # at every MCMC iteration
   tmp				<- subset(dobs, select=c(TRM_CAT_PAIR_ID, TR_SAMPLING_CATEGORY, REC_SAMPLING_CATEGORY))
   tmp				<- melt(tmp, id.vars='TRM_CAT_PAIR_ID', value.name='SAMPLING_CATEGORY', variable.name='WHO')
@@ -65,7 +69,7 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
   setnames(mc$dlt, c('TR_SAMPLING_CATEGORY','REC_SAMPLING_CATEGORY'), c('TR_UPDATE_ID','REC_UPDATE_ID'))
   mc$dlt			<- merge(mc$dlt,subset(dobs,select=c('TRM_CAT_PAIR_ID','TRM_OBS')),by='TRM_CAT_PAIR_ID')
   setkey(mc$dlt,TRM_CAT_PAIR_ID)
-  
+
   # make indexed lookup table for speed
   update.info	<- vector('list', nrow(mc$dlu))
   for (i in 1:nrow(mc$dlu))
@@ -80,15 +84,23 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
     tmp				<- mc$dlu[UPDATE_ID==i,SAMPLING_CATEGORY]
     dprior2[[i]]<-dprior[J(tmp),nomatch=0L]
   }
-  
+
+  dprior3   <- dprior[,list(EST_SAMPLING_RATE=dmode(P)),by=SAMPLING_CATEGORY]
+  dobs2   <- subset(dobs,select = c('TR_SAMPLING_CATEGORY','REC_SAMPLING_CATEGORY','TRM_CAT_PAIR_ID'))
+  setnames(dprior3,colnames(dprior3),paste0('TR_',colnames(dprior3)))
+  dobs2   <- merge(dobs2,dprior3,by='TR_SAMPLING_CATEGORY')
+  setnames(dprior3,colnames(dprior3),gsub('TR_','REC_',colnames(dprior3)))
+  dobs2   <- merge(dobs2,dprior3,by='REC_SAMPLING_CATEGORY')
+  dobs2[,EST_SAMPLING_RATE:=TR_EST_SAMPLING_RATE * REC_EST_SAMPLING_RATE]
+
   mc$nprior			<- max(dprior$SAMPLE)
   mc$sweep			<- nrow(mc$dlu)+1L
-  mc$nsweep			<- ceiling( control$mcmc.n/mc$sweep )  
+  mc$nsweep			<- ceiling( control$mcmc.n/mc$sweep )
   mc$n				<- mc$nsweep*mc$sweep
   mc$pars			<- list()
   mc$pars$LAMBDA	<- matrix(NA_real_, ncol=nrow(dobs), nrow=1)		#prior for proportions
   mc$pars$XI		<- matrix(NA_real_, ncol=mc$sweep-1L, nrow=mc$nsweep+1L) # prior for sampling in transmitter categories and sampling in recipient categories, concatenated
-  mc$pars$XI_LP		<- matrix(NA_real_, ncol=mc$sweep-1L, nrow=mc$nsweep+1L) # log prior density for sampling in transmitter categories and sampling in recipient categories, concatenated   
+  mc$pars$XI_LP		<- matrix(NA_real_, ncol=mc$sweep-1L, nrow=mc$nsweep+1L) # log prior density for sampling in transmitter categories and sampling in recipient categories, concatenated
   mc$pars$S			<- matrix(NA_integer_, ncol=nrow(dobs), nrow=mc$nsweep+1L) # prior probability of sampling transmission pair categories
   mc$pars$S_LP		<- matrix(NA_integer_, ncol=nrow(dobs), nrow=mc$nsweep+1L) # log prior density of sampling transmission pair categories
   mc$pars$Z			<- matrix(NA_integer_, ncol=nrow(dobs), nrow=mc$nsweep+1L) #augmented data
@@ -99,10 +111,10 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
 									PAR_ID= rep(NA_integer_, mc$n+1L),
 									BLOCK= rep(NA_character_, mc$n+1L),
 									MHRATIO= rep(NA_real_, mc$n+1L),
-									ACCEPT=rep(NA_integer_, mc$n+1L), 
+									ACCEPT=rep(NA_integer_, mc$n+1L),
 									LOG_LKL=rep(NA_real_, mc$n+1L),
-									LOG_PRIOR=rep(NA_real_, mc$n+1L))  
-  
+									LOG_PRIOR=rep(NA_real_, mc$n+1L))
+
   if(1)
   {
 	  cat('\nNumber of parameters:\t', ncol(mc$pars$PI)+ncol(mc$pars$N)+ncol(mc$pars$Z)+ncol(mc$pars$S)+ncol(mc$pars$XI) )
@@ -112,18 +124,18 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
 	  cat('\nNumber of iterations:\t', mc$n)
 	  tmp				<- mc$dl[, list(N_PAIRS=length(TRM_CAT_PAIR_ID)), by='UPDATE_ID']
 	  cat('\nNumber of transmission pair categories updated per iteration, and their frequencies:\n')
-	  print(table(tmp$N_PAIRS))	  
+	  print(table(tmp$N_PAIRS))
   }
-  
-	
+
+
   #
   # initialise MCMC
-  #	  
+  #
   mc$curr.it			<- 1L
   set(mc$it.info, mc$curr.it, 'BLOCK', 'INIT')
   set(mc$it.info, mc$curr.it, 'PAR_ID', 0L)
   set(mc$it.info, mc$curr.it, 'MHRATIO', 1)
-  set(mc$it.info, mc$curr.it, 'ACCEPT', 1L)  
+  set(mc$it.info, mc$curr.it, 'ACCEPT', 1L)
   #	prior lambda: use the Berger objective prior with minimal loss compared to marginal Beta reference prior
   #	(https://projecteuclid.org/euclid.ba/1422556416)
   mc$pars$LAMBDA[1,]	<- 0.8/nrow(dobs)
@@ -145,7 +157,7 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
   #	augmented data: proposal draw under sampling probability
   mc$pars$Z[1,]			<- dobs$TRM_OBS + rnbinom(nrow(dobs),dobs$TRM_OBS,mc$pars$S[1,])
   #	prior nu: set Poisson rate to the expected augmented counts, under average sampling probability
-  mc$pars$NU			<- sum(dobs$TRM_OBS) / mean(mc$pars$S[1,])
+  mc$pars$NU			<- sum(dobs$TRM_OBS) / mean(dobs2$EST_SAMPLING_RATE)
   #	total count: that s just the sum of Z
   mc$pars$N[1,]			<- sum(mc$pars$Z[1,])
   #	proportions: draw from full conditional
@@ -160,7 +172,7 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
     		sum(mc$pars$S_LP[1,])
   set(mc$it.info, 1L, 'LOG_PRIOR', tmp)
 
-  
+
   # parameter value at the current step
   XI.curr	<- mc$pars$XI[1,]
   XI_LP.curr<- mc$pars$XI_LP[1,]
@@ -171,7 +183,7 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
   Z.curr	<- mc$pars$Z[1,]
 
   # run mcmc
-  options(warn=0)  
+  options(warn=0)
   for(i in 1L:mc$n)
   {
     mc$curr.it		<- i
@@ -181,21 +193,21 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
 	# update in one go S, Z, N for the ith XI
     if(mc$with.sampling & update.count<mc$sweep)
     {
-	  # update.info	<- subset(mc$dl, UPDATE_ID==update.count)	# recompute for each sweep + the category and the pair id		
-      update.cat	<- mc$dlu$SAMPLING_CATEGORY[update.count]  
+	  # update.info	<- subset(mc$dl, UPDATE_ID==update.count)	# recompute for each sweep + the category and the pair id
+      update.cat	<- mc$dlu$SAMPLING_CATEGORY[update.count]
       update.pairs	<- update.info[[update.count]]
-    
+
       # propose single XI
 	  XI.prop		<- XI.curr
-	  XI_LP.prop	<- XI_LP.curr	   
+	  XI_LP.prop	<- XI_LP.curr
 	  tmp			<- dprior2[[update.count]][sample(mc$nprior,1),]
 	  if(tmp$SAMPLING_CATEGORY[1]!=update.cat)
 		  stop('\nFatal error in dprior2.')
-	  XI.prop[ update.count ]	<- tmp$P	  
+	  XI.prop[ update.count ]	<- tmp$P
 	  XI_LP.prop[ update.count ]<- tmp$LP
-	  # propose all S that involve the one XI from above 
+	  # propose all S that involve the one XI from above
 	  S.prop						<- S.curr
-	  S_LP.prop						<- S_LP.curr	  
+	  S_LP.prop						<- S_LP.curr
 	  S.prop[update.pairs]			<- XI.prop[ mc$dlt$TR_UPDATE_ID[update.pairs] ] * XI.prop[ mc$dlt$REC_UPDATE_ID[update.pairs] ]
 	  S_LP.prop[update.pairs]		<- XI_LP.prop[ mc$dlt$TR_UPDATE_ID[update.pairs] ] + XI_LP.prop[ mc$dlt$REC_UPDATE_ID[update.pairs] ]
 	  # propose all Z that involve a new S
@@ -204,8 +216,8 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
 	  # propose total of Z
 	  N.prop						<- sum(Z.prop)
 	  #	calculate MH ratio
-	  log.prop.ratio	<- sum(dnbinom(Z.curr[update.pairs]-mc$dlt$TRM_OBS[update.pairs], size=mc$dlt$TRM_OBS[update.pairs], prob=S.curr[update.pairs], log=TRUE)) - 
-						   sum(dnbinom(Z.prop[update.pairs]-mc$dlt$TRM_OBS[update.pairs], size=mc$dlt$TRM_OBS[update.pairs], prob=S.prop[update.pairs], log=TRUE))		
+	  log.prop.ratio	<- sum(dnbinom(Z.curr[update.pairs]-mc$dlt$TRM_OBS[update.pairs], size=mc$dlt$TRM_OBS[update.pairs], prob=S.curr[update.pairs], log=TRUE)) -
+						   sum(dnbinom(Z.prop[update.pairs]-mc$dlt$TRM_OBS[update.pairs], size=mc$dlt$TRM_OBS[update.pairs], prob=S.prop[update.pairs], log=TRUE))
 	  log.fc			<- sum(dbinom(mc$dlt$TRM_OBS[update.pairs], size=Z.curr[update.pairs], prob=S.curr[update.pairs], log=TRUE)) +
 						   dmultinom(Z.curr, prob=PI.curr, log=TRUE) +
 						   dpois(N.curr, lambda=mc$pars$NU, log=TRUE)
@@ -213,7 +225,7 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
 			  			   dmultinom(Z.prop, prob=PI.curr, log=TRUE) +
 			  			   dpois(N.prop, lambda=mc$pars$NU, log=TRUE)
 	  log.mh.ratio		<- log.fc.prop - log.fc + log.prop.ratio
-	  mh.ratio			<- min(1,exp(log.mh.ratio))	
+	  mh.ratio			<- min(1,exp(log.mh.ratio))
 	  #	update
 	  mc$curr.it		<- mc$curr.it+1L
 	  set(mc$it.info, mc$curr.it, 'BLOCK', 'S-Z-N')
@@ -233,8 +245,8 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
 		  S.curr	<- S.prop
 		  S_LP.curr	<- S_LP.prop
 		  Z.curr	<- Z.prop
-		  N.curr	<- N.prop				  				
-	  }	  
+		  N.curr	<- N.prop
+	  }
     }
 
     # update PI
@@ -249,7 +261,7 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
 	  set(mc$it.info, mc$curr.it, 'BLOCK', 'PI')
 	  set(mc$it.info, mc$curr.it, 'PAR_ID', NA_integer_)
 	  set(mc$it.info, mc$curr.it, 'MHRATIO', 1L)
-	  set(mc$it.info, mc$curr.it, 'ACCEPT', 1L)		
+	  set(mc$it.info, mc$curr.it, 'ACCEPT', 1L)
       PI.curr		<- PI.prop
 
 	  # at the end of sweep, record current parameters
@@ -257,11 +269,11 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
 	  mc$pars$XI_LP[update.round+1L,]	<- XI_LP.curr
       mc$pars$S[update.round+1L,]		<- S.curr
 	  mc$pars$S_LP[update.round+1L,]	<- S_LP.curr
-      mc$pars$Z[update.round+1L,]		<- Z.curr      
+      mc$pars$Z[update.round+1L,]		<- Z.curr
       mc$pars$N[update.round+1L,]		<- N.curr
       mc$pars$PI[update.round+1L,]		<- PI.curr
     }
-	
+
 	# 	record log likelihood
 	tmp	<- sum(dbinom(dobs$TRM_OBS, size=Z.curr, prob=S.curr, log=TRUE) ) +
 	    		dmultinom(Z.curr, size=N.curr, prob=PI.curr, log=TRUE)
@@ -273,10 +285,10 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
 	set(mc$it.info, mc$curr.it, 'LOG_PRIOR', tmp)
 	#
 	if(update.count==mc$sweep & update.round %% 100 == 0){
-		cat('\nSweeps done:\t',update.round)	
+		cat('\nSweeps done:\t',update.round)
 	}
   }
-  
+
   mc$time	<- Sys.time()-ptm
   if(!'outfile'%in%names(control))
 	  return(mc)
@@ -284,11 +296,11 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
   NULL
 }
 
-#' @title Aggregate MCMC output to target parameters  
+#' @title Aggregate MCMC output to target parameters
 #' @export
-#' @import data.table 
+#' @import data.table
 #' @param mcmc.file Full file name to MCMC output from function \code{source.attribution.mcmc}
-#' @param daggregateTo Data.table that maps the categories of transmission pairs used in the MCMC to lower-dimensional categories that are of primary interest. 
+#' @param daggregateTo Data.table that maps the categories of transmission pairs used in the MCMC to lower-dimensional categories that are of primary interest.
 #' @param control List of input arguments that control the behaviour of the source attribution algorithm:
 #' \itemize{
 #'  \item{"burnin.p"}{Proportion of MCMC iterations that are removed as burn-in period.}
@@ -300,14 +312,14 @@ source.attribution.mcmc	<- function(dobs, dprior, control=list(seed=42, mcmc.n=1
 source.attribution.mcmc.aggregateToTarget	<- function(mcmc.file, daggregateTo, control=list(burnin.p=NA_real_, thin=NA_integer_, regex_pars='*', outfile=gsub('\\.rda','_aggregated.csv',mcmc.file))){
 	#	basic checks
 	if(!'data.table'%in%class(daggregateTo))
-		stop('daggregateTo is not a data.table')	
+		stop('daggregateTo is not a data.table')
 	if(!all(c('TRM_CAT_PAIR_ID','TR_TARGETCAT','REC_TARGETCAT')%in%colnames(daggregateTo)))
 		stop('daggregateTo does not contain one of the required columns TRM_CAT_PAIR_ID, TR_TARGETCAT, REC_TARGETCAT')
-	
+
 	#	load MCMC output
 	cat('\nLoading MCMC output...')
 	load(mcmc.file)
-	
+
 	#	define internal control variables
 	burnin.p	<- control$burnin.p
 	if(is.na(burnin.p))
@@ -316,31 +328,31 @@ source.attribution.mcmc.aggregateToTarget	<- function(mcmc.file, daggregateTo, c
 	thin		<- control$thin
 	if(is.na(thin))
 		thin	<- 1
-	
+
 	#	collect parameters
 	cat('\nCollecting parameters...')
-	pars		<- matrix(NA,nrow=nrow(mc$pars$S),ncol=0)		
+	pars		<- matrix(NA,nrow=nrow(mc$pars$S),ncol=0)
 	if(grepl(control$regex_pars,'Z'))
 	{
 		tmp	<- mc$pars$Z
-		colnames(tmp)	<- paste0('Z-',1:ncol(tmp))	   
-		pars	<- cbind(pars, tmp)  
-	}	
+		colnames(tmp)	<- paste0('Z-',1:ncol(tmp))
+		pars	<- cbind(pars, tmp)
+	}
 	if(grepl(control$regex_pars,'PI'))
 	{
 		tmp	<- mc$pars$PI
-		colnames(tmp)	<- paste0('PI-',1:ncol(tmp))	   
-		pars	<- cbind(pars, tmp)  
+		colnames(tmp)	<- paste0('PI-',1:ncol(tmp))
+		pars	<- cbind(pars, tmp)
 	}
-	
+
 	# remove burn-in
 	if(burnin.n>0)
 	{
 		cat('\nRemoving burnin in set to ', 100*burnin.p,'% of chain, total iterations=',burnin.n)
 		tmp		<- seq.int(burnin.n,nrow(mc$pars$S))
-		pars	<- pars[tmp,,drop=FALSE]		
+		pars	<- pars[tmp,,drop=FALSE]
 	}
-	
+
 	# thin
 	if(thin>1)
 	{
@@ -348,7 +360,7 @@ source.attribution.mcmc.aggregateToTarget	<- function(mcmc.file, daggregateTo, c
 		tmp		<- seq.int(1,nrow(pars),thin)
 		pars	<- pars[tmp,,drop=FALSE]
 	}
-	
+
 	cat('\nMaking aggregated MCMC output...')
 	# make data.table in long format
 	pars	<- as.data.table(pars)
@@ -356,33 +368,33 @@ source.attribution.mcmc.aggregateToTarget	<- function(mcmc.file, daggregateTo, c
 	pars	<- melt(pars, id.vars='SAMPLE')
 	pars[, VARIABLE:= pars[, gsub('([A-Z]+)-([0-9]+)','\\1',variable)]]
 	pars[, TRM_CAT_PAIR_ID:= pars[, as.integer(gsub('([A-Z]+)-([0-9]+)','\\2',variable))]]
-	
+
 	# aggregate MCMC samples
 	if(!all(sort(unique(pars$TRM_CAT_PAIR_ID))==sort(unique(daggregateTo$TRM_CAT_PAIR_ID))))
 		stop('The transmission count categories in the MCMC output do not match the transmission count categories in the aggregateTo data table.')
 	pars	<- merge(pars, daggregateTo, by='TRM_CAT_PAIR_ID')
 	pars	<- pars[, list(VALUE=sum(value)), by=c('VARIABLE','TR_TARGETCAT','REC_TARGETCAT','SAMPLE')]
-	
+
 	# save or return
 	if(!'outfile'%in%names(control))
 		return(pars)
 	if(grepl('csv$',control$outfile))
 	{
 		cat('\nWriting csv file to',control$outfile)
-		write.csv(pars, row.names=FALSE, file=control$outfile)	
+		write.csv(pars, row.names=FALSE, file=control$outfile)
 	}
 	if(grepl('rda$',control$outfile))
 	{
 		cat('\nSaving rda file to',control$outfile)
-		save(pars, file=control$outfile)	
+		save(pars, file=control$outfile)
 	}
 }
 
-#' @title Estimate Flows, Sources, WAIFM, Flow ratios  
+#' @title Estimate Flows, Sources, WAIFM, Flow ratios
 #' @export
-#' @import data.table 
+#' @import data.table
 #' @author Xiaoyue Xi, Oliver Ratmann
-#' @param infile Full file name to aggregated MCMC output from function \code{source.attribution.mcmc} 
+#' @param infile Full file name to aggregated MCMC output from function \code{source.attribution.mcmc}
 #' @param control List of input arguments that control the behaviour of the derivation of key quantities:
 #' \itemize{
 #'  \item{"quantiles"}{Named list of quantiles. Default: c('CL'=0.025,'IL'=0.25,'M'=0.5,'IU'=0.75,'CU'=0.975)}
@@ -395,7 +407,12 @@ source.attribution.aggmcmc.getKeyQuantities<- function(infile, control)
 	cat('\nReading aggregated MCMC output...')
 	pars		<- as.data.table(read.csv(infile, stringsAsFactors=FALSE))
 	pars		<- subset(pars, VARIABLE=='PI')
-	
+	if(any(is.na(pars$VALUE)))
+	{
+		cat('\nRemoving NA output for samples n=', nrow(subset(pars, is.na(VALUE))))
+		pars		<- subset(pars, !is.na(VALUE))
+	}
+
 	cat('\nComputing flows...')
 	#	calculate flows
 	z		<- pars[, list(P=names(control$quantiles), Q=unname(quantile(VALUE, p=control$quantiles))), by=c('TR_TARGETCAT','REC_TARGETCAT')]
@@ -404,11 +421,11 @@ source.attribution.aggmcmc.getKeyQuantities<- function(infile, control)
 	z[, LABEL2:= paste0(round(M*100, d=1), '% (',round(CL*100,d=1),'%-',round(CU*100,d=1),'%)')]
 	setkey(z, TR_TARGETCAT, REC_TARGETCAT )
 	z[, STAT:='flows']
-	ans		<- copy(z)		
+	ans		<- copy(z)
 	gc()
-	
+
 	cat('\nComputing WAIFM...')
-	#	calculate WAIFM	
+	#	calculate WAIFM
 	z		<- pars[, list(REC_TARGETCAT=REC_TARGETCAT, VALUE=VALUE/sum(VALUE)), by=c('TR_TARGETCAT','SAMPLE')]
 	z		<- z[, list(P=names(control$quantiles), Q=unname(quantile(VALUE, p=control$quantiles))), by=c('TR_TARGETCAT','REC_TARGETCAT')]
 	z		<- dcast.data.table(z, TR_TARGETCAT+REC_TARGETCAT~P, value.var='Q')
@@ -416,9 +433,9 @@ source.attribution.aggmcmc.getKeyQuantities<- function(infile, control)
 	z[, LABEL2:= paste0(round(M*100, d=1), '% (',round(CL*100,d=1),'%-',round(CU*100,d=1),'%)')]
 	setkey(z, TR_TARGETCAT, REC_TARGETCAT )
 	z[, STAT:='waifm']
-	ans		<- rbind(ans,z)	
+	ans		<- rbind(ans,z)
 	gc()
-	
+
 	cat('\nComputing sources...')
 	#	calculate sources
 	z		<- pars[, list(TR_TARGETCAT=TR_TARGETCAT, VALUE=VALUE/sum(VALUE)), by=c('REC_TARGETCAT','SAMPLE')]
@@ -428,21 +445,29 @@ source.attribution.aggmcmc.getKeyQuantities<- function(infile, control)
 	z[, LABEL2:= paste0(round(M*100, d=1), '% (',round(CL*100,d=1),'%-',round(CU*100,d=1),'%)')]
 	setkey(z, REC_TARGETCAT, TR_TARGETCAT )
 	z[, STAT:='sources']
-	ans		<- rbind(ans,z)	
+	ans		<- rbind(ans,z)
 	gc()
-	
+
 	if(length(control$flowratios)>0)
 	{
 		cat('\nComputing flow ratios...')
-		#	calculate transmission flow ratios	
+		#	calculate transmission flow ratios
 		z		<- copy(pars)
 		z[, FLOW:=paste0(TR_TARGETCAT,' ',REC_TARGETCAT)]
-		z		<- dcast.data.table(z, SAMPLE~FLOW, value.var='VALUE')	
+		z		<- dcast.data.table(z, SAMPLE~FLOW, value.var='VALUE')
 		set(z, NULL, colnames(z)[!colnames(z)%in%c('SAMPLE',unlist(control$flowratios))], NULL)
 		for(ii in seq_along(control$flowratios))
 		{
-			if(!all(c(control$flowratios[[ii]][2],control$flowratios[[ii]][3])%in%colnames(z)))
-				stop('column names in control$flowratios are not in MCMC output')
+			if(!control$flowratios[[ii]][2]%in%colnames(z))
+			{
+				warning('\nColumn name ',control$flowratios[[ii]][2],' not in MCMC output. Setting to 0.')
+				set(z, NULL, control$flowratios[[ii]][2], 0)
+			}
+			if(!control$flowratios[[ii]][3]%in%colnames(z))
+			{
+				warning('\nColumn name ',control$flowratios[[ii]][3],' not in MCMC output. Setting to 0.')
+				set(z, NULL, control$flowratios[[ii]][3], 0)
+			}
 			set(z, NULL, control$flowratios[[ii]][1], z[[ control$flowratios[[ii]][2] ]] /  z[[ control$flowratios[[ii]][3] ]])
 			set(z, NULL, c(control$flowratios[[ii]][2],control$flowratios[[ii]][3]), NULL)
 		}
@@ -452,23 +477,23 @@ source.attribution.aggmcmc.getKeyQuantities<- function(infile, control)
 		z[, LABEL:= paste0(round(M, d=2), '\n[',round(CL,d=2),' - ',round(CU,d=2),']')]
 		z[, LABEL2:= paste0(round(M, d=2), ' (',round(CL,d=2),'-',round(CU,d=2),')')]
 		z[, STAT:='flow_ratio']
-		ans		<- rbind(ans,z, fill=TRUE)	
-		gc()		
+		ans		<- rbind(ans,z, fill=TRUE)
+		gc()
 	}
-	
+
 	cat('\nWriting output to',control$outfile)
 	write.csv(ans, row.names=FALSE,file=control$outfile)
 }
 
 
-#' @title MCMC diagnostics for the source attribution algorithm  
+#' @title MCMC diagnostics for the source attribution algorithm
 #' @export
-#' @import data.table 
-#' @import ggplot2 
+#' @import data.table
+#' @import ggplot2
 #' @importFrom bayesplot mcmc_trace mcmc_acf_bar mcmc_hist
 #' @importFrom coda mcmc effectiveSize
 #' @author Xiaoyue Xi, Oliver Ratmann
-#' @param mcmc.file Full file name to MCMC output from function \code{source.attribution.mcmc} 
+#' @param mcmc.file Full file name to MCMC output from function \code{source.attribution.mcmc}
 #' @param control List of input arguments that control the behaviour of the source attribution algorithm:
 #' \itemize{
 #'  \item{"burnin.p"}{Proportion of MCMC iterations that are removed as burn-in period.}
@@ -481,38 +506,38 @@ source.attribution.aggmcmc.getKeyQuantities<- function(infile, control)
 #' }
 #' @return NULL. Diagnostic plots and csv files are written to disk.
 source.attribution.mcmc.diagnostics	<- function(mcmc.file, control=list(burnin.p=0.2, regex_pars='*', credibility.interval=0.95, pdf.plot.n.worst.case.parameters=10, pdf.plot.all.parameters=FALSE, pdf.height.per.par=1.2, outfile.base=gsub('\\.rda','',mcmc.file))){
-  #library(coda); library(data.table); library(bayesplot)
-  
+  #library(coda); library(data.table); library(bayesplot); library(ggplot2)
+
   cat('\nLoading MCMC output...')
   load(mcmc.file)
-  
+
   burnin.n	<- floor(control$burnin.p*nrow(mc$pars$S))
-  
+
   cat('\nCollecting parameters...')
-  pars		<- matrix(NA,nrow=nrow(mc$pars$S),ncol=0)	
+  pars		<- matrix(NA,nrow=nrow(mc$pars$S),ncol=0)
   if(grepl(control$regex_pars,'S'))
   {
 	  tmp	<- mc$pars$S
-	  colnames(tmp)	<- paste0('S-',1:ncol(tmp))	   
-	  pars	<- cbind(pars, tmp)  
-  }	
+	  colnames(tmp)	<- paste0('S-',1:ncol(tmp))
+	  pars	<- cbind(pars, tmp)
+  }
   if(grepl(control$regex_pars,'Z'))
   {
 	  tmp	<- mc$pars$Z
-	  colnames(tmp)	<- paste0('Z-',1:ncol(tmp))	   
-	  pars	<- cbind(pars, tmp)  
+	  colnames(tmp)	<- paste0('Z-',1:ncol(tmp))
+	  pars	<- cbind(pars, tmp)
   }
   if(grepl(control$regex_pars,'N'))
   {
 	  tmp	<- mc$pars$N
-	  colnames(tmp)	<- paste0('N-',1:ncol(tmp))	   
-	  pars	<- cbind(pars, tmp)  
+	  colnames(tmp)	<- paste0('N-',1:ncol(tmp))
+	  pars	<- cbind(pars, tmp)
   }
  if(grepl(control$regex_pars,'PI'))
  {
 	 tmp	<- mc$pars$PI
-	 colnames(tmp)	<- paste0('PI-',1:ncol(tmp))	   
-	 pars	<- cbind(pars, tmp)  
+	 colnames(tmp)	<- paste0('PI-',1:ncol(tmp))
+	 pars	<- cbind(pars, tmp)
  }
 
   #	traces for parameters
@@ -522,81 +547,99 @@ source.attribution.mcmc.diagnostics	<- function(mcmc.file, control=list(burnin.p
 	  p		<- mcmc_trace(pars, pars=colnames(pars), facet_args = list(ncol = 1), n_warmup=burnin.n)
 	  pdf(file=paste0(control$outfile.base,'_marginaltraces.pdf'), w=7, h=control$pdf.height.per.par*ncol(pars))
 	  print(p)
+	  dev.off()
+  }
+
+  #	traces for log likelihood and log posterior
+  if(1)
+  {
+	  pars2				<- as.matrix(subset(mc$it.info, BLOCK=='PI', select=c(LOG_LKL, LOG_PRIOR)))
+	  pars2[,2]			<- pars2[,1]+pars2[,2] 
+	  colnames(pars2)	<- c('log likelihood','log posterior')	  	    
+	  cat('\nPlotting log likelihood and log posterior...')
+	  p		<- mcmc_trace(pars2, pars=colnames(pars2), facet_args = list(ncol = 1), n_warmup=burnin.n)
+	  pdf(file=paste0(control$outfile.base,'_loglklpotrace.pdf'), w=7, h=control$pdf.height.per.par*ncol(pars2)*2)
+	  print(p)
+	  dev.off()	  
+	  
+	  p				<- mcmc_hist(pars2, pars=colnames(pars2), facet_args = list(ncol=4))
+	  pdf(file=paste0(control$outfile.base,'_loglklpohist.pdf'), w=10, h=control$pdf.height.per.par*ncol(pars2))
+	  print(p)
 	  dev.off()	  
   }
   
   #	acceptance rate per MCMC update ID
-	cat('\nPlotting acceptance rates...')
+  cat('\nPlotting acceptance rates...')
   da	<- subset(mc$it.info, !is.na(PAR_ID) & PAR_ID>0)[, list(ACC_RATE=mean(ACCEPT)), by='PAR_ID']
   setnames(da, 'PAR_ID', 'UPDATE_ID')
   tmp	<- mc$dl[, list(N_TRM_CAT_PAIRS=length(TRM_CAT_PAIR_ID)), by='UPDATE_ID']
   da	<- merge(da, tmp, by='UPDATE_ID')
-  ggplot(da, aes(x=N_TRM_CAT_PAIRS, y=ACC_RATE)) + 
+  ggplot(da, aes(x=N_TRM_CAT_PAIRS, y=ACC_RATE)) +
 		  geom_point() +
 		  theme_bw() +
-		  scale_y_continuous(label=scales:::percent) +
+		  scale_y_continuous(label=scales::percent) +
 		  labs(	x='\nNumber of transmission pair categories updated per sampling category',
 				y='Acceptance rate\n')
   ggsave(file=paste0(control$outfile.base,'_acceptance_per_updateID.pdf'), w=6, h=6)
   cat('\nAverage acceptance rate= ',subset(mc$it.info, !is.na(PAR_ID) & PAR_ID>0)[, round(mean(ACCEPT), d=3)])
   cat('\nUpdate IDs with lowest acceptance rates')
   print( da[order(ACC_RATE)[1:10],] )
-  
+
   # remove burn-in
   cat('\nRemoving burnin in set to ', 100*control$burnin.p,'% of chain, total iterations=',burnin.n)
   tmp	<- seq.int(burnin.n+1L,nrow(mc$pars$S))
   pars	<- pars[tmp,,drop=FALSE]
-    
-  # effective sampling sizes 
+
+  # effective sampling sizes
   cat('\nCalculating effective sample size for all parameters...')
   tmp	<- mcmc(pars)
   ans	<- data.table(ID= seq_len(ncol(pars)), VAR= colnames(pars), NEFF=as.numeric(effectiveSize(tmp)))
   set(ans, NULL, 'ID', ans[, factor(ID, labels=VAR)])
   if(control$pdf.plot.all.parameters)
   {
-	  ggplot(ans, aes(x=NEFF, y=ID)) + 
-			  geom_point() + 	
+	  ggplot(ans, aes(x=NEFF, y=ID)) +
+			  geom_point() +
 			  theme_bw() +
 			  labs(x='\neffective sample size', y='')
-	  ggsave(file=paste0(control$outfile.base,'_neff.pdf'), w=6, h=control$pdf.height.per.par*ncol(pars)*0.15, limitsize=FALSE)	  
+	  ggsave(file=paste0(control$outfile.base,'_neff.pdf'), w=6, h=control$pdf.height.per.par*ncol(pars)*0.15, limitsize=FALSE)
   }
-  
+
   # summarise mean, sd, quantiles
   cat('\nCalculating posterior summaries for all parameters...')
   tmp	<- apply(pars, 2, function(x) quantile(x, p=c((1-control$credibility.interval)/2, 0.5, control$credibility.interval+(1-control$credibility.interval)/2)))
   tmp	<- data.table(	VAR= colnames(pars),
 		  				MEAN= apply(pars, 2, mean),
 						SD= apply(pars, 2, sd),
-		  				MEDIAN=tmp[2,], 
-						CI_L=tmp[1,], 
-						CI_U=tmp[3,])  
+		  				MEDIAN=tmp[2,],
+						CI_L=tmp[1,],
+						CI_U=tmp[3,])
   ans	<- merge(tmp, ans, by='VAR')
   cat('\nParameters with lowest effective samples')
   print( ans[order(NEFF)[1:10],] )
-  
+
   # write to file
   cat('\nWriting summary file to',paste0(control$outfile.base,'_summary.csv'))
   setkey(ans, ID)
   write.csv(ans, file=paste0(control$outfile.base,'_summary.csv'))
-  
+
   # plots for worst case parameters
   if(control$pdf.plot.n.worst.case.parameters>0)
   {
-	  worst.pars	<- pars[, ans[order(NEFF)[1:10], VAR]]
+	  worst.pars	<- pars[, ans[order(NEFF)[1:control$pdf.plot.n.worst.case.parameters], VAR]]
 	  #	traces
 	  cat('\nPlotting traces for worst parameters...')
 	  p				<- mcmc_trace(worst.pars, pars=colnames(worst.pars), facet_args = list(ncol=1))
 	  pdf(file=paste0(control$outfile.base,'_worst_traces.pdf'), w=7, h=control$pdf.height.per.par*ncol(worst.pars))
 	  print(p)
 	  dev.off()
-	  
+
 	  #	histograms
 	  cat('\nPlotting marginal posterior densities for worst parameters...')
 	  p				<- mcmc_hist(worst.pars, pars=colnames(worst.pars), facet_args = list(ncol=4))
 	  pdf(file=paste0(control$outfile.base,'_worst_marginalposteriors.pdf'), w=10, h=control$pdf.height.per.par*ncol(worst.pars)/4)
 	  print(p)
 	  dev.off()
-	
+
 	  #	autocorrelations
 	  cat('\nPlotting autocorrelations for worst parameters...')
 	  p				<- mcmc_acf_bar(worst.pars, pars=colnames(worst.pars), facet_args = list(ncol = 1))
