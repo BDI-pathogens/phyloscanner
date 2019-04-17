@@ -412,7 +412,6 @@ source.attribution.aggmcmc.getKeyQuantities<- function(infile, control)
 		cat('\nRemoving NA output for samples n=', nrow(subset(pars, is.na(VALUE))))
 		pars		<- subset(pars, !is.na(VALUE))
 	}
-
 	cat('\nComputing flows...')
 	#	calculate flows
 	z		<- pars[, list(P=names(control$quantiles), Q=unname(quantile(VALUE, p=control$quantiles))), by=c('TR_TARGETCAT','REC_TARGETCAT')]
@@ -567,7 +566,7 @@ source.attribution.mcmc.diagnostics	<- function(mcmc.file, control=list(burnin.p
 	  print(p)
 	  dev.off()	  
   }
-  
+
   #	acceptance rate per MCMC update ID
   cat('\nPlotting acceptance rates...')
   da	<- subset(mc$it.info, !is.na(PAR_ID) & PAR_ID>0)[, list(ACC_RATE=mean(ACCEPT)), by='PAR_ID']

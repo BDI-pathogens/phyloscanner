@@ -60,7 +60,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">TransSubpopulation</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.2.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.3.0</span>
       </span>
     </div>
 
@@ -83,15 +83,12 @@
   </a>
   <ul class="dropdown-menu" role="menu">
     <li>
-      <a href="../articles/Source_attribution_under_GLM.html">Source attribution while sampling are structured under the GLM assumption</a>
+      <a href="../articles/Source_attribution_under_GLM.html">Source attribution when adjustment for sampling differences uses individual covariates</a>
     </li>
     <li>
-      <a href="../articles/Source_attribution_under_SARWS_assumption.html">Source attribution while sampling are structured under the SARWS assumption</a>
+      <a href="../articles/Source_attribution_under_SARWS_assumption.html">Source attribution on the assumption of SARWS for sampling</a>
     </li>
   </ul>
-</li>
-<li>
-  <a href="../news/index.html">Changelog</a>
 </li>
       </ul>
       
@@ -130,27 +127,27 @@
       <tr>
         
         <td>
-          <p><code><a href="mcmc.core.inference.html">mcmc.core.inference()</a></code> </p>
+          <p><code><a href="source.attribution.aggmcmc.getKeyQuantities.html">source.attribution.aggmcmc.getKeyQuantities()</a></code> </p>
         </td>
-        <td><p>MCMC sampler to correct for sampling bias.</p></td>
+        <td><p>Estimate Flows, Sources, WAIFM, Flow ratios</p></td>
       </tr><tr>
         
         <td>
-          <p><code><a href="mcmc.core.inference.diagnostics.html">mcmc.core.inference.diagnostics()</a></code> </p>
+          <p><code><a href="source.attribution.mcmc.html">source.attribution.mcmc()</a></code> </p>
         </td>
-        <td><p>Run several diagnostics for the mcmc sampler.</p></td>
+        <td><p>Source attribution while adjusting for sampling bias</p></td>
       </tr><tr>
         
         <td>
-          <p><code><a href="samples.from.GLM.prior.html">samples.from.GLM.prior()</a></code> </p>
+          <p><code><a href="source.attribution.mcmc.aggregateToTarget.html">source.attribution.mcmc.aggregateToTarget()</a></code> </p>
         </td>
-        <td><p>Drawing samples from the prior distribution given by generalised linear model.</p></td>
+        <td><p>Aggregate MCMC output to target parameters</p></td>
       </tr><tr>
         
         <td>
-          <p><code><a href="samples.from.SARWS.prior.html">samples.from.SARWS.prior()</a></code> </p>
+          <p><code><a href="source.attribution.mcmc.diagnostics.html">source.attribution.mcmc.diagnostics()</a></code> </p>
         </td>
-        <td><p>Drawing samples from the prior distribution under sampling at random within strata (SARWS) assumption.</p></td>
+        <td><p>MCMC diagnostics for the source attribution algorithm</p></td>
       </tr>
     </tbody>
     </table>
@@ -166,7 +163,7 @@
 
       <footer>
       <div class="copyright">
-  <p>Developed by Xiaoyue Xi.</p>
+  <p>Developed by Xiaoyue Xi, Oliver Ratmann.</p>
 </div>
 
 <div class="pkgdown">
