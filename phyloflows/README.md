@@ -30,22 +30,3 @@ data(twoGroupFlows1)
 dobs <- twoGroupFlows1$dobs
 dprior <- twoGroupFlows1$dprior
 ```
-
-Transmission networks resolved by phyloscanner could be analysed through phyloflows:
-
-1. generate samples from the prior distribution of the sampling probabilities under SARWS/GLM assumptions. 
-   * if you have the number of eligible and sampled individuals, please use SARWS assumption.
-   * if you have additional individual covariates data, please use GLM assumption.
-2. implement MCMC algorithm through *source.attribution.mcmc*.
-3. apply diagnostic tools for the MCMC algorithm through *source.attribution.mcmc.diagnostics*. 
-4. aggreagate to the transmission flows of interests through *source.attribution.mcmc.aggregateToTarget*.
-5. extract key statistics on the aggregated flows through *source.attribution.aggmcmc.getKeyQuantities*.
-
-We provide two tutorials on simulated data to to demonstrate analysis of reconstructed networks. 
-
-**Source_attribution_under_SARWS_assumption**
-[This tutorial](Source_attribution_under_SARWS_assumption.html) uses the generated transmission networks to understand transmissions between subpopulations under the assumption that individuals are sampled at random within subpopulation. 
-
-**Source_attribution_under_GLM_assumption**
-[This tutorial](Source_attribution_under_GLM_assumption.html) uses the generated transmission networks to understand transmissions between subpopulations under the assumption that the probability of an individual being sampled depends on his/her characteristics.
-

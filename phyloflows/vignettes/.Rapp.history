@@ -1,2 +1,0 @@
-load("/Users/apple/phyloscanner/phyloflows/vignettes/S1MCMC_GLM.rda")
-mc$time
