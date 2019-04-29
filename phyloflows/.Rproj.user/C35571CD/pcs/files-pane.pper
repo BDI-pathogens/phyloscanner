@@ -1,0 +1,9 @@
+{
+    "path" : "~/phyloscanner/phyloflows/vignettes",
+    "sortOrder" : [
+        {
+            "ascending" : true,
+            "columnIndex" : 2
+        }
+    ]
+}
