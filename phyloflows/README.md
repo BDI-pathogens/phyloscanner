@@ -24,9 +24,11 @@ If you have issues with installation/running of phyloflows, please raise an Issu
 
 **phyloflows** expects input data in a very simple format. First, a data.frame of observed transmission counts within and between population groups, which we call `dobs`. Second a data.frame that summarises prior information on how population groups were sampled, which we call `dprior`. 
 
-To get you started, **phyloflows** comes with a small simulated example data set of transmission counts and sampling information between two population groups, denoted by `1` and `2`:
+To get you started, **phyloflows** comes with a small simulated example data set of transmission counts and sampling information between two population groups, denoted by "1" and "2":
 ```
 data(twoGroupFlows1)
+dobs <- twoGroupFlows1$dobs
+dprior <- twoGroupFlows1$dprior
 ```
 
 Transmission networks resolved by phyloscanner could be analysed through phyloflows:
