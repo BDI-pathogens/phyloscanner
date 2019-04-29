@@ -1,23 +1,26 @@
 # phyloflows
 
-*phyloflows* analyses transmissions between subpopulations while considering variation in sampling intensity. Inputs for this analysis are transmission networks inferred from [phyloscanner](https://github.com/BDI-pathogens/phyloscanner) and demographic data. The software package comprises
+**phyloflows** provides an MCMC algorithm to infer transmission flows within and between population groups from observed flow counts. 
 
-1. R functions for implementing Markov Chain Monte Carlo to estimate probabilities of transmission between subpopulations.
-2. R functions for analysing outputs from MCMC including diagnostics, aggregation to the transmission flows of interest and key statistics on the aggregated flows.
+The software was primarily written to estimate transmission flows from counts of phylogenetically reconstructed source-recipient pairs. These input data can be obtained with [phyloscanner](https://github.com/BDI-pathogens/phyloscanner), though different types of input data can also be used, so long as they represent observed counts of flow events between two discrete groups. The primary feature of the software is that the underlying statistical model allows adjusting for sampling heterogeneity across population groups, a common problem in molecular epidemiologic analyses.
 
 
-### Installing
+### Getting started
 
-You can install phyloflows in R
+If you are just getting started with **phyloflows**, why don t you take a look at the tutorial vignettes.
+
+### Installation
+
+Install the latest development version from **GitHub**:
 
 ```{r}
-install_github("BDI-pathogens/phyloscanner/phyloflows", dependencies=FALSE, build_vignettes=FALSE)
+install_github("BDI-pathogens/phyloscanner/phyloflows", dependencies=TRUE, build_vignettes=FALSE)
 require(phyloflows)
 ```
 
-This step takes less than XX minutes. If you have issues with installation/running of phyloflows, please report it here and we will get back to you.
+If you have issues with installation/running of phyloflows, please raise an Issue on the GitHub page and we will get back to you.
 
-## Tutorials for transmission flow analysis.
+## Quick examples
 
 Transmission networks resolved by phyloscanner could be analysed through phyloflows:
 
