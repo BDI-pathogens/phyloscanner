@@ -2,7 +2,7 @@
 title: "**phyloflow**"
 author: "Xiaoyue Xi, Oliver Ratmann"
 date: "2019-04-30"
-output: rmarkdown::html_vignette
+output: github_document
 vignette: >
   %\VignetteIndexEntry{Vignette Title}
   %\VignetteEngine{knitr::rmarkdown}
@@ -19,6 +19,7 @@ knitr::opts_chunk$set(
 require(knitr)
 require(kableExtra)
 require(ggplot2)
+# rmarkdown::render("README.Rmd")
 ```
 
 # **phyloflows**
