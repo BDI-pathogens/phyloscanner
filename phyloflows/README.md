@@ -1,10 +1,7 @@
-**phyloflow**
+**phyloflows**
 ================
 Xiaoyue Xi, Oliver Ratmann
 2019-04-30
-
-**phyloflows**
-==============
 
 **phyloflows** provides an MCMC algorithm to infer transmission flows within and between population groups from observed flow counts.
 

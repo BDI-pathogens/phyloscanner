@@ -1,8 +1,10 @@
 ---
-title: "**phyloflow**"
+title: "**phyloflows**"
 author: "Xiaoyue Xi, Oliver Ratmann"
 date: "2019-04-30"
-output: github_document
+output:
+  github_document:
+    pandoc_args: --webtex
 vignette: >
   %\VignetteIndexEntry{Vignette Title}
   %\VignetteEngine{knitr::rmarkdown}
@@ -21,8 +23,6 @@ require(kableExtra)
 require(ggplot2)
 # rmarkdown::render("README.Rmd")
 ```
-
-# **phyloflows**
 
 **phyloflows** provides an MCMC algorithm to infer transmission flows within and
 between population groups from observed flow counts. 
