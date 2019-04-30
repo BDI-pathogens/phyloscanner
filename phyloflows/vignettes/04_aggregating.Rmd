@@ -1,0 +1,93 @@
+---
+title: "04 - Aggregating MCMC output to a new set of variables"
+date: "2019-04-30"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+```{r, include=TRUE, eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE, tidy=TRUE}
+require(knitr)
+require(kableExtra)
+```
+
+
+Here we show you how to aggregate estimated transmission flows to a higher
+level. Please read the sections [Our Job](index.html) and [Our
+Solution](index.html) on the main page before you go ahead here.
+
+## Getting started
+
+We continue our [very first example](articles/02_basic_example.html) here. The
+following code chunk contains all code needed, up to running **phyloflows**
+MCMC routine. The only change is that the number of iterations is now
+\(50,000\). The MCMC should take about 2 minutes to run.
+
+```{r, include=TRUE, eval=FALSE, echo=TRUE, tidy=FALSE,message=FALSE, warning=FALSE} 
+require(data.table)
+require(phyloflows)
+data(twoGroupFlows1, package="phyloflows")
+dobs <- twoGroupFlows1$dobs
+dprior <- twoGroupFlows1$dprior
+mcmc.file <- file.path(getwd(),'twoGroupFlows1_mcmc.RData')
+control <- list(seed=42, mcmc.n=5e4, verbose=0)
+mc <- phyloflows:::source.attribution.mcmc(dobs, dprior, control)
+```
+```{r, include=TRUE, eval=TRUE, echo=FALSE, tidy=FALSE, message=FALSE, warning=FALSE}
+require(data.table)
+require(phyloflows)
+data(twoGroupFlows1, package="phyloflows")
+dobs <- twoGroupFlows1$dobs
+dprior <- twoGroupFlows1$dprior
+data(twoGroupFlows1_mcmc, package="phyloflows")
+```
+
+## Aggregating flows
+Why would it be useful to aggregated the estimated transmission flows? Let us
+suppose that group "1" are the individuals aged 15-24 and group "2" are the
+individuals aged 25 or older in a population. The estimated flow
+vector
+$$
+\pi=(\pi_{11}, \pi_{12}, \pi_{21}, \pi_{22})
+$$
+describes the transsmission flow within and between the two age categories. But
+what is the overall contribution of transmissions from individuals aged 15-24,
+and the overall contribution of transmissions from individuals aged 25+? We
+want to estimate
+$$ 
+\tilde{\pi}= (\tilde{\pi}_{1}, \tilde{\pi}_{2})
+$$
+where \(\tilde{\pi}_{1}=\pi_{11}+\pi_{12}\) and
+\(\tilde{\pi}_{2}=\pi_{21}+\pi_{22}\). There are many similar scenorios like
+that, and **phyloflow** has a little function to help you with that task. The
+syntax is as follows.
+
+```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE,message=TRUE, warning=FALSE}
+daggregateTo <- subset(dobs, select=c(TRM_CAT_PAIR_ID, TR_TRM_CATEGORY, REC_TRM_CATEGORY))
+daggregateTo[, TR_TARGETCAT:= TR_TRM_CATEGORY]
+daggregateTo[, REC_TARGETCAT:= 'Any']
+set(daggregateTo, NULL, c('TR_TRM_CATEGORY','REC_TRM_CATEGORY'), NULL)	
+control <- list( burnin.p=0.05, 
+                 thin=NA_integer_, 
+				 regex_pars='PI')
+mca <- phyloflows:::source.attribution.mcmc.aggregateToTarget(mc=mc, daggregateTo=daggregateTo, control=control)	
+mca
+```
+
+The output is a data.table that contains the aggregated transmission flows, and
+other aggregated variables depending on the value of `control[['regex_pars]]`.
+In our case, we removed a burnin-period of 5\% of the MCMC chain, and did not
+thin the remaining iterations, yielding about 9500 MCMC samples of the
+aggregated flows.
+
+That's it for now. Use your usual R wizadry to process the output further, and
+have a look at the other vignettes.
+

@@ -1,5 +1,9 @@
 pandoc: 1.16.0.2
 pkgdown: 1.3.0.9000
 pkgdown_sha: 04e3f6ee259b17bed7246f237652e4ba7d6742d4
-articles: []
+articles:
+  01_simulating_data: 01_simulating_data.html
+  02_basic_example: 02_basic_example.html
+  03_diagnostics: 03_diagnostics.html
+  04_aggregating: 04_aggregating.html
 

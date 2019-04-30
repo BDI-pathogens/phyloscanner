@@ -1,0 +1,137 @@
+---
+title: "01 - Simulating data"
+date: "2019-04-30"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r, include=FALSE} 
+library(knitr)
+```
+
+Here is some code to set up simulated data sets. The main aim of these
+simulations are to test the performance of phyloflows MCMC algorithm. Please
+read the sections [Our Job](index.html) and [Our Solution](index.html) on the
+main page before you go ahead here.
+
+## Data set 1 (simple, SARWS)
+We start with simulating transmission flows between two population groups called
+"1" and "2". We will assume a very simple sampling process, sampling at random
+within these two population strata (SARWS).
+
+**We first set up the sampling process within the two population groups.** Let
+us assume population group 1 consists of \(2000\) individuals and group 2 of
+\(2500\) individuals, and that the sampling rates are \(0.6\) for group 1 and
+\(0.45\) for group 2. Here, we will suppose that sampling is at random within
+each of the population groups with these two sampling probabilities:  
+```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE, message=FALSE, warning=FALSE} 
+library(data.table)
+set.seed(42)
+ds <- data.table(CATEGORY=c(1,2),TRIAL=c(2000,2500),P_SEQ_EMP=c(0.6,0.45))
+ds[,SUC:=TRIAL*P_SEQ_EMP]
+ds
+```
+
+**Next, we calculate the sampling probabilities of transmission flows
+within and between the two groups.**  
+```{r include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE, message=FALSE, warning=FALSE} 
+dobs <- data.table(TR_TRM_CATEGORY=c(1,1,2,2),REC_TRM_CATEGORY=c(1,2,1,2))
+tmp <- subset(ds,select=c('CATEGORY','P_SEQ_EMP'))
+setnames(tmp,colnames(tmp),paste0('TR_TRM_',colnames(tmp)))
+dobs <- merge(dobs,tmp,by='TR_TRM_CATEGORY')
+setnames(tmp,colnames(tmp),gsub('TR_','REC_',colnames(tmp)))
+dobs <- merge(dobs,tmp,by='REC_TRM_CATEGORY')
+dobs[, S:= TR_TRM_P_SEQ_EMP * REC_TRM_P_SEQ_EMP]
+set(dobs, NULL, c('TR_TRM_P_SEQ_EMP','REC_TRM_P_SEQ_EMP'), NULL)
+dobs
+```
+
+**Next, we simulate true transmission flows.** Let us assume 36\% and 54\%
+transmissions are within group 1 and 2 respectively, and 4\% are from group 1 to
+group 2 and 6\% are from group 2 to group 1: 
+$$
+\pi=(0.36,0.04,0.06,0.54).
+$$ 
+We further assume the total number of observed transmissions is \(N=300\). We will simulate the actual transmission count $Z$ from a Poisson
+distribution. Then we will generate transmission flows between groups by 
+$$
+z \sim \mbox{Multinomial} (Z,\pi).
+$$
+Finally we will generate observed transmissions flows by subsampling the
+actual transmission flows by
+$$
+n_{ab} \sim \mbox{Binomial} (z_{ab},\xi_{ab}), \forall a,b,
+$$ 
+where $\xi_{ab}$ is the probability of sampling a transmission event from $a$ to $b$.
+
+```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE} 
+TRUE_PI <- c(0.36,0.04,0.06,0.54)
+N <- rpois(1,300/mean(dobs$S))
+z <- rmultinom(1,size=N,prob=TRUE_PI)
+n <- matrix(NA_integer_,ncol=1,nrow=length(TRUE_PI))
+for (i in 1:length(TRUE_PI)){
+	n[i] <- rbinom(1,size=z[i],dobs$S[i])
+}
+dobs[, TRM_OBS:= n]
+dobs
+```
+
+**Next, we will bring the transmission count data into the form needed for
+phyloflows MCMC algorithm.** We add an ID to each observation, called
+`TRM_CAT_PAIR_ID`. We also define the sampling groups. In this example, they
+correspond directly to the transmission groups.
+```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE} 
+dobs[, TR_SAMPLING_CATEGORY:=TR_TRM_CATEGORY]
+dobs[, REC_SAMPLING_CATEGORY:=REC_TRM_CATEGORY]
+dobs[, TRM_CAT_PAIR_ID:= seq_len(nrow(dobs))]
+dobs[, S:=NULL]
+setkey(dobs,TR_TRM_CATEGORY,REC_TRM_CATEGORY)
+dobs
+```
+
+**We still need to define the prior distribution on the unknown sampling
+probabilities, and generate samples from it**. At the very top of this page,
+defined the number of infected and sampled individuals in data.frame `ds`. Let
+us denote these by \(X_a^i\) and \(X_a^s\) for our two population groups \(a\). 
+Usually this type of information is available to us in real-world
+data analyses, and so we work from these numbers here also. Under the Binomial
+sampling model that we assume throughout, \(X_a^s\sim Binom(X_a^i, \xi_a)\). If we 
+suppose a flat prior on \(\xi_a\), we obtain the posterior distribution of the sampling 
+probabilities conditional on the number of total and sampled individuals,
+$$
+p(\xi_a|X_a^i,X_s^i)= Beta(\xi_a;X_a^s+1,X_a^i-X_a^s+1).
+$$
+This density typically contains a lot of information on the sampling process.
+To get this information into the form needed for **phyloflows** MCMC
+algorithm, we need to derive samples from that distribution. We also need to
+calculate their log density.
+```{r include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE} 
+nprior<-1000
+dprior<-ds[,list(P=rbeta(nprior,SUC+1,TRIAL-SUC+1),
+         SAMPLE=1:nprior),
+   by='CATEGORY']
+dprior<-merge(dprior,ds,by='CATEGORY')
+dprior[,LP:=dbeta(P,SUC+1,TRIAL-SUC+1,log=TRUE)]
+set(dprior,NULL,c('TRIAL','SUC'),NULL)
+setnames(dprior, 'CATEGORY', 'SAMPLING_CATEGORY')
+head(dprior)
+```
+
+This data set can be loaded through
+```{r include=TRUE, eval=FALSE, echo=TRUE, tidy=FALSE} 
+data(twoGroupFlows1)
+```
+To test our MCMC algorithm, we repeated generated 100 such data set, and they
+can be loaded through 
+```{r include=TRUE, eval=FALSE, echo=TRUE, tidy=FALSE} 
+data(twoGroupFlows100)
+```
+
+## Data set 2 (more complex, GLM)
+xxx
