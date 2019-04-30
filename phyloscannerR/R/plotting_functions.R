@@ -428,6 +428,7 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
 #' @param hosts A list of hosts (as a vector) to obtain graphs for. By default, all pairs of hosts detected in \code{ptrees}.
 #' @param inclusion If "both", then only pairs in which both individuals are members of \code{hosts} are included. If "either" then pairs only need have one member from \code{hosts}
 #' @param contiguous.pairs If TRUE pairs require contiguous (rather than ajacent) subgraphs to be identified as likely transmissions
+#' @return A list whose elements are \code{data}, the underlying data frame for the graph, and \code{graph}, the graph itself.
 #' @export produce.pairwise.graphs
 
 produce.pairwise.graphs <- function(ptrees, 
@@ -568,5 +569,5 @@ produce.pairwise.graphs <- function(ptrees,
     xlab("Window centre") +
     ylab("Host")
   
-  return(pairwise.plot)
+  return(list(graph = pairwise.plot, data = pair.data))
 }

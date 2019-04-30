@@ -204,7 +204,7 @@ classify.pairwise.relationships<- function(ptrees,
                                                                 'close.and.adjacent.and.directed',
                                                                 'close.and.contiguous.and.ancestry.cat',
                                                                 'close.and.adjacent.and.ancestry.cat'),	
-                                           verbose= FALSE
+                                           verbose = FALSE
 )
 {		
   
