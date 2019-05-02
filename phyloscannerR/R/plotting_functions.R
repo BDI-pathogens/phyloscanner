@@ -467,7 +467,7 @@ produce.pairwise.graphs <- function(ptrees,
       mutate(xcoord = 1:length(id))
   }
 
-  pair.data <- as.tibble(expand.grid(full.host.list, full.host.list, map_chr(ptrees, function(x) x$id), stringsAsFactors = F)) %>%
+  pair.data <- as_tibble(expand.grid(full.host.list, full.host.list, map_chr(ptrees, function(x) x$id), stringsAsFactors = F)) %>%
     dplyr::rename(host.1 = Var1, host.2 = Var2, tree.id = Var3) %>%
     filter(host.1 < host.2) %>% 
     left_join(t.stats, c("host.1", "host.2", "tree.id")) %>%
@@ -495,7 +495,7 @@ produce.pairwise.graphs <- function(ptrees,
     ungroup() %>%
     mutate(nondir.ancestry = replace(ancestry, ancestry %in% c("anc", "desc"), "trans")) %>%
     mutate(nondir.ancestry = replace(nondir.ancestry, nondir.ancestry %in% c("multiAnc", "multiDesc"), "multiTrans")) %>%
-    mutate(nondir.ancestry = factor(nondir.ancestry, levels = c("trans", "multiTrans", "none", "complex"))) %>%
+    mutate(nondir.ancestry = factor(nondir.ancestry, levels = c("trans", "multiTrans", "noAncestry", "complex"))) %>%
     mutate(linked = ((!contiguous.pairs & adjacent) | (contiguous.pairs & contiguous)) & within.distance) %>%
     mutate(adjacent = replace(adjacent, is.na(adjacent), T)) %>%
     mutate(contiguous = replace(contiguous, is.na(contiguous), T)) %>%
@@ -506,7 +506,7 @@ produce.pairwise.graphs <- function(ptrees,
     mutate(arrow = ancestry) %>%
     mutate(arrow = replace(arrow, arrow %in% c("anc", "multiAnc"), 1)) %>%
     mutate(arrow = replace(arrow, arrow %in% c("desc", "multiDesc"), 2)) %>%
-    mutate(arrow = replace(arrow, arrow %in% c(NA, "none", "complex"), 3)) %>%
+    mutate(arrow = replace(arrow, arrow %in% c(NA, "noAncestry", "complex"), 3)) %>%
     mutate(arrow = as.numeric(arrow)) %>%
     mutate(arrow.start = arrow) %>%
     mutate(arrow.start = replace(arrow.start, arrow.start == 2, 1.20001)) %>%
