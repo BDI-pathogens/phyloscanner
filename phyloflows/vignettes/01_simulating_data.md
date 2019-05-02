@@ -4,15 +4,15 @@
 
 Here is some code to set up simulated data sets. The main aim of these
 simulations are to test the performance of phyloflows MCMC algorithm.
-Please read the sections [Our Job](index.html) and [Our
-Solution](index.html) on the main page before you go ahead here.
+Please read the sections “Our Job” and “Our Solution” on the main page
+before you go ahead here.
 
-Data set 1 (simple, SARWS)
---------------------------
+## Data set 1 (simple, SARWS)
 
 We start with simulating transmission flows between two population
 groups called “1” and “2”. We will assume a very simple sampling
-process, sampling at random within these two population strata (SARWS).
+process, sampling at random within population strata, which we
+abbreviate to SARWS.
 
 **We first set up the sampling process within the two population
 groups.** Let us assume population group 1 consists of
@@ -59,38 +59,35 @@ dobs
 
 **Next, we simulate true transmission flows.** Let us assume 36% and 54%
 transmissions are within group 1 and 2 respectively, and 4% are from
-group 1 to group 2 and 6% are from group 2 to group 1:
-
+group 1 to group 2 and 6% are from group 2 to group 1:   
 ![
 \\pi=(0.36,0.04,0.06,0.54).
-](https://latex.codecogs.com/png.latex?%0A%5Cpi%3D%280.36%2C0.04%2C0.06%2C0.54%29.%0A "
-\pi=(0.36,0.04,0.06,0.54).
-")
-
+](https://latex.codecogs.com/png.latex?%0A%5Cpi%3D%280.36%2C0.04%2C0.06%2C0.54%29.%0A
+"
+\\pi=(0.36,0.04,0.06,0.54).
+")  
 We further assume the total number of observed transmissions is
 ![N=300](https://latex.codecogs.com/png.latex?N%3D300 "N=300"). We will
 simulate the actual transmission count
 ![Z](https://latex.codecogs.com/png.latex?Z "Z") from a Poisson
 distribution. Then we will generate transmission flows between groups by
-
+  
 ![
 z \\sim \\mbox{Multinomial} (Z,\\pi).
-](https://latex.codecogs.com/png.latex?%0Az%20%5Csim%20%5Cmbox%7BMultinomial%7D%20%28Z%2C%5Cpi%29.%0A "
-z \sim \mbox{Multinomial} (Z,\pi).
-")
-
+](https://latex.codecogs.com/png.latex?%0Az%20%5Csim%20%5Cmbox%7BMultinomial%7D%20%28Z%2C%5Cpi%29.%0A
+"
+z \\sim \\mbox{Multinomial} (Z,\\pi).
+")  
 Finally we will generate observed transmissions flows by subsampling the
-actual transmission flows by
-
+actual transmission flows by   
 ![
 n\_{ab} \\sim \\mbox{Binomial} (z\_{ab},\\xi\_{ab}), \\forall a,b,
-](https://latex.codecogs.com/png.latex?%0An_%7Bab%7D%20%5Csim%20%5Cmbox%7BBinomial%7D%20%28z_%7Bab%7D%2C%5Cxi_%7Bab%7D%29%2C%20%5Cforall%20a%2Cb%2C%0A "
-n_{ab} \sim \mbox{Binomial} (z_{ab},\xi_{ab}), \forall a,b,
-")
-
-where
-![\\xi\_{ab}](https://latex.codecogs.com/png.latex?%5Cxi_%7Bab%7D "\xi_{ab}")
-is the probability of sampling a transmission event from
+](https://latex.codecogs.com/png.latex?%0An_%7Bab%7D%20%5Csim%20%5Cmbox%7BBinomial%7D%20%28z_%7Bab%7D%2C%5Cxi_%7Bab%7D%29%2C%20%5Cforall%20a%2Cb%2C%0A
+"
+n_{ab} \\sim \\mbox{Binomial} (z_{ab},\\xi_{ab}), \\forall a,b,
+")  
+where ![\\xi\_{ab}](https://latex.codecogs.com/png.latex?%5Cxi_%7Bab%7D
+"\\xi_{ab}") is the probability of sampling a transmission event from
 ![a](https://latex.codecogs.com/png.latex?a "a") to
 ![b](https://latex.codecogs.com/png.latex?b "b").
 
@@ -146,19 +143,19 @@ data.frame `ds`. Let us denote these by
 two population groups ![a](https://latex.codecogs.com/png.latex?a "a").
 Usually this type of information is available to us in real-world data
 analyses, and so we work from these numbers here also. Under the
-Binomial sampling model that we assume throughout,
-![X\_a^s\\sim Binom(X\_a^i, \\xi\_a)](https://latex.codecogs.com/png.latex?X_a%5Es%5Csim%20Binom%28X_a%5Ei%2C%20%5Cxi_a%29 "X_a^s\sim Binom(X_a^i, \xi_a)").
-If we suppose a flat prior on
-![\\xi\_a](https://latex.codecogs.com/png.latex?%5Cxi_a "\xi_a"), we
+Binomial sampling model that we assume throughout, ![X\_a^s\\sim
+Binom(X\_a^i,
+\\xi\_a)](https://latex.codecogs.com/png.latex?X_a%5Es%5Csim%20Binom%28X_a%5Ei%2C%20%5Cxi_a%29
+"X_a^s\\sim Binom(X_a^i, \\xi_a)"). If we suppose a flat prior on
+![\\xi\_a](https://latex.codecogs.com/png.latex?%5Cxi_a "\\xi_a"), we
 obtain the posterior distribution of the sampling probabilities
-conditional on the number of total and sampled individuals,
-
+conditional on the number of total and sampled individuals,   
 ![
-p(\\xi\_a\|X\_a^i,X\_s^i)= Beta(\\xi\_a;X\_a^s+1,X\_a^i-X\_a^s+1).
-](https://latex.codecogs.com/png.latex?%0Ap%28%5Cxi_a%7CX_a%5Ei%2CX_s%5Ei%29%3D%20Beta%28%5Cxi_a%3BX_a%5Es%2B1%2CX_a%5Ei-X_a%5Es%2B1%29.%0A "
-p(\xi_a|X_a^i,X_s^i)= Beta(\xi_a;X_a^s+1,X_a^i-X_a^s+1).
-")
-
+p(\\xi\_a|X\_a^i,X\_s^i)= Beta(\\xi\_a;X\_a^s+1,X\_a^i-X\_a^s+1).
+](https://latex.codecogs.com/png.latex?%0Ap%28%5Cxi_a%7CX_a%5Ei%2CX_s%5Ei%29%3D%20Beta%28%5Cxi_a%3BX_a%5Es%2B1%2CX_a%5Ei-X_a%5Es%2B1%29.%0A
+"
+p(\\xi_a|X_a^i,X_s^i)= Beta(\\xi_a;X_a^s+1,X_a^i-X_a^s+1).
+")  
 This density typically contains a lot of information on the sampling
 process. To get this information into the form needed for **phyloflows**
 MCMC algorithm, we need to derive samples from that distribution. We
@@ -197,7 +194,6 @@ they can be loaded through
 data(twoGroupFlows100)
 ```
 
-Data set 2 (more complex, GLM)
-------------------------------
+## Data set 2 (more complex, GLM)
 
 xxx

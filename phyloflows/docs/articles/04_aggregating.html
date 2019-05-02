@@ -98,19 +98,19 @@
 
     
     
-<p>Here we show you how to aggregate estimated transmission flows to a higher level. Please read the sections <a href="index.html">Our Job</a> and <a href="index.html">Our Solution</a> on the main page before you go ahead here.</p>
+<p>Here we show you how to aggregate estimated transmission flows to a higher level. Please read the sections “Our Job” and “Our Solution” on the main page before you go ahead here.</p>
 <div id="getting-started" class="section level2">
 <h2 class="hasAnchor">
 <a href="#getting-started" class="anchor"></a>Getting started</h2>
-<p>We continue our <a href="articles/02_basic_example.html">very first example</a> here. The following code chunk contains all code needed, up to running <strong>phyloflows</strong> MCMC routine. The only change is that the number of iterations is now <span class="math inline">\(50,000\)</span>. The MCMC should take about 2 minutes to run.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw"><a href="https://rdrr.io/r/base/library.html">require</a></span>(data.table)
-<span class="kw"><a href="https://rdrr.io/r/base/library.html">require</a></span>(phyloflows)
-<span class="kw"><a href="https://rdrr.io/r/utils/data.html">data</a></span>(twoGroupFlows1, <span class="dt">package=</span><span class="st">"phyloflows"</span>)
-dobs &lt;-<span class="st"> </span>twoGroupFlows1$dobs
-dprior &lt;-<span class="st"> </span>twoGroupFlows1$dprior
-mcmc.file &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span>(<span class="kw"><a href="https://rdrr.io/r/base/getwd.html">getwd</a></span>(),<span class="st">'twoGroupFlows1_mcmc.RData'</span>)
-control &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/list.html">list</a></span>(<span class="dt">seed=</span><span class="dv">42</span>, <span class="dt">mcmc.n=</span><span class="fl">5e4</span>, <span class="dt">verbose=</span><span class="dv">0</span>)
-mc &lt;-<span class="st"> </span>phyloflows:::<span class="kw"><a href="../reference/source.attribution.mcmc.html">source.attribution.mcmc</a></span>(dobs, dprior, control)</code></pre></div>
+<p>We continue our Very_First_Example from the vignette with the same name here. The following code chunk contains all code needed, up to running <strong>phyloflows</strong> MCMC routine. The only change is that the number of iterations is now <span class="math inline">\(50,000\)</span>. The MCMC should take about 2 minutes to run.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" title="1"><span class="kw"><a href="https://rdrr.io/r/base/library.html">require</a></span>(data.table)</a>
+<a class="sourceLine" id="cb1-2" title="2"><span class="kw"><a href="https://rdrr.io/r/base/library.html">require</a></span>(phyloflows)</a>
+<a class="sourceLine" id="cb1-3" title="3"><span class="kw"><a href="https://rdrr.io/r/utils/data.html">data</a></span>(twoGroupFlows1, <span class="dt">package=</span><span class="st">"phyloflows"</span>)</a>
+<a class="sourceLine" id="cb1-4" title="4">dobs &lt;-<span class="st"> </span>twoGroupFlows1<span class="op">$</span>dobs</a>
+<a class="sourceLine" id="cb1-5" title="5">dprior &lt;-<span class="st"> </span>twoGroupFlows1<span class="op">$</span>dprior</a>
+<a class="sourceLine" id="cb1-6" title="6">mcmc.file &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span>(<span class="kw"><a href="https://rdrr.io/r/base/getwd.html">getwd</a></span>(),<span class="st">'twoGroupFlows1_mcmc.RData'</span>)</a>
+<a class="sourceLine" id="cb1-7" title="7">control &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/list.html">list</a></span>(<span class="dt">seed=</span><span class="dv">42</span>, <span class="dt">mcmc.n=</span><span class="fl">5e4</span>, <span class="dt">verbose=</span><span class="dv">0</span>)</a>
+<a class="sourceLine" id="cb1-8" title="8">mc &lt;-<span class="st"> </span>phyloflows<span class="op">:::</span><span class="kw"><a href="../reference/source.attribution.mcmc.html">source.attribution.mcmc</a></span>(dobs, dprior, control)</a></code></pre></div>
 </div>
 <div id="aggregating-flows" class="section level2">
 <h2 class="hasAnchor">
@@ -120,32 +120,32 @@ mc &lt;-<span class="st"> </span>phyloflows:::<span class="kw"><a href="../refer
 \]</span> describes the transsmission flow within and between the two age categories. But what is the overall contribution of transmissions from individuals aged 15-24, and the overall contribution of transmissions from individuals aged 25+? We want to estimate <span class="math display">\[ 
 \tilde{\pi}= (\tilde{\pi}_{1}, \tilde{\pi}_{2})
 \]</span> where <span class="math inline">\(\tilde{\pi}_{1}=\pi_{11}+\pi_{12}\)</span> and <span class="math inline">\(\tilde{\pi}_{2}=\pi_{21}+\pi_{22}\)</span>. There are many similar scenorios like that, and <strong>phyloflow</strong> has a little function to help you with that task. The syntax is as follows.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">daggregateTo &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/subset.data.table.html">subset</a></span>(dobs, <span class="dt">select=</span><span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(TRM_CAT_PAIR_ID, TR_TRM_CATEGORY, REC_TRM_CATEGORY))
-daggregateTo[, TR_TARGETCAT:<span class="er">=</span><span class="st"> </span>TR_TRM_CATEGORY]
-daggregateTo[, REC_TARGETCAT:<span class="er">=</span><span class="st"> 'Any'</span>]
-<span class="kw"><a href="https://rdrr.io/pkg/data.table/man/assign.html">set</a></span>(daggregateTo, <span class="ot">NULL</span>, <span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">'TR_TRM_CATEGORY'</span>,<span class="st">'REC_TRM_CATEGORY'</span>), <span class="ot">NULL</span>)  
-control &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/list.html">list</a></span>( <span class="dt">burnin.p=</span><span class="fl">0.05</span>, 
-                 <span class="dt">thin=</span><span class="ot">NA_integer_</span>, 
-                 <span class="dt">regex_pars=</span><span class="st">'PI'</span>)
-mca &lt;-<span class="st"> </span>phyloflows:::<span class="kw"><a href="../reference/source.attribution.mcmc.aggregateToTarget.html">source.attribution.mcmc.aggregateToTarget</a></span>(<span class="dt">mc=</span>mc, <span class="dt">daggregateTo=</span>daggregateTo, <span class="dt">control=</span>control)    
-<span class="co">#&gt; </span>
-<span class="co">#&gt; Using MCMC output specified as input...</span>
-<span class="co">#&gt; Collecting parameters...</span>
-<span class="co">#&gt; Removing burnin in set to  5 % of chain, total iterations= 500</span>
-<span class="co">#&gt; Making aggregated MCMC output...</span>
-mca
-<span class="co">#&gt;        VARIABLE TR_TARGETCAT REC_TARGETCAT SAMPLE     VALUE</span>
-<span class="co">#&gt;     1:       PI            1           Any      1 0.3976094</span>
-<span class="co">#&gt;     2:       PI            1           Any      2 0.4063326</span>
-<span class="co">#&gt;     3:       PI            1           Any      3 0.4326280</span>
-<span class="co">#&gt;     4:       PI            1           Any      4 0.4145340</span>
-<span class="co">#&gt;     5:       PI            1           Any      5 0.4041081</span>
-<span class="co">#&gt;    ---                                                     </span>
-<span class="co">#&gt; 19000:       PI            2           Any   9498 0.6192508</span>
-<span class="co">#&gt; 19001:       PI            2           Any   9499 0.6133096</span>
-<span class="co">#&gt; 19002:       PI            2           Any   9500 0.5770948</span>
-<span class="co">#&gt; 19003:       PI            2           Any   9501 0.6073157</span>
-<span class="co">#&gt; 19004:       PI            2           Any   9502 0.6018683</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" title="1">daggregateTo &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/subset.data.table.html">subset</a></span>(dobs, <span class="dt">select=</span><span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(TRM_CAT_PAIR_ID, TR_TRM_CATEGORY, REC_TRM_CATEGORY))</a>
+<a class="sourceLine" id="cb2-2" title="2">daggregateTo[, TR_TARGETCAT<span class="op">:</span><span class="er">=</span><span class="st"> </span>TR_TRM_CATEGORY]</a>
+<a class="sourceLine" id="cb2-3" title="3">daggregateTo[, REC_TARGETCAT<span class="op">:</span><span class="er">=</span><span class="st"> 'Any'</span>]</a>
+<a class="sourceLine" id="cb2-4" title="4"><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/assign.html">set</a></span>(daggregateTo, <span class="ot">NULL</span>, <span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">'TR_TRM_CATEGORY'</span>,<span class="st">'REC_TRM_CATEGORY'</span>), <span class="ot">NULL</span>)  </a>
+<a class="sourceLine" id="cb2-5" title="5">control &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/list.html">list</a></span>( <span class="dt">burnin.p=</span><span class="fl">0.05</span>, </a>
+<a class="sourceLine" id="cb2-6" title="6">                 <span class="dt">thin=</span><span class="ot">NA_integer_</span>, </a>
+<a class="sourceLine" id="cb2-7" title="7">                 <span class="dt">regex_pars=</span><span class="st">'PI'</span>)</a>
+<a class="sourceLine" id="cb2-8" title="8">mca &lt;-<span class="st"> </span>phyloflows<span class="op">:::</span><span class="kw"><a href="../reference/source.attribution.mcmc.aggregateToTarget.html">source.attribution.mcmc.aggregateToTarget</a></span>(<span class="dt">mc=</span>mc, <span class="dt">daggregateTo=</span>daggregateTo, <span class="dt">control=</span>control)    </a>
+<a class="sourceLine" id="cb2-9" title="9"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb2-10" title="10"><span class="co">#&gt; Using MCMC output specified as input...</span></a>
+<a class="sourceLine" id="cb2-11" title="11"><span class="co">#&gt; Collecting parameters...</span></a>
+<a class="sourceLine" id="cb2-12" title="12"><span class="co">#&gt; Removing burnin in set to  5 % of chain, total iterations= 500</span></a>
+<a class="sourceLine" id="cb2-13" title="13"><span class="co">#&gt; Making aggregated MCMC output...</span></a>
+<a class="sourceLine" id="cb2-14" title="14">mca</a>
+<a class="sourceLine" id="cb2-15" title="15"><span class="co">#&gt;        VARIABLE TR_TARGETCAT REC_TARGETCAT SAMPLE     VALUE</span></a>
+<a class="sourceLine" id="cb2-16" title="16"><span class="co">#&gt;     1:       PI            1           Any      1 0.3976094</span></a>
+<a class="sourceLine" id="cb2-17" title="17"><span class="co">#&gt;     2:       PI            1           Any      2 0.4063326</span></a>
+<a class="sourceLine" id="cb2-18" title="18"><span class="co">#&gt;     3:       PI            1           Any      3 0.4326280</span></a>
+<a class="sourceLine" id="cb2-19" title="19"><span class="co">#&gt;     4:       PI            1           Any      4 0.4145340</span></a>
+<a class="sourceLine" id="cb2-20" title="20"><span class="co">#&gt;     5:       PI            1           Any      5 0.4041081</span></a>
+<a class="sourceLine" id="cb2-21" title="21"><span class="co">#&gt;    ---                                                     </span></a>
+<a class="sourceLine" id="cb2-22" title="22"><span class="co">#&gt; 19000:       PI            2           Any   9498 0.6192508</span></a>
+<a class="sourceLine" id="cb2-23" title="23"><span class="co">#&gt; 19001:       PI            2           Any   9499 0.6133096</span></a>
+<a class="sourceLine" id="cb2-24" title="24"><span class="co">#&gt; 19002:       PI            2           Any   9500 0.5770948</span></a>
+<a class="sourceLine" id="cb2-25" title="25"><span class="co">#&gt; 19003:       PI            2           Any   9501 0.6073157</span></a>
+<a class="sourceLine" id="cb2-26" title="26"><span class="co">#&gt; 19004:       PI            2           Any   9502 0.6018683</span></a></code></pre></div>
 <p>The output is a data.table that contains the aggregated transmission flows, and other aggregated variables depending on the value of <code>control[['regex_pars]]</code>. In our case, we removed a burnin-period of 5% of the MCMC chain, and did not thin the remaining iterations, yielding about 9500 MCMC samples of the aggregated flows.</p>
 <p>That’s it for now. Use your usual R wizadry to process the output further, and have a look at the other vignettes.</p>
 </div>

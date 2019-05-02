@@ -21,8 +21,7 @@ require(kableExtra)
 
 
 Here is a very first example data set for you to have a go at. Please read the
-sections [Our Job](index.html) and [Our Solution](index.html) on the main
-page before you go ahead here.
+sections "Our Job" and "Our Solution" on the main page before you go ahead here.
 
 
 # Input data

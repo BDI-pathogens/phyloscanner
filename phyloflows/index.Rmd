@@ -1,8 +1,6 @@
 ---
 title: "**phyloflows**"
-output:
-  github_document:
-    pandoc_args: --webtex
+output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Vignette Title}
   %\VignetteEngine{knitr::rmarkdown}
@@ -21,6 +19,8 @@ require(kableExtra)
 require(ggplot2)
 # for(x in c("README.Rmd","vignettes/01_simulating_data.Rmd","vignettes/02_basic_example.Rmd","vignettes/03_diagnostics.Rmd","vignettes/04_aggregating.Rmd")) rmarkdown::render(x)
 ```
+
+# **phyloflows**
 
 **phyloflows** provides tools to infer transmission flows within and
 between population groups from phylogenetically observed flow counts. 
@@ -131,15 +131,15 @@ feature is that it has zero tuning variables, so the blame is 100% on us if it
 does not work. Just get in touch then.
 
 
-## Examples
+## Vignettes
 
-1. [Simulating data.](vignettes/01_simulating_data.md) 
+1. [Simulating data.](articles/01_simulating_data.html) 
    
 2. [A very first example. Always start with
-   me.](vignettes/02_basic_example.md)
+   me.](articles/02_basic_example.html)
 
-3. [Performing MCMC diagnostic checks](vignettes/03_diagnostics.md)
+3. [Performing MCMC diagnostic checks](articles/03_diagnostics.html)
 
 4. [Aggregating MCMC output to a new set of
-   variables](vignettes/04_aggregating.md)
+   variables](articles/04_aggregating.html)
    

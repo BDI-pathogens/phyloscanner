@@ -98,30 +98,30 @@
 
     
     
-<p>Here is some code to set up simulated data sets. The main aim of these simulations are to test the performance of phyloflows MCMC algorithm. Please read the sections <a href="index.html">Our Job</a> and <a href="index.html">Our Solution</a> on the main page before you go ahead here.</p>
+<p>Here is some code to set up simulated data sets. The main aim of these simulations are to test the performance of phyloflows MCMC algorithm. Please read the sections “Our Job” and “Our Solution” on the main page before you go ahead here.</p>
 <div id="data-set-1-simple-sarws" class="section level2">
 <h2 class="hasAnchor">
 <a href="#data-set-1-simple-sarws" class="anchor"></a>Data set 1 (simple, SARWS)</h2>
-<p>We start with simulating transmission flows between two population groups called “1” and “2”. We will assume a very simple sampling process, sampling at random within these two population strata (SARWS).</p>
+<p>We start with simulating transmission flows between two population groups called “1” and “2”. We will assume a very simple sampling process, sampling at random within population strata, which we abbreviate to SARWS.</p>
 <p><strong>We first set up the sampling process within the two population groups.</strong> Let us assume population group 1 consists of <span class="math inline">\(2000\)</span> individuals and group 2 of <span class="math inline">\(2500\)</span> individuals, and that the sampling rates are <span class="math inline">\(0.6\)</span> for group 1 and <span class="math inline">\(0.45\)</span> for group 2. Here, we will suppose that sampling is at random within each of the population groups with these two sampling probabilities:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span>(data.table)
-<span class="kw"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span>(<span class="dv">42</span>)
-ds &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/data.table.html">data.table</a></span>(<span class="dt">CATEGORY=</span><span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="dv">1</span>,<span class="dv">2</span>),<span class="dt">TRIAL=</span><span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="dv">2000</span>,<span class="dv">2500</span>),<span class="dt">P_SEQ_EMP=</span><span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="fl">0.6</span>,<span class="fl">0.45</span>))
-ds[,SUC:<span class="er">=</span>TRIAL*P_SEQ_EMP]
-ds</code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" title="1"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span>(data.table)</a>
+<a class="sourceLine" id="cb1-2" title="2"><span class="kw"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span>(<span class="dv">42</span>)</a>
+<a class="sourceLine" id="cb1-3" title="3">ds &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/data.table.html">data.table</a></span>(<span class="dt">CATEGORY=</span><span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="dv">1</span>,<span class="dv">2</span>),<span class="dt">TRIAL=</span><span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="dv">2000</span>,<span class="dv">2500</span>),<span class="dt">P_SEQ_EMP=</span><span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="fl">0.6</span>,<span class="fl">0.45</span>))</a>
+<a class="sourceLine" id="cb1-4" title="4">ds[,SUC<span class="op">:</span><span class="er">=</span>TRIAL<span class="op">*</span>P_SEQ_EMP]</a>
+<a class="sourceLine" id="cb1-5" title="5">ds</a></code></pre></div>
 <pre><code>##    CATEGORY TRIAL P_SEQ_EMP  SUC
 ## 1:        1  2000      0.60 1200
 ## 2:        2  2500      0.45 1125</code></pre>
 <p><strong>Next, we calculate the sampling probabilities of transmission flows within and between the two groups.</strong></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">dobs &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/data.table.html">data.table</a></span>(<span class="dt">TR_TRM_CATEGORY=</span><span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">2</span>),<span class="dt">REC_TRM_CATEGORY=</span><span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">1</span>,<span class="dv">2</span>))
-tmp &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/subset.data.table.html">subset</a></span>(ds,<span class="dt">select=</span><span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">'CATEGORY'</span>,<span class="st">'P_SEQ_EMP'</span>))
-<span class="kw"><a href="https://rdrr.io/pkg/data.table/man/setattr.html">setnames</a></span>(tmp,<span class="kw"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span>(tmp),<span class="kw"><a href="https://rdrr.io/r/base/paste.html">paste0</a></span>(<span class="st">'TR_TRM_'</span>,<span class="kw"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span>(tmp)))
-dobs &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/merge.html">merge</a></span>(dobs,tmp,<span class="dt">by=</span><span class="st">'TR_TRM_CATEGORY'</span>)
-<span class="kw"><a href="https://rdrr.io/pkg/data.table/man/setattr.html">setnames</a></span>(tmp,<span class="kw"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span>(tmp),<span class="kw"><a href="https://rdrr.io/r/base/grep.html">gsub</a></span>(<span class="st">'TR_'</span>,<span class="st">'REC_'</span>,<span class="kw"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span>(tmp)))
-dobs &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/merge.html">merge</a></span>(dobs,tmp,<span class="dt">by=</span><span class="st">'REC_TRM_CATEGORY'</span>)
-dobs[, S:<span class="er">=</span><span class="st"> </span>TR_TRM_P_SEQ_EMP *<span class="st"> </span>REC_TRM_P_SEQ_EMP]
-<span class="kw"><a href="https://rdrr.io/pkg/data.table/man/assign.html">set</a></span>(dobs, <span class="ot">NULL</span>, <span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">'TR_TRM_P_SEQ_EMP'</span>,<span class="st">'REC_TRM_P_SEQ_EMP'</span>), <span class="ot">NULL</span>)
-dobs</code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" title="1">dobs &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/data.table.html">data.table</a></span>(<span class="dt">TR_TRM_CATEGORY=</span><span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">2</span>),<span class="dt">REC_TRM_CATEGORY=</span><span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">1</span>,<span class="dv">2</span>))</a>
+<a class="sourceLine" id="cb3-2" title="2">tmp &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/subset.data.table.html">subset</a></span>(ds,<span class="dt">select=</span><span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">'CATEGORY'</span>,<span class="st">'P_SEQ_EMP'</span>))</a>
+<a class="sourceLine" id="cb3-3" title="3"><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/setattr.html">setnames</a></span>(tmp,<span class="kw"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span>(tmp),<span class="kw"><a href="https://rdrr.io/r/base/paste.html">paste0</a></span>(<span class="st">'TR_TRM_'</span>,<span class="kw"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span>(tmp)))</a>
+<a class="sourceLine" id="cb3-4" title="4">dobs &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/merge.html">merge</a></span>(dobs,tmp,<span class="dt">by=</span><span class="st">'TR_TRM_CATEGORY'</span>)</a>
+<a class="sourceLine" id="cb3-5" title="5"><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/setattr.html">setnames</a></span>(tmp,<span class="kw"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span>(tmp),<span class="kw"><a href="https://rdrr.io/r/base/grep.html">gsub</a></span>(<span class="st">'TR_'</span>,<span class="st">'REC_'</span>,<span class="kw"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span>(tmp)))</a>
+<a class="sourceLine" id="cb3-6" title="6">dobs &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/merge.html">merge</a></span>(dobs,tmp,<span class="dt">by=</span><span class="st">'REC_TRM_CATEGORY'</span>)</a>
+<a class="sourceLine" id="cb3-7" title="7">dobs[, S<span class="op">:</span><span class="er">=</span><span class="st"> </span>TR_TRM_P_SEQ_EMP <span class="op">*</span><span class="st"> </span>REC_TRM_P_SEQ_EMP]</a>
+<a class="sourceLine" id="cb3-8" title="8"><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/assign.html">set</a></span>(dobs, <span class="ot">NULL</span>, <span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">'TR_TRM_P_SEQ_EMP'</span>,<span class="st">'REC_TRM_P_SEQ_EMP'</span>), <span class="ot">NULL</span>)</a>
+<a class="sourceLine" id="cb3-9" title="9">dobs</a></code></pre></div>
 <pre><code>##    REC_TRM_CATEGORY TR_TRM_CATEGORY      S
 ## 1:                1               1 0.3600
 ## 2:                1               2 0.2700
@@ -134,27 +134,27 @@ z \sim \mbox{Multinomial} (Z,\pi).
 \]</span> Finally we will generate observed transmissions flows by subsampling the actual transmission flows by <span class="math display">\[
 n_{ab} \sim \mbox{Binomial} (z_{ab},\xi_{ab}), \forall a,b,
 \]</span> where <span class="math inline">\(\xi_{ab}\)</span> is the probability of sampling a transmission event from <span class="math inline">\(a\)</span> to <span class="math inline">\(b\)</span>.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">TRUE_PI &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="fl">0.36</span>,<span class="fl">0.04</span>,<span class="fl">0.06</span>,<span class="fl">0.54</span>)
-N &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/stats/Poisson.html">rpois</a></span>(<span class="dv">1</span>,<span class="dv">300</span>/<span class="kw"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>(dobs$S))
-z &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/stats/Multinom.html">rmultinom</a></span>(<span class="dv">1</span>,<span class="dt">size=</span>N,<span class="dt">prob=</span>TRUE_PI)
-n &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="ot">NA_integer_</span>,<span class="dt">ncol=</span><span class="dv">1</span>,<span class="dt">nrow=</span><span class="kw"><a href="https://rdrr.io/r/base/length.html">length</a></span>(TRUE_PI))
-for (i in <span class="dv">1</span>:<span class="kw"><a href="https://rdrr.io/r/base/length.html">length</a></span>(TRUE_PI)){
-    n[i] &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span>(<span class="dv">1</span>,<span class="dt">size=</span>z[i],dobs$S[i])
-}
-dobs[, TRM_OBS:<span class="er">=</span><span class="st"> </span>n]
-dobs</code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" title="1">TRUE_PI &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="fl">0.36</span>,<span class="fl">0.04</span>,<span class="fl">0.06</span>,<span class="fl">0.54</span>)</a>
+<a class="sourceLine" id="cb5-2" title="2">N &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/stats/Poisson.html">rpois</a></span>(<span class="dv">1</span>,<span class="dv">300</span><span class="op">/</span><span class="kw"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>(dobs<span class="op">$</span>S))</a>
+<a class="sourceLine" id="cb5-3" title="3">z &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/stats/Multinom.html">rmultinom</a></span>(<span class="dv">1</span>,<span class="dt">size=</span>N,<span class="dt">prob=</span>TRUE_PI)</a>
+<a class="sourceLine" id="cb5-4" title="4">n &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="ot">NA_integer_</span>,<span class="dt">ncol=</span><span class="dv">1</span>,<span class="dt">nrow=</span><span class="kw"><a href="https://rdrr.io/r/base/length.html">length</a></span>(TRUE_PI))</a>
+<a class="sourceLine" id="cb5-5" title="5"><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw"><a href="https://rdrr.io/r/base/length.html">length</a></span>(TRUE_PI)){</a>
+<a class="sourceLine" id="cb5-6" title="6">    n[i] &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span>(<span class="dv">1</span>,<span class="dt">size=</span>z[i],dobs<span class="op">$</span>S[i])</a>
+<a class="sourceLine" id="cb5-7" title="7">}</a>
+<a class="sourceLine" id="cb5-8" title="8">dobs[, TRM_OBS<span class="op">:</span><span class="er">=</span><span class="st"> </span>n]</a>
+<a class="sourceLine" id="cb5-9" title="9">dobs</a></code></pre></div>
 <pre><code>##    REC_TRM_CATEGORY TR_TRM_CATEGORY      S TRM_OBS
 ## 1:                1               1 0.3600     139
 ## 2:                1               2 0.2700      20
 ## 3:                2               1 0.2700      15
 ## 4:                2               2 0.2025     129</code></pre>
 <p><strong>Next, we will bring the transmission count data into the form needed for phyloflows MCMC algorithm.</strong> We add an ID to each observation, called <code>TRM_CAT_PAIR_ID</code>. We also define the sampling groups. In this example, they correspond directly to the transmission groups.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">dobs[, TR_SAMPLING_CATEGORY:<span class="er">=</span>TR_TRM_CATEGORY]
-dobs[, REC_SAMPLING_CATEGORY:<span class="er">=</span>REC_TRM_CATEGORY]
-dobs[, TRM_CAT_PAIR_ID:<span class="er">=</span><span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/seq.html">seq_len</a></span>(<span class="kw"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span>(dobs))]
-dobs[, S:<span class="er">=</span><span class="ot">NULL</span>]
-<span class="kw"><a href="https://rdrr.io/pkg/data.table/man/setkey.html">setkey</a></span>(dobs,TR_TRM_CATEGORY,REC_TRM_CATEGORY)
-dobs</code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" title="1">dobs[, TR_SAMPLING_CATEGORY<span class="op">:</span><span class="er">=</span>TR_TRM_CATEGORY]</a>
+<a class="sourceLine" id="cb7-2" title="2">dobs[, REC_SAMPLING_CATEGORY<span class="op">:</span><span class="er">=</span>REC_TRM_CATEGORY]</a>
+<a class="sourceLine" id="cb7-3" title="3">dobs[, TRM_CAT_PAIR_ID<span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/seq.html">seq_len</a></span>(<span class="kw"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span>(dobs))]</a>
+<a class="sourceLine" id="cb7-4" title="4">dobs[, S<span class="op">:</span><span class="er">=</span><span class="ot">NULL</span>]</a>
+<a class="sourceLine" id="cb7-5" title="5"><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/setkey.html">setkey</a></span>(dobs,TR_TRM_CATEGORY,REC_TRM_CATEGORY)</a>
+<a class="sourceLine" id="cb7-6" title="6">dobs</a></code></pre></div>
 <pre><code>##    REC_TRM_CATEGORY TR_TRM_CATEGORY TRM_OBS TR_SAMPLING_CATEGORY
 ## 1:                1               1     139                    1
 ## 2:                2               1      15                    1
@@ -168,15 +168,15 @@ dobs</code></pre></div>
 <p><strong>We still need to define the prior distribution on the unknown sampling probabilities, and generate samples from it</strong>. At the very top of this page, defined the number of infected and sampled individuals in data.frame <code>ds</code>. Let us denote these by <span class="math inline">\(X_a^i\)</span> and <span class="math inline">\(X_a^s\)</span> for our two population groups <span class="math inline">\(a\)</span>. Usually this type of information is available to us in real-world data analyses, and so we work from these numbers here also. Under the Binomial sampling model that we assume throughout, <span class="math inline">\(X_a^s\sim Binom(X_a^i, \xi_a)\)</span>. If we suppose a flat prior on <span class="math inline">\(\xi_a\)</span>, we obtain the posterior distribution of the sampling probabilities conditional on the number of total and sampled individuals, <span class="math display">\[
 p(\xi_a|X_a^i,X_s^i)= Beta(\xi_a;X_a^s+1,X_a^i-X_a^s+1).
 \]</span> This density typically contains a lot of information on the sampling process. To get this information into the form needed for <strong>phyloflows</strong> MCMC algorithm, we need to derive samples from that distribution. We also need to calculate their log density.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">nprior&lt;-<span class="dv">1000</span>
-dprior&lt;-ds[,<span class="kw"><a href="https://rdrr.io/r/base/list.html">list</a></span>(<span class="dt">P=</span><span class="kw"><a href="https://rdrr.io/r/stats/Beta.html">rbeta</a></span>(nprior,SUC<span class="dv">+1</span>,TRIAL-SUC<span class="dv">+1</span>),
-         <span class="dt">SAMPLE=</span><span class="dv">1</span>:nprior),
-   by=<span class="st">'CATEGORY'</span>]
-dprior&lt;-<span class="kw"><a href="https://rdrr.io/pkg/data.table/man/merge.html">merge</a></span>(dprior,ds,<span class="dt">by=</span><span class="st">'CATEGORY'</span>)
-dprior[,LP:<span class="er">=</span><span class="kw"><a href="https://rdrr.io/r/stats/Beta.html">dbeta</a></span>(P,SUC<span class="dv">+1</span>,TRIAL-SUC<span class="dv">+1</span>,<span class="dt">log=</span><span class="ot">TRUE</span>)]
-<span class="kw"><a href="https://rdrr.io/pkg/data.table/man/assign.html">set</a></span>(dprior,<span class="ot">NULL</span>,<span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">'TRIAL'</span>,<span class="st">'SUC'</span>),<span class="ot">NULL</span>)
-<span class="kw"><a href="https://rdrr.io/pkg/data.table/man/setattr.html">setnames</a></span>(dprior, <span class="st">'CATEGORY'</span>, <span class="st">'SAMPLING_CATEGORY'</span>)
-<span class="kw"><a href="https://rdrr.io/r/utils/head.html">head</a></span>(dprior)</code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" title="1">nprior&lt;-<span class="dv">1000</span></a>
+<a class="sourceLine" id="cb9-2" title="2">dprior&lt;-ds[,<span class="kw"><a href="https://rdrr.io/r/base/list.html">list</a></span>(<span class="dt">P=</span><span class="kw"><a href="https://rdrr.io/r/stats/Beta.html">rbeta</a></span>(nprior,SUC<span class="op">+</span><span class="dv">1</span>,TRIAL<span class="op">-</span>SUC<span class="op">+</span><span class="dv">1</span>),</a>
+<a class="sourceLine" id="cb9-3" title="3">         <span class="dt">SAMPLE=</span><span class="dv">1</span><span class="op">:</span>nprior),</a>
+<a class="sourceLine" id="cb9-4" title="4">   by=<span class="st">'CATEGORY'</span>]</a>
+<a class="sourceLine" id="cb9-5" title="5">dprior&lt;-<span class="kw"><a href="https://rdrr.io/pkg/data.table/man/merge.html">merge</a></span>(dprior,ds,<span class="dt">by=</span><span class="st">'CATEGORY'</span>)</a>
+<a class="sourceLine" id="cb9-6" title="6">dprior[,LP<span class="op">:</span><span class="er">=</span><span class="kw"><a href="https://rdrr.io/r/stats/Beta.html">dbeta</a></span>(P,SUC<span class="op">+</span><span class="dv">1</span>,TRIAL<span class="op">-</span>SUC<span class="op">+</span><span class="dv">1</span>,<span class="dt">log=</span><span class="ot">TRUE</span>)]</a>
+<a class="sourceLine" id="cb9-7" title="7"><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/assign.html">set</a></span>(dprior,<span class="ot">NULL</span>,<span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">'TRIAL'</span>,<span class="st">'SUC'</span>),<span class="ot">NULL</span>)</a>
+<a class="sourceLine" id="cb9-8" title="8"><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/setattr.html">setnames</a></span>(dprior, <span class="st">'CATEGORY'</span>, <span class="st">'SAMPLING_CATEGORY'</span>)</a>
+<a class="sourceLine" id="cb9-9" title="9"><span class="kw"><a href="https://rdrr.io/r/utils/head.html">head</a></span>(dprior)</a></code></pre></div>
 <pre><code>##    SAMPLING_CATEGORY         P SAMPLE P_SEQ_EMP       LP
 ## 1:                 1 0.5824160      1       0.6 2.318750
 ## 2:                 1 0.6184042      2       0.6 2.168504
@@ -185,9 +185,9 @@ dprior[,LP:<span class="er">=</span><span class="kw"><a href="https://rdrr.io/r/
 ## 5:                 1 0.5918721      5       0.6 3.321375
 ## 6:                 1 0.6034198      6       0.6 3.546614</code></pre>
 <p>This data set can be loaded through</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw"><a href="https://rdrr.io/r/utils/data.html">data</a></span>(twoGroupFlows1)</code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" title="1"><span class="kw"><a href="https://rdrr.io/r/utils/data.html">data</a></span>(twoGroupFlows1)</a></code></pre></div>
 <p>To test our MCMC algorithm, we repeated generated 100 such data set, and they can be loaded through</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw"><a href="https://rdrr.io/r/utils/data.html">data</a></span>(twoGroupFlows100)</code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" title="1"><span class="kw"><a href="https://rdrr.io/r/utils/data.html">data</a></span>(twoGroupFlows100)</a></code></pre></div>
 </div>
 <div id="data-set-2-more-complex-glm" class="section level2">
 <h2 class="hasAnchor">

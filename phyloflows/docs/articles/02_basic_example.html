@@ -98,35 +98,35 @@
 
     
     
-<p>Here is a very first example data set for you to have a go at. Please read the sections <a href="index.html">Our Job</a> and <a href="index.html">Our Solution</a> on the main page before you go ahead here.</p>
+<p>Here is a very first example data set for you to have a go at. Please read the sections “Our Job” and “Our Solution” on the main page before you go ahead here.</p>
 <div id="input-data" class="section level1">
 <h1 class="hasAnchor">
 <a href="#input-data" class="anchor"></a>Input data</h1>
 <p><strong>phyloflows</strong> expects input data in a specific format. First, a data.frame of observed transmission counts within and between population groups, which we call <code>dobs</code>. Second a data.frame that summarises prior information on how population groups were sampled, which we call <code>dprior</code>.</p>
 <p>To get you started, <strong>phyloflows</strong> comes with a small simulated example data set of transmission counts and sampling information between two population groups, denoted by “1” and “2”:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw"><a href="https://rdrr.io/r/base/library.html">require</a></span>(phyloflows)
-<span class="kw"><a href="https://rdrr.io/r/base/library.html">require</a></span>(ggplot2)
-<span class="kw"><a href="https://rdrr.io/r/base/library.html">require</a></span>(bayesplot)
-<span class="kw"><a href="https://rdrr.io/r/base/library.html">require</a></span>(data.table)
-<span class="kw"><a href="https://rdrr.io/r/base/library.html">require</a></span>(coda)
-
-<span class="kw"><a href="https://rdrr.io/r/utils/data.html">data</a></span>(twoGroupFlows1, <span class="dt">package=</span><span class="st">"phyloflows"</span>)
-dobs &lt;-<span class="st"> </span>twoGroupFlows1$dobs
-dprior &lt;-<span class="st"> </span>twoGroupFlows1$dprior</code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" title="1"><span class="kw"><a href="https://rdrr.io/r/base/library.html">require</a></span>(phyloflows)</a>
+<a class="sourceLine" id="cb1-2" title="2"><span class="kw"><a href="https://rdrr.io/r/base/library.html">require</a></span>(ggplot2)</a>
+<a class="sourceLine" id="cb1-3" title="3"><span class="kw"><a href="https://rdrr.io/r/base/library.html">require</a></span>(bayesplot)</a>
+<a class="sourceLine" id="cb1-4" title="4"><span class="kw"><a href="https://rdrr.io/r/base/library.html">require</a></span>(data.table)</a>
+<a class="sourceLine" id="cb1-5" title="5"><span class="kw"><a href="https://rdrr.io/r/base/library.html">require</a></span>(coda)</a>
+<a class="sourceLine" id="cb1-6" title="6"></a>
+<a class="sourceLine" id="cb1-7" title="7"><span class="kw"><a href="https://rdrr.io/r/utils/data.html">data</a></span>(twoGroupFlows1, <span class="dt">package=</span><span class="st">"phyloflows"</span>)</a>
+<a class="sourceLine" id="cb1-8" title="8">dobs &lt;-<span class="st"> </span>twoGroupFlows1<span class="op">$</span>dobs</a>
+<a class="sourceLine" id="cb1-9" title="9">dprior &lt;-<span class="st"> </span>twoGroupFlows1<span class="op">$</span>dprior</a></code></pre></div>
 <div id="input-data-observed-transmission-flows" class="section level2">
 <h2 class="hasAnchor">
 <a href="#input-data-observed-transmission-flows" class="anchor"></a>Input data: observed transmission flows</h2>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">dobs
-<span class="co">#&gt;    REC_TRM_CATEGORY TR_TRM_CATEGORY TR_SAMPLING_CATEGORY</span>
-<span class="co">#&gt; 1:                1               1                    1</span>
-<span class="co">#&gt; 2:                2               1                    1</span>
-<span class="co">#&gt; 3:                1               2                    2</span>
-<span class="co">#&gt; 4:                2               2                    2</span>
-<span class="co">#&gt;    REC_SAMPLING_CATEGORY TRM_OBS TRM_CAT_PAIR_ID</span>
-<span class="co">#&gt; 1:                     1     139               1</span>
-<span class="co">#&gt; 2:                     2      15               2</span>
-<span class="co">#&gt; 3:                     1      20               3</span>
-<span class="co">#&gt; 4:                     2     129               4</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" title="1">dobs</a>
+<a class="sourceLine" id="cb2-2" title="2"><span class="co">#&gt;    REC_TRM_CATEGORY TR_TRM_CATEGORY TR_SAMPLING_CATEGORY</span></a>
+<a class="sourceLine" id="cb2-3" title="3"><span class="co">#&gt; 1:                1               1                    1</span></a>
+<a class="sourceLine" id="cb2-4" title="4"><span class="co">#&gt; 2:                2               1                    1</span></a>
+<a class="sourceLine" id="cb2-5" title="5"><span class="co">#&gt; 3:                1               2                    2</span></a>
+<a class="sourceLine" id="cb2-6" title="6"><span class="co">#&gt; 4:                2               2                    2</span></a>
+<a class="sourceLine" id="cb2-7" title="7"><span class="co">#&gt;    REC_SAMPLING_CATEGORY TRM_OBS TRM_CAT_PAIR_ID</span></a>
+<a class="sourceLine" id="cb2-8" title="8"><span class="co">#&gt; 1:                     1     139               1</span></a>
+<a class="sourceLine" id="cb2-9" title="9"><span class="co">#&gt; 2:                     2      15               2</span></a>
+<a class="sourceLine" id="cb2-10" title="10"><span class="co">#&gt; 3:                     1      20               3</span></a>
+<a class="sourceLine" id="cb2-11" title="11"><span class="co">#&gt; 4:                     2     129               4</span></a></code></pre></div>
 <p>Data.frame <code>dobs</code> must contain the columns <em>TR_TRM_CATEGORY</em>, <em>REC_TRM_CATEGORY</em>, <em>TRM_CAT_PAIR_ID</em>, and <em>TRM_OBS</em>. Each row specifies observed counts of transmissions from a transmitter group to a recipient group. Each combination of transmission flows is given an ID, and that ID is stored in <em>TRM_CAT_PAIR_ID</em>. <code>dobs</code> also must contain the columns <em>TR_SAMPLING_CATEGORY</em> and <em>REC_SAMPLING_CATEGORY</em>, which associate each transmitter/recipient group with a sampling category. We will get to this in a minute. For now, let us look at the data.frame. The first row contains counts of transmission flows from group “1” to group “1”, and there are 139 of them. The next row contains counts of transmission flows from group “1” to group “2”, and there are 15 of them. Here is a barplot of our input data:</p>
 <p><img src="02_basic_example_files/figure-html/unnamed-chunk-4-1.png" width="768" style="display: block; margin: auto;"></p>
 </div>
@@ -134,14 +134,14 @@ dprior &lt;-<span class="st"> </span>twoGroupFlows1$dprior</code></pre></div>
 <h2 class="hasAnchor">
 <a href="#input-data-sampling-information" class="anchor"></a>Input data: sampling information</h2>
 <p>Each transmitter/recipient group is associated to a sampling category. This can be “sampling group a” for both “1” and “2”, or “a” and “b” respectively for “1” and “2”. In our little data set, we gave the same name to transmitter/recipient and sampling groups. Data.frame <code>dprior</code> specifies the probability of sampling an individual from each sampling group. To keep this as flexible as possible, samples from the sampling distribution, rather than say the mean and standard deviation, need to be given. Data.frame <code>dprior</code> must contain the columns <em>SAMPLING_CATEGORY</em>, <em>SAMPLE</em>, <em>P</em> and <em>LP</em>. <em>SAMPLING_CATEGORY</em> specifies the sampling group; <em>SAMPLE</em> is just an ID specifying if it is the first, second, … sample; <em>P</em> is the value of the sample, and <em>LP</em> is the log density of the sample.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw"><a href="https://rdrr.io/r/utils/head.html">head</a></span>(dprior)
-<span class="co">#&gt;    SAMPLING_CATEGORY         P SAMPLE       LP</span>
-<span class="co">#&gt; 1:                 1 0.5824160      1 2.318750</span>
-<span class="co">#&gt; 2:                 1 0.6184042      2 2.168504</span>
-<span class="co">#&gt; 3:                 1 0.6033518      3 3.548540</span>
-<span class="co">#&gt; 4:                 1 0.6015475      4 3.585452</span>
-<span class="co">#&gt; 5:                 1 0.5918721      5 3.321375</span>
-<span class="co">#&gt; 6:                 1 0.6034198      6 3.546614</span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" title="1"><span class="kw"><a href="https://rdrr.io/r/utils/head.html">head</a></span>(dprior)</a>
+<a class="sourceLine" id="cb3-2" title="2"><span class="co">#&gt;    SAMPLING_CATEGORY         P SAMPLE       LP</span></a>
+<a class="sourceLine" id="cb3-3" title="3"><span class="co">#&gt; 1:                 1 0.5824160      1 2.318750</span></a>
+<a class="sourceLine" id="cb3-4" title="4"><span class="co">#&gt; 2:                 1 0.6184042      2 2.168504</span></a>
+<a class="sourceLine" id="cb3-5" title="5"><span class="co">#&gt; 3:                 1 0.6033518      3 3.548540</span></a>
+<a class="sourceLine" id="cb3-6" title="6"><span class="co">#&gt; 4:                 1 0.6015475      4 3.585452</span></a>
+<a class="sourceLine" id="cb3-7" title="7"><span class="co">#&gt; 5:                 1 0.5918721      5 3.321375</span></a>
+<a class="sourceLine" id="cb3-8" title="8"><span class="co">#&gt; 6:                 1 0.6034198      6 3.546614</span></a></code></pre></div>
 <p>Here is a histogram of the sampling distribution from sampling groups “1” and “2”. Notice that in our example, the probability of sampling individuals in group “1” is higher than that among individuals in group “2”.</p>
 <p><img src="02_basic_example_files/figure-html/unnamed-chunk-6-1.png" width="768" style="display: block; margin: auto;"></p>
 </div>
@@ -155,21 +155,21 @@ dprior &lt;-<span class="st"> </span>twoGroupFlows1$dprior</code></pre></div>
 <p>Now that we understand the input data, we are ready to estimate the transmission flows within and between the two population groups, <span class="math display">\[
 \pi=(\pi_{11}, \pi_{12}, \pi_{21}, \pi_{22}).
 \]</span> We just need to specify a seed, number of iterations of the Markov Chain Monte Carlo algorithm, a flag for verbose output, and an output file name if you like to have the results written to an <em>.rda</em> file.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">control &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/list.html">list</a></span>(<span class="dt">seed=</span><span class="dv">42</span>, <span class="dt">mcmc.n=</span><span class="dv">500</span>, <span class="dt">verbose=</span><span class="dv">0</span>)
-ans &lt;-<span class="st"> </span>phyloflows:::<span class="kw"><a href="../reference/source.attribution.mcmc.html">source.attribution.mcmc</a></span>(dobs, dprior, control)
-<span class="co">#&gt; </span>
-<span class="co">#&gt; Setting seed to 42</span>
-<span class="co">#&gt; Number of parameters:     17</span>
-<span class="co">#&gt; Dimension of PI:  4</span>
-<span class="co">#&gt; Sweep length:     5</span>
-<span class="co">#&gt; Number of sweeps:     100</span>
-<span class="co">#&gt; Number of iterations:     500</span>
-<span class="co">#&gt; Number of transmission pair categories updated per iteration, and their frequencies:</span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; 2 </span>
-<span class="co">#&gt; 4 </span>
-<span class="co">#&gt; </span>
-<span class="co">#&gt; Sweeps done:  100</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" title="1">control &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/list.html">list</a></span>(<span class="dt">seed=</span><span class="dv">42</span>, <span class="dt">mcmc.n=</span><span class="dv">500</span>, <span class="dt">verbose=</span><span class="dv">0</span>)</a>
+<a class="sourceLine" id="cb4-2" title="2">ans &lt;-<span class="st"> </span>phyloflows<span class="op">:::</span><span class="kw"><a href="../reference/source.attribution.mcmc.html">source.attribution.mcmc</a></span>(dobs, dprior, control)</a>
+<a class="sourceLine" id="cb4-3" title="3"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb4-4" title="4"><span class="co">#&gt; Setting seed to 42</span></a>
+<a class="sourceLine" id="cb4-5" title="5"><span class="co">#&gt; Number of parameters:     17</span></a>
+<a class="sourceLine" id="cb4-6" title="6"><span class="co">#&gt; Dimension of PI:  4</span></a>
+<a class="sourceLine" id="cb4-7" title="7"><span class="co">#&gt; Sweep length:     5</span></a>
+<a class="sourceLine" id="cb4-8" title="8"><span class="co">#&gt; Number of sweeps:     100</span></a>
+<a class="sourceLine" id="cb4-9" title="9"><span class="co">#&gt; Number of iterations:     500</span></a>
+<a class="sourceLine" id="cb4-10" title="10"><span class="co">#&gt; Number of transmission pair categories updated per iteration, and their frequencies:</span></a>
+<a class="sourceLine" id="cb4-11" title="11"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb4-12" title="12"><span class="co">#&gt; 2 </span></a>
+<a class="sourceLine" id="cb4-13" title="13"><span class="co">#&gt; 4 </span></a>
+<a class="sourceLine" id="cb4-14" title="14"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb4-15" title="15"><span class="co">#&gt; Sweeps done:  100</span></a></code></pre></div>
 </div>
 <div id="mcmc-messages" class="section level2">
 <h2 class="hasAnchor">
@@ -187,71 +187,71 @@ ans &lt;-<span class="st"> </span>phyloflows:::<span class="kw"><a href="../refe
 <h2 class="hasAnchor">
 <a href="#mcmc-output" class="anchor"></a>MCMC: output</h2>
 <p>Let us have a look at the output:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw"><a href="https://rdrr.io/r/utils/str.html">str</a></span>(ans)
-<span class="co">#&gt; List of 12</span>
-<span class="co">#&gt;  $ with.sampling: logi TRUE</span>
-<span class="co">#&gt;  $ time         : 'difftime' num 0.415802955627441</span>
-<span class="co">#&gt;   ..- attr(*, "units")= chr "secs"</span>
-<span class="co">#&gt;  $ dlu          :Classes 'data.table' and 'data.frame':  4 obs. of  3 variables:</span>
-<span class="co">#&gt;   ..$ WHO              : Factor w/ 2 levels "TR_SAMPLING_CATEGORY",..: 1 1 2 2</span>
-<span class="co">#&gt;   ..$ SAMPLING_CATEGORY: num [1:4] 1 2 1 2</span>
-<span class="co">#&gt;   ..$ UPDATE_ID        : int [1:4] 1 2 3 4</span>
-<span class="co">#&gt;   ..- attr(*, ".internal.selfref")=&lt;externalptr&gt; </span>
-<span class="co">#&gt;   ..- attr(*, "sorted")= chr "UPDATE_ID"</span>
-<span class="co">#&gt;  $ dl           :Classes 'data.table' and 'data.frame':  8 obs. of  4 variables:</span>
-<span class="co">#&gt;   ..$ WHO              : Factor w/ 2 levels "TR_SAMPLING_CATEGORY",..: 1 1 1 1 2 2 2 2</span>
-<span class="co">#&gt;   ..$ SAMPLING_CATEGORY: num [1:8] 1 1 2 2 1 1 2 2</span>
-<span class="co">#&gt;   ..$ UPDATE_ID        : int [1:8] 1 1 2 2 3 3 4 4</span>
-<span class="co">#&gt;   ..$ TRM_CAT_PAIR_ID  : int [1:8] 1 2 3 4 1 3 2 4</span>
-<span class="co">#&gt;   ..- attr(*, ".internal.selfref")=&lt;externalptr&gt; </span>
-<span class="co">#&gt;   ..- attr(*, "sorted")= chr "UPDATE_ID"</span>
-<span class="co">#&gt;  $ dlt          :Classes 'data.table' and 'data.frame':  4 obs. of  4 variables:</span>
-<span class="co">#&gt;   ..$ TRM_CAT_PAIR_ID: int [1:4] 1 2 3 4</span>
-<span class="co">#&gt;   ..$ TR_UPDATE_ID   : int [1:4] 1 1 2 2</span>
-<span class="co">#&gt;   ..$ REC_UPDATE_ID  : int [1:4] 3 4 3 4</span>
-<span class="co">#&gt;   ..$ TRM_OBS        : int [1:4] 139 15 20 129</span>
-<span class="co">#&gt;   ..- attr(*, ".internal.selfref")=&lt;externalptr&gt; </span>
-<span class="co">#&gt;   ..- attr(*, "sorted")= chr "TRM_CAT_PAIR_ID"</span>
-<span class="co">#&gt;  $ nprior       : int 1000</span>
-<span class="co">#&gt;  $ sweep        : int 5</span>
-<span class="co">#&gt;  $ nsweep       : num 100</span>
-<span class="co">#&gt;  $ n            : num 500</span>
-<span class="co">#&gt;  $ pars         :List of 9</span>
-<span class="co">#&gt;   ..$ LAMBDA: num [1, 1:4] 0.2 0.2 0.2 0.2</span>
-<span class="co">#&gt;   ..$ XI    : num [1:101, 1:4] 0.603 0.603 0.591 0.591 0.591 ...</span>
-<span class="co">#&gt;   ..$ XI_LP : num [1:101, 1:4] 3.56 3.56 3.24 3.24 3.24 ...</span>
-<span class="co">#&gt;   ..$ S     : num [1:101, 1:4] 0.368 0.368 0.36 0.355 0.355 ...</span>
-<span class="co">#&gt;   ..$ S_LP  : num [1:101, 1:4] 6.74 6.74 6.42 6.82 6.82 ...</span>
-<span class="co">#&gt;   ..$ Z     : int [1:101, 1:4] 366 366 381 361 361 345 345 333 333 333 ...</span>
-<span class="co">#&gt;   ..$ NU    : num 1102</span>
-<span class="co">#&gt;   ..$ N     : int [1:101, 1] 1226 1113 1183 1113 1104 1088 1100 1154 1108 1108 ...</span>
-<span class="co">#&gt;   ..$ PI    : num [1:101, 1:4] 0.303 0.299 0.337 0.305 0.316 ...</span>
-<span class="co">#&gt;  $ it.info      :Classes 'data.table' and 'data.frame':  501 obs. of  7 variables:</span>
-<span class="co">#&gt;   ..$ IT       : int [1:501] 0 1 2 3 4 5 6 7 8 9 ...</span>
-<span class="co">#&gt;   ..$ PAR_ID   : int [1:501] 0 1 2 3 4 NA 1 2 3 4 ...</span>
-<span class="co">#&gt;   ..$ BLOCK    : chr [1:501] "INIT" "S-Z-N" "S-Z-N" "S-Z-N" ...</span>
-<span class="co">#&gt;   ..$ MHRATIO  : num [1:501] 1 0.012701 1 0.000414 0.000642 ...</span>
-<span class="co">#&gt;   ..$ ACCEPT   : int [1:501] 1 0 1 0 0 1 1 1 0 0 ...</span>
-<span class="co">#&gt;   ..$ LOG_LKL  : num [1:501] -26.7 -26.7 -23.5 -23.5 -23.5 ...</span>
-<span class="co">#&gt;   ..$ LOG_PRIOR: num [1:501] 29 29 35.2 35.2 35.2 ...</span>
-<span class="co">#&gt;   ..- attr(*, ".internal.selfref")=&lt;externalptr&gt; </span>
-<span class="co">#&gt;  $ curr.it      : int 501</span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" title="1"><span class="kw"><a href="https://rdrr.io/r/utils/str.html">str</a></span>(ans)</a>
+<a class="sourceLine" id="cb5-2" title="2"><span class="co">#&gt; List of 12</span></a>
+<a class="sourceLine" id="cb5-3" title="3"><span class="co">#&gt;  $ with.sampling: logi TRUE</span></a>
+<a class="sourceLine" id="cb5-4" title="4"><span class="co">#&gt;  $ time         : 'difftime' num 0.458211898803711</span></a>
+<a class="sourceLine" id="cb5-5" title="5"><span class="co">#&gt;   ..- attr(*, "units")= chr "secs"</span></a>
+<a class="sourceLine" id="cb5-6" title="6"><span class="co">#&gt;  $ dlu          :Classes 'data.table' and 'data.frame':  4 obs. of  3 variables:</span></a>
+<a class="sourceLine" id="cb5-7" title="7"><span class="co">#&gt;   ..$ WHO              : Factor w/ 2 levels "TR_SAMPLING_CATEGORY",..: 1 1 2 2</span></a>
+<a class="sourceLine" id="cb5-8" title="8"><span class="co">#&gt;   ..$ SAMPLING_CATEGORY: num [1:4] 1 2 1 2</span></a>
+<a class="sourceLine" id="cb5-9" title="9"><span class="co">#&gt;   ..$ UPDATE_ID        : int [1:4] 1 2 3 4</span></a>
+<a class="sourceLine" id="cb5-10" title="10"><span class="co">#&gt;   ..- attr(*, ".internal.selfref")=&lt;externalptr&gt; </span></a>
+<a class="sourceLine" id="cb5-11" title="11"><span class="co">#&gt;   ..- attr(*, "sorted")= chr "UPDATE_ID"</span></a>
+<a class="sourceLine" id="cb5-12" title="12"><span class="co">#&gt;  $ dl           :Classes 'data.table' and 'data.frame':  8 obs. of  4 variables:</span></a>
+<a class="sourceLine" id="cb5-13" title="13"><span class="co">#&gt;   ..$ WHO              : Factor w/ 2 levels "TR_SAMPLING_CATEGORY",..: 1 1 1 1 2 2 2 2</span></a>
+<a class="sourceLine" id="cb5-14" title="14"><span class="co">#&gt;   ..$ SAMPLING_CATEGORY: num [1:8] 1 1 2 2 1 1 2 2</span></a>
+<a class="sourceLine" id="cb5-15" title="15"><span class="co">#&gt;   ..$ UPDATE_ID        : int [1:8] 1 1 2 2 3 3 4 4</span></a>
+<a class="sourceLine" id="cb5-16" title="16"><span class="co">#&gt;   ..$ TRM_CAT_PAIR_ID  : int [1:8] 1 2 3 4 1 3 2 4</span></a>
+<a class="sourceLine" id="cb5-17" title="17"><span class="co">#&gt;   ..- attr(*, ".internal.selfref")=&lt;externalptr&gt; </span></a>
+<a class="sourceLine" id="cb5-18" title="18"><span class="co">#&gt;   ..- attr(*, "sorted")= chr "UPDATE_ID"</span></a>
+<a class="sourceLine" id="cb5-19" title="19"><span class="co">#&gt;  $ dlt          :Classes 'data.table' and 'data.frame':  4 obs. of  4 variables:</span></a>
+<a class="sourceLine" id="cb5-20" title="20"><span class="co">#&gt;   ..$ TRM_CAT_PAIR_ID: int [1:4] 1 2 3 4</span></a>
+<a class="sourceLine" id="cb5-21" title="21"><span class="co">#&gt;   ..$ TR_UPDATE_ID   : int [1:4] 1 1 2 2</span></a>
+<a class="sourceLine" id="cb5-22" title="22"><span class="co">#&gt;   ..$ REC_UPDATE_ID  : int [1:4] 3 4 3 4</span></a>
+<a class="sourceLine" id="cb5-23" title="23"><span class="co">#&gt;   ..$ TRM_OBS        : int [1:4] 139 15 20 129</span></a>
+<a class="sourceLine" id="cb5-24" title="24"><span class="co">#&gt;   ..- attr(*, ".internal.selfref")=&lt;externalptr&gt; </span></a>
+<a class="sourceLine" id="cb5-25" title="25"><span class="co">#&gt;   ..- attr(*, "sorted")= chr "TRM_CAT_PAIR_ID"</span></a>
+<a class="sourceLine" id="cb5-26" title="26"><span class="co">#&gt;  $ nprior       : int 1000</span></a>
+<a class="sourceLine" id="cb5-27" title="27"><span class="co">#&gt;  $ sweep        : int 5</span></a>
+<a class="sourceLine" id="cb5-28" title="28"><span class="co">#&gt;  $ nsweep       : num 100</span></a>
+<a class="sourceLine" id="cb5-29" title="29"><span class="co">#&gt;  $ n            : num 500</span></a>
+<a class="sourceLine" id="cb5-30" title="30"><span class="co">#&gt;  $ pars         :List of 9</span></a>
+<a class="sourceLine" id="cb5-31" title="31"><span class="co">#&gt;   ..$ LAMBDA: num [1, 1:4] 0.2 0.2 0.2 0.2</span></a>
+<a class="sourceLine" id="cb5-32" title="32"><span class="co">#&gt;   ..$ XI    : num [1:101, 1:4] 0.603 0.603 0.591 0.591 0.591 ...</span></a>
+<a class="sourceLine" id="cb5-33" title="33"><span class="co">#&gt;   ..$ XI_LP : num [1:101, 1:4] 3.56 3.56 3.24 3.24 3.24 ...</span></a>
+<a class="sourceLine" id="cb5-34" title="34"><span class="co">#&gt;   ..$ S     : num [1:101, 1:4] 0.368 0.368 0.36 0.355 0.355 ...</span></a>
+<a class="sourceLine" id="cb5-35" title="35"><span class="co">#&gt;   ..$ S_LP  : num [1:101, 1:4] 6.74 6.74 6.42 6.82 6.82 ...</span></a>
+<a class="sourceLine" id="cb5-36" title="36"><span class="co">#&gt;   ..$ Z     : int [1:101, 1:4] 366 366 381 361 361 345 345 333 333 333 ...</span></a>
+<a class="sourceLine" id="cb5-37" title="37"><span class="co">#&gt;   ..$ NU    : num 1102</span></a>
+<a class="sourceLine" id="cb5-38" title="38"><span class="co">#&gt;   ..$ N     : int [1:101, 1] 1226 1113 1183 1113 1104 1088 1100 1154 1108 1108 ...</span></a>
+<a class="sourceLine" id="cb5-39" title="39"><span class="co">#&gt;   ..$ PI    : num [1:101, 1:4] 0.303 0.299 0.337 0.305 0.316 ...</span></a>
+<a class="sourceLine" id="cb5-40" title="40"><span class="co">#&gt;  $ it.info      :Classes 'data.table' and 'data.frame':  501 obs. of  7 variables:</span></a>
+<a class="sourceLine" id="cb5-41" title="41"><span class="co">#&gt;   ..$ IT       : int [1:501] 0 1 2 3 4 5 6 7 8 9 ...</span></a>
+<a class="sourceLine" id="cb5-42" title="42"><span class="co">#&gt;   ..$ PAR_ID   : int [1:501] 0 1 2 3 4 NA 1 2 3 4 ...</span></a>
+<a class="sourceLine" id="cb5-43" title="43"><span class="co">#&gt;   ..$ BLOCK    : chr [1:501] "INIT" "S-Z-N" "S-Z-N" "S-Z-N" ...</span></a>
+<a class="sourceLine" id="cb5-44" title="44"><span class="co">#&gt;   ..$ MHRATIO  : num [1:501] 1 0.012701 1 0.000414 0.000642 ...</span></a>
+<a class="sourceLine" id="cb5-45" title="45"><span class="co">#&gt;   ..$ ACCEPT   : int [1:501] 1 0 1 0 0 1 1 1 0 0 ...</span></a>
+<a class="sourceLine" id="cb5-46" title="46"><span class="co">#&gt;   ..$ LOG_LKL  : num [1:501] -26.7 -26.7 -23.5 -23.5 -23.5 ...</span></a>
+<a class="sourceLine" id="cb5-47" title="47"><span class="co">#&gt;   ..$ LOG_PRIOR: num [1:501] 29 29 35.2 35.2 35.2 ...</span></a>
+<a class="sourceLine" id="cb5-48" title="48"><span class="co">#&gt;   ..- attr(*, ".internal.selfref")=&lt;externalptr&gt; </span></a>
+<a class="sourceLine" id="cb5-49" title="49"><span class="co">#&gt;  $ curr.it      : int 501</span></a></code></pre></div>
 <p>We are mostly interested in the joint posterior distribution <span class="math display">\[
 p(\pi | n ),
 \]</span> which is just a component of the entire posterior distribution of all parameters <span class="math display">\[
 p(\pi, z, Z, \xi, s | n ).
 \]</span></p>
 <p>So let us look at just this component in the output, and make a trace plot:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">post.pi &lt;-<span class="st"> </span>ans[[<span class="st">'pars'</span>]][[<span class="st">'PI'</span>]]
-<span class="kw"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span>(post.pi) &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/paste.html">paste0</a></span>(<span class="st">'PI-'</span>,<span class="dv">1</span>:<span class="kw"><a href="https://rdrr.io/r/base/nrow.html">ncol</a></span>(post.pi))
-bayesplot:::<span class="kw"><a href="https://rdrr.io/pkg/bayesplot/man/MCMC-traces.html">mcmc_trace</a></span>(post.pi, <span class="dt">pars=</span><span class="kw"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span>(post.pi), <span class="dt">facet_args =</span> <span class="kw"><a href="https://rdrr.io/r/base/list.html">list</a></span>(<span class="dt">ncol =</span> <span class="dv">1</span>), <span class="dt">n_warmup=</span><span class="dv">0</span>)</code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" title="1">post.pi &lt;-<span class="st"> </span>ans[[<span class="st">'pars'</span>]][[<span class="st">'PI'</span>]]</a>
+<a class="sourceLine" id="cb6-2" title="2"><span class="kw"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span>(post.pi) &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/paste.html">paste0</a></span>(<span class="st">'PI-'</span>,<span class="dv">1</span><span class="op">:</span><span class="kw"><a href="https://rdrr.io/r/base/nrow.html">ncol</a></span>(post.pi))</a>
+<a class="sourceLine" id="cb6-3" title="3">bayesplot<span class="op">:::</span><span class="kw"><a href="https://rdrr.io/pkg/bayesplot/man/MCMC-traces.html">mcmc_trace</a></span>(post.pi, <span class="dt">pars=</span><span class="kw"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span>(post.pi), <span class="dt">facet_args =</span> <span class="kw"><a href="https://rdrr.io/r/base/list.html">list</a></span>(<span class="dt">ncol =</span> <span class="dv">1</span>), <span class="dt">n_warmup=</span><span class="dv">0</span>)</a></code></pre></div>
 <p><img src="02_basic_example_files/figure-html/unnamed-chunk-9-1.png" width="768" style="display: block; margin: auto;"></p>
 <p>Ok, fab. Of course we would like many more iterations, perhaps <span class="math inline">\(10,000\)</span> sweeps are a good number. We can do that. But what really are <em>PI-1</em>, <em>PI-2</em>, <em>PI-3</em>, <em>PI-4</em>? The numbers 1-4 are just the values of the transmission pair IDs in <code>dobs</code>, <code>dobs$TRM_CAT_PAIR_ID</code>. So we can associate more interpretable names to the output as follows:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">post.pi &lt;-<span class="st"> </span>ans[[<span class="st">'pars'</span>]][[<span class="st">'PI'</span>]]
-<span class="kw"><a href="https://rdrr.io/pkg/data.table/man/setkey.html">setkey</a></span>(dobs, TRM_CAT_PAIR_ID) <span class="co">#order by pair IDs</span>
-post.pi.colnames &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/paste.html">paste0</a></span>(<span class="st">'PI '</span>,dobs$TR_TRM_CATEGORY,<span class="st">'-&gt;'</span>,dobs$REC_TRM_CATEGORY)
-<span class="kw"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span>(post.pi) &lt;-<span class="st"> </span>post.pi.colnames
-bayesplot:::<span class="kw"><a href="https://rdrr.io/pkg/bayesplot/man/MCMC-traces.html">mcmc_trace</a></span>(post.pi, <span class="dt">pars=</span><span class="kw"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span>(post.pi), <span class="dt">facet_args =</span> <span class="kw"><a href="https://rdrr.io/r/base/list.html">list</a></span>(<span class="dt">ncol =</span> <span class="dv">1</span>), <span class="dt">n_warmup=</span><span class="dv">0</span>)</code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" title="1">post.pi &lt;-<span class="st"> </span>ans[[<span class="st">'pars'</span>]][[<span class="st">'PI'</span>]]</a>
+<a class="sourceLine" id="cb7-2" title="2"><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/setkey.html">setkey</a></span>(dobs, TRM_CAT_PAIR_ID) <span class="co">#order by pair IDs</span></a>
+<a class="sourceLine" id="cb7-3" title="3">post.pi.colnames &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/paste.html">paste0</a></span>(<span class="st">'PI '</span>,dobs<span class="op">$</span>TR_TRM_CATEGORY,<span class="st">'-&gt;'</span>,dobs<span class="op">$</span>REC_TRM_CATEGORY)</a>
+<a class="sourceLine" id="cb7-4" title="4"><span class="kw"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span>(post.pi) &lt;-<span class="st"> </span>post.pi.colnames</a>
+<a class="sourceLine" id="cb7-5" title="5">bayesplot<span class="op">:::</span><span class="kw"><a href="https://rdrr.io/pkg/bayesplot/man/MCMC-traces.html">mcmc_trace</a></span>(post.pi, <span class="dt">pars=</span><span class="kw"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span>(post.pi), <span class="dt">facet_args =</span> <span class="kw"><a href="https://rdrr.io/r/base/list.html">list</a></span>(<span class="dt">ncol =</span> <span class="dv">1</span>), <span class="dt">n_warmup=</span><span class="dv">0</span>)</a></code></pre></div>
 <p><img src="02_basic_example_files/figure-html/unnamed-chunk-10-1.png" width="768" style="display: block; margin: auto;"></p>
 <p>That’s it for now. Use your usual R wizadry to process the output further, and have a look at the other vignettes.</p>
 </div>

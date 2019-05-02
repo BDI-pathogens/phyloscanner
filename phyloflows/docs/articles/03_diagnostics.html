@@ -98,20 +98,20 @@
 
     
     
-<p>Here we show you how to run a number of diagnostics on <strong>phyloflows</strong> MCMC output. Please read the sections <a href="index.html">Our Job</a> and <a href="index.html">Our Solution</a> on the main page before you go ahead here.</p>
+<p>Here we show you how to run a number of diagnostics on <strong>phyloflows</strong> MCMC output. Please read the sections “Our Job” and “Our Solution” on the main page before you go ahead here.</p>
 <div id="getting-started" class="section level2">
 <h2 class="hasAnchor">
 <a href="#getting-started" class="anchor"></a>Getting started</h2>
-<p>We continue our <a href="articles/02_basic_example.html">very first example</a> here. The following code chunk contains all code needed, up to running <strong>phyloflows</strong> MCMC routine. The only change is that the number of iterations is now <span class="math inline">\(50,000\)</span>. The MCMC should take about 2 minutes to run.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw"><a href="https://rdrr.io/r/base/library.html">require</a></span>(data.table)
-<span class="kw"><a href="https://rdrr.io/r/base/library.html">require</a></span>(phyloflows)
-
-<span class="kw"><a href="https://rdrr.io/r/utils/data.html">data</a></span>(twoGroupFlows1, <span class="dt">package=</span><span class="st">"phyloflows"</span>)
-dobs &lt;-<span class="st"> </span>twoGroupFlows1$dobs
-dprior &lt;-<span class="st"> </span>twoGroupFlows1$dprior
-mcmc.file &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span>(<span class="kw"><a href="https://rdrr.io/r/base/getwd.html">getwd</a></span>(),<span class="st">'twoGroupFlows1_mcmc.RData'</span>)
-control &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/list.html">list</a></span>(<span class="dt">seed=</span><span class="dv">42</span>, <span class="dt">mcmc.n=</span><span class="fl">5e4</span>, <span class="dt">verbose=</span><span class="dv">0</span>)
-mc &lt;-<span class="st"> </span>phyloflows:::<span class="kw"><a href="../reference/source.attribution.mcmc.html">source.attribution.mcmc</a></span>(dobs, dprior, control)</code></pre></div>
+<p>We continue our Very_First_Example from the vignette with the same name here. The following code chunk contains all code needed, up to running <strong>phyloflows</strong> MCMC routine. The only change is that the number of iterations is now <span class="math inline">\(50,000\)</span>. The MCMC should take about 2 minutes to run.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" title="1"><span class="kw"><a href="https://rdrr.io/r/base/library.html">require</a></span>(data.table)</a>
+<a class="sourceLine" id="cb1-2" title="2"><span class="kw"><a href="https://rdrr.io/r/base/library.html">require</a></span>(phyloflows)</a>
+<a class="sourceLine" id="cb1-3" title="3"></a>
+<a class="sourceLine" id="cb1-4" title="4"><span class="kw"><a href="https://rdrr.io/r/utils/data.html">data</a></span>(twoGroupFlows1, <span class="dt">package=</span><span class="st">"phyloflows"</span>)</a>
+<a class="sourceLine" id="cb1-5" title="5">dobs &lt;-<span class="st"> </span>twoGroupFlows1<span class="op">$</span>dobs</a>
+<a class="sourceLine" id="cb1-6" title="6">dprior &lt;-<span class="st"> </span>twoGroupFlows1<span class="op">$</span>dprior</a>
+<a class="sourceLine" id="cb1-7" title="7">mcmc.file &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span>(<span class="kw"><a href="https://rdrr.io/r/base/getwd.html">getwd</a></span>(),<span class="st">'twoGroupFlows1_mcmc.RData'</span>)</a>
+<a class="sourceLine" id="cb1-8" title="8">control &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/list.html">list</a></span>(<span class="dt">seed=</span><span class="dv">42</span>, <span class="dt">mcmc.n=</span><span class="fl">5e4</span>, <span class="dt">verbose=</span><span class="dv">0</span>)</a>
+<a class="sourceLine" id="cb1-9" title="9">mc &lt;-<span class="st"> </span>phyloflows<span class="op">:::</span><span class="kw"><a href="../reference/source.attribution.mcmc.html">source.attribution.mcmc</a></span>(dobs, dprior, control)</a></code></pre></div>
 </div>
 <div id="mcmc-diagnostics" class="section level2">
 <h2 class="hasAnchor">
@@ -129,15 +129,15 @@ mc &lt;-<span class="st"> </span>phyloflows:::<span class="kw"><a href="../refer
 <li>Make autocorrelation plots for the model parameters with smallest effective sample size.</li>
 </ol>
 <p>The syntax is as follows. Look up the help page for the diagnostics function for a full explanation of the control arguments.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">outfile.base &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span>(<span class="kw"><a href="https://rdrr.io/r/base/getwd.html">getwd</a></span>(),<span class="st">'twoGroupFlows1_mcmc_'</span>) 
-control &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/list.html">list</a></span>( <span class="dt">burnin.p=</span><span class="fl">0.05</span>, 
-                 <span class="dt">regex_pars=</span><span class="st">'*'</span>, 
-                 <span class="dt">credibility.interval=</span><span class="fl">0.95</span>, 
-                 <span class="dt">pdf.plot.all.parameters=</span><span class="ot">FALSE</span>, 
-                 <span class="dt">pdf.plot.n.worst.case.parameters=</span><span class="dv">10</span>, 
-                 <span class="dt">pdf.height.per.par=</span><span class="fl">1.2</span>, 
-                 <span class="dt">outfile.base=</span>outfile.base)
-phyloflows:::<span class="kw"><a href="../reference/source.attribution.mcmc.diagnostics.html">source.attribution.mcmc.diagnostics</a></span>(<span class="dt">mc=</span>mc, <span class="dt">control=</span>control)</code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" title="1">outfile.base &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span>(<span class="kw"><a href="https://rdrr.io/r/base/getwd.html">getwd</a></span>(),<span class="st">'twoGroupFlows1_mcmc_'</span>) </a>
+<a class="sourceLine" id="cb2-2" title="2">control &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/list.html">list</a></span>( <span class="dt">burnin.p=</span><span class="fl">0.05</span>, </a>
+<a class="sourceLine" id="cb2-3" title="3">                 <span class="dt">regex_pars=</span><span class="st">'*'</span>, </a>
+<a class="sourceLine" id="cb2-4" title="4">                 <span class="dt">credibility.interval=</span><span class="fl">0.95</span>, </a>
+<a class="sourceLine" id="cb2-5" title="5">                 <span class="dt">pdf.plot.all.parameters=</span><span class="ot">FALSE</span>, </a>
+<a class="sourceLine" id="cb2-6" title="6">                 <span class="dt">pdf.plot.n.worst.case.parameters=</span><span class="dv">10</span>, </a>
+<a class="sourceLine" id="cb2-7" title="7">                 <span class="dt">pdf.height.per.par=</span><span class="fl">1.2</span>, </a>
+<a class="sourceLine" id="cb2-8" title="8">                 <span class="dt">outfile.base=</span>outfile.base)</a>
+<a class="sourceLine" id="cb2-9" title="9">phyloflows<span class="op">:::</span><span class="kw"><a href="../reference/source.attribution.mcmc.diagnostics.html">source.attribution.mcmc.diagnostics</a></span>(<span class="dt">mc=</span>mc, <span class="dt">control=</span>control)</a></code></pre></div>
 <p>That’s it for now. Use your usual R wizadry to process the output further, and have a look at the other vignettes.</p>
 </div>
   </div>

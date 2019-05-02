@@ -21,13 +21,13 @@ require(kableExtra)
 
 
 Here we show you how to aggregate estimated transmission flows to a higher
-level. Please read the sections [Our Job](index.html) and [Our
-Solution](index.html) on the main page before you go ahead here.
+level. Please read the sections "Our Job" and "Our Solution" on the main page
+before you go ahead here.
 
 ## Getting started
 
-We continue our [very first example](02_basic_example.html) here. The
-following code chunk contains all code needed, up to running **phyloflows**
+We continue our Very_First_Example from the vignette with the same name here.
+The following code chunk contains all code needed, up to running **phyloflows**
 MCMC routine. The only change is that the number of iterations is now
 \(50,000\). The MCMC should take about 2 minutes to run.
 

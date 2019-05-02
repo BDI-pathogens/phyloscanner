@@ -1,73 +1,3 @@
-daggregateTo
-daggregateTo	<- subset(dobs, select=c(TRM_CAT_PAIR_ID, TR_TRM_CATEGORY, REC_TRM_CATEGORY))#
-	daggregateTo[, TR_TARGETCAT:= gsub('^[a-z]+:([FM]):.*','\\1',daggregateTo$TR_TRM_CATEGORY)]#
-	daggregateTo[, REC_TARGETCAT:= gsub('^e$','external',gsub('^f$','fishing',gsub('^a|i|t$','inland',substring(daggregateTo$REC_TRM_CATEGORY,1,1))))]
-daggregateTo
-set(daggregateTo, NULL, c('TR_TRM_CATEGORY','REC_TRM_CATEGORY'), NULL)	#
-	control		<- list(	burnin.p=0.05, #
-			thin=NA_integer_, #
-			regex_pars='PI')#
-	mca			<- source.attribution.mcmc.aggregateToTarget(mcmc.file, daggregateTo, control=control)
-mca
-z[, TR_GENDER:= TR_TARGETCAT]#
-	z[, TR_MIGRANT:= 'Any']#
-	z			<- z[, list(TR_GENDER=TR_GENDER, VALUE=VALUE/sum(VALUE)), by=c('REC_TARGETCAT','TR_MIGRANT','SAMPLE')]
-z
-z			<- copy(mca)	#
-	z[, TR_GENDER:= TR_TARGETCAT]#
-	z[, TR_MIGRANT:= 'Any']#
-	z			<- z[, list(TR_GENDER=TR_GENDER, VALUE=VALUE/sum(VALUE)), by=c('REC_TARGETCAT','TR_MIGRANT','SAMPLE')]
-z
-z			<- z[, list(P=names(quantiles), Q=unname(quantile(VALUE, p=quantiles))), by=c('FLOW','TR_MIGRANT','TR_GENDER')]#
-	z			<- dcast.data.table(z, FLOW+TR_MIGRANT+TR_GENDER~P, value.var='Q')
-z			<- dcast.data.table(z, REC_TARGETCAT+TR_MIGRANT+TR_GENDER~P, value.var='Q')
-z
-z			<- z[, list(P=names(quantiles), Q=unname(quantile(VALUE, p=quantiles))), by=c('REC_TARGETCAT','TR_MIGRANT','TR_GENDER')]#
-	z			<- dcast.data.table(z, REC_TARGETCAT+TR_MIGRANT+TR_GENDER~P, value.var='Q')
-quantiles	<- c('CL'=0.025,'IL'=0.25,'M'=0.5,'IU'=0.75,'CU'=0.975)
-z			<- z[, list(P=names(quantiles), Q=unname(quantile(VALUE, p=quantiles))), by=c('REC_TARGETCAT','TR_MIGRANT','TR_GENDER')]#
-	z			<- dcast.data.table(z, REC_TARGETCAT+TR_MIGRANT+TR_GENDER~P, value.var='Q')
-z
-ans			<- copy(z)
-daggregateTo	<- subset(dobs, select=c(TRM_CAT_PAIR_ID, TR_TRM_CATEGORY, REC_TRM_CATEGORY))#
-	daggregateTo[, TR_TARGETCAT:= gsub('.*:([0-9])$','\\1',daggregateTo$TR_TRM_CATEGORY)]#
-	daggregateTo[, REC_TARGETCAT:= gsub('^e$','external',gsub('^f$','fishing',gsub('^a|i|t$','inland',substring(daggregateTo$REC_TRM_CATEGORY,1,1))))]#
-	set(daggregateTo, NULL, c('TR_TRM_CATEGORY','REC_TRM_CATEGORY'), NULL)
-daggregateTo
-daggregateTo$TR_TARGETCAT
-control		<- list(	burnin.p=0.05, #
-			thin=NA_integer_, #
-			regex_pars='PI')#
-	mca			<- source.attribution.mcmc.aggregateToTarget(mcmc.file, daggregateTo, control=control)
-z			<- copy(mca)	#
-	z[, TR_GENDER:= 'Any']#
-	z[, TR_MIGRANT:= TR_TARGETCAT]#
-	z			<- z[, list(TR_MIGRANT=TR_MIGRANT, VALUE=VALUE/sum(VALUE)), by=c('REC_TARGETCAT','TR_GENDER','SAMPLE')]	#
-	z			<- z[, list(P=names(quantiles), Q=unname(quantile(VALUE, p=quantiles))), by=c('REC_TARGETCAT','TR_MIGRANT','TR_GENDER')]#
-	z			<- dcast.data.table(z, REC_TARGETCAT+TR_MIGRANT+TR_GENDER~P, value.var='Q')
-z
-ans			<- rbind(ans,z)
-daggregateTo	<- subset(dobs, select=c(TRM_CAT_PAIR_ID, TR_TRM_CATEGORY, REC_TRM_CATEGORY))#
-	daggregateTo[, TR_TARGETCAT:= paste0(	gsub('^[a-z]+:([FM]):.*','\\1', TR_TRM_CATEGORY),#
-									':',#
-									gsub('.*:([0-9])$','\\1',daggregateTo$TR_TRM_CATEGORY)#
-									)]#
-	daggregateTo[, REC_TARGETCAT:= gsub('^e$','external',gsub('^f$','fishing',gsub('^a|i|t$','inland',substring(daggregateTo$REC_TRM_CATEGORY,1,1))))]
-daggregateTo
-set(daggregateTo, NULL, c('TR_TRM_CATEGORY','REC_TRM_CATEGORY'), NULL)	#
-	control		<- list(	burnin.p=0.05, #
-			thin=NA_integer_, #
-			regex_pars='PI')#
-	mca			<- source.attribution.mcmc.aggregateToTarget(mcmc.file, daggregateTo, control=control)	#
-	z			<- copy(mca)
-z[, TR_GENDER:= gsub('^([FM]):([0-1])','\\1', TR_TARGETCAT)]#
-	z[, TR_MIGRANT:= gsub('^([FM]):([0-1])','\\2', TR_TARGETCAT)]
-z
-z			<- z[, list(TR_MIGRANT=TR_MIGRANT, TR_GENDER=TR_GENDER, VALUE=VALUE/sum(VALUE)), by=c('REC_TARGETCAT','SAMPLE')]	#
-	z			<- z[, list(P=names(quantiles), Q=unname(quantile(VALUE, p=quantiles))), by=c('REC_TARGETCAT','TR_MIGRANT','TR_GENDER')]#
-	z			<- dcast.data.table(z, REC_TARGETCAT+TR_MIGRANT+TR_GENDER~P, value.var='Q')
-z
-ans			<- rbind(ans,z)
 ans
 tmp			<- subset(ans, TR_MIGRANT!='Any' & TR_GENDER!='Any')
 tmp
@@ -4620,10 +4550,50 @@ for(predict.inflation in c(10,20,30))#
 		}
 require(pkgdown)
 build_site('~/git/phyloscanner/phyloflows')
+require(phyloflows)
+data(twoGroupFlows1_mcmc, package="phyloflows")
+outfile.base <- file.path(getwd(),'twoGroupFlows1_mcmc_') #
+control <- list( burnin.p=0.05, #
+                 regex_pars='*', #
+				 credibility.interval=0.95, #
+				 pdf.plot.all.parameters=FALSE, #
+				 pdf.plot.n.worst.case.parameters=10, #
+				 pdf.height.per.par=1.2, #
+				 outfile.base=outfile.base)
+control
+require(data.table)#
+require(phyloflows)
+phyloflow:::source.attribution.mcmc.diagnostics(mc, control=control)
+phyloflows:::source.attribution.mcmc.diagnostics(mc, control=control)
+phyloflows:::source.attribution.mcmc.diagnostics(mc=mc, control=control)
+build_articles('~/git/phyloscanner/phyloflows')
+build_article('~/git/phyloscanner/phyloflows')
 require(pkgdown)
+build_site('~/git/phyloscanner/phyloflows')
+require(roxygen)
+require(roxygen2)
+roxygenise('~/git/phyloscanner/phyloflows')
+require(pkgdown)
+build_site('~/git/phyloscanner/phyloflows')
 setwd('~/git/phyloscanner/phyloflows')
-pkgdown::build_site()
-setwd("~/phyloscanner/phyloflows/vignettes/")
-setwd('/Users/Oliver/git/phyloscanner/phyloflows')
-pkgdown::build_site()
-devtools::install_github("r-lib/pkgdown")
+pkgdown:::build_articles()
+pkgdown:::build_articles()
+roxygenise('~/git/phyloscanner/phyloflows')
+build_site('~/git/phyloscanner/phyloflows')
+build_site()
+?devtools::use_readme_rmd
+rmarkdown::render("README.Rmd")
+rmarkdown::render("README.Rmd")
+build_site()
+rmarkdown::render("README.Rmd")
+rmarkdown::render("README.Rmd")
+rmarkdown::render("README.Rmd")
+rmarkdown::render("README.Rmd")
+?rmarkdown::render
+for(x in c("README.Rmd","vignettes/01_simulating_data.Rmd")) rmarkdown::render(x)
+for(x in c("README.Rmd","vignettes/01_simulating_data.Rmd")) rmarkdown::render(x)
+for(x in c("README.Rmd","vignettes/01_simulating_data.Rmd")) rmarkdown::render(x)
+build_site()
+for(x in c("README.Rmd","vignettes/01_simulating_data.Rmd","vignettes/02_basic_example.Rmd","vignettes/03_diagnostics.Rmd","vignettes/04_aggregating.Rmd")) rmarkdown::render(x)
+for(x in c("vignettes/03_diagnostics.Rmd","vignettes/04_aggregating.Rmd")) rmarkdown::render(x)
+for(x in c("vignettes/03_diagnostics.Rmd","vignettes/04_aggregating.Rmd")) rmarkdown::render(x)

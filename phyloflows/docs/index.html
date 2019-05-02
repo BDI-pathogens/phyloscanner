@@ -97,14 +97,16 @@
 <div class="page-header"><h1 class="hasAnchor">
 <a href="#phyloflows" class="anchor"></a><strong>phyloflows</strong>
 </h1></div>
-<p><strong>phyloflows</strong> provides an MCMC algorithm to infer transmission flows within and between population groups from observed flow counts.</p>
-<p><strong>phyloflows</strong> was primarily written to estimate transmission flows from counts of phylogenetically reconstructed likely transmission pairs, in whom the direction of transmission could be inferred with high support. These input data can be obtained with <a href="https://github.com/BDI-pathogens/phyloscanner">phyloscanner</a>, though different types of input data can also be used, so long as they represent observed counts of flow events between two discrete groups. The primary feature of <strong>phyloflows</strong> is that the underlying statistical model allows adjusting for sampling heterogeneity across population groups while estimating transmission flows, a common problem in molecular epidemiologic analyses.</p>
+<p><strong>phyloflows</strong> provides tools to infer transmission flows within and between population groups from phylogenetically observed flow counts.</p>
+<p><strong>phyloflows</strong> was primarily written to estimate transmission flows from counts of phylogenetically reconstructed likely transmission pairs, in whom the direction of transmission could be inferred with high support. Such input data can be obtained with <a href="https://github.com/BDI-pathogens/phyloscanner">phyloscanner</a>.</p>
+<p>Different types of input data can also be used, so long as they represent observed counts of flow events from and to population sub-groups. Methodologically, in <strong>phyloflows</strong>, there is no limitation to deep-sequence phylogenetic data.</p>
+<p>The primary feature of <strong>phyloflows</strong> is that the underlying statistical model allows adjusting for sampling heterogeneity across population groups while estimating transmission flows, a common problem in molecular epidemiologic analyses.</p>
 <div id="installation" class="section level2">
 <h2 class="hasAnchor">
 <a href="#installation" class="anchor"></a>Installation</h2>
 <p>Install the latest development version from <strong>GitHub</strong>:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">install_github</span>(<span class="st">"BDI-pathogens/phyloscanner/phyloflows"</span>, <span class="dt">dependencies=</span><span class="ot">TRUE</span>, <span class="dt">build_vignettes=</span><span class="ot">FALSE</span>)
-<span class="kw"><a href="https://rdrr.io/r/base/library.html">require</a></span>(phyloflows)</code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">install_github</span>(<span class="st">"BDI-pathogens/phyloscanner/phyloflows"</span>, <span class="dt">dependencies=</span><span class="ot">TRUE</span>, <span class="dt">build_vignettes=</span><span class="ot">FALSE</span>)</a>
+<a class="sourceLine" id="cb1-2" title="2"><span class="kw"><a href="https://rdrr.io/r/base/library.html">require</a></span>(phyloflows)</a></code></pre></div>
 <p>If you have issues with installation/running of phyloflows, please raise an Issue on the GitHub page and we will get back to you.</p>
 </div>
 <div id="getting-started" class="section level2">
@@ -139,9 +141,9 @@ p(n_{ij}|z_{ij},s_i,s_j)= Binomial(n_{ij};z_{ij},s_i*s_j).
 \]</span> Finally, we complete the model with prior distributions on the proportions, <span class="math inline">\(p(\pi)\)</span>, which we generally choose in an uninformative way; prior distributions on the sampling probabilities, <span class="math inline">\(p(s_i)\)</span>, which we generally choose based on other availabe information; and a prior distribution on the total number of transmissions, <span class="math inline">\(p(Z)\)</span>, which we also choose based on available information. And then we use Bayes Theorem.</p>
 <p>This looks pretty straightforward. The issue is that in real-world data analyses, the total number of unknown parameters is 1,000 or even more. And so we also need a nifty computational inference engine. <strong>phyloflow</strong> uses a special type of Markov Chain Markov Carlo algorithms for this job. The main feature is that it has zero tuning variables, so the blame is 100% on us if it does not work. Just get in touch then.</p>
 </div>
-<div id="examples" class="section level2">
+<div id="vignettes" class="section level2">
 <h2 class="hasAnchor">
-<a href="#examples" class="anchor"></a>Examples</h2>
+<a href="#vignettes" class="anchor"></a>Vignettes</h2>
 <ol style="list-style-type: decimal">
 <li><p><a href="articles/01_simulating_data.html">Simulating data.</a></p></li>
 <li><p><a href="articles/02_basic_example.html">A very first example. Always start with me.</a></p></li>
