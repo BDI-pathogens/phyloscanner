@@ -70,14 +70,14 @@ $$
 (\pi_{11}=0.5, \pi_{12}=0.1, \pi_{21}=0.2, \pi_{22}=0.2).
 $$
 **The primary aim** is to estimate the vector of proportions
-\(\pi=(\pi_{11},\pi_{12},\pi_{21},\pi_{22})\). This looks simple. **However in
+$\pi=(\pi_{11},\pi_{12},\pi_{21},\pi_{22})$. This looks simple. **However in
 real life one main complication is** that only a proportion of the true
 transmission flows are observed (or sampled), and that the sampling
 probabilities differ. In our experience this situation not only occurs
 frequently in observational epidemiologic studies but also controlled situations
-(trials). Suppose that population "1" is sampled with probability \(s_1=0.6\)
-and population "2" with probability \(s_2=1\). On expectation, we then observe
-the transmission flows \(n_{ij}= z_{ij} * s_i * s_j\), if we assume that
+(trials). Suppose that population "1" is sampled with probability $s_1=0.6$
+and population "2" with probability $s_2=1$. On expectation, we then observe
+the transmission flows $n_{ij}= z_{ij} * s_i * s_j$, if we assume that
 sampling within and between the two groups is independent of each other, and if
 we ignore the fact that in reality sampling is without replacement. It won t
 matter much in reasonably large populations anyway, considering the extent of

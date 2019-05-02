@@ -67,14 +67,17 @@ of the true transmission flows are observed (or sampled), and that the
 sampling probabilities differ. In our experience this situation not only
 occurs frequently in observational epidemiologic studies but also
 controlled situations (trials). Suppose that population “1” is sampled
-with probability\(s_1=0.6\) and population “2” with probability
-\(s_2=1\). On expectation, we then observe the transmission flows
-\(n_{ij}= z_{ij} * s_i * s_j\), if we assume that sampling within and
-between the two groups is independent of each other, and if we ignore
-the fact that in reality sampling is without replacement. It won t
-matter much in reasonably large populations anyway, considering the
-extent of typical sampling differences. So what we observe is on
-expectation
+with probability
+ $s_1=0.6$
+and population “2” with probability
+ $s_2=1$
+. On expectation, we then observe the transmission flows
+ $n_{ij}= z_{ij} * s_i * s_j$
+, if we assume that sampling within and between the two groups is
+independent of each other, and if we ignore the fact that in reality
+sampling is without replacement. It won t matter much in reasonably
+large populations anyway, considering the extent of typical sampling
+differences. So what we observe is on expectation
 
 $$
 (n_{11}=18, n_{12}=6, n_{21}=12, n_{22}=20),
