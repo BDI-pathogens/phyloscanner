@@ -61,13 +61,13 @@ $$
 
 
 **The primary aim** is to estimate the vector of proportions
-\(\pi=(\pi_{11},\pi_{12},\pi_{21},\pi_{22})\). This looks simple.
-**However in real life one main complication is** that only a proportion
-of the true transmission flows are observed (or sampled), and that the
-sampling probabilities differ. In our experience this situation not only
-occurs frequently in observational epidemiologic studies but also
-controlled situations (trials). Suppose that population “1” is sampled
-with probability
+ $\pi=(\pi_{11},\pi_{12},\pi_{21},\pi_{22})$
+. This looks simple. **However in real life one main complication is**
+that only a proportion of the true transmission flows are observed (or
+sampled), and that the sampling probabilities differ. In our experience
+this situation not only occurs frequently in observational epidemiologic
+studies but also controlled situations (trials). Suppose that population
+“1” is sampled with probability
  $s_1=0.6$
 and population “2” with probability
  $s_2=1$
@@ -92,9 +92,10 @@ $$
 $$
 
 
-and the worst case error is\(50\%-32.1\%=17.9\%\). That is pretty bad.
-**The job of phyloflow is to return better estimates**, with a worst
-case error lower than 2-3%.
+and the worst case error is
+ $50\%-32.1\%=17.9\%$
+. That is pretty bad. **The job of phyloflow is to return better
+estimates**, with a worst case error lower than 2-3%.
 
 ## Our solution
 
@@ -117,17 +118,21 @@ But this does not address the further problems that the sampling groups
 may be different to the population groups between whom we want to infer
 transmission flows; that the sampling probabilities are usually not
 known themselves; and that we also want interpretable uncertainty
-estimates for\(\hat{\pi}\). So we use a Bayesian approach, and write
-down the likelihood of the complete data,
+estimates for
+ $\hat{\pi}$
+. So we use a Bayesian approach, and write down the likelihood of the
+complete data,
 
 $$
 p(z|Z,\pi)= Multinomial(z;Z,\pi),
 $$
 
 
-where\(Z\) is the total number of transmissions,
-\(Z=\sum_{kl} z_{kl}\). Next, we add the likelihood of the sampling
-process,
+where
+ $Z$
+is the total number of transmissions,
+ $Z=\sum_{kl} z_{kl}$
+. Next, we add the likelihood of the sampling process,
 
 $$
 p(n_{ij}|z_{ij},s_i,s_j)= Binomial(n_{ij};z_{ij},s_i*s_j).
@@ -136,11 +141,13 @@ $$
 
 Finally, we complete the model with prior distributions on the
 proportions,\(p(\pi)\), which we generally choose in an uninformative
-way; prior distributions on the sampling probabilities,\(p(s_i)\),
-which we generally choose based on other availabe information; and a
-prior distribution on the total number of transmissions,\(p(Z)\), which
-we also choose based on available information. And then we use Bayes
-Theorem.
+way; prior distributions on the sampling probabilities,
+ $p(s_i)$
+, which we generally choose based on other availabe information; and a
+prior distribution on the total number of transmissions,
+ $p(Z)$
+, which we also choose based on available information. And then we use
+Bayes Theorem.
 
 This looks pretty straightforward. The issue is that in real-world data
 analyses, the total number of unknown parameters is 1,000 or even more.
