@@ -85,12 +85,7 @@ $$
 
 
 If we don’t adjust for the sampling, a crude estimate of the true
-proportion of transmission flows would be
-
-$$
-\hat{\pi}_{11}= 18/56= 0.321 
-\hat{\pi}_{12}=0.107
-$$
+proportion of transmission flows would be $\hat{\pi}_{11}= 18/56= 0.321$
 
 
 and the worst case error is
