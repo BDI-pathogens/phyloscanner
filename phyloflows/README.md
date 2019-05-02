@@ -167,3 +167,6 @@ touch then.
 
 4.  [Aggregating MCMC output to a new set of
     variables](vignettes/04_aggregating.md)
+
+5.  [Calculating sources, onward transmissions and flow
+    ratios](vignettes/05_keyquantities.md)
