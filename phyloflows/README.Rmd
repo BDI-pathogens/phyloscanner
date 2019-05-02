@@ -1,8 +1,6 @@
 ---
 title: "**phyloflows**"
-output:
-  github_document:
-    pandoc_args: --webtex
+output: github_document
 vignette: >
   %\VignetteIndexEntry{Vignette Title}
   %\VignetteEngine{knitr::rmarkdown}
@@ -52,6 +50,9 @@ require(phyloflows)
 
 If you have issues with installation/running of phyloflows, please raise an
 Issue on the GitHub page and we will get back to you.
+
+To see beautiful latex equations in the markdown below, you may want to [install
+the MathJax plugin for Github](https://github.com/orsharir/github-mathjax).
 
 ## Getting started
 
