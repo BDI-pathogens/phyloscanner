@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Authors • phyloflows</title>
+<title>Estimate Flows, Sources, WAIFM, Flow ratios — source.attribution.mcmc.getKeyQuantities • phyloflows</title>
 
 <!-- jquery -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
@@ -25,12 +25,15 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sticky-kit/1.1.3/sticky-kit.min.js" integrity="sha256-c4Rlo1ZozqTPE2RLuvbusY3+SU1pQaJC0TjuhygMipw=" crossorigin="anonymous"></script>
 
 <!-- pkgdown -->
-<link href="pkgdown.css" rel="stylesheet">
-<script src="pkgdown.js"></script>
+<link href="../pkgdown.css" rel="stylesheet">
+<script src="../pkgdown.js"></script>
 
 
 
-<meta property="og:title" content="Authors" />
+<meta property="og:title" content="Estimate Flows, Sources, WAIFM, Flow ratios — source.attribution.mcmc.getKeyQuantities" />
+
+<meta property="og:description" content="Estimate Flows, Sources, WAIFM, Flow ratios" />
+<meta name="twitter:card" content="summary" />
 
 
 
@@ -47,7 +50,7 @@
   </head>
 
   <body>
-    <div class="container template-authors">
+    <div class="container template-reference-topic">
       <header>
       <div class="navbar navbar-default navbar-fixed-top" role="navigation">
   <div class="container">
@@ -59,7 +62,7 @@
         <span class="icon-bar"></span>
       </button>
       <span class="navbar-brand">
-        <a class="navbar-link" href="index.html">phyloflows</a>
+        <a class="navbar-link" href="../index.html">phyloflows</a>
         <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.4.1</span>
       </span>
     </div>
@@ -67,13 +70,13 @@
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
-  <a href="index.html">
+  <a href="../index.html">
     <span class="fa fa-home fa-lg"></span>
      
   </a>
 </li>
 <li>
-  <a href="reference/index.html">Reference</a>
+  <a href="../reference/index.html">Reference</a>
 </li>
 <li class="dropdown">
   <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
@@ -83,19 +86,19 @@
   </a>
   <ul class="dropdown-menu" role="menu">
     <li>
-      <a href="articles/01_simulating_data.html">01 - Simulating data</a>
+      <a href="../articles/01_simulating_data.html">01 - Simulating data</a>
     </li>
     <li>
-      <a href="articles/02_basic_example.html">02 - Very first example</a>
+      <a href="../articles/02_basic_example.html">02 - Very first example</a>
     </li>
     <li>
-      <a href="articles/03_diagnostics.html">03 - Performing MCMC diagnostic checks</a>
+      <a href="../articles/03_diagnostics.html">03 - Performing MCMC diagnostic checks</a>
     </li>
     <li>
-      <a href="articles/04_aggregating.html">04 - Aggregating MCMC output to a new set of variables</a>
+      <a href="../articles/04_aggregating.html">04 - Aggregating MCMC output to a new set of variables</a>
     </li>
     <li>
-      <a href="articles/05_keyquantities.html">05 - Calculating sources, onward transmissions and flow ratios</a>
+      <a href="../articles/05_keyquantities.html">05 - Calculating sources, onward transmissions and flow ratios</a>
     </li>
   </ul>
 </li>
@@ -118,34 +121,57 @@
       </header>
 
 <div class="row">
-  <div class="contents col-md-9">
+  <div class="col-md-9 contents">
     <div class="page-header">
-      <h1>Authors</h1>
+    <h1>Estimate Flows, Sources, WAIFM, Flow ratios</h1>
+    <small class="dont-index">Source: <a href='https://github.com/BDI-pathogens/phyloscanner/blob/master/R/keyquantities.R'><code>R/keyquantities.R</code></a></small>
+    <div class="hidden name"><code>source.attribution.mcmc.getKeyQuantities.Rd</code></div>
     </div>
 
-    <ul class="list-unstyled">
-      <li>
-        <p><strong>Xiaoyue Xi</strong>. Author, maintainer. 
-        </p>
-      </li>
-      <li>
-        <p><strong>Oliver Ratmann</strong>. Author. 
-        </p>
-      </li>
-      <li>
-        <p><strong>Matthew Hall</strong>. Contributor. 
-        </p>
-      </li>
-      <li>
-        <p><strong>Christophe Fraser</strong>. Contributor. 
-        </p>
-      </li>
-    </ul>
+    <div class="ref-description">
+    
+    <p>Estimate Flows, Sources, WAIFM, Flow ratios</p>
+    
+    </div>
+
+    <pre class="usage"><span class='fu'>source.attribution.mcmc.getKeyQuantities</span>(<span class='kw'>infile</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>mc</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
+  <span class='kw'>pars</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>dobs</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>control</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
+    
+    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
+    <table class="ref-arguments">
+    <colgroup><col class="name" /><col class="desc" /></colgroup>
+    <tr>
+      <th>infile</th>
+      <td><p>Full file name to MCMC output or aggregated MCMC output from function <code>source.attribution.mcmc</code></p></td>
+    </tr>
+    <tr>
+      <th>control</th>
+      <td><p>List of input arguments that control the behaviour of the derivation of key quantities:</p><ul>
+<li><p>"quantiles"Named list of quantiles. Default: c('CL'=0.025,'IL'=0.25,'M'=0.5,'IU'=0.75,'CU'=0.975)</p></li>
+<li><p>"flowratios"Cector of length 3. First element: name of flow ratio. Second element: name of transmission pair category for enumerator of flow ratio. Third element: name of transmission pair category for denominator of flow ratio.</p></li>
+<li><p>"outfile"Full file name for output csv file.</p></li>
+</ul></td>
+    </tr>
+    </table>
+    
+    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
+
+    <p>If `outfile` is not specified, the output is returned as a data.table. If `outfile` is specified, the output is written to a csv file.</p>
+    
 
   </div>
+  <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
+    <h2>Contents</h2>
+    <ul class="nav nav-pills nav-stacked">
+      <li><a href="#arguments">Arguments</a></li>
+      
+      <li><a href="#value">Value</a></li>
+          </ul>
 
+    <h2>Author</h2>
+    <p>Xiaoyue Xi, Oliver Ratmann</p>
+  </div>
 </div>
-
 
       <footer>
       <div class="copyright">

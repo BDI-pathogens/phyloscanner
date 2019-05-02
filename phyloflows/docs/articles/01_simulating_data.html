@@ -7,8 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>01 - Simulating data • phyloflows</title>
 <!-- jquery --><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script><!-- Bootstrap --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha256-916EbMg70RQy9LHiGkXzG8hSg9EdNy97GazNG/aiY1w=" crossorigin="anonymous">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha256-U5ZEeKfGNOja007MMD3YBI0A3OSZOQbeG6z2f2Y0hu8=" crossorigin="anonymous"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.7.1/css/all.min.css" integrity="sha256-nAmazAk6vS34Xqo0BSrTb+abbtFlgsFK7NKSi6o7Y78=" crossorigin="anonymous">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.7.1/css/v4-shims.min.css" integrity="sha256-6qHlizsOWFskGlwVOKuns+D1nB6ssZrHQrNj1wGplHc=" crossorigin="anonymous">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha256-U5ZEeKfGNOja007MMD3YBI0A3OSZOQbeG6z2f2Y0hu8=" crossorigin="anonymous"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha256-eZrrJcwDc/3uDhsdt61sL2oOBY362qM3lon1gyExkL0=" crossorigin="anonymous">
 <!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.4/clipboard.min.js" integrity="sha256-FiZwavyI2V6+EXO1U+xzLG3IKldpiTFf3153ea9zikQ=" crossorigin="anonymous"></script><!-- sticky kit --><script src="https://cdnjs.cloudflare.com/ajax/libs/sticky-kit/1.1.3/sticky-kit.min.js" integrity="sha256-c4Rlo1ZozqTPE2RLuvbusY3+SU1pQaJC0TjuhygMipw=" crossorigin="anonymous"></script><!-- pkgdown --><link href="../pkgdown.css" rel="stylesheet">
 <script src="../pkgdown.js"></script><meta property="og:title" content="01 - Simulating data">
 <meta property="og:description" content="">
@@ -31,7 +30,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">phyloflows</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.4.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.4.1</span>
       </span>
     </div>
 
@@ -39,7 +38,7 @@
       <ul class="nav navbar-nav">
 <li>
   <a href="../index.html">
-    <span class="fas fa fas fa-home fa-lg"></span>
+    <span class="fa fa-home fa-lg"></span>
      
   </a>
 </li>
@@ -66,7 +65,7 @@
       <a href="../articles/04_aggregating.html">04 - Aggregating MCMC output to a new set of variables</a>
     </li>
     <li>
-      <a href="../articles/05_keyquantities.html">05 - Calculating key quantities</a>
+      <a href="../articles/05_keyquantities.html">05 - Calculating sources, onward transmissions and flow ratios</a>
     </li>
   </ul>
 </li>
@@ -74,7 +73,7 @@
 <ul class="nav navbar-nav navbar-right">
 <li>
   <a href="https://github.com/BDI-pathogens/phyloscanner">
-    <span class="fab fa fab fa-github fa-lg"></span>
+    <span class="fa fa-github fa-lg"></span>
      
   </a>
 </li>
@@ -107,28 +106,29 @@
 <a href="#data-set-1-simple-sarws" class="anchor"></a>Data set 1 (simple, SARWS)</h2>
 <p>We start with simulating transmission flows between two population groups called “1” and “2”. We will assume a very simple sampling process, sampling at random within population strata, which we abbreviate to SARWS.</p>
 <p><strong>We first set up the sampling process within the two population groups.</strong> Let us assume population group 1 consists of <span class="math inline">\(2000\)</span> individuals and group 2 of <span class="math inline">\(2500\)</span> individuals, and that the sampling rates are <span class="math inline">\(0.6\)</span> for group 1 and <span class="math inline">\(0.45\)</span> for group 2. Here, we will suppose that sampling is at random within each of the population groups with these two sampling probabilities:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" title="1"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span>(data.table)</a>
-<a class="sourceLine" id="cb1-2" title="2"><span class="kw"><a href="https://rdrr.io/r/base/Random.html">set.seed</a></span>(<span class="dv">42</span>)</a>
-<a class="sourceLine" id="cb1-3" title="3">ds &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/data.table.html">data.table</a></span>(<span class="dt">CATEGORY=</span><span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="dv">1</span>,<span class="dv">2</span>),<span class="dt">TRIAL=</span><span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="dv">2000</span>,<span class="dv">2500</span>),<span class="dt">P_SEQ_EMP=</span><span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="fl">0.6</span>,<span class="fl">0.45</span>))</a>
-<a class="sourceLine" id="cb1-4" title="4">ds[,SUC<span class="op">:</span><span class="er">=</span>TRIAL<span class="op">*</span>P_SEQ_EMP]</a>
-<a class="sourceLine" id="cb1-5" title="5">ds</a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/library">library</a></span>(data.table)</a>
+<a class="sourceLine" id="cb1-2" data-line-number="2"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Random">set.seed</a></span>(<span class="dv">42</span>)</a>
+<a class="sourceLine" id="cb1-3" data-line-number="3">ds &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/data.table">data.table</a></span>(<span class="dt">CATEGORY=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="dv">1</span>,<span class="dv">2</span>),<span class="dt">TRIAL=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="dv">2000</span>,<span class="dv">2500</span>),<span class="dt">P_SEQ_EMP=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="fl">0.6</span>,<span class="fl">0.45</span>))</a>
+<a class="sourceLine" id="cb1-4" data-line-number="4">ds[,SUC<span class="op">:</span><span class="er">=</span>TRIAL<span class="op">*</span>P_SEQ_EMP]</a>
+<a class="sourceLine" id="cb1-5" data-line-number="5">ds</a></code></pre></div>
 <pre><code>##    CATEGORY TRIAL P_SEQ_EMP  SUC
 ## 1:        1  2000      0.60 1200
 ## 2:        2  2500      0.45 1125</code></pre>
 <p><strong>Next, we calculate the sampling probabilities of transmission flows within and between the two groups.</strong></p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" title="1">dobs &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/data.table.html">data.table</a></span>(<span class="dt">TR_TRM_CATEGORY=</span><span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">2</span>),<span class="dt">REC_TRM_CATEGORY=</span><span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">1</span>,<span class="dv">2</span>))</a>
-<a class="sourceLine" id="cb3-2" title="2">tmp &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/subset.data.table.html">subset</a></span>(ds,<span class="dt">select=</span><span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">'CATEGORY'</span>,<span class="st">'P_SEQ_EMP'</span>))</a>
-<a class="sourceLine" id="cb3-3" title="3"><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/setattr.html">setnames</a></span>(tmp,<span class="kw"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span>(tmp),<span class="kw"><a href="https://rdrr.io/r/base/paste.html">paste0</a></span>(<span class="st">'TR_TRM_'</span>,<span class="kw"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span>(tmp)))</a>
-<a class="sourceLine" id="cb3-4" title="4">dobs &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/merge.html">merge</a></span>(dobs,tmp,<span class="dt">by=</span><span class="st">'TR_TRM_CATEGORY'</span>)</a>
-<a class="sourceLine" id="cb3-5" title="5"><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/setattr.html">setnames</a></span>(tmp,<span class="kw"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span>(tmp),<span class="kw"><a href="https://rdrr.io/r/base/grep.html">gsub</a></span>(<span class="st">'TR_'</span>,<span class="st">'REC_'</span>,<span class="kw"><a href="https://rdrr.io/r/base/colnames.html">colnames</a></span>(tmp)))</a>
-<a class="sourceLine" id="cb3-6" title="6">dobs &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/merge.html">merge</a></span>(dobs,tmp,<span class="dt">by=</span><span class="st">'REC_TRM_CATEGORY'</span>)</a>
-<a class="sourceLine" id="cb3-7" title="7">dobs[, S<span class="op">:</span><span class="er">=</span><span class="st"> </span>TR_TRM_P_SEQ_EMP <span class="op">*</span><span class="st"> </span>REC_TRM_P_SEQ_EMP]</a>
-<a class="sourceLine" id="cb3-8" title="8"><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/assign.html">set</a></span>(dobs, <span class="ot">NULL</span>, <span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">'TR_TRM_P_SEQ_EMP'</span>,<span class="st">'REC_TRM_P_SEQ_EMP'</span>), <span class="ot">NULL</span>)</a>
-<a class="sourceLine" id="cb3-9" title="9">dobs</a></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1">dobs &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/data.table">data.table</a></span>(<span class="dt">TR_TRM_CATEGORY=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">2</span>),<span class="dt">REC_TRM_CATEGORY=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">1</span>,<span class="dv">2</span>))</a>
+<a class="sourceLine" id="cb3-2" data-line-number="2">tmp &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/subset.data.table">subset</a></span>(ds,<span class="dt">select=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'CATEGORY'</span>,<span class="st">'P_SEQ_EMP'</span>))</a>
+<a class="sourceLine" id="cb3-3" data-line-number="3"><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/setattr">setnames</a></span>(tmp,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/colnames">colnames</a></span>(tmp),<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/paste">paste0</a></span>(<span class="st">'TR_TRM_'</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/colnames">colnames</a></span>(tmp)))</a>
+<a class="sourceLine" id="cb3-4" data-line-number="4">dobs &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/merge">merge</a></span>(dobs,tmp,<span class="dt">by=</span><span class="st">'TR_TRM_CATEGORY'</span>)</a>
+<a class="sourceLine" id="cb3-5" data-line-number="5"><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/setattr">setnames</a></span>(tmp,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/colnames">colnames</a></span>(tmp),<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/grep">gsub</a></span>(<span class="st">'TR_'</span>,<span class="st">'REC_'</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/colnames">colnames</a></span>(tmp)))</a>
+<a class="sourceLine" id="cb3-6" data-line-number="6">dobs &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/merge">merge</a></span>(dobs,tmp,<span class="dt">by=</span><span class="st">'REC_TRM_CATEGORY'</span>)</a>
+<a class="sourceLine" id="cb3-7" data-line-number="7">dobs[, S<span class="op">:</span><span class="er">=</span><span class="st"> </span>TR_TRM_P_SEQ_EMP <span class="op">*</span><span class="st"> </span>REC_TRM_P_SEQ_EMP]</a>
+<a class="sourceLine" id="cb3-8" data-line-number="8"><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/assign">set</a></span>(dobs, <span class="ot">NULL</span>, <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'TR_TRM_P_SEQ_EMP'</span>,<span class="st">'REC_TRM_P_SEQ_EMP'</span>), <span class="ot">NULL</span>)</a>
+<a class="sourceLine" id="cb3-9" data-line-number="9"><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/setkey">setkey</a></span>(dobs,TR_TRM_CATEGORY,REC_TRM_CATEGORY)</a>
+<a class="sourceLine" id="cb3-10" data-line-number="10">dobs</a></code></pre></div>
 <pre><code>##    REC_TRM_CATEGORY TR_TRM_CATEGORY      S
 ## 1:                1               1 0.3600
-## 2:                1               2 0.2700
-## 3:                2               1 0.2700
+## 2:                2               1 0.2700
+## 3:                1               2 0.2700
 ## 4:                2               2 0.2025</code></pre>
 <p><strong>Next, we simulate true transmission flows.</strong> Let us assume 36% and 54% transmissions are within group 1 and 2 respectively, and 4% are from group 1 to group 2 and 6% are from group 2 to group 1: <span class="math display">\[
 \pi=(0.36,0.04,0.06,0.54).
@@ -137,49 +137,49 @@ z \sim \mbox{Multinomial} (Z,\pi).
 \]</span> Finally we will generate observed transmissions flows by subsampling the actual transmission flows by <span class="math display">\[
 n_{ab} \sim \mbox{Binomial} (z_{ab},\xi_{ab}), \forall a,b,
 \]</span> where <span class="math inline">\(\xi_{ab}\)</span> is the probability of sampling a transmission event from <span class="math inline">\(a\)</span> to <span class="math inline">\(b\)</span>.</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" title="1">TRUE_PI &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="fl">0.36</span>,<span class="fl">0.04</span>,<span class="fl">0.06</span>,<span class="fl">0.54</span>)</a>
-<a class="sourceLine" id="cb5-2" title="2">N &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/stats/Poisson.html">rpois</a></span>(<span class="dv">1</span>,<span class="dv">300</span><span class="op">/</span><span class="kw"><a href="https://rdrr.io/r/base/mean.html">mean</a></span>(dobs<span class="op">$</span>S))</a>
-<a class="sourceLine" id="cb5-3" title="3">z &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/stats/Multinom.html">rmultinom</a></span>(<span class="dv">1</span>,<span class="dt">size=</span>N,<span class="dt">prob=</span>TRUE_PI)</a>
-<a class="sourceLine" id="cb5-4" title="4">n &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/matrix.html">matrix</a></span>(<span class="ot">NA_integer_</span>,<span class="dt">ncol=</span><span class="dv">1</span>,<span class="dt">nrow=</span><span class="kw"><a href="https://rdrr.io/r/base/length.html">length</a></span>(TRUE_PI))</a>
-<a class="sourceLine" id="cb5-5" title="5"><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw"><a href="https://rdrr.io/r/base/length.html">length</a></span>(TRUE_PI)){</a>
-<a class="sourceLine" id="cb5-6" title="6">    n[i] &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/stats/Binomial.html">rbinom</a></span>(<span class="dv">1</span>,<span class="dt">size=</span>z[i],dobs<span class="op">$</span>S[i])</a>
-<a class="sourceLine" id="cb5-7" title="7">}</a>
-<a class="sourceLine" id="cb5-8" title="8">dobs[, TRM_OBS<span class="op">:</span><span class="er">=</span><span class="st"> </span>n]</a>
-<a class="sourceLine" id="cb5-9" title="9">dobs</a></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1">TRUE_PI &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="fl">0.36</span>,<span class="fl">0.04</span>,<span class="fl">0.06</span>,<span class="fl">0.54</span>)</a>
+<a class="sourceLine" id="cb5-2" data-line-number="2">N &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/Poisson">rpois</a></span>(<span class="dv">1</span>,<span class="dv">300</span><span class="op">/</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/mean">mean</a></span>(dobs<span class="op">$</span>S))</a>
+<a class="sourceLine" id="cb5-3" data-line-number="3">z &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/Multinom">rmultinom</a></span>(<span class="dv">1</span>,<span class="dt">size=</span>N,<span class="dt">prob=</span>TRUE_PI)</a>
+<a class="sourceLine" id="cb5-4" data-line-number="4">n &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/matrix">matrix</a></span>(<span class="ot">NA_integer_</span>,<span class="dt">ncol=</span><span class="dv">1</span>,<span class="dt">nrow=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(TRUE_PI))</a>
+<a class="sourceLine" id="cb5-5" data-line-number="5"><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(TRUE_PI)){</a>
+<a class="sourceLine" id="cb5-6" data-line-number="6">    n[i] &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/Binomial">rbinom</a></span>(<span class="dv">1</span>,<span class="dt">size=</span>z[i],dobs<span class="op">$</span>S[i])</a>
+<a class="sourceLine" id="cb5-7" data-line-number="7">}</a>
+<a class="sourceLine" id="cb5-8" data-line-number="8">dobs[, TRM_OBS<span class="op">:</span><span class="er">=</span><span class="st"> </span>n]</a>
+<a class="sourceLine" id="cb5-9" data-line-number="9">dobs</a></code></pre></div>
 <pre><code>##    REC_TRM_CATEGORY TR_TRM_CATEGORY      S TRM_OBS
 ## 1:                1               1 0.3600     139
-## 2:                1               2 0.2700      20
-## 3:                2               1 0.2700      15
+## 2:                2               1 0.2700      20
+## 3:                1               2 0.2700      15
 ## 4:                2               2 0.2025     129</code></pre>
 <p><strong>Next, we will bring the transmission count data into the form needed for phyloflows MCMC algorithm.</strong> We add an ID to each observation, called <code>TRM_CAT_PAIR_ID</code>. We also define the sampling groups. In this example, they correspond directly to the transmission groups.</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" title="1">dobs[, TR_SAMPLING_CATEGORY<span class="op">:</span><span class="er">=</span>TR_TRM_CATEGORY]</a>
-<a class="sourceLine" id="cb7-2" title="2">dobs[, REC_SAMPLING_CATEGORY<span class="op">:</span><span class="er">=</span>REC_TRM_CATEGORY]</a>
-<a class="sourceLine" id="cb7-3" title="3">dobs[, TRM_CAT_PAIR_ID<span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw"><a href="https://rdrr.io/r/base/seq.html">seq_len</a></span>(<span class="kw"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span>(dobs))]</a>
-<a class="sourceLine" id="cb7-4" title="4">dobs[, S<span class="op">:</span><span class="er">=</span><span class="ot">NULL</span>]</a>
-<a class="sourceLine" id="cb7-5" title="5"><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/setkey.html">setkey</a></span>(dobs,TR_TRM_CATEGORY,REC_TRM_CATEGORY)</a>
-<a class="sourceLine" id="cb7-6" title="6">dobs</a></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" data-line-number="1">dobs[, TR_SAMPLING_CATEGORY<span class="op">:</span><span class="er">=</span>TR_TRM_CATEGORY]</a>
+<a class="sourceLine" id="cb7-2" data-line-number="2">dobs[, REC_SAMPLING_CATEGORY<span class="op">:</span><span class="er">=</span>REC_TRM_CATEGORY]</a>
+<a class="sourceLine" id="cb7-3" data-line-number="3"><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/setkey">setkey</a></span>(dobs,TR_TRM_CATEGORY,REC_TRM_CATEGORY)</a>
+<a class="sourceLine" id="cb7-4" data-line-number="4">dobs[, TRM_CAT_PAIR_ID<span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/seq">seq_len</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/nrow">nrow</a></span>(dobs))]</a>
+<a class="sourceLine" id="cb7-5" data-line-number="5">dobs[, S<span class="op">:</span><span class="er">=</span><span class="ot">NULL</span>]</a>
+<a class="sourceLine" id="cb7-6" data-line-number="6">dobs</a></code></pre></div>
 <pre><code>##    REC_TRM_CATEGORY TR_TRM_CATEGORY TRM_OBS TR_SAMPLING_CATEGORY
 ## 1:                1               1     139                    1
-## 2:                2               1      15                    1
-## 3:                1               2      20                    2
+## 2:                2               1      20                    1
+## 3:                1               2      15                    2
 ## 4:                2               2     129                    2
 ##    REC_SAMPLING_CATEGORY TRM_CAT_PAIR_ID
 ## 1:                     1               1
-## 2:                     2               3
-## 3:                     1               2
+## 2:                     2               2
+## 3:                     1               3
 ## 4:                     2               4</code></pre>
 <p><strong>We still need to define the prior distribution on the unknown sampling probabilities, and generate samples from it</strong>. At the very top of this page, defined the number of infected and sampled individuals in data.frame <code>ds</code>. Let us denote these by <span class="math inline">\(X_a^i\)</span> and <span class="math inline">\(X_a^s\)</span> for our two population groups <span class="math inline">\(a\)</span>. Usually this type of information is available to us in real-world data analyses, and so we work from these numbers here also. Under the Binomial sampling model that we assume throughout, <span class="math inline">\(X_a^s\sim Binom(X_a^i, \xi_a)\)</span>. If we suppose a flat prior on <span class="math inline">\(\xi_a\)</span>, we obtain the posterior distribution of the sampling probabilities conditional on the number of total and sampled individuals, <span class="math display">\[
 p(\xi_a|X_a^i,X_s^i)= Beta(\xi_a;X_a^s+1,X_a^i-X_a^s+1).
 \]</span> This density typically contains a lot of information on the sampling process. To get this information into the form needed for <strong>phyloflows</strong> MCMC algorithm, we need to derive samples from that distribution. We also need to calculate their log density.</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" title="1">nprior&lt;-<span class="dv">1000</span></a>
-<a class="sourceLine" id="cb9-2" title="2">dprior&lt;-ds[,<span class="kw"><a href="https://rdrr.io/r/base/list.html">list</a></span>(<span class="dt">P=</span><span class="kw"><a href="https://rdrr.io/r/stats/Beta.html">rbeta</a></span>(nprior,SUC<span class="op">+</span><span class="dv">1</span>,TRIAL<span class="op">-</span>SUC<span class="op">+</span><span class="dv">1</span>),</a>
-<a class="sourceLine" id="cb9-3" title="3">         <span class="dt">SAMPLE=</span><span class="dv">1</span><span class="op">:</span>nprior),</a>
-<a class="sourceLine" id="cb9-4" title="4">   by=<span class="st">'CATEGORY'</span>]</a>
-<a class="sourceLine" id="cb9-5" title="5">dprior&lt;-<span class="kw"><a href="https://rdrr.io/pkg/data.table/man/merge.html">merge</a></span>(dprior,ds,<span class="dt">by=</span><span class="st">'CATEGORY'</span>)</a>
-<a class="sourceLine" id="cb9-6" title="6">dprior[,LP<span class="op">:</span><span class="er">=</span><span class="kw"><a href="https://rdrr.io/r/stats/Beta.html">dbeta</a></span>(P,SUC<span class="op">+</span><span class="dv">1</span>,TRIAL<span class="op">-</span>SUC<span class="op">+</span><span class="dv">1</span>,<span class="dt">log=</span><span class="ot">TRUE</span>)]</a>
-<a class="sourceLine" id="cb9-7" title="7"><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/assign.html">set</a></span>(dprior,<span class="ot">NULL</span>,<span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(<span class="st">'TRIAL'</span>,<span class="st">'SUC'</span>),<span class="ot">NULL</span>)</a>
-<a class="sourceLine" id="cb9-8" title="8"><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/setattr.html">setnames</a></span>(dprior, <span class="st">'CATEGORY'</span>, <span class="st">'SAMPLING_CATEGORY'</span>)</a>
-<a class="sourceLine" id="cb9-9" title="9"><span class="kw"><a href="https://rdrr.io/r/utils/head.html">head</a></span>(dprior)</a></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" data-line-number="1">nprior&lt;-<span class="dv">1000</span></a>
+<a class="sourceLine" id="cb9-2" data-line-number="2">dprior&lt;-ds[,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/list">list</a></span>(<span class="dt">P=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/Beta">rbeta</a></span>(nprior,SUC<span class="op">+</span><span class="dv">1</span>,TRIAL<span class="op">-</span>SUC<span class="op">+</span><span class="dv">1</span>),</a>
+<a class="sourceLine" id="cb9-3" data-line-number="3">         <span class="dt">SAMPLE=</span><span class="dv">1</span><span class="op">:</span>nprior),</a>
+<a class="sourceLine" id="cb9-4" data-line-number="4">   by=<span class="st">'CATEGORY'</span>]</a>
+<a class="sourceLine" id="cb9-5" data-line-number="5">dprior&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/merge">merge</a></span>(dprior,ds,<span class="dt">by=</span><span class="st">'CATEGORY'</span>)</a>
+<a class="sourceLine" id="cb9-6" data-line-number="6">dprior[,LP<span class="op">:</span><span class="er">=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/Beta">dbeta</a></span>(P,SUC<span class="op">+</span><span class="dv">1</span>,TRIAL<span class="op">-</span>SUC<span class="op">+</span><span class="dv">1</span>,<span class="dt">log=</span><span class="ot">TRUE</span>)]</a>
+<a class="sourceLine" id="cb9-7" data-line-number="7"><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/assign">set</a></span>(dprior,<span class="ot">NULL</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'TRIAL'</span>,<span class="st">'SUC'</span>),<span class="ot">NULL</span>)</a>
+<a class="sourceLine" id="cb9-8" data-line-number="8"><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/setattr">setnames</a></span>(dprior, <span class="st">'CATEGORY'</span>, <span class="st">'SAMPLING_CATEGORY'</span>)</a>
+<a class="sourceLine" id="cb9-9" data-line-number="9"><span class="kw"><a href="https://www.rdocumentation.org/packages/utils/topics/head">head</a></span>(dprior)</a></code></pre></div>
 <pre><code>##    SAMPLING_CATEGORY         P SAMPLE P_SEQ_EMP       LP
 ## 1:                 1 0.5824160      1       0.6 2.318750
 ## 2:                 1 0.6184042      2       0.6 2.168504
@@ -188,14 +188,243 @@ p(\xi_a|X_a^i,X_s^i)= Beta(\xi_a;X_a^s+1,X_a^i-X_a^s+1).
 ## 5:                 1 0.5918721      5       0.6 3.321375
 ## 6:                 1 0.6034198      6       0.6 3.546614</code></pre>
 <p>This data set can be loaded through</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" title="1"><span class="kw"><a href="https://rdrr.io/r/utils/data.html">data</a></span>(twoGroupFlows1)</a></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" data-line-number="1"><span class="kw"><a href="https://www.rdocumentation.org/packages/utils/topics/data">data</a></span>(twoGroupFlows1)</a></code></pre></div>
 <p>To test our MCMC algorithm, we repeated generated 100 such data set, and they can be loaded through</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" title="1"><span class="kw"><a href="https://rdrr.io/r/utils/data.html">data</a></span>(twoGroupFlows100)</a></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" data-line-number="1"><span class="kw"><a href="https://www.rdocumentation.org/packages/utils/topics/data">data</a></span>(twoGroupFlows100)</a></code></pre></div>
 </div>
 <div id="data-set-2-more-complex-glm" class="section level2">
 <h2 class="hasAnchor">
 <a href="#data-set-2-more-complex-glm" class="anchor"></a>Data set 2 (more complex, GLM)</h2>
-<p>xxx</p>
+<p>We then simulate transmission flows between two locations called “1” and “2”. We will assume sampling depends on genders and is thus not at random within each location. Due to the dependence of sampling on genders and locations, sampling rates could be predicted through genders and locations, which we abbreviate to GLM.</p>
+<p><strong>We first set up the sampling process within the four population groups.</strong> We consider four population groups, “1M”, “1F”, “2M” and “2F”. Let us assume there are <span class="math inline">\(10,000\)</span> individuals in total, <span class="math inline">\(40\%\)</span> individuals are in location 1, <span class="math inline">\(60\%\)</span> individuals are in location 2, <span class="math inline">\(60\%\)</span> individuals are women within each location, and that the sampling rates are <span class="math inline">\(0.6\)</span> for men in group 1, <span class="math inline">\(0.8\)</span> for women in group 1, <span class="math inline">\(0.3\)</span> for men in group 2 and <span class="math inline">\(0.7\)</span> for women in group 2. Here, we will suppose that sampling is at random within each of the population groups with these four sampling probabilities:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" data-line-number="1"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/library">library</a></span>(data.table)</a>
+<a class="sourceLine" id="cb13-2" data-line-number="2"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Random">set.seed</a></span>(<span class="dv">42</span>)</a>
+<a class="sourceLine" id="cb13-3" data-line-number="3">ds&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/data.table">data.table</a></span>(<span class="dt">SEX=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'M'</span>,<span class="st">'F'</span>),<span class="dv">2</span>)),</a>
+<a class="sourceLine" id="cb13-4" data-line-number="4">               <span class="dt">COMM_NUM_B=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="dv">1</span>,<span class="dv">2</span>),<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="dv">2</span>,<span class="dv">2</span>)),</a>
+<a class="sourceLine" id="cb13-5" data-line-number="5">               <span class="dt">P_SEQ=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="fl">0.6</span>,<span class="fl">0.8</span>,<span class="fl">0.3</span>,<span class="fl">0.7</span>)) <span class="co"># set up seq rates</span></a>
+<a class="sourceLine" id="cb13-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb13-7" data-line-number="7">ninf&lt;-<span class="dv">1000</span></a>
+<a class="sourceLine" id="cb13-8" data-line-number="8">ninf1&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(ninf<span class="op">*</span><span class="fl">0.4</span>)</a>
+<a class="sourceLine" id="cb13-9" data-line-number="9">ninf2&lt;-ninf<span class="op">-</span>ninf1</a>
+<a class="sourceLine" id="cb13-10" data-line-number="10">ninf1f&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(ninf1<span class="op">*</span><span class="fl">0.7</span>)</a>
+<a class="sourceLine" id="cb13-11" data-line-number="11">ninf1m&lt;-ninf1<span class="op">-</span>ninf1f</a>
+<a class="sourceLine" id="cb13-12" data-line-number="12">ninf2f&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Round">round</a></span>(ninf2<span class="op">*</span><span class="fl">0.6</span>)</a>
+<a class="sourceLine" id="cb13-13" data-line-number="13">ninf2m&lt;-ninf2<span class="op">-</span>ninf2f</a>
+<a class="sourceLine" id="cb13-14" data-line-number="14">ds[,TRIAL<span class="op">:</span><span class="er">=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(ninf1m,ninf1f,ninf2m,ninf2f)]</a>
+<a class="sourceLine" id="cb13-15" data-line-number="15">ds[,SUC<span class="op">:</span><span class="er">=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/Binomial">rbinom</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/nrow">nrow</a></span>(ds),TRIAL,P_SEQ)]</a>
+<a class="sourceLine" id="cb13-16" data-line-number="16"></a>
+<a class="sourceLine" id="cb13-17" data-line-number="17">ds[,CATEGORY<span class="op">:</span><span class="er">=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/paste">paste0</a></span>(COMM_NUM_B,<span class="st">':'</span>,SEX)]</a>
+<a class="sourceLine" id="cb13-18" data-line-number="18">ds[,COMM_NUM_B<span class="op">:</span><span class="er">=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/integer">as.integer</a></span>(COMM_NUM_B)]</a>
+<a class="sourceLine" id="cb13-19" data-line-number="19">ds[,MALE<span class="op">:</span><span class="er">=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/integer">as.integer</a></span>(SEX<span class="op">==</span><span class="st">'M'</span>)]</a></code></pre></div>
+<p><strong>Next, we calculate the sampling probabilities of transmission flows within and between the two groups.</strong></p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" data-line-number="1">dobs&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/data.table">data.table</a></span>(<span class="dt">TR_COMM_NUM_B=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="dv">1</span>,<span class="dv">4</span>),<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="dv">2</span>,<span class="dv">4</span>)),</a>
+<a class="sourceLine" id="cb14-2" data-line-number="2">                 <span class="dt">REC_COMM_NUM_B=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="dv">1</span>,<span class="dv">2</span>),<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="dv">2</span>,<span class="dv">2</span>),<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="dv">1</span>,<span class="dv">2</span>),<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="dv">2</span>,<span class="dv">2</span>)),</a>
+<a class="sourceLine" id="cb14-3" data-line-number="3">                 <span class="dt">TR_SEX=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'F'</span>,<span class="st">'M'</span>),<span class="dv">4</span>)),</a>
+<a class="sourceLine" id="cb14-4" data-line-number="4">                 <span class="dt">REC_SEX=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'M'</span>,<span class="st">'F'</span>),<span class="dv">4</span>)))</a>
+<a class="sourceLine" id="cb14-5" data-line-number="5">dobs[,TR_TRM_CATEGORY<span class="op">:</span><span class="er">=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/paste">paste0</a></span>(TR_COMM_NUM_B,<span class="st">":"</span>,TR_SEX)]</a>
+<a class="sourceLine" id="cb14-6" data-line-number="6">dobs[,REC_TRM_CATEGORY<span class="op">:</span><span class="er">=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/paste">paste0</a></span>(REC_COMM_NUM_B,<span class="st">":"</span>,REC_SEX)]</a>
+<a class="sourceLine" id="cb14-7" data-line-number="7">dobs[, TRM_CAT_PAIR_ID<span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/seq">seq_len</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/nrow">nrow</a></span>(dobs))]</a>
+<a class="sourceLine" id="cb14-8" data-line-number="8"></a>
+<a class="sourceLine" id="cb14-9" data-line-number="9">tmp &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/subset.data.table">subset</a></span>(ds,<span class="dt">select=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'CATEGORY'</span>,<span class="st">'P_SEQ'</span>))</a>
+<a class="sourceLine" id="cb14-10" data-line-number="10"><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/setattr">setnames</a></span>(tmp,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/colnames">colnames</a></span>(tmp),<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/paste">paste0</a></span>(<span class="st">'TR_TRM_'</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/colnames">colnames</a></span>(tmp)))</a>
+<a class="sourceLine" id="cb14-11" data-line-number="11">dobs &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/merge">merge</a></span>(dobs,tmp,<span class="dt">by=</span><span class="st">'TR_TRM_CATEGORY'</span>)</a>
+<a class="sourceLine" id="cb14-12" data-line-number="12"><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/setattr">setnames</a></span>(tmp,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/colnames">colnames</a></span>(tmp),<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/grep">gsub</a></span>(<span class="st">'TR_'</span>,<span class="st">'REC_'</span>,<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/colnames">colnames</a></span>(tmp)))</a>
+<a class="sourceLine" id="cb14-13" data-line-number="13">dobs &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/merge">merge</a></span>(dobs,tmp,<span class="dt">by=</span><span class="st">'REC_TRM_CATEGORY'</span>)</a>
+<a class="sourceLine" id="cb14-14" data-line-number="14">dobs[, S<span class="op">:</span><span class="er">=</span><span class="st"> </span>TR_TRM_P_SEQ <span class="op">*</span><span class="st"> </span>REC_TRM_P_SEQ]</a>
+<a class="sourceLine" id="cb14-15" data-line-number="15"><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/assign">set</a></span>(dobs, <span class="ot">NULL</span>, <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'TR_TRM_P_SEQ'</span>,<span class="st">'REC_TRM_P_SEQ'</span>), <span class="ot">NULL</span>)</a>
+<a class="sourceLine" id="cb14-16" data-line-number="16"><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/setkey">setkey</a></span>(dobs,TRM_CAT_PAIR_ID)</a>
+<a class="sourceLine" id="cb14-17" data-line-number="17">dobs</a></code></pre></div>
+<pre><code>##    REC_TRM_CATEGORY TR_TRM_CATEGORY TR_COMM_NUM_B REC_COMM_NUM_B TR_SEX
+## 1:              1:M             1:F             1              1      F
+## 2:              1:F             1:M             1              1      M
+## 3:              2:M             1:F             1              2      F
+## 4:              2:F             1:M             1              2      M
+## 5:              1:M             2:F             2              1      F
+## 6:              1:F             2:M             2              1      M
+## 7:              2:M             2:F             2              2      F
+## 8:              2:F             2:M             2              2      M
+##    REC_SEX TRM_CAT_PAIR_ID    S
+## 1:       M               1 0.48
+## 2:       F               2 0.48
+## 3:       M               3 0.24
+## 4:       F               4 0.42
+## 5:       M               5 0.42
+## 6:       F               6 0.24
+## 7:       M               7 0.21
+## 8:       F               8 0.21</code></pre>
+<p><strong>Next, we simulate true transmission flows.</strong> Let us assume 30% and 45% transmissions are within location 1 and 2 respectively, and 10% are from location 1 to location 2 and 15% are from location 2 to location 1. <span class="math inline">\(60\%\)</span> of each transmission flow between locations originate from men:</p>
+<p><span class="math display">\[
+\pi=(0.12,0.18,0.04,0.06,0.06,0.09,0.18,0.27).
+\]</span> We further assume the total number of observed transmissions is <span class="math inline">\(N=300\)</span>. We will simulate the actual transmission count <span class="math inline">\(Z\)</span> from a Poisson distribution. Then we will generate transmission flows between groups by <span class="math display">\[
+z \sim \mbox{Multinomial} (Z,\pi).
+\]</span> Finally we will generate observed transmissions flows by subsampling the actual transmission flows by <span class="math display">\[
+n_{ab} \sim \mbox{Binomial} (z_{ab},\xi_{ab}), \forall a,b,
+\]</span> where <span class="math inline">\(\xi_{ab}\)</span> is the probability of sampling a transmission event from <span class="math inline">\(a\)</span> to <span class="math inline">\(b\)</span>.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb16-1" data-line-number="1">TRUE_PI &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="fl">0.12</span>,<span class="fl">0.18</span>,<span class="fl">0.04</span>,<span class="fl">0.06</span>,<span class="fl">0.06</span>,<span class="fl">0.09</span>,<span class="fl">0.18</span>,<span class="fl">0.27</span>)</a>
+<a class="sourceLine" id="cb16-2" data-line-number="2">N &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/Poisson">rpois</a></span>(<span class="dv">1</span>,<span class="dv">300</span><span class="op">/</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/mean">mean</a></span>(dobs<span class="op">$</span>S))</a>
+<a class="sourceLine" id="cb16-3" data-line-number="3">z &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/Multinom">rmultinom</a></span>(<span class="dv">1</span>,<span class="dt">size=</span>N,<span class="dt">prob=</span>TRUE_PI)</a>
+<a class="sourceLine" id="cb16-4" data-line-number="4">n &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/matrix">matrix</a></span>(<span class="ot">NA_integer_</span>,<span class="dt">ncol=</span><span class="dv">1</span>,<span class="dt">nrow=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(TRUE_PI))</a>
+<a class="sourceLine" id="cb16-5" data-line-number="5"><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(TRUE_PI)){</a>
+<a class="sourceLine" id="cb16-6" data-line-number="6">    n[i] &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/stats/topics/Binomial">rbinom</a></span>(<span class="dv">1</span>,<span class="dt">size=</span>z[i],dobs<span class="op">$</span>S[i])</a>
+<a class="sourceLine" id="cb16-7" data-line-number="7">}</a>
+<a class="sourceLine" id="cb16-8" data-line-number="8"><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/setkey">setkey</a></span>(dobs,TR_COMM_NUM_B,REC_COMM_NUM_B,TR_SEX,REC_SEX)</a>
+<a class="sourceLine" id="cb16-9" data-line-number="9">dobs[, TRM_OBS<span class="op">:</span><span class="er">=</span><span class="st"> </span>n]</a>
+<a class="sourceLine" id="cb16-10" data-line-number="10">dobs.zero&lt;-<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/which">which</a></span>(dobs<span class="op">$</span>TRM_OBS<span class="op">!=</span><span class="dv">0</span>)</a>
+<a class="sourceLine" id="cb16-11" data-line-number="11">dobs&lt;-dobs[TRM_OBS<span class="op">!=</span><span class="dv">0</span>,]</a>
+<a class="sourceLine" id="cb16-12" data-line-number="12">dobs</a></code></pre></div>
+<pre><code>##    REC_TRM_CATEGORY TR_TRM_CATEGORY TR_COMM_NUM_B REC_COMM_NUM_B TR_SEX
+## 1:              1:M             1:F             1              1      F
+## 2:              1:F             1:M             1              1      M
+## 3:              2:M             1:F             1              2      F
+## 4:              2:F             1:M             1              2      M
+## 5:              1:M             2:F             2              1      F
+## 6:              1:F             2:M             2              1      M
+## 7:              2:M             2:F             2              2      F
+## 8:              2:F             2:M             2              2      M
+##    REC_SEX TRM_CAT_PAIR_ID    S TRM_OBS
+## 1:       M               1 0.48      55
+## 2:       F               2 0.48      77
+## 3:       M               3 0.24       7
+## 4:       F               4 0.42      22
+## 5:       M               5 0.42      17
+## 6:       F               6 0.24      28
+## 7:       M               7 0.21      35
+## 8:       F               8 0.21      56</code></pre>
+<p><strong>Next, we will bring the transmission count data into the form needed for phyloflows MCMC algorithm.</strong> We add an ID to each observation, called <code>TRM_CAT_PAIR_ID</code>. We also define the sampling groups. In this example, they correspond directly to the transmission groups.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb18-1" data-line-number="1">dobs[, TR_SAMPLING_CATEGORY<span class="op">:</span><span class="er">=</span>TR_TRM_CATEGORY]</a>
+<a class="sourceLine" id="cb18-2" data-line-number="2">dobs[, REC_SAMPLING_CATEGORY<span class="op">:</span><span class="er">=</span>REC_TRM_CATEGORY]</a>
+<a class="sourceLine" id="cb18-3" data-line-number="3"><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/setkey">setkey</a></span>(dobs,TR_TRM_CATEGORY,REC_TRM_CATEGORY)</a>
+<a class="sourceLine" id="cb18-4" data-line-number="4">dobs[, TRM_CAT_PAIR_ID<span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/seq">seq_len</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/nrow">nrow</a></span>(dobs))]</a>
+<a class="sourceLine" id="cb18-5" data-line-number="5">dobs[, S<span class="op">:</span><span class="er">=</span><span class="ot">NULL</span>]</a>
+<a class="sourceLine" id="cb18-6" data-line-number="6">dobs</a></code></pre></div>
+<pre><code>##    REC_TRM_CATEGORY TR_TRM_CATEGORY TR_COMM_NUM_B REC_COMM_NUM_B TR_SEX
+## 1:              1:M             1:F             1              1      F
+## 2:              2:M             1:F             1              2      F
+## 3:              1:F             1:M             1              1      M
+## 4:              2:F             1:M             1              2      M
+## 5:              1:M             2:F             2              1      F
+## 6:              2:M             2:F             2              2      F
+## 7:              1:F             2:M             2              1      M
+## 8:              2:F             2:M             2              2      M
+##    REC_SEX TRM_CAT_PAIR_ID TRM_OBS TR_SAMPLING_CATEGORY
+## 1:       M               1      55                  1:F
+## 2:       M               2       7                  1:F
+## 3:       F               3      77                  1:M
+## 4:       F               4      22                  1:M
+## 5:       M               5      17                  2:F
+## 6:       M               6      35                  2:F
+## 7:       F               7      28                  2:M
+## 8:       F               8      56                  2:M
+##    REC_SAMPLING_CATEGORY
+## 1:                   1:M
+## 2:                   2:M
+## 3:                   1:F
+## 4:                   2:F
+## 5:                   1:M
+## 6:                   2:M
+## 7:                   1:F
+## 8:                   2:F</code></pre>
+<p><strong>We still need to define the prior distribution on the unknown sampling probabilities, and generate samples from it</strong>. Like Data Set 1, we defined the number of infected and sampled individuals in data.frame <code>ds</code>. Let us denote these by <span class="math inline">\(X_a^i\)</span> and <span class="math inline">\(X_a^s\)</span> for our four population groups <span class="math inline">\(a\)</span>. We have an additional individual covariate, gender denoted as <span class="math inline">\(x_a\)</span>, for population group <span class="math inline">\(a\)</span> and we will work from these data. Under the Binomial sampling model that we assume throughout, <span class="math inline">\(X_a^s\sim Binom(X_a^i, \xi_a)\)</span>. Because of dependence of sampling rates on covariates and locations <span class="math inline">\(b\)</span>, <span class="math inline">\(\xi_a\)</span> could be linked with a regression with gender, <span class="math inline">\(\mbox{logit}(\xi_{ab})=\beta_0+\gamma_b+\beta_1 x_{a}\)</span>. If we suppose broad priors on <span class="math inline">\(\beta_0\)</span> and <span class="math inline">\(\beta_1\)</span>, we obtain the posterior distribution of the sampling probabilities conditional on gender, the number of total and sampled individuals from rstan.</p>
+<p>This density typically contains a lot of information on the sampling process. To get this information into the form needed for <strong>phyloflows</strong> MCMC algorithm, we need to derive samples from that distribution. We also need to calculate their log density.</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb20-1" data-line-number="1"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/library">library</a></span>(rstan)</a></code></pre></div>
+<pre><code>## Loading required package: ggplot2</code></pre>
+<pre><code>## Loading required package: StanHeaders</code></pre>
+<pre><code>## rstan (Version 2.18.2, GitRev: 2e1f913d3ca3)</code></pre>
+<pre><code>## For execution on a local, multicore CPU with excess RAM we recommend calling
+## options(mc.cores = parallel::detectCores()).
+## To avoid recompilation of unchanged Stan programs, we recommend calling
+## rstan_options(auto_write = TRUE)</code></pre>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb25-1" data-line-number="1"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/library">library</a></span>(bayesplot)</a></code></pre></div>
+<pre><code>## This is bayesplot version 1.6.0</code></pre>
+<pre><code>## - Online documentation and vignettes at mc-stan.org/bayesplot</code></pre>
+<pre><code>## - bayesplot theme set to bayesplot::theme_default()</code></pre>
+<pre><code>##    * Does _not_ affect other ggplot2 plots</code></pre>
+<pre><code>##    * See ?bayesplot_theme_set for details on theme setting</code></pre>
+<div class="sourceCode" id="cb31"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb31-1" data-line-number="1">infile.sequencing.stan.model&lt;-<span class="st">'glm_sex2comm2.stan'</span></a>
+<a class="sourceLine" id="cb31-2" data-line-number="2"><span class="co">#   run STAN </span></a>
+<a class="sourceLine" id="cb31-3" data-line-number="3">tmp         &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/list">as.list</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/subset.data.table">subset</a></span>(ds,<span class="dt">select=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'COMM_NUM_B'</span>,<span class="st">'TRIAL'</span>,<span class="st">'SUC'</span>,<span class="st">'MALE'</span>)))</a>
+<a class="sourceLine" id="cb31-4" data-line-number="4">tmp<span class="op">$</span>N       &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/nrow">nrow</a></span>(ds)</a>
+<a class="sourceLine" id="cb31-5" data-line-number="5">tmp<span class="op">$</span>N_COMM  &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/duplicated">unique</a></span>(ds<span class="op">$</span>COMM_NUM_B))</a>
+<a class="sourceLine" id="cb31-6" data-line-number="6">fit.par     &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/rstan/topics/stan">stan</a></span>(    <span class="dt">file =</span> infile.sequencing.stan.model, </a>
+<a class="sourceLine" id="cb31-7" data-line-number="7">                  <span class="dt">data =</span> tmp, </a>
+<a class="sourceLine" id="cb31-8" data-line-number="8">                  <span class="dt">iter =</span> <span class="fl">10e3</span>,</a>
+<a class="sourceLine" id="cb31-9" data-line-number="9">                  <span class="dt">warmup =</span> <span class="fl">5e2</span>,</a>
+<a class="sourceLine" id="cb31-10" data-line-number="10">                  <span class="dt">cores =</span> <span class="dv">1</span>,</a>
+<a class="sourceLine" id="cb31-11" data-line-number="11">                  <span class="dt">chains =</span> <span class="dv">1</span>,</a>
+<a class="sourceLine" id="cb31-12" data-line-number="12">                  <span class="dt">init =</span> <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/list">list</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/list">list</a></span>(<span class="dt">a=</span><span class="dv">0</span>, <span class="dt">comm=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/rep">rep</a></span>(<span class="dv">0</span>,<span class="dv">2</span>), <span class="dt">sig_comm=</span><span class="dv">1</span>, <span class="dt">male=</span><span class="dv">0</span>)))</a></code></pre></div>
+<pre><code>## 
+## SAMPLING FOR MODEL 'glm_sex2comm2' NOW (CHAIN 1).
+## Chain 1: 
+## Chain 1: Gradient evaluation took 2.3e-05 seconds
+## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.23 seconds.
+## Chain 1: Adjust your expectations accordingly!
+## Chain 1: 
+## Chain 1: 
+## Chain 1: Iteration:    1 / 10000 [  0%]  (Warmup)
+## Chain 1: Iteration:  501 / 10000 [  5%]  (Sampling)
+## Chain 1: Iteration: 1500 / 10000 [ 15%]  (Sampling)
+## Chain 1: Iteration: 2500 / 10000 [ 25%]  (Sampling)
+## Chain 1: Iteration: 3500 / 10000 [ 35%]  (Sampling)
+## Chain 1: Iteration: 4500 / 10000 [ 45%]  (Sampling)
+## Chain 1: Iteration: 5500 / 10000 [ 55%]  (Sampling)
+## Chain 1: Iteration: 6500 / 10000 [ 65%]  (Sampling)
+## Chain 1: Iteration: 7500 / 10000 [ 75%]  (Sampling)
+## Chain 1: Iteration: 8500 / 10000 [ 85%]  (Sampling)
+## Chain 1: Iteration: 9500 / 10000 [ 95%]  (Sampling)
+## Chain 1: Iteration: 10000 / 10000 [100%]  (Sampling)
+## Chain 1: 
+## Chain 1:  Elapsed Time: 0.078488 seconds (Warm-up)
+## Chain 1:                2.20569 seconds (Sampling)
+## Chain 1:                2.28418 seconds (Total)
+## Chain 1:</code></pre>
+<div class="sourceCode" id="cb33"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb33-1" data-line-number="1"><span class="co"># check</span></a>
+<a class="sourceLine" id="cb33-2" data-line-number="2">fit.pars    &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'a'</span>,<span class="st">'comm'</span>,<span class="st">'sig_comm'</span>,<span class="st">'male'</span>)</a>
+<a class="sourceLine" id="cb33-3" data-line-number="3"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/any">any</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/bayesplot/topics/bayesplot-extractors">rhat</a></span>(fit.par, <span class="dt">pars=</span>fit.pars)<span class="op">&gt;</span><span class="fl">1.02</span>)</a></code></pre></div>
+<pre><code>## [1] FALSE</code></pre>
+<div class="sourceCode" id="cb35"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb35-1" data-line-number="1"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/any">any</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/bayesplot/topics/bayesplot-extractors">neff_ratio</a></span>(fit.par, <span class="dt">pars=</span>fit.pars) <span class="op">*</span><span class="st"> </span><span class="fl">9.5e3</span> <span class="op">&lt;</span><span class="st"> </span><span class="dv">500</span>)</a></code></pre></div>
+<pre><code>## [1] FALSE</code></pre>
+<div class="sourceCode" id="cb37"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb37-1" data-line-number="1"><span class="co"># extract samples from the prior distribution</span></a>
+<a class="sourceLine" id="cb37-2" data-line-number="2">fit.e       &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/rstan/topics/stanfit-method-extract">extract</a></span>(fit.par)</a>
+<a class="sourceLine" id="cb37-3" data-line-number="3">tmp         &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/sample">sample</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/length">length</a></span>(fit.e<span class="op">$</span>a), nprior)</a>
+<a class="sourceLine" id="cb37-4" data-line-number="4">dprior          &lt;-<span class="st"> </span>ds[, </a>
+<a class="sourceLine" id="cb37-5" data-line-number="5">                   {</a>
+<a class="sourceLine" id="cb37-6" data-line-number="6">                     z&lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/with">with</a></span>(fit.e, a <span class="op">+</span><span class="st"> </span>comm[,COMM_NUM_B] <span class="op">+</span><span class="st"> </span>male <span class="op">*</span><span class="st"> </span>MALE)</a>
+<a class="sourceLine" id="cb37-7" data-line-number="7">                     <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/list">list</a></span>(<span class="dt">SAMPLE=</span><span class="dv">1</span><span class="op">:</span>nprior, <span class="dt">ETA=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/numeric">as.numeric</a></span>(z[tmp]))</a>
+<a class="sourceLine" id="cb37-8" data-line-number="8">                   },   </a>
+<a class="sourceLine" id="cb37-9" data-line-number="9">                   by=<span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'CATEGORY'</span>)]</a>
+<a class="sourceLine" id="cb37-10" data-line-number="10">dprior[, P<span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Log">exp</a></span>(ETA)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Log">exp</a></span>(ETA))]</a>
+<a class="sourceLine" id="cb37-11" data-line-number="11"></a>
+<a class="sourceLine" id="cb37-12" data-line-number="12"><span class="co"># log density</span></a>
+<a class="sourceLine" id="cb37-13" data-line-number="13"><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/library">require</a></span>(bde)</a></code></pre></div>
+<pre><code>## Loading required package: bde</code></pre>
+<pre><code>## Loading required package: shiny</code></pre>
+<pre><code>## 
+## Attaching package: 'bde'</code></pre>
+<pre><code>## The following objects are masked from 'package:stats':
+## 
+##     density, quantile</code></pre>
+<pre><code>## The following object is masked from 'package:methods':
+## 
+##     getSubclasses</code></pre>
+<div class="sourceCode" id="cb43"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb43-1" data-line-number="1">tmp &lt;-<span class="st"> </span>dprior[, {</a>
+<a class="sourceLine" id="cb43-2" data-line-number="2">  bdest&lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/bde/topics/bde">bde</a></span>(P, <span class="dt">dataPointsCache=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/sort">sort</a></span>(P), <span class="dt">b=</span><span class="fl">0.001</span>, <span class="dt">estimator=</span><span class="st">'betakernel'</span>, <span class="dt">lower.limit=</span><span class="dv">0</span>, <span class="dt">upper.limit=</span><span class="dv">1</span>,</a>
+<a class="sourceLine" id="cb43-3" data-line-number="3">              <span class="dt">options=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/list">list</a></span>(<span class="dt">modified=</span><span class="ot">FALSE</span>, <span class="dt">normalization=</span><span class="st">'densitywise'</span>, <span class="dt">mbc=</span><span class="st">'none'</span>, <span class="dt">c=</span><span class="fl">0.5</span>))</a>
+<a class="sourceLine" id="cb43-4" data-line-number="4">  <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/list">list</a></span>(<span class="dt">SAMPLE=</span>SAMPLE, <span class="dt">LP=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/Log">log</a></span>(<span class="kw"><a href="https://www.rdocumentation.org/packages/bde/topics/density">density</a></span>(bdest, P)))</a>
+<a class="sourceLine" id="cb43-5" data-line-number="5">}, by=<span class="st">'CATEGORY'</span>]</a>
+<a class="sourceLine" id="cb43-6" data-line-number="6">dprior  &lt;-<span class="st"> </span><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/merge">merge</a></span>(dprior, tmp, <span class="dt">by=</span><span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'CATEGORY'</span>,<span class="st">'SAMPLE'</span>))</a>
+<a class="sourceLine" id="cb43-7" data-line-number="7"><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/assign">set</a></span>(dprior, <span class="ot">NULL</span>, <span class="kw"><a href="https://www.rdocumentation.org/packages/base/topics/c">c</a></span>(<span class="st">'ETA'</span>), <span class="ot">NULL</span>)   </a>
+<a class="sourceLine" id="cb43-8" data-line-number="8"><span class="kw"><a href="https://www.rdocumentation.org/packages/data.table/topics/setattr">setnames</a></span>(dprior, <span class="st">'CATEGORY'</span>, <span class="st">'SAMPLING_CATEGORY'</span>)</a>
+<a class="sourceLine" id="cb43-9" data-line-number="9"></a>
+<a class="sourceLine" id="cb43-10" data-line-number="10"><span class="kw"><a href="https://www.rdocumentation.org/packages/utils/topics/head">head</a></span>(dprior)</a></code></pre></div>
+<pre><code>##    SAMPLING_CATEGORY SAMPLE         P       LP
+## 1:               1:F      1 0.8304572 2.728935
+## 2:               1:F      2 0.8196009 2.872750
+## 3:               1:F      3 0.7955707 2.350662
+## 4:               1:F      4 0.8319433 2.689547
+## 5:               1:F      5 0.8460849 2.088040
+## 6:               1:F      6 0.7789100 1.444173</code></pre>
+<p>This data set can be loaded through</p>
+<div class="sourceCode" id="cb45"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb45-1" data-line-number="1"><span class="kw"><a href="https://www.rdocumentation.org/packages/utils/topics/data">data</a></span>(fourGroupFlows1)</a></code></pre></div>
 </div>
   </div>
 
