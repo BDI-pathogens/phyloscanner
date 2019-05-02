@@ -65,6 +65,9 @@
     <li>
       <a href="../articles/04_aggregating.html">04 - Aggregating MCMC output to a new set of variables</a>
     </li>
+    <li>
+      <a href="../articles/05_keyquantities.html">05 - Calculating key quantities</a>
+    </li>
   </ul>
 </li>
       </ul>
@@ -118,8 +121,8 @@
 <p>Why would it be useful to aggregated the estimated transmission flows? Let us suppose that group “1” are the individuals aged 15-24 and group “2” are the individuals aged 25 or older in a population. The estimated flow vector <span class="math display">\[
 \pi=(\pi_{11}, \pi_{12}, \pi_{21}, \pi_{22})
 \]</span> describes the transsmission flow within and between the two age categories. But what is the overall contribution of transmissions from individuals aged 15-24, and the overall contribution of transmissions from individuals aged 25+? We want to estimate <span class="math display">\[ 
-\tilde{\pi}= (\tilde{\pi}_{1}, \tilde{\pi}_{2})
-\]</span> where <span class="math inline">\(\tilde{\pi}_{1}=\pi_{11}+\pi_{12}\)</span> and <span class="math inline">\(\tilde{\pi}_{2}=\pi_{21}+\pi_{22}\)</span>. There are many similar scenorios like that, and <strong>phyloflow</strong> has a little function to help you with that task. The syntax is as follows.</p>
+\eta= (\eta_{1}, \eta_{2})
+\]</span> where <span class="math inline">\(\eta_{1}=\pi_{11}+\pi_{12}\)</span> and <span class="math inline">\(\eta_{2}=\pi_{21}+\pi_{22}\)</span>. There are many similar scenorios like that, and <strong>phyloflow</strong> has a little function to help you with that task. The syntax is as follows.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" title="1">daggregateTo &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/pkg/data.table/man/subset.data.table.html">subset</a></span>(dobs, <span class="dt">select=</span><span class="kw"><a href="https://rdrr.io/r/base/c.html">c</a></span>(TRM_CAT_PAIR_ID, TR_TRM_CATEGORY, REC_TRM_CATEGORY))</a>
 <a class="sourceLine" id="cb2-2" title="2">daggregateTo[, TR_TARGETCAT<span class="op">:</span><span class="er">=</span><span class="st"> </span>TR_TRM_CATEGORY]</a>
 <a class="sourceLine" id="cb2-3" title="3">daggregateTo[, REC_TARGETCAT<span class="op">:</span><span class="er">=</span><span class="st"> 'Any'</span>]</a>

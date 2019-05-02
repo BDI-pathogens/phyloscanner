@@ -23,6 +23,7 @@ require(ggplot2)
 #	Rscript --vanilla ../inst/misc/rmd2md.Rscript 02_basic_example.Rmd
 #	Rscript --vanilla ../inst/misc/rmd2md.Rscript 03_diagnostics.Rmd
 #	Rscript --vanilla ../inst/misc/rmd2md.Rscript 04_aggregating.Rmd
+#	Rscript --vanilla ../inst/misc/rmd2md.Rscript 05_keyquantities.Rmd
 ```
 
 **phyloflows** provides tools to infer transmission flows within and
@@ -148,4 +149,7 @@ does not work. Just get in touch then.
 
 4. [Aggregating MCMC output to a new set of
    variables](vignettes/04_aggregating.md)
+   
+5. [Calculating sources, onward transmissions and
+   flow ratios](vignettes/05_keyquantities.md)
    

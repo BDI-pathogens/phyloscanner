@@ -143,3 +143,6 @@ does not work. Just get in touch then.
 4. [Aggregating MCMC output to a new set of
    variables](articles/04_aggregating.html)
    
+5. [Calculating sources, onward transmissions and
+   flow ratios](articles/05_keyquantities.html)
+      

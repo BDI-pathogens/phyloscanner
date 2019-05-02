@@ -638,7 +638,7 @@ Rakai190327.analysispipeline.age3model<- function(infile.inference=NULL, infile.
 							pdf.plot.n.worst.case.parameters=10, 
 							pdf.height.per.par=1.2, 
 							outfile.base=gsub('\\.rda','',mcmc.file))
-	source.attribution.mcmc.diagnostics(mcmc.file, control=control)
+	source.attribution.mcmc.diagnostics(mcmc.file=mcmc.file, control=control)
 	
 	#	aggregate MCMC output to fish<->inland
 	aggregate.file	<- gsub('\\.rda','_aggregatedFishInland.csv',mcmc.file)
@@ -650,13 +650,13 @@ Rakai190327.analysispipeline.age3model<- function(infile.inference=NULL, infile.
 								thin=NA_integer_, 
 								regex_pars='*', 
 								outfile=aggregate.file)
-	source.attribution.mcmc.aggregateToTarget(mcmc.file, daggregateTo, control=control)
+	source.attribution.mcmc.aggregateToTarget(mcmc.file=mcmc.file, daggregateTo=daggregateTo, control=control)
 	
 	#	calculate flows sources WAIFM flow_ratio overall		
 	control			<- list(	quantiles= c('CL'=0.025,'IL'=0.25,'M'=0.5,'IU'=0.75,'CU'=0.975),
 								flowratios= list( c('inland/fishing', 'inland fishing', 'fishing inland')),
 								outfile=gsub('\\.csv','_flowsetc.csv',aggregate.file))
-	source.attribution.aggmcmc.getKeyQuantities(aggregate.file, control)
+	source.attribution.aggmcmc.getKeyQuantities(infile=aggregate.file, control=control)
 		
 	#	aggregate MCMC output to fish<->inland by gender
 	aggregate.file	<- gsub('\\.rda','_aggregatedFishInlandByGender.csv',mcmc.file)
@@ -672,13 +672,13 @@ Rakai190327.analysispipeline.age3model<- function(infile.inference=NULL, infile.
 							thin=NA_integer_, 
 							regex_pars='*', 
 							outfile=aggregate.file)
-	source.attribution.mcmc.aggregateToTarget(mcmc.file, daggregateTo, control=control)
+	source.attribution.mcmc.aggregateToTarget(mcmc.file=mcmc.file, daggregateTo=daggregateTo, control=control)
 	
 	#	calculate flows sources WAIFM flow_ratio by gender		
 	control		<- list(	quantiles= c('CL'=0.025,'IL'=0.25,'M'=0.5,'IU'=0.75,'CU'=0.975),
 							flowratios= list( c('inland:M/fishing:M', 'inland:M fishing:F', 'fishing:M inland:F'), c('inland:F/fishing:F', 'inland:F fishing:M', 'fishing:F inland:M')),
 							outfile=gsub('\\.csv','_flowsetc.csv',aggregate.file))
-	source.attribution.aggmcmc.getKeyQuantities(aggregate.file, control)				
+	source.attribution.aggmcmc.getKeyQuantities(infile=aggregate.file, control=control)				
 }
 
 
@@ -821,36 +821,7 @@ Rakai190327.analysispipeline.age6model<- function(infile.inference=NULL, opt=NUL
 	
 	#	run MCMC
 	control	<- list(seed=42, mcmc.n=238000, verbose=0, outfile="~/Dropbox (SPH Imperial College)/Rakai Fish Analysis/full_run/190327_SAMCMCv190327_age6_mcmc.rda")
-	mcmc.core.inference(dobs, dprior, control=control)
-	
-	#	diagnostics
-	load(control$outfile)
-	
-	#	acceptance rate per site
-	da	<- subset(mc$it.info, !is.na(PAR_ID) & PAR_ID>0)[, list(ACC_RATE=mean(ACCEPT)), by='PAR_ID']
-	setnames(da, 'PAR_ID', 'UPDATE_ID')
-	tmp	<- mc$dl[, list(N_TRM_CAT_PAIRS=length(TRM_CAT_PAIR_ID)), by='UPDATE_ID']
-	da	<- merge(da, tmp, by='UPDATE_ID')
-	ggplot(da, aes(x=N_TRM_CAT_PAIRS, y=ACC_RATE)) + geom_point()
-	
-	#	traces
-	tmp	<- mc$pars$PI
-	colnames(tmp)<- paste0('PI-', 1:ncol(tmp))
-	p	<- mcmc_trace(tmp, pars=colnames(tmp), facet_args = list(ncol = 1))
-	pdf(file=paste0(outfile.base,'samodel_marginaltraces.pdf'), w=7, h=300)
-	p
-	dev.off()
-	
-	#	effective sample size on target parameter
-	require(coda)
-	tmp	<- mcmc(mc$pars$PI)
-	de	<- data.table(PI= 1:ncol(tmp), NEFF=as.numeric(effectiveSize(tmp)))
-	ggplot(de, aes(x=PI, y=NEFF)) + geom_point()	
-	
-	p   <- mcmc_trace(po, pars=colnames(po), facet_args = list(ncol = 1)) 
-	pdf(file=paste0(outfile.base,'190327_participation_model_marginaltraces.pdf'), w=7, h=100)
-	p
-	dev.off()
+	source.attribution.mcmc(dobs, dprior, control=control)	
 }
 
 Rakai190327.sensitivitypipeline.age3model<- function()
