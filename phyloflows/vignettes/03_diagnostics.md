@@ -11,8 +11,9 @@ the main page before you go ahead here.
 We continue our Very\_First\_Example from the vignette with the same
 name here. The following code chunk contains all code needed, up to
 running **phyloflows** MCMC routine. The only change is that the number
-of iterations is now\(50,000\). The MCMC should take about 2 minutes to
-run.
+of iterations is now
+ $50,000$
+. The MCMC should take about 2 minutes to run.
 
 ``` r
 require(data.table)

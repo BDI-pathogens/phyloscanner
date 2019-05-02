@@ -11,8 +11,9 @@ the main page before you go ahead here.
 We continue our Very\_First\_Example from the vignette with the same
 name here. The following code chunk contains all code needed, up to
 running **phyloflows** MCMC routine. The only change is that the number
-of iterations is now\(50,000\). The MCMC should take about 2 minutes to
-run.
+of iterations is now
+ $50,000$
+. The MCMC should take about 2 minutes to run.
 
 ``` r
 require(data.table)
@@ -43,15 +44,15 @@ individuals aged 15-24, and the overall contribution of transmissions
 from individuals aged 25+? We want to estimate
 
 $$
-\tilde{\pi}= (\tilde{\pi}_{1},\tilde{\pi}_{2})
+\eta= (\eta_{1},\eta_{2})
 $$
 
 
 where
- $\tilde{\pi}_{1}=\pi_{11}+\pi_{12}$
-and\(\tilde{\pi}_{2}=\pi_{21}+\pi_{22}\). There are many similar
-scenorios like that, and **phyloflow** has a little function to help you
-with that task. The syntax is as follows.
+ $\eta_{1}=\pi_{11}+\pi_{12}$
+and\(\eta_{2}=\pi_{21}+\pi_{22}\). There are many similar scenorios
+like that, and **phyloflow** has a little function to help you with that
+task. The syntax is as follows.
 
 ``` r
 daggregateTo <- subset(dobs, select=c(TRM_CAT_PAIR_ID, TR_TRM_CATEGORY, REC_TRM_CATEGORY))
