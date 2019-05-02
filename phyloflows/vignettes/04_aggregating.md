@@ -50,9 +50,10 @@ $$
 
 where
  $\eta_{1}=\pi_{11}+\pi_{12}$
-and\(\eta_{2}=\pi_{21}+\pi_{22}\). There are many similar scenorios
-like that, and **phyloflow** has a little function to help you with that
-task. The syntax is as follows.
+and
+ $\eta_{2}=\pi_{21}+\pi_{22}$
+. There are many similar scenorios like that, and **phyloflow** has a
+little function to help you with that task. The syntax is as follows.
 
 ``` r
 daggregateTo <- subset(dobs, select=c(TRM_CAT_PAIR_ID, TR_TRM_CATEGORY, REC_TRM_CATEGORY))
