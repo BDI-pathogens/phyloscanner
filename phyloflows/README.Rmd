@@ -130,12 +130,13 @@ does not work. Just get in touch then.
 
 ## Examples
 
-1. [Simulating data.](articles/01_simulating_data.html) 
+1. [Simulating data.](docs/articles/01_simulating_data.html) 
    
 2. [A very first example. Always start with
-   me.](articles/02_basic_example.html)
+   me.](docs/articles/02_basic_example.html)
 
-3. [Performing MCMC diagnostic checks](articles/03_diagnostics.html)
+3. [Performing MCMC diagnostic checks](docs/articles/03_diagnostics.html)
 
-3. [Aggregating MCMC output to a new set of
-   variables](articles/04_aggregating.html)
+4. [Aggregating MCMC output to a new set of
+   variables](docs/articles/04_aggregating.html)
+   
