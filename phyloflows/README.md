@@ -169,7 +169,7 @@ touch then.
 Examples
 --------
 
-1.  [Simulating data.](vignettes/01_simulating_data.Rmd)
+1.  [Simulating data.](vignettes/01_simulating_data.md)
 
 2.  [A very first example. Always start with
     me.](vignettes/02_basic_example.Rmd)
