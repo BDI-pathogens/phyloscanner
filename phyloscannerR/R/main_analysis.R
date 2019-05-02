@@ -347,7 +347,7 @@ initialise.phyloscanner <- function(
         
         if(ncol(norm.table)!=2){
           stop(paste0(norm.ref.file.name," is not formatted as expected for a normalisation lookup file; expecting two columns.\n"))
-        } else if(!is.numeric(norm.table[,1] | !is.numeric(norm.table[,2]))){
+        } else if(!is.numeric(norm.table %>% pull(1)) | !is.numeric(norm.table%>% pull(2))){
           stop(paste0(norm.ref.file.name," is not formatted as expected for a normalisation lookup file; expecting numerical columns.\n"))
         } else {
           names(norm.table) <- c('POSITION', 'NORM_CONST')
