@@ -29,7 +29,7 @@ before you go ahead here.
 We continue our Very_First_Example from the vignette with the same name here.
 The following code chunk contains all code needed, up to running **phyloflows**
 MCMC routine. The only change is that the number of iterations is now
-\(50,000\). The MCMC should take about 2 minutes to run.
+$50,000$. The MCMC should take about 2 minutes to run.
 
 ```{r, include=TRUE, eval=FALSE, echo=TRUE, tidy=FALSE,message=FALSE, warning=FALSE} 
 require(data.table)
@@ -65,8 +65,8 @@ want to estimate
 $$ 
 \tilde{\pi}= (\tilde{\pi}_{1}, \tilde{\pi}_{2})
 $$
-where \(\tilde{\pi}_{1}=\pi_{11}+\pi_{12}\) and
-\(\tilde{\pi}_{2}=\pi_{21}+\pi_{22}\). There are many similar scenorios like
+where $\tilde{\pi}_{1}=\pi_{11}+\pi_{12}$ and
+$\tilde{\pi}_{2}=\pi_{21}+\pi_{22}$. There are many similar scenorios like
 that, and **phyloflow** has a little function to help you with that task. The
 syntax is as follows.
 

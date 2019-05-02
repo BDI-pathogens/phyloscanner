@@ -11,7 +11,7 @@ the main page before you go ahead here.
 We continue our Very\_First\_Example from the vignette with the same
 name here. The following code chunk contains all code needed, up to
 running **phyloflows** MCMC routine. The only change is that the number
-of iterations is now \(50,000\). The MCMC should take about 2 minutes to
+of iterations is now\(50,000\). The MCMC should take about 2 minutes to
 run.
 
 ``` r
@@ -30,28 +30,39 @@ mc <- phyloflows:::source.attribution.mcmc(dobs, dprior, control)
 Why would it be useful to aggregated the estimated transmission flows?
 Let us suppose that group “1” are the individuals aged 15-24 and group
 “2” are the individuals aged 25 or older in a population. The
-estimated flow vector \[
-\pi=(\pi_{11}, \pi_{12}, \pi_{21}, \pi_{22})
-\] describes the transsmission flow within and between the two age
+estimated flow vector
+
+$$
+\pi=(\pi_{11},\pi_{12},\pi_{21},\pi_{22})
+$$
+
+
+describes the transsmission flow within and between the two age
 categories. But what is the overall contribution of transmissions from
 individuals aged 15-24, and the overall contribution of transmissions
-from individuals aged 25+? We want to estimate \[ 
-\tilde{\pi}= (\tilde{\pi}_{1}, \tilde{\pi}_{2})
-\] where \(\tilde{\pi}_{1}=\pi_{11}+\pi_{12}\) and
-\(\tilde{\pi}_{2}=\pi_{21}+\pi_{22}\). There are many similar scenorios
-like that, and **phyloflow** has a little function to help you with that
-task. The syntax is as follows.
+from individuals aged 25+? We want to estimate
+
+$$
+\tilde{\pi}= (\tilde{\pi}_{1},\tilde{\pi}_{2})
+$$
+
+
+where
+ $\tilde{\pi}_{1}=\pi_{11}+\pi_{12}$
+and\(\tilde{\pi}_{2}=\pi_{21}+\pi_{22}\). There are many similar
+scenorios like that, and **phyloflow** has a little function to help you
+with that task. The syntax is as follows.
 
 ``` r
 daggregateTo <- subset(dobs, select=c(TRM_CAT_PAIR_ID, TR_TRM_CATEGORY, REC_TRM_CATEGORY))
 daggregateTo[, TR_TARGETCAT:= TR_TRM_CATEGORY]
 daggregateTo[, REC_TARGETCAT:= 'Any']
-set(daggregateTo, NULL, c('TR_TRM_CATEGORY','REC_TRM_CATEGORY'), NULL)  
-control <- list( burnin.p=0.05, 
-                 thin=NA_integer_, 
+set(daggregateTo, NULL, c('TR_TRM_CATEGORY','REC_TRM_CATEGORY'), NULL)
+control <- list( burnin.p=0.05,
+                 thin=NA_integer_,
                  regex_pars='PI')
-mca <- phyloflows:::source.attribution.mcmc.aggregateToTarget(mc=mc, daggregateTo=daggregateTo, control=control)    
-#> 
+mca <- phyloflows:::source.attribution.mcmc.aggregateToTarget(mc=mc, daggregateTo=daggregateTo, control=control)
+#>
 #> Using MCMC output specified as input...
 #> Collecting parameters...
 #> Removing burnin in set to  5 % of chain, total iterations= 500
@@ -63,7 +74,7 @@ mca
 #>     3:       PI            1           Any      3 0.4326280
 #>     4:       PI            1           Any      4 0.4145340
 #>     5:       PI            1           Any      5 0.4041081
-#>    ---                                                     
+#>    ---
 #> 19000:       PI            2           Any   9498 0.6192508
 #> 19001:       PI            2           Any   9499 0.6133096
 #> 19002:       PI            2           Any   9500 0.5770948

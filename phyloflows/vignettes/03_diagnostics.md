@@ -11,7 +11,7 @@ the main page before you go ahead here.
 We continue our Very\_First\_Example from the vignette with the same
 name here. The following code chunk contains all code needed, up to
 running **phyloflows** MCMC routine. The only change is that the number
-of iterations is now \(50,000\). The MCMC should take about 2 minutes to
+of iterations is now\(50,000\). The MCMC should take about 2 minutes to
 run.
 
 ``` r
@@ -51,13 +51,13 @@ The syntax is as follows. Look up the help page for the diagnostics
 function for a full explanation of the control arguments.
 
 ``` r
-outfile.base <- file.path(getwd(),'twoGroupFlows1_mcmc_') 
-control <- list( burnin.p=0.05, 
-                 regex_pars='*', 
-                 credibility.interval=0.95, 
-                 pdf.plot.all.parameters=FALSE, 
-                 pdf.plot.n.worst.case.parameters=10, 
-                 pdf.height.per.par=1.2, 
+outfile.base <- file.path(getwd(),'twoGroupFlows1_mcmc_')
+control <- list( burnin.p=0.05,
+                 regex_pars='*',
+                 credibility.interval=0.95,
+                 pdf.plot.all.parameters=FALSE,
+                 pdf.plot.n.worst.case.parameters=10,
+                 pdf.height.per.par=1.2,
                  outfile.base=outfile.base)
 phyloflows:::source.attribution.mcmc.diagnostics(mc=mc, control=control)
 ```
