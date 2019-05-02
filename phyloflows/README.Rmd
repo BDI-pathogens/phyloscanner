@@ -86,7 +86,7 @@ $$
 (n_{11}=18, n_{12}=6, n_{21}=12, n_{22}=20),
 $$
 If we don't adjust for the sampling, a crude estimate of the true proportion of
-transmission flows would be
+transmission flows would be 
 $$
 (\hat{\pi}_{11}= 18/56= 0.321, \hat{\pi}_{12}=0.107, \hat{\pi}_{21}=0.214, \hat{\pi}_{22}=0.357)
 $$
@@ -96,11 +96,11 @@ lower than 2-3\%.
 
 ## Our solution
 One very quick solution to the sampling problem would be to infer the actual
-transmission flows from what we know, i.e.
+transmission flows from what we know, i.e. 
 $$
 \hat{z}_{ij}= n_{ij}/(s_i*s_j),
 $$
-and then to calculate
+and then to calculate 
 $$
 \hat{\pi}_{ij}= \hat{z}_{ij} / \sum_{kl} \hat{z}_{kl}.
 $$
@@ -108,12 +108,12 @@ But this does not address the further problems that the sampling groups may be
 different to the population groups between whom we want to infer transmission
 flows; that the sampling probabilities are usually not known themselves; and
 that we also want interpretable uncertainty estimates for $\hat{\pi}$. So we
-use a Bayesian approach, and write down the likelihood of the complete data,
+use a Bayesian approach, and write down the likelihood of the complete data, 
 $$
 p(z|Z,\pi)= Multinomial(z;Z,\pi),
 $$
 where $Z$ is the total number of transmissions, $Z=\sum_{kl} z_{kl}$.
-Next, we add the likelihood of the sampling process,
+Next, we add the likelihood of the sampling process, 
 $$
 p(n_{ij}|z_{ij},s_i,s_j)= Binomial(n_{ij};z_{ij},s_i*s_j).
 $$
