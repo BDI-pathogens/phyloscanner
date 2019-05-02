@@ -5,7 +5,6 @@ options("warn"=1)
 suppressMessages(require(ape, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(phyloscannerR, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(phytools, quietly=TRUE, warn.conflicts=FALSE))
-suppressMessages(require(ggplot2, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(ggtree, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(reshape, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(gtable, quietly=TRUE, warn.conflicts=FALSE))
@@ -13,9 +12,8 @@ suppressMessages(require(grid, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(gridExtra, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(RColorBrewer, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(scales, quietly=TRUE, warn.conflicts=FALSE))
-suppressMessages(require(dplyr, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(dtplyr, quietly=TRUE, warn.conflicts=FALSE))
-suppressMessages(require(data.table, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(require(tidyverse, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(argparse, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(kimisc, quietly=TRUE, warn.conflicts=FALSE))
 
@@ -110,6 +108,7 @@ for(suffix in ts.both.present){
   tree.info$suffix <- suffix
   tree.info$tree.file.name <- paste0(tree.file.root, suffix, ".", tree.fe)
   tree.info$splits.file.name <- paste0(splits.file.root, suffix, ".", csv.fe)
+  tree.info$normalisation.constant <- 1
   all.tree.info[[suffix]] <- tree.info
 }
 
@@ -117,7 +116,7 @@ for(suffix in ts.both.present){
 
 if(!is.null(blacklist.file.root)){
   blacklist.suffixes <- sapply(blacklist.files, function(x) get.suffix(x, blacklist.file.root, csv.fe))
-
+  
   # the only remaining tree files will have a splits file, no need to check the splits files separately
   bt.both.present <- intersect(ts.both.present, blacklist.suffixes)	
   
@@ -208,7 +207,7 @@ if(!is.null(window.coords.file)){
   
   starts <- sapply(suffixes, function(x) if(length(grep(regex, x))>0) as.numeric(sub(regex, "\\1", x)) else NA)
   ends <- sapply(suffixes, function(x) if(length(grep(regex, x))>0) as.numeric(sub(regex, "\\2", x)) else NA)
-
+  
   if(any(is.na(starts)) | any(is.na(ends)) | length(starts)==0 | length(ends)==0){
     cat("Cannot obtain window coordinates from some file names\n")
     quit(save="no", status=1)
@@ -220,7 +219,7 @@ if(!is.null(window.coords.file)){
   lwe <- max(ends)
   
   middles <- (starts+ends)/2
-
+  
   window.coords <- data.frame(suffix = suffixes, coordinate=middles)
   
   for(row.no in 1:nrow(window.coords)){
@@ -253,7 +252,7 @@ for(suffix in suffixes){
     quit(save="no", status=1)
   }
   
-  splits.table <- fread(splits.file.name)
+  splits.table <- read_csv(splits.file.name)
   
   colnames(splits.table) <- c("host", "subgraph", "tip")
   
@@ -267,51 +266,50 @@ for(suffix in suffixes){
   all.tree.info[[suffix]]$splits.table <- splits.table
   
   tree.file.name <- all.tree.info[[suffix]]$tree.file.name
-
+  
   if(!file.exists(tree.file.name)){
     cat("Tree ",tree.file.name," does not exist.\n", sep="")
     quit(save="no", status=1)
   }
-
+  
   pseudo.beast.import <- read.beast(tree.file.name)
   tree <- attr(pseudo.beast.import, "phylo")
-
+  
   if (verbose) cat('Read tree file ',tree.file.name,'\n', sep="")
-
+  
   all.tree.info[[suffix]]$tree <- tree
   
   blacklist.file.name <- all.tree.info[[suffix]]$blacklist.file.name
+  blacklist <- vector()
   
   if(!is.null(blacklist.file.name)){
     if(file.exists(blacklist.file.name)){
       # There should already have been a warning if this file does not exist. It isn't fatal.
       
       blacklisted.tips <- read.table(blacklist.file.name, sep=",", stringsAsFactors = F, col.names="read")
-    
+      
       
       if (verbose) cat('Read blacklist file ',blacklist.file.name,'\n', sep="")
       
       if(nrow(blacklisted.tips)>0){
         blacklist <- sapply(blacklisted.tips, get.tip.no, tree=tree)
         all.tree.info[[suffix]]$blacklist <- blacklist
-      } else {
-        blacklist <- vector()
       }
     }
   }
   
-  clade.results <- resolveTreeIntoPatientClades(tree, hosts, tip.regex, blacklist, no.read.counts)
+  clade.results <- resolve.tree.into.host.clades(tree, hosts, tip.regex, blacklist, no.read.counts)
   
   all.tree.info[[suffix]]$clades.by.host      <- clade.results$clades.by.patients
   all.tree.info[[suffix]]$clade.mrcas.by.host <- clade.results$clade.mrcas.by.patient
-
+  
 }
 
 
 # Calculate all the statistics apart from the subgraph proportions
 
 pat.stats <- lapply(all.tree.info, function(x) calc.all.stats.in.window(x, hosts, tip.regex, verbose))
-pat.stats <- rbindlist(pat.stats)
+pat.stats <- bind_rows(pat.stats)
 
 # If you're looking at absolutely nothing, I'm not drawing you any graphs
 
@@ -344,14 +342,14 @@ read.prop.columns <- lapply(setNames(suffixes, suffixes), function(x){
     
     result
   })
-  out <- as.data.table(do.call(rbind, out))
+  out <- as_tibble(do.call(rbind, out))
   colnames(out) <- paste("prop.gp.",seq(1,max.splits),sep="")
   out
 })
-  
 
-read.prop.columns <- rbindlist(read.prop.columns)
-  
+
+read.prop.columns <- bind_rows(read.prop.columns)
+
 pat.stats         <- cbind(pat.stats, read.prop.columns)
 
 pat.stats$reads   <- as.numeric(pat.stats$reads)
@@ -365,19 +363,25 @@ write.csv(pat.stats, tmp, quote = F, row.names = F)
 
 pat.stats$prop.reads.largest.subtree <- pat.stats$prop.gp.1
 
-mean.na.rm <- function(x) mean(x, na.rm = T)
-
 # Output a summary of the pat.stats table to file
 if (recomb.files.exist) { 
-  tmp <- subset(as.data.table(pat.stats), reads>0, c(id, tips, reads, subgraphs, clades, overall.rtt, largest.rtt, max.pat.distance, prop.reads.largest.subtree, max.branch.length, subgraph.mean.pat.distance, global.mean.pat.distance, recombination.metric))
+  tmp <- as_tibble(pat.stats) %>%
+    filter(reads>0) %>%
+    select(host.id, tips, reads, subgraphs, clades, overall.rtt, largest.rtt, max.pat.distance, prop.reads.largest.subtree, max.branch.length, subgraph.mean.pat.distance, global.mean.pat.distance, recombination.metric)
 } else {
-  tmp <- subset(as.data.table(pat.stats), reads>0, c(id, tips, reads, subgraphs, clades, overall.rtt, largest.rtt, max.pat.distance, prop.reads.largest.subtree, max.branch.length, subgraph.mean.pat.distance, global.mean.pat.distance))
+  tmp <- as_tibble(pat.stats) %>%
+    filter(reads>0) %>%
+    select(host.id, tips, reads, subgraphs, clades, overall.rtt, largest.rtt, max.pat.distance, prop.reads.largest.subtree, max.branch.length, subgraph.mean.pat.distance, global.mean.pat.distance)
 }
-pat.stats.summary <- tmp[, lapply(.SD, mean.na.rm), by='id']
+
+pat.stats.summary <- tmp %>%
+  group_by(host.id) %>%
+  summarise_all(list(mean, sd), na.rm = TRUE)
+   
 tmp <- file.path(paste(output.root,"patStatsSummary.csv",sep=""))
 if (verbose) cat("Writing output to file ",tmp,"...\n",sep="")
 write.csv(pat.stats.summary, tmp, quote = F, row.names = F)
-  
+
 # Draw the graphs
 
 tmp <- paste(output.root,"patStats.pdf",sep="")
@@ -386,13 +390,26 @@ if (verbose) cat("Plotting to file ",tmp,"...\n",sep="")
 # Set up the boundaries of each window's region on the x-axis
 
 xcoords <- unique(pat.stats$xcoord)
-xcoords <- xcoords[order(xcoords)]
 
-missing.window.data <- find.gaps(xcoords)
+range <- max(xcoords) - min(xcoords)
+increment <- range/length(xcoords)
 
-xcoords <- missing.window.data$x.coordinates
-regular.gaps <- missing.window.data$regular.gaps
-rectangles.for.missing.windows <- missing.window.data$rectangles.for.missing.windows
-bar.width <- missing.window.data$width
+ews <- min(xcoords) - 0.45*increment
+lwe <- max(xcoords) + 0.45*increment
 
-produce.pdf.graphs(tmp, pat.stats, hosts, xcoords, x.limits, rectangles.for.missing.windows, bar.width, regular.gaps, readable.coords = !is.null(window.coords.file), verbose = verbose)
+x.limits <- c(ews, lwe)
+
+if(length(xcoords)>1){
+  xcoords <- xcoords[order(xcoords)]
+  
+  missing.window.data <- find.gaps(xcoords, x.limits)
+  
+  xcoords <- missing.window.data$x.coordinates
+  regular.gaps <- missing.window.data$regular.gaps
+  rectangles.for.missing.windows <- missing.window.data$rectangles.for.missing.windows
+  bar.width <- missing.window.data$width
+  
+  produce.pdf.graphs(tmp, pat.stats, hosts, xcoords, x.limits, rectangles.for.missing.windows, bar.width, regular.gaps, readable.coords = !is.null(window.coords.file), verbose = verbose)
+} else {
+  cat("Only one window present; not plotting summary statistics")
+}
