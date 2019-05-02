@@ -17,6 +17,9 @@ knitr::opts_chunk$set(
 require(knitr)
 require(kableExtra)
 require(ggplot2)
+#	Rscript --vanilla inst/misc/rmd2md.Rscript  README.Rmd
+#	cd vignettes
+#	Rscript --vanilla ../inst/misc/rmd2md.Rscript 01_simulating_data.Rmd
 # for(x in c("README.Rmd","vignettes/01_simulating_data.Rmd","vignettes/02_basic_example.Rmd","vignettes/03_diagnostics.Rmd","vignettes/04_aggregating.Rmd")) rmarkdown::render(x)
 ```
 

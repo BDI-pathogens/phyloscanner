@@ -15,9 +15,9 @@ process, sampling at random within population strata, which we
 abbreviate to SARWS.
 
 **We first set up the sampling process within the two population
-groups.** Let us assume population group 1 consists of \(2000\)
-individuals and group 2 of \(2500\) individuals, and that the sampling
-rates are \(0.6\) for group 1 and \(0.45\) for group 2. Here, we will
+groups.** Let us assume population group 1 consists of\(2000\)
+individuals and group 2 of\(2500\) individuals, and that the sampling
+rates are\(0.6\) for group 1 and\(0.45\) for group 2. Here, we will
 suppose that sampling is at random within each of the population groups
 with these two sampling probabilities:
 
@@ -56,18 +56,39 @@ dobs
 
 **Next, we simulate true transmission flows.** Let us assume 36% and 54%
 transmissions are within group 1 and 2 respectively, and 4% are from
-group 1 to group 2 and 6% are from group 2 to group 1: \[
+group 1 to group 2 and 6% are from group 2 to group 1:
+
+$$
 \pi=(0.36,0.04,0.06,0.54).
-\] We further assume the total number of observed transmissions is
-\(N=300\). We will simulate the actual transmission count \(Z\) from a
-Poisson distribution. Then we will generate transmission flows between
-groups by \[
-z \sim \mbox{Multinomial} (Z,\pi).
-\] Finally we will generate observed transmissions flows by subsampling
-the actual transmission flows by \[
-n_{ab} \sim \mbox{Binomial} (z_{ab},\xi_{ab}), \forall a,b,
-\] where \(\xi_{ab}\) is the probability of sampling a transmission
-event from \(a\) to \(b\).
+$$
+
+
+We further assume the total number of observed transmissions is
+\(N=300\). We will simulate the actual transmission count
+ $Z$
+from a Poisson distribution. Then we will generate transmission flows
+between groups by
+
+$$
+z\sim\mbox{Multinomial} (Z,\pi).
+$$
+
+
+Finally we will generate observed transmissions flows by subsampling the
+actual transmission flows by
+
+$$
+n_{ab}\sim\mbox{Binomial} (z_{ab},\xi_{ab}),\forall a,b,
+$$
+
+
+where
+ $\xi_{ab}$
+is the probability of sampling a transmission event from
+ $a$
+to
+ $b$
+.
 
 ``` r
 TRUE_PI <- c(0.36,0.04,0.06,0.54)
@@ -115,16 +136,21 @@ dobs
 **We still need to define the prior distribution on the unknown sampling
 probabilities, and generate samples from it**. At the very top of this
 page, defined the number of infected and sampled individuals in
-data.frame `ds`. Let us denote these by \(X_a^i\) and \(X_a^s\) for our
-two population groups \(a\). Usually this type of information is
+data.frame `ds`. Let us denote these by\(X_a^i\) and\(X_a^s\) for our
+two population groups\(a\). Usually this type of information is
 available to us in real-world data analyses, and so we work from these
 numbers here also. Under the Binomial sampling model that we assume
-throughout, \(X_a^s\sim Binom(X_a^i, \xi_a)\). If we suppose a flat
-prior on \(\xi_a\), we obtain the posterior distribution of the sampling
+throughout,\(X_a^s\sim Binom(X_a^i,\xi_a)\). If we suppose a flat
+prior on\(\xi_a\), we obtain the posterior distribution of the sampling
 probabilities conditional on the number of total and sampled
-individuals, \[
+individuals,
+
+$$
 p(\xi_a|X_a^i,X_s^i)= Beta(\xi_a;X_a^s+1,X_a^i-X_a^s+1).
-\] This density typically contains a lot of information on the sampling
+$$
+
+
+This density typically contains a lot of information on the sampling
 process. To get this information into the form needed for **phyloflows**
 MCMC algorithm, we need to derive samples from that distribution. We
 also need to calculate their log density.

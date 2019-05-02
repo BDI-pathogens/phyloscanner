@@ -122,29 +122,29 @@ ans <- phyloflows:::source.attribution.mcmc(dobs, dprior, control)
 Let s have a look at the messages first. 
 
 * The total number of unknown parameters in **phyloflows** MCMC is the length of
-  \(\pi\) plus the length of the latent transmission flows \(z\) plus the
-  length of the pairwise sampling probabilities \(\xi\), \(\xi_{ij}=s_i*s_j\), 
-  plus twice the length of the sampling probabilities \(s\), plus 1 for \(Z\).
-  This makes \(4+4+4+2*2+1=17\) in our very first example.
+  $\pi$ plus the length of the latent transmission flows $z$ plus the
+  length of the pairwise sampling probabilities $\xi$, $\xi_{ij}=s_i*s_j$, 
+  plus twice the length of the sampling probabilities $s$, plus 1 for $Z$.
+  This makes $4+4+4+2*2+1=17$ in our very first example.
 * The MCMC updates all these parameters in a certain number of MCMC iterations,
   and this number is called a sweep. A sweep is always twice the length of the
-  sampling probabilities plus 1 for updating the values of \(\pi\). This makes \(2*2+1\) 
+  sampling probabilities plus 1 for updating the values of $\pi$. This makes $2*2+1$ 
   in our very first example.
 * The total number of sweeps is determined from `control[['mcmc.n']]`. In our
-  case, it is \(50/5=10\). If we had set `control[['mcmc.n']]<- 51`, then the total number 
-  of sweeps would have been \(11\).
+  case, it is $50/5=10$. If we had set `control[['mcmc.n']]<- 51`, then the total number 
+  of sweeps would have been $11$.
 * The total number of iterations is the length of a sweep times the total
-  number of sweeps. In our example, \(5*10=50\).  If we had set `control[['mcmc.n']]<- 51`, 
-  then the total number of iterations would have been \(5*11=55\).
+  number of sweeps. In our example, $5*10=50$.  If we had set `control[['mcmc.n']]<- 51`, 
+  then the total number of iterations would have been $5*11=55$.
 * Finally, we have the number of transmission pair categories updated per
   iteration. These numbers are important to assess the likely performance of
   the MCMC. The algorithm proceeds by updating the sampling probabilities for
   the transmitter groups, then those for the recipient groups, and finally one
-  update for the values of \(\pi\). If we update \(s_1\) for the transmitter groups, 
+  update for the values of $\pi$. If we update $s_1$ for the transmitter groups, 
   we also need to update all pairwise sampling probabilities that
-  contain \(s_1\) for the transmitter groups. These are \(\xi_{11}=s_1*s_1\) and \(\xi_{12}=s_1*s_2\),
+  contain $s_1$ for the transmitter groups. These are $\xi_{11}=s_1*s_1$ and $\xi_{12}=s_1*s_2$,
   so we have two pairwise sampling probabilities to update. In our very
-  first example, this is always the case: if we update any of the 4 \(s_i\) for
+  first example, this is always the case: if we update any of the 4 $s_i$ for
   either the transmitter and recipient groups, we always have to update 2
   pairwise sampling probabilities. This is what you see printed, before the
   algorithm gets cranking. In general, the fewer pairwise sampling
@@ -178,7 +178,7 @@ colnames(post.pi) <- paste0('PI-',1:ncol(post.pi))
 bayesplot:::mcmc_trace(post.pi, pars=colnames(post.pi), facet_args = list(ncol = 1), n_warmup=0)
 ```
   
-Ok, fab. Of course we would like many more iterations, perhaps \(10,000\) sweeps are a good number. 
+Ok, fab. Of course we would like many more iterations, perhaps $10,000$ sweeps are a good number. 
 We can do that. But what really are *PI-1*, *PI-2*, *PI-3*, *PI-4*? The numbers
 1-4 are just the values of the transmission pair IDs in
 `dobs`, `dobs$TRM_CAT_PAIR_ID`. So we can associate more interpretable names
