@@ -1,7 +1,5 @@
 ---
 title: "**phyloflows**"
-author: "Xiaoyue Xi, Oliver Ratmann"
-date: "2019-04-30"
 output:
   github_document:
     pandoc_args: --webtex
@@ -24,19 +22,24 @@ require(ggplot2)
 # rmarkdown::render("README.Rmd")
 ```
 
-**phyloflows** provides an MCMC algorithm to infer transmission flows within and
-between population groups from observed flow counts. 
+**phyloflows** provides tools to infer transmission flows within and
+between population groups from phylogenetically observed flow counts. 
 
 **phyloflows** was primarily written to estimate transmission flows from counts
 of phylogenetically reconstructed likely transmission pairs, in whom the
-direction of transmission could be inferred with high support. These input data
+direction of transmission could be inferred with high support. Such input data
 can be obtained with
-[phyloscanner](https://github.com/BDI-pathogens/phyloscanner), though different
-types of input data can also be used, so long as they represent observed counts
-of flow events between two discrete groups. The primary feature of
-**phyloflows** is that the underlying statistical model allows adjusting for
-sampling heterogeneity across population groups while estimating transmission
-flows, a common problem in molecular epidemiologic analyses.
+[phyloscanner](https://github.com/BDI-pathogens/phyloscanner). 
+
+Different types of input data can also be used, so long as they represent
+observed counts of flow events from and to population sub-groups.
+Methodologically, in **phyloflows**, there is no limitation to deep-sequence
+phylogenetic data.
+
+The primary feature of **phyloflows** is that the underlying statistical model
+allows adjusting for sampling heterogeneity across population groups while
+estimating transmission flows, a common problem in molecular epidemiologic
+analyses.
 
 ## Installation
 
