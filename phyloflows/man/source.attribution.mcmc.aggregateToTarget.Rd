@@ -30,3 +30,59 @@ If `outfile` is not specified, aggregated Monte Carlo samples are returned, as a
 \description{
 Aggregate MCMC output to target parameters
 }
+\examples{
+require(data.table)
+require(phyloflows)
+# load input data set
+data(twoGroupFlows1, package="phyloflows")
+dobs <- twoGroupFlows1$dobs
+dprior <- twoGroupFlows1$dprior
+# load MCMC output obtained with
+# control <- list(seed=42, mcmc.n=5e4, verbose=0)
+# mc <- phyloflows:::source.attribution.mcmc(dobs, dprior, control)
+data(twoGroupFlows1_mcmc, package="phyloflows")
+
+#
+# aggregate MCMC output and return output to R
+#
+daggregateTo <- subset(dobs, select=c(TRM_CAT_PAIR_ID, TR_TRM_CATEGORY, REC_TRM_CATEGORY))
+daggregateTo[, TR_TARGETCAT:= TR_TRM_CATEGORY]#>    TRM_CAT_PAIR_ID TR_TRM_CATEGORY REC_TRM_CATEGORY TR_TARGETCAT
+daggregateTo[, REC_TARGETCAT:= 'Any']
+set(daggregateTo, NULL, c('TR_TRM_CATEGORY','REC_TRM_CATEGORY'), NULL)
+control <- list( burnin.p=0.05, thin=NA_integer_, regex_pars='PI')
+pars <- phyloflows:::source.attribution.mcmc.aggregateToTarget(mc=mc, daggregateTo=daggregateTo, control=control)#>
+ 
+#
+# if the source attribution model is complex 
+# the MCMC output tends to be large, and it is 
+# better to load the MCMC output internally, so
+# pass a file name to the function
+#
+\dontrun{
+mcmc.file <- 'mcmc_output.rda'  # MCMC output 
+daggregateTo <- subset(dobs, select=c(TRM_CAT_PAIR_ID, TR_TRM_CATEGORY, REC_TRM_CATEGORY))
+daggregateTo[, TR_TARGETCAT:= TR_TRM_CATEGORY]
+daggregateTo[, REC_TARGETCAT:= 'Any']
+set(daggregateTo, NULL, c('TR_TRM_CATEGORY','REC_TRM_CATEGORY'), NULL)
+control <- list( burnin.p=0.05, thin=NA_integer_, regex_pars='PI')
+pars <- phyloflows:::source.attribution.mcmc.aggregateToTarget(mcmc.file=mcmc.file, daggregateTo=daggregateTo, control=control)
+}
+
+#
+# you can also write the aggregated output to file
+#
+\dontrun{
+mcmc.file <- 'mcmc_output.rda'  # MCMC output
+agg.mcmc.file <-  'agg_mcmc_output.rda' # store results here; this can also be a csv file
+daggregateTo <- subset(dobs, select=c(TRM_CAT_PAIR_ID, TR_TRM_CATEGORY, REC_TRM_CATEGORY))
+daggregateTo[, TR_TARGETCAT:= TR_TRM_CATEGORY]
+daggregateTo[, REC_TARGETCAT:= 'Any']
+set(daggregateTo, NULL, c('TR_TRM_CATEGORY','REC_TRM_CATEGORY'), NULL)
+control <- list( burnin.p=0.05, thin=NA_integer_, regex_pars='PI', outfile=agg.mcmc.file)
+pars <- phyloflows:::source.attribution.mcmc.aggregateToTarget(mcmc.file=mcmc.file, daggregateTo=daggregateTo, control=control)
+}
+
+}
+\seealso{
+\link{\code{source.attribution.mcmc}}, \link{\code{source.attribution.mcmc.getKeyQuantities}}
+}

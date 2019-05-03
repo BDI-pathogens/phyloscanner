@@ -10,6 +10,54 @@
 #'  \item{"outfile"}{Full file name for output csv file.}
 #' }
 #' @return If `outfile` is not specified, the output is returned as a data.table. If `outfile` is specified, the output is written to a csv file.
+#' @seealso \link{\code{source.attribution.mcmc}}, \link{\code{source.attribution.mcmc.aggregateToTarget}}
+#' @examples 
+#' require(data.table)
+#' require(phyloflows)
+#' # load input data set
+#' data(twoGroupFlows1, package="phyloflows")
+#' dobs <- twoGroupFlows1$dobs
+#' dprior <- twoGroupFlows1$dprior
+#' # load MCMC output obtained with
+#' # control <- list(seed=42, mcmc.n=5e4, verbose=0)
+#' # mc <- phyloflows:::source.attribution.mcmc(dobs, dprior, control)
+#' data(twoGroupFlows1_mcmc, package="phyloflows")
+#' 
+#' #
+#' # calculate sources, onward flows & flow ratios from MCMC output 
+#' #
+#' control <- list( quantiles= c('CL'=0.025,'IL'=0.25,'M'=0.5,'IU'=0.75,'CU'=0.975),
+#'                  flowratios= list( c('1/2', '1 2', '2 1'), c('2/1', '2 1', '1 2'))
+#'                  )
+#' ans <- phyloflows:::source.attribution.mcmc.getKeyQuantities(mc=mc, dobs=dobs, control=control)
+#' 
+#' #
+#' # calculate sources, onward flows & flow ratios from aggregated MCMC output 
+#' #
+#' daggregateTo <- subset(dobs, select=c(TRM_CAT_PAIR_ID, TR_TRM_CATEGORY, REC_TRM_CATEGORY))
+#' daggregateTo[, TR_TARGETCAT:= TR_TRM_CATEGORY]
+#' daggregateTo[, REC_TARGETCAT:= 'Any']
+#' set(daggregateTo, NULL, c('TR_TRM_CATEGORY','REC_TRM_CATEGORY'), NULL)
+#' control <- list( burnin.p=0.05, thin=NA_integer_, regex_pars='PI')
+#' pars <- phyloflows:::source.attribution.mcmc.aggregateToTarget(mc=mc, daggregateTo=daggregateTo, control=control)
+#' \dontrun{
+#' control <- list( quantiles= c('CL'=0.025,'IL'=0.25,'M'=0.5,'IU'=0.75,'CU'=0.975),
+#'                  flowratios= list( c('1/2', '1 2', '2 1'), c('2/1', '2 1', '1 2'))
+#'                  )
+#' ans <- phyloflows:::source.attribution.mcmc.getKeyQuantities(pars=pars, control=control)
+#' }
+#' 
+#' #
+#' # calculate sources, onward flows & flow ratios from file 
+#' #
+#' \dontrun{
+#' infile<- 'blah.rda'     # either MCMC output or aggregated MCMC output
+#' control <- list( quantiles= c('CL'=0.025,'IL'=0.25,'M'=0.5,'IU'=0.75,'CU'=0.975),
+#'                  flowratios= list( c('1/2', '1 2', '2 1'), c('2/1', '2 1', '1 2'))
+#'                  )
+#' ans <- phyloflows:::source.attribution.mcmc.getKeyQuantities(infile=infile, dobs=dobs, control=control)
+#' }
+#' 
 source.attribution.mcmc.getKeyQuantities<- function(infile=NULL, mc=NULL, pars=NULL, dobs=NULL, control=NULL)
 {
 	if(is.null(mc) & is.null(pars) & !is.null(infile) && grepl('rda$',infile))

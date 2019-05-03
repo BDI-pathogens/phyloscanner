@@ -16,7 +16,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha256-U5ZEeKfGNOja007MMD3YBI0A3OSZOQbeG6z2f2Y0hu8=" crossorigin="anonymous"></script>
 
 <!-- Font Awesome icons -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha256-eZrrJcwDc/3uDhsdt61sL2oOBY362qM3lon1gyExkL0=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.7.1/css/all.min.css" integrity="sha256-nAmazAk6vS34Xqo0BSrTb+abbtFlgsFK7NKSi6o7Y78=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.7.1/css/v4-shims.min.css" integrity="sha256-6qHlizsOWFskGlwVOKuns+D1nB6ssZrHQrNj1wGplHc=" crossorigin="anonymous" />
 
 <!-- clipboard.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.4/clipboard.min.js" integrity="sha256-FiZwavyI2V6+EXO1U+xzLG3IKldpiTFf3153ea9zikQ=" crossorigin="anonymous"></script>
@@ -63,7 +64,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">phyloflows</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.4.1</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.4.2</span>
       </span>
     </div>
 
@@ -71,7 +72,7 @@
       <ul class="nav navbar-nav">
         <li>
   <a href="../index.html">
-    <span class="fa fa-home fa-lg"></span>
+    <span class="fas fa fas fa-home fa-lg"></span>
      
   </a>
 </li>
@@ -107,7 +108,7 @@
       <ul class="nav navbar-nav navbar-right">
         <li>
   <a href="https://github.com/BDI-pathogens/phyloscanner">
-    <span class="fa fa-github fa-lg"></span>
+    <span class="fab fa fab fa-github fa-lg"></span>
      
   </a>
 </li>
@@ -135,9 +136,9 @@
     </div>
 
     <pre class="usage"><span class='fu'>source.attribution.mcmc.diagnostics</span>(<span class='no'>mcmc.file</span>, <span class='kw'>mc</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
-  <span class='kw'>control</span> <span class='kw'>=</span> <span class='fu'><a href='https://www.rdocumentation.org/packages/base/topics/list'>list</a></span>(<span class='kw'>burnin.p</span> <span class='kw'>=</span> <span class='fl'>0.2</span>, <span class='kw'>regex_pars</span> <span class='kw'>=</span> <span class='st'>"*"</span>, <span class='kw'>credibility.interval</span> <span class='kw'>=</span>
+  <span class='kw'>control</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span>(<span class='kw'>burnin.p</span> <span class='kw'>=</span> <span class='fl'>0.2</span>, <span class='kw'>regex_pars</span> <span class='kw'>=</span> <span class='st'>"*"</span>, <span class='kw'>credibility.interval</span> <span class='kw'>=</span>
   <span class='fl'>0.95</span>, <span class='kw'>pdf.plot.n.worst.case.parameters</span> <span class='kw'>=</span> <span class='fl'>10</span>, <span class='kw'>pdf.plot.all.parameters</span> <span class='kw'>=</span>
-  <span class='fl'>FALSE</span>, <span class='kw'>pdf.height.per.par</span> <span class='kw'>=</span> <span class='fl'>1.2</span>, <span class='kw'>outfile.base</span> <span class='kw'>=</span> <span class='fu'><a href='https://www.rdocumentation.org/packages/base/topics/grep'>gsub</a></span>(<span class='st'>"\\.rda"</span>, <span class='st'>""</span>,
+  <span class='fl'>FALSE</span>, <span class='kw'>pdf.height.per.par</span> <span class='kw'>=</span> <span class='fl'>1.2</span>, <span class='kw'>outfile.base</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/grep.html'>gsub</a></span>(<span class='st'>"\\.rda"</span>, <span class='st'>""</span>,
   <span class='no'>mcmc.file</span>)))</pre>
     
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -169,7 +170,42 @@
 
     <p>Nothing. Diagnostic plots and csv files are written to disk.</p>
     
+    <h2 class="hasAnchor" id="see-also"><a class="anchor" href="#see-also"></a>See also</h2>
 
+    <div class='dont-index'><p><code>source.attribution.mcmc</code></p></div>
+    
+
+    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
+    <pre class="examples"><div class='input'><span class='fu'><a href='https://rdrr.io/r/base/library.html'>require</a></span>(<span class='no'>data.table</span>)
+<span class='fu'><a href='https://rdrr.io/r/base/library.html'>require</a></span>(<span class='no'>phyloflows</span>)
+<span class='co'># load input data set</span>
+<span class='fu'><a href='https://rdrr.io/r/utils/data.html'>data</a></span>(<span class='no'>twoGroupFlows1</span>, <span class='kw'>package</span><span class='kw'>=</span><span class='st'>"phyloflows"</span>)
+<span class='no'>dobs</span> <span class='kw'>&lt;-</span> <span class='no'>twoGroupFlows1</span>$<span class='no'>dobs</span>
+<span class='no'>dprior</span> <span class='kw'>&lt;-</span> <span class='no'>twoGroupFlows1</span>$<span class='no'>dprior</span>
+<span class='co'># load MCMC output obtained with</span>
+<span class='co'># control &lt;- list(seed=42, mcmc.n=5e4, verbose=0)</span>
+<span class='co'># mc &lt;- phyloflows:::source.attribution.mcmc(dobs, dprior, control)</span>
+<span class='fu'><a href='https://rdrr.io/r/utils/data.html'>data</a></span>(<span class='no'>twoGroupFlows1_mcmc</span>, <span class='kw'>package</span><span class='kw'>=</span><span class='st'>"phyloflows"</span>)
+
+<span class='co'>#</span>
+<span class='co'># calculate standard diagnostics:</span>
+<span class='co'># trace plots, histograms, autocorrelation plots, </span>
+<span class='co'># remove burn-in, thin,  </span>
+<span class='co'># calculate effective sample size, </span>
+<span class='co'># get mean, 50% quantile, and credibility intervals for marginal posterior densities</span>
+<span class='co'>#</span></div><span class='co'># NOT RUN {</span>
+<span class='no'>outfile.base</span> <span class='kw'>&lt;-</span> <span class='st'>'mcmc_diagnostics_'</span>
+<span class='no'>control</span> <span class='kw'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span>( <span class='kw'>burnin.p</span><span class='kw'>=</span><span class='fl'>0.05</span>,                <span class='co'># percentage of chain to remove as burn-in</span>
+                 <span class='kw'>regex_pars</span><span class='kw'>=</span><span class='st'>'*'</span>,                <span class='co'># '*' for all parameters, 'PI' for the transmission flow proportions</span>
+                 <span class='kw'>credibility.interval</span><span class='kw'>=</span><span class='fl'>0.95</span>,     <span class='co'># width of credibility intervals</span>
+                 <span class='kw'>pdf.plot.all.parameters</span><span class='kw'>=</span><span class='fl'>FALSE</span>, <span class='co'># plot traces for all parameters selected with \code{regex_pars} </span>
+                 <span class='kw'>pdf.plot.n.worst.case.parameters</span><span class='kw'>=</span><span class='fl'>10</span>, <span class='co'># plot traces, histograms, autocorellation plots for the 10 parameters with lowest effective sample size. Set this to 0 if you don t want to plot these.</span>
+                 <span class='kw'>pdf.height.per.par</span><span class='kw'>=</span><span class='fl'>1.2</span>,        <span class='co'># change this to adjust the height of pdf figures</span>
+                 <span class='kw'>outfile.base</span><span class='kw'>=</span><span class='no'>outfile.base</span>      <span class='co'># file name base for all output</span>
+                 )
+<span class='kw pkg'>phyloflows</span><span class='kw ns'>:::</span><span class='fu'><a href='https://rdrr.io/pkg/phyloflows/man/source.attribution.mcmc.diagnostics.html'>source.attribution.mcmc.diagnostics</a></span>(<span class='kw'>mc</span><span class='kw'>=</span><span class='no'>mc</span>, <span class='kw'>control</span><span class='kw'>=</span><span class='no'>control</span>)
+<span class='co'># }</span><div class='input'>
+</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <h2>Contents</h2>
@@ -177,7 +213,11 @@
       <li><a href="#arguments">Arguments</a></li>
       
       <li><a href="#value">Value</a></li>
-          </ul>
+
+      <li><a href="#see-also">See also</a></li>
+      
+      <li><a href="#examples">Examples</a></li>
+    </ul>
 
     <h2>Author</h2>
     <p>Xiaoyue Xi, Oliver Ratmann</p>

@@ -32,6 +32,42 @@ Nothing. Diagnostic plots and csv files are written to disk.
 \description{
 MCMC diagnostics for the source attribution algorithm
 }
+\examples{
+require(data.table)
+require(phyloflows)
+# load input data set
+data(twoGroupFlows1, package="phyloflows")
+dobs <- twoGroupFlows1$dobs
+dprior <- twoGroupFlows1$dprior
+# load MCMC output obtained with
+# control <- list(seed=42, mcmc.n=5e4, verbose=0)
+# mc <- phyloflows:::source.attribution.mcmc(dobs, dprior, control)
+data(twoGroupFlows1_mcmc, package="phyloflows")
+
+#
+# calculate standard diagnostics:
+# trace plots, histograms, autocorrelation plots, 
+# remove burn-in, thin,  
+# calculate effective sample size, 
+# get mean, 50\% quantile, and credibility intervals for marginal posterior densities
+#
+\dontrun{
+outfile.base <- 'mcmc_diagnostics_'
+control <- list( burnin.p=0.05,                # percentage of chain to remove as burn-in
+                 regex_pars='*',                # '*' for all parameters, 'PI' for the transmission flow proportions
+                 credibility.interval=0.95,     # width of credibility intervals
+                 pdf.plot.all.parameters=FALSE, # plot traces for all parameters selected with \\code{regex_pars} 
+                 pdf.plot.n.worst.case.parameters=10, # plot traces, histograms, autocorellation plots for the 10 parameters with lowest effective sample size. Set this to 0 if you don t want to plot these.
+                 pdf.height.per.par=1.2,        # change this to adjust the height of pdf figures
+                 outfile.base=outfile.base      # file name base for all output
+                 )
+phyloflows:::source.attribution.mcmc.diagnostics(mc=mc, control=control)
+}
+
+}
+\seealso{
+\link{\code{source.attribution.mcmc}}
+}
 \author{
 Xiaoyue Xi, Oliver Ratmann
 }

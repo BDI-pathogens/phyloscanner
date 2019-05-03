@@ -16,7 +16,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha256-U5ZEeKfGNOja007MMD3YBI0A3OSZOQbeG6z2f2Y0hu8=" crossorigin="anonymous"></script>
 
 <!-- Font Awesome icons -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha256-eZrrJcwDc/3uDhsdt61sL2oOBY362qM3lon1gyExkL0=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.7.1/css/all.min.css" integrity="sha256-nAmazAk6vS34Xqo0BSrTb+abbtFlgsFK7NKSi6o7Y78=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.7.1/css/v4-shims.min.css" integrity="sha256-6qHlizsOWFskGlwVOKuns+D1nB6ssZrHQrNj1wGplHc=" crossorigin="anonymous" />
 
 <!-- clipboard.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.4/clipboard.min.js" integrity="sha256-FiZwavyI2V6+EXO1U+xzLG3IKldpiTFf3153ea9zikQ=" crossorigin="anonymous"></script>
@@ -63,7 +64,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">phyloflows</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.4.1</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.4.2</span>
       </span>
     </div>
 
@@ -71,7 +72,7 @@
       <ul class="nav navbar-nav">
         <li>
   <a href="../index.html">
-    <span class="fa fa-home fa-lg"></span>
+    <span class="fas fa fas fa-home fa-lg"></span>
      
   </a>
 </li>
@@ -107,7 +108,7 @@
       <ul class="nav navbar-nav navbar-right">
         <li>
   <a href="https://github.com/BDI-pathogens/phyloscanner">
-    <span class="fa fa-github fa-lg"></span>
+    <span class="fab fa fab fa-github fa-lg"></span>
      
   </a>
 </li>
@@ -158,7 +159,69 @@
 
     <p>If `outfile` is not specified, the output is returned as a data.table. If `outfile` is specified, the output is written to a csv file.</p>
     
+    <h2 class="hasAnchor" id="see-also"><a class="anchor" href="#see-also"></a>See also</h2>
 
+    <div class='dont-index'><p><code>source.attribution.mcmc</code>, <code>source.attribution.mcmc.aggregateToTarget</code></p></div>
+    
+
+    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
+    <pre class="examples"><div class='input'><span class='fu'><a href='https://rdrr.io/r/base/library.html'>require</a></span>(<span class='no'>data.table</span>)
+<span class='fu'><a href='https://rdrr.io/r/base/library.html'>require</a></span>(<span class='no'>phyloflows</span>)
+<span class='co'># load input data set</span>
+<span class='fu'><a href='https://rdrr.io/r/utils/data.html'>data</a></span>(<span class='no'>twoGroupFlows1</span>, <span class='kw'>package</span><span class='kw'>=</span><span class='st'>"phyloflows"</span>)
+<span class='no'>dobs</span> <span class='kw'>&lt;-</span> <span class='no'>twoGroupFlows1</span>$<span class='no'>dobs</span>
+<span class='no'>dprior</span> <span class='kw'>&lt;-</span> <span class='no'>twoGroupFlows1</span>$<span class='no'>dprior</span>
+<span class='co'># load MCMC output obtained with</span>
+<span class='co'># control &lt;- list(seed=42, mcmc.n=5e4, verbose=0)</span>
+<span class='co'># mc &lt;- phyloflows:::source.attribution.mcmc(dobs, dprior, control)</span>
+<span class='fu'><a href='https://rdrr.io/r/utils/data.html'>data</a></span>(<span class='no'>twoGroupFlows1_mcmc</span>, <span class='kw'>package</span><span class='kw'>=</span><span class='st'>"phyloflows"</span>)
+
+<span class='co'>#</span>
+<span class='co'># calculate sources, onward flows &amp; flow ratios from MCMC output </span>
+<span class='co'>#</span>
+<span class='no'>control</span> <span class='kw'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span>( <span class='kw'>quantiles</span><span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='st'>'CL'</span><span class='kw'>=</span><span class='fl'>0.025</span>,<span class='st'>'IL'</span><span class='kw'>=</span><span class='fl'>0.25</span>,<span class='st'>'M'</span><span class='kw'>=</span><span class='fl'>0.5</span>,<span class='st'>'IU'</span><span class='kw'>=</span><span class='fl'>0.75</span>,<span class='st'>'CU'</span><span class='kw'>=</span><span class='fl'>0.975</span>),
+                 <span class='kw'>flowratios</span><span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span>( <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='st'>'1/2'</span>, <span class='st'>'1 2'</span>, <span class='st'>'2 1'</span>), <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='st'>'2/1'</span>, <span class='st'>'2 1'</span>, <span class='st'>'1 2'</span>))
+                 )
+<span class='no'>ans</span> <span class='kw'>&lt;-</span> <span class='kw pkg'>phyloflows</span><span class='kw ns'>:::</span><span class='fu'><a href='https://rdrr.io/pkg/phyloflows/man/source.attribution.mcmc.getKeyQuantities.html'>source.attribution.mcmc.getKeyQuantities</a></span>(<span class='kw'>mc</span><span class='kw'>=</span><span class='no'>mc</span>, <span class='kw'>dobs</span><span class='kw'>=</span><span class='no'>dobs</span>, <span class='kw'>control</span><span class='kw'>=</span><span class='no'>control</span>)</div><div class='output co'>#&gt; 
+#&gt; Computing flows...
+#&gt; Computing WAIFM...
+#&gt; Computing sources...
+#&gt; Computing flow ratios...</div><div class='output co'>#&gt; <span class='warning'>Warning: Adding new column '2 1' then assigning NULL (deleting it).</span></div><div class='output co'>#&gt; <span class='warning'>Warning: Adding new column '1 2' then assigning NULL (deleting it).</span></div><div class='input'>
+<span class='co'>#</span>
+<span class='co'># calculate sources, onward flows &amp; flow ratios from aggregated MCMC output </span>
+<span class='co'>#</span>
+<span class='no'>daggregateTo</span> <span class='kw'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/pkg/data.table/man/subset.data.table.html'>subset</a></span>(<span class='no'>dobs</span>, <span class='kw'>select</span><span class='kw'>=</span><span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='no'>TRM_CAT_PAIR_ID</span>, <span class='no'>TR_TRM_CATEGORY</span>, <span class='no'>REC_TRM_CATEGORY</span>))
+<span class='no'>daggregateTo</span>[, <span class='no'>TR_TARGETCAT</span><span class='kw'>:=</span> <span class='no'>TR_TRM_CATEGORY</span>]</div><div class='output co'>#&gt;    TRM_CAT_PAIR_ID TR_TRM_CATEGORY REC_TRM_CATEGORY TR_TARGETCAT
+#&gt; 1:               1               1                1            1
+#&gt; 2:               2               1                2            1
+#&gt; 3:               3               2                1            2
+#&gt; 4:               4               2                2            2</div><div class='input'><span class='no'>daggregateTo</span>[, <span class='no'>REC_TARGETCAT</span><span class='kw'>:=</span> <span class='st'>'Any'</span>]</div><div class='output co'>#&gt;    TRM_CAT_PAIR_ID TR_TRM_CATEGORY REC_TRM_CATEGORY TR_TARGETCAT REC_TARGETCAT
+#&gt; 1:               1               1                1            1           Any
+#&gt; 2:               2               1                2            1           Any
+#&gt; 3:               3               2                1            2           Any
+#&gt; 4:               4               2                2            2           Any</div><div class='input'><span class='fu'><a href='https://rdrr.io/pkg/data.table/man/assign.html'>set</a></span>(<span class='no'>daggregateTo</span>, <span class='kw'>NULL</span>, <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='st'>'TR_TRM_CATEGORY'</span>,<span class='st'>'REC_TRM_CATEGORY'</span>), <span class='kw'>NULL</span>)
+<span class='no'>control</span> <span class='kw'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span>( <span class='kw'>burnin.p</span><span class='kw'>=</span><span class='fl'>0.05</span>, <span class='kw'>thin</span><span class='kw'>=</span><span class='fl'>NA_integer_</span>, <span class='kw'>regex_pars</span><span class='kw'>=</span><span class='st'>'PI'</span>)
+<span class='no'>pars</span> <span class='kw'>&lt;-</span> <span class='kw pkg'>phyloflows</span><span class='kw ns'>:::</span><span class='fu'><a href='https://rdrr.io/pkg/phyloflows/man/source.attribution.mcmc.aggregateToTarget.html'>source.attribution.mcmc.aggregateToTarget</a></span>(<span class='kw'>mc</span><span class='kw'>=</span><span class='no'>mc</span>, <span class='kw'>daggregateTo</span><span class='kw'>=</span><span class='no'>daggregateTo</span>, <span class='kw'>control</span><span class='kw'>=</span><span class='no'>control</span>)</div><div class='output co'>#&gt; 
+#&gt; Using MCMC output specified as input...
+#&gt; Collecting parameters...
+#&gt; Removing burnin in set to  5 % of chain, total iterations= 500
+#&gt; Making aggregated MCMC output...</div><span class='co'># NOT RUN {</span>
+<span class='no'>control</span> <span class='kw'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span>( <span class='kw'>quantiles</span><span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='st'>'CL'</span><span class='kw'>=</span><span class='fl'>0.025</span>,<span class='st'>'IL'</span><span class='kw'>=</span><span class='fl'>0.25</span>,<span class='st'>'M'</span><span class='kw'>=</span><span class='fl'>0.5</span>,<span class='st'>'IU'</span><span class='kw'>=</span><span class='fl'>0.75</span>,<span class='st'>'CU'</span><span class='kw'>=</span><span class='fl'>0.975</span>),
+                 <span class='kw'>flowratios</span><span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span>( <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='st'>'1/2'</span>, <span class='st'>'1 2'</span>, <span class='st'>'2 1'</span>), <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='st'>'2/1'</span>, <span class='st'>'2 1'</span>, <span class='st'>'1 2'</span>))
+                 )
+<span class='no'>ans</span> <span class='kw'>&lt;-</span> <span class='kw pkg'>phyloflows</span><span class='kw ns'>:::</span><span class='fu'><a href='https://rdrr.io/pkg/phyloflows/man/source.attribution.mcmc.getKeyQuantities.html'>source.attribution.mcmc.getKeyQuantities</a></span>(<span class='kw'>pars</span><span class='kw'>=</span><span class='no'>pars</span>, <span class='kw'>control</span><span class='kw'>=</span><span class='no'>control</span>)
+<span class='co'># }</span><div class='input'>
+#
+# calculate sources, onward flows & flow ratios from file 
+#
+</div><span class='co'># NOT RUN {</span>
+<span class='no'>infile</span><span class='kw'>&lt;-</span> <span class='st'>'blah.rda'</span>     <span class='co'># either MCMC output or aggregated MCMC output</span>
+<span class='no'>control</span> <span class='kw'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span>( <span class='kw'>quantiles</span><span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='st'>'CL'</span><span class='kw'>=</span><span class='fl'>0.025</span>,<span class='st'>'IL'</span><span class='kw'>=</span><span class='fl'>0.25</span>,<span class='st'>'M'</span><span class='kw'>=</span><span class='fl'>0.5</span>,<span class='st'>'IU'</span><span class='kw'>=</span><span class='fl'>0.75</span>,<span class='st'>'CU'</span><span class='kw'>=</span><span class='fl'>0.975</span>),
+                 <span class='kw'>flowratios</span><span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span>( <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='st'>'1/2'</span>, <span class='st'>'1 2'</span>, <span class='st'>'2 1'</span>), <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='st'>'2/1'</span>, <span class='st'>'2 1'</span>, <span class='st'>'1 2'</span>))
+                 )
+<span class='no'>ans</span> <span class='kw'>&lt;-</span> <span class='kw pkg'>phyloflows</span><span class='kw ns'>:::</span><span class='fu'><a href='https://rdrr.io/pkg/phyloflows/man/source.attribution.mcmc.getKeyQuantities.html'>source.attribution.mcmc.getKeyQuantities</a></span>(<span class='kw'>infile</span><span class='kw'>=</span><span class='no'>infile</span>, <span class='kw'>dobs</span><span class='kw'>=</span><span class='no'>dobs</span>, <span class='kw'>control</span><span class='kw'>=</span><span class='no'>control</span>)
+<span class='co'># }</span><div class='input'>
+</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <h2>Contents</h2>
@@ -166,7 +229,11 @@
       <li><a href="#arguments">Arguments</a></li>
       
       <li><a href="#value">Value</a></li>
-          </ul>
+
+      <li><a href="#see-also">See also</a></li>
+      
+      <li><a href="#examples">Examples</a></li>
+    </ul>
 
     <h2>Author</h2>
     <p>Xiaoyue Xi, Oliver Ratmann</p>

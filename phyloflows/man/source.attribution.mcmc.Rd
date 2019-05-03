@@ -26,6 +26,46 @@ If `outfile` is not specified, phyloflows MCMC output is returned, which is a li
 \description{
 Source attribution while adjusting for sampling bias
 }
+\examples{
+require(data.table)
+require(phyloflows)
+# load input data set
+data(twoGroupFlows1, package="phyloflows")
+dobs <- twoGroupFlows1$dobs
+dprior <- twoGroupFlows1$dprior
+
+#
+# run MCMC and return output to R
+# this is usually fine for simple source attribution models
+# that don t take long to run
+#
+\dontrun{
+control <- list(seed=42,    # seed for reproducibility
+                mcmc.n=5e4, # guide on the number of MCMC iterations, the actual number of MCMC iterations may be a little bit larger
+                verbose=0   # switch on for output to each MCMC iteration
+                )
+mc <- phyloflows:::source.attribution.mcmc(dobs, dprior, control)
+}
+
+#
+# run MCMC and save output to file
+# this is recommended when the source attribution is more complex
+# so you can deploy the MCMC on a high performance cluster
+#
+\dontrun{
+mcmc.file <- 'mcmcm_output.rda'
+control <- list(seed=42,    # seed for reproducibility
+                mcmc.n=5e4, # guide on the number of MCMC iterations, the actual number of MCMC iterations may be a little bit larger
+                verbose=0   # switch on for output to each MCMC iteration
+                outfile= mcmc.file # store MCMC output as rda file here
+                )
+mc <- phyloflows:::source.attribution.mcmc(dobs, dprior, control)
+}
+
+}
+\seealso{
+\link{\code{source.attribution.mcmc.diagnostics}}, \link{\code{source.attribution.mcmc.aggregateToTarget}}, \link{\code{source.attribution.mcmc.getKeyQuantities}}
+}
 \author{
 Xiaoyue Xi, Oliver Ratmann
 }

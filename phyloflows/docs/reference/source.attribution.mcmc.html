@@ -16,7 +16,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha256-U5ZEeKfGNOja007MMD3YBI0A3OSZOQbeG6z2f2Y0hu8=" crossorigin="anonymous"></script>
 
 <!-- Font Awesome icons -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha256-eZrrJcwDc/3uDhsdt61sL2oOBY362qM3lon1gyExkL0=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.7.1/css/all.min.css" integrity="sha256-nAmazAk6vS34Xqo0BSrTb+abbtFlgsFK7NKSi6o7Y78=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.7.1/css/v4-shims.min.css" integrity="sha256-6qHlizsOWFskGlwVOKuns+D1nB6ssZrHQrNj1wGplHc=" crossorigin="anonymous" />
 
 <!-- clipboard.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.4/clipboard.min.js" integrity="sha256-FiZwavyI2V6+EXO1U+xzLG3IKldpiTFf3153ea9zikQ=" crossorigin="anonymous"></script>
@@ -63,7 +64,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">phyloflows</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.4.1</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.4.2</span>
       </span>
     </div>
 
@@ -71,7 +72,7 @@
       <ul class="nav navbar-nav">
         <li>
   <a href="../index.html">
-    <span class="fa fa-home fa-lg"></span>
+    <span class="fas fa fas fa-home fa-lg"></span>
      
   </a>
 </li>
@@ -107,7 +108,7 @@
       <ul class="nav navbar-nav navbar-right">
         <li>
   <a href="https://github.com/BDI-pathogens/phyloscanner">
-    <span class="fa fa-github fa-lg"></span>
+    <span class="fab fa fab fa-github fa-lg"></span>
      
   </a>
 </li>
@@ -134,7 +135,7 @@
     
     </div>
 
-    <pre class="usage"><span class='fu'>source.attribution.mcmc</span>(<span class='no'>dobs</span>, <span class='no'>dprior</span>, <span class='kw'>control</span> <span class='kw'>=</span> <span class='fu'><a href='https://www.rdocumentation.org/packages/base/topics/list'>list</a></span>(<span class='kw'>seed</span> <span class='kw'>=</span> <span class='fl'>42</span>, <span class='kw'>mcmc.n</span> <span class='kw'>=</span>
+    <pre class="usage"><span class='fu'>source.attribution.mcmc</span>(<span class='no'>dobs</span>, <span class='no'>dprior</span>, <span class='kw'>control</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span>(<span class='kw'>seed</span> <span class='kw'>=</span> <span class='fl'>42</span>, <span class='kw'>mcmc.n</span> <span class='kw'>=</span>
   <span class='fl'>1000</span>, <span class='kw'>verbose</span> <span class='kw'>=</span> <span class='fl'>1</span>, <span class='kw'>outfile</span> <span class='kw'>=</span> <span class='st'>"SAMCMCv190327.rda"</span>))</pre>
     
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -163,7 +164,45 @@
 
     <p>If `outfile` is not specified, phyloflows MCMC output is returned, which is a list object. If `outfile` is specified, phyloflows MCMC output is written to an RDA file.</p>
     
+    <h2 class="hasAnchor" id="see-also"><a class="anchor" href="#see-also"></a>See also</h2>
 
+    <div class='dont-index'><p><code>source.attribution.mcmc.diagnostics</code>, <code>source.attribution.mcmc.aggregateToTarget</code>, <code>source.attribution.mcmc.getKeyQuantities</code></p></div>
+    
+
+    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
+    <pre class="examples"><div class='input'><span class='fu'><a href='https://rdrr.io/r/base/library.html'>require</a></span>(<span class='no'>data.table</span>)</div><div class='output co'>#&gt; <span class='message'>Loading required package: data.table</span></div><div class='input'><span class='fu'><a href='https://rdrr.io/r/base/library.html'>require</a></span>(<span class='no'>phyloflows</span>)
+<span class='co'># load input data set</span>
+<span class='fu'><a href='https://rdrr.io/r/utils/data.html'>data</a></span>(<span class='no'>twoGroupFlows1</span>, <span class='kw'>package</span><span class='kw'>=</span><span class='st'>"phyloflows"</span>)
+<span class='no'>dobs</span> <span class='kw'>&lt;-</span> <span class='no'>twoGroupFlows1</span>$<span class='no'>dobs</span>
+<span class='no'>dprior</span> <span class='kw'>&lt;-</span> <span class='no'>twoGroupFlows1</span>$<span class='no'>dprior</span>
+
+<span class='co'>#</span>
+<span class='co'># run MCMC and return output to R</span>
+<span class='co'># this is usually fine for simple source attribution models</span>
+<span class='co'># that don t take long to run</span>
+<span class='co'>#</span></div><span class='co'># NOT RUN {</span>
+<span class='no'>control</span> <span class='kw'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/list.html'>list</a></span>(<span class='kw'>seed</span><span class='kw'>=</span><span class='fl'>42</span>,    <span class='co'># seed for reproducibility</span>
+                <span class='kw'>mcmc.n</span><span class='kw'>=</span><span class='fl'>5e4</span>, <span class='co'># guide on the number of MCMC iterations, the actual number of MCMC iterations may be a little bit larger</span>
+                <span class='kw'>verbose</span><span class='kw'>=</span><span class='fl'>0</span>   <span class='co'># switch on for output to each MCMC iteration</span>
+                )
+<span class='no'>mc</span> <span class='kw'>&lt;-</span> <span class='kw pkg'>phyloflows</span><span class='kw ns'>:::</span><span class='fu'><a href='https://rdrr.io/pkg/phyloflows/man/source.attribution.mcmc.html'>source.attribution.mcmc</a></span>(<span class='no'>dobs</span>, <span class='no'>dprior</span>, <span class='no'>control</span>)
+<span class='co'># }</span><div class='input'>
+#
+# run MCMC and save output to file
+# this is recommended when the source attribution is more complex
+# so you can deploy the MCMC on a high performance cluster
+#
+</div># NOT RUN {
+mcmc.file <- 'mcmcm_output.rda'
+control <- list(seed=42,    # seed for reproducibility
+                mcmc.n=5e4, # guide on the number of MCMC iterations, the actual number of MCMC iterations may be a little bit larger
+                verbose=0   # switch on for output to each MCMC iteration
+                outfile= mcmc.file # store MCMC output as rda file here
+                )
+mc <- phyloflows:::source.attribution.mcmc(dobs, dprior, control)
+# }
+<div class='input'>
+</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <h2>Contents</h2>
@@ -171,7 +210,11 @@
       <li><a href="#arguments">Arguments</a></li>
       
       <li><a href="#value">Value</a></li>
-          </ul>
+
+      <li><a href="#see-also">See also</a></li>
+      
+      <li><a href="#examples">Examples</a></li>
+    </ul>
 
     <h2>Author</h2>
     <p>Xiaoyue Xi, Oliver Ratmann</p>

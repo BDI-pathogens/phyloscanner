@@ -1,7 +1,7 @@
 Package: phyloflows
 Type: Package
 Title: Estimating transmission flows within and between population groups from deep sequence data
-Version: 0.4.1
+Version: 0.4.2
 Authors@R: c(person("Xiaoyue", "Xi", role = c("aut", "cre"), email = "xiaoyue.xi94@gmail.com"),
 	person("Oliver", "Ratmann", role = c("aut"), email = "oliver.ratmann@imperial.ac.uk"),
 	person("Matthew", "Hall", role = "ctb"),
@@ -17,14 +17,16 @@ LazyData: true
 Depends:
 	R (>= 3.1)
 Imports: 
+	bayesplot,
+	coda,
     data.table (>= 1.10.5), 
     ggplot2 (>= 2.2.1.9000), 
-	gtools,
-	bayesplot,
-	coda    
-Suggests: 
+	gtools	    
+Suggests:
+    bde, 
     knitr,
-    rmarkdown
+    rmarkdown,
+    rstan    
 VignetteBuilder: knitr
 RoxygenNote: 6.1.1
 URL: https://github.com/BDI-pathogens/phyloscanner/phyloflows
