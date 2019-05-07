@@ -105,7 +105,7 @@ all.tree.info <- list()
 
 for(suffix in ts.both.present){
   tree.info <- list()
-  tree.info$suffix <- suffix
+  tree.info$tree.id <- suffix
   tree.info$tree.file.name <- paste0(tree.file.root, suffix, ".", tree.fe)
   tree.info$splits.file.name <- paste0(splits.file.root, suffix, ".", csv.fe)
   tree.info$normalisation.constant <- 1

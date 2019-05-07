@@ -880,6 +880,7 @@ classify <- function(ptree, verbose = F, no.progress.bars = F) {
 merge.classifications <- function(ptrees, allow.mt = T, verbose = F){
   
   classification.rows	<- ptrees %>% map(function(ptree) {
+    
     if(is.null(ptree$classification.results$classification) & is.null(ptree$classification.file.name)){
       NULL
     }
@@ -894,6 +895,10 @@ merge.classifications <- function(ptrees, allow.mt = T, verbose = F){
     } else {
       if (verbose) cat("Reading window input file ", ptree$classification.file.name,"\n", sep="")
       tt <- read_csv(ptree$classification.file.name, col_names = TRUE)
+      
+      if(nrow(tt)==0){
+        stop(paste0("No lines in window input file ",ptree$classification.file.name))
+      }
     }
     
     tt <- tt %>% add_column(tree.id = ptree$id)
