@@ -15,11 +15,15 @@ process, sampling at random within population strata, which we
 abbreviate to SARWS.
 
 **We first set up the sampling process within the two population
-groups.** Let us assume population group 1 consists of \(2000\)
-individuals and group 2 of \(2500\) individuals, and that the sampling
-rates are \(0.6\) for group 1 and \(0.45\) for group 2. Here, we will
-suppose that sampling is at random within each of the population groups
-with these two sampling probabilities:
+groups.** Let us assume population group 1 consists of
+ $2000$
+individuals and group 2 of
+ $2500$
+individuals, and that the sampling rates are
+ $0.6$
+for group 1 and\(0.45\) for group 2. Here, we will suppose that
+sampling is at random within each of the population groups with these
+two sampling probabilities:
 
 ``` r
 library(data.table)
@@ -34,8 +38,7 @@ ds
     ## 2:        2  2500      0.45 1125
 
 **Next, we calculate the sampling probabilities of transmission flows
-within and between the two
-groups.**
+within and between the two groups.**
 
 ``` r
 dobs <- data.table(TR_TRM_CATEGORY=c(1,1,2,2),REC_TRM_CATEGORY=c(1,2,1,2))
@@ -58,18 +61,40 @@ dobs
 
 **Next, we simulate true transmission flows.** Let us assume 36% and 54%
 transmissions are within group 1 and 2 respectively, and 4% are from
-group 1 to group 2 and 6% are from group 2 to group 1: \[
+group 1 to group 2 and 6% are from group 2 to group 1:
+
+$$
 \pi=(0.36,0.04,0.06,0.54).
-\] We further assume the total number of observed transmissions is
-\(N=300\). We will simulate the actual transmission count \(Z\) from a
-Poisson distribution. Then we will generate transmission flows between
-groups by \[
-z \sim \mbox{Multinomial} (Z,\pi).
-\] Finally we will generate observed transmissions flows by subsampling
-the actual transmission flows by \[
-n_{ab} \sim \mbox{Binomial} (z_{ab},\xi_{ab}), \forall a,b,
-\] where \(\xi_{ab}\) is the probability of sampling a transmission
-event from \(a\) to \(b\).
+$$
+
+
+We further assume the total number of observed transmissions is
+ $N=300$
+. We will simulate the actual transmission count
+ $Z$
+from a Poisson distribution. Then we will generate transmission flows
+between groups by
+
+$$
+z\sim\mbox{Multinomial} (Z,\pi).
+$$
+
+
+Finally we will generate observed transmissions flows by subsampling the
+actual transmission flows by
+
+$$
+n_{ab}\sim\mbox{Binomial} (z_{ab},\xi_{ab}),\forall a,b,
+$$
+
+
+where
+ $\xi_{ab}$
+is the probability of sampling a transmission event from
+ $a$
+to
+ $b$
+.
 
 ``` r
 TRUE_PI <- c(0.36,0.04,0.06,0.54)
@@ -89,10 +114,13 @@ dobs
     ## 3:                1               2 0.2700      15
     ## 4:                2               2 0.2025     129
 
-**Next, we will bring the transmission count data into the form needed
-for phyloflows MCMC algorithm.** We add an ID to each observation,
-called `TRM_CAT_PAIR_ID`. We also define the sampling groups. In this
-example, they correspond directly to the transmission groups.
+## Corresponding **phyloflows** input data (simple, SARWS)
+
+**We will start by bringing the transmission count data into the form
+needed for phyloflows MCMC algorithm.** We add an ID to each
+observation, called `TRM_CAT_PAIR_ID`. We also define the sampling
+groups. In this example, they correspond directly to the transmission
+groups.
 
 ``` r
 dobs[, TR_SAMPLING_CATEGORY:=TR_TRM_CATEGORY]
@@ -114,19 +142,30 @@ dobs
     ## 3:                     1               3
     ## 4:                     2               4
 
-**We still need to define the prior distribution on the unknown sampling
+**We also need to define the prior distribution on the unknown sampling
 probabilities, and generate samples from it**. At the very top of this
 page, defined the number of infected and sampled individuals in
-data.frame `ds`. Let us denote these by \(X_a^i\) and \(X_a^s\) for our
-two population groups \(a\). Usually this type of information is
-available to us in real-world data analyses, and so we work from these
-numbers here also. Under the Binomial sampling model that we assume
-throughout, \(X_a^s\sim Binom(X_a^i, \xi_a)\). If we suppose a flat
-prior on \(\xi_a\), we obtain the posterior distribution of the sampling
-probabilities conditional on the number of total and sampled
-individuals, \[
+data.frame `ds`. Let us denote these by
+ $X_a^i$
+and
+ $X_a^s$
+for our two population groups
+ $a$
+. Usually this type of information is available to us in real-world data
+analyses, and so we work from these numbers here also. Under the
+Binomial sampling model that we assume throughout,
+ $X_a^s\sim Binom(X_a^i,\xi_a)$
+. If we suppose a flat prior on
+ $\xi_a$
+, we obtain the posterior distribution of the sampling probabilities
+conditional on the number of total and sampled individuals,
+
+$$
 p(\xi_a|X_a^i,X_s^i)= Beta(\xi_a;X_a^s+1,X_a^i-X_a^s+1).
-\] This density typically contains a lot of information on the sampling
+$$
+
+
+This density typically contains a lot of information on the sampling
 process. To get this information into the form needed for **phyloflows**
 MCMC algorithm, we need to derive samples from that distribution. We
 also need to calculate their log density.
@@ -166,56 +205,73 @@ data(twoGroupFlows100)
 
 ## Data set 2 (more complex, GLM)
 
-We then simulate transmission flows between two locations called “1” and
-“2”. We will assume sampling depends on genders and is thus not at
-random within each location. Due to the dependence of sampling on
-genders and locations, sampling rates could be predicted through genders
-and locations, which we abbreviate to GLM.
+We are now ready to consider a more complex example\! We are still
+interested in transmission flows between the two groups “1” and “2”.
+However in real-life sampling may depend on further characteristics of
+the populations in the two groups “1” and “2”. If this is the case, the
+above SARWS assumption is obviously violated.
 
-**We first set up the sampling process within the four population
-groups.** We consider four population groups, “1M”, “1F”, “2M” and “2F”.
-Let us assume there are \(10,000\) individuals in total, \(40\%\)
-individuals are in location 1, \(60\%\) individuals are in location 2,
-\(60\%\) individuals are women within each location, and that the
-sampling rates are \(0.6\) for men in group 1, \(0.8\) for women in
-group 1, \(0.3\) for men in group 2 and \(0.7\) for women in group 2.
-Here, we will suppose that sampling is at random within each of the
-population groups with these four sampling probabilities:
+**So where do we go from here?** We could consider smaller
+sub-populations, though this runs the risk that estimates of the
+sampling probabilities quickly become very uncertain. And we know that
+if the sampling probabilities are uncertain, the performance of
+**phyloflows** MCMC engine will take a big hit. To avoid this problem,
+let us estimate the sampling probabilities for each sub-population based
+on a linear combination of predictive variables. We call this the GLM
+approach.
+
+To keep things simple at the start, let us assume that sampling depends
+on gender within each group “1” and “2”. We consider four population
+groups, “1M”, “1F”, “2M” and “2F”. Let us assume there are
+ $10,000$
+individuals in total,
+ $40\%$
+individuals are in location 1,
+ $60\%$
+individuals are in location 2,
+ $60\%$
+individuals are women within each location, and that the sampling rates
+are
+ $0.6$
+for men in group 1,
+ $0.8$
+for women in group 1,
+ $0.3$
+for men in group 2 and
+ $0.7$
+for women in group 2:
 
 ``` r
 library(data.table)
 set.seed(42)
-ds<-data.table(SEX=c(rep(c('M','F'),2)),
-               COMM_NUM_B=c(rep(1,2),rep(2,2)),
-               P_SEQ=c(0.6,0.8,0.3,0.7)) # set up seq rates
+ds <- data.table(SEX=c(rep(c('M','F'),2)),
+                 GROUP=c(rep(1,2),rep(2,2)),
+                 P_SEQ=c(0.6,0.8,0.3,0.7)) # set up seq rates
 
-ninf<-1000
-ninf1<-round(ninf*0.4)
-ninf2<-ninf-ninf1
-ninf1f<-round(ninf1*0.7)
-ninf1m<-ninf1-ninf1f
-ninf2f<-round(ninf2*0.6)
-ninf2m<-ninf2-ninf2f
+ninf <- 1000
+ninf1 <- round(ninf*0.4)
+ninf2 <- ninf-ninf1
+ninf1f <- round(ninf1*0.7)
+ninf1m <- ninf1-ninf1f
+ninf2f <- round(ninf2*0.6)
+ninf2m <- ninf2-ninf2f
 ds[,TRIAL:=c(ninf1m,ninf1f,ninf2m,ninf2f)]
 ds[,SUC:=rbinom(nrow(ds),TRIAL,P_SEQ)]
-
-ds[,CATEGORY:=paste0(COMM_NUM_B,':',SEX)]
-ds[,COMM_NUM_B:=as.integer(COMM_NUM_B)]
-ds[,MALE:=as.integer(SEX=='M')]
+ds[,CATEGORY:=paste0(GROUP,':',SEX)]
 ```
 
 **Next, we calculate the sampling probabilities of transmission flows
 within and between the two groups.**
 
 ``` r
-dobs<-data.table(TR_COMM_NUM_B=c(rep(1,4),rep(2,4)),
-                 REC_COMM_NUM_B=c(rep(1,2),rep(2,2),rep(1,2),rep(2,2)),
+dobs <- data.table(TR_GROUP=c(rep(1,4),rep(2,4)),
+                 REC_GROUP=c(rep(1,2),rep(2,2),rep(1,2),rep(2,2)),
                  TR_SEX=c(rep(c('F','M'),4)),
                  REC_SEX=c(rep(c('M','F'),4)))
-dobs[,TR_TRM_CATEGORY:=paste0(TR_COMM_NUM_B,":",TR_SEX)]
-dobs[,REC_TRM_CATEGORY:=paste0(REC_COMM_NUM_B,":",REC_SEX)]
+dobs[,TR_TRM_CATEGORY:=paste0(TR_GROUP,":",TR_SEX)]
+dobs[,REC_TRM_CATEGORY:=paste0(REC_GROUP,":",REC_SEX)]
 dobs[, TRM_CAT_PAIR_ID:= seq_len(nrow(dobs))]
-
+set(dobs, NULL, c('TR_GROUP','REC_GROUP','TR_SEX','REC_SEX'), NULL)
 tmp <- subset(ds,select=c('CATEGORY','P_SEQ'))
 setnames(tmp,colnames(tmp),paste0('TR_TRM_',colnames(tmp)))
 dobs <- merge(dobs,tmp,by='TR_TRM_CATEGORY')
@@ -227,42 +283,53 @@ setkey(dobs,TRM_CAT_PAIR_ID)
 dobs
 ```
 
-    ##    REC_TRM_CATEGORY TR_TRM_CATEGORY TR_COMM_NUM_B REC_COMM_NUM_B TR_SEX
-    ## 1:              1:M             1:F             1              1      F
-    ## 2:              1:F             1:M             1              1      M
-    ## 3:              2:M             1:F             1              2      F
-    ## 4:              2:F             1:M             1              2      M
-    ## 5:              1:M             2:F             2              1      F
-    ## 6:              1:F             2:M             2              1      M
-    ## 7:              2:M             2:F             2              2      F
-    ## 8:              2:F             2:M             2              2      M
-    ##    REC_SEX TRM_CAT_PAIR_ID    S
-    ## 1:       M               1 0.48
-    ## 2:       F               2 0.48
-    ## 3:       M               3 0.24
-    ## 4:       F               4 0.42
-    ## 5:       M               5 0.42
-    ## 6:       F               6 0.24
-    ## 7:       M               7 0.21
-    ## 8:       F               8 0.21
+    ##    REC_TRM_CATEGORY TR_TRM_CATEGORY TRM_CAT_PAIR_ID    S
+    ## 1:              1:M             1:F               1 0.48
+    ## 2:              1:F             1:M               2 0.48
+    ## 3:              2:M             1:F               3 0.24
+    ## 4:              2:F             1:M               4 0.42
+    ## 5:              1:M             2:F               5 0.42
+    ## 6:              1:F             2:M               6 0.24
+    ## 7:              2:M             2:F               7 0.21
+    ## 8:              2:F             2:M               8 0.21
 
-**Next, we simulate true transmission flows.** Let us assume 30% and 45%
-transmissions are within location 1 and 2 respectively, and 10% are from
-location 1 to location 2 and 15% are from location 2 to location 1.
-\(60\%\) of each transmission flow between locations originate from men:
+**Next, we simulate true transmission flows between the sampling
+groups.** Let us assume that 30% and 45% transmissions occur
+respectively within the groups “1” and “2”. Further, 10% are from “1” to
+“2” and 15% are from “2” to “1”. Of all those, 60% originate from men:
 
-\[
+$$
 \pi=(0.12,0.18,0.04,0.06,0.06,0.09,0.18,0.27).
-\] We further assume the total number of observed transmissions is
-\(N=300\). We will simulate the actual transmission count \(Z\) from a
-Poisson distribution. Then we will generate transmission flows between
-groups by \[
-z \sim \mbox{Multinomial} (Z,\pi).
-\] Finally we will generate observed transmissions flows by subsampling
-the actual transmission flows by \[
-n_{ab} \sim \mbox{Binomial} (z_{ab},\xi_{ab}), \forall a,b,
-\] where \(\xi_{ab}\) is the probability of sampling a transmission
-event from \(a\) to \(b\).
+$$
+
+
+We further assume the total number of observed transmissions is
+ $N=300$
+. We will simulate the actual transmission count
+ $Z$
+from a Poisson distribution. Then we will generate transmission flows
+between groups by
+
+$$
+z\sim\mbox{Multinomial} (Z,\pi).
+$$
+
+
+Finally we will generate observed transmissions flows by subsampling the
+actual transmission flows by
+
+$$
+n_{ab}\sim\mbox{Binomial} (z_{ab},\xi_{ab}),\forall a,b,
+$$
+
+
+where
+ $\xi_{ab}$
+is the probability of sampling a transmission event from
+ $a$
+to
+ $b$
+.
 
 ``` r
 TRUE_PI <- c(0.12,0.18,0.04,0.06,0.06,0.09,0.18,0.27)
@@ -272,36 +339,30 @@ n <- matrix(NA_integer_,ncol=1,nrow=length(TRUE_PI))
 for (i in 1:length(TRUE_PI)){
     n[i] <- rbinom(1,size=z[i],dobs$S[i])
 }
-setkey(dobs,TR_COMM_NUM_B,REC_COMM_NUM_B,TR_SEX,REC_SEX)
 dobs[, TRM_OBS:= n]
-dobs.zero<-which(dobs$TRM_OBS!=0)
 dobs<-dobs[TRM_OBS!=0,]
 dobs
 ```
 
-    ##    REC_TRM_CATEGORY TR_TRM_CATEGORY TR_COMM_NUM_B REC_COMM_NUM_B TR_SEX
-    ## 1:              1:M             1:F             1              1      F
-    ## 2:              1:F             1:M             1              1      M
-    ## 3:              2:M             1:F             1              2      F
-    ## 4:              2:F             1:M             1              2      M
-    ## 5:              1:M             2:F             2              1      F
-    ## 6:              1:F             2:M             2              1      M
-    ## 7:              2:M             2:F             2              2      F
-    ## 8:              2:F             2:M             2              2      M
-    ##    REC_SEX TRM_CAT_PAIR_ID    S TRM_OBS
-    ## 1:       M               1 0.48      55
-    ## 2:       F               2 0.48      77
-    ## 3:       M               3 0.24       7
-    ## 4:       F               4 0.42      22
-    ## 5:       M               5 0.42      17
-    ## 6:       F               6 0.24      28
-    ## 7:       M               7 0.21      35
-    ## 8:       F               8 0.21      56
+    ##    REC_TRM_CATEGORY TR_TRM_CATEGORY TRM_CAT_PAIR_ID    S TRM_OBS
+    ## 1:              1:M             1:F               1 0.48      55
+    ## 2:              1:F             1:M               2 0.48      77
+    ## 3:              2:M             1:F               3 0.24       7
+    ## 4:              2:F             1:M               4 0.42      22
+    ## 5:              1:M             2:F               5 0.42      17
+    ## 6:              1:F             2:M               6 0.24      28
+    ## 7:              2:M             2:F               7 0.21      35
+    ## 8:              2:F             2:M               8 0.21      56
 
-**Next, we will bring the transmission count data into the form needed
-for phyloflows MCMC algorithm.** We add an ID to each observation,
-called `TRM_CAT_PAIR_ID`. We also define the sampling groups. In this
-example, they correspond directly to the transmission groups.
+## Corresponding **phyloflows** input data (more complex, GLM)
+
+**We start again by bringing the transmission count data into the form
+needed for phyloflows MCMC algorithm.** We add an ID to each
+observation, called `TRM_CAT_PAIR_ID`. We also define the sampling
+groups. As before, we set them to correspond to the transmission groups
+even if we are only interested in the flows within and between groups
+“1” and “2”. After the model is fitted, we will aggregate the output
+to the flows between groups “1” and “2”.
 
 ``` r
 dobs[, TR_SAMPLING_CATEGORY:=TR_TRM_CATEGORY]
@@ -312,62 +373,95 @@ dobs[, S:=NULL]
 dobs
 ```
 
-    ##    REC_TRM_CATEGORY TR_TRM_CATEGORY TR_COMM_NUM_B REC_COMM_NUM_B TR_SEX
-    ## 1:              1:M             1:F             1              1      F
-    ## 2:              2:M             1:F             1              2      F
-    ## 3:              1:F             1:M             1              1      M
-    ## 4:              2:F             1:M             1              2      M
-    ## 5:              1:M             2:F             2              1      F
-    ## 6:              2:M             2:F             2              2      F
-    ## 7:              1:F             2:M             2              1      M
-    ## 8:              2:F             2:M             2              2      M
-    ##    REC_SEX TRM_CAT_PAIR_ID TRM_OBS TR_SAMPLING_CATEGORY
-    ## 1:       M               1      55                  1:F
-    ## 2:       M               2       7                  1:F
-    ## 3:       F               3      77                  1:M
-    ## 4:       F               4      22                  1:M
-    ## 5:       M               5      17                  2:F
-    ## 6:       M               6      35                  2:F
-    ## 7:       F               7      28                  2:M
-    ## 8:       F               8      56                  2:M
-    ##    REC_SAMPLING_CATEGORY
-    ## 1:                   1:M
-    ## 2:                   2:M
-    ## 3:                   1:F
-    ## 4:                   2:F
-    ## 5:                   1:M
-    ## 6:                   2:M
-    ## 7:                   1:F
-    ## 8:                   2:F
+    ##    REC_TRM_CATEGORY TR_TRM_CATEGORY TRM_CAT_PAIR_ID TRM_OBS
+    ## 1:              1:M             1:F               1      55
+    ## 2:              2:M             1:F               2       7
+    ## 3:              1:F             1:M               3      77
+    ## 4:              2:F             1:M               4      22
+    ## 5:              1:M             2:F               5      17
+    ## 6:              2:M             2:F               6      35
+    ## 7:              1:F             2:M               7      28
+    ## 8:              2:F             2:M               8      56
+    ##    TR_SAMPLING_CATEGORY REC_SAMPLING_CATEGORY
+    ## 1:                  1:F                   1:M
+    ## 2:                  1:F                   2:M
+    ## 3:                  1:M                   1:F
+    ## 4:                  1:M                   2:F
+    ## 5:                  2:F                   1:M
+    ## 6:                  2:F                   2:M
+    ## 7:                  2:M                   1:F
+    ## 8:                  2:M                   2:F
 
-**We still need to define the prior distribution on the unknown sampling
-probabilities, and generate samples from it**. Like Data Set 1, we
-defined the number of infected and sampled individuals in data.frame
-`ds`. Let us denote these by \(X_a^i\) and \(X_a^s\) for our four
-population groups \(a\). We have an additional individual covariate,
-gender denoted as \(x_a\), for population group \(a\) and we will work
-from these data. Under the Binomial sampling model that we assume
-throughout, \(X_a^s\sim Binom(X_a^i, \xi_a)\). Because of dependence of
-sampling rates on covariates and locations \(b\), \(\xi_a\) could be
-linked with a regression with gender,
-\(\mbox{logit}(\xi_{ab})=\beta_0+\gamma_b+\beta_1 x_{a}\). If we suppose
-broad priors on \(\beta_0\) and \(\beta_1\), we obtain the posterior
-distribution of the sampling probabilities conditional on gender, the
-number of total and sampled individuals from rstan.
+**We also need to define the prior distribution on the unknown sampling
+probabilities, and generate samples from it**. This final step is where
+the GLM approach differs from the SARWS approach. For the 4 groups
 
-This density typically contains a lot of information on the sampling
-process. To get this information into the form needed for **phyloflows**
-MCMC algorithm, we need to derive samples from that distribution. We
-also need to calculate their log density.
+$$
+a= 1F, 1M, 2F, 2M
+$$
+
+
+we model the sampling probability by
+
+$$
+X_a^i\sim Binom(X_a^i,\xi_a)
+$$
+
+
+using the same notation as above, and where
+
+$$
+\mbox{logit}(\xi_{a})=\beta_0+\beta_1 * G_a +\beta_2 S_{a}
+$$
+
+
+where
+ $G_a$
+equals 0 if the population group is “1”, and 1 if the population group
+is “2”,
+ $S_a$
+equals 0 if gender is female and 1 if gender is male, and the priors on
+the regression coefficients are quite vague,
+
+$$
+\beta_0\sim N(0,100),\beta_1\sim N(0,10),\beta_2\sim N(0,10).
+$$
+
+
+Next we infer the posterior distribution of sampling probabilities with
+`stan`. The code for the above GLM regression model is as follows:
+
+    data{
+        int<lower=1> N;
+        int SUC[N];
+        int TRIAL[N];
+        int GROUP[N];
+        int MALE[N];
+    }
+    parameters{
+        real a;
+        real grouptwo;
+        real male;
+    }
+    model{
+        vector[N] p_suc;
+        male ~ normal( 0, 10);
+        grouptwo ~ normal( 0, 10);
+        a ~ normal( 0, 100);
+        for ( i in 1:N) {
+            p_suc[i] = a + grouptwo * GROUP[i] + male * MALE[i];
+        }
+        SUC ~ binomial_logit( TRIAL, p_suc);
+    }
+
+Let us fit the model to the sampling data, get samples from the
+posterior distributions, and calculate their log-density values:
 
 ``` r
 library(rstan)
 ```
 
     ## Loading required package: ggplot2
-
-    ## Need help getting started? Try the cookbook for R:
-    ## http://www.cookbook-r.com/Graphs/
 
     ## Loading required package: StanHeaders
 
@@ -379,87 +473,64 @@ library(rstan)
     ## rstan_options(auto_write = TRUE)
 
 ``` r
-library(bayesplot)
-```
-
-    ## This is bayesplot version 1.6.0
-
-    ## - Online documentation and vignettes at mc-stan.org/bayesplot
-
-    ## - bayesplot theme set to bayesplot::theme_default()
-
-    ##    * Does _not_ affect other ggplot2 plots
-
-    ##    * See ?bayesplot_theme_set for details on theme setting
-
-``` r
-infile.sequencing.stan.model<-'glm_sex2comm2.stan'
-#   run STAN 
-tmp         <- as.list(subset(ds,select=c('COMM_NUM_B','TRIAL','SUC','MALE')))
-tmp$N       <- nrow(ds)
-tmp$N_COMM  <- length(unique(ds$COMM_NUM_B))
-fit.par     <- stan(    file = infile.sequencing.stan.model, 
-                  data = tmp, 
-                  iter = 10e3,
+nprior <- 1e3
+infile.sampling.stan.model <- 'glm_sex2comm2.stan' #in vignettes/glm_sex2comm2.stan
+#   run STAN
+tmp <- subset(ds,select=c('SEX','GROUP','TRIAL','SUC'))
+tmp[, GROUP:=as.integer(GROUP==2)]
+tmp[, MALE:= as.integer(SEX=='M')]
+tmp <- as.list(tmp)
+tmp$N <- nrow(ds)
+fit.par <- stan(  file = infile.sampling.stan.model,
+                  data = tmp,
+                  iter = 2e3,
                   warmup = 5e2,
                   cores = 1,
                   chains = 1,
-                  init = list(list(a=0, comm=rep(0,2), sig_comm=1, male=0)))
+                  init = list(list(a=0, grouptwo=0, male=0)))
 ```
 
-    ## 
+    ##
     ## SAMPLING FOR MODEL 'glm_sex2comm2' NOW (CHAIN 1).
-    ## Chain 1: 
+    ## Chain 1:
     ## Chain 1: Gradient evaluation took 1.7e-05 seconds
     ## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.17 seconds.
     ## Chain 1: Adjust your expectations accordingly!
-    ## Chain 1: 
-    ## Chain 1: 
-    ## Chain 1: Iteration:    1 / 10000 [  0%]  (Warmup)
-    ## Chain 1: Iteration:  501 / 10000 [  5%]  (Sampling)
-    ## Chain 1: Iteration: 1500 / 10000 [ 15%]  (Sampling)
-    ## Chain 1: Iteration: 2500 / 10000 [ 25%]  (Sampling)
-    ## Chain 1: Iteration: 3500 / 10000 [ 35%]  (Sampling)
-    ## Chain 1: Iteration: 4500 / 10000 [ 45%]  (Sampling)
-    ## Chain 1: Iteration: 5500 / 10000 [ 55%]  (Sampling)
-    ## Chain 1: Iteration: 6500 / 10000 [ 65%]  (Sampling)
-    ## Chain 1: Iteration: 7500 / 10000 [ 75%]  (Sampling)
-    ## Chain 1: Iteration: 8500 / 10000 [ 85%]  (Sampling)
-    ## Chain 1: Iteration: 9500 / 10000 [ 95%]  (Sampling)
-    ## Chain 1: Iteration: 10000 / 10000 [100%]  (Sampling)
-    ## Chain 1: 
-    ## Chain 1:  Elapsed Time: 0.081532 seconds (Warm-up)
-    ## Chain 1:                1.88541 seconds (Sampling)
-    ## Chain 1:                1.96694 seconds (Total)
+    ## Chain 1:
+    ## Chain 1:
+    ## Chain 1: Iteration:    1 / 2000 [  0%]  (Warmup)
+    ## Chain 1: Iteration:  200 / 2000 [ 10%]  (Warmup)
+    ## Chain 1: Iteration:  400 / 2000 [ 20%]  (Warmup)
+    ## Chain 1: Iteration:  501 / 2000 [ 25%]  (Sampling)
+    ## Chain 1: Iteration:  700 / 2000 [ 35%]  (Sampling)
+    ## Chain 1: Iteration:  900 / 2000 [ 45%]  (Sampling)
+    ## Chain 1: Iteration: 1100 / 2000 [ 55%]  (Sampling)
+    ## Chain 1: Iteration: 1300 / 2000 [ 65%]  (Sampling)
+    ## Chain 1: Iteration: 1500 / 2000 [ 75%]  (Sampling)
+    ## Chain 1: Iteration: 1700 / 2000 [ 85%]  (Sampling)
+    ## Chain 1: Iteration: 1900 / 2000 [ 95%]  (Sampling)
+    ## Chain 1: Iteration: 2000 / 2000 [100%]  (Sampling)
+    ## Chain 1:
+    ## Chain 1:  Elapsed Time: 0.019489 seconds (Warm-up)
+    ## Chain 1:                0.056212 seconds (Sampling)
+    ## Chain 1:                0.075701 seconds (Total)
     ## Chain 1:
 
 ``` r
-# check
-fit.pars    <- c('a','comm','sig_comm','male')
-any(rhat(fit.par, pars=fit.pars)>1.02)
-```
-
-    ## [1] FALSE
-
-``` r
-any(neff_ratio(fit.par, pars=fit.pars) * 9.5e3 < 500)
-```
-
-    ## [1] FALSE
-
-``` r
 # extract samples from the prior distribution
-fit.e       <- extract(fit.par)
-tmp         <- sample(length(fit.e$a), nprior)
-dprior          <- ds[, 
-                   {
-                     z<- with(fit.e, a + comm[,COMM_NUM_B] + male * MALE)
-                     list(SAMPLE=1:nprior, ETA=as.numeric(z[tmp]))
-                   },   
-                   by=c('CATEGORY')]
+fit.e <- extract(fit.par)
+tmp <- sample(length(fit.e$a), nprior)
+ds[, GROUP:=as.integer(GROUP==2)]
+ds[, MALE:= as.integer(SEX=='M')]
+dprior <- ds[,
+               {
+                  z<- with(fit.e, a + grouptwo * GROUP + male * MALE)
+                  list(SAMPLE=1:nprior, ETA=as.numeric(z[tmp]))
+               },
+               by=c('CATEGORY')]
 dprior[, P:= exp(ETA)/(1+exp(ETA))]
 
-# log density
+# calculate log density using the betakernal bounded density estimator
 require(bde)
 ```
 
@@ -467,37 +538,46 @@ require(bde)
 
     ## Loading required package: shiny
 
-    ## 
+    ##
     ## Attaching package: 'bde'
 
     ## The following objects are masked from 'package:stats':
-    ## 
+    ##
     ##     density, quantile
 
     ## The following object is masked from 'package:methods':
-    ## 
+    ##
     ##     getSubclasses
 
 ``` r
-tmp <- dprior[, {
-  bdest<- bde(P, dataPointsCache=sort(P), b=0.001, estimator='betakernel', lower.limit=0, upper.limit=1,
-              options=list(modified=FALSE, normalization='densitywise', mbc='none', c=0.5))
-  list(SAMPLE=SAMPLE, LP=log(density(bdest, P)))
-}, by='CATEGORY']
-dprior  <- merge(dprior, tmp, by=c('CATEGORY','SAMPLE'))
-set(dprior, NULL, c('ETA'), NULL)   
+tmp <- dprior[,
+        {
+            bdest<- bde( P,
+                         dataPointsCache=sort(P),
+                         b=0.001,
+                         estimator='betakernel',
+                         lower.limit=0,
+                         upper.limit=1,
+                         options = list( modified=FALSE,
+                                         normalization='densitywise',
+                                         mbc='none',
+                                         c=0.5))
+            list(SAMPLE=SAMPLE, LP=log(density(bdest, P)))
+         },
+         by='CATEGORY']
+dprior <- merge(dprior, tmp, by=c('CATEGORY','SAMPLE'))
+set(dprior, NULL, c('ETA'), NULL)
 setnames(dprior, 'CATEGORY', 'SAMPLING_CATEGORY')
-
 head(dprior)
 ```
 
     ##    SAMPLING_CATEGORY SAMPLE         P       LP
-    ## 1:               1:F      1 0.8279894 2.780059
-    ## 2:               1:F      2 0.8316006 2.703062
-    ## 3:               1:F      3 0.8056642 2.688324
-    ## 4:               1:F      4 0.7994241 2.499298
-    ## 5:               1:F      5 0.8252191 2.820963
-    ## 6:               1:F      6 0.8211598 2.853287
+    ## 1:               1:F      1 0.8137537 2.734744
+    ## 2:               1:F      2 0.8306980 2.764320
+    ## 3:               1:F      3 0.8358517 2.672081
+    ## 4:               1:F      4 0.8509679 2.052766
+    ## 5:               1:F      5 0.8329906 2.729831
+    ## 6:               1:F      6 0.8468722 2.277597
 
 This data set can be loaded through
 
