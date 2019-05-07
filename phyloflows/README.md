@@ -170,3 +170,6 @@ touch then.
 
 5.  [Calculating sources, onward transmissions and flow
     ratios](vignettes/05_keyquantities.md)
+
+6.  [Testing **phyloflows** multi-level model and
+    MCMC](vignettes/06_test_sampling_adjustments.md)

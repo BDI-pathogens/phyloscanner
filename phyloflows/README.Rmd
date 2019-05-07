@@ -24,6 +24,7 @@ require(ggplot2)
 #	Rscript --vanilla ../inst/misc/rmd2md.Rscript 03_diagnostics.Rmd
 #	Rscript --vanilla ../inst/misc/rmd2md.Rscript 04_aggregating.Rmd
 #	Rscript --vanilla ../inst/misc/rmd2md.Rscript 05_keyquantities.Rmd
+#	Rscript --vanilla ../inst/misc/rmd2md.Rscript 06_test_sampling_adjustments.Rmd
 ```
 
 **phyloflows** provides tools to infer transmission flows within and
@@ -153,3 +154,5 @@ does not work. Just get in touch then.
 5. [Calculating sources, onward transmissions and
    flow ratios](vignettes/05_keyquantities.md)
    
+6. [Testing **phyloflows** multi-level model and
+   MCMC](vignettes/06_test_sampling_adjustments.md)

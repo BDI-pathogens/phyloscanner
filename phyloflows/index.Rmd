@@ -145,4 +145,6 @@ does not work. Just get in touch then.
    
 5. [Calculating sources, onward transmissions and
    flow ratios](articles/05_keyquantities.html)
-      
+
+6. [Testing **phyloflows** multi-level model
+   and MCMC](articles/06_test_sampling_adjustments.html)      

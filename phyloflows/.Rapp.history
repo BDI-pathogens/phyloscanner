@@ -1,3 +1,134 @@
+z			<- dcast.data.table(z, REC_TARGETCAT+TR_MIGRANT+TR_GENDER~P, value.var='Q')
+z
+z			<- z[, list(P=names(quantiles), Q=unname(quantile(VALUE, p=quantiles))), by=c('REC_TARGETCAT','TR_MIGRANT','TR_GENDER')]#
+	z			<- dcast.data.table(z, REC_TARGETCAT+TR_MIGRANT+TR_GENDER~P, value.var='Q')
+quantiles	<- c('CL'=0.025,'IL'=0.25,'M'=0.5,'IU'=0.75,'CU'=0.975)
+z			<- z[, list(P=names(quantiles), Q=unname(quantile(VALUE, p=quantiles))), by=c('REC_TARGETCAT','TR_MIGRANT','TR_GENDER')]#
+	z			<- dcast.data.table(z, REC_TARGETCAT+TR_MIGRANT+TR_GENDER~P, value.var='Q')
+z
+ans			<- copy(z)
+daggregateTo	<- subset(dobs, select=c(TRM_CAT_PAIR_ID, TR_TRM_CATEGORY, REC_TRM_CATEGORY))#
+	daggregateTo[, TR_TARGETCAT:= gsub('.*:([0-9])$','\\1',daggregateTo$TR_TRM_CATEGORY)]#
+	daggregateTo[, REC_TARGETCAT:= gsub('^e$','external',gsub('^f$','fishing',gsub('^a|i|t$','inland',substring(daggregateTo$REC_TRM_CATEGORY,1,1))))]#
+	set(daggregateTo, NULL, c('TR_TRM_CATEGORY','REC_TRM_CATEGORY'), NULL)
+daggregateTo
+daggregateTo$TR_TARGETCAT
+control		<- list(	burnin.p=0.05, #
+			thin=NA_integer_, #
+			regex_pars='PI')#
+	mca			<- source.attribution.mcmc.aggregateToTarget(mcmc.file, daggregateTo, control=control)
+z			<- copy(mca)	#
+	z[, TR_GENDER:= 'Any']#
+	z[, TR_MIGRANT:= TR_TARGETCAT]#
+	z			<- z[, list(TR_MIGRANT=TR_MIGRANT, VALUE=VALUE/sum(VALUE)), by=c('REC_TARGETCAT','TR_GENDER','SAMPLE')]	#
+	z			<- z[, list(P=names(quantiles), Q=unname(quantile(VALUE, p=quantiles))), by=c('REC_TARGETCAT','TR_MIGRANT','TR_GENDER')]#
+	z			<- dcast.data.table(z, REC_TARGETCAT+TR_MIGRANT+TR_GENDER~P, value.var='Q')
+z
+ans			<- rbind(ans,z)
+daggregateTo	<- subset(dobs, select=c(TRM_CAT_PAIR_ID, TR_TRM_CATEGORY, REC_TRM_CATEGORY))#
+	daggregateTo[, TR_TARGETCAT:= paste0(	gsub('^[a-z]+:([FM]):.*','\\1', TR_TRM_CATEGORY),#
+									':',#
+									gsub('.*:([0-9])$','\\1',daggregateTo$TR_TRM_CATEGORY)#
+									)]#
+	daggregateTo[, REC_TARGETCAT:= gsub('^e$','external',gsub('^f$','fishing',gsub('^a|i|t$','inland',substring(daggregateTo$REC_TRM_CATEGORY,1,1))))]
+daggregateTo
+set(daggregateTo, NULL, c('TR_TRM_CATEGORY','REC_TRM_CATEGORY'), NULL)	#
+	control		<- list(	burnin.p=0.05, #
+			thin=NA_integer_, #
+			regex_pars='PI')#
+	mca			<- source.attribution.mcmc.aggregateToTarget(mcmc.file, daggregateTo, control=control)	#
+	z			<- copy(mca)
+z[, TR_GENDER:= gsub('^([FM]):([0-1])','\\1', TR_TARGETCAT)]#
+	z[, TR_MIGRANT:= gsub('^([FM]):([0-1])','\\2', TR_TARGETCAT)]
+z
+z			<- z[, list(TR_MIGRANT=TR_MIGRANT, TR_GENDER=TR_GENDER, VALUE=VALUE/sum(VALUE)), by=c('REC_TARGETCAT','SAMPLE')]	#
+	z			<- z[, list(P=names(quantiles), Q=unname(quantile(VALUE, p=quantiles))), by=c('REC_TARGETCAT','TR_MIGRANT','TR_GENDER')]#
+	z			<- dcast.data.table(z, REC_TARGETCAT+TR_MIGRANT+TR_GENDER~P, value.var='Q')
+z
+ans			<- rbind(ans,z)
+ans
+tmp			<- subset(ans, TR_MIGRANT!='Any' & TR_GENDER!='Any')
+tmp
+tmp			<- subset(ans, TR_MIGRANT!='Any' & TR_GENDER!='Any')#
+	tmp[, TR_GENDER:= factor(TR_GENDER, levels=c('M','F'), labels=c('men','women'))]#
+	tmp[, TR_MIGRANT:= factor(TR_GENDER, levels=c('0','1'), labels=c('resident','in-migrant'))]#
+	tmp[, TR:= paste0(TR_GENDER,', ',TR_MIGRANT)]
+tmp
+tmp			<- subset(ans, TR_MIGRANT!='Any' & TR_GENDER!='Any')#
+	tmp[, TR_GENDER:= factor(TR_GENDER, levels=c('M','F'), labels=c('men','women'))]#
+	tmp[, TR_MIGRANT:= factor(TR_MIGRANT, levels=c('0','1'), labels=c('resident','in-migrant'))]#
+	tmp[, TR:= paste0(TR_GENDER,', ',TR_MIGRANT)]
+tmp
+ggplot(tmp) +#
+			geom_boxplot(aes(x=TR, ymin=CL, ymax=CU, lower=IL, upper=IU, middle=M), stat='identity', fill='grey50') +#
+			theme_bw() +#
+			scale_y_continuous(labels=scales:::percent, lim=c(0,1)) +#
+			facet_grid(~REC_TARGETCAT)
+tmp			<- subset(ans, TR_MIGRANT!='Any' & TR_GENDER!='Any')#
+	tmp[, TR_GENDER:= factor(TR_GENDER, levels=c('M','F'), labels=c('men','women'))]#
+	tmp[, TR_MIGRANT:= factor(TR_MIGRANT, levels=c('0','1'), labels=c('resident','in-migrating'))]#
+	tmp[, TR:= paste0(TR_MIGRANT,', ',TR_GENDER)]
+tmp
+tmp[, TR:= paste0(TR_MIGRANT,' ',TR_GENDER)]
+tmp
+ggplot(tmp) +#
+			geom_boxplot(aes(x=TR, ymin=CL, ymax=CU, lower=IL, upper=IU, middle=M), stat='identity', fill='grey50') +#
+			theme_bw() +#
+			scale_y_continuous(labels=scales:::percent, lim=c(0,1)) +#
+			facet_grid(~REC_TARGETCAT)
+ggplot(tmp) +#
+			geom_boxplot(aes(x=TR, ymin=CL, ymax=CU, lower=IL, upper=IU, middle=M), stat='identity', fill='grey50') +#
+			theme_bw() +#
+			scale_y_continuous(labels=scales:::percent, lim=c(0,1)) +#
+			facet_grid(~REC_TARGETCAT) +#
+			labs(x='\ntransmitter group')
+tmp[, REC_TARGETCAT:= factor(REC_TARGETCAT, levels=c('fishing','inland'), labels=c('sources of transmissions\nin RCCS fishing communities','sources of transmissions\nin RCCS inland communities'))]#
+	ggplot(tmp) +#
+			geom_boxplot(aes(x=TR, ymin=CL, ymax=CU, lower=IL, upper=IU, middle=M), stat='identity', fill='grey50') +#
+			theme_bw() +#
+			scale_y_continuous(labels=scales:::percent, lim=c(0,1)) +#
+			facet_grid(~REC_TARGETCAT) +#
+			labs(x='\ntransmitter group')
+ggplot(tmp) +#
+			geom_boxplot(aes(x=TR, ymin=CL, ymax=CU, lower=IL, upper=IU, middle=M), stat='identity', fill='grey50') +#
+			theme_bw() +#
+			scale_y_continuous(labels=scales:::percent, lim=c(0,1), expand=c(0,0)) +#
+			facet_grid(~REC_TARGETCAT) +#
+			labs(x='\ntransmitter group')
+ggsave(file=gsub('\\.rda','_sourcesByGenderAndMigration.pdf',mcmc.file), w=10, h=5, useDingbats=FALSE)
+ggplot(tmp) +#
+			geom_boxplot(aes(x=TR, ymin=CL, ymax=CU, lower=IL, upper=IU, middle=M), stat='identity', fill='grey50', width=0.7) +#
+			theme_bw() +#
+			scale_y_continuous(labels=scales:::percent, lim=c(0,1), expand=c(0,0)) +#
+			facet_grid(~REC_TARGETCAT) +#
+			labs(x='\ntransmitter group')#
+	ggsave(file=gsub('\\.rda','_sourcesByGenderAndMigration.pdf',mcmc.file), w=10, h=5, useDingbats=FALSE)
+ggplot(tmp) +#
+			geom_boxplot(aes(x=TR, ymin=CL, ymax=CU, lower=IL, upper=IU, middle=M), stat='identity', fill='grey50', width=0.5) +#
+			theme_bw() +#
+			scale_y_continuous(labels=scales:::percent, lim=c(0,1), expand=c(0,0)) +#
+			facet_grid(~REC_TARGETCAT) +#
+			labs(x='\ntransmitter group')#
+	ggsave(file=gsub('\\.rda','_sourcesByGenderAndMigration.pdf',mcmc.file), w=10, h=5, useDingbats=FALSE)
+ggplot(tmp) +#
+			geom_boxplot(aes(x=TR, ymin=CL, ymax=CU, lower=IL, upper=IU, middle=M), stat='identity', fill='grey50', width=0.7) +#
+			theme_bw() +#
+			scale_y_continuous(labels=scales:::percent, lim=c(0,1), expand=c(0,0)) +#
+			facet_grid(~REC_TARGETCAT) +#
+			labs(x='\ntransmitter group')#
+	ggsave(file=gsub('\\.rda','_sourcesByGenderAndMigration.pdf',mcmc.file), w=10, h=8, useDingbats=FALSE)
+ans
+tmp			<- subset(ans, TR_MIGRANT=='Any')
+tmp
+tmp[, TR_GENDER:= factor(TR_GENDER, levels=c('M','F'), labels=c('men','women'))]	#
+	tmp[, TR:= TR_GENDER]#
+	tmp[, REC_TARGETCAT:= factor(REC_TARGETCAT, levels=c('fishing','inland'), labels=c('sources of transmissions\nin RCCS fishing communities','sources of transmissions\nin RCCS inland communities'))]#
+	ggplot(tmp) +#
+			geom_boxplot(aes(x=TR, ymin=CL, ymax=CU, lower=IL, upper=IU, middle=M), stat='identity', fill='grey50', width=0.7) +#
+			theme_bw() +#
+			scale_y_continuous(labels=scales:::percent, lim=c(0,1), expand=c(0,0)) +#
+			facet_grid(~REC_TARGETCAT) +#
+			labs(x='\ntransmitter group')
 ggsave(file=gsub('\\.rda','_sourcesByGender.pdf',mcmc.file), w=10, h=8, useDingbats=FALSE)
 tmp
 tmp			<- subset(ans, TR_MIGRANT=='Any')#
@@ -4487,458 +4618,8 @@ build_articles('~/git/phyloscanner/phyloflows')
 build_article('~/git/phyloscanner/phyloflows')
 require(pkgdown)
 build_site('~/git/phyloscanner/phyloflows')
-require(pkdown)
-require(rmarkdown)
-require(data.table)
-setwd('~/git/phyloscanner/phyloflows')
-for(x in c("README.Rmd","vignettes/01_simulating_data.Rmd","vignettes/02_basic_example.Rmd","vignettes/03_diagnostics.Rmd","vignettes/04_aggregating.Rmd")) rmarkdown::render(x)
-build_site()
 require(pkgdown)
-build_site()
-build_site()
-for(x in c("README.Rmd","vignettes/01_simulating_data.Rmd","vignettes/02_basic_example.Rmd","vignettes/03_diagnostics.Rmd","vignettes/04_aggregating.Rmd")) rmarkdown::render(x)
-for(x in c("vignettes/02_basic_example.Rmd","vignettes/03_diagnostics.Rmd","vignettes/04_aggregating.Rmd")) rmarkdown::render(x)
-for(x in c("README.Rmd","vignettes/01_simulating_data.Rmd","vignettes/02_basic_example.Rmd","vignettes/03_diagnostics.Rmd","vignettes/04_aggregating.Rmd")) rmarkdown::render(x)
-for(x in c("README.Rmd")) rmarkdown::render(x)
-build_home()
+setwd("/Users/Oliver/git/phyloscanner/phyloflows")
 build_articles()
-build_home()
+require(phyloflows)
 build_articles()
-require(roxygen)
-require(roxygen2)
-roxygenize('~/git/phyloscanner/phyloflows')
-roxygenize('~/git/phyloscanner/phyloflows')
-str(mc)
-control <- list(  quantiles= c('CL'=0.025,'IL'=0.25,'M'=0.5,'IU'=0.75,'CU'=0.975),#
-                  flowratios= list( c('1/2', '1 2', '2 1'), c('2/1', '2 1', '1 2'))#
-                  )
-source.attribution.mcmc.getKeyQuantities(mc=mc, control=control)
-source.attribution.mcmc.getKeyQuantities(mc=mc, infile=NULL, pars=NULL, control=control)
-source.attribution.mcmc.getKeyQuantities<- function(infile=NULL, mc=NULL, pars=NULL, dobs=NULL, control=NULL)#
-{#
-	if(is.null(mc) & is.null(pars) & !is.null(infile) && grepl('rda$',infile))#
-	{#
-		tmp			<- load(infile)#
-		if(tmp=='pars')#
-		{#
-			cat('\nReading aggregated MCMC output...')			#
-		}#
-		if(tmp=='mc')#
-		{#
-			cat('\nReading MCMC output...')			#
-		}				#
-	}#
-	if(is.null(mc) & is.null(pars) & !is.null(infile) && grepl('csv$',infile))#
-	{#
-		cat('\nReading aggregated MCMC output...')#
-		pars		<- as.data.table(read.csv(infile, stringsAsFactors=FALSE))			#
-	}#
-	if(!is.null(mc))#
-	{#
-		if(is.null(dobs))#
-			stop('Found unaggregated MCMC output, need dobs to continue')#
-		# make data.table in long format#
-		pars	<- mc[['pars']][['PI']]#
-		colnames(pars)	<- paste0('PI-',seq_len(ncol(mc[['pars']][['PI']])))#
-		pars	<- as.data.table(pars)#
-		pars[, SAMPLE:= seq_len(nrow(pars))]#
-		pars	<- melt(pars, id.vars='SAMPLE')#
-		pars[, VARIABLE:= pars[, gsub('([A-Z]+)-([0-9]+)','\\1',variable)]]#
-		pars[, TRM_CAT_PAIR_ID:= pars[, as.integer(gsub('([A-Z]+)-([0-9]+)','\\2',variable))]]#
-		if(!all(sort(unique(pars$TRM_CAT_PAIR_ID))==sort(unique(dobs$TRM_CAT_PAIR_ID))))#
-			stop('The transmission count categories in the MCMC output do not match the transmission count categories in the aggregateTo data table.')		#
-		pars	<- merge(pars, dobs, by='TRM_CAT_PAIR_ID')#
-		setnames(pars, c('TR_TRM_CATEGORY','REC_TRM_CATEGORY'), c('TR_TARGETCAT','REC_TARGETCAT'))#
-		pars	<- pars[, list(VALUE=sum(value)), by=c('VARIABLE','TR_TARGETCAT','REC_TARGETCAT','SAMPLE')]		#
-	}#
-	pars		<- subset(pars, VARIABLE=='PI')#
-	if(any(is.na(pars$VALUE)))#
-	{#
-		cat('\nRemoving NA output for samples n=', nrow(subset(pars, is.na(VALUE))))#
-		pars		<- subset(pars, !is.na(VALUE))#
-	}#
-	cat('\nComputing flows...')#
-	#	calculate flows#
-	z		<- pars[, list(P=names(control$quantiles), Q=unname(quantile(VALUE, p=control$quantiles))), by=c('TR_TARGETCAT','REC_TARGETCAT')]#
-	z		<- dcast.data.table(z, TR_TARGETCAT+REC_TARGETCAT~P, value.var='Q')#
-	z[, LABEL:= paste0(round(M*100, d=1), '%\n[',round(CL*100,d=1),'% - ',round(CU*100,d=1),'%]')]#
-	z[, LABEL2:= paste0(round(M*100, d=1), '% (',round(CL*100,d=1),'%-',round(CU*100,d=1),'%)')]#
-	setkey(z, TR_TARGETCAT, REC_TARGETCAT )#
-	z[, STAT:='flows']#
-	ans		<- copy(z)#
-	gc()#
-	cat('\nComputing WAIFM...')#
-	#	calculate WAIFM#
-	z		<- pars[, list(REC_TARGETCAT=REC_TARGETCAT, VALUE=VALUE/sum(VALUE)), by=c('TR_TARGETCAT','SAMPLE')]#
-	z		<- z[, list(P=names(control$quantiles), Q=unname(quantile(VALUE, p=control$quantiles))), by=c('TR_TARGETCAT','REC_TARGETCAT')]#
-	z		<- dcast.data.table(z, TR_TARGETCAT+REC_TARGETCAT~P, value.var='Q')#
-	z[, LABEL:= paste0(round(M*100, d=1), '%\n[',round(CL*100,d=1),'% - ',round(CU*100,d=1),'%]')]#
-	z[, LABEL2:= paste0(round(M*100, d=1), '% (',round(CL*100,d=1),'%-',round(CU*100,d=1),'%)')]#
-	setkey(z, TR_TARGETCAT, REC_TARGETCAT )#
-	z[, STAT:='waifm']#
-	ans		<- rbind(ans,z)#
-	gc()#
-	cat('\nComputing sources...')#
-	#	calculate sources#
-	z		<- pars[, list(TR_TARGETCAT=TR_TARGETCAT, VALUE=VALUE/sum(VALUE)), by=c('REC_TARGETCAT','SAMPLE')]#
-	z		<- z[, list(P=names(control$quantiles), Q=unname(quantile(VALUE, p=control$quantiles))), by=c('TR_TARGETCAT','REC_TARGETCAT')]#
-	z		<- dcast.data.table(z, TR_TARGETCAT+REC_TARGETCAT~P, value.var='Q')#
-	z[, LABEL:= paste0(round(M*100, d=1), '%\n[',round(CL*100,d=1),'% - ',round(CU*100,d=1),'%]')]#
-	z[, LABEL2:= paste0(round(M*100, d=1), '% (',round(CL*100,d=1),'%-',round(CU*100,d=1),'%)')]#
-	setkey(z, REC_TARGETCAT, TR_TARGETCAT )#
-	z[, STAT:='sources']#
-	ans		<- rbind(ans,z)#
-	gc()#
-	if(length(control$flowratios)>0)#
-	{#
-		cat('\nComputing flow ratios...')#
-		#	calculate transmission flow ratios#
-		z		<- copy(pars)#
-		z[, FLOW:=paste0(TR_TARGETCAT,' ',REC_TARGETCAT)]#
-		z		<- dcast.data.table(z, SAMPLE~FLOW, value.var='VALUE')#
-		set(z, NULL, colnames(z)[!colnames(z)%in%c('SAMPLE',unlist(control$flowratios))], NULL)#
-		for(ii in seq_along(control$flowratios))#
-		{#
-			if(!control$flowratios[[ii]][2]%in%colnames(z))#
-			{#
-				warning('\nColumn name ',control$flowratios[[ii]][2],' not in MCMC output. Setting to 0.')#
-				set(z, NULL, control$flowratios[[ii]][2], 0)#
-			}#
-			if(!control$flowratios[[ii]][3]%in%colnames(z))#
-			{#
-				warning('\nColumn name ',control$flowratios[[ii]][3],' not in MCMC output. Setting to 0.')#
-				set(z, NULL, control$flowratios[[ii]][3], 0)#
-			}#
-			set(z, NULL, control$flowratios[[ii]][1], z[[ control$flowratios[[ii]][2] ]] /  z[[ control$flowratios[[ii]][3] ]])#
-			set(z, NULL, c(control$flowratios[[ii]][2],control$flowratios[[ii]][3]), NULL)#
-		}#
-		z		<- melt(z, id.vars='SAMPLE', value.name='VALUE', variable.name='FLOWRATIO_CAT')#
-		z		<- z[, list(P=names(control$quantiles), Q=unname(quantile(VALUE, p=control$quantiles))), by=c('FLOWRATIO_CAT')]#
-		z		<- dcast.data.table(z, FLOWRATIO_CAT~P, value.var='Q')#
-		z[, LABEL:= paste0(round(M, d=2), '\n[',round(CL,d=2),' - ',round(CU,d=2),']')]#
-		z[, LABEL2:= paste0(round(M, d=2), ' (',round(CL,d=2),'-',round(CU,d=2),')')]#
-		z[, STAT:='flow_ratio']#
-		ans		<- rbind(ans,z, fill=TRUE)#
-		gc()#
-	}#
-	if(!'outfile'%in%names(control))#
-		return(ans)	#
-	cat('\nWriting output to',control$outfile)#
-	write.csv(ans, row.names=FALSE,file=control$outfile)#
-}
-source.attribution.mcmc.getKeyQuantities(mc=mc, infile=NULL, pars=NULL, control=control)
-source.attribution.mcmc.getKeyQuantities(mc=mc, dobs=dobs, control=control)
-source.attribution.mcmc.getKeyQuantities<- function(infile=NULL, mc=NULL, pars=NULL, dobs=NULL, control=NULL)#
-{#
-	if(is.null(mc) & is.null(pars) & !is.null(infile) && grepl('rda$',infile))#
-	{#
-		tmp			<- load(infile)#
-		if(tmp=='pars')#
-		{#
-			cat('\nReading aggregated MCMC output...')			#
-		}#
-		if(tmp=='mc')#
-		{#
-			cat('\nReading MCMC output...')			#
-		}				#
-	}#
-	if(is.null(mc) & is.null(pars) & !is.null(infile) && grepl('csv$',infile))#
-	{#
-		cat('\nReading aggregated MCMC output...')#
-		pars		<- as.data.table(read.csv(infile, stringsAsFactors=FALSE))			#
-	}#
-	if(!is.null(mc))#
-	{#
-		if(is.null(dobs))#
-			stop('Found unaggregated MCMC output, need dobs to continue')#
-		# make data.table in long format#
-		pars	<- mc[['pars']][['PI']]#
-		colnames(pars)	<- paste0('PI-',seq_len(ncol(mc[['pars']][['PI']])))#
-		pars	<- as.data.table(pars)#
-		pars[, SAMPLE:= seq_len(nrow(pars))]#
-		pars	<- melt(pars, id.vars='SAMPLE')#
-		pars[, VARIABLE:= pars[, gsub('([A-Z]+)-([0-9]+)','\\1',variable)]]#
-		pars[, TRM_CAT_PAIR_ID:= pars[, as.integer(gsub('([A-Z]+)-([0-9]+)','\\2',variable))]]#
-		if(!all(sort(unique(pars$TRM_CAT_PAIR_ID))==sort(unique(dobs$TRM_CAT_PAIR_ID))))#
-			stop('The transmission count categories in the MCMC output do not match the transmission count categories in the aggregateTo data table.')		#
-		pars	<- merge(pars, dobs, by='TRM_CAT_PAIR_ID')#
-		setnames(pars, c('TR_TRM_CATEGORY','REC_TRM_CATEGORY'), c('TR_TARGETCAT','REC_TARGETCAT'))#
-		pars	<- pars[, list(VALUE=sum(value)), by=c('VARIABLE','TR_TARGETCAT','REC_TARGETCAT','SAMPLE')]		#
-	}#
-	pars		<- subset(pars, VARIABLE=='PI')#
-	if(any(is.na(pars$VALUE)))#
-	{#
-		cat('\nRemoving NA output for samples n=', nrow(subset(pars, is.na(VALUE))))#
-		pars		<- subset(pars, !is.na(VALUE))#
-	}#
-	cat('\nComputing flows...')#
-	#	calculate flows#
-	z		<- pars[, list(P=names(control$quantiles), Q=unname(quantile(VALUE, p=control$quantiles))), by=c('TR_TARGETCAT','REC_TARGETCAT')]#
-	z		<- dcast.data.table(z, TR_TARGETCAT+REC_TARGETCAT~P, value.var='Q')#
-	z[, LABEL:= paste0(round(M*100, d=1), '%\n[',round(CL*100,d=1),'% - ',round(CU*100,d=1),'%]')]#
-	z[, LABEL2:= paste0(round(M*100, d=1), '% (',round(CL*100,d=1),'%-',round(CU*100,d=1),'%)')]#
-	setkey(z, TR_TARGETCAT, REC_TARGETCAT )#
-	z[, STAT:='flows']#
-	ans		<- copy(z)#
-	gc()#
-	cat('\nComputing WAIFM...')#
-	#	calculate WAIFM#
-	z		<- pars[, list(REC_TARGETCAT=REC_TARGETCAT, VALUE=VALUE/sum(VALUE)), by=c('TR_TARGETCAT','SAMPLE')]#
-	z		<- z[, list(P=names(control$quantiles), Q=unname(quantile(VALUE, p=control$quantiles))), by=c('TR_TARGETCAT','REC_TARGETCAT')]#
-	z		<- dcast.data.table(z, TR_TARGETCAT+REC_TARGETCAT~P, value.var='Q')#
-	z[, LABEL:= paste0(round(M*100, d=1), '%\n[',round(CL*100,d=1),'% - ',round(CU*100,d=1),'%]')]#
-	z[, LABEL2:= paste0(round(M*100, d=1), '% (',round(CL*100,d=1),'%-',round(CU*100,d=1),'%)')]#
-	setkey(z, TR_TARGETCAT, REC_TARGETCAT )#
-	z[, STAT:='waifm']#
-	ans		<- rbind(ans,z)#
-	gc()#
-	cat('\nComputing sources...')#
-	#	calculate sources#
-	z		<- pars[, list(TR_TARGETCAT=TR_TARGETCAT, VALUE=VALUE/sum(VALUE)), by=c('REC_TARGETCAT','SAMPLE')]#
-	z		<- z[, list(P=names(control$quantiles), Q=unname(quantile(VALUE, p=control$quantiles))), by=c('TR_TARGETCAT','REC_TARGETCAT')]#
-	z		<- dcast.data.table(z, TR_TARGETCAT+REC_TARGETCAT~P, value.var='Q')#
-	z[, LABEL:= paste0(round(M*100, d=1), '%\n[',round(CL*100,d=1),'% - ',round(CU*100,d=1),'%]')]#
-	z[, LABEL2:= paste0(round(M*100, d=1), '% (',round(CL*100,d=1),'%-',round(CU*100,d=1),'%)')]#
-	setkey(z, REC_TARGETCAT, TR_TARGETCAT )#
-	z[, STAT:='sources']#
-	ans		<- rbind(ans,z)#
-	gc()#
-	if(length(control$flowratios)>0)#
-	{#
-		cat('\nComputing flow ratios...')#
-		#	calculate transmission flow ratios#
-		z		<- copy(pars)#
-		z[, FLOW:=paste0(TR_TARGETCAT,' ',REC_TARGETCAT)]#
-		z		<- dcast.data.table(z, SAMPLE~FLOW, value.var='VALUE')#
-		set(z, NULL, colnames(z)[!colnames(z)%in%c('SAMPLE',unlist(control$flowratios))], NULL)		#
-		for(ii in seq_along(control$flowratios))#
-		{#
-			if(!control$flowratios[[ii]][2]%in%colnames(z))#
-			{#
-				cat('\nColumn names in MCMC output are', colnames(z))#
-				warning('\nColumn name ',control$flowratios[[ii]][2],' not in MCMC output. Setting to 0.')#
-				set(z, NULL, control$flowratios[[ii]][2], 0)#
-			}#
-			if(!control$flowratios[[ii]][3]%in%colnames(z))#
-			{#
-				cat('\nColumn names in MCMC output are', colnames(z))#
-				warning('\nColumn name ',control$flowratios[[ii]][3],' not in MCMC output. Setting to 0.')#
-				set(z, NULL, control$flowratios[[ii]][3], 0)#
-			}#
-			set(z, NULL, control$flowratios[[ii]][1], z[[ control$flowratios[[ii]][2] ]] /  z[[ control$flowratios[[ii]][3] ]])#
-			set(z, NULL, c(control$flowratios[[ii]][2],control$flowratios[[ii]][3]), NULL)#
-		}#
-		z		<- melt(z, id.vars='SAMPLE', value.name='VALUE', variable.name='FLOWRATIO_CAT')#
-		z		<- z[, list(P=names(control$quantiles), Q=unname(quantile(VALUE, p=control$quantiles))), by=c('FLOWRATIO_CAT')]#
-		z		<- dcast.data.table(z, FLOWRATIO_CAT~P, value.var='Q')#
-		z[, LABEL:= paste0(round(M, d=2), '\n[',round(CL,d=2),' - ',round(CU,d=2),']')]#
-		z[, LABEL2:= paste0(round(M, d=2), ' (',round(CL,d=2),'-',round(CU,d=2),')')]#
-		z[, STAT:='flow_ratio']#
-		ans		<- rbind(ans,z, fill=TRUE)#
-		gc()#
-	}#
-	if(!'outfile'%in%names(control))#
-		return(ans)	#
-	cat('\nWriting output to',control$outfile)#
-	write.csv(ans, row.names=FALSE,file=control$outfile)#
-}
-source.attribution.mcmc.getKeyQuantities(mc=mc, dobs=dobs, control=control)
-pars
-str(mc)
-if(is.null(dobs))#
-			stop('Found unaggregated MCMC output, need dobs to continue')#
-		# make data.table in long format#
-		pars	<- mc[['pars']][['PI']]#
-		colnames(pars)	<- paste0('PI-',seq_len(ncol(mc[['pars']][['PI']])))#
-		pars	<- as.data.table(pars)#
-		pars[, SAMPLE:= seq_len(nrow(pars))]#
-		pars	<- melt(pars, id.vars='SAMPLE')#
-		pars[, VARIABLE:= pars[, gsub('([A-Z]+)-([0-9]+)','\\1',variable)]]#
-		pars[, TRM_CAT_PAIR_ID:= pars[, as.integer(gsub('([A-Z]+)-([0-9]+)','\\2',variable))]]#
-		if(!all(sort(unique(pars$TRM_CAT_PAIR_ID))==sort(unique(dobs$TRM_CAT_PAIR_ID))))#
-			stop('The transmission count categories in the MCMC output do not match the transmission count categories in the aggregateTo data table.')		#
-		pars	<- merge(pars, dobs, by='TRM_CAT_PAIR_ID')#
-		setnames(pars, c('TR_TRM_CATEGORY','REC_TRM_CATEGORY'), c('TR_TARGETCAT','REC_TARGETCAT'))#
-		pars	<- pars[, list(VALUE=sum(value)), by=c('VARIABLE','TR_TARGETCAT','REC_TARGETCAT','SAMPLE')]
-pars
-pars		<- subset(pars, VARIABLE=='PI')
-z		<- copy(pars)#
-		z[, FLOW:=paste0(TR_TARGETCAT,' ',REC_TARGETCAT)]#
-		z		<- dcast.data.table(z, SAMPLE~FLOW, value.var='VALUE')#
-		set(z, NULL, colnames(z)[!colnames(z)%in%c('SAMPLE',unlist(control$flowratios))], NULL)
-z
-colnames(z)
-control <- list(  quantiles= c('CL'=0.025,'IL'=0.25,'M'=0.5,'IU'=0.75,'CU'=0.975),#
-                  flowratios= list( c('1/2', '1 2', '2 1'), c('2/1', '2 1', '1 2'))#
-                  )
-for(ii in seq_along(control$flowratios))#
-		{#
-			if(!control$flowratios[[ii]][2]%in%colnames(z))#
-			{#
-				cat('\nColumn names in MCMC output are', colnames(z))#
-				warning('\nColumn name ',control$flowratios[[ii]][2],' not in MCMC output. Setting to 0.')#
-				set(z, NULL, control$flowratios[[ii]][2], 0)#
-			}#
-			if(!control$flowratios[[ii]][3]%in%colnames(z))#
-			{#
-				cat('\nColumn names in MCMC output are', colnames(z))#
-				warning('\nColumn name ',control$flowratios[[ii]][3],' not in MCMC output. Setting to 0.')#
-				set(z, NULL, control$flowratios[[ii]][3], 0)#
-			}#
-			set(z, NULL, control$flowratios[[ii]][1], z[[ control$flowratios[[ii]][2] ]] /  z[[ control$flowratios[[ii]][3] ]])#
-			set(z, NULL, c(control$flowratios[[ii]][2],control$flowratios[[ii]][3]), NULL)#
-		}
-z
-z		<- copy(pars)#
-		z[, FLOW:=paste0(TR_TARGETCAT,' ',REC_TARGETCAT)]#
-		z		<- dcast.data.table(z, SAMPLE~FLOW, value.var='VALUE')#
-		set(z, NULL, colnames(z)[!colnames(z)%in%c('SAMPLE',unlist(control$flowratios))], NULL)
-z
-ii<- 1
-control$flowratios[[ii]][2]%in%colnames(z)
-control$flowratios[[ii]][3]%in%colnames(z)
-for(ii in seq_along(control$flowratios))#
-		{#
-			if(!control$flowratios[[ii]][2]%in%colnames(z))#
-			{#
-				cat('\nColumn names in MCMC output are', colnames(z))#
-				warning('\nColumn name ',control$flowratios[[ii]][2],' not in MCMC output. Setting to 0.')#
-				set(z, NULL, control$flowratios[[ii]][2], 0)#
-			}#
-			if(!control$flowratios[[ii]][3]%in%colnames(z))#
-			{#
-				cat('\nColumn names in MCMC output are', colnames(z))#
-				warning('\nColumn name ',control$flowratios[[ii]][3],' not in MCMC output. Setting to 0.')#
-				set(z, NULL, control$flowratios[[ii]][3], 0)#
-			}#
-			set(z, NULL, control$flowratios[[ii]][1], z[[ control$flowratios[[ii]][2] ]] /  z[[ control$flowratios[[ii]][3] ]])			#
-		}
-z
-for(ii in seq_along(control$flowratios))#
-		{#
-			set(z, NULL, c(control$flowratios[[ii]][2],control$flowratios[[ii]][3]), NULL)	#
-		}		#
-		z		<- melt(z, id.vars='SAMPLE', value.name='VALUE', variable.name='FLOWRATIO_CAT')#
-		z		<- z[, list(P=names(control$quantiles), Q=unname(quantile(VALUE, p=control$quantiles))), by=c('FLOWRATIO_CAT')]#
-		z		<- dcast.data.table(z, FLOWRATIO_CAT~P, value.var='Q')#
-		z[, LABEL:= paste0(round(M, d=2), '\n[',round(CL,d=2),' - ',round(CU,d=2),']')]#
-		z[, LABEL2:= paste0(round(M, d=2), ' (',round(CL,d=2),'-',round(CU,d=2),')')]#
-		z[, STAT:='flow_ratio']
-z
-source.attribution.mcmc.getKeyQuantities<- function(infile=NULL, mc=NULL, pars=NULL, dobs=NULL, control=NULL)#
-{#
-	if(is.null(mc) & is.null(pars) & !is.null(infile) && grepl('rda$',infile))#
-	{#
-		tmp			<- load(infile)#
-		if(tmp=='pars')#
-		{#
-			cat('\nReading aggregated MCMC output...')			#
-		}#
-		if(tmp=='mc')#
-		{#
-			cat('\nReading MCMC output...')			#
-		}				#
-	}#
-	if(is.null(mc) & is.null(pars) & !is.null(infile) && grepl('csv$',infile))#
-	{#
-		cat('\nReading aggregated MCMC output...')#
-		pars		<- as.data.table(read.csv(infile, stringsAsFactors=FALSE))			#
-	}#
-	if(!is.null(mc))#
-	{#
-		if(is.null(dobs))#
-			stop('Found unaggregated MCMC output, need dobs to continue')#
-		# make data.table in long format#
-		pars	<- mc[['pars']][['PI']]#
-		colnames(pars)	<- paste0('PI-',seq_len(ncol(mc[['pars']][['PI']])))#
-		pars	<- as.data.table(pars)#
-		pars[, SAMPLE:= seq_len(nrow(pars))]#
-		pars	<- melt(pars, id.vars='SAMPLE')#
-		pars[, VARIABLE:= pars[, gsub('([A-Z]+)-([0-9]+)','\\1',variable)]]#
-		pars[, TRM_CAT_PAIR_ID:= pars[, as.integer(gsub('([A-Z]+)-([0-9]+)','\\2',variable))]]#
-		if(!all(sort(unique(pars$TRM_CAT_PAIR_ID))==sort(unique(dobs$TRM_CAT_PAIR_ID))))#
-			stop('The transmission count categories in the MCMC output do not match the transmission count categories in the aggregateTo data table.')		#
-		pars	<- merge(pars, dobs, by='TRM_CAT_PAIR_ID')#
-		setnames(pars, c('TR_TRM_CATEGORY','REC_TRM_CATEGORY'), c('TR_TARGETCAT','REC_TARGETCAT'))#
-		pars	<- pars[, list(VALUE=sum(value)), by=c('VARIABLE','TR_TARGETCAT','REC_TARGETCAT','SAMPLE')]		#
-	}#
-	pars		<- subset(pars, VARIABLE=='PI')#
-	if(any(is.na(pars$VALUE)))#
-	{#
-		cat('\nRemoving NA output for samples n=', nrow(subset(pars, is.na(VALUE))))#
-		pars		<- subset(pars, !is.na(VALUE))#
-	}#
-	cat('\nComputing flows...')#
-	#	calculate flows#
-	z		<- pars[, list(P=names(control$quantiles), Q=unname(quantile(VALUE, p=control$quantiles))), by=c('TR_TARGETCAT','REC_TARGETCAT')]#
-	z		<- dcast.data.table(z, TR_TARGETCAT+REC_TARGETCAT~P, value.var='Q')#
-	z[, LABEL:= paste0(round(M*100, d=1), '%\n[',round(CL*100,d=1),'% - ',round(CU*100,d=1),'%]')]#
-	z[, LABEL2:= paste0(round(M*100, d=1), '% (',round(CL*100,d=1),'%-',round(CU*100,d=1),'%)')]#
-	setkey(z, TR_TARGETCAT, REC_TARGETCAT )#
-	z[, STAT:='flows']#
-	ans		<- copy(z)#
-	gc()#
-	cat('\nComputing WAIFM...')#
-	#	calculate WAIFM#
-	z		<- pars[, list(REC_TARGETCAT=REC_TARGETCAT, VALUE=VALUE/sum(VALUE)), by=c('TR_TARGETCAT','SAMPLE')]#
-	z		<- z[, list(P=names(control$quantiles), Q=unname(quantile(VALUE, p=control$quantiles))), by=c('TR_TARGETCAT','REC_TARGETCAT')]#
-	z		<- dcast.data.table(z, TR_TARGETCAT+REC_TARGETCAT~P, value.var='Q')#
-	z[, LABEL:= paste0(round(M*100, d=1), '%\n[',round(CL*100,d=1),'% - ',round(CU*100,d=1),'%]')]#
-	z[, LABEL2:= paste0(round(M*100, d=1), '% (',round(CL*100,d=1),'%-',round(CU*100,d=1),'%)')]#
-	setkey(z, TR_TARGETCAT, REC_TARGETCAT )#
-	z[, STAT:='waifm']#
-	ans		<- rbind(ans,z)#
-	gc()#
-	cat('\nComputing sources...')#
-	#	calculate sources#
-	z		<- pars[, list(TR_TARGETCAT=TR_TARGETCAT, VALUE=VALUE/sum(VALUE)), by=c('REC_TARGETCAT','SAMPLE')]#
-	z		<- z[, list(P=names(control$quantiles), Q=unname(quantile(VALUE, p=control$quantiles))), by=c('TR_TARGETCAT','REC_TARGETCAT')]#
-	z		<- dcast.data.table(z, TR_TARGETCAT+REC_TARGETCAT~P, value.var='Q')#
-	z[, LABEL:= paste0(round(M*100, d=1), '%\n[',round(CL*100,d=1),'% - ',round(CU*100,d=1),'%]')]#
-	z[, LABEL2:= paste0(round(M*100, d=1), '% (',round(CL*100,d=1),'%-',round(CU*100,d=1),'%)')]#
-	setkey(z, REC_TARGETCAT, TR_TARGETCAT )#
-	z[, STAT:='sources']#
-	ans		<- rbind(ans,z)#
-	gc()#
-	if(length(control$flowratios)>0)#
-	{#
-		cat('\nComputing flow ratios...')#
-		#	calculate transmission flow ratios#
-		z		<- copy(pars)#
-		z[, FLOW:=paste0(TR_TARGETCAT,' ',REC_TARGETCAT)]#
-		z		<- dcast.data.table(z, SAMPLE~FLOW, value.var='VALUE')#
-		set(z, NULL, colnames(z)[!colnames(z)%in%c('SAMPLE',unlist(control$flowratios))], NULL)		#
-		for(ii in seq_along(control$flowratios))#
-		{#
-			if(!control$flowratios[[ii]][2]%in%colnames(z))#
-			{#
-				cat('\nColumn names in MCMC output are', colnames(z))#
-				warning('\nColumn name ',control$flowratios[[ii]][2],' not in MCMC output. Setting to 0.')#
-				set(z, NULL, control$flowratios[[ii]][2], 0)#
-			}#
-			if(!control$flowratios[[ii]][3]%in%colnames(z))#
-			{#
-				cat('\nColumn names in MCMC output are', colnames(z))#
-				warning('\nColumn name ',control$flowratios[[ii]][3],' not in MCMC output. Setting to 0.')#
-				set(z, NULL, control$flowratios[[ii]][3], 0)#
-			}#
-			set(z, NULL, control$flowratios[[ii]][1], z[[ control$flowratios[[ii]][2] ]] /  z[[ control$flowratios[[ii]][3] ]])			#
-		}#
-		for(ii in seq_along(control$flowratios))#
-		{#
-			set(z, NULL, c(control$flowratios[[ii]][2],control$flowratios[[ii]][3]), NULL)	#
-		}		#
-		z		<- melt(z, id.vars='SAMPLE', value.name='VALUE', variable.name='FLOWRATIO_CAT')#
-		z		<- z[, list(P=names(control$quantiles), Q=unname(quantile(VALUE, p=control$quantiles))), by=c('FLOWRATIO_CAT')]#
-		z		<- dcast.data.table(z, FLOWRATIO_CAT~P, value.var='Q')#
-		z[, LABEL:= paste0(round(M, d=2), '\n[',round(CL,d=2),' - ',round(CU,d=2),']')]#
-		z[, LABEL2:= paste0(round(M, d=2), ' (',round(CL,d=2),'-',round(CU,d=2),')')]#
-		z[, STAT:='flow_ratio']#
-		ans		<- rbind(ans,z, fill=TRUE)#
-		gc()#
-	}#
-	if(!'outfile'%in%names(control))#
-		return(ans)	#
-	cat('\nWriting output to',control$outfile)#
-	write.csv(ans, row.names=FALSE,file=control$outfile)#
-}

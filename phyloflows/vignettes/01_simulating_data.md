@@ -196,126 +196,12 @@ This data set can be loaded through
 data(twoGroupFlows1)
 ```
 
-To test our MCMC algorithm, we repeated generated 100 such data set, and
-they can be loaded through
+To test our MCMC algorithm, we repeated generating 100 such data set,
+and they can be loaded through
 
 ``` r
 data(twoGroupFlows100)
 ```
-
-We implemented our MCMC algorithm on these 100 data set
-
-``` r
-for (i in 1:100){
-  dobs  <-  twoGroupFlows100[[i]][[1]]
-  dprior_sarws  <-  twoGroupFlows100[[i]][[2]]
-  dprior_sar  <-  twoGroupFlows100[[i]][[3]]
-  randomnumber  <-  twoGroupFlows100[[i]][[4]]
-
-  # number of iterations
-  tmp  <- subset(dobs, select=c(TRM_CAT_PAIR_ID, TR_SAMPLING_CATEGORY, REC_SAMPLING_CATEGORY))
-  tmp  <- melt(tmp, id.vars='TRM_CAT_PAIR_ID', value.name='SAMPLING_CATEGORY', variable.name='WHO')
-  dlu            <- unique(subset(tmp, select=c(WHO, SAMPLING_CATEGORY)))
-  dlu[, UPDATE_ID:= seq_len(nrow(dlu))]
-
-  # mcmc
-  mcmc.file  <-  paste0("sarws_mcmc",i,".rda")
-  control  <-  list(seed=randomnumber, mcmc.n=nrow(dlu)*1e5, verbose=0, outfile=mcmc.file)
-  source.attribution.mcmc(dobs, dprior_sarws, control)
-
-  mcmc.file<-paste0("sar_mcmc",i,".rda")
-  control<-list(seed=randomnumber, mcmc.n=nrow(dlu)*1e5, verbose=0, outfile=mcmc.file)
-  source.attribution.mcmc(dobs, dprior_sar, control)
-}
-```
-
-The estimates of
- $\pi$
-is given by the medians from MCMC outputs. We calculated the mean
-absolute errors and worst case errors of estimation in order to validate
-the MCMC algorithm and compare the performance of SARWS and SAR
-approaches.
-
-``` r
-# true PI
-TRUE_PI  <-  c(0.36,0.04,0.06,0.54)
-
-# record median of PI for each mcmc outputs
-PI_M_SARWS_M <-  matrix(NA_real_,nrow = 100, ncol=4)
-PI_M_SAR_M  <-  matrix(NA_real_,nrow = 100, ncol=4)
-
-for (i in 1:100){
-  load(paste0("sarws_mcmc",i,".rda"))
-  # remove burnin
-  burnin  <-  round(nrow(mc$pars$S)*0.2)
-  tmp.pi  <-  1:nrow(mc$pars$PI)
-  id.pi  <-  tmp.pi[tmp.pi>burnin]
-  PI  <-  mc$pars$PI[id.pi,]
-  # estimated PI
-  PI_M_SARWS  <-  apply(PI, 2, median)
-  PI_M_SARWS_M[i,]  <-  PI_M_SARWS
-}
-
-# calculate the mean absolute error and worst case error of estimation
-PI_TRUE_M  <-  t(replicate(100, TRUE_PI))
-PI_ABS_ERROR_SARWS  <-  abs(PI_M_SARWS_M-PI_TRUE_M)
-PI_MAE_SARWS  <-  apply(PI_ABS_ERROR_SARWS,1,mean)
-PI_WCE_SARWS  <-  apply(PI_ABS_ERROR_SARWS,1,max)
-PI_MAE_SARWS.df  <-  data.table(PI_MAE=PI_MAE_SARWS, REPLICATE=1:100,
-                                SCENARIO=rep(1,100), N=rep(300,100), SAMP_DIFF=rep(0.15,100))
-PI_WCE_SARWS.df  <-  data.table(PI_WCE=PI_WCE_SARWS, REPLICATE=1:100,
-                                SCENARIO=rep(1,100), N=rep(300,100), SAMP_DIFF=rep(0.15,100))
-
-for (i in 1:100){
-  load(paste0("sar_mcmc",i,".rda"))
-  # remove burnin
-  burnin  <-  round(nrow(mc$pars$S)*0.2)
-  tmp.pi<-1:nrow(mc$pars$PI)
-  id.pi<-tmp.pi[tmp.pi>burnin]
-  PI<-mc$pars$PI[id.pi,]
-  # estimated PI
-  PI_M_SAR<-apply(PI, 2, median)
-  PI_M_SAR_M[i,]<-PI_M_SAR
-}
-
-# calculate the mean absolute error and worst case error of estimation
-PI_ABS_ERROR_SAR  <-  abs(PI_M_SAR_M-PI_TRUE_M)
-PI_MAE_SAR  <-  apply(PI_ABS_ERROR_SAR,1,mean)
-PI_WCE_SAR  <-  apply(PI_ABS_ERROR_SAR,1,max)
-
-PI_MAE_SAR.df  <-  data.table(PI_MAE=PI_MAE_SAR, REPLICATE=1:100,
-                                       SCENARIO=rep(1,100), N=rep(300,100), SAMP_DIFF=rep(0.15,100))
-PI_WCE_SAR.df  <-  data.table(PI_WCE=PI_WCE_SAR, REPLICATE=1:100,
-                             SCENARIO=rep(1,100), N=rep(300,100), SAMP_DIFF=rep(0.15,100))
-
-# combine data tables
-PI_MAE_SARWS.df[,METHOD:='SARWS']
-PI_MAE_SAR.df[,METHOD:='SAR']
-PI_MAE.df  <-  rbind(PI_MAE_SARWS.df,PI_MAE_SAR.df)
-
-PI_WCE_SARWS.df[,METHOD:='SARWS']
-PI_WCE_SAR.df[,METHOD:='SAR']
-PI_WCE.df  <-  rbind(PI_WCE_SARWS.df,PI_WCE_SAR.df)
-
-PI_MAE.df[,ERROR_TYPE:='MAE']
-setnames(PI_MAE.df,'PI_MAE','ERROR')
-PI_WCE.df[,ERROR_TYPE:='WCE']
-setnames(PI_WCE.df,'PI_WCE','ERROR')
-PI_ERROR.df <- rbind(PI_MAE.df,PI_WCE.df)
-```
-
-The mean absolute error and worst case error of estimated
- $\pi$
-could be loaded through
-
-``` r
-data(twoGroupFlows100_mcmcError)
-```
-
-We calculated
- $95\%$
-credibility intervals for mean absolute errors and worst case errors and
-made a bar plot:
 
 ## Data set 2 (more complex, GLM)
 
@@ -607,8 +493,8 @@ fit.par <- stan(  file = infile.sampling.stan.model,
     ##
     ## SAMPLING FOR MODEL 'glm_sex2comm2' NOW (CHAIN 1).
     ## Chain 1:
-    ## Chain 1: Gradient evaluation took 2e-05 seconds
-    ## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.2 seconds.
+    ## Chain 1: Gradient evaluation took 2.1e-05 seconds
+    ## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.21 seconds.
     ## Chain 1: Adjust your expectations accordingly!
     ## Chain 1:
     ## Chain 1:
@@ -625,9 +511,9 @@ fit.par <- stan(  file = infile.sampling.stan.model,
     ## Chain 1: Iteration: 1900 / 2000 [ 95%]  (Sampling)
     ## Chain 1: Iteration: 2000 / 2000 [100%]  (Sampling)
     ## Chain 1:
-    ## Chain 1:  Elapsed Time: 0.017347 seconds (Warm-up)
-    ## Chain 1:                0.052847 seconds (Sampling)
-    ## Chain 1:                0.070194 seconds (Total)
+    ## Chain 1:  Elapsed Time: 0.016186 seconds (Warm-up)
+    ## Chain 1:                0.050239 seconds (Sampling)
+    ## Chain 1:                0.066425 seconds (Total)
     ## Chain 1:
 
 ``` r
