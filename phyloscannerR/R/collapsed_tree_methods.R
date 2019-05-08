@@ -652,7 +652,7 @@ check.tt.node.adjacency <- function(tt, label1, label2, allow.unassigned = F){
 #' @keywords internal
 #' @export classify
 
-classify <- function(ptree, allow.mt = F, strict.ancestry = T, verbose = F, no.progress.bars = F) {	
+classify <- function(ptree, allow.mt = F, relaxed.ancestry = F, verbose = F, no.progress.bars = F) {	
   
   if(is.null(ptree[["tree"]])){
     
@@ -801,7 +801,7 @@ classify <- function(ptree, allow.mt = F, strict.ancestry = T, verbose = F, no.p
           
           if(count.12 == 0 & count.21 == 0){
             top.class.matrix[pat.1, pat.2] <- "noAncestry"
-          } else if(count.12 != 0 & count.21 == 0 & (!strict.ancestry | prop.12 == 1)) {
+          } else if(count.12 != 0 & count.21 == 0 & (relaxed.ancestry | prop.12 == 1)) {
             if(count.12 == 1){
               top.class.matrix[pat.1, pat.2] <- "anc"
             } else {
@@ -811,7 +811,7 @@ classify <- function(ptree, allow.mt = F, strict.ancestry = T, verbose = F, no.p
                 top.class.matrix[pat.1, pat.2] <- "complex"
               }
             }
-          } else if(count.21 != 0 & count.12 == 0 & (!strict.ancestry | prop.21 == 1)) {
+          } else if(count.21 != 0 & count.12 == 0 & (relaxed.ancestry | prop.21 == 1)) {
             if(count.21 == 1){
               top.class.matrix[pat.1, pat.2] <- "desc"
             } else {

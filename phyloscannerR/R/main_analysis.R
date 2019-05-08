@@ -557,7 +557,7 @@ blacklist <- function(ptrees,
 #' @param norm.ref.file.name Name of a file giving a normalisation constant for every genome position. Cannot be used simultaneously with \code{norm.constants}. If neither is given then no normalisation will be performed.
 #' @param norm.standardise.gag.pol Use only if \code{norm.ref.file.name} is given. An HIV-specific option: if true, the normalising constants are standardised so that the average on gag+pol equals 1. Otherwise they are standardised so the average on the whole genome equals 1.
 #' @param allow.mt If FALSE (the default0), directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative.
-#' @param strict.ancestry If FALSE, then an ancestry call requires only that at least one subgraph from one host is descended from the other, and that there are no subgrapghs in the opposite arrangement. If TRUE (the default), then it requires that all subgraphs from one host are descended from one from the other. 
+#' @param relaxed.ancestry If TRUE, then an ancestry call requires only that at least one subgraph from one host is descended from the other, and that there are no subgrapghs in the opposite arrangement. If TRUE (the default), then it requires that all subgraphs from one host are descended from one from the other. 
 #' @param norm.constants Either the path of a CSV file listing the file name for each tree (column 1) and the respective normalisation constant (column 2) or a single numerical normalisation constant to be applied to every tree. Cannot be used simultaneously with \code{norm.ref.file.name}. If neither is given then no normalisation will be performed.
 #' @param parsimony.blacklist.k The \emph{k} parameter of the single-host Sankhoff parsimony reconstruction used to identify probable contaminants. A value of 0 is equivalent to not performing parsimony blacklisting. 
 #' @param raw.blacklist.threshold Used to specify a read count to be used as a raw threshold for duplicate or parsimony blacklisting. Use with \code{parsimony.blacklist.k} or \code{duplicate.file.regex} or both. Parsimony blacklisting will blacklist any subgraph with a read count strictly less than this threshold. Duplicate blacklisting will black list any duplicate read with a count strictly less than this threshold. The default value of 0 means nothing is blacklisted.
@@ -712,7 +712,7 @@ phyloscanner.analyse.trees <- function(
   norm.standardise.gag.pol = F,
   norm.constants = NULL,
   allow.mt = F,
-  strict.ancestry = T,
+  relaxed.ancestry = F,
   parsimony.blacklist.k = 0,
   raw.blacklist.threshold = 0,
   ratio.blacklist.threshold = 0,
@@ -931,7 +931,7 @@ phyloscanner.analyse.trees <- function(
       
       if(verbosity==2) cat("Classifying host relationships for tree ID ",ptree$id, ".\n", sep="")
       
-      ptree$classification.results <- classify(ptree, allow.mt, strict.ancestry, verbosity==2, no.progress.bars)
+      ptree$classification.results <- classify(ptree, allow.mt, relaxed.ancestry, verbosity==2, no.progress.bars)
       
       ptree
     }, simplify = F, USE.NAMES = T)
@@ -969,7 +969,7 @@ phyloscanner.analyse.tree <- function(
   norm.standardise.gag.pol = F,
   norm.constants = NULL,
   allow.mt = F,
-  strict.ancestry = T,
+  relaxed.ancestry = F,
   parsimony.blacklist.k = 0,
   raw.blacklist.threshold = 0,
   ratio.blacklist.threshold = 0,
@@ -1015,7 +1015,7 @@ phyloscanner.analyse.tree <- function(
     norm.standardise.gag.pol, 
     norm.constants, 
     allow.mt,
-    strict.ancestry,
+    relaxed.ancestry,
     parsimony.blacklist.k, 
     raw.blacklist.threshold, 
     ratio.blacklist.threshold,

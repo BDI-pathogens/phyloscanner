@@ -394,7 +394,7 @@ if(arrow.threshold >= win.threshold){
 }
 
 allow.mt                       <- args$allowMultiTrans
-strict.ancestry                <- !args$relaxedAncestry
+relaxed.ancestry               <- args$relaxedAncestry
 
 # Do the simplified plot?
 do.simplified.graph            <- !args$skipSummaryGraph
@@ -423,7 +423,7 @@ if(single.tree){
     norm.standardise.gp,
     norm.constants.input,
     allow.mt,
-    strict.ancestry,
+    relaxed.ancestry,
     par.blacklisting.k,
     bl.raw.threshold,
     bl.ratio.threshold,
@@ -463,7 +463,7 @@ if(single.tree){
     norm.standardise.gp,
     norm.constants.input,
     allow.mt,
-    strict.ancestry,
+    relaxed.ancestry,
     par.blacklisting.k,
     bl.raw.threshold,
     bl.ratio.threshold,
