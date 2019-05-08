@@ -31,7 +31,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">phyloflows</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.4.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.0.0</span>
       </span>
     </div>
 
@@ -362,8 +362,8 @@ model{
 <pre><code>## 
 ## SAMPLING FOR MODEL 'glm_sex2comm2' NOW (CHAIN 1).
 ## Chain 1: 
-## Chain 1: Gradient evaluation took 1.7e-05 seconds
-## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.17 seconds.
+## Chain 1: Gradient evaluation took 2e-05 seconds
+## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.2 seconds.
 ## Chain 1: Adjust your expectations accordingly!
 ## Chain 1: 
 ## Chain 1: 
@@ -380,9 +380,9 @@ model{
 ## Chain 1: Iteration: 1900 / 2000 [ 95%]  (Sampling)
 ## Chain 1: Iteration: 2000 / 2000 [100%]  (Sampling)
 ## Chain 1: 
-## Chain 1:  Elapsed Time: 0.01838 seconds (Warm-up)
-## Chain 1:                0.050631 seconds (Sampling)
-## Chain 1:                0.069011 seconds (Total)
+## Chain 1:  Elapsed Time: 0.018091 seconds (Warm-up)
+## Chain 1:                0.048225 seconds (Sampling)
+## Chain 1:                0.066316 seconds (Total)
 ## Chain 1:</code></pre>
 <div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb28-1" title="1"><span class="co"># extract samples from the prior distribution</span></a>
 <a class="sourceLine" id="cb28-2" title="2">fit.e &lt;-<span class="st"> </span><span class="kw"><a href="https://rdrr.io/pkg/rstan/man/stanfit-method-extract.html">extract</a></span>(fit.par)</a>
