@@ -22,7 +22,7 @@ initialise.phyloscanner <- function(
   norm.standardise.gag.pol = F,
   norm.constants = NULL,
   verbosity = 0){
-  
+   
   set.seed(seed)
   
   if(verbosity!=0){
