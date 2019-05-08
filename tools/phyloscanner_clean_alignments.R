@@ -81,7 +81,7 @@ tree.file.regex               <- paste0("^", basename(tree.input), "(.*)\\.",tre
 alignment.input               <- args$alignment
 
 alignment.directory           <- dirname(alignment.input)
-alignment.file.regex          <- paste0("^", basename(alignment.input), "(.*)\\.[A-Za-z]+$")
+alignment.file.regex          <- paste0("^", basename(alignment.input), "([0-9].*)\\.[A-Za-z]+$")
 
 blacklist.input               <- args$blacklist
 
@@ -182,10 +182,12 @@ if(do.dup.blacklisting & bl.raw.threshold == 0 & bl.ratio.threshold == 0){
   stop("Duplicate blacklisting requested but no thresholds specified with -rwt or -rtt")
 }
 
+
+
 downsample            <- !is.null(args$maxReadsPerHost)
 downsampling.limit    <- args$maxReadsPerHost
 if(is.null(downsampling.limit)){
-  downsampling.limit <- Inf
+  downsampling.limit  <- Inf
 }
 blacklist.ur          <- args$blacklistUnderrepresented
 
@@ -244,11 +246,16 @@ silent <- sapply(ptrees, function(ptree){
   if(!is.null(ptree$alignment.file.name)){
     
     seqs     <- read.dna(ptree$alignment.file.name, format="fasta")
+    
+    if(!setequal(labels(seqs), ptree$original.tip.labels)){
+      stop(paste0("Sequence labels in ",ptree$alignment.file.name, " and tip labels in ",ptree$tree.file.name," do not match."))
+    }
+    
     new.seqs <- seqs[which(!(labels(seqs) %in% ptree$original.tip.labels[ptree$blacklist])),]
     new.afn  <- paste0(output.string, "_", ptree$id, ".fasta")
     
-    if(verbosity!=0) cat("Writing cleaned alignment to ",new.afn, "...\n", sep="")
-    write.dna(new.seqs, new.afn, format="fasta")
+    if(verbosity==2) cat("Writing cleaned alignment to ",new.afn, "...\n", sep="")
+    write.dna(new.seqs, file = file.path(output.dir, new.afn), format="fasta")
 
   } else {
     if(verbosity!=0) cat("No alignment file found for tree ID ",ptree$suffix, "\n", sep="")

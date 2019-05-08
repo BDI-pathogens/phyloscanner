@@ -217,9 +217,26 @@ initialise.phyloscanner <- function(
       if(length(intersect(tree.identifiers, alignment.identifiers))==0){
         stop("Tree file identifiers and alignment file identifiers do not match at all. Check file prefixes are correct.")
       }
-      if(!setequal(tree.identifiers, duplicate.identifiers)){
+      if(!setequal(tree.identifiers, alignment.identifiers)){
         warning("Tree file identifiers and alignment file identifiers do not entirely match.")
       }
+    }
+    
+    # this step won't do anything if input is anything other than phyloscanner standard, and should be safe
+    
+    if(match.mode != "coords"){
+      full.alignment.file.names <- map_chr(1:length(full.alignment.file.names), function(x){
+        
+        unexcised.file.name <- full.alignment.file.names[x]
+        window.coords.string <- alignment.identifiers[x]
+        excised.fn <- paste0(unlist(strsplit(unexcised.file.name, window.coords.string))[1], "PositionsExcised_", window.coords.string, ".fasta")
+        print(excised.fn)
+        if(file.exists(excised.fn)){
+          excised.fn
+        } else {
+          unexcised.file.name
+        }
+      })
     }
     
     ptrees <- sapply(ptrees, function(ptree) attach.file.names(ptree, full.alignment.file.names, alignment.identifiers, "alignment.file.name"), simplify = F, USE.NAMES = T)
@@ -326,9 +343,12 @@ initialise.phyloscanner <- function(
       
       if(grepl(paste0("csv", "$"), norm.ref.file.name)){
         norm.table	<- read_csv(norm.ref.file.name)
+
         
         if(ncol(norm.table)!=2){
           stop(paste0(norm.ref.file.name," is not formatted as expected for a normalisation lookup file; expecting two columns.\n"))
+        } else if(!is.numeric(norm.table %>% pull(1)) | !is.numeric(norm.table%>% pull(2))){
+          stop(paste0(norm.ref.file.name," is not formatted as expected for a normalisation lookup file; expecting numerical columns.\n"))
         } else {
           names(norm.table) <- c('POSITION', 'NORM_CONST')
           
@@ -378,11 +398,7 @@ initialise.phyloscanner <- function(
           }, simplify = F, USE.NAMES = T)
         }
       } else {
-        warning(paste0("Unknown input file format for normalisation file; tree branch lengths will not be normalised.\n"))
-        ptrees <- sapply(ptrees, function(ptree) {
-          ptree$normalisation.constant  <- 1
-          ptree
-        }, simplify = F, USE.NAMES = T)
+        stop(paste0("Unknown input file format for normalisation file.\n"))
       }
     } else {
       warning(paste0("Cannot normalise branch lengths from file without window cooardinates in file suffixes; tree branch lengths will not be normalised.\n"))
@@ -1285,13 +1301,18 @@ write.annotated.tree <- function(ptree, file.name, format = c("pdf", "nex"), pdf
       tree.display <- tree.display + geom_point2(aes(color=INDIVIDUAL, size=READ_COUNT, shape=BLACKLISTED), alpha=0.5)
     }
     
-    x.max <- ggplot_build(tree.display)$layout$panel_ranges[[1]]$x.range[2]
+    x.max <- ggplot_build(tree.display)$layout$panel_scales_x[[1]]$range$range[2]
     
-    # for ggplot2 version compatibility
+    # for ggplot2 version compatibility. This keeps changing!
     
     if(is.null(x.max)){
       x.max <- ggplot_build(tree.display)$layout$panel_params[[1]]$x.range[2]
     }
+    
+    if(is.null(x.max)){
+      x.max <- ggplot_build(tree.display)$layout$panel_ranges[[1]]$x.range[2]
+    }
+    
     
     tree.display <- tree.display + ggplot2::xlim(0, 1.1*x.max)
     tree.display
