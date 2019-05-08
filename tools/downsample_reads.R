@@ -45,10 +45,8 @@ verbose <- args$verbose
 
 all.tree.info <- list()
 
-
 if(file.exists(input.file.name)){
 
-  
   #	option 1: input.file.name specifies a single input file
   
   tree.info <- list()
@@ -97,7 +95,7 @@ if(file.exists(input.file.name)){
 } else {
   #	option 2: input.file.name specifies a root name for several input files
   
-  input.file.names <- sort(list.files.mod(dirname(input.file.name), pattern=paste(basename(input.file.name),'.*\\.', tree.fe,'$',sep=''), full.names=TRUE))
+  input.file.names <- sort(list.files.mod(dirname(input.file.name), pattern=paste("^",basename(input.file.name),'.*\\.', tree.fe,'$',sep=''), full.names=TRUE))
   
   if(length(input.file.names)==0){
     cat("No tree files found.\nQuitting.\n")
@@ -122,16 +120,21 @@ if(file.exists(input.file.name)){
   }
   
   all.tree.info <- split(fn.df, rownames(fn.df))
-  
+
   all.tree.info <- sapply(all.tree.info, function(tree.info){
+   
     tree.info <- as.list(tree.info)
     
     if(verbose) cat("Reading tree ", tree.info$tree.input, "\n", sep="")
+  
+    
     tree <- read.tree(tree.info$tree.input)
+    
     
     tree.info$original.tip.labels <- tree$tip.label
     
     blacklist <- vector()
+    
     
     if(!is.null(tree.info$blacklist.input)){
       
@@ -153,15 +156,13 @@ if(file.exists(input.file.name)){
       }	
     }
   
+    
     tree.info$tree             <- tree
     tree.info$blacklist        <- blacklist
     
     tree.info
   }, simplify = F, USE.NAMES = T)
-  
-
 }
-
 
 if(!is.null(hosts.file.name)){
   hosts <- read.table(hosts.file.name, header = F, stringsAsFactors = F)[,1]

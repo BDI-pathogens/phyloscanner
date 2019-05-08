@@ -2,6 +2,8 @@
 
 suppressMessages(library(argparse, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(library(phyloscannerR, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(library(tidyverse, quietly=TRUE, warn.conflicts=FALSE))
+suppressMessages(library(magrittr, quietly=TRUE, warn.conflicts=FALSE))
 
 # Define arguments
 
@@ -256,7 +258,7 @@ for(tree.info in all.tree.info){
 
   if (verbose) cat("Finished\n")
   
-  new.blacklist <- c(new.blacklist, unlist(lapply(results, "[[", 2)))
+  new.blacklist <- c(new.blacklist, unlist(map(results, function(x) x %>% extract2("blacklist.items"))))
   
   # Write the output
   
@@ -264,7 +266,7 @@ for(tree.info in all.tree.info){
   
   if(!is.null(tree.info$duals.output)){
     
-    which.are.duals <- which(unlist(lapply(results, "[[", 6)))
+    which.are.duals <- which(unlist(map(results, function(x) x %>% extract2("dual"))))
     
     if(length(which.are.duals) > 0) {
       mi.df <- data.frame(host = unlist(sapply(results[which.are.duals], function (x) rep(x$id, length(x$tip.names)) )), 

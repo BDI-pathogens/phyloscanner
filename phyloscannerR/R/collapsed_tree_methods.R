@@ -658,16 +658,15 @@ classify <- function(ptree, verbose = F, no.progress.bars = F) {
     
     if (verbose) cat("Reading tree file ", ptree$tree.file.name, "...\n", sep = "")
     
+    
     pseudo.beast.import <- read.beast(ptree$tree.file.name)
-    tree <- attr(pseudo.beast.import, "phylo")
     
     if (verbose) cat("Reading annotations...\n")
     
-    annotations <- attr(pseudo.beast.import, "stats")
+    tree <- as.phylo(pseudo.beast.import)
     
-    annotations$INDIVIDUAL <- as.character(annotations$INDIVIDUAL)
-    annotations$SPLIT <- as.character(annotations$SPLIT)
-    
+    annotations <- pseudo.beast.import[,c("node", "INDIVIDUAL", "SPLIT")]
+  
     # to deal with a problem with older versions of ggtree
     
     strip.quotes <- function(string) if(substr(string, 1, 1)=="\"") substr(string, 2, nchar(string)-1) else string
@@ -695,7 +694,11 @@ classify <- function(ptree, verbose = F, no.progress.bars = F) {
   
   if (verbose) cat("Collecting tips for each host...\n")
   
+
+  
   hosts <- unique(splits$host)
+  
+
   
   hosts <- hosts[hosts!="unassigned"]
   
@@ -705,6 +708,7 @@ classify <- function(ptree, verbose = F, no.progress.bars = F) {
   in.order <- match(seq(1, length(tree$tip.label) + tree$Nnode), annotations$node)
   
   assocs <- annotations$SPLIT[in.order]
+  
   assocs <- lapply(assocs, function(x) replace(x, is.na(x), "none"))
   assocs <- lapply(assocs, function(x) replace(x, x=="unassigned", "none"))
   
@@ -876,6 +880,7 @@ classify <- function(ptree, verbose = F, no.progress.bars = F) {
 merge.classifications <- function(ptrees, allow.mt = T, verbose = F){
   
   classification.rows	<- ptrees %>% map(function(ptree) {
+    
     if(is.null(ptree$classification.results$classification) & is.null(ptree$classification.file.name)){
       NULL
     }
@@ -890,6 +895,10 @@ merge.classifications <- function(ptrees, allow.mt = T, verbose = F){
     } else {
       if (verbose) cat("Reading window input file ", ptree$classification.file.name,"\n", sep="")
       tt <- read_csv(ptree$classification.file.name, col_names = TRUE)
+      
+      if(nrow(tt)==0){
+        stop(paste0("No lines in window input file ",ptree$classification.file.name))
+      }
     }
     
     tt <- tt %>% add_column(tree.id = ptree$id)

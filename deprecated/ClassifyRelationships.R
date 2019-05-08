@@ -124,7 +124,6 @@ classify <- function(tree.file.name, splits.file.name, normalisation.constant = 
 
   annotations$INDIVIDUAL <- as.character(annotations$INDIVIDUAL)
   annotations$SPLIT <- as.character(annotations$SPLIT)
-
   
   in.order <- match(seq(1, length(tree$tip.label) + tree$Nnode), annotations$node)
   

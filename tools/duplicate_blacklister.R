@@ -70,7 +70,7 @@ if(file.exists(input.string)){
   for(suffix.no in 1:length(suffixes)){
     tree.info <- list()
     
-    tree.info$suffix <- suffixes[suffix.no]
+    tree.info$tree.id <- suffixes[suffix.no]
     tree.info$input.file.name <- input.file.names[suffix.no]
     
     tree.info$output.file.name <- paste0(output.string, "_", suffixes[suffix.no], ".", csv.fe)

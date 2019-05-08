@@ -611,16 +611,14 @@ class PseudoRead:
     Length_RightRead = len(RightRead.positions)
 
     # Slide the reads along each other until we find a position such that 
-    # they agree perfectly on the overlap - both on the bases it contains,
-    # and on the positions mapped to in the reference. At least one position in
-    # the overlap must be mapped, i.e. they can't all be mapped to 'None'.
-    # If no such position is found, they disagree: return False.
+    # they agree perfectly the mapped positions in the overlap. At least one
+    # position in the overlap must be mapped, i.e. they can't all be mapped to
+    # 'None'. If no such position is found, they disagree: return False.
     OverlapStartInLeftRead = None
     for j in range(Length_LeftRead):
       this_j_works = True
       for k in range(min(Length_RightRead, Length_LeftRead -j)):
-        if LeftRead.positions[j+k] != RightRead.positions[k] or \
-        LeftRead.sequence[j+k] != RightRead.sequence[k]:
+        if LeftRead.positions[j+k] != RightRead.positions[k]:
           this_j_works = False
           break
       if this_j_works:
@@ -639,25 +637,38 @@ class PseudoRead:
     # overlap to be the larger from the two reads. (As opposed to a quality
     # corresponding to the probability that both reads independently made the
     # same miscall, for example.)
-    merged_sequence = LeftRead.sequence[:OverlapStartInLeftRead] +\
-    RightRead.sequence +\
-    LeftRead.sequence[OverlapStartInLeftRead+Length_RightRead:]
     merged_positions = LeftRead.positions[:OverlapStartInLeftRead] +\
     RightRead.positions +\
     LeftRead.positions[OverlapStartInLeftRead+Length_RightRead:]
-    merged_qualities = LeftRead.sequence[:OverlapStartInLeftRead]
+    merged_qualities = LeftRead.qualities[:OverlapStartInLeftRead]
+    merged_sequence = LeftRead.sequence[:OverlapStartInLeftRead]
     for j in range(
     max(Length_LeftRead - OverlapStartInLeftRead, Length_RightRead)):
       try:
-        BaseQLeftRead = LeftRead.sequence[OverlapStartInLeftRead+j]
+        BaseQLeftRead = LeftRead.qualities[OverlapStartInLeftRead+j]
       except IndexError:
         BaseQLeftRead  = float('-inf')
       try:
-        BaseQRightRead = RightRead.sequence[j]
+        BaseQRightRead = RightRead.qualities[j]
       except IndexError:
         BaseQRightRead = float('-inf')
-      BestBaseQ = max(BaseQLeftRead, BaseQRightRead)
-      merged_qualities += BestBaseQ
+      assert max(BaseQLeftRead, BaseQRightRead) > float('-inf')
+      if BaseQLeftRead >= BaseQRightRead:
+        BestBaseQ = BaseQLeftRead
+        BestBase = LeftRead.sequence[OverlapStartInLeftRead+j]
+      else:
+        BestBaseQ = BaseQRightRead
+        BestBase = RightRead.sequence[j]
+      merged_qualities.append(BestBaseQ)
+      merged_sequence += BestBase
+      #if min(BaseQLeftRead, BaseQRightRead) >= 0:
+      #  leftbase = LeftRead.sequence[OverlapStartInLeftRead+j]
+      #  rightbase = RightRead.sequence[j]
+      #  if leftbase != rightbase:
+      #    print("At pos", RightRead.positions[j], "for read", self.name,
+      #    "the left read has base &",
+      #    "quality", leftbase, BaseQLeftRead, "and the right read has base &",
+      #    "quality", rightbase, str(BaseQRightRead) + "; using base", BestBase)
     assert len(merged_qualities) == len(merged_sequence)
     MergedRead = PseudoRead(self.name, merged_sequence,
     merged_positions, merged_qualities)
