@@ -926,7 +926,7 @@ merge.classifications <- function(ptrees, verbose = F){
         mutate(paths21 = replace(paths21, temphost.2 < temphost.1, temppaths12[temphost.2 < temphost.1])) %>%
         mutate(nodes1 = replace(nodes1, temphost.2 < temphost.1, tempnodes2[temphost.2 < temphost.1])) %>%
         mutate(nodes2 = replace(nodes2, temphost.2 < temphost.1, tempnodes1[temphost.2 < temphost.1])) %>%
-        select(-c(temphost.1, temphost.2, tempancestry))
+        select(-c(temphost.1, temphost.2, tempancestry, temppaths12, temppaths21, tempnodes1, tempnodes2))
     x    
   })
   #
