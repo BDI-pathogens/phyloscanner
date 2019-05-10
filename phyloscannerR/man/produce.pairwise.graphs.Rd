@@ -4,7 +4,7 @@
 \alias{produce.pairwise.graphs}
 \title{Draw bar graphs of pairwise topological/distance relationships}
 \usage{
-produce.pairwise.graphs(ptrees, dist.thresh,
+produce.pairwise.graphs(ptrees, dist.thresh = 0.025,
   hosts = all.hosts.from.trees(ptrees), contiguous.pairs = F,
   inclusion = c("both", "either"))
 }

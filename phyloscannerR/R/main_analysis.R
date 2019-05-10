@@ -621,7 +621,7 @@ blacklist <- function(ptrees,
 #' @export phyloscanner.analyse.trees 
 #' @examples
 #' #
-#' # START OF RCCS EXAMPLE
+#' # Example on data from Rakai Community Cohort Study
 #' #
 #' 
 #' \dontrun{
@@ -689,9 +689,6 @@ blacklist <- function(ptrees,
 #'              )
 #' }
 #' 
-#' #
-#' # END OF RCCS EXAMPLE
-#' #
 phyloscanner.analyse.trees <- function(
   tree.file.directory,
   tree.file.regex = "^RAxML_bestTree.InWindow_([0-9]+_to_[0-9]+)\\.tree$",

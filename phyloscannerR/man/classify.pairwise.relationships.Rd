@@ -42,8 +42,8 @@ Classify pairwise host relationships in deep sequence phylogenies Make viral phy
 \dontrun{
 require(phyloscannerR)
 #
-#	continue Rakai example,
-#	load phyloscanner output from 'phyloscanner.analyse.trees'
+# Example on data from Rakai Community Cohort Study
+# load phyloscanner output from 'phyloscanner.analyse.trees'
 #	
 file	<- system.file(file.path('extdata','ptyr192_phsc_analyse_trees_output.RData'),package='phyloscannerR')
 load(file)	#loads 'phsc', output from 'phyloscanner.analyse.trees'
@@ -61,9 +61,6 @@ dwin <- classify.pairwise.relationships(phsc,
            distant.threshold=distant.threshold,
            relationship.types=relationship.types, 
            verbose=TRUE)
-#
-# 	end of Rakai example
-#
 }	
 }
 \author{

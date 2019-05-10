@@ -171,8 +171,8 @@ count.pairwise.relationships<- function(dwin, w.slide=NA, verbose=TRUE)
 #' \dontrun{
 #' require(phyloscannerR)
 #' #
-#' #	continue Rakai example,
-#' #	load phyloscanner output from 'phyloscanner.analyse.trees'
+#' # Example on data from Rakai Community Cohort Study
+#' # load phyloscanner output from 'phyloscanner.analyse.trees'
 #' #	
 #' file	<- system.file(file.path('extdata','ptyr192_phsc_analyse_trees_output.RData'),package='phyloscannerR')
 #' load(file)	#loads 'phsc', output from 'phyloscanner.analyse.trees'
@@ -190,9 +190,6 @@ count.pairwise.relationships<- function(dwin, w.slide=NA, verbose=TRUE)
 #'            distant.threshold=distant.threshold,
 #'            relationship.types=relationship.types, 
 #'            verbose=TRUE)
-#' #
-#' # 	end of Rakai example
-#' #
 #' }	
 classify.pairwise.relationships<- function(ptrees, 
                                            close.threshold=0.025, 

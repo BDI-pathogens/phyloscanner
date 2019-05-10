@@ -194,7 +194,7 @@ These functions perform a parsimony reconstruction and classification of pairwis
 }
 \examples{
 #
-# START OF RCCS EXAMPLE
+# Example on data from Rakai Community Cohort Study
 #
 
 \dontrun{
@@ -262,7 +262,4 @@ phsc <- phyloscanner.analyse.trees(tree.file.directory,
              )
 }
 
-#
-# END OF RCCS EXAMPLE
-#
 }
