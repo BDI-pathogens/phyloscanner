@@ -447,7 +447,7 @@ produce.pairwise.graphs <- function(ptrees,
   }) %>% bind_rows()
   
   if(!("normalised.min.distance.between.subgraphs" %in% colnames(t.stats))){
-    t.stats %<>% mutate(normalised.min.distance.between.subgraphs = min.distance.between.subgraphs)
+    t.stats <- t.stats %>% mutate(normalised.min.distance.between.subgraphs = min.distance.between.subgraphs)
   }
   
   wrong.dir <- which(t.stats$host.2 < t.stats$host.1)
