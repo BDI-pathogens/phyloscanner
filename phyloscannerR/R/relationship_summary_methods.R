@@ -212,6 +212,22 @@ classify.pairwise.relationships<- function(ptrees,
   
   dwin <- phyloscannerR:::merge.classifications(ptrees, verbose)	
   
+  if(verbose) cat('Order host.1 < host.2 ...\n')
+  
+  tmp <- dwin %>% 
+		  filter(host.2<host.1) %>%
+		  rename( host.1:= host.2,
+				  host.2:= host.1,
+				  paths12:= paths21, 
+				  paths21:= paths12, 
+				  nodes1:= nodes2, 
+				  nodes2:= nodes1) %>%
+		  mutate( ancestry:= replace(replace(ancestry, ancestry=='anc','desc'), ancestry=='desc', 'anc')) %>%
+		  mutate( ancestry:= replace(replace(ancestry, ancestry=='multiAnc','multiDesc'), ancestry=='multiDesc', 'multiAnc'))  
+  dwin <- dwin %>% 
+		  filter(host.1<=host.2) %>%
+		  bind_rows(tmp)
+  
   if(verbose) cat('Assigning discrete proximity categories...\n')
   
   dwin <- dwin %>% 
