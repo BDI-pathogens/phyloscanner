@@ -446,6 +446,10 @@ produce.pairwise.graphs <- function(ptrees,
     out
   }) %>% bind_rows()
   
+  if(!("normalised.min.distance.between.subgraphs" %in% colnames(t.stats))){
+    t.stats %<>% mutate(normalised.min.distance.between.subgraphs = min.distance.between.subgraphs)
+  }
+  
   wrong.dir <- which(t.stats$host.2 < t.stats$host.1)
   t.stats <- t.stats %>% 
     mutate(ancestry = replace(ancestry, ancestry=="anc" & host.2 < host.1, "desc")) %>% 
