@@ -19,6 +19,9 @@ produce.pairwise.graphs(ptrees, dist.thresh,
 
 \item{inclusion}{If "both", then only pairs in which both individuals are members of \code{hosts} are included. If "either" then pairs only need have one member from \code{hosts}}
 }
+\value{
+A list whose elements are \code{data}, the underlying data frame for the graph, and \code{graph}, the graph itself.
+}
 \description{
 Draw bar graphs of pairwise topological/distance relationships
 }

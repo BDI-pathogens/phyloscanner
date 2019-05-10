@@ -22,7 +22,7 @@ phyloscanner.analyse.trees(tree.file.directory,
   file.name.regex = "^\\\\D*([0-9]+)_to_([0-9]+)\\\\D*$",
   seed = sample(1:1e+07, 1), norm.ref.file.name = NULL,
   norm.standardise.gag.pol = F, norm.constants = NULL, allow.mt = F,
-  strict.ancestry = T, parsimony.blacklist.k = 0,
+  relaxed.ancestry = F, parsimony.blacklist.k = 0,
   raw.blacklist.threshold = 0, ratio.blacklist.threshold = 0,
   do.dual.blacklisting = F, max.reads.per.host = Inf,
   blacklist.underrepresented = F, min.reads.per.host = 1,
@@ -39,7 +39,7 @@ phyloscanner.analyse.tree(tree.file.name, splits.rule = c("s", "r", "f"),
   file.name.regex = "^\\\\D*([0-9]+)_to_([0-9]+)\\\\D*$",
   seed = sample(1:1e+07, 1), norm.ref.file.name = NULL,
   norm.standardise.gag.pol = F, norm.constants = NULL, allow.mt = F,
-  strict.ancestry = T, parsimony.blacklist.k = 0,
+  relaxed.ancestry = F, parsimony.blacklist.k = 0,
   raw.blacklist.threshold = 0, ratio.blacklist.threshold = 0,
   do.dual.blacklisting = F, max.reads.per.host = Inf,
   blacklist.underrepresented = F, min.reads.per.host = 1,
@@ -110,7 +110,7 @@ phyloscanner.generate.blacklist(tree.file.directory,
 
 \item{allow.mt}{If FALSE (the default0), directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative.}
 
-\item{strict.ancestry}{If FALSE, then an ancestry call requires only that at least one subgraph from one host is descended from the other, and that there are no subgrapghs in the opposite arrangement. If TRUE (the default), then it requires that all subgraphs from one host are descended from one from the other.}
+\item{relaxed.ancestry}{If TRUE, then an ancestry call requires only that at least one subgraph from one host is descended from the other, and that there are no subgrapghs in the opposite arrangement. If TRUE (the default), then it requires that all subgraphs from one host are descended from one from the other.}
 
 \item{parsimony.blacklist.k}{The \emph{k} parameter of the single-host Sankhoff parsimony reconstruction used to identify probable contaminants. A value of 0 is equivalent to not performing parsimony blacklisting.}
 
@@ -217,44 +217,49 @@ sankoff.k <- 20
 sankoff.unassigned.switch.threshold <- 0
 seed <- 42
 splits.rule <- 's'
+relaxed.ancestry <- TRUE
+allow.mt <- TRUE
 tip.regex <- "^(.*)_fq[0-9]+_read_([0-9]+)_count_([0-9]+)$"
 tree.file.regex <- "^ptyr192_InWindow_([0-9]+_to_[0-9]+)\\\\.tree$"
 verbosity <- 1
 
 #	analyse deep sequence trees
-phsc	<- phyloscanner.analyse.trees(tree.file.directory,
-			tree.file.regex = tree.file.regex,
-			splits.rule = splits.rule, 
-			sankoff.k = sankoff.k,
-			sankoff.unassigned.switch.threshold = sankoff.unassigned.switch.threshold,
-			outgroup.name = outgroup.name,
-			multifurcation.threshold = multifurcation.threshold, 
-			guess.multifurcation.threshold = FALSE,
-			user.blacklist.directory = NULL, 
-			user.blacklist.file.regex = NULL,
-			duplicate.file.directory = NULL,
-			duplicate.file.regex = NULL,
-			recombination.file.directory = NULL,
-			recombination.file.regex = NULL,
-			alignment.file.directory = NULL, 
-			alignment.file.regex = NULL,
-			tip.regex = tip.regex,
-			file.name.regex = file.name.regex,
-			seed = seed, 
-			norm.ref.file.name = NULL,
-			norm.standardise.gag.pol = TRUE, 
-			norm.constants = NULL,
-			parsimony.blacklist.k = sankoff.k, 
-			raw.blacklist.threshold = raw.blacklist.threshold,
-			ratio.blacklist.threshold = 0, 
-			do.dual.blacklisting = FALSE,
-			max.reads.per.host = max.reads.per.host, 
-			blacklist.underrepresented = FALSE,
-			use.ff = FALSE, 
-			prune.blacklist = FALSE, 
-			count.reads.in.parsimony = TRUE,
-			verbosity = verbosity, 
-			no.progress.bars = FALSE)
+phsc <- phyloscanner.analyse.trees(tree.file.directory,
+             allow.mt=allow.mt,
+             alignment.file.directory = NULL, 
+             alignment.file.regex = NULL,
+             blacklist.underrepresented = FALSE,
+             count.reads.in.parsimony = TRUE,
+             do.dual.blacklisting = FALSE,
+             duplicate.file.directory = NULL,
+             duplicate.file.regex = NULL,
+             file.name.regex = file.name.regex,
+             guess.multifurcation.threshold = FALSE,
+             max.reads.per.host = max.reads.per.host,
+             multifurcation.threshold = multifurcation.threshold,
+             norm.constants = NULL,
+             norm.ref.file.name = NULL,
+             norm.standardise.gag.pol = TRUE,
+             no.progress.bars = FALSE,
+             outgroup.name = outgroup.name,
+             parsimony.blacklist.k = sankoff.k,
+             prune.blacklist = FALSE,
+             ratio.blacklist.threshold = 0, 
+             raw.blacklist.threshold = raw.blacklist.threshold,			
+             recombination.file.directory = NULL,
+             recombination.file.regex = NULL,
+             relaxed.ancestry = relaxed.ancestry,
+             sankoff.k = sankoff.k,
+             sankoff.unassigned.switch.threshold = sankoff.unassigned.switch.threshold,
+             seed = seed,
+             splits.rule = splits.rule,
+             tip.regex = tip.regex,
+             tree.file.regex = tree.file.regex,
+             use.ff = FALSE,
+             user.blacklist.directory = NULL, 
+             user.blacklist.file.regex = NULL,
+             verbosity = verbosity 
+             )
 }
 
 #

@@ -45,7 +45,7 @@ require(phyloscannerR)
 #	continue Rakai example,
 #	load phyloscanner output from 'phyloscanner.analyse.trees'
 #	
-file	<- system.file(file.path('extdata','ptyr192_phsc_analyse_trees_output.R'),package='phyloscannerR')
+file	<- system.file(file.path('extdata','ptyr192_phsc_analyse_trees_output.RData'),package='phyloscannerR')
 load(file)	#loads 'phsc', output from 'phyloscanner.analyse.trees'
 #	use distance thresholds found in analysis of Rakai couples
 close.threshold <- 0.025
@@ -53,12 +53,14 @@ distant.threshold <- 0.05
 #	use relationship types based on adjacency
 #	this also considers linkage etc between individuals who have dual infections, recombinants etc 
 #	..and thus may not have *all* their subgraphs adjacent to each other
-use.paths.to.define.relationships <- 1
-relationship.types <- c('proximity.3.way',					
-		'close.and.adjacent',					
+relationship.types <- c('close.and.adjacent',					
 		'close.and.adjacent.and.directed',					
 		'close.and.adjacent.and.ancestry.cat')	
-dwin <- classify.pairwise.relationships(phsc, close.threshold=close.threshold, distant.threshold=distant.threshold,use.paths.to.define.relationships=use.paths.to.define.relationships,relationship.types=relationship.types, verbose=TRUE)
+dwin <- classify.pairwise.relationships(phsc, 
+           close.threshold=close.threshold, 
+           distant.threshold=distant.threshold,
+           relationship.types=relationship.types, 
+           verbose=TRUE)
 #
 # 	end of Rakai example
 #
