@@ -162,7 +162,7 @@ cmd.phyloscanner_analyse_trees<- function(prog.phyloscanner_analyse_trees,
 	{		
 		tmp	<- gsub('\\.zip$','',file.path(tmpdir,basename(tree.input)))
 		cmd	<- paste(cmd,'mkdir -p "',tmp,'"\n',sep='')
-		cmd	<- paste(cmd,'unzip "',tree.input,'" -d "',tmp,'"\n',sep='')
+		cmd	<- paste(cmd,'unzip -j "',tree.input,'" -d "',tmp,'"\n',sep='')
 		tree.input	<- tmp				
 	}	
 	#	add encapsulating "" to tree.input

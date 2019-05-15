@@ -120,6 +120,10 @@ re.alignment.fe                 <- gsub("\\.", "\\\\.", alignment.fe)
 
 # tree input
 tree.input                      <- args$tree
+if(file.info(tree.input)[['isdir']]){
+	tree.directory                <- tree.input
+	tree.file.regex               <- paste0("^(.*)", re.tree.fe, "$")
+}
 if(!file.exists(tree.input)){
   tree.directory                <- dirname(tree.input)
   tree.file.regex               <- paste0("^", basename(tree.input), "(.*)", re.tree.fe, "$")
@@ -344,8 +348,6 @@ if(do.class.detail & !output.files){
 
 multinomial                    <- args$multinomial
 
-multinomial                    <- args$multinomial
-
 # Thresholds for summaries
 win.threshold                  <- args$windowThreshold
 dist.thresholds                <- args$distanceThreshold
@@ -400,7 +402,7 @@ relaxed.ancestry               <- args$relaxedAncestry
 do.simplified.graph            <- !args$skipSummaryGraph
 simp.plot.dim                  <- args$summaryPlotDimensions
 
-single.tree <- file.exists(tree.input)
+single.tree <- file.exists(tree.input) && !file.info(tree.input)[['isdir']]
 
 if(single.tree){
   phyloscanner.trees <- phyloscanner.analyse.tree(
@@ -437,7 +439,7 @@ if(single.tree){
     read.counts.matter,
     verbosity,
     no.progress.bars)
-} else {
+} else {	
   phyloscanner.trees <- phyloscanner.analyse.trees(
     tree.directory,
     tree.file.regex,
