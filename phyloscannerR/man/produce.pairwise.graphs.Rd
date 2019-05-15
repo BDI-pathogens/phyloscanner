@@ -25,3 +25,16 @@ A list whose elements are \code{data}, the underlying data frame for the graph, 
 \description{
 Draw bar graphs of pairwise topological/distance relationships
 }
+\examples{
+#
+# Example on data from Rakai Community Cohort Study
+#
+\dontrun{	
+file	<- system.file(file.path('extdata','ptyr192_phsc_analyse_trees_output.RData'),package='phyloscannerR')
+load(file)	#loads 'phsc', output from 'phyloscanner.analyse.trees'	
+hosts	<- c('RkA05868F','RkA05968M','RkA00369F','RkA01344M')
+inclusion <- "both" 
+tmp	<- produce.pairwise.graphs(phsc, hosts=hosts, inclusion = "both")
+tmp$graph
+}
+}

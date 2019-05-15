@@ -1,0 +1,190 @@
+#' Obtain valid input arguments for a phyloscanner analysis on a tree or set of trees
+#' @param prog.phyloscanner_analyse_trees The full file name of \code{phyloscanner_analyse_trees.R}.
+#' @export
+#' @seealso \link{\code{cmd.phyloscanner_analyse_trees}}
+cmd.phyloscanner_analyse_trees.valid.args<- function(prog.phyloscanner_analyse_trees)
+{
+	tmp	<- system2(command=prog.phyloscanner_analyse_trees, args='-h', stdout=TRUE)
+	tmp	<- tmp[grepl('--',tmp)]
+	tmp <- sapply(tmp, function(x) sub('^.*--([a-zA-Z]+).*$','\\1',x))
+	valid.input.args <- unique(sort(unname(tmp)))
+	valid.input.args <- valid.input.args[valid.input.args!='help']
+	valid.input.args
+}
+
+#' Make script file for a phyloscanner analysis on a tree or set of trees
+#'
+#' This function makes a UNIX script file to call \code{phyloscanner_analyse_trees.R}. Usually, this is useful to parallelise computations; see the Examples. 
+#' @param prog.phyloscanner_analyse_trees The full file name of \code{phyloscanner_analyse_trees.R}.
+#' @param tree.input One of the following: the name of a single tree file (Newick or NEXUS format); the directory containing all input trees; a zip file containing input trees.
+#' @param control List of input arguments to \link{\code{phyloscanner_analyse_trees}}.
+#' @param valid.input.args Vector of valid input arguments.
+#' @return A character string of UNIX commands.
+#' @seealso \link{\code{phyloscanner_analyse_trees}}, \link{\code{cmd.phyloscanner_analyse_trees.valid.args}}
+#' @author Oliver Ratmann
+#' @export
+#' @examples 
+#' \dontrun{	
+#' #	set phyloscanner variables
+#' #	arguments as used for RCCS analysis
+#' control	<- list()
+#' control$allow.mt <- TRUE				
+#' control$alignment.file.directory = NULL 
+#' control$alignment.file.regex = NULL
+#' control$blacklist.underrepresented = FALSE	
+#' control$count.reads.in.parsimony = TRUE
+#' control$do.dual.blacklisting = FALSE					
+#' control$duplicate.file.directory = NULL
+#' control$duplicate.file.regex = NULL
+#' control$file.name.regex = "^\\D*([0-9]+)_to_([0-9]+)\\D*$"
+#' control$guess.multifurcation.threshold = FALSE
+#' control$max.reads.per.host = 50
+#' control$multifurcation.threshold = 1e-5
+#' control$norm.constants = NULL
+#' control$norm.ref.file.name = system.file('HIV_DistanceNormalisationOverGenome.csv',package='phyloscannerR')
+#' control$norm.standardise.gag.pol = TRUE
+#' control$no.progress.bars = TRUE
+#' control$outgroup.name = "REF_CPX_AF460972"
+#' control$output.dir = '/Users/Oliver/sandbox/DeepSeqProjects/RakaiPopSample_phsc_out190512/run192'
+#' control$parsimony.blacklist.k = 20
+#' control$prune.blacklist = FALSE
+#' control$ratio.blacklist.threshold = 0 
+#' control$raw.blacklist.threshold = 20					
+#' control$recombination.file.directory = NULL
+#' control$recombination.file.regex = NULL
+#' control$relaxed.ancestry = TRUE
+#' control$sankoff.k = 20
+#' control$sankoff.unassigned.switch.threshold = 0
+#' control$seed = 42
+#' control$splits.rule = 's'
+#' control$tip.regex = "^(.*)_fq[0-9]+_read_([0-9]+)_count_([0-9]+)$"
+#' control$tree.file.regex = "^ptyr[0-9]+_InWindow_([0-9]+_to_[0-9]+)\\.tree$"
+#' control$use.ff = FALSE
+#' control$user.blacklist.directory = NULL 
+#' control$user.blacklist.file.regex = NULL
+#' control$verbosity = 1
+#' 	
+#' #	make bash for one file
+#' prog.phyloscanner_analyse_trees <- '/Users/Oliver/git/phyloscanner/phyloscanner_analyse_trees.R'
+#' valid.input.args <- cmd.phyloscanner_analyse_trees.valid.args(prog.phyloscanner_analyse_trees)
+#' tree.input <- system.file(file.path('extdata','Rakai_run192_trees.zip'),package='phyloscannerR')
+#' control$output.string <- 'Rakai_run192'
+#' cmd <- cmd.phyloscanner_analyse_trees(prog.phyloscanner_analyse_trees, 
+#' 		tree.input, 
+#' 		control,
+#' 		valid.input.args=valid.input.args)
+#' cat(cmd)
+#' }
+cmd.phyloscanner_analyse_trees<- function(prog.phyloscanner_analyse_trees, 
+												tree.input, 
+												control,
+												valid.input.args=cmd.phyloscanner_analyse_trees.valid.args(prog.phyloscanner_analyse_trees))
+{	
+	#
+	#	prepare input args
+	#
+	input.args		<- control
+	#	check that positional arguments are in control
+	stopifnot(any(names(input.args)=='splits.rule'))
+	stopifnot(any(names(input.args)=='output.string'))
+	#	prepare optional arguments with non-default values
+	tmp	<- which(names(input.args)=='guess.multifurcation.threshold')
+	if(length(tmp)>0)
+	{
+		if(input.args[['guess.multifurcation.threshold']])
+			input.args[['multifurcation.threshold']] <- 'g'
+		input.args <- input.args[names(input.args)!='guess.multifurcation.threshold']
+	}
+	tmp	<- which(names(input.args)=='sankoff.k')
+	if(length(tmp)>0)
+	{
+		if(input.args[['splits.rule']]=='s')
+			input.args[['splits.rule']] <- paste0(input.args[['splits.rule']],',',input.args[['sankoff.k']])
+		input.args <- input.args[names(input.args)!='sankoff.k']
+	}
+	#	extract positional arguments
+	splits.rule			<- input.args[['splits.rule']]
+	input.args			<- input.args[names(input.args)!='splits.rule']
+	output.string 		<- input.args[['output.string']]
+	input.args			<- input.args[names(input.args)!='output.string']
+	#	extract out.dir
+	out.dir				<- input.args[['output.dir']]
+	input.args			<- input.args[names(input.args)!='output.dir']
+	#	prepare optional argument names that are slightly inconsistent
+	names(input.args)	<- gsub('use.ff','useff',names(input.args))
+	names(input.args)	<- gsub('do.dual.blacklisting','dual.blacklist',names(input.args))
+	names(input.args)	<- gsub('allow.mt','allow.multi.trans',names(input.args))
+	names(input.args)	<- gsub('count.reads.in.parsimony','read.counts.matter.on.zero.length.branches',names(input.args))
+	names(input.args)	<- gsub('verbosity','verbose',names(input.args))
+	#	ignore arguments that are hard coded in the Rscript
+	input.args			<- input.args[names(input.args)!='tree.file.regex']
+	input.args 			<- input.args[names(input.args)!='sankoff.unassigned.switch.threshold']
+	#	replace .a with A where needed
+	tmp <- strsplit(names(input.args),'\\.')
+	tmp <- sapply(tmp, function(x) gsub('^([A-Z])','\\L\\1',paste(gsub('^([a-z])','\\U\\1',x,perl=TRUE),collapse=''),perl=TRUE))
+	tmp2 <- which(! names(input.args) %in% valid.input.args )	
+	names(input.args)[tmp2] <- tmp[tmp2]
+	#	add default optional arguments
+	input.args[['overwrite']]	<- TRUE
+	input.args[['outputRDA']]	<- TRUE
+	#	remove logical arguments that evaluate to FALSE
+	tmp 		<- !unname(sapply(input.args, function(x) is.logical(x) && x==FALSE))
+	input.args	<- input.args[tmp]			
+	#	check that all arguments are valid
+	tmp2 <- which(! names(input.args) %in% valid.input.args )
+	if(length(tmp2)>0)
+	{
+		stop('Found invalid arguments,',input.args[tmp2])
+	}	
+	#	for all character arguments: add encapsulating "" 
+	#	for all logical arguments that evaluate to TRUE: keep only the name
+	for(ii in seq_along(input.args))
+	{
+		if(is.character(input.args[[ii]]) && !substr(input.args[[ii]],1,1)%in%c("'",'"'))
+			input.args[[ii]] <- paste0('"',input.args[[ii]],'"')
+		if(is.logical(input.args[[ii]]) && input.args[[ii]])
+			input.args[[ii]] <- ''
+	}	
+	#	sort arguments by name
+	tmp			<- sort(names(input.args), index.return=TRUE)$ix
+	input.args	<- input.args[tmp]
+	#
+	#	make command
+	#
+	#	create local tmp dir
+	cmd		<- paste("CWD=$(pwd)\n",sep='\n')
+	cmd		<- paste(cmd,"echo $CWD\n",sep='')
+	tmpdir	<- paste('pty','_',format(Sys.time(),"%y-%m-%d-%H-%M-%S"),sep='')	
+	tmpdir	<- paste("$CWD/",tmpdir,sep='')
+	cmd		<- paste(cmd,'mkdir -p "',tmpdir,'"\n',sep='')
+	#	if tree.input is zip file, extract and change tree.input to directory
+	if(grepl('\\.zip$',tree.input))
+	{		
+		tmp	<- gsub('\\.zip$','',file.path(tmpdir,basename(tree.input)))
+		cmd	<- paste(cmd,'mkdir -p "',tmp,'"\n',sep='')
+		cmd	<- paste(cmd,'unzip "',tree.input,'" -d "',tmp,'"\n',sep='')
+		tree.input	<- tmp				
+	}	
+	#	add encapsulating "" to tree.input
+	if(!substr(tree.input,1,1)%in%c("'",'"'))
+		tree.input	<- paste0('"',tree.input,'"')
+	#	cd to tmp dir
+	cmd		<- paste(cmd, 'cd "',tmpdir,'"\n', sep='')	
+	#	add call with positional arguments
+	cmd		<- paste(cmd, prog.phyloscanner_analyse_trees,' ',tree.input,' ',output.string,' ',splits.rule, sep='')
+	#	add optional arguments
+	for(ii in seq_along(input.args))
+	{
+		cmd			<- paste0(cmd,' --',names(input.args)[[ii]])
+		if(input.args[[ii]]!='')
+			cmd		<- paste0(cmd,' ',input.args[[ii]])
+	}
+	#	copy to outdir
+	cmd		<- paste(cmd, '\nmv ',output.string,'_workspace.rda "',out.dir,'"\n',sep='')	
+	#	zip up everything else
+	cmd		<- paste(cmd, 'for file in *; do\n\tzip -ur9XTjq ',paste(output.string,'_otherstuff.zip',sep=''),' "$file"\ndone\n',sep='')
+	cmd		<- paste(cmd, 'mv ',paste(output.string,'_otherstuff.zip',sep=''),' "',out.dir,'"\n',sep='')
+	#	clean up
+	cmd		<- paste(cmd,'cd $CWD\nrm -rf "',tmpdir,'"\n',sep='')
+	cmd
+}
