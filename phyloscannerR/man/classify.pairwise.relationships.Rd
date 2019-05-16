@@ -2,7 +2,7 @@
 % Please edit documentation in R/relationship_summary_methods.R
 \name{classify.pairwise.relationships}
 \alias{classify.pairwise.relationships}
-\title{Classify pairwise host relationships in deep sequence phylogenies Make viral phylogenetic classification}
+\title{Classify pairwise host relationships in deep sequence phylogenies}
 \usage{
 classify.pairwise.relationships(ptrees, close.threshold = 0.025,
   distant.threshold = 0.05, relationship.types = c("proximity.3.way",
@@ -36,7 +36,7 @@ classify.pairwise.relationships(ptrees, close.threshold = 0.025,
 A data frame with viral phylogenetic classifications of pairwise host relationships in each deep sequence phylogeny
 }
 \description{
-Classify pairwise host relationships in deep sequence phylogenies Make viral phylogenetic classification
+Classify pairwise host relationships in deep sequence phylogenies
 }
 \examples{
 \dontrun{
