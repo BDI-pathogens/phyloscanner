@@ -148,7 +148,7 @@ count.pairwise.relationships<- function(dwin, w.slide=NA, verbose=TRUE)
 }
 
 
-#' @title Classify pairwise host relationships in deep sequence phylogenies Make viral phylogenetic classification 
+#' @title Classify pairwise host relationships in deep sequence phylogenies 
 #' @export
 #' @import tidyverse 
 #' @author Oliver Ratmann, Matthew Hall

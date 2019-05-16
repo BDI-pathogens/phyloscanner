@@ -914,7 +914,7 @@ merge.classifications <- function(ptrees, verbose = F){
   if(verbose) cat("Rearranging host pairs...\n")
   
   classification.rows	<- classification.rows %>% map(function(x){    
-    x2 <- x %>%
+    x %>%
         mutate(tempancestry = ancestry, temphost.1 = host.1, temphost.2 = host.2, temppaths12 = paths12, temppaths21 = paths21, tempnodes1 = nodes1, tempnodes2 = nodes2) %>%
         mutate(ancestry = replace(ancestry, host.2 < host.1 & tempancestry == "anc", "desc")) %>% 
         mutate(ancestry = replace(ancestry, host.2 < host.1 & tempancestry == "desc", "anc")) %>% 
@@ -927,7 +927,6 @@ merge.classifications <- function(ptrees, verbose = F){
         mutate(nodes1 = replace(nodes1, temphost.2 < temphost.1, tempnodes2[temphost.2 < temphost.1])) %>%
         mutate(nodes2 = replace(nodes2, temphost.2 < temphost.1, tempnodes1[temphost.2 < temphost.1])) %>%
         select(-c(temphost.1, temphost.2, tempancestry, temppaths12, temppaths21, tempnodes1, tempnodes2))
-    x    
   })
   #
   # rbind consolidated files
