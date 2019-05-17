@@ -28,7 +28,6 @@ initialise.phyloscanner <- function(
   if(verbosity!=0){
     cat("Initialising...\n")
   }
-  
   full.tree.file.names <- list.files.mod(tree.file.directory, pattern=tree.file.regex, full.names=TRUE)
   tree.file.names <- list.files.mod(tree.file.directory, pattern=tree.file.regex)
   
@@ -401,7 +400,7 @@ initialise.phyloscanner <- function(
         }, simplify = F, USE.NAMES = T)
       }
     } else {
-      warning(paste0("Cannot normalise branch lengths from file without window cooardinates in file suffixes; tree branch lengths will not be normalised.\n"))
+      warning(paste0("Cannot normalise branch lengths from file without window cooardinates in tree IDs (usually file suffixes); tree branch lengths will not be normalised.\n"))
       ptrees <- sapply(ptrees, function(ptree) {
         ptree$normalisation.constant  <- 1
         ptree
@@ -809,7 +808,7 @@ phyloscanner.analyse.trees <- function(
   
   ptrees <- sapply(ptrees, function(ptree){
     if(all(is.na(ptree$hosts.for.tips))){
-      warning("For tree ID ",ptree$id," no non-blacklisted tips remain; this window will be removed from the analysis.")
+      warning("For tree ID ",ptree$id," no non-blacklisted tips remain; this tree will be removed from the analysis.")
       NULL
     } else {
       tips.for.hosts <- sapply(hosts, function(x){
