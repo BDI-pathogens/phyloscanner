@@ -411,6 +411,8 @@ do.simplified.graph            <- !args$skipSummaryGraph
 simp.plot.dim                  <- args$summaryPlotDimensions
 
 
+single.tree <- file.exists(tree.input) 
+
 
 if(single.tree){
   phyloscanner.trees <- phyloscanner.analyse.tree(

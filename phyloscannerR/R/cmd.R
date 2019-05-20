@@ -160,10 +160,20 @@ cmd.phyloscanner_analyse_trees<- function(prog.phyloscanner_analyse_trees,
 	#	if tree.input is zip file, extract and change tree.input to directory
 	if(grepl('\\.zip$',tree.input))
 	{		
-		tmp	<- gsub('\\.zip$','',file.path(tmpdir,basename(tree.input)))
-		cmd	<- paste(cmd,'mkdir -p "',tmp,'"\n',sep='')
-		cmd	<- paste(cmd,'unzip -j "',tree.input,'" -d "',tmp,'"\n',sep='')
-		tree.input	<- tmp				
+		tree.dir	<- gsub('\\.zip$','',file.path(tmpdir,basename(tree.input)))
+		cmd			<- paste(cmd,'mkdir -p "',tree.dir,'"\n',sep='')
+		cmd			<- paste(cmd,'unzip -j "',tree.input,'" -d "',tree.dir,'"\n',sep='')
+		#	passing directory is currently not supported, must pass base of tree file names before the window coordinates start
+		#	determine prefix of tree files via control$tree.file.regex
+		#	the regex must contain ()
+		if( !grepl('\\(',control$tree.file.regex) )
+			stop('Cannot make tree.input variable, expect control$tree.file.regex with () that identify window coordinates, found:',control$tree.file.regex)	
+		tmp				<- unzip(tree.input, list=TRUE)		
+		tmp$windowid	<- gsub(control$tree.file.regex, '\\1', tmp$Name)
+		tmp$prefix		<- sapply(seq_along(tmp$Name), function(x) gsub(paste0(tmp$windowid[x],'.*'),'',tmp$Name[x]))		
+		if( !all( tmp$prefix==tmp$prefix[1] ) )
+			stop('Cannot make tree.input variable, contact maintainer', tmp$Name)		
+		tree.input	<- file.path(tree.dir,tmp$prefix[1])
 	}	
 	#	add encapsulating "" to tree.input
 	if(!substr(tree.input,1,1)%in%c("'",'"'))
