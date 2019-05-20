@@ -13,7 +13,7 @@ suppressMessages(require(readr, quietly=TRUE, warn.conflicts=FALSE))
 arg_parser		     <- ArgumentParser()
 
 
-arg_parser$add_argument("tree", action="store", help="A string that begins the file names (including the path) of all input trees. e.g. path/to/RAxML_bestTree.InWindow_")
+arg_parser$add_argument("tree", action="store", help="A string that begins the file names (including the path) of all input trees. e.g. path/to/RAxML_bestTree.InWindow_, or a single input tree file.")
 arg_parser$add_argument("outputString", action="store", help="A string that will be used to label all output files.")
 
 arg_parser$add_argument("-og", "--outgroupName", action="store", help="The name of the tip in the phylogeny/phylogenies to be used as outgroup (if unspecified, trees will be assumed to be already rooted). This should be sufficiently distant to any sequence obtained from a host that it can be assumed that the MRCA of the entire tree was not a lineage present in any sampled individual.")
@@ -120,13 +120,21 @@ re.alignment.fe                 <- gsub("\\.", "\\\\.", alignment.fe)
 
 # tree input
 tree.input                      <- args$tree
-if(file.info(tree.input)[['isdir']]){
-	tree.directory                <- tree.input
-	tree.file.regex               <- paste0("^(.*)", re.tree.fe, "$")
-}
+
 if(!file.exists(tree.input)){
   tree.directory                <- dirname(tree.input)
+
   tree.file.regex               <- paste0("^", basename(tree.input), "(.*)", re.tree.fe, "$")
+  single.tree                   <- F
+
+} else {
+  if(file.info(tree.input)[['isdir']]){
+    tree.directory              <- tree.input
+    tree.file.regex             <- paste0("^(.*)", re.tree.fe, "$")
+    single.tree                 <- F
+  } else {
+    single.tree                 <- T
+  }
 }
 
 # user blacklist
@@ -402,7 +410,7 @@ relaxed.ancestry               <- args$relaxedAncestry
 do.simplified.graph            <- !args$skipSummaryGraph
 simp.plot.dim                  <- args$summaryPlotDimensions
 
-single.tree <- file.exists(tree.input) && !file.info(tree.input)[['isdir']]
+
 
 if(single.tree){
   phyloscanner.trees <- phyloscanner.analyse.tree(
