@@ -120,10 +120,10 @@ re.alignment.fe                 <- gsub("\\.", "\\\\.", alignment.fe)
 
 # tree input
 tree.input                      <- args$tree
-if(file.info(tree.input)[['isdir']]){
-	tree.directory                <- tree.input
-	tree.file.regex               <- paste0("^(.*)", re.tree.fe, "$")
-}
+#if(file.info(tree.input)[['isdir']]){
+#	tree.directory                <- tree.input
+#	tree.file.regex               <- paste0("^(.*)", re.tree.fe, "$")
+#}
 if(!file.exists(tree.input)){
   tree.directory                <- dirname(tree.input)
   tree.file.regex               <- paste0("^", basename(tree.input), "(.*)", re.tree.fe, "$")
@@ -402,7 +402,9 @@ relaxed.ancestry               <- args$relaxedAncestry
 do.simplified.graph            <- !args$skipSummaryGraph
 simp.plot.dim                  <- args$summaryPlotDimensions
 
-single.tree <- file.exists(tree.input) && !file.info(tree.input)[['isdir']]
+#single.tree <- file.exists(tree.input) && !file.info(tree.input)[['isdir']]
+single.tree <- file.exists(tree.input) #&& !file.info(tree.input)[['isdir']]
+
 
 if(single.tree){
   phyloscanner.trees <- phyloscanner.analyse.tree(
