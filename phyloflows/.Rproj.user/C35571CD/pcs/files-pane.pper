@@ -1,0 +1,9 @@
+{
+    "path" : "~/phyloscanner/phyloflows/man",
+    "sortOrder" : [
+        {
+            "ascending" : true,
+            "columnIndex" : 2
+        }
+    ]
+}

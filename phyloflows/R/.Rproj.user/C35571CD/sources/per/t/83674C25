@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1550789752567.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3219956476",
+    "id" : "83674C25",
+    "lastKnownWriteTime" : 1550790857,
+    "last_content_update" : 1550790857329,
+    "path" : "~/TransSubpopulation/vignettes/Source_attribution_under_SARWS_assumption.Rmd",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "83,224",
+        "scrollLine" : "78"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}
