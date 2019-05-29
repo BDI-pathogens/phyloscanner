@@ -400,7 +400,7 @@ initialise.phyloscanner <- function(
         }, simplify = F, USE.NAMES = T)
       }
     } else {
-      warning(paste0("Cannot normalise branch lengths from file without window cooardinates in tree IDs (usually file suffixes); tree branch lengths will not be normalised.\n"))
+      warning(paste0("Cannot normalise branch lengths from file without window cooardinates in tree IDs (which are usually file suffixes); tree branch lengths will not be normalised.\n"))
       ptrees <- sapply(ptrees, function(ptree) {
         ptree$normalisation.constant  <- 1
         ptree

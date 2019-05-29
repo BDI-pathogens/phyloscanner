@@ -209,7 +209,7 @@ classify.pairwise.relationships<- function(ptrees,
   
   dwin <- phyloscannerR:::merge.classifications(ptrees, verbose)	
   
-  if(!all(dwin$host.1 < dwin(host.2))){
+  if(!all(dwin$host.1 < dwin$host.2)){
     stop("Failed to rearrange pair orders alphabetically.")
   }
 
