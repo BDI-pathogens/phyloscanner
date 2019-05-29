@@ -196,7 +196,6 @@ These functions perform a parsimony reconstruction and classification of pairwis
 #
 # Example on data from Rakai Community Cohort Study
 #
-
 \dontrun{
 
 require(phyloscannerR)
@@ -261,5 +260,4 @@ phsc <- phyloscanner.analyse.trees(tree.file.directory,
              verbosity = verbosity 
              )
 }
-
 }

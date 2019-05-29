@@ -1,8 +1,8 @@
 #' Obtain valid input arguments for a phyloscanner analysis on a tree or set of trees
 #' @param prog.phyloscanner_analyse_trees The full file name of \code{phyloscanner_analyse_trees.R}.
 #' @export
-#' @seealso \link{\code{cmd.phyloscanner_analyse_trees}}
-cmd.phyloscanner_analyse_trees.valid.args<- function(prog.phyloscanner_analyse_trees)
+#' @seealso \link{\code{cmd.phyloscanner.analyse.trees}}
+cmd.phyloscanner.analyse.trees.valid.args<- function(prog.phyloscanner_analyse_trees)
 {
 	tmp	<- system2(command=prog.phyloscanner_analyse_trees, args='-h', stdout=TRUE)
 	tmp	<- tmp[grepl('--',tmp)]
@@ -20,65 +20,14 @@ cmd.phyloscanner_analyse_trees.valid.args<- function(prog.phyloscanner_analyse_t
 #' @param control List of input arguments to \link{\code{phyloscanner_analyse_trees}}.
 #' @param valid.input.args Vector of valid input arguments.
 #' @return A character string of UNIX commands.
-#' @seealso \link{\code{phyloscanner_analyse_trees}}, \link{\code{cmd.phyloscanner_analyse_trees.valid.args}}
+#' @seealso \link{\code{phyloscanner.analyse.trees}}, \link{\code{cmd.phyloscanner.analyse.trees.valid.args}}
 #' @author Oliver Ratmann
 #' @export
-#' @examples 
-#' \dontrun{	
-#' #	set phyloscanner variables
-#' #	arguments as used for RCCS analysis
-#' control	<- list()
-#' control$allow.mt <- TRUE				
-#' control$alignment.file.directory = NULL 
-#' control$alignment.file.regex = NULL
-#' control$blacklist.underrepresented = FALSE	
-#' control$count.reads.in.parsimony = TRUE
-#' control$do.dual.blacklisting = FALSE					
-#' control$duplicate.file.directory = NULL
-#' control$duplicate.file.regex = NULL
-#' control$file.name.regex = "^\\D*([0-9]+)_to_([0-9]+)\\D*$"
-#' control$guess.multifurcation.threshold = FALSE
-#' control$max.reads.per.host = 50
-#' control$multifurcation.threshold = 1e-5
-#' control$norm.constants = NULL
-#' control$norm.ref.file.name = system.file('HIV_DistanceNormalisationOverGenome.csv',package='phyloscannerR')
-#' control$norm.standardise.gag.pol = TRUE
-#' control$no.progress.bars = TRUE
-#' control$outgroup.name = "REF_CPX_AF460972"
-#' control$output.dir = '/Users/Oliver/sandbox/DeepSeqProjects/RakaiPopSample_phsc_out190512/run192'
-#' control$parsimony.blacklist.k = 20
-#' control$prune.blacklist = FALSE
-#' control$ratio.blacklist.threshold = 0 
-#' control$raw.blacklist.threshold = 20					
-#' control$recombination.file.directory = NULL
-#' control$recombination.file.regex = NULL
-#' control$relaxed.ancestry = TRUE
-#' control$sankoff.k = 20
-#' control$sankoff.unassigned.switch.threshold = 0
-#' control$seed = 42
-#' control$splits.rule = 's'
-#' control$tip.regex = "^(.*)_fq[0-9]+_read_([0-9]+)_count_([0-9]+)$"
-#' control$tree.file.regex = "^ptyr[0-9]+_InWindow_([0-9]+_to_[0-9]+)\\.tree$"
-#' control$use.ff = FALSE
-#' control$user.blacklist.directory = NULL 
-#' control$user.blacklist.file.regex = NULL
-#' control$verbosity = 1
-#' 	
-#' #	make bash for one file
-#' prog.phyloscanner_analyse_trees <- '/Users/Oliver/git/phyloscanner/phyloscanner_analyse_trees.R'
-#' valid.input.args <- cmd.phyloscanner_analyse_trees.valid.args(prog.phyloscanner_analyse_trees)
-#' tree.input <- system.file(file.path('extdata','Rakai_run192_trees.zip'),package='phyloscannerR')
-#' control$output.string <- 'Rakai_run192'
-#' cmd <- cmd.phyloscanner_analyse_trees(prog.phyloscanner_analyse_trees, 
-#' 		tree.input, 
-#' 		control,
-#' 		valid.input.args=valid.input.args)
-#' cat(cmd)
-#' }
-cmd.phyloscanner_analyse_trees<- function(prog.phyloscanner_analyse_trees, 
+#' @example /inst/example/ex.cmd.phyloscanner_analyse_trees.R
+cmd.phyloscanner.analyse.trees<- function(prog.phyloscanner_analyse_trees, 
 												tree.input, 
 												control,
-												valid.input.args=cmd.phyloscanner_analyse_trees.valid.args(prog.phyloscanner_analyse_trees))
+												valid.input.args=cmd.phyloscanner.analyse.trees.valid.args(prog.phyloscanner_analyse_trees))
 {	
 	#
 	#	prepare input args
@@ -190,7 +139,10 @@ cmd.phyloscanner_analyse_trees<- function(prog.phyloscanner_analyse_trees,
 			cmd		<- paste0(cmd,' ',input.args[[ii]])
 	}
 	#	copy to outdir
-	cmd		<- paste(cmd, '\nmv ',output.string,'_workspace.rda "',out.dir,'"\n',sep='')	
+	cmd		<- paste(cmd, '\nmv ',output.string,'_workspace.rda "',out.dir,'"\n',sep='')
+	#	remove trees directory
+	if(exists('tree.dir'))
+		cmd		<- paste0(cmd, 'rm -rf "',tree.dir,'"\n')
 	#	zip up everything else
 	cmd		<- paste(cmd, 'for file in *; do\n\tzip -ur9XTjq ',paste(output.string,'_otherstuff.zip',sep=''),' "$file"\ndone\n',sep='')
 	cmd		<- paste(cmd, 'mv ',paste(output.string,'_otherstuff.zip',sep=''),' "',out.dir,'"\n',sep='')
