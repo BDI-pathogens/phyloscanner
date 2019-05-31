@@ -88,7 +88,7 @@ If we don’t adjust for the sampling, a crude estimate of the true
 proportion of transmission flows would be
 
 $$
-(\hat{\pi}_{11}= 18/56= 0.321,\hat{\pi}_{12}=0.107,\hat{\pi}_{21}=0.214,\hat{\pi}_{22}=0.357)
+(\hat{\pi}_ {11}= 18/56 = 0.321,\hat{\pi}_ {12}=0.107,\hat{\pi}_ {21}=0.214,\hat{\pi}_ {22}=0.357)
 $$
 
 
@@ -102,14 +102,14 @@ One very quick solution to the sampling problem would be to infer the
 actual transmission flows from what we know, i.e.
 
 $$
-\hat{z}_{ij}= n_{ij}/(s_i*s_j),
+\hat{z}_ {ij} = n_{ij}/(s_i * s_j),
 $$
 
 
 and then to calculate
 
 $$
-\hat{\pi}_{ij}=\hat{z}_{ij} /\sum_{kl}\hat{z}_{kl}.
+\hat{\pi}_ {ij}=\hat{z}_ {ij} /\sum_{kl}\hat{z}_ {kl}.
 $$
 
 
@@ -134,7 +134,7 @@ is the total number of transmissions,
 . Next, we add the likelihood of the sampling process,
 
 $$
-p(n_{ij}|z_{ij},s_i,s_j)= Binomial(n_{ij};z_{ij},s_i*s_j).
+p(n_{ij}|z_{ij},s_i,s_j)= Binomial(n_{ij};z_{ij},s_i * s_j).
 $$
 
 
