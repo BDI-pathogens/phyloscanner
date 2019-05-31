@@ -123,7 +123,7 @@ estimates for
 complete data,
 
 $$
-p(z|Z,\pi)= Multinomial(z;Z,\pi),
+p(z|Z,\pi)= \mbox{Multinomial}(z;Z,\pi),
 $$
 
 
@@ -134,7 +134,7 @@ is the total number of transmissions,
 . Next, we add the likelihood of the sampling process,
 
 $$
-p(n_{ij}|z_{ij},s_i,s_j)= Binomial(n_{ij};z_{ij},s_i * s_j).
+p(n_{ij}|z_{ij},s_i,s_j)= \mbox{Binomial}(n_{ij};z_{ij},s_i * s_j).
 $$
 
 
