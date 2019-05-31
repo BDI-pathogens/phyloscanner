@@ -93,7 +93,7 @@ $$
 
 
 and the worst case error is 50%-32.1%=17.9%. That is pretty bad. **The
-job of phyloflow is to return better estimates**, with a worst case
+job of phyloflows is to return better estimates**, with a worst case
 error lower than 2-3%.
 
 ## Our solution
@@ -151,7 +151,7 @@ Bayes Theorem.
 This looks pretty straightforward. The issue is that in real-world data
 analyses, the total number of unknown parameters is 1,000 or even more.
 And so we also need a nifty computational inference engine.
-**phyloflow** uses a special type of Markov Chain Markov Carlo
+**phyloflows** uses a special type of Markov Chain Markov Carlo
 algorithms for this job. The main feature is that it has zero tuning
 variables, so the blame is 100% on us if it does not work. Just get in
 touch then.
