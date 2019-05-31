@@ -161,7 +161,7 @@ Binomial sampling model that we assume throughout,
 conditional on the number of total and sampled individuals,
 
 $$
-p(\xi_a|X_a^i,X_s^i)= Beta(\xi_a;X_a^s+1,X_a^i-X_a^s+1).
+p(\xi_a|X_a^i,X_s^i)= \mbox{Beta}(\xi_a;X_a^s+1,X_a^i-X_a^s+1).
 $$
 
 
