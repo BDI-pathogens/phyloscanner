@@ -154,7 +154,7 @@ for our two population groups
 . Usually this type of information is available to us in real-world data
 analyses, and so we work from these numbers here also. Under the
 Binomial sampling model that we assume throughout,
- $X_a^s\sim Binom(X_a^i,\xi_a)$
+ $X_a^s\sim \mbox{Binomial}(X_a^i,\xi_a)$
 . If we suppose a flat prior on
  $\xi_a$
 , we obtain the posterior distribution of the sampling probabilities
@@ -404,7 +404,7 @@ $$
 we model the sampling probability by
 
 $$
-X_a^i\sim Binom(X_a^i,\xi_a)
+X_a^i\sim \mbox{Binomial}(X_a^i,\xi_a)
 $$
 
 
