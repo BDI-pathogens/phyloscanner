@@ -411,7 +411,7 @@ $$
 using the same notation as above, and where
 
 $$
-\mbox{logit}(\xi_{a})=\beta_0+\beta_1 * G_a +\beta_2 S_{a}
+\mbox{logit}(\xi_{a})=\beta_0+\beta_1 G_a +\beta_2 S_{a}
 $$
 
 
