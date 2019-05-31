@@ -397,7 +397,7 @@ probabilities, and generate samples from it**. This final step is where
 the GLM approach differs from the SARWS approach. For the 4 groups
 
 $$
-a\in \{ 1F, 1M, 2F, 2M\}
+a\in \\{ 1F, 1M, 2F, 2M \\}
 $$
 
 
