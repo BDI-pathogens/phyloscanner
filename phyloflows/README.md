@@ -88,9 +88,8 @@ If we don’t adjust for the sampling, a crude estimate of the true
 proportion of transmission flows would be
 
 $$
-(\hat{\pi}_ {11}= 18/56 = 0.321,\hat{\pi}_ {12}=0.107,\hat{\pi}_ {21}=0.214,\hat{\pi}_ {22}=0.357)
+(\hat{\pi}_{11}= 18/56 = 0.321,\hat{\pi}_ {12}=0.107,\hat{\pi}_{21}=0.214,\hat{\pi}_{22}=0.357)
 $$
-
 
 and the worst case error is 50%-32.1%=17.9%. That is pretty bad. **The
 job of phyloflows is to return better estimates**, with a worst case
