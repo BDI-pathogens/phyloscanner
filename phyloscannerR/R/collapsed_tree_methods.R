@@ -652,7 +652,7 @@ check.tt.node.adjacency <- function(tt, label1, label2, allow.unassigned = F){
 #' @keywords internal
 #' @export classify
 
-classify <- function(ptree, verbose = F, no.progress.bars = F) {	
+classify <- function(ptree, allow.mt = F, relaxed.ancestry = F, verbose = F, no.progress.bars = F) {	
   
   if(is.null(ptree[["tree"]])){
     
@@ -804,18 +804,26 @@ classify <- function(ptree, verbose = F, no.progress.bars = F) {
           dir.21.matrix[pat.1, pat.2] <- count.21
           
           if(count.12 == 0 & count.21 == 0){
-            top.class.matrix[pat.1, pat.2] <- "none"
-          } else if(count.12 != 0 & count.21 == 0 & prop.12 == 1) {
+            top.class.matrix[pat.1, pat.2] <- "noAncestry"
+          } else if(count.12 != 0 & count.21 == 0 & (relaxed.ancestry | prop.12 == 1)) {
             if(count.12 == 1){
               top.class.matrix[pat.1, pat.2] <- "anc"
             } else {
-              top.class.matrix[pat.1, pat.2] <- "multiAnc"
+              if(allow.mt){
+                top.class.matrix[pat.1, pat.2] <- "multiAnc"
+              } else {
+                top.class.matrix[pat.1, pat.2] <- "complex"
+              }
             }
-          } else if(count.21 != 0 & count.12 == 0 & prop.21 == 1) {
+          } else if(count.21 != 0 & count.12 == 0 & (relaxed.ancestry | prop.21 == 1)) {
             if(count.21 == 1){
               top.class.matrix[pat.1, pat.2] <- "desc"
             } else {
-              top.class.matrix[pat.1, pat.2] <- "multiDesc"
+              if(allow.mt){
+                top.class.matrix[pat.1, pat.2] <- "multiDesc"
+              } else {
+                top.class.matrix[pat.1, pat.2] <- "complex"
+              }
             }
           } else {
             top.class.matrix[pat.1, pat.2] <- "complex"
@@ -877,7 +885,7 @@ classify <- function(ptree, verbose = F, no.progress.bars = F) {
 #' @export merge.classifications
 
 
-merge.classifications <- function(ptrees, allow.mt = T, verbose = F){
+merge.classifications <- function(ptrees, verbose = F){
   
   classification.rows	<- ptrees %>% map(function(ptree) {
     
@@ -915,20 +923,19 @@ merge.classifications <- function(ptrees, allow.mt = T, verbose = F){
   if(verbose) cat("Rearranging host pairs...\n")
   
   classification.rows	<- classification.rows %>% map(function(x){    
-    x2 <- x %>%
-      mutate(tempancestry = ancestry, temphost.1 = host.1, temphost.2 = host.2, temppaths12 = paths12, temppaths21 = paths21, tempnodes1 = nodes1, tempnodes2 = nodes2) %>%
-      mutate(ancestry = replace(ancestry, host.2 < host.1 & tempancestry == "anc", "desc")) %>% 
-      mutate(ancestry = replace(ancestry, host.2 < host.1 & tempancestry == "desc", "anc")) %>% 
-      mutate(ancestry = replace(ancestry, host.2 < host.1 & tempancestry == "multiAnc", "multiDesc")) %>% 
-      mutate(ancestry = replace(ancestry, host.2 < host.1 & tempancestry == "multiDesc", "multiAnc")) %>%
-      mutate(host.1 = replace(host.1, temphost.2 < temphost.1, temphost.2[temphost.2 < temphost.1])) %>%
-      mutate(host.2 = replace(host.2, temphost.2 < temphost.1, temphost.1[temphost.2 < temphost.1])) %>%
-      mutate(paths12 = replace(paths12, temphost.2 < temphost.1, temppaths21[temphost.2 < temphost.1])) %>%
-      mutate(paths21 = replace(paths21, temphost.2 < temphost.1, temppaths12[temphost.2 < temphost.1])) %>%
-      mutate(nodes1 = replace(nodes1, temphost.2 < temphost.1, tempnodes2[temphost.2 < temphost.1])) %>%
-      mutate(nodes2 = replace(nodes2, temphost.2 < temphost.1, tempnodes1[temphost.2 < temphost.1])) %>%
-      select(-c(temphost.1, temphost.2, tempancestry, temppaths12, temppaths21, tempnodes1, tempnodes2))
-    x    
+    x %>%
+        mutate(tempancestry = ancestry, temphost.1 = host.1, temphost.2 = host.2, temppaths12 = paths12, temppaths21 = paths21, tempnodes1 = nodes1, tempnodes2 = nodes2) %>%
+        mutate(ancestry = replace(ancestry, host.2 < host.1 & tempancestry == "anc", "desc")) %>% 
+        mutate(ancestry = replace(ancestry, host.2 < host.1 & tempancestry == "desc", "anc")) %>% 
+        mutate(ancestry = replace(ancestry, host.2 < host.1 & tempancestry == "multiAnc", "multiDesc")) %>% 
+        mutate(ancestry = replace(ancestry, host.2 < host.1 & tempancestry == "multiDesc", "multiAnc")) %>%
+        mutate(host.1 = replace(host.1, temphost.2 < temphost.1, temphost.2[temphost.2 < temphost.1])) %>%
+        mutate(host.2 = replace(host.2, temphost.2 < temphost.1, temphost.1[temphost.2 < temphost.1])) %>%
+        mutate(paths12 = replace(paths12, temphost.2 < temphost.1, temppaths21[temphost.2 < temphost.1])) %>%
+        mutate(paths21 = replace(paths21, temphost.2 < temphost.1, temppaths12[temphost.2 < temphost.1])) %>%
+        mutate(nodes1 = replace(nodes1, temphost.2 < temphost.1, tempnodes2[temphost.2 < temphost.1])) %>%
+        mutate(nodes2 = replace(nodes2, temphost.2 < temphost.1, tempnodes1[temphost.2 < temphost.1])) %>%
+        select(-c(temphost.1, temphost.2, tempancestry, temppaths12, temppaths21, tempnodes1, tempnodes2))
   })
   #
   # rbind consolidated files
@@ -952,15 +959,6 @@ merge.classifications <- function(ptrees, allow.mt = T, verbose = F){
     
   }
   
-  # change type name depending on allow.mt
-  
-  if(!allow.mt){
-    if(verbose) cat("Allowing only single lineage transmission to be used to infer directionality\n")
-    
-    classification.rows <- classification.rows %>% mutate(ancestry = 
-                                                            replace(ancestry, which(ancestry %in% c("multiAnc", "multiDesc")), "complex"))
-  }
-  
   #	check we have patristic distances, paths
   
   stopifnot('patristic.distance' %in% names(classification.rows))
@@ -980,180 +978,4 @@ merge.classifications <- function(ptrees, allow.mt = T, verbose = F){
   return(classification.rows)
 }
 
-#' @keywords internal
-#' @export summarise.classifications
 
-summarise.classifications <- function(ptrees, min.threshold, dist.threshold, allow.mt = T, close.sib.only = F, verbose = F, contiguous = F){
-  
-  tt <- merge.classifications(ptrees, allow.mt, verbose)
-  
-  if (verbose) cat("Making summary output table...\n")
-  
-  tt <- tt %>% select(-c(paths12, paths21))
-  
-  existence.counts <- tt %>% count(host.1, host.2)
-  
-  tt <- tt %>% 
-    group_by(host.1, host.2) %>% 
-    mutate(both.exist = n()) %>%
-    ungroup()
-  
-  if(!close.sib.only){
-    if(!contiguous){
-      tt.close <- tt %>% 
-        filter(adjacent & patristic.distance < dist.threshold)
-    } else {
-      tt.close <- tt %>% 
-        filter(contiguous & patristic.distance < dist.threshold)
-    }
-  } else {
-    if(!contiguous){
-      tt.close <- tt %>% 
-        filter(adjacent & (patristic.distance < dist.threshold | ancestry != "none"))
-    } else {
-      tt.close <- tt %>% 
-        filter(contiguous & (patristic.distance < dist.threshold | ancestry == "none"))
-    }
-  }
-  
-  # How many windows have this relationship, adjacent and patristic.distance below the threshold?
-  tt.close	<- tt.close %>% 
-    group_by(host.1, host.2, ancestry) %>% 
-    mutate(ancestry.tree.count = n()) %>% 
-    ungroup()
-  
-  # How many windows have ADJACENT and PATRISTIC_DISTANCE below the threshold?
-  
-  tt.close <- tt.close %>% group_by(host.1, host.2) %>% 
-    mutate(any.relationship.tree.count = n()) %>% 
-    ungroup()
-  
-  tt.close <- tt.close %>% 
-    mutate(fraction = paste0(ancestry.tree.count,'/',both.exist))
-  
-  #	Flip directions - all ancestry is now "trans" or "multiTrans"
-  
-  tt.close <- tt.close %>% 
-    mutate(new.host.1 = ifelse(ancestry %in% c("desc", "multiDesc"), host.2, host.1), 
-           new.host.2 = ifelse(ancestry %in% c("desc", "multiDesc"), host.1, host.2), 
-           host.1 = new.host.1,
-           host.2 = new.host.2) %>% 
-    select(-new.host.1, -new.host.2) %>% 
-    mutate(ancestry = replace(ancestry, ancestry == "anc" | ancestry == "desc", "trans")) %>% 
-    mutate(ancestry = replace(ancestry, ancestry == "multiAnc" | ancestry == "multiDesc", "multiTrans")) %>% 
-    select(-tree.id, -adjacent, -contiguous, -nodes1, -nodes2, -patristic.distance) %>% 
-    distinct() %>% 
-    arrange(host.1, host.2, ancestry) %>% 
-    select(host.1, host.2, ancestry, ancestry.tree.count, both.exist, fraction, any.relationship.tree.count) %>% 
-    filter(any.relationship.tree.count > min.threshold)
-  
-  tt.close 
-}
-
-#' @keywords internal
-#' @importFrom network as.network.matrix
-#' @export simplify.summary
-
-simplify.summary <- function(summary, arrow.threshold, total.trees, plot = F){
-  
-  done <- rep(FALSE, nrow(summary))
-  
-  for(line in 1:nrow(summary)){
-    if(!done[line]){
-      forwards.rows <- which(summary$host.1 == summary$host.1[line] & summary$host.2 == summary$host.2[line])
-      backwards.rows <- which(summary$host.1 == summary$host.2[line] & summary$host.2 == summary$host.1[line])
-      
-      done[forwards.rows] <- T
-      done[backwards.rows] <- T
-      
-      summary$ancestry[intersect(forwards.rows, which(summary$ancestry=="trans"))] <- "trans12"
-      summary$ancestry[intersect(forwards.rows, which(summary$ancestry=="multiTrans"))] <- "multi_trans12"
-      
-      summary$ancestry[intersect(backwards.rows, which(summary$ancestry=="trans"))] <- "trans21"
-      summary$ancestry[intersect(backwards.rows, which(summary$ancestry=="multiTrans"))] <- "multi_trans21"
-      
-      summary[backwards.rows,c(1,2)] <- summary[backwards.rows,c(2,1)]
-    }
-  }
-  
-  summary.wide <- summary %>% 
-    select(host.1, host.2, both.exist, ancestry, ancestry.tree.count) %>% 
-    spread(ancestry, ancestry.tree.count, fill = 0) %>% 
-    mutate(total.equiv = 0, total.12 = 0, total.21 = 0)
-  
-  if("none" %in% names(summary.wide)){
-    summary.wide <- summary.wide %>% mutate(total.equiv = total.equiv + none)
-  }
-  if("complex" %in% names(summary.wide)){
-    summary.wide <- summary.wide %>% mutate(total.equiv = total.equiv + complex)
-  }
-  if("trans12" %in% names(summary.wide)){
-    summary.wide <- summary.wide %>% mutate(total.12 = total.12 + trans12)
-  } 
-  if("multi_trans12" %in% names(summary.wide)){
-    summary.wide <- summary.wide %>% mutate(total.12 = total.12 + multi_trans12)
-  }
-  if("trans21" %in% names(summary.wide)){
-    summary.wide <- summary.wide %>% mutate(total.21 = total.21 + trans21)
-  } 
-  if("multi_trans21" %in% names(summary.wide)){
-    summary.wide <- summary.wide %>% mutate(total.21 = total.21 + multi_trans21)
-  }
-  
-  summary.wide <- summary.wide %>% 
-    mutate(total = total.21 + total.12 + total.equiv,
-           dir = total.12 >= arrow.threshold*total.trees | total.21 >= arrow.threshold*total.trees,
-           arrow = pmap_chr(list(dir, total.12, total.21), function(x, y, z) {
-             if(!x){
-               return("none")
-             }
-             if(y > z){
-               return("forwards")
-             } else {
-               return("backwards")
-             }
-           }),
-           label = pmap_chr(list(dir, total.12, total.21, total), function(w, x, y, z) {
-             if(!w){
-               as.character(round(z/total.trees, 2))
-             } else {
-               paste0(round(max(x,y)/total.trees, 2), "/", round(z/total.trees, 2))
-             }
-             
-           })
-    ) %>%
-    select(host.1, host.2, arrow, label)
-  
-  # this has not been tidied - but it's much more succinct in standard R language
-  
-  summary.wide[which(summary.wide$arrow=="backwards"),c(1,2)] <- summary.wide[which(summary.wide$arrow=="backwards"),c(2,1)] 
-  
-  summary.wide$arrow <- summary.wide$arrow!="none"
-  
-  out <- list(simp.table = summary.wide)
-  
-  
-  if(plot){
-    network.obj <- as.network.matrix(summary.wide[,c(1,2)], matrix.type = "edgelist")
-    
-    arrangement <- ggnet2(network.obj)$data[,c("label", "x", "y")]
-    
-    summary.wide$x.start <- map_dbl(summary.wide$host.1, function(x) arrangement$x[match(x, arrangement$label)]) 
-    summary.wide$y.start <- map_dbl(summary.wide$host.1, function(x) arrangement$y[match(x, arrangement$label)]) 
-    summary.wide$x.end <- map_dbl(summary.wide$host.2, function(x) arrangement$x[match(x, arrangement$label)]) 
-    summary.wide$y.end <- map_dbl(summary.wide$host.2, function(x) arrangement$y[match(x, arrangement$label)]) 
-    summary.wide$x.midpoint <- (summary.wide$x.end + summary.wide$x.start)/2
-    summary.wide$y.midpoint <- (summary.wide$y.end + summary.wide$y.start)/2
-    
-    out.diagram <- ggplot() + 
-      geom_segment(data=summary.wide[which(summary.wide$arrow),], aes(x=x.start, xend = x.end, y=y.start, yend = y.end), arrow = arrow(length = unit(0.01, "npc"), type="closed"), col="steelblue3", size=1.5, lineend="round") +
-      geom_segment(data=summary.wide[which(!summary.wide$arrow),], aes(x=x.start, xend = x.end, y=y.start, yend = y.end), col="chartreuse3", size=1.5, lineend="round") +
-      geom_label(aes(x=arrangement$x, y=arrangement$y, label=arrangement$label), alpha=0.25, fill="darkgoldenrod3") + 
-      geom_text(data=summary.wide, aes(x=x.midpoint, y=y.midpoint, label=label)) + 
-      theme_void()
-    
-    out$simp.diagram <- out.diagram
-  }
-  
-  return(out)
-}

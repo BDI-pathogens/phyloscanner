@@ -421,6 +421,114 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
   }
 }
 
+#' Draw bar graphs of pairwise topological/distance relationships, version 2
+#' @author Oliver Ratmann
+#' @description 
+#' This function generates scan plots that summarize reconstructed viral phylogenetic relationships of two individuals.
+#' Several pairs of individuals can be processed simultaneously. For each pair of individuals, the scan plot shows the 
+#' phylogenetic distance on the y-axis and topological relationship in colours between subgraphs from both individuals in each 
+#' deep-sequence phylogeny across the genome. The genomic position on the x-axis indicates the start of each read alignment. 
+#' @param ptrees A list of class \code{phyloscanner.trees}
+#' @param hosts A list of hosts (as a vector) to obtain graphs for. By default, all pairs of hosts detected in \code{ptrees}.
+#' @param inclusion If "both", then only pairs in which both individuals are members of \code{hosts} are included. If "either" then pairs only need have one member from \code{hosts}
+#' @param dwin Optional output of \code{classify.pairwise.relationships}. This can be specified to avoid double calculations.
+#' @param control List of plotting attributes. 
+#' @return A list whose elements are \code{data}, the underlying data frame for the graph, and \code{graph}, the graph itself.
+#' @export produce.pairwise.graphs2
+#' @seealso \link{\code{classify.pairwise.relationships}}
+#' @examples
+#' #
+#' # Example on data from Rakai Community Cohort Study
+#' # remember that you can specify dwin to save computing time, if you have it already computed
+#' #
+#' \dontrun{	
+#' file	<- system.file(file.path('extdata','ptyr192_phsc_analyse_trees_output.RData'),package='phyloscannerR')
+#' load(file)	#loads 'phsc', output from 'phyloscanner.analyse.trees'	
+#' hosts	<- c('RkA05868F','RkA05968M','RkA00369F','RkA01344M')
+#' inclusion <- "both" 
+#' tmp	<- produce.pairwise.graphs2(phsc, hosts=hosts, inclusion = "both")
+#' tmp$graph
+#' }
+produce.pairwise.graphs2 <- function(	ptrees, 		
+										hosts = all.hosts.from.trees(ptrees),
+										inclusion = c("both", "either"),
+										dwin= NULL,
+										control = list(	yintercept_close=0.025,
+														yintercept_dist=1.0,
+														breaks_x=seq(0,1e4,500), 
+														minor_breaks_x=seq(0,1e4,100),
+														breaks_y=c(0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25),										
+														limits_y=c(1e-3,0.4),
+														fill.topology=c("ancestral"="deepskyblue1","descendant"="deepskyblue4","intermingled"= "#FDB863",'sibling'="#8073AC","other"="grey80"))
+										)
+{
+	if(is.null(dwin))
+	{
+		#get basic.classification
+		dwin <- classify.pairwise.relationships(ptrees, 				 
+					close.threshold=0.025, 	#has no effect on basic.classification
+					distant.threshold=0.05,	#has no effect on basic.classification		
+					relationship.types=c(), 
+					verbose=TRUE)		
+	}
+	stopifnot( dwin%>%filter(host.2<host.1)%>%nrow() == 0)
+	#	define basic topology
+	dwin <- dwin %>%
+			mutate(basic.topology:= gsub('desc','descendant',gsub('anc','ancestral',gsub('^(.*)_(.*)$','\\1',basic.classification))))
+	#	extract window coordinates
+	dwin <- dwin %>% 
+			mutate(window.start:= map_int(tree.id, function(x) as.integer(gsub('[^0-9]*([0-9]+)_to_([0-9]+).*','\\1', x))))
+	dwin <- dwin %>% 
+			mutate(window.end:= map_int(tree.id, function(x) as.integer(gsub('[^0-9]*([0-9]+)_to_([0-9]+).*','\\2', x))))	
+	#	check colour names
+	if( !all( unique(dwin$basic.topology) %in% names(control$fill.topology) ) )
+		stop('Not all basic topology types have a colour defined. You need to define colours for',unique(dwin$basic.topology))
+	#	check inclusion
+	if( !inclusion %in% c("both","either"))
+		stop('Cannot handle value of inclusion', inclusion)
+	
+	if(inclusion=='both')
+	{
+		pair.data <- as_tibble(expand.grid(host.1=hosts, host.2=hosts, stringsAsFactors=FALSE)) %>%
+				filter(host.1!=host.2)	%>%
+				inner_join(dwin, by=c('host.1','host.2')) %>%
+				select(host.1, host.2, window.start, basic.topology, patristic.distance) %>%
+				arrange(host.1, host.2, window.start)
+	}
+	if(inclusion=='either')
+	{
+		pair.data <- dwin %>% 
+				select(host.1, host.2) %>%
+				distinct() %>%
+				filter(host.1 %in% hosts | host.2 %in% hosts) %>%
+				inner_join(dwin, by=c('host.1','host.2')) %>%
+				select(host.1, host.2, window.start, basic.topology, patristic.distance) %>%
+				arrange(host.1, host.2, window.start)						
+	}
+	# set min patristic distance for plotting, make factors, etc
+	pair.data <- pair.data %>%
+			mutate(	patristic.distance:= pmax(1e-3,patristic.distance), 
+					basic.topology:= factor(basic.topology, levels=c("ancestral","descendant","intermingled",'sibling','other')),
+					panel:= paste0(host.1,'\n->\n',host.2),
+					y:= 1e-3)			
+	# make plot
+	if(!'limits_x'%in%names(control))
+		control$limits_x <- c(min(pair.data$window.start) - diff(pair.data$window.start[1:2]), max(pair.data$window.start) + diff(pair.data$window.start[1:2]))
+	pairwise.plot <- ggplot(pair.data, aes(window.start)) +			
+			geom_bar(aes(y=y, fill=basic.topology), colour='transparent', stat='identity', width=25) +
+			geom_point(aes(y=patristic.distance), size=1) +
+			geom_hline(yintercept=control$yintercept_close, colour='black', lty=2) +
+			geom_hline(yintercept=control$yintercept_dist, colour='black', lty=2) +
+			labs(x='\ngenomic position\n(relative to HXB2)', y='subgraph distance\n(subst/site)\n',fill='topological subgraph\nrelationship') +
+			scale_x_continuous(breaks=control$breaks_x, minor_breaks=control$minor_breaks_x, limits=control$limits_x) +
+			scale_y_log10(labels=scales:::percent, expand=c(0,0), breaks=control$breaks_y) +
+			coord_cartesian(ylim=control$ylim) +
+			scale_fill_manual(values=control$fill.topology) +
+			theme_bw() + 
+			theme(legend.position='bottom', panel.spacing = unit(1, "lines")) +
+			facet_grid(panel~.)
+	return(list(graph = pairwise.plot, data = pair.data))
+}
 
 #' Draw bar graphs of pairwise topological/distance relationships
 #' @param ptrees A list of class \code{phyloscanner.trees}
@@ -428,10 +536,22 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
 #' @param hosts A list of hosts (as a vector) to obtain graphs for. By default, all pairs of hosts detected in \code{ptrees}.
 #' @param inclusion If "both", then only pairs in which both individuals are members of \code{hosts} are included. If "either" then pairs only need have one member from \code{hosts}
 #' @param contiguous.pairs If TRUE pairs require contiguous (rather than ajacent) subgraphs to be identified as likely transmissions
+#' @return A list whose elements are \code{data}, the underlying data frame for the graph, and \code{graph}, the graph itself.
 #' @export produce.pairwise.graphs
-
+#' @examples
+#' #
+#' # Example on data from Rakai Community Cohort Study
+#' #
+#' \dontrun{	
+#' file	<- system.file(file.path('extdata','ptyr192_phsc_analyse_trees_output.RData'),package='phyloscannerR')
+#' load(file)	#loads 'phsc', output from 'phyloscanner.analyse.trees'	
+#' hosts	<- c('RkA05868F','RkA05968M','RkA00369F','RkA01344M')
+#' inclusion <- "both" 
+#' tmp	<- produce.pairwise.graphs(phsc, hosts=hosts, inclusion = "both")
+#' tmp$graph
+#' }
 produce.pairwise.graphs <- function(ptrees, 
-                                    dist.thresh,
+                                    dist.thresh= 0.025,
                                     hosts = all.hosts.from.trees(ptrees),
                                     contiguous.pairs = F,
                                     inclusion = c("both", "either")){
@@ -444,6 +564,10 @@ produce.pairwise.graphs <- function(ptrees,
       mutate(tree.id = ptree$id, xcoord = ptree$xcoord)
     out
   }) %>% bind_rows()
+  
+  if(!("normalised.min.distance.between.subgraphs" %in% colnames(t.stats))){
+    t.stats <- t.stats %>% mutate(normalised.min.distance.between.subgraphs = min.distance.between.subgraphs)
+  }
   
   wrong.dir <- which(t.stats$host.2 < t.stats$host.1)
   t.stats <- t.stats %>% 
@@ -568,5 +692,5 @@ produce.pairwise.graphs <- function(ptrees,
     xlab("Window centre") +
     ylab("Host")
   
-  return(pairwise.plot)
+  return(list(graph = pairwise.plot, data = pair.data))
 }

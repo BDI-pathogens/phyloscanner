@@ -11,21 +11,20 @@ blacklist.exact.duplicates <- function(ptree, raw.threshold, ratio.threshold, ti
   
   entries <- ptree$duplicate.tips
   
-  pairs.table <- entries %>% map(function(x){
-    # get rid of anything that doesn't match the regexp (outgroup etc)
-    tmp <-  x[!is.na(sapply(x, read.count.from.label, regexp = tip.regex))]
-    if(length(tmp)>1){
-      tmp <- as.tibble(t(combn(tmp,2)))
-      names(tmp) <- c('tip.1','tip.2')
-      
-      tmp
-    } else {
-      NULL
-    }
-    
-  })
-  
-  pairs.table	<- bind_rows(pairs.table)
+  pairs.table <- entries %>%
+    map(function(x){
+      # get rid of anything that doesn't match the regexp (outgroup etc)
+      tmp <-  x[!is.na(sapply(x, read.count.from.label, regexp = tip.regex))]
+      if(length(tmp)>1){
+        tmp <- as.tibble(t(combn(tmp,2)))
+        names(tmp) <- c('tip.1','tip.2')
+        
+        tmp
+      } else {
+        NULL
+      }
+    }) %>% 
+    bind_rows()
   
   if(nrow(pairs.table) > 0){
     
@@ -83,7 +82,7 @@ blacklist.exact.duplicates <- function(ptree, raw.threshold, ratio.threshold, ti
     
     blacklisted
   } else {
-
+    
     pairs.table
   }
 }
@@ -396,3 +395,52 @@ blacklist.duals <- function(ptrees, hosts, threshold = 1, summary.file=NULL, ver
   blacklists
 }
 
+
+#' @keywords internal
+#' @export blacklist.by.tip.count
+
+blacklist.by.tip.count <- function(ptree, hosts, min.tips = 1){
+  
+  tips.for.hosts <- sapply(hosts, function(x){
+    
+    which(ptree$hosts.for.tips == x)
+    
+  }, simplify = F, USE.NAMES = T)
+  
+  tip.counts <- map_int(hosts, function(x){
+    length(tips.for.hosts[[x]])
+  })
+  
+  to.go <- hosts[which(tip.counts < min.tips)]
+  
+  tips.to.remove <- unlist(tips.for.hosts[to.go])
+  
+  tips.to.remove
+}
+
+
+#' @keywords internal
+#' @export blacklist.by.read.count
+
+blacklist.by.read.count <- function(ptree, hosts, min.reads = 1, tip.regex){
+  
+  tips.for.hosts <- sapply(hosts, function(x){
+    
+    which(ptree$hosts.for.tips == x)
+    
+  }, simplify = F, USE.NAMES = T)
+  
+  read.counts <- map_int(hosts, function(x){
+    host.tips <- ptree$tree$tip.label[tips.for.hosts[[x]]]
+    
+    rc <- map_int(host.tips, function(y) read.count.from.label(y, tip.regex))
+    
+    sum(rc)
+  })
+  
+  to.go <- hosts[which(read.counts < min.reads)]
+  
+  tips.to.remove <- unlist(tips.for.hosts[to.go])
+  
+  tips.to.remove
+}

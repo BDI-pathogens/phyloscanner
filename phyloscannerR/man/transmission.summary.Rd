@@ -5,14 +5,19 @@
 \title{Summarise the pairwise host relationships across all trees}
 \usage{
 transmission.summary(ptrees, win.threshold = 0, dist.threshold = Inf,
-  allow.mt = T, close.sib.only = F, verbose = F)
+  tip.regex, min.tips = 1, min.reads = 1, close.sib.only = F,
+  verbose = F)
 }
 \arguments{
 \item{win.threshold}{The proportion of windows that a pair of hosts need to be related (adjacent and within \code{dist.threshold} of each other) in order for them to appear in the summary.}
 
 \item{dist.threshold}{The patristic distance within which the subgraphs from two hosts need to be in order for them to be declared related (default is infinity, so adjacent hosts are always related).}
 
-\item{allow.mt}{If FALSE, directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative.}
+\item{tip.regex}{Regular expression identifying tips from the dataset. This expects up to three capture groups, for host ID, read ID, and read count (in that order). If the latter two groups are missing then read information will not be used. The default matches input from the phyloscanner pipeline where the host ID is the BAM file name.}
+
+\item{min.tips}{The minimum number of tips that a host must have in each tree for it to be counted in that tree (A legacy option - we recommend using the blacklist functionality.)}
+
+\item{min.reads}{The minimum number of reads that a host must have in each tree for it to be counted in that tree (A legacy option - we recommend using the blacklist functionality.)}
 
 \item{close.sib.only}{If TRUE, then the distance threshold applies only to hosts in sibling clades. Any ancestry is automatically a relationship.}
 

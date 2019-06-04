@@ -54,6 +54,9 @@ arg_parser$add_argument("-rwt", "--rawBlacklistThreshold", action="store", defau
 arg_parser$add_argument("-rtt", "--ratioBlacklistThreshold", action="store", default=0, help="Used to specify a read count ratio (between 0 and 1) to be used as a threshold for blacklisting. --parsimonyBlacklistK and/or --duplicateBlacklist must also be used. If --parsimonyBlacklistK is used, we will blacklist a subgraph if the ratio of its read count to the total read count from the same host is strictly less than this threshold. If --duplicateBlacklist is used, we will black list a duplicate read if the ratio of its count to the count of the duplicate (from another host) is strictly less than this threshold.")
 arg_parser$add_argument("-ub", "--dualBlacklist", action="store_true", default=F, help="Blacklist all reads from the minor subgraphs for all hosts established as dual by parsimony blacklisting.")
 arg_parser$add_argument("-rcm", "--readCountsMatterOnZeroLengthBranches", default = FALSE, action="store_true", help="If present, read counts at tips will be taken into account in parsimony reconstructions at the parents of zero-length branches.")
+arg_parser$add_argument("-mr", "--minReadsPerHost", action="store", type="integer", default = 1, help="Blacklist hosts from trees where they have less than this number of reads.")
+arg_parser$add_argument("-mt", "--minTipsPerHost", action="store",  type="integer", default = 1, help="Blacklist hosts from trees where they have less than this number of tips.")
+
 
 # Blacklisting report
 
@@ -182,7 +185,8 @@ if(do.dup.blacklisting & bl.raw.threshold == 0 & bl.ratio.threshold == 0){
   stop("Duplicate blacklisting requested but no thresholds specified with -rwt or -rtt")
 }
 
-
+min.reads.per.host    <- args$minReadsPerHost
+min.tips.per.host     <- args$minTipsPerHost
 
 downsample            <- !is.null(args$maxReadsPerHost)
 downsampling.limit    <- args$maxReadsPerHost
@@ -217,6 +221,8 @@ ptrees <- phyloscanner.generate.blacklist(
   do.dual.blacklisting,
   downsampling.limit,
   blacklist.ur,
+  min.reads.per.host,
+  min.tips.per.host,
   read.counts.matter,
   verbosity)
 

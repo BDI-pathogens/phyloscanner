@@ -1,4 +1,4 @@
-# This returns the ones to get rid of (i.e. blacklist) per host for a given tree
+# This returns the tips to get rid of (i.e. blacklist) per host for a given tree
 
 #' @keywords internal
 #' @importFrom extraDistr rmvhyper
@@ -105,7 +105,7 @@ downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, e
   return(list(blacklist = setdiff(labels.from.host, sampled.names), map=label.map))
 }
 
-# This returns the ones to get rid of (i.e. the blacklist) for a given tree
+# This returns the tips to get rid of (i.e. the blacklist) for a given tree
 
 #' @keywords internal
 #' @export downsample.tree

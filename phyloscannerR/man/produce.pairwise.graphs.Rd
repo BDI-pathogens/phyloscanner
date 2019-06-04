@@ -4,7 +4,7 @@
 \alias{produce.pairwise.graphs}
 \title{Draw bar graphs of pairwise topological/distance relationships}
 \usage{
-produce.pairwise.graphs(ptrees, dist.thresh,
+produce.pairwise.graphs(ptrees, dist.thresh = 0.025,
   hosts = all.hosts.from.trees(ptrees), contiguous.pairs = F,
   inclusion = c("both", "either"))
 }
@@ -19,6 +19,22 @@ produce.pairwise.graphs(ptrees, dist.thresh,
 
 \item{inclusion}{If "both", then only pairs in which both individuals are members of \code{hosts} are included. If "either" then pairs only need have one member from \code{hosts}}
 }
+\value{
+A list whose elements are \code{data}, the underlying data frame for the graph, and \code{graph}, the graph itself.
+}
 \description{
 Draw bar graphs of pairwise topological/distance relationships
+}
+\examples{
+#
+# Example on data from Rakai Community Cohort Study
+#
+\dontrun{	
+file	<- system.file(file.path('extdata','ptyr192_phsc_analyse_trees_output.RData'),package='phyloscannerR')
+load(file)	#loads 'phsc', output from 'phyloscanner.analyse.trees'	
+hosts	<- c('RkA05868F','RkA05968M','RkA00369F','RkA01344M')
+inclusion <- "both" 
+tmp	<- produce.pairwise.graphs(phsc, hosts=hosts, inclusion = "both")
+tmp$graph
+}
 }

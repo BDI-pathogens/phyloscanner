@@ -21,12 +21,13 @@ phyloscanner.analyse.trees(tree.file.directory,
   tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
   file.name.regex = "^\\\\D*([0-9]+)_to_([0-9]+)\\\\D*$",
   seed = sample(1:1e+07, 1), norm.ref.file.name = NULL,
-  norm.standardise.gag.pol = F, norm.constants = NULL,
-  parsimony.blacklist.k = 0, raw.blacklist.threshold = 0,
-  ratio.blacklist.threshold = 0, do.dual.blacklisting = F,
-  max.reads.per.host = Inf, blacklist.underrepresented = F,
-  use.ff = F, prune.blacklist = F, count.reads.in.parsimony = T,
-  verbosity = 0, no.progress.bars = F)
+  norm.standardise.gag.pol = F, norm.constants = NULL, allow.mt = F,
+  relaxed.ancestry = F, parsimony.blacklist.k = 0,
+  raw.blacklist.threshold = 0, ratio.blacklist.threshold = 0,
+  do.dual.blacklisting = F, max.reads.per.host = Inf,
+  blacklist.underrepresented = F, min.reads.per.host = 1,
+  min.tips.per.host = 1, use.ff = F, prune.blacklist = F,
+  count.reads.in.parsimony = T, verbosity = 0, no.progress.bars = F)
 
 phyloscanner.analyse.tree(tree.file.name, splits.rule = c("s", "r", "f"),
   sankoff.k = 0, sankoff.unassigned.switch.threshold = 0,
@@ -37,12 +38,13 @@ phyloscanner.analyse.tree(tree.file.name, splits.rule = c("s", "r", "f"),
   tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
   file.name.regex = "^\\\\D*([0-9]+)_to_([0-9]+)\\\\D*$",
   seed = sample(1:1e+07, 1), norm.ref.file.name = NULL,
-  norm.standardise.gag.pol = F, norm.constants = NULL,
-  parsimony.blacklist.k = 0, raw.blacklist.threshold = 0,
-  ratio.blacklist.threshold = 0, do.dual.blacklisting = F,
-  max.reads.per.host = Inf, blacklist.underrepresented = F,
-  use.ff = F, prune.blacklist = F, count.reads.in.parsimony = T,
-  verbosity = 0, no.progress.bars = F)
+  norm.standardise.gag.pol = F, norm.constants = NULL, allow.mt = F,
+  relaxed.ancestry = F, parsimony.blacklist.k = 0,
+  raw.blacklist.threshold = 0, ratio.blacklist.threshold = 0,
+  do.dual.blacklisting = F, max.reads.per.host = Inf,
+  blacklist.underrepresented = F, min.reads.per.host = 1,
+  min.tips.per.host = 1, use.ff = F, prune.blacklist = F,
+  count.reads.in.parsimony = T, verbosity = 0, no.progress.bars = F)
 
 phyloscanner.generate.blacklist(tree.file.directory,
   tree.file.regex = "^RAxML_bestTree.InWindow_([0-9]+_to_[0-9]+)\\\\.tree$",
@@ -58,6 +60,7 @@ phyloscanner.generate.blacklist(tree.file.directory,
   parsimony.blacklist.k = 0, raw.blacklist.threshold = 0,
   ratio.blacklist.threshold = 0, do.dual.blacklisting = F,
   max.reads.per.host = Inf, blacklist.underrepresented = F,
+  min.reads.per.host = 1, min.tips.per.host = 1,
   count.reads.in.parsimony = F, verbosity = 0)
 }
 \arguments{
@@ -105,6 +108,10 @@ phyloscanner.generate.blacklist(tree.file.directory,
 
 \item{norm.constants}{Either the path of a CSV file listing the file name for each tree (column 1) and the respective normalisation constant (column 2) or a single numerical normalisation constant to be applied to every tree. Cannot be used simultaneously with \code{norm.ref.file.name}. If neither is given then no normalisation will be performed.}
 
+\item{allow.mt}{If FALSE (the default0), directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative.}
+
+\item{relaxed.ancestry}{If TRUE, then an ancestry call requires only that at least one subgraph from one host is descended from the other, and that there are no subgrapghs in the opposite arrangement. If TRUE (the default), then it requires that all subgraphs from one host are descended from one from the other.}
+
 \item{parsimony.blacklist.k}{The \emph{k} parameter of the single-host Sankhoff parsimony reconstruction used to identify probable contaminants. A value of 0 is equivalent to not performing parsimony blacklisting.}
 
 \item{raw.blacklist.threshold}{Used to specify a read count to be used as a raw threshold for duplicate or parsimony blacklisting. Use with \code{parsimony.blacklist.k} or \code{duplicate.file.regex} or both. Parsimony blacklisting will blacklist any subgraph with a read count strictly less than this threshold. Duplicate blacklisting will black list any duplicate read with a count strictly less than this threshold. The default value of 0 means nothing is blacklisted.}
@@ -113,9 +120,13 @@ phyloscanner.generate.blacklist(tree.file.directory,
 
 \item{do.dual.blacklisting}{Blacklist all reads from the minor subgraphs for all hosts established as dual by parsimony blacklisting (which must have been done for this to do anything).}
 
-\item{max.reads.per.host}{Used to turn on downsampling. If given, reads will be blacklisted such that read counts (or tip counts if no read counts are identified) from each host are equal (although see \code{blacklist.underrepresented}.}
+\item{max.reads.per.host}{Used to turn on downsampling. If given, tips will be blacklisted such that read counts (or tip counts if no read counts are identified) from each host are equal (although see \code{blacklist.underrepresented}).}
 
 \item{blacklist.underrepresented}{If TRUE and \code{max.reads.per.host} is given, blacklist hosts from trees where their total tip count does not reach the maximum.}
+
+\item{min.reads.per.host}{If given, hosts will be entirely blacklisted from a given tree if they have fewer than this number of reads on it (after all other blacklisting except downsampling).}
+
+\item{min.tips.per.host}{If given, hosts will be entirely blacklisted from a given tree if they have fewer than this number of tips on it (after all other blacklisting except downsampling).}
 
 \item{use.ff}{Use the \code{ff} package to store parsimony reconstruction matrices. Use if you run out of memory.}
 
@@ -183,9 +194,8 @@ These functions perform a parsimony reconstruction and classification of pairwis
 }
 \examples{
 #
-# START OF RCCS EXAMPLE
+# Example on data from Rakai Community Cohort Study
 #
-
 \dontrun{
 
 require(phyloscannerR)
@@ -206,47 +216,48 @@ sankoff.k <- 20
 sankoff.unassigned.switch.threshold <- 0
 seed <- 42
 splits.rule <- 's'
+relaxed.ancestry <- TRUE
+allow.mt <- TRUE
 tip.regex <- "^(.*)_fq[0-9]+_read_([0-9]+)_count_([0-9]+)$"
 tree.file.regex <- "^ptyr192_InWindow_([0-9]+_to_[0-9]+)\\\\.tree$"
 verbosity <- 1
 
 #	analyse deep sequence trees
-phsc	<- phyloscanner.analyse.trees(tree.file.directory,
-			tree.file.regex = tree.file.regex,
-			splits.rule = splits.rule, 
-			sankoff.k = sankoff.k,
-			sankoff.unassigned.switch.threshold = sankoff.unassigned.switch.threshold,
-			outgroup.name = outgroup.name,
-			multifurcation.threshold = multifurcation.threshold, 
-			guess.multifurcation.threshold = FALSE,
-			user.blacklist.directory = NULL, 
-			user.blacklist.file.regex = NULL,
-			duplicate.file.directory = NULL,
-			duplicate.file.regex = NULL,
-			recombination.file.directory = NULL,
-			recombination.file.regex = NULL,
-			alignment.file.directory = NULL, 
-			alignment.file.regex = NULL,
-			tip.regex = tip.regex,
-			file.name.regex = file.name.regex,
-			seed = seed, 
-			norm.ref.file.name = NULL,
-			norm.standardise.gag.pol = TRUE, 
-			norm.constants = NULL,
-			parsimony.blacklist.k = sankoff.k, 
-			raw.blacklist.threshold = raw.blacklist.threshold,
-			ratio.blacklist.threshold = 0, 
-			do.dual.blacklisting = FALSE,
-			max.reads.per.host = max.reads.per.host, 
-			blacklist.underrepresented = FALSE,
-			use.ff = FALSE, 
-			prune.blacklist = FALSE, 
-			count.reads.in.parsimony = TRUE,
-			verbosity = verbosity, 
-			no.progress.bars = FALSE)
+phsc <- phyloscanner.analyse.trees(tree.file.directory,
+             allow.mt=allow.mt,
+             alignment.file.directory = NULL, 
+             alignment.file.regex = NULL,
+             blacklist.underrepresented = FALSE,
+             count.reads.in.parsimony = TRUE,
+             do.dual.blacklisting = FALSE,
+             duplicate.file.directory = NULL,
+             duplicate.file.regex = NULL,
+             file.name.regex = file.name.regex,
+             guess.multifurcation.threshold = FALSE,
+             max.reads.per.host = max.reads.per.host,
+             multifurcation.threshold = multifurcation.threshold,
+             norm.constants = NULL,
+             norm.ref.file.name = NULL,
+             norm.standardise.gag.pol = TRUE,
+             no.progress.bars = FALSE,
+             outgroup.name = outgroup.name,
+             parsimony.blacklist.k = sankoff.k,
+             prune.blacklist = FALSE,
+             ratio.blacklist.threshold = 0, 
+             raw.blacklist.threshold = raw.blacklist.threshold,			
+             recombination.file.directory = NULL,
+             recombination.file.regex = NULL,
+             relaxed.ancestry = relaxed.ancestry,
+             sankoff.k = sankoff.k,
+             sankoff.unassigned.switch.threshold = sankoff.unassigned.switch.threshold,
+             seed = seed,
+             splits.rule = splits.rule,
+             tip.regex = tip.regex,
+             tree.file.regex = tree.file.regex,
+             use.ff = FALSE,
+             user.blacklist.directory = NULL, 
+             user.blacklist.file.regex = NULL,
+             verbosity = verbosity 
+             )
 }
-
-#
-# END OF RCCS EXAMPLE
-#
 }
