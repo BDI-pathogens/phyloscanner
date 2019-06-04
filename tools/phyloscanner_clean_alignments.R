@@ -84,7 +84,7 @@ tree.file.regex               <- paste0("^", basename(tree.input), "(.*)\\.",tre
 alignment.input               <- args$alignment
 
 alignment.directory           <- dirname(alignment.input)
-alignment.file.regex          <- paste0("^", basename(alignment.input), "(.*)\\.[A-Za-z]+$")
+alignment.file.regex          <- paste0("^", basename(alignment.input), "([0-9].*)\\.[A-Za-z]+$")
 
 blacklist.input               <- args$blacklist
 
@@ -252,6 +252,11 @@ silent <- sapply(ptrees, function(ptree){
   if(!is.null(ptree$alignment.file.name)){
     
     seqs     <- read.dna(ptree$alignment.file.name, format="fasta")
+    
+    if(!setequal(labels(seqs), ptree$original.tip.labels)){
+      stop(paste0("Sequence labels in ",ptree$alignment.file.name, " and tip labels in ",ptree$tree.file.name," do not match."))
+    }
+    
     new.seqs <- seqs[which(!(labels(seqs) %in% ptree$original.tip.labels[ptree$blacklist])),]
     new.afn  <- paste0(output.string, "_", ptree$id, ".fasta")
     

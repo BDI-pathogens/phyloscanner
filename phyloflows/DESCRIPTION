@@ -1,0 +1,33 @@
+Package: phyloflows
+Type: Package
+Title: Estimating transmission flows within and between population groups from deep sequence data
+Version: 1.0.0
+Authors@R: c(person("Xiaoyue", "Xi", role = c("aut", "cre"), email = "xiaoyue.xi94@gmail.com"),
+	person("Oliver", "Ratmann", role = c("aut"), email = "oliver.ratmann@imperial.ac.uk"),
+	person("Matthew", "Hall", role = "ctb"),
+	person("Christophe", "Fraser", role = "ctb"))
+Maintainer: Xiaoyue Xi <xiaoyue.xi94@gmail.com>
+Description: This package provides an MCMC algorithm to infer transmission flows within and between population groups from observed flow counts. 
+    The software was primarily written to estimate transmission flows from counts of phylogenetically reconstructed source-recipient pairs. 
+    These input data can be obtained with phyloscannerR in the parent repository, though different types of input data can also be used, so long as they represent observed counts of flow events between two discrete groups. 
+    The primary feature of the software is that the underlying statistical model allows adjusting for sampling heterogeneity across population groups, a common problem in molecular epidemiologic analyses.
+License: GPL-2 
+Encoding: UTF-8
+LazyData: true
+Depends:
+	R (>= 3.1)
+Imports: 
+	bayesplot,
+	coda,
+    data.table (>= 1.10.5), 
+    ggplot2 (>= 2.2.1.9000), 
+	gtools	    
+Suggests:
+    bde, 
+    knitr,
+    rmarkdown,
+    rstan    
+VignetteBuilder: knitr
+RoxygenNote: 6.1.1
+URL: https://github.com/BDI-pathogens/phyloscanner/phyloflows
+BugReports: https://github.com/BDI-pathogens/phyloscanner/phyloflows/issues

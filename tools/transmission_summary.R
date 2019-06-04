@@ -49,7 +49,7 @@ for(file in input.files){
   tree.info$classification.file.name <- file
   
   suffix <- get.suffix(file, input.file.name, csv.fe)
-  tree.info$suffix <- suffix
+  tree.info$tree.id <- suffix
   
   all.tree.info[[file]] <- tree.info
 }

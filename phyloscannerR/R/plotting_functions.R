@@ -193,7 +193,7 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
       ylab("Tip or read count") +
       xlab(x.axis.label) +
       scale_x_continuous(limits=x.limits) +
-      scale_color_discrete(name="Variable", labels=c("Tips", "Reads")) + 
+      scale_color_discrete(name="Variable", labels=c("Reads", "Tips")) + 
       theme(text = element_text(size=7))
     
     if(log.scale){
@@ -591,7 +591,7 @@ produce.pairwise.graphs <- function(ptrees,
       mutate(xcoord = 1:length(id))
   }
 
-  pair.data <- as.tibble(expand.grid(full.host.list, full.host.list, map_chr(ptrees, function(x) x$id), stringsAsFactors = F)) %>%
+  pair.data <- as_tibble(expand.grid(full.host.list, full.host.list, map_chr(ptrees, function(x) x$id), stringsAsFactors = F)) %>%
     dplyr::rename(host.1 = Var1, host.2 = Var2, tree.id = Var3) %>%
     filter(host.1 < host.2) %>% 
     left_join(t.stats, c("host.1", "host.2", "tree.id")) %>%

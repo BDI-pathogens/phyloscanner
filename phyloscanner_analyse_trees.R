@@ -156,7 +156,7 @@ alignment.input                 <- args$alignment
 if(!is.null(alignment.input)){
   if(!file.exists(alignment.input)){
     alignment.directory         <- dirname(alignment.input)
-    alignment.file.regex        <- paste0("^", basename(alignment.input), "(.*)", re.alignment.fe,"$")
+    alignment.file.regex        <- paste0("^", basename(alignment.input), "([0-9].*)", re.alignment.fe,"$")
   }
 } else {
   alignment.directory           <- NULL
@@ -489,7 +489,7 @@ if(single.tree){
 
 hosts <- all.hosts.from.trees(phyloscanner.trees)
 
-if(length(hosts)<=1 & (do.collapsed | do.class.detail)){
+if(length(hosts) <= 1 & (do.collapsed | do.class.detail)){
   do.collapsed <- F
   do.class.detail <- F
 }

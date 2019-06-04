@@ -64,7 +64,7 @@ if(verbose) cat("Collecting window data...\n")
 for(suffix.index in 1:length(suffixes)){
   suffix               <- suffixes[suffix.index]
   out                  <- list()
-  out$suffix           <- suffix
+  out$tree.id          <- suffix
   out$tree             <- read.tree(tree.files[suffix.index])
   out$hosts.for.tips   <- sapply(out$tree$tip.label, function(x) host.from.label(x, tip.regex))
   if(file.size(dual.files[suffix.index])>0){
@@ -101,6 +101,6 @@ results <- blacklist.duals(all.tree.info, hosts, threshold, summary.file, verbos
 for(tree.info in all.tree.info){
   if(verbose) cat("Writing new blacklist file ", tree.info$bl.output.name, "...\n", sep="")
   tree.info$blacklist <- results[tree.info$name]
-  write.table(results[[tree.info$suffix]], tree.info$bl.output.name, sep=",", row.names=FALSE, col.names=FALSE, quote=F)
+  write.table(results[[tree.info$tree.id]], tree.info$bl.output.name, sep=",", row.names=FALSE, col.names=FALSE, quote=F)
 }
 

@@ -131,7 +131,7 @@ if(file.exists(tree.file.name)){
 for(tree.info in all.tree.info){	
 
   tree.info <- as.list(tree.info)
-
+  
   results <- classify(tree.info, verbose)
   if (verbose) cat("Writing to file",tree.info$classification.file.name,"...\n")
   write.table(results$classification, file = tree.info$classification.file.name, sep = ",", row.names = FALSE, col.names = TRUE, quote=F)	

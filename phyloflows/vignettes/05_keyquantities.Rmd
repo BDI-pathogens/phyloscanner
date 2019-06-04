@@ -1,0 +1,93 @@
+---
+title: "05 - Calculating sources, onward transmissions and flow ratios"
+date: "2019-05-02"
+output: github_document
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+```{r, include=TRUE, eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE, tidy=TRUE}
+require(knitr)
+require(kableExtra)
+```
+
+
+Here we explain how a number of key summary statistics of inferred
+transmission flows can be easily calculated with **phyloflows**
+`source.attribution.mcmc.getKeyQuantities` function. Please read the sections
+"Our Job" and "Our Solution" on the main page before you go ahead here.
+
+## Getting started
+
+We continue our Very_First_Example from the vignette with the same name here.
+The following code chunk contains all code needed, up to running **phyloflows**
+MCMC routine. The only change is that the number of iterations is now $50,000$.
+The MCMC should take about 2 minutes to run.
+
+```{r, include=TRUE, eval=FALSE, echo=TRUE, tidy=FALSE,message=FALSE, warning=FALSE} 
+require(data.table)
+require(phyloflows)
+data(twoGroupFlows1, package="phyloflows")
+dobs <- twoGroupFlows1$dobs
+dprior <- twoGroupFlows1$dprior
+mcmc.file <- file.path(getwd(),'twoGroupFlows1_mcmc.RData')
+control <- list(seed=42, mcmc.n=5e4, verbose=0)
+mc <- phyloflows:::source.attribution.mcmc(dobs, dprior, control)
+```
+```{r, include=TRUE, eval=TRUE, echo=FALSE, tidy=FALSE, message=FALSE, warning=FALSE}
+require(data.table)
+require(phyloflows)
+data(twoGroupFlows1, package="phyloflows")
+dobs <- twoGroupFlows1$dobs
+dprior <- twoGroupFlows1$dprior
+data(twoGroupFlows1_mcmc, package="phyloflows")
+```
+
+## Sources of transmission for each group
+OK, so now we have samples from posterior distribution of transmission flows
+within and between the two population groups,
+$$
+\pi=(\pi_{11},\pi_{12},\pi_{21},\pi_{22}).
+$$
+One important summary statistic are the sources of transmissions into each
+recipient group, defined by
+$$
+\eta=(\eta_{11},\eta_{21},\eta_{12},\eta_{22})
+$$
+where $\eta_{ij}= \pi_{ij} / \sum_{s} \pi_{sj}$.
+
+## Onward transmissions from each group
+Another important summary statistic are the proportions of transmissions that
+originate from each group, defined by 
+$$
+\nu=(\nu_{11},\nu_{21},\nu_{12},\nu_{22})
+$$
+where $\nu_{ij}= \pi_{ij} / \sum_{s} \pi_{is}$.
+
+## Transmission flow ratios
+Yes another important summary statistic are ratios of transmission flows,
+defined by 
+$$
+\rho_{ij}= \pi_{ij} / \pi_{ji}.
+$$
+
+## Calculating key quantities
+**phyloflow** has a little function to help you with calculating the above
+summary statistics. The basic syntax is as follows, although it is also possible
+to specify a file name to MCMC output or aggregated MCMC output, and it is
+also possible to input aggregated MCMC output.
+```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE,message=TRUE, warning=FALSE}
+control <- list(  quantiles= c('CL'=0.025,'IL'=0.25,'M'=0.5,'IU'=0.75,'CU'=0.975),
+                  flowratios= list( c('1/2', '1 2', '2 1'), c('2/1', '2 1', '1 2'))
+                  )
+ans <- phyloflows:::source.attribution.mcmc.getKeyQuantities(mc=mc, dobs=dobs, control=control)
+ans
+``` 

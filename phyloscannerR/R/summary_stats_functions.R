@@ -15,7 +15,7 @@ calc.subtree.stats <- function(host.id, tree.id, tree, tips.for.hosts, splits.ta
   all.tips <- tips.for.hosts[[host.id]]
   
   subtree.all <- NULL
-  
+
   if(length(all.tips)>1){
     
     subtree.all <- drop.tip(tree, tip=tree$tip.label[!(tree$tip.label %in% all.tips)])
@@ -31,6 +31,7 @@ calc.subtree.stats <- function(host.id, tree.id, tree, tips.for.hosts, splits.ta
     names(reads.per.tip) <- subtree.all$tip.label
     
     overall.rtt <- calc.mean.root.to.tip(subtree.all, reads.per.tip)
+    
     
     if(length(subtree.all$tip.label)>2){
       unrooted.subtree <- unroot(subtree.all)
@@ -163,10 +164,16 @@ get.tip.and.read.counts <- function(ptree, hosts, tip.regex, has.read.counts, ve
 #' @export calc.all.stats.in.window
 
 calc.all.stats.in.window <- function(ptree, hosts, tip.regex, has.read.counts, verbose = F){
-  
+
   if(verbose) cat("Calculating host statistics for tree ID ",ptree$id,"\n",sep="")
   
   id <- ptree$id
+  
+  # todo this needs to go 
+  
+  if(is.null(id)){
+    id <- ptree$suffix
+  }
   
   tree <- ptree$tree
   blacklist <- ptree$blacklist
@@ -199,7 +206,7 @@ calc.all.stats.in.window <- function(ptree, hosts, tip.regex, has.read.counts, v
   
   # Make the tibble
   
-  window.table <- tibble(host.id=hosts, 
+  window.table <- tibble(host.id = hosts, 
                          tree.id = id, 
                          xcoord = ptree$xcoord, 
                          tips = sapply(hosts, function(x) as.numeric(length(tips.for.hosts[[x]]))),
@@ -218,16 +225,21 @@ calc.all.stats.in.window <- function(ptree, hosts, tip.regex, has.read.counts, v
                          subgraphs =  sapply(hosts, function(x) length(unique(splits.table[which(splits.table$host==x),]$subgraph))),
                          clades = sapply(hosts, function(x) length(clades.by.host[[x]]))
   )
-
+  
+  
+  
   new.cols <- map_dfr(hosts, function(x) calc.subtree.stats(x, id, tree, tips.for.hosts, splits.table, tip.regex, !has.read.counts, verbose))
-
+  
   normalised.new.cols <- new.cols %>% transmute_all(funs(./ptree$normalisation.constant))  
+  
   colnames(normalised.new.cols) <- paste0("normalised.", colnames(new.cols))
   
   window.table <- bind_cols(window.table, new.cols) 
   window.table <- bind_cols(window.table, normalised.new.cols) 
   
   recomb.file.name <- ptree$recombination.file.name
+  
+  
   
   if (!is.null(recomb.file.name)) {
     
@@ -265,6 +277,7 @@ calc.all.stats.in.window <- function(ptree, hosts, tip.regex, has.read.counts, v
     
   }
   
+
   window.table
 }
 

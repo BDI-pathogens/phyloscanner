@@ -172,7 +172,6 @@ if(file.exists(tree.file.name)){
 }
 
 
-
 for(i in all.tree.info){
   
   # we now do all the tree processing here
@@ -189,6 +188,9 @@ for(i in all.tree.info){
   output.string <- i$output.ID 
   
   tree <- read.tree(tree.file.name)
+  has.read.counts <- check.read.counts(list(tree=tree), tip.regex)
+  
+  
   
   blacklist <- vector()
   
@@ -210,6 +212,13 @@ for(i in all.tree.info){
   } else {
     tips.to.go <- vector()
   }
+  
+  if(has.read.counts){
+    read.counts <- sapply(tree$tip.label, function(x) as.numeric(read.count.from.label(x, tip.regex)))
+  } else {
+    read.counts <- rep(1, length(tree$tip.label))
+  }
+  read.counts[blacklist] <- NA
   
   if(use.m.thresh){
     if(is.na(m.thresh)){
@@ -244,19 +253,11 @@ for(i in all.tree.info){
   #
   if(!is.null(rs.subgraphs)){		
 	  if (verbose) cat("Drawing tree...\n")
-	  tree.display <- ggtree(tree, aes(color=BRANCH_COLOURS)) +
-							    geom_point2(shape = 16, size=1, aes(color=INDIVIDUAL)) +
-							    scale_fill_hue(na.value = "black", drop=F) +
-							    scale_color_hue(na.value = "black", drop=F) +
-							    theme(legend.position="none") +
-							    geom_tiplab(aes(col=INDIVIDUAL)) + 
-							    geom_treescale(width=0.01, y=-5, offset=1.5)	  
-	  x.max <- ggplot_build(tree.display)$layout$panel_ranges[[1]]$x.range[2]	  
-	  tree.display <- tree.display + ggplot2::xlim(0, 1.1*x.max)
-	  tree.display		
-	  tmp	<- file.path(output.dir,paste('Tree_',output.string,'.pdf',sep=''))
-	  if (verbose) cat("Plot to file",tmp,"...\n")
-	  ggsave(tmp, device="pdf", height = pdf.hm*length(tree$tip.label), width = pdf.w, limitsize = F)
+
+      
+    outtreefile <- file.path(output.dir,paste('Tree_',output.string,'.pdf',sep=''))
+    write.annotated.tree(list(tree = tree, read.counts = read.counts), file=outtreefile, "pdf", 0.01, pdf.w, pdf.hm, verbose)
+
   }
   #
   # write nexus file

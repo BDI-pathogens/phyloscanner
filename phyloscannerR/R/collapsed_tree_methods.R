@@ -658,16 +658,15 @@ classify <- function(ptree, allow.mt = F, relaxed.ancestry = F, verbose = F, no.
     
     if (verbose) cat("Reading tree file ", ptree$tree.file.name, "...\n", sep = "")
     
+    
     pseudo.beast.import <- read.beast(ptree$tree.file.name)
-    tree <- attr(pseudo.beast.import, "phylo")
     
     if (verbose) cat("Reading annotations...\n")
     
-    annotations <- attr(pseudo.beast.import, "stats")
+    tree <- as.phylo(pseudo.beast.import)
     
-    annotations$INDIVIDUAL <- as.character(annotations$INDIVIDUAL)
-    annotations$SPLIT <- as.character(annotations$SPLIT)
-    
+    annotations <- pseudo.beast.import[,c("node", "INDIVIDUAL", "SPLIT")]
+  
     # to deal with a problem with older versions of ggtree
     
     strip.quotes <- function(string) if(substr(string, 1, 1)=="\"") substr(string, 2, nchar(string)-1) else string
@@ -695,7 +694,11 @@ classify <- function(ptree, allow.mt = F, relaxed.ancestry = F, verbose = F, no.
   
   if (verbose) cat("Collecting tips for each host...\n")
   
+
+  
   hosts <- unique(splits$host)
+  
+
   
   hosts <- hosts[hosts!="unassigned"]
   
@@ -705,6 +708,7 @@ classify <- function(ptree, allow.mt = F, relaxed.ancestry = F, verbose = F, no.
   in.order <- match(seq(1, length(tree$tip.label) + tree$Nnode), annotations$node)
   
   assocs <- annotations$SPLIT[in.order]
+  
   assocs <- lapply(assocs, function(x) replace(x, is.na(x), "none"))
   assocs <- lapply(assocs, function(x) replace(x, x=="unassigned", "none"))
   
@@ -884,6 +888,7 @@ classify <- function(ptree, allow.mt = F, relaxed.ancestry = F, verbose = F, no.
 merge.classifications <- function(ptrees, verbose = F){
   
   classification.rows	<- ptrees %>% map(function(ptree) {
+    
     if(is.null(ptree$classification.results$classification) & is.null(ptree$classification.file.name)){
       NULL
     }
@@ -898,6 +903,10 @@ merge.classifications <- function(ptrees, verbose = F){
     } else {
       if (verbose) cat("Reading window input file ", ptree$classification.file.name,"\n", sep="")
       tt <- read_csv(ptree$classification.file.name, col_names = TRUE)
+      
+      if(nrow(tt)==0){
+        stop(paste0("No lines in window input file ",ptree$classification.file.name))
+      }
     }
     
     tt <- tt %>% add_column(tree.id = ptree$id)
@@ -914,6 +923,7 @@ merge.classifications <- function(ptrees, verbose = F){
   if(verbose) cat("Rearranging host pairs...\n")
   
   classification.rows	<- classification.rows %>% map(function(x){    
+<<<<<<< HEAD
     x %>%
         mutate(tempancestry = ancestry, temphost.1 = host.1, temphost.2 = host.2, temppaths12 = paths12, temppaths21 = paths21, tempnodes1 = nodes1, tempnodes2 = nodes2) %>%
         mutate(ancestry = replace(ancestry, host.2 < host.1 & tempancestry == "anc", "desc")) %>% 
@@ -927,6 +937,22 @@ merge.classifications <- function(ptrees, verbose = F){
         mutate(nodes1 = replace(nodes1, temphost.2 < temphost.1, tempnodes2[temphost.2 < temphost.1])) %>%
         mutate(nodes2 = replace(nodes2, temphost.2 < temphost.1, tempnodes1[temphost.2 < temphost.1])) %>%
         select(-c(temphost.1, temphost.2, tempancestry, temppaths12, temppaths21, tempnodes1, tempnodes2))
+=======
+    x2 <- x %>%
+      mutate(tempancestry = ancestry, temphost.1 = host.1, temphost.2 = host.2, temppaths12 = paths12, temppaths21 = paths21, tempnodes1 = nodes1, tempnodes2 = nodes2) %>%
+      mutate(ancestry = replace(ancestry, host.2 < host.1 & tempancestry == "anc", "desc")) %>% 
+      mutate(ancestry = replace(ancestry, host.2 < host.1 & tempancestry == "desc", "anc")) %>% 
+      mutate(ancestry = replace(ancestry, host.2 < host.1 & tempancestry == "multiAnc", "multiDesc")) %>% 
+      mutate(ancestry = replace(ancestry, host.2 < host.1 & tempancestry == "multiDesc", "multiAnc")) %>%
+      mutate(host.1 = replace(host.1, temphost.2 < temphost.1, temphost.2[temphost.2 < temphost.1])) %>%
+      mutate(host.2 = replace(host.2, temphost.2 < temphost.1, temphost.1[temphost.2 < temphost.1])) %>%
+      mutate(paths12 = replace(paths12, temphost.2 < temphost.1, temppaths21[temphost.2 < temphost.1])) %>%
+      mutate(paths21 = replace(paths21, temphost.2 < temphost.1, temppaths12[temphost.2 < temphost.1])) %>%
+      mutate(nodes1 = replace(nodes1, temphost.2 < temphost.1, tempnodes2[temphost.2 < temphost.1])) %>%
+      mutate(nodes2 = replace(nodes2, temphost.2 < temphost.1, tempnodes1[temphost.2 < temphost.1])) %>%
+      select(-c(temphost.1, temphost.2, tempancestry, temppaths12, temppaths21, tempnodes1, tempnodes2))
+    x    
+>>>>>>> origin/master
   })
   #
   # rbind consolidated files

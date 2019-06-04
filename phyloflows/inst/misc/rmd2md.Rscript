@@ -1,0 +1,101 @@
+#!/usr/bin/env Rscript
+
+#-----------------------------------------------------------------------------
+# How to run? 
+# In terminal enter: Rscript --vanilla r2jekyll.R my_RMarkdownFile.Rmd
+
+#-----------------------------------------------------------------------------
+# Problem while rendering Rmarkdown files with latex equation into markdown file
+# -> Rmarkdown try to convert the equation into markdown instead of leaving them
+#    as latex equation. In consequences, the equations within the mardown file
+#    are not correctly rendered in a website powered by jekyll and using
+#    MathJax.js (a JavaScript display engine for mathematics)
+
+#-----------------------------------------------------------------------------
+# What does r2jekyll.R do?
+# 1) it reads the Rmarkdown file
+# 2) wrap the latex equation with the HTML tags <pre> and </pre> 
+#    This "trick" to protect the latex equation from being knitted
+#    into markdown
+# 3) knit the Rmarkdown file into markdown
+# 4) remove the <pre> and </pre> tags
+
+#-----------------------------------------------------------------------------
+# How to write latex equation
+# - Inline equation -> on one line! MUST be a space or a punctuation character
+#     in front of the first dollar sign. Examples
+#       This is an equation, $f(x) = \alpha + \frac{\beta}{x}$, that it is nice.
+#       This will no work$f(x) = \alpha + \frac{\beta}{x}$.
+#       This will work ($f(x) = \alpha + \frac{\beta}{x}$)
+# - Block equation -> new line after the first '$$' and new line
+#     before the last '$$', example:
+#       A nice equation:
+#
+#       $$
+#       f(x) = \alpha + \frac{\beta}{x}$
+#       $$
+#
+#       How did you find the equation above?
+
+
+
+#-----------------------------------------------------------------------------
+# inspired by:
+# - Nicole White
+#    https://nicolewhite.github.io/2015/02/07/r-blogging-with-rmarkdown-knitr-jekyll.html
+# - Fong Chun Chan
+#    http://tinyheero.github.io/2015/12/06/rmd-to-jekyll-protect-eqn.html
+
+library(rmarkdown)
+
+# Get the filename given as an argument in the shell.
+args <- commandArgs(TRUE)
+filename <- args[1]
+
+# Check that it's a .Rmd file.
+if(!grepl(".Rmd", filename)) {
+	stop("You must specify a .Rmd file.")
+}
+
+tempfile <- sub('.Rmd', '_deleteme.Rmd', filename)
+mdtempfile <- sub('.Rmd', '_deleteme.md', filename)
+mdfile <- sub('.Rmd', '.md', filename)
+
+x0 <- readLines(filename)
+
+sel <- grepl("([[:blank:]]|[[:punct:]]){1}\\${1}(.+?)\\$", x0)
+
+x1 <- x0
+x1[sel] <- gsub("(\\${1}(.+?)\\$)", "<pre>\\1<\\/pre>", x0[sel])
+
+x2 <- paste(x1, collapse = "!@#:")
+
+x3 <- gsub("(\\${2}(.+?)\\${2})", "<pre>\\1<\\/pre>", x2)
+
+x4 <- strsplit(x3, split="!@#:", fixed = TRUE)
+
+writeLines(x4[[1]], tempfile)
+
+
+rmarkdown::render(tempfile, output_format = 'all', output_file = mdtempfile)
+
+
+
+x0 <- readLines(mdtempfile)
+
+x <- paste(x0, collapse = "!@#:")
+
+x1 <- gsub("<pre>\\${2}", "$$", x)
+x2 <- gsub("\\${2}</pre>", "$$!@#:", x1)
+
+x3 <- gsub("(!@#:[[:space:]]*)<pre>\\${1}", " $", x2)
+x4 <- gsub("\\${1}</pre>(!@#:)", "$ ", x3)
+# remove space before punctuation!
+x5 <- gsub("\\s+([,;:)!\\.\\?])", "\\1", x4)
+x6 <- strsplit(x5, split="!@#:", fixed = TRUE)
+
+writeLines(x6[[1]], mdfile)
+
+
+unlink(mdtempfile)
+unlink(tempfile)
