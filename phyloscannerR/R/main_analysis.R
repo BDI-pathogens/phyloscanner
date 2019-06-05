@@ -16,18 +16,19 @@ initialise.phyloscanner <- function(
   alignment.file.directory = NULL,
   alignment.file.regex = NULL,
   tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
-  file.name.regex = "^\\D*([0-9]+)_to_([0-9]+)\\D*$",
+  file.name.regex = "^(?:.*\\D)?([0-9]+)_to_([0-9]+).*$",
   seed,
   norm.ref.file.name = NULL,
   norm.standardise.gag.pol = F,
   norm.constants = NULL,
   verbosity = 0){
-   
+  
   set.seed(seed)
   
   if(verbosity!=0){
     cat("Initialising...\n")
   }
+
   full.tree.file.names <- list.files.mod(tree.file.directory, pattern=tree.file.regex, full.names=TRUE)
   tree.file.names <- list.files.mod(tree.file.directory, pattern=tree.file.regex)
   
@@ -54,10 +55,18 @@ initialise.phyloscanner <- function(
   
   if(!is.null(tree.file.regex)){
     tree.identifiers <- sapply(tree.file.names, function(x) sub(tree.file.regex, "\\1", x))
+    has.coords <- T
+    tree.identifiers <- tryCatch({
+      sapply(tree.identifiers, function(y) get.window.coords.string(y, file.name.regex))
+      },
+      error = function(e){
+        has.coords <- F
+      })
     if(all(tree.identifiers!="")){
-      match.mode <- "ID"
+      match.mode <- ifelse(has.coords, "coords", "ID")
     }
   }
+
   
   if(is.na(match.mode)){
     match.mode <- "coords"
@@ -104,7 +113,7 @@ initialise.phyloscanner <- function(
     }
   }
   
-  # Attach blacklist and recombination files
+  # Attach blacklist, recombination, duplicate and alignment files
   
   if(existing.bl){
     
@@ -229,7 +238,7 @@ initialise.phyloscanner <- function(
         unexcised.file.name <- full.alignment.file.names[x]
         window.coords.string <- alignment.identifiers[x]
         excised.fn <- paste0(unlist(strsplit(unexcised.file.name, window.coords.string))[1], "PositionsExcised_", window.coords.string, ".fasta")
-        print(excised.fn)
+
         if(file.exists(excised.fn)){
           excised.fn
         } else {
@@ -639,7 +648,7 @@ phyloscanner.analyse.trees <- function(
   alignment.file.directory = NULL,
   alignment.file.regex = NULL, 
   tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
-  file.name.regex = "^\\D*([0-9]+)_to_([0-9]+)\\D*$",
+  file.name.regex = "^(?:.*\\D)?([0-9]+)_to_([0-9]+).*$",
   seed = sample(1:10000000,1),
   norm.ref.file.name = NULL,
   norm.standardise.gag.pol = F,
@@ -896,7 +905,7 @@ phyloscanner.analyse.tree <- function(
   recombination.file.name = NULL,
   alignment.file.name = NULL,
   tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
-  file.name.regex = "^\\D*([0-9]+)_to_([0-9]+)\\D*$",
+  file.name.regex = "^(?:.*\\D)?([0-9]+)_to_([0-9]+).*$",
   seed = sample(1:10000000,1),
   norm.ref.file.name = NULL,
   norm.standardise.gag.pol = F,
@@ -978,7 +987,7 @@ phyloscanner.generate.blacklist <- function(
   alignment.file.directory = NULL,
   alignment.file.regex = NULL, 
   tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
-  file.name.regex = "^\\D*([0-9]+)_to_([0-9]+)\\D*$",
+  file.name.regex = "^.*([0-9]+)_to_([0-9]+).*$",
   seed = sample(1:10000000,1),
   norm.ref.file.name = NULL,
   norm.standardise.gag.pol = F,
