@@ -25,7 +25,7 @@ get.suffix <- function(file.name, prefix, extension){
 #' @keywords internal
 #' @export get.window.coords
 
-get.window.coords <- function(string, regex = "^\\D*([0-9]+)_to_([0-9]+).*$"){
+get.window.coords <- function(string, regex = "^.*(?:.*\\D)?([0-9]+)_to_([0-9]+).*$"){
   start <- if(length(grep(regex, string))>0) as.numeric(sub(regex, "\\1", string)) else NA
   end   <- if(length(grep(regex, string))>0) as.numeric(sub(regex, "\\2", string)) else NA
 
@@ -39,7 +39,7 @@ get.window.coords <- function(string, regex = "^\\D*([0-9]+)_to_([0-9]+).*$"){
 #' @keywords internal
 #' @export get.window.coords.string
 
-get.window.coords.string <- function(string, regex = "^\\D*([0-9]+)_to_([0-9]+).*$"){
+get.window.coords.string <- function(string, regex = ".*(?:.*\\D)?([0-9]+)_to_([0-9]+).*$"){
   wc <- get.window.coords(string, regex)
   
   paste0(wc$start, "_to_", wc$end)

@@ -13,13 +13,13 @@ suppressMessages(require(readr, quietly=TRUE, warn.conflicts=FALSE))
 arg_parser		     <- ArgumentParser()
 
 
-arg_parser$add_argument("tree", action="store", help="A string that begins the file names (including the path) of all input trees. e.g. path/to/RAxML_bestTree.InWindow_, or a single input tree file.")
+arg_parser$add_argument("tree", action="store", help="A string that begins the file names (including the path) of all input trees. e.g. path/to/RAxML_bestTree.InWindow_, a directory containing all trees, or a single input tree file.")
 arg_parser$add_argument("outputString", action="store", help="A string that will be used to label all output files.")
 
 arg_parser$add_argument("-og", "--outgroupName", action="store", help="The name of the tip in the phylogeny/phylogenies to be used as outgroup (if unspecified, trees will be assumed to be already rooted). This should be sufficiently distant to any sequence obtained from a host that it can be assumed that the MRCA of the entire tree was not a lineage present in any sampled individual.")
 arg_parser$add_argument("-m", "--multifurcationThreshold", help="If specified, short branches in the input tree will be collapsed to form multifurcating internal nodes. This is recommended; many phylogenetics packages output binary trees with short or zero-length branches indicating multifurcations. If a number, this number will be used as the threshold, with all branches strictly smaller collapsed. If 'g', it will be guessed from the branch lengths and the width of the genomic window (if appropriate). It is recommended that trees are examined by eye to check that they do appear to have multifurcations if 'g' is used.")
-arg_parser$add_argument("-b", "--userBlacklist", action="store", help="A path and string that begins all the file names for pre-existing blacklist files.")
-arg_parser$add_argument("-aln", "--alignment", action="store", help="A path and string that begins all the file names for alignments. Needed if ancestral state reconstruction is desired at a later point.")
+arg_parser$add_argument("-b", "--userBlacklist", action="store", help="A path and string that begins all the file names for pre-existing blacklist files, or the path of a directory containing all those files.")
+arg_parser$add_argument("-aln", "--alignment", action="store", help="A path and string that begins all the file names for alignments, or a directory containing all alignment files. Needed if ancestral state reconstruction is desired at a later point.")
 
 # General, bland options
 
@@ -27,7 +27,7 @@ arg_parser$add_argument("-od", "--outputDir", action="store", help="All output w
 arg_parser$add_argument("-v", "--verbose", action="store", type="integer", default=1, help="The level of verbosity in command line output. 0=none, 1=minimal, 2=detailed")
 arg_parser$add_argument("-npb", "--noProgressBars", action="store_true", default=FALSE, help="If --verbose, do not display progress bars")
 arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. This expects up to three capture groups, for host ID, read ID, and read count (in that order). If the latter two groups are missing then read information will not be used. If absent, the default is '^(.*)_read_([0-9]+)_count_([0-9]+)$', which matches input from the phyloscanner pipeline where the host ID is the BAM file name.")
-arg_parser$add_argument("-y", "--fileNameRegex", action="store", default="^\\D*([0-9]+)_to_([0-9]+)\\D*$", help="Regular expression identifying window coordinates. Two capture groups: start and end; if the latter is missing then the first group is a single numerical identifier for the window. If absent, input will be assumed to be from the phyloscanner pipeline, and the host ID will be the BAM file name.")
+arg_parser$add_argument("-y", "--fileNameRegex", action="store", default="^(?:.*\\D)?([0-9]+)_to_([0-9]+).*$", help="Regular expression identifying window coordinates in tree file names. Two capture groups: start and end; if the latter is missing then the first group is a single numerical identifier for the window. If absent, input will be assumed to be from the phyloscanner pipeline.")
 arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default=".tree", help="The file extension for tree files (default .tree). This includes the dot; use '' if there is no file extension.")
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default=".csv", help="The file extension for table files (default .csv). This includes the dot; use '' if there is no file extension..")
 arg_parser$add_argument("-afe", "--alignmentFileExtension", action="store", default=".fasta", help="The file extension for nucleotide alignment files (default .fasta). This includes the dot; use '' if there is no file extension..")
@@ -47,7 +47,7 @@ arg_parser$add_argument("-nc", "--normalisationConstants", action="store", help=
 
 # Blacklisting
 
-arg_parser$add_argument("-db", "--duplicateBlacklist", action="store", help="Perform blacklisting for likely contamination between samples in this data set, suggested by exact duplicate reads found in different samples. Use this option to specify a string that begins the file names (including their path) of the duplication data produced by phyloscanner_make_trees.py. For example, 'path/to/DuplicateReadCountsProcessed_InWindow_'. This option must be used in conjunction with the --rawBlacklistThreshold and/or --ratioBlacklistThreshold option.")
+arg_parser$add_argument("-db", "--duplicateBlacklist", action="store", help="Perform blacklisting for likely contamination between samples in this data set, suggested by exact duplicate reads found in different samples. Use this option to specify a string that begins the file names (including their path) of the duplication data produced by phyloscanner_make_trees.py (for example, 'path/to/DuplicateReadCountsProcessed_InWindow_') or a directory containing those files. This option must be used in conjunction with the --rawBlacklistThreshold and/or --ratioBlacklistThreshold option.")
 arg_parser$add_argument("-pbk", "--parsimonyBlacklistK", action="store", type="double", help="Perform parsimony-based blacklisting for likely contaminant sequences (including those originating from a sample outside the current data set). Use this option to specify the value of the within-host diversity penalty used (corresponding to the k parameter in the Sankoff option of the splitsRule argument). This option must be used in conjunction with the --rawBlacklistThreshold and/or --ratioBlacklistThreshold option.")
 arg_parser$add_argument("-rwt", "--rawBlacklistThreshold", action="store", default=0, help="Used to specify a read count to be used as a raw threshold for blacklisting. --parsimonyBlacklistK and/or --duplicateBlacklist must also be used. If --parsimonyBlacklistK is used, subgraphs with a read count strictly less than this threshold will be blacklisted. If --duplicateBlacklist is used, duplicate reads with a count strictly less than this threshold will be blacklisted. The default value of 0 means nothing is blacklisted.")
 arg_parser$add_argument("-rtt", "--ratioBlacklistThreshold", action="store", default=0, help="Used to specify a read count ratio (between 0 and 1) to be used as a threshold for blacklisting. --parsimonyBlacklistK and/or --duplicateBlacklist must also be used. If --parsimonyBlacklistK is used, a subgraph will be blacklisted if the ratio of its read count to the total read count from the same host (in that tree) is strictly less than this threshold. If --duplicateBlacklist is used, duplicate reads will be blacklisted if the ratio of their count to the count of the duplicate (from another host) is strictly less than this threshold.")
@@ -75,7 +75,7 @@ arg_parser$add_argument("-tn", "--outputNexusTree", action="store_true", help="S
 
 # Summary statistics
 
-arg_parser$add_argument("-R", "--recombinationFiles", action="store", help="Include in the summary plots the recombination metric calculated by phyloscanner_make_trees.py. Use this option to specify a string that begins the file names (including their path) of the recombination data files. For example, 'path/to/RecombinantReads_InWindow_'.")
+arg_parser$add_argument("-R", "--recombinationFiles", action="store", help="Include in the summary plots the recombination metric calculated by phyloscanner_make_trees.py. Use this option to specify a string that begins the file names (including their path) of the recombination data files (for example, 'path/to/RecombinantReads_InWindow_') or a directory containing those files.")
 
 # Classification
 
@@ -130,7 +130,7 @@ if(!file.exists(tree.input)){
 } else {
   if(file.info(tree.input)[['isdir']]){
     tree.directory              <- tree.input
-    tree.file.regex             <- paste0("^(.*)", re.tree.fe, "$")
+    tree.file.regex             <- paste0("^(.*)",re.tree.fe,"$")
     single.tree                 <- F
   } else {
     single.tree                 <- T
@@ -144,6 +144,11 @@ if(!is.null(blacklist.input)){
   if(!file.exists(blacklist.input)){
     user.blacklist.directory    <- dirname(blacklist.input)
     user.blacklist.file.regex   <- paste0("^", basename(blacklist.input), "(.*)", re.csv.fe,"$")
+  } else {
+    if(file.info(blacklist.input)[['isdir']]){
+      user.blacklist.directory  <- blacklist.input
+      user.blacklist.file.regex <- paste0("^(.*)",re.csv.fe,"$")
+    } 
   }
 } else {
   user.blacklist.directory      <- NULL
@@ -156,7 +161,12 @@ alignment.input                 <- args$alignment
 if(!is.null(alignment.input)){
   if(!file.exists(alignment.input)){
     alignment.directory         <- dirname(alignment.input)
-    alignment.file.regex        <- paste0("^", basename(alignment.input), "([0-9].*)", re.alignment.fe,"$")
+    alignment.file.regex        <- paste0("^", basename(alignment.input), "(.*)", re.alignment.fe,"$")
+  } else {
+    if(file.info(alignment.input)[['isdir']]){
+      alignment.directory       <- alignment.input
+      alignment.file.regex      <- paste0("^(.*)",re.alignment.fe,"$")
+    } 
   }
 } else {
   alignment.directory           <- NULL
@@ -239,7 +249,12 @@ dup.input.file.name           <- args$duplicateBlacklist
 if(!is.null(dup.input.file.name)){
   if(!file.exists(dup.input.file.name)){
     duplicate.file.directory    <- dirname(dup.input.file.name)
-    duplicate.file.regex        <- paste0("^", basename(dup.input.file.name), "(.*)\\.[A-Za-z]+$")
+    duplicate.file.regex        <- paste0("^", basename(dup.input.file.name), "(.*)", re.csv.fe,"$")
+  } else {
+    if(file.info(dup.input.file.name)[['isdir']]){
+      duplicate.file.directory  <- dup.input.file.name
+      duplicate.file.regex      <- paste0("^(.*)",re.csv.fe,"$")
+    } 
   }
 } else {
   duplicate.file.directory    <- NULL
@@ -334,15 +349,22 @@ if(args$outputNexusTree){
 
 recomb.input                   <- args$recombinationFiles
 do.recomb                      <- !is.null(recomb.input)
+
 if(do.recomb){
   if(!file.exists(recomb.input)){
-    recomb.file.directory      <- dirname(recomb.input )
-    recomb.file.regex          <- paste0("^", basename(recomb.input), "(.*)\\.[A-Za-z]+$")
+    recomb.file.directory      <- dirname(recomb.input)
+    recomb.file.regex          <- paste0("^", basename(recomb.input), "(.*)",re.csv.fe,"$")
+  } else {
+    if(file.info(recomb.input)[['isdir']]){
+      recomb.file.directory    <- recomb.input
+      recomb.file.regex        <- paste0("^(.*)",re.csv.fe,"$")
+    } 
   }
 } else {
   recomb.file.directory      <- NULL
   recomb.file.regex          <- NULL
 }
+
 
 # Output classification and collapsed tree files?
 do.collapsed                   <- args$collapsedTrees
@@ -489,7 +511,7 @@ if(single.tree){
 
 hosts <- all.hosts.from.trees(phyloscanner.trees)
 
-if(length(hosts) <= 1 & (do.collapsed | do.class.detail)){
+if(length(hosts)<=1 & (do.collapsed | do.class.detail)){
   do.collapsed <- F
   do.class.detail <- F
 }
