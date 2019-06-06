@@ -138,7 +138,7 @@ $$
 
 
 Finally, we complete the model with prior distributions on the
-proportions,\(p(\pi)\), which we generally choose in an uninformative
+proportions, $(p(\pi))$, which we generally choose in an uninformative
 way; prior distributions on the sampling probabilities,
  $p(s_i)$
 , which we generally choose based on other availabe information; and a
