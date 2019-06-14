@@ -61,13 +61,13 @@ initialise.phyloscanner <- function(
       },
       error = function(e){
         has.coords <- F
+        tree.identifiers
       })
     if(all(tree.identifiers!="")){
       match.mode <- ifelse(has.coords, "coords", "ID")
     }
   }
 
-  
   if(is.na(match.mode)){
     match.mode <- "coords"
     tree.identifiers <- tryCatch({
@@ -81,6 +81,7 @@ initialise.phyloscanner <- function(
   if(length(unique(tree.identifiers)) != length(tree.identifiers)){
     stop("Some trees have duplicate IDs.")
   }
+  
   
   for(id.no in 1:length(tree.identifiers)){
     id                        <- tree.identifiers[id.no]
