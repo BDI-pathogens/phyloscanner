@@ -59,7 +59,7 @@ group “1” to group “1”, and there are 139 of them. The next row contains
 counts of transmission flows from group “1” to group “2”, and there are
 15 of them. Here is a barplot of our input data:
 
-<img src="02_basic_example_deleteme_files/figure-gfm/unnamed-chunk-4-1.png" style="display: block; margin: auto;" />
+<p><img src="02_basic_example_deleteme_files/figure-gfm/unnamed-chunk-4-1.png" style="display: block; margin: auto;" /></p>
 
 ## Input data: sampling information
 
