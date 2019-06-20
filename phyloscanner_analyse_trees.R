@@ -582,7 +582,7 @@ if(length(phyloscanner.trees)>1){
   }
   
   if(output.files){
-  write_csv(summary.stats, file.path(output.dir, ss.csv.fn))
+    write_csv(summary.stats, file.path(output.dir, ss.csv.fn))
   }
   
   ss.graphs.fn <- paste0(output.string,"_patStats.pdf")
@@ -606,7 +606,7 @@ if(length(phyloscanner.trees)>1){
         ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, tip.regex, 1, 1, close.sib.only = F, verbosity==2)
       }
       
-      if (verbosity!=0) cat('Writing transmission summary to file ', paste0(output.string,"_hostRelationshipSummary", csv.fe),'...\n', sep="")
+      if (verbosity!=0 & output.files) cat('Writing transmission summary to file ', paste0(output.string,"_hostRelationshipSummary", csv.fe),'...\n', sep="")
       write_csv(ts, file.path(output.dir, paste0(output.string,"_hostRelationshipSummary", csv.fe)))
     } else {
       relationship.types	<- c('proximity.3.way',
@@ -632,7 +632,7 @@ if(length(phyloscanner.trees)>1){
       }
       dc  <- count.pairwise.relationships(tmp) 
       
-      if (verbosity!=0) cat('Writing multinomial model output to file ', paste0(output.string,"_multinomialOutput", csv.fe),'...\n', sep="")
+      if (verbosity!=0 & output.files) cat('Writing multinomial model output to file ', paste0(output.string,"_multinomialOutput", csv.fe),'...\n', sep="")
       write_csv(dc, file.path(output.dir, paste0(output.string,"_multinomialOutput", csv.fe)))
     }
     
@@ -642,7 +642,7 @@ if(length(phyloscanner.trees)>1){
         if(nrow(ts)==0){
           cat("No relationships exist in the required proportion of windows (",win.threshold,"); skipping simplified relationship summary.\n", sep="")
         } else {
-          if (verbosity!=0) cat('Drawing simplified summary diagram to file ', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'...\n', sep="")
+          if (verbosity!=0 & output.files) cat('Drawing simplified summary diagram to file ', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'...\n', sep="")
           
           simplified.graph <- simplify.summary(ts, arrow.threshold, length(phyloscanner.trees), plot = T)
           
@@ -650,7 +650,7 @@ if(length(phyloscanner.trees)>1){
           ggsave(file = file.path(output.dir, paste0(output.string,"_simplifiedRelationshipGraph.pdf")), width=simp.plot.dim, height=simp.plot.dim)
         }
       } else {
-        if (verbosity!=0) cat('Drawing simplified summary diagram to file ', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'...\n', sep="")
+        if (verbosity!=0 & output.files) cat('Drawing simplified summary diagram to file ', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'...\n', sep="")
         
         simplified.graph <- simplify.summary.multinomial(dc, win.threshold, arrow.threshold, contiguous = F, plot = T)
         
