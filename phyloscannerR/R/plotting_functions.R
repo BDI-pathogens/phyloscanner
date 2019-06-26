@@ -626,7 +626,7 @@ produce.pairwise.graphs <- function(ptrees,
     mutate(fact.within.distance = as.character(within.distance)) %>%
     mutate(fact.within.distance = replace(fact.within.distance, fact.within.distance=="TRUE", "Within threshold")) %>%
     mutate(fact.within.distance = replace(fact.within.distance, fact.within.distance=="FALSE", "Outside threshold")) %>%
-    mutate(fact.within.distance = as.factor(fact.within.distance)) %>%
+    mutate(fact.within.distance = factor(fact.within.distance)) %>%
     mutate(arrow = ancestry) %>%
     mutate(arrow = replace(arrow, arrow %in% c("anc", "multiAnc"), 1)) %>%
     mutate(arrow = replace(arrow, arrow %in% c("desc", "multiDesc"), 2)) %>%
@@ -678,7 +678,7 @@ produce.pairwise.graphs <- function(ptrees,
     geom_point(data = pair.data %>% filter(!host.2.present), aes(y=host.2, x = xcoord), col="black", shape = 4, size=2) +
     geom_point(aes(x = xcoord, shape = !adjacent), y=1.5, col="red3", size=5) +
     scale_fill_discrete(name="Linked", labels=c("No", "Yes", "Member\nabsent")) +
-    scale_linetype_manual(values = c("dotted", "solid"), drop=F, name="Distance\nthreshold", labels = c("Outside", "Within")) +
+    scale_linetype_manual(values = linevals, drop=F, name="Distance\nthreshold", labels = c("Outside", "Within")) +
     scale_alpha_continuous(range = c(0.33, 1), guide=FALSE) +
     scale_colour_manual(drop=FALSE, values = c("blue3", "green4", "darkorange2", "orange4"), name="Ancestry", labels = c("Single", "Multiple", "None", "Complex")) +
     scale_shape_manual(values = c(32, 126), name="Adjacent", labels = c("Yes", "Blocked")) +

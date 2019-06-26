@@ -17,7 +17,7 @@ calc.subtree.stats <- function(host.id, tree.id, tree, tips.for.hosts, splits.ta
   subtree.all <- NULL
 
   if(length(all.tips)>1){
-    
+  
     subtree.all <- drop.tip(tree, tip=tree$tip.label[!(tree$tip.label %in% all.tips)])
     
     # just in case pruning changes the tip order
