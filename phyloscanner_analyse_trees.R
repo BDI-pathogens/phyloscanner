@@ -380,8 +380,8 @@ multinomial                    <- args$multinomial
 
 # Thresholds for summaries
 win.threshold                  <- args$windowThreshold
-dist.thresholds                <- args$distanceThreshold
-if(length(dist.thresholds == 1)){
+dist.thresholds                <- as.list(args$distanceThreshold)
+if(length(dist.thresholds) == 1){
   if(!multinomial){
     if(dist.thresholds[[1]] == -1){
       dist.threshold <- Inf
@@ -405,7 +405,7 @@ if(length(dist.thresholds == 1)){
       dist.threshold <- dist.thresholds[[1]]
     }
   } else {
-    if(length(dist.thresholds > 2)){
+    if(length(dist.thresholds) > 2){
       warning("More arguments than expected to --distanceThreshold. Ignoring all but the first two")
     } 
     close.threshold <- dist.thresholds[[1]]
