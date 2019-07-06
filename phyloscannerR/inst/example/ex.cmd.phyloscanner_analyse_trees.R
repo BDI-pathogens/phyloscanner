@@ -18,13 +18,17 @@ control$alignment.file.directory = NULL
 control$alignment.file.regex = NULL
 control$blacklist.underrepresented = FALSE	
 control$count.reads.in.parsimony = TRUE
+control$distance.threshold <- '0.025 0.05'
 control$do.dual.blacklisting = FALSE					
 control$duplicate.file.directory = NULL
 control$duplicate.file.regex = NULL
 control$file.name.regex = "^\\D*([0-9]+)_to_([0-9]+)\\D*$"
 control$guess.multifurcation.threshold = FALSE
 control$max.reads.per.host = 50
+control$min.reads.per.host <- 30
+control$min.tips.per.host <- 1	
 control$multifurcation.threshold = 1e-5
+control$multinomial= TRUE
 control$norm.constants = NULL
 control$norm.ref.file.name = system.file('HIV_DistanceNormalisationOverGenome.csv',package='phyloscannerR')
 control$norm.standardise.gag.pol = TRUE
@@ -33,6 +37,7 @@ control$outgroup.name = "REF_CPX_AF460972"
 control$output.dir = outdir
 control$parsimony.blacklist.k = 20
 control$prune.blacklist = FALSE
+control$post.hoc.count.blacklisting= TRUE
 control$ratio.blacklist.threshold = 0 
 control$raw.blacklist.threshold = 20					
 control$recombination.file.directory = NULL

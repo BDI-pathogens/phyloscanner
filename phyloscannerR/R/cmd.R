@@ -85,11 +85,11 @@ cmd.phyloscanner.analyse.trees<- function(prog.phyloscanner_analyse_trees,
 	{
 		stop('Found invalid arguments,',input.args[tmp2])
 	}	
-	#	for all character arguments: add encapsulating "" 
+	#	for all character arguments: add encapsulating "" except for 'distanceThreshold'
 	#	for all logical arguments that evaluate to TRUE: keep only the name
 	for(ii in seq_along(input.args))
 	{
-		if(is.character(input.args[[ii]]) && !substr(input.args[[ii]],1,1)%in%c("'",'"'))
+		if(is.character(input.args[[ii]]) && !substr(input.args[[ii]],1,1)%in%c("'",'"') && names(input.args)[ii]!='distanceThreshold')
 			input.args[[ii]] <- paste0('"',input.args[[ii]],'"')
 		if(is.logical(input.args[[ii]]) && input.args[[ii]])
 			input.args[[ii]] <- ''
