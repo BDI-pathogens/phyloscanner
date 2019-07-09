@@ -471,6 +471,13 @@ produce.pairwise.graphs2 <- function(	ptrees,
 					relationship.types=c(), 
 					verbose=TRUE)		
 	}
+	if(!is.null(dwin))
+	{
+		setnames(dwin, colnames(dwin), gsub('^h([1-2])','host\\.\\1',gsub('_','\\.',tolower(colnames(dwin)))) )
+		if(!all(c('host.1','host.2','tree.id','basic.classification','patristic.distance')%in%colnames(dwin)))
+			stop("Expected columns 'host.1','host.2','tree.id','basic.classification','patristic.distance'")		
+	}
+	dwin <- dwin %>% select(host.1, host.2, tree.id, basic.classification, patristic.distance)
 	stopifnot( dwin%>%filter(host.2<host.1)%>%nrow() == 0)
 	#	define basic topology
 	dwin <- dwin %>%

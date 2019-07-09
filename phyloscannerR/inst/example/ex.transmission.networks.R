@@ -1,0 +1,170 @@
+\dontrun{
+require(data.table)
+require(tidyverse)
+require(phyloscannerR)
+workdir<- '~/sandbox/DeepSeqProjects'
+setwd(workdir)	
+#	PLEASE NOTE: the output from PART 1+2 below is available through the package
+#	so these steps can be skipped
+	
+	
+#
+#	PART 1: run phyloscanner_analyse_trees on a large number of deepseq trees
+#
+#	prepare analysis: specify path to phyloscanner_analyse_trees
+prog.phyloscanner_analyse_trees <- '/Users/Oliver/git/phyloscanner/phyloscanner_analyse_trees.R'
+#	prepare analysis: download the phyloscanner tree of the Rakai population-based analysis  
+tmp <- "https://datadryad.org/bitstream/handle/10255/dryad.208473/Dataset_S1.tar?sequence=1"
+#	prepare analysis: specify directories to untar public data and to store results
+tree.dir <- "RakaiPopSample_deepseqtrees"	
+outdir <- 'RakaiPopSample_phyloscanner_analysis_190706'
+#	prepare analysis: download and untar
+download.file(tmp, destfile="Dataset_S1.tar", method="curl")
+untar("Dataset_S1.tar", exdir=tree.dir, extras='-xvf')	
+#	prepare analysis: specify valid input arguments to phyloscanner_analyse_trees
+valid.input.args <- cmd.phyloscanner.analyse.trees.valid.args(prog.phyloscanner_analyse_trees)
+#	prepare analysis: set phyloscanner variables, arguments as used for the Rakai population-based analysis
+control	<- list()
+control$allow.mt <- TRUE				
+control$alignment.file.directory = NULL 
+control$alignment.file.regex = NULL
+control$blacklist.underrepresented = FALSE	
+control$count.reads.in.parsimony = TRUE
+control$distance.threshold <- '0.025 0.05'
+control$do.dual.blacklisting = FALSE					
+control$duplicate.file.directory = NULL
+control$duplicate.file.regex = NULL
+control$file.name.regex = "^\\D*([0-9]+)_to_([0-9]+)\\D*$"
+control$guess.multifurcation.threshold = FALSE
+control$max.reads.per.host = 50
+control$min.reads.per.host <- 30
+control$min.tips.per.host <- 1	
+control$multifurcation.threshold = 1e-5
+control$multinomial= TRUE
+control$norm.constants = NULL
+control$norm.ref.file.name = system.file('HIV_DistanceNormalisationOverGenome.csv',package='phyloscannerR')
+control$norm.standardise.gag.pol = TRUE
+control$no.progress.bars = TRUE
+control$outgroup.name = "REF_CPX_AF460972"
+control$output.dir = outdir
+control$parsimony.blacklist.k = 20
+control$prune.blacklist = FALSE
+control$post.hoc.count.blacklisting= TRUE
+control$ratio.blacklist.threshold = 0 
+control$raw.blacklist.threshold = 20					
+control$recombination.file.directory = NULL
+control$recombination.file.regex = NULL
+control$relaxed.ancestry = TRUE
+control$sankoff.k = 20
+control$sankoff.unassigned.switch.threshold = 0
+control$seed = 42
+control$splits.rule = 's'
+control$tip.regex = "^(.*)_fq[0-9]+_read_([0-9]+)_count_([0-9]+)$"
+control$tree.file.regex = "^ptyr[0-9]+_InWindow_([0-9]+_to_[0-9]+)\\.tree$"
+control$use.ff = FALSE
+control$user.blacklist.directory = NULL 
+control$user.blacklist.file.regex = NULL
+control$verbosity = 1
+#	prepare analysis: list zipped tree files. One zip file contains the viral trees of individuals in one putative transmission network. 
+df <- tibble(F=list.files(tree.dir))
+df <- df %>% 
+		mutate(TYPE:= gsub('ptyr([0-9]+)_(.*)','\\2', F),
+				RUN:= as.integer(gsub('ptyr([0-9]+)_(.*)','\\1', F))) %>%
+		mutate(TYPE:= gsub('^([^\\.]+)\\.[a-z]+$','\\1',TYPE)) %>%
+		spread(TYPE, F) %>%
+		set_names(~ str_to_upper(.))
+#	make bash scripts: one each for processing the viral trees of individuals in one putative transmission network
+cmds <- vector('list',nrow(df))
+for(i in seq_len(nrow(df)))
+{
+	control$output.string <- paste0('ptyr',df$RUN[i])	
+	tree.input <- file.path(indir, df$TREES_NEWICK[i])
+	cmd <- phyloscannerR:::cmd.phyloscanner.analyse.trees(prog.phyloscanner_analyse_trees, 
+			tree.input, 
+			control,
+			valid.input.args=valid.input.args)
+	cmds[[i]] <- cmd		
+}	
+#	submit bash scripts: make PBS header
+hpc.load <- "module load anaconda3/personal"	# make third party requirements available	 
+hpc.select <- 1						# number of nodes
+hpc.nproc <- 1						# number of processors on node
+hpc.walltime <- 23						# walltime
+hpc.q <- "pqeelab"				# PBS queue
+hpc.mem <- "6gb" 					# RAM		
+hpc.array <- length(cmds)	# number of runs for job array	
+pbshead <- "#!/bin/sh"
+tmp <- paste("#PBS -l walltime=", hpc.walltime, ":59:00,pcput=", hpc.walltime, ":45:00", sep = "")
+pbshead <- paste(pbshead, tmp, sep = "\n")
+tmp <- paste("#PBS -l select=", hpc.select, ":ncpus=", hpc.nproc,":mem=", hpc.mem, sep = "")
+pbshead <- paste(pbshead, tmp, sep = "\n")
+pbshead <- paste(pbshead, "#PBS -j oe", sep = "\n")	
+if(!is.na(hpc.array))
+	pbshead	<- paste(pbshead, "\n#PBS -J 1-", hpc.array, sep='')	
+if(!is.na(hpc.q)) 
+	pbshead <- paste(pbshead, paste("#PBS -q", hpc.q), sep = "\n")
+pbshead <- paste(pbshead, hpc.load, sep = "\n")	
+cat(pbshead)
+#	submit bash scripts: make array job
+for(i in 1:length(cmds))
+	cmds[[i]]<- paste0(i,')\n',cmds[[i]],';;\n')
+cmd <- paste0('case $PBS_ARRAY_INDEX in\n',paste0(cmds, collapse=''),'esac')	
+cmd <- paste(pbshead,cmd,sep='\n')	
+#	submit bash scripts: submit job
+outfile <- gsub(':','',paste("phsc",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),'sh',sep='.'))
+outfile <- file.path(tmpdir, outfile)
+cat(cmd, file=outfile)
+cmd <- paste("qsub", outfile)
+cat(system(cmd, intern= TRUE))	
+
+
+
+#
+#	PART 2: find pairs in phylogenetic transmission networks 
+#
+
+
+
+#	find network pairs: get meta-data
+meta.file <- file.path(workdir,"RakaiPopSample_data","Dataset_S2.csv")
+tmp <- "https://datadryad.org/bitstream/handle/10255/dryad.208474/Dataset_S2.csv?sequence=2"
+download.file(tmp, destfile=meta.file, method="curl")
+dmeta <- as_tibble(read.csv(meta.file, stringsAsFactors=FALSE))
+#	find network pairs: process analyse_tree output with file names "ptyr[0-9]+_workspace.rda"
+indir <- file.path(workdir,"RakaiPopSample_phyloscanner_analysis_190706")
+tmp <- phyloscannerR:::find.pairs.in.networks(indir, batch.regex='^ptyr([0-9]+)_.*', conf.cut=0.6, neff.cut=3, verbose=TRUE, dmeta=dmeta)
+dpl <- copy(tmp$linked.pairs)
+dc <- copy(tmp$relationship.counts)
+dw <- copy(tmp$windows)
+#	find network pairs: save
+outfile <- file.path(workdir, "RakaiPopSample_phyloscanner_analysis_190706", "Rakai_phscnetworks_allpairs_190706.rda")
+save(dpl, dc, dw, file=outfile)
+
+
+#
+#	PART 3: plot phyloscan 
+#
+
+
+#infile <- file.path(workdir, "RakaiPopSample_phyloscanner_analysis_190706", "Rakai_phscnetworks_allpairs_190706.rda")
+infile <- system.file(file.path('extdata','Rakai_phscnetworks_allpairs_190706.RData'),package='phyloscannerR')
+load(infile) 
+# loaded "dpl" (pairs of individuals between whom linkage not excluded), "dc" (phyloscanner classification counts), "dw" (phyloscanner classifications per window)
+hosts	<- c('RkA05868F','RkA05968M','RkA00369F','RkA01344M') 
+tmp	<- phyloscannerR:::produce.pairwise.graphs2(hosts=hosts, dwin=dw, inclusion = "both")
+tmp$graph
+
+
+#
+#	PART 4: build transmission networks from constituting pairs
+#
+
+
+infile <- system.file(file.path('extdata','Rakai_phscnetworks_allpairs_190706.RData'),package='phyloscannerR')
+load(infile) 
+# loads phyloscanner relationship counts 'dc'
+tmp <- find.networks(dc, neff.cut=3, verbose=TRUE)
+dnet <- copy(tmp$transmission.networks)
+dchain <- copy(tmp$most.likely.transmission.chains)
+
+}
