@@ -703,6 +703,7 @@ produce.pairwise.graphs <- function(ptrees,
 }
 
 #' @export
+#' @author Oliver Ratmann
 #' @import data.table grid ggtree ggnet
 #' @title Plot transmission network
 #' @description This function plots a phylogenetic transmission network, showing three types of edges: 
@@ -712,6 +713,7 @@ produce.pairwise.graphs <- function(ptrees,
 #' @param control list of plotting control variables; see examples. 
 #' @return ggplot object
 #' @seealso \link{\code{find.networks}}
+#' @example inst/example/ex.transmission.networks.plotting.R
 plot.network<- function(df, di, control)
 {		
 	point.size <- control$point.size
