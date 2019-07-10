@@ -702,17 +702,146 @@ produce.pairwise.graphs <- function(ptrees,
   return(list(graph = pairwise.plot, data = pair.data))
 }
 
+
 #' @export
 #' @author Oliver Ratmann
-#' @import data.table grid ggtree ggnet
+#' @import tidyverse grid ggtree ggnet
+#' @title Plot transmission chain
+#' @description This function plots a transmission chain, showing one edge with two labels: 
+#' L indicates the proportion of deep-sequence phylogenies in whom the two individuals are phylogenetically close and adjacent.
+#' D indicates the proportion of deep-sequence phylogenies that support the indicated direction of transmission, out of all 
+#' deep-sequence phylogenies that support either direction of transmission.
+#' @param df tibble with the following columns 'H1', 'H2', 'CATEGORISATION', 'TYPE', 'SCORE' 
+#' @param di tibble with meta-data to customize the plot with columns 'H', node.shape, node.label, node.fill
+#' @param control list of plotting control variables; see examples. 
+#' @return ggplot object
+#' @seealso \link{\code{find.networks}}, \link{\code{plot.network}}
+#' @example inst/example/ex.transmission.networks.plotting.R
+plot.chain<- function(df, di, control)
+{
+	point.size <- control$point.size
+	edge.gap <- control$edge.gap
+	edge.size <- control$edge.size
+	curvature <- control$curvature
+	arrow <- control$arrow
+	curv.shift <- control$curv.shift
+	label.size <- control$label.size 
+	node.label <- control$node.label 
+	node.fill <- control$node.fill
+	node.shape <- control$node.shape
+	node.shape.values <- control$node.shape.values
+	node.fill.values <- control$node.fill.values
+	threshold.linked <- control$threshold.linked
+	layout <- control$layout
+	if(is.na(node.label))
+	{
+		node.label<- paste0('DUMMY',1+length(which(grepl('DUMMY',colnames(di)))))
+		di <- di%>%mutate(!!node.label:=NA_character_)		
+	}
+	if(is.na(node.shape))
+	{
+		node.shape<- paste0('DUMMY',1+length(which(grepl('DUMMY',colnames(di)))))
+		di <- di%>%mutate(!!node.shape:='NA')		
+	}
+	if(is.na(node.fill))
+	{
+		node.fill<- paste0('DUMMY',1+length(which(grepl('DUMMY',colnames(di)))))
+		di <- di%>%mutate(!!node.fill:='NA')
+	}
+	if(any(is.na(node.fill.values)))
+	{
+		z						<- unique(di[[node.fill]])
+		node.fill.values		<- heat.colors(length(z))
+		names(node.fill.values)	<- z
+	}
+	if(any(is.na(node.shape.values)))
+	{
+		z						<- unique(di[[node.shape]])
+		node.shape.values		<- seq_along(z)
+		names(node.shape.values)<- z
+	}
+	di <- di %>% rename( NODE_LABEL:= !!node.label,
+			NODE_SHAPE:= !!node.shape,
+			NODE_FILL:= !!node.fill)	
+	tmp	<- c('NODE_LABEL','NODE_SHAPE','NODE_FILL')[which(c(node.label, node.shape, node.fill)=='H')]
+	if(length(tmp))
+		di <- di %>% mutate(H:= !!rlang::sym(tmp))		
+	di <- di %>% select(H, NODE_LABEL, NODE_SHAPE, NODE_FILL)
+	#		
+	if(is.null(layout))
+	{
+		layout	<- as_tibble(ggnet2(network(df %>% select(H1,H2) %>% distinct(), directed=FALSE, matrix.type="edgelist"))$data[,c("label", "x", "y")])		
+	}		
+	if(any(grepl('label', colnames(layout))))
+	{		
+		setnames(layout, c('label','x','y'), c('H1','H1_X','H1_Y'))
+	}
+	if(any(colnames(layout)=='H'))
+	{
+		setnames(layout, c('H','X','Y'), c('H1','H1_X','H1_Y'))		
+	}	
+	df		<- df %>% inner_join(layout, by='H1')
+	setnames(layout, c('H1','H1_X','H1_Y'), c('H2','H2_X','H2_Y'))
+	df		<- df %>% inner_join(layout, by='H2')
+	setnames(layout, c('H2','H2_X','H2_Y'),  c('H','X','Y'))	
+	layout	<- layout %>% inner_join(di, by='H')	
+	
+	df <- df %>% mutate(	EDGETEXT_X:= (H1_X+H2_X)/2,
+							EDGETEXT_Y:= (H1_Y+H2_Y)/2,
+							EDGE_LABEL:= paste0('L',round(100*SCORE_LINKED,d=1),'%',' // ','D',round(100*pmax(SCORE_DIR_12,SCORE_DIR_21),d=1),'%')
+							)
+	if(is.na(threshold.linked))
+	{
+		df <- df %>% mutate(EDGE_COL:='edge_col_2')		
+	}
+	if(!is.na(threshold.linked))
+	{
+		df <- df %>% 
+				mutate(	EDGE_COL:= case_when(	SCORE_LINKED>=threshold.linked ~ 'edge_col_2',
+												SCORE_LINKED<threshold.linked ~ 'edge_col_1')
+						)												
+	}	
+	#	for edges, move the start and end points on the line between X and Y
+	#	define unit gradient
+	df <- df %>% mutate( MX:= (H2_X - H1_X), MY:= (H2_Y - H1_Y) )
+	tmp		<- sqrt(df$MX*df$MX+df$MY*df$MY)
+	df <- df %>% 
+			mutate( MX:= MX/tmp, MY:= MY/tmp) %>%
+			mutate( H1_X:= H1_X + MX*edge.gap,
+					H1_Y:= H1_Y + MY*edge.gap,
+					H2_X:= H2_X - MX*edge.gap,
+					H2_Y:= H2_Y - MY*edge.gap
+			)
+	#
+	p		<- ggplot() +			
+			geom_point(data=layout, aes(x=X, y=Y, colour=NODE_FILL, pch=NODE_SHAPE), size=point.size) +
+			geom_segment(data= df%>%filter(LINK_12==1), aes(x=H1_X, xend=H2_X, y=H1_Y, yend=H2_Y, size=edge.size*pmax(SCORE_DIR_21,SCORE_DIR_12), colour=EDGE_COL), arrow=arrow, lineend="butt") +			
+			geom_segment(data= df%>%filter(LINK_21==1), aes(x=H2_X, xend=H1_X, y=H2_Y, yend=H1_Y, size=edge.size*pmax(SCORE_DIR_21,SCORE_DIR_12), colour=EDGE_COL), arrow=arrow, lineend="butt") +						
+			scale_colour_manual(values=c(node.fill.values, 'edge_col_1'='grey80', 'edge_col_2'='grey40','NA'='grey50')) +
+			scale_shape_manual(values=c(node.shape.values, 'NA'=16)) +
+			scale_fill_manual(values=c(node.fill.values, 'NA'='grey50')) +
+			scale_size_identity() +
+			geom_text(data=df, aes(x=EDGETEXT_X, y=EDGETEXT_Y, label=EDGE_LABEL), size=label.size) +
+			geom_text(data=layout, aes(x=X, y=Y, label=NODE_LABEL)) +
+			theme_void() +
+			guides(colour='none', fill='none',size='none', pch='none')
+	layout		<- subset(layout, select=c(H,X,Y))
+	setnames(layout, c('H','X','Y'), c('label','x','y'))
+	p$layout	<- layout
+	p	
+}
+
+#' @export
+#' @author Oliver Ratmann
+#' @import tidyverse grid ggtree ggnet
 #' @title Plot transmission network
 #' @description This function plots a phylogenetic transmission network, showing three types of edges: 
 #' two directed edges respectively in the 1->2 and 2->1 direction, and an undirected edge that represents phylogenetic support of close and adjacent individuals without evidence into the direction transmission.  
-#' @param df data.table with the following columns 'IDCLU','ID1', 'ID2', 'TYPE','KEFF','LKL_MAX','POSTERIOR_SCORE' 
-#' @param di data.table with meta-data to customize the plot with columns ID, node.shape, node.label, node.fill
+#' @param df tibble with the following columns 'H1', 'H2', 'CATEGORISATION', 'TYPE', 'SCORE' 
+#' @param di tibble with meta-data to customize the plot with columns 'H', node.shape, node.label, node.fill
 #' @param control list of plotting control variables; see examples. 
 #' @return ggplot object
-#' @seealso \link{\code{find.networks}}
+#' @seealso \link{\code{find.networks}}, \link{\code{plot.chain}}
 #' @example inst/example/ex.transmission.networks.plotting.R
 plot.network<- function(df, di, control)
 {		

@@ -19,7 +19,7 @@ download.file(tmp, destfile=meta.file, method="curl")
 dmeta <- as_tibble(read.csv(meta.file, stringsAsFactors=FALSE))
 
 #
-# plot with host names, and male/female in blue/pink nodes, 
+# plot network with host names, and male/female in blue/pink nodes, 
 # 	and highlight pairings with >60% support for phylogenetic linkage
 #
 idclus <- sort(unique(dnet$IDCLU))
@@ -43,5 +43,15 @@ control$node.shape.values = c(`NA` = 16)
 control$node.fill.values = c(F = "hotpink2", M = "steelblue2")
 control$threshold.linked = 0.6
 p <- plot.network(df, di, control)	
+
+#
+# plot most likely chain with host names, and male/female in blue/pink nodes, 
+# 	and highlight pairings with >60% support for phylogenetic linkage
+#
+control$layout <- p$layout 
+di <- copy(dmeta)			
+setnames(di, 'ID', 'H')
+df <- subset(dchain, IDCLU==34)	
+p2 <- plot.chain(df, di, control)
 
 }
