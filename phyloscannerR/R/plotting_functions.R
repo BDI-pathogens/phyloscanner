@@ -435,18 +435,31 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
 #' @param control List of plotting attributes. 
 #' @return A list whose elements are \code{data}, the underlying data frame for the graph, and \code{graph}, the graph itself.
 #' @export produce.pairwise.graphs2
-#' @seealso \link{\code{classify.pairwise.relationships}}
+#' @seealso \code{\link{classify.pairwise.relationships}}
 #' @examples
 #' #
 #' # Example on data from Rakai Community Cohort Study
 #' # remember that you can specify dwin to save computing time, if you have it already computed
 #' #
 #' \dontrun{	
+#' #
+#' #	Example 1
+#' #
 #' file	<- system.file(file.path('extdata','ptyr192_phsc_analyse_trees_output.RData'),package='phyloscannerR')
 #' load(file)	#loads 'phsc', output from 'phyloscanner.analyse.trees'	
 #' hosts	<- c('RkA05868F','RkA05968M','RkA00369F','RkA01344M')
 #' inclusion <- "both" 
-#' tmp	<- produce.pairwise.graphs2(phsc, hosts=hosts, inclusion = "both")
+#' tmp	<- phyloscannerR:::produce.pairwise.graphs2(phsc, hosts=hosts, inclusion = "both")
+#' tmp$graph
+#' 
+#' #
+#' #	Example 2
+#' #
+#' infile <- system.file(file.path('extdata','Rakai_phscnetworks_allpairs_190706.RData'),package='phyloscannerR')
+#' load(infile) 
+#' # loaded "dpl" (pairs of individuals between whom linkage not excluded), "dc" (phyloscanner classification counts), "dw" (phyloscanner classifications per window)
+#' hosts	<- c('RkA05868F','RkA05968M','RkA00369F','RkA01344M') 
+#' tmp	<- phyloscannerR:::produce.pairwise.graphs2(hosts=hosts, dwin=dw, inclusion = "both")
 #' tmp$graph
 #' }
 produce.pairwise.graphs2 <- function(	ptrees, 		
@@ -715,7 +728,7 @@ produce.pairwise.graphs <- function(ptrees,
 #' @param di tibble with meta-data to customize the plot with columns 'H', node.shape, node.label, node.fill
 #' @param control list of plotting control variables; see examples. 
 #' @return ggplot object
-#' @seealso \link{\code{find.networks}}, \link{\code{plot.network}}
+#' @seealso \code{\link{find.networks}}, \code{\link{plot.network}}
 #' @example inst/example/ex.transmission.networks.plotting.R
 plot.chain<- function(df, di, control)
 {
@@ -841,7 +854,7 @@ plot.chain<- function(df, di, control)
 #' @param di tibble with meta-data to customize the plot with columns 'H', node.shape, node.label, node.fill
 #' @param control list of plotting control variables; see examples. 
 #' @return ggplot object
-#' @seealso \link{\code{find.networks}}, \link{\code{plot.chain}}
+#' @seealso \code{\link{find.networks}}, \code{\link{plot.chain}}
 #' @example inst/example/ex.transmission.networks.plotting.R
 plot.network<- function(df, di, control)
 {		

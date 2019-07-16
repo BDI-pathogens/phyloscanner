@@ -27,7 +27,7 @@ of the phyloscanner scores along each edge in the chain.
 Edmonds algorithm is used to solve for the most probable chain.
 }
 \seealso{
-\link{\code{find.networks}}
+\code{\link{find.networks}}
 }
 \author{
 Oliver Ratmann

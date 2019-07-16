@@ -261,3 +261,6 @@ phsc <- phyloscanner.analyse.trees(tree.file.directory,
              )
 }
 }
+\seealso{
+\code{\link{find.pairs.in.networks}}, \code{\link{find.networks}}
+}

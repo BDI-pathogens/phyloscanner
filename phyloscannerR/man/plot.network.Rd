@@ -80,7 +80,7 @@ p2 <- plot.chain(df, di, control)
 }
 }
 \seealso{
-\link{\code{find.networks}}, \link{\code{plot.chain}}
+\code{\link{find.networks}}, \code{\link{plot.chain}}
 }
 \author{
 Oliver Ratmann

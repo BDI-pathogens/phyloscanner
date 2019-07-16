@@ -5,30 +5,38 @@
 \title{Find pairs of individuals between whom linkage is not excluded phylogenetically}
 \usage{
 find.pairs.in.networks(indir, batch.regex = "^ptyr([0-9]+)_.*",
-  conf.cut = 0.6, neff.cut = 3, verbose = TRUE, dmeta = NULL)
+  control = list(linked.group = "close.and.adjacent.cat", linked.no =
+  "not.close.or.nonadjacent", linked.yes = "close.and.adjacent", conf.cut =
+  0.6, neff.cut = 3), dmeta = NULL, verbose = TRUE)
 }
 \arguments{
 \item{indir}{Full directory path to output of phyloscanner runs}
 
 \item{batch.regex}{Regular expression that identifies the batch ID of multiple phyloscanner analyses. Default: '^ptyr([0-9]+)_.*'.}
 
-\item{conf.cut}{Threshold on the proportion of deep-sequence phylogenies with distant/disconnected subgraphs above which pairs are considered phylogenetically unlinked. Default: 0.6}
-
-\item{neff.cut}{Threshold on the minimum number of deep-sequence phylogenies with sufficient reads from two individuals to make any phylogenetic inferences. Default: 3.}
-
-\item{verbose}{Flag to switch on/off verbose mode. Default: TRUE.}
+\item{control}{List of control variables:
+\itemize{
+        \item{\code{linked.group}} Phyloscanner classification used to identify pairs in networks. Default 'close.and.adjacent.cat'.
+        \item{\code{linked.no}} Phyloscanner classification type quantifying that pairs are not linked. Default 'not.close.or.nonadjacent'.
+        \item{\code{linked.yes}} Phyloscanner classification type quantifying that pairs are linked. Default 'close.and.adjacent'.
+        \item{\code{conf.cut}} Threshold on the proportion of deep-sequence phylogenies with distant/disconnected subgraphs above which pairs are considered phylogenetically unlinked. Default: 0.6
+        \item{\code{neff.cut}} Threshold on the minimum number of deep-sequence phylogenies with sufficient reads from two individuals to make any phylogenetic inferences. Default: 3.
+}}
 
 \item{dmeta}{Optional individual-level meta-data that is to be added to output. Can be NULL.}
+
+\item{verbose}{Flag to switch on/off verbose mode. Default: TRUE.}
 }
 \value{
-list of three R objects 'linked.pairs', 'relationship.counts', 'windows'. See description.
+Three R objects are generated: 
+\itemize{
+		\item{\code{network.pairs}} is a tibble that describes pairs of individuals between whom linkage is not excluded phylogenetically.
+		\item{\code{relationship.counts}} is a tibble that summarises the phylogenetic relationship counts for each pair.
+		\item{\code{windows}} is a tibble that describes the basic phyloscanner statistics (distance, adjacency, paths between subgraphs) in each deep-sequence phylogeny for each pair.
+}
 }
 \description{
 This function identifies pairs of individuals between whom linkage is not excluded phylogenetically in a large number of phyloscanner analyses, and provides detailed information on them.
-Three R objects are generated: 
-	  'linked.pairs' is a tibble that describes pairs of individuals between whom linkage is not excluded phylogenetically.
-	  'relationship.counts' is a tibble that summarises the phylogenetic relationship counts for each pair. 
-	  'windows' is a tibble that describes the basic phyloscanner statistics (distance, adjacency, paths between subgraphs) in each deep-sequence phylogeny for each pair.
 }
 \examples{
 \dontrun{
@@ -165,7 +173,8 @@ download.file(tmp, destfile=meta.file, method="curl")
 dmeta <- as_tibble(read.csv(meta.file, stringsAsFactors=FALSE))
 #	find network pairs: process analyse_tree output with file names "ptyr[0-9]+_workspace.rda"
 indir <- file.path(workdir,"RakaiPopSample_phyloscanner_analysis_190706")
-tmp <- phyloscannerR:::find.pairs.in.networks(indir, batch.regex='^ptyr([0-9]+)_.*', conf.cut=0.6, neff.cut=3, verbose=TRUE, dmeta=dmeta)
+control <- list(linked.group='close.and.adjacent.cat',linked.no='not.close.or.nonadjacent',linked.yes='close.and.adjacent', conf.cut=0.6, neff.cut=3)
+tmp <- phyloscannerR:::find.pairs.in.networks(indir, batch.regex='^ptyr([0-9]+)_.*', control=control, verbose=TRUE, dmeta=dmeta)
 dpl <- copy(tmp$linked.pairs)
 dc <- copy(tmp$relationship.counts)
 dw <- copy(tmp$windows)
@@ -174,36 +183,24 @@ outfile <- file.path(workdir, "RakaiPopSample_phyloscanner_analysis_190706", "Ra
 save(dpl, dc, dw, file=outfile)
 
 
-#
-#	PART 3: plot phyloscan 
-#
-
-
-#infile <- file.path(workdir, "RakaiPopSample_phyloscanner_analysis_190706", "Rakai_phscnetworks_allpairs_190706.rda")
-infile <- system.file(file.path('extdata','Rakai_phscnetworks_allpairs_190706.RData'),package='phyloscannerR')
-load(infile) 
-# loaded "dpl" (pairs of individuals between whom linkage not excluded), "dc" (phyloscanner classification counts), "dw" (phyloscanner classifications per window)
-hosts	<- c('RkA05868F','RkA05968M','RkA00369F','RkA01344M') 
-tmp	<- phyloscannerR:::produce.pairwise.graphs2(hosts=hosts, dwin=dw, inclusion = "both")
-tmp$graph
-
 
 #
-#	PART 4: build transmission networks from constituting pairs
+#	PART 3: build transmission networks from constituting pairs
 #
 
 
 infile <- system.file(file.path('extdata','Rakai_phscnetworks_allpairs_190706.RData'),package='phyloscannerR')
 load(infile) 
 # loads phyloscanner relationship counts 'dc'
-tmp <- find.networks(dc, neff.cut=3, verbose=TRUE)
+control <- list(linked.group='close.and.adjacent.cat',linked.no='not.close.or.nonadjacent',linked.yes='close.and.adjacent', neff.cut=3)
+tmp <- find.networks(dc, control=control, verbose=TRUE)
 dnet <- copy(tmp$transmission.networks)
 dchain <- copy(tmp$most.likely.transmission.chains)
 
 }
 }
 \seealso{
-\link{\code{phyloscanner.analyse.trees}}, \link{\code{cmd.phyloscanner.analyse.trees}}
+\code{\link{phyloscanner.analyse.trees}}, \code{\link{cmd.phyloscanner.analyse.trees}}
 }
 \author{
 Oliver Ratmann

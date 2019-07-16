@@ -4,19 +4,27 @@
 #' @title Find pairs of individuals between whom linkage is not excluded phylogenetically
 #' @param indir Full directory path to output of phyloscanner runs
 #' @param batch.regex Regular expression that identifies the batch ID of multiple phyloscanner analyses. Default: '^ptyr([0-9]+)_.*'.
-#' @param conf.cut Threshold on the proportion of deep-sequence phylogenies with distant/disconnected subgraphs above which pairs are considered phylogenetically unlinked. Default: 0.6
-#' @param neff.cut Threshold on the minimum number of deep-sequence phylogenies with sufficient reads from two individuals to make any phylogenetic inferences. Default: 3.
+#' @param control List of control variables:
+#' \itemize{
+#' 		\item{\code{linked.group}} Phyloscanner classification used to identify pairs in networks. Default 'close.and.adjacent.cat'.
+#' 		\item{\code{linked.no}} Phyloscanner classification type quantifying that pairs are not linked. Default 'not.close.or.nonadjacent'.
+#' 		\item{\code{linked.yes}} Phyloscanner classification type quantifying that pairs are linked. Default 'close.and.adjacent'.
+#' 		\item{\code{conf.cut}} Threshold on the proportion of deep-sequence phylogenies with distant/disconnected subgraphs above which pairs are considered phylogenetically unlinked. Default: 0.6
+#' 		\item{\code{neff.cut}} Threshold on the minimum number of deep-sequence phylogenies with sufficient reads from two individuals to make any phylogenetic inferences. Default: 3.
+#' }
 #' @param verbose Flag to switch on/off verbose mode. Default: TRUE. 
 #' @param dmeta Optional individual-level meta-data that is to be added to output. Can be NULL.
-#' @return list of three R objects 'linked.pairs', 'relationship.counts', 'windows'. See description.
-#' @description This function identifies pairs of individuals between whom linkage is not excluded phylogenetically in a large number of phyloscanner analyses, and provides detailed information on them.
+#' @return 
 #' Three R objects are generated: 
-#' 	  'linked.pairs' is a tibble that describes pairs of individuals between whom linkage is not excluded phylogenetically.
-#' 	  'relationship.counts' is a tibble that summarises the phylogenetic relationship counts for each pair. 
-#' 	  'windows' is a tibble that describes the basic phyloscanner statistics (distance, adjacency, paths between subgraphs) in each deep-sequence phylogeny for each pair.
-#' @seealso \link{\code{phyloscanner.analyse.trees}}, \link{\code{cmd.phyloscanner.analyse.trees}}
+#' \itemize{
+#' 		\item{\code{network.pairs}} is a tibble that describes pairs of individuals between whom linkage is not excluded phylogenetically.
+#' 		\item{\code{relationship.counts}} is a tibble that summarises the phylogenetic relationship counts for each pair.
+#' 		\item{\code{windows}} is a tibble that describes the basic phyloscanner statistics (distance, adjacency, paths between subgraphs) in each deep-sequence phylogeny for each pair.
+#' }
+#' @description This function identifies pairs of individuals between whom linkage is not excluded phylogenetically in a large number of phyloscanner analyses, and provides detailed information on them.
+#' @seealso \code{\link{phyloscanner.analyse.trees}}, \code{\link{cmd.phyloscanner.analyse.trees}}
 #' @example inst/example/ex.transmission.networks.R
-find.pairs.in.networks <- function(indir, batch.regex='^ptyr([0-9]+)_.*', conf.cut=0.6, neff.cut=3, verbose=TRUE, dmeta=NULL)
+find.pairs.in.networks <- function(indir, batch.regex='^ptyr([0-9]+)_.*', control= list(linked.group='close.and.adjacent.cat',linked.no='not.close.or.nonadjacent',linked.yes='close.and.adjacent', conf.cut=0.6, neff.cut=3), dmeta=NULL, verbose=TRUE)
 {	
 	#	check if dmeta in right format
 	if(!is.null(dmeta))
@@ -27,12 +35,14 @@ find.pairs.in.networks <- function(indir, batch.regex='^ptyr([0-9]+)_.*', conf.c
 			stop('"dmeta" must have a column "ID"')
 		if( class(dmeta$ID)!='character' )
 			stop('"dmeta$ID" must be a character')		
-	}
+	}	
 	#	internal variables
-	linked.group	<- 'close.and.adjacent.cat'
-	linked.no		<- 'not.close.or.nonadjacent'
-	linked.yes		<- 'close.and.adjacent'
-	
+	linked.group <- control$linked.group 
+	linked.no <- control$linked.no 
+	linked.yes <- control$linked.yes 
+	conf.cut <- control$conf.cut
+	neff.cut <- control$neff.cut	
+
 	infiles	<- tibble(F=list.files(indir, pattern='workspace.rda', full.names=TRUE)) %>%
 			mutate( PTY_RUN:= as.integer(gsub(batch.regex,'\\1',basename(F))) ) %>%
 			arrange(PTY_RUN)	
@@ -144,14 +154,25 @@ find.pairs.in.networks <- function(indir, batch.regex='^ptyr([0-9]+)_.*', conf.c
 #' @importFrom igraph graph.data.frame clusters
 #' @title Find phylogenetic transmission networks and most likely transmission chain
 #' @param dc Summary of phylogenetic relationship counts for each pair, stored as tibble.
-#' @param neff.cut Threshold on the minimum number of deep-sequence phylogenies with sufficient reads from two individuals to make any phylogenetic inferences. Default: 3.
+#' @param control List of control variables:
+#' \itemize{
+#' 		\item{\code{linked.group}} Phyloscanner classification used to identify pairs in networks. Default 'close.and.adjacent.cat'.
+#' 		\item{\code{linked.no}} Phyloscanner classification type quantifying that pairs are not linked. Default 'not.close.or.nonadjacent'.
+#' 		\item{\code{linked.yes}} Phyloscanner classification type quantifying that pairs are linked. Default 'close.and.adjacent'.
+#' 		\item{\code{neff.cut}} Threshold on the minimum number of deep-sequence phylogenies with sufficient reads from two individuals to make any phylogenetic inferences. Default: 3.
+#' } 	
 #' @param verbose Flag to switch on/off verbose mode. Default: TRUE. 
-#' @return list of two R objects 'transmission.networks', 'most.likely.transmission.chains'. See description.
+#' @return list of two R objects 
+#' \itemize{
+#' 		\item{\code{transmission.networks}} is a tibble that describes the edge list of pairs of individuals in a network, and corresponding phyloscanner scores
+#' 		\item{\code{most.likely.transmission.chains}} is a tibble that describes the edge list of pairs of individuals in the most likely chain, and corresponding phyloscanner scores
+#' }
+#' See description.
 #' @description 
 #' This function computes transmission networks from phyloscanner output of a population-based deep sequence sample. 
 #' A transmission network is defined as a set of individuals between whom phylogenetic linkage is not excluded.
 #' Every individual in the network has at least one partner in the network between whom evidence for being phylogenetically unlinked is below a threshold.
-#' These pairs of individuals are identified with a separate function, \link{\code{find.pairs.in.networks}}.  
+#' These pairs of individuals are identified with a separate function, \code{\link{find.pairs.in.networks}}.  
 #' Due to the nature of the deep-sequence
 #' data, there are up to three edges between pairs of individuals, giving the strength of evidence
 #' of spread in each direction (two possibilities) and the strength of evidence for phylogenetic linkage with 
@@ -170,14 +191,15 @@ find.pairs.in.networks <- function(indir, batch.regex='^ptyr([0-9]+)_.*', conf.c
 #' with direction unclear. The probability of the entire chain is given by the product
 #' of the phyloscanner scores along each edge in the chain.
 #'    
-#' @seealso \link{\code{find.pairs.in.networks}}
+#' @seealso \code{\link{find.pairs.in.networks}}, \code{\link{plot.network}}, \code{\link{plot.chain}}
 #' @example inst/example/ex.transmission.networks.R
-find.networks<- function(dc, neff.cut=3, verbose=TRUE)
-{
+find.networks<- function(dc, control= list(linked.group='close.and.adjacent.cat',linked.no='not.close.or.nonadjacent',linked.yes='close.and.adjacent', neff.cut=3), verbose=TRUE)
+{	
 	#	internal constants
-	linked.group	<- 'close.and.adjacent.cat'
-	linked.no		<- 'not.close.or.nonadjacent'
-	linked.yes		<- 'close.and.adjacent'
+	linked.group 	<- control$linked.group 
+	linked.no 		<- control$linked.no 
+	linked.yes 		<- control$linked.yes 	
+	neff.cut 		<- control$neff.cut		
 	scores.group	<- 'close.and.adjacent.and.ancestry.cat'
 	scores.nolink	<- 'not.close.or.nonadjacent'
 	scores.ambig	<- 'complex.or.no.ancestry' 
@@ -290,7 +312,7 @@ find.networks<- function(dc, neff.cut=3, verbose=TRUE)
 #' Edmonds algorithm is used to solve for the most probable chain.
 #' @param rtnn tibble encoding the three edges of a phyloscanner transmission network. Must have columns 'H1','H2','IDCLU','TYPE','SCORE','K_EFF'.   
 #' @return tibble encoding the most likely chain. Has columns 'H1','H2','IDCLU', 'LINK_12', 'LINK_21' (either 1 or 0 for a link in the corresponding direction), and 'MX_PROB_12', 'MX_PROB_21' (associated posterior probabilities)
-#' @seealso \link{\code{find.networks}} 
+#' @seealso \code{\link{find.networks}} 
 find.most.likely.chains.RBGLedmonds<- function(rtnn, verbose=0)
 {
 	stopifnot(c('PTY_RUN','H1','H2','IDCLU','CLU_SIZE','TYPE','SCORE')%in%colnames(rtnn))

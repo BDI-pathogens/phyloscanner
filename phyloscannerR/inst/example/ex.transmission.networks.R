@@ -132,7 +132,8 @@ download.file(tmp, destfile=meta.file, method="curl")
 dmeta <- as_tibble(read.csv(meta.file, stringsAsFactors=FALSE))
 #	find network pairs: process analyse_tree output with file names "ptyr[0-9]+_workspace.rda"
 indir <- file.path(workdir,"RakaiPopSample_phyloscanner_analysis_190706")
-tmp <- phyloscannerR:::find.pairs.in.networks(indir, batch.regex='^ptyr([0-9]+)_.*', conf.cut=0.6, neff.cut=3, verbose=TRUE, dmeta=dmeta)
+control <- list(linked.group='close.and.adjacent.cat',linked.no='not.close.or.nonadjacent',linked.yes='close.and.adjacent', conf.cut=0.6, neff.cut=3)
+tmp <- phyloscannerR:::find.pairs.in.networks(indir, batch.regex='^ptyr([0-9]+)_.*', control=control, verbose=TRUE, dmeta=dmeta)
 dpl <- copy(tmp$linked.pairs)
 dc <- copy(tmp$relationship.counts)
 dw <- copy(tmp$windows)
@@ -141,29 +142,17 @@ outfile <- file.path(workdir, "RakaiPopSample_phyloscanner_analysis_190706", "Ra
 save(dpl, dc, dw, file=outfile)
 
 
-#
-#	PART 3: plot phyloscan 
-#
-
-
-#infile <- file.path(workdir, "RakaiPopSample_phyloscanner_analysis_190706", "Rakai_phscnetworks_allpairs_190706.rda")
-infile <- system.file(file.path('extdata','Rakai_phscnetworks_allpairs_190706.RData'),package='phyloscannerR')
-load(infile) 
-# loaded "dpl" (pairs of individuals between whom linkage not excluded), "dc" (phyloscanner classification counts), "dw" (phyloscanner classifications per window)
-hosts	<- c('RkA05868F','RkA05968M','RkA00369F','RkA01344M') 
-tmp	<- phyloscannerR:::produce.pairwise.graphs2(hosts=hosts, dwin=dw, inclusion = "both")
-tmp$graph
-
 
 #
-#	PART 4: build transmission networks from constituting pairs
+#	PART 3: build transmission networks from constituting pairs
 #
 
 
 infile <- system.file(file.path('extdata','Rakai_phscnetworks_allpairs_190706.RData'),package='phyloscannerR')
 load(infile) 
 # loads phyloscanner relationship counts 'dc'
-tmp <- find.networks(dc, neff.cut=3, verbose=TRUE)
+control <- list(linked.group='close.and.adjacent.cat',linked.no='not.close.or.nonadjacent',linked.yes='close.and.adjacent', neff.cut=3)
+tmp <- find.networks(dc, control=control, verbose=TRUE)
 dnet <- copy(tmp$transmission.networks)
 dchain <- copy(tmp$most.likely.transmission.chains)
 

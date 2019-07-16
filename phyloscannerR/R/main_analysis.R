@@ -628,6 +628,7 @@ blacklist <- function(ptrees,
 #' @importFrom tidyr unnest
 #' @importFrom phangorn Ancestors Descendants Children mrca.phylo getRoot
 #' @export phyloscanner.analyse.trees 
+#' @seealso \code{\link{find.pairs.in.networks}}, \code{\link{find.networks}}
 #' @example inst/example/ex.phyloscanner.analyse.trees.R
 #' 
 phyloscanner.analyse.trees <- function(
