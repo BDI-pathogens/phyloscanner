@@ -4,7 +4,7 @@
 \alias{plot.network}
 \title{Plot transmission network}
 \usage{
-plot.network(df, di, control)
+\method{plot}{network}(df, di, control)
 }
 \arguments{
 \item{df}{tibble with the following columns 'H1', 'H2', 'CATEGORISATION', 'TYPE', 'SCORE'}
