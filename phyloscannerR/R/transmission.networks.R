@@ -350,6 +350,9 @@ find.most.likely.chains.RBGLedmonds<- function(rtnn, verbose=0)
 		if(verbose)
 			cat('\nIDCLU ',i)
 		#	convert to weighted edge list
+		tmp <- rtm[[i]] %>% 
+				mutate(weight:=PROB_12) %>%
+				select(H1,H2,weight) 
 		edgelist <- rtm[[i]] %>% 
 				mutate(weight:=PROB_21) %>% 
 				rename(H1:= H2, H2:= H1) %>%
