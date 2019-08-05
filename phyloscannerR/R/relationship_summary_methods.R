@@ -548,7 +548,7 @@ summarise.classifications <- function(ptrees, min.threshold, dist.threshold, tip
         filter(adjacent & (patristic.distance < dist.threshold | ancestry != "noAncestry"))
     } else {
       tt.close <- tt %>% 
-        filter(contiguous & (patristic.distance < dist.threshold | ancestry == "noAncestry"))
+        filter(contiguous & (patristic.distance < dist.threshold | ancestry != "noAncestry"))
     }
   }
   
