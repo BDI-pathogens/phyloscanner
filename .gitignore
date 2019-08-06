@@ -4,3 +4,6 @@
 .Ruserdata
 .Rapp.history
 .project
+.DS_Store
+.idea
+phyloscanner.Rproj
