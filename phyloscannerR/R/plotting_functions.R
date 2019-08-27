@@ -719,6 +719,7 @@ produce.pairwise.graphs <- function(ptrees,
 #' @export
 #' @author Oliver Ratmann
 #' @import tidyverse grid ggtree GGally
+#' @importFrom network network
 #' @title Plot transmission chain
 #' @description This function plots a transmission chain, showing one edge with two labels: 
 #' L indicates the proportion of deep-sequence phylogenies in whom the two individuals are phylogenetically close and adjacent.
@@ -846,7 +847,8 @@ plot.chain<- function(df, di, control)
 
 #' @export
 #' @author Oliver Ratmann
-#' @import tidyverse grid ggtree GGally network 
+#' @import tidyverse grid ggtree GGally 
+#' @importFrom network network
 #' @title Plot transmission network
 #' @description This function plots a phylogenetic transmission network, showing three types of edges: 
 #' two directed edges respectively in the 1->2 and 2->1 direction, and an undirected edge that represents phylogenetic support of close and adjacent individuals without evidence into the direction transmission.  
