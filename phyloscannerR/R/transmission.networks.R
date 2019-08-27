@@ -224,11 +224,11 @@ find.networks<- function(dc, control= list(linked.group='close.and.adjacent.cat'
 			inner_join(rtc, by='CLU') %>%
 			select(-CLU)	
 	#	add info on edges: network membership
-	setnames(rtc, c('ID'), c('H1'))
+	rtc <- rtc %>% rename(H1:=ID)
 	dnet <- dnet %>% inner_join(rtc, by='H1')
 	rtc <- rtc %>% select(-CLU_SIZE)
-	setnames(rtc, c('H1'), c('H2'))
-	dnet <- dnet %>% inner_join(rtc, by=c('H2','IDCLU'))
+	rtc <- rtc %>% rename(H2:=H1)	
+	dnet <- dnet %>% inner_join(rtc, by=c('H2','IDCLU'))	
 	#	add info on edges: direction 12, direction 21, direction ambiguous, unlinked
 	#	add this info in new rows
 	tmp <- dc %>% 
@@ -260,7 +260,7 @@ find.networks<- function(dc, control= list(linked.group='close.and.adjacent.cat'
 			select(H1,H2,PTY_RUN,TYPE,SCORE) %>%
 			mutate(TYPE:= paste0('SCORE_DIR_',TYPE)) %>%
 			spread(TYPE,SCORE)
-	dchain <- dchain %>% inner_join(tmp, by=c('H1','H2','PTY_RUN'))
+	dchain <- dchain %>% left_join(tmp, by=c('H1','H2','PTY_RUN'))
 	#	merge pw network scores to the ML chain representation
 	#	this is considering in denominator 12 + 21 + unclear reducing probs to achieve self-consistency
 	#	same as MX_PROB_12, MX_PROB_21, after the final step below that sets one of the two probs to zero
@@ -271,7 +271,10 @@ find.networks<- function(dc, control= list(linked.group='close.and.adjacent.cat'
 			mutate(TYPE:= paste0('SCORE_NW_',TYPE)) %>%
 			spread(TYPE,SCORE)
 	dchain <- dchain %>% inner_join(tmp, by=c('H1','H2','PTY_RUN'))
-	#	ensure scores are compatible with self-consistency in ML chain
+	#	fill in NA
+	dchain <- dchain %>% 			
+			mutate_at(c('SCORE_DIR_12','SCORE_DIR_21','SCORE_NW_12','SCORE_NW_21'), function(x) replace(x, is.na(x), 0)) 
+ 	#	ensure scores are compatible with self-consistency in ML chain
 	dchain <- dchain %>%
 			filter(LINK_12==1 | LINK_21==1) %>%
 			mutate(	SCORE_NW_12= replace(SCORE_NW_12, LINK_12==0 & LINK_21==1 & SCORE_NW_12>SCORE_NW_21, 0),
@@ -336,8 +339,10 @@ find.most.likely.chains.RBGLedmonds<- function(rtnn, verbose=0)
 	#	handle networks of size 2 - this is easy	
 	ans <- rtm %>% 
 			filter(CLU_SIZE==2) %>%
-			mutate( LINK_12 = ifelse(PROB_12>PROB_21, 1L, 0L),
-					LINK_21 = ifelse(PROB_21>PROB_12, 1L, 0L) )	
+			transform(TIES_RND_BRK= runif(length(CLU_SIZE))) %>%
+			mutate( LINK_12 = ifelse((PROB_12>PROB_21) | (PROB_12==PROB_21 & TIES_RND_BRK>=0.5), 1L, 0L),
+					LINK_21 = ifelse((PROB_21>PROB_12) | (PROB_12==PROB_21 & TIES_RND_BRK<0.5), 1L, 0L) ) %>%
+			select(-TIES_RND_BRK)
 	#	handle networks of size >2 - use Edmonds algorithm 	
 	rtm <- rtm %>% 
 			filter(CLU_SIZE>2) %>%

@@ -846,7 +846,7 @@ plot.chain<- function(df, di, control)
 
 #' @export
 #' @author Oliver Ratmann
-#' @import tidyverse grid ggtree GGally
+#' @import tidyverse grid ggtree GGally network
 #' @title Plot transmission network
 #' @description This function plots a phylogenetic transmission network, showing three types of edges: 
 #' two directed edges respectively in the 1->2 and 2->1 direction, and an undirected edge that represents phylogenetic support of close and adjacent individuals without evidence into the direction transmission.  
