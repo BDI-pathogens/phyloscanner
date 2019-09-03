@@ -350,7 +350,7 @@ split.and.annotate <- function(tree, hosts, tip.hosts, host.tips, host.mrcas, bl
     
     if (verbose) cat("Reconstructing...\n")
     
-    full.assocs <- phyloscanner.reconstruct(tree, getRoot(tree), "unassigned", list(), tip.hosts, hosts, cost.matrix, individual.costs, k, p, tip.read.counts, verbose)
+    full.assocs <- phyloscanner.reconstruct(tree, getRoot(tree), "unassigned", list(), tip.hosts, hosts, cost.matrix, individual.costs, k, p, tip.read.counts, verbose, F)
     
     temp.ca <- rep(NA, length(tree$tip.label) + tree$Nnode)
     
@@ -771,7 +771,7 @@ child.cost <- function(tree, child.index, hosts, top.host.no, bottom.host.no, cu
 #' @keywords internal
 #' @export phyloscanner.reconstruct
 
-phyloscanner.reconstruct <- function(tree, node, node.state, node.assocs, tip.hosts, hosts, full.cost.matrix, node.cost.matrix, k, p, tip.read.counts, verbose=F){
+phyloscanner.reconstruct <- function(tree, node, node.state, node.assocs, tip.hosts, hosts, full.cost.matrix, node.cost.matrix, k, p, tip.read.counts, verbose=F, first.ties.warning.printed = F){
   node.assocs[[node]] <- node.state
   # if(verbose){
   #   cat("Node ",node," reconstructed as ",node.state,"\n", sep="")
@@ -820,10 +820,14 @@ phyloscanner.reconstruct <- function(tree, node, node.state, node.assocs, tip.ho
           # if(verbose){
           #   cat("broken in favour of", decision, '\n')
           # }
-          cat("WARNING: some ties broken at random\n", sep="")
+          if(verbose & !first.ties.warning.printed){
+            cat("WARNING: some ties broken at random\n", sep="")
+            first.ties.warning.printed <- T
+          }
+          
         }
       }
-      node.assocs <- phyloscanner.reconstruct(tree, child, decision, node.assocs, tip.hosts, hosts, full.cost.matrix, node.cost.matrix, k, p, tip.read.counts, verbose)
+      node.assocs <- phyloscanner.reconstruct(tree, child, decision, node.assocs, tip.hosts, hosts, full.cost.matrix, node.cost.matrix, k, p, tip.read.counts, verbose, first.ties.warning.printed)
     }
   }
   return(node.assocs)
