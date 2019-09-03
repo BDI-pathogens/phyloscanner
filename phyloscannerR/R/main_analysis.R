@@ -963,7 +963,7 @@ phyloscanner.analyse.tree <- function(
     raw.blacklist.threshold = raw.blacklist.threshold, 
     ratio.blacklist.threshold = ratio.blacklist.threshold,
     do.dual.blacklisting = do.dual.blacklisting, 
-    min.reads.per.host = max.reads.per.host, 
+    max.reads.per.host = max.reads.per.host, 
     blacklist.underrepresented = blacklist.underrepresented, 
     min.reads.per.host = min.reads.per.host,
     min.tips.per.host = min.tips.per.host,
