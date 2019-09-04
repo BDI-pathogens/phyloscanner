@@ -52,150 +52,159 @@
 #' }
 #'
 source.attribution.mcmc.diagnostics    <- function(mcmc.file, mc=NULL, control=list(burnin.p=0.2, regex_pars='*', credibility.interval=0.95, pdf.plot.n.worst.case.parameters=10, pdf.plot.all.parameters=FALSE, pdf.height.per.par=1.2, outfile.base=gsub('\\.rda','',mcmc.file))){
-  #library(coda); library(data.table); library(bayesplot); library(ggplot2)
-  if(!is.null(mc))
-  {
-      cat('\nUsing MCMC output specified as input...')
-  }
-  if(is.null(mc))
-  {
-    cat('\nLoading MCMC output from file...')
-    load(mcmc.file[1])
-    XI <- mc$pars$XI
-    S <- mc$pars$S
-    LOG_LAMBDA <- mc$pars$LOG_LAMBDA
-    it.info <- mc$it.info
-    
-    if (length(mcmc.file)>1){
-      for (k in 2:length(mcmc.file)){
-        load(mcmc.file[k])
-        XI <- rbind(XI, mc$pars$XI)
-        S <- rbind(S, mc$pars$S)
-        LOG_LAMBDA <- rbind(LOG_LAMBDA, mc$pars$LOG_LAMBDA)
-        it.info <- rbind(it.info, mc$it.info)
-      }
+    #
+    library(coda); library(data.table); library(bayesplot); library(ggplot2)
+    if(!is.null(mc))
+    {
+        cat('\nUsing MCMC output specified as input...')
+    }
+    if(is.null(mc))
+    {
+        cat('\nLoading MCMC output from file...')
+        load(mcmc.file[1])
+        XI <- mc$pars$XI
+        S <- mc$pars$S
+        LOG_LAMBDA <- mc$pars$LOG_LAMBDA
+        it.info <- mc$it.info
+        
+        if (length(mcmc.file)>1){
+            for (k in 2:length(mcmc.file)){
+                load(mcmc.file[k])
+                XI <- rbind(XI, mc$pars$XI)
+                S <- rbind(S, mc$pars$S)
+                LOG_LAMBDA <- rbind(LOG_LAMBDA, mc$pars$LOG_LAMBDA)
+                it.info <- rbind(it.info, mc$it.info)
+            }
+        }
+        
+        mc$pars$XI <- XI
+        mc$pars$S <- S
+        mc$pars$LOG_LAMBDA <- LOG_LAMBDA
+        mc$it.info <- it.info
     }
     
-    mc$pars$XI <- XI
-    mc$pars$S <- S
-    mc$pars$LOG_LAMBDA <- LOG_LAMBDA
-    mc$it.info <- it.info
-  }
-  
-  burnin.n	<- floor(control$burnin.p*nrow(mc$pars$LOG_LAMBDA))
-  
-  cat('\nCollecting parameters...')
-  pars		<- matrix(NA,nrow=nrow(mc$pars$LOG_LAMBDA),ncol=0)
-  if(grepl(control$regex_pars,'S'))
-  {
-    tmp	<- mc$pars$S
-    colnames(tmp)	<- paste0('S-',1:ncol(tmp))
-    pars	<- cbind(pars, tmp)
-  }
-  if(grepl(control$regex_pars,'LOG_LAMBDA'))
-  {
-    tmp	<- mc$pars$LOG_LAMBDA
-    colnames(tmp)	<- paste0('LOG_LAMBDA-',1:ncol(tmp))
-    pars	<- cbind(pars, tmp)
-  }
-  
-  #	traces for parameters
-  if(control$pdf.plot.all.parameters)
-  {
-    cat('\nPlotting traces for all parameters...')
-    p		<- mcmc_trace(pars, pars=colnames(pars), facet_args = list(ncol = 1), n_warmup=burnin.n)
-    pdf(file=paste0(control$outfile.base,'_marginaltraces.pdf'), w=7, h=control$pdf.height.per.par*ncol(pars))
-    print(p)
-    dev.off()
-  }
     
-  #	traces for parameters
-  if(control$pdf.plot.all.parameters)
-  {
-    cat('\nPlotting traces for all parameters...')
-    p		<- mcmc_trace(pars, pars=colnames(pars), facet_args = list(ncol = 1), n_warmup=burnin.n)
-    pdf(file=paste0(control$outfile.base,'_marginaltraces.pdf'), w=7, h=control$pdf.height.per.par*ncol(pars))
-    print(p)
-    dev.off()
-  }
+    burnin.n    <- floor(control$burnin.p*nrow(mc$pars$LOG_LAMBDA))
     
-  #	acceptance rate per MCMC update ID
-  cat('\nPlotting acceptance rates...')
-  da	<- subset(mc$it.info, BLOCK=='XI' & PAR_ID>0)[, list(ACC_RATE=mean(ACCEPT)), by='PAR_ID']
-  setnames(da, 'PAR_ID', 'UPDATE_ID')
-  tmp	<- mc$dl[, list(N_TRM_CAT_PAIRS=length(TRM_CAT_PAIR_ID)), by='UPDATE_ID']
-  da	<- merge(da, tmp, by='UPDATE_ID')
-  ggplot(da, aes(x=N_TRM_CAT_PAIRS, y=ACC_RATE)) +
+    cat('\nCollecting parameters...')
+    pars        <- matrix(NA,nrow=nrow(mc$pars$XI),ncol=0)
+    if(grepl(control$regex_pars,'XI'))
+    {
+        tmp    <- mc$pars$XI
+        colnames(tmp)    <- paste0('XI-',1:ncol(tmp))
+        pars    <- cbind(pars, tmp)
+    }
+    if(grepl(control$regex_pars,'LOG_LAMBDA'))
+    {
+        tmp    <- mc$pars$LOG_LAMBDA
+        colnames(tmp)    <- paste0('LOG_LAMBDA-',1:ncol(tmp))
+        pars    <- cbind(pars, tmp)
+    }
+    
+    #    traces for parameters
+    if(control$pdf.plot.all.parameters)
+    {
+        cat('\nPlotting traces for all parameters...')
+        p        <- mcmc_trace(pars, pars=colnames(pars), facet_args = list(ncol = 1), n_warmup=burnin.n)
+        pdf(file=paste0(control$outfile.base,'_marginaltraces.pdf'), w=7, h=control$pdf.height.per.par*ncol(pars))
+        print(p)
+        dev.off()
+    }
+    
+    #    traces for log likelihood and log posterior
+    if(1)
+    {
+        pars2                <- as.matrix(subset(mc$it.info, BLOCK=='LOG_LAMBDA', select=c(LOG_LKL, LOG_PRIOR)))
+        pars2[,2]            <- pars2[,1]+pars2[,2]
+        colnames(pars2)    <- c('log likelihood','log posterior')
+        cat('\nPlotting log likelihood and log posterior...')
+        p        <- mcmc_trace(pars2, pars=colnames(pars2), facet_args = list(ncol = 1), n_warmup=burnin.n)
+        pdf(file=paste0(control$outfile.base,'_loglklpotrace.pdf'), w=10, h=control$pdf.height.per.par*ncol(pars2)*2)
+        print(p)
+        dev.off()
+        
+        p                <- mcmc_hist(pars2, pars=colnames(pars2), facet_args = list(ncol=4))
+        pdf(file=paste0(control$outfile.base,'_loglklpohist.pdf'), w=10, h=control$pdf.height.per.par*ncol(pars2))
+        print(p)
+        dev.off()
+    }
+    
+    #    acceptance rate per MCMC update ID
+    cat('\nPlotting acceptance rates...')
+    da    <- subset(mc$it.info, BLOCK=='XI' & PAR_ID>0)[, list(ACC_RATE=mean(ACCEPT)), by='PAR_ID']
+    setnames(da, 'PAR_ID', 'UPDATE_ID')
+    tmp    <- mc$dl[, list(N_TRM_CAT_PAIRS=length(TRM_CAT_PAIR_ID)), by='UPDATE_ID']
+    da    <- merge(da, tmp, by='UPDATE_ID')
+    ggplot(da, aes(x=N_TRM_CAT_PAIRS, y=ACC_RATE)) +
     geom_point() +
     theme_bw() +
     scale_y_continuous(label=scales::percent) +
-    labs(	x='\nNumber of transmission pair categories updated per sampling category',
-          y='Acceptance rate\n')
-  ggsave(file=paste0(control$outfile.base,'_acceptance_per_updateID.pdf'), w=6, h=6)
-  cat('\nAverage acceptance rate= ',subset(mc$it.info, !is.na(PAR_ID) & PAR_ID>0)[, round(mean(ACCEPT), d=3)])
-  cat('\nUpdate IDs with lowest acceptance rates')
-  print( da[order(ACC_RATE)[1:10],] )
-  
-  # remove burn-in
-  cat('\nRemoving burnin in set to ', 100*control$burnin.p,'% of chain, total iterations=',burnin.n)
-  tmp	<- seq.int(burnin.n+1L,nrow(mc$pars$LOG_LAMBDA))
-  pars	<- pars[tmp,,drop=FALSE]
-  
-  # effective sampling sizes
-  cat('\nCalculating effective sample size for all parameters...')
-  tmp	<- mcmc(pars)
-  ans	<- data.table(ID= seq_len(ncol(pars)), VAR= colnames(pars), NEFF=as.numeric(effectiveSize(tmp)))
-  set(ans, NULL, 'ID', ans[, factor(ID, labels=VAR)])
-  if(control$pdf.plot.all.parameters)
-  {
-    ggplot(ans, aes(x=NEFF, y=ID)) +
-      geom_point() +
-      theme_bw() +
-      labs(x='\neffective sample size', y='')
-    ggsave(file=paste0(control$outfile.base,'_neff.pdf'), w=6, h=control$pdf.height.per.par*ncol(pars)*0.15, limitsize=FALSE)
-  }
-  
-  # summarise mean, sd, quantiles
-  cat('\nCalculating posterior summaries for all parameters...')
-  tmp	<- apply(pars, 2, function(x) quantile(x, p=c((1-control$credibility.interval)/2, 0.5, control$credibility.interval+(1-control$credibility.interval)/2)))
-  tmp	<- data.table(	VAR= colnames(pars),
-                     MEAN= apply(pars, 2, mean),
-                     SD= apply(pars, 2, sd),
-                     MEDIAN=tmp[2,],
-                     CI_L=tmp[1,],
-                     CI_U=tmp[3,])
-  ans	<- merge(tmp, ans, by='VAR')
-  cat('\nParameters with lowest effective samples')
-  print( ans[order(NEFF)[1:10],] )
-  
-  # write to file
-  cat('\nWriting summary file to',paste0(control$outfile.base,'_summary.csv'))
-  setkey(ans, ID)
-  write.csv(ans, file=paste0(control$outfile.base,'_summary.csv'))
-  
-  # plots for worst case parameters
-  if(control$pdf.plot.n.worst.case.parameters>0)
-  {
-    worst.pars	<- pars[, ans[order(NEFF)[1:control$pdf.plot.n.worst.case.parameters], VAR]]
-    #	traces
-    cat('\nPlotting traces for worst parameters...')
-    p				<- mcmc_trace(worst.pars, pars=colnames(worst.pars), facet_args = list(ncol=1))
-    pdf(file=paste0(control$outfile.base,'_worst_traces.pdf'), w=7, h=control$pdf.height.per.par*ncol(worst.pars))
-    print(p)
-    dev.off()
+    labs(    x='\nNumber of transmission pair categories updated per sampling category',
+    y='Acceptance rate\n')
+    ggsave(file=paste0(control$outfile.base,'_acceptance_per_updateID.pdf'), w=6, h=6)
+    cat('\nAverage acceptance rate= ',subset(mc$it.info, !is.na(PAR_ID) & PAR_ID>0)[, round(mean(ACCEPT), d=3)])
+    cat('\nUpdate IDs with lowest acceptance rates')
+    print( da[order(ACC_RATE)[1:10],] )
     
-    #	histograms
-    cat('\nPlotting marginal posterior densities for worst parameters...')
-    p				<- mcmc_hist(worst.pars, pars=colnames(worst.pars), facet_args = list(ncol=4))
-    pdf(file=paste0(control$outfile.base,'_worst_marginalposteriors.pdf'), w=10, h=control$pdf.height.per.par*ncol(worst.pars)/4)
-    print(p)
-    dev.off()
+    # remove burn-in
+    cat('\nRemoving burnin in set to ', 100*control$burnin.p,'% of chain, total iterations=',burnin.n)
+    tmp    <- seq.int(burnin.n+1L,nrow(mc$pars$LOG_LAMBDA))
+    pars    <- pars[tmp,,drop=FALSE]
     
-    #	autocorrelations
-    cat('\nPlotting autocorrelations for worst parameters...')
-    p				<- mcmc_acf_bar(worst.pars, pars=colnames(worst.pars), facet_args = list(ncol = 1))
-    pdf(file=paste0(control$outfile.base,'_worst_acf.pdf'), w=7, h=control$pdf.height.per.par*ncol(worst.pars))
-    print(p)
-    dev.off()
-  }
-}
+    # effective sampling sizes
+    cat('\nCalculating effective sample size for all parameters...')
+    tmp    <- mcmc(pars)
+    ans    <- data.table(ID= seq_len(ncol(pars)), VAR= colnames(pars), NEFF=as.numeric(effectiveSize(tmp)))
+    set(ans, NULL, 'ID', ans[, factor(ID, labels=VAR)])
+    if(control$pdf.plot.all.parameters)
+    {
+        ggplot(ans, aes(x=NEFF, y=ID)) +
+        geom_point() +
+        theme_bw() +
+        labs(x='\neffective sample size', y='')
+        ggsave(file=paste0(control$outfile.base,'_neff.pdf'), w=6, h=control$pdf.height.per.par*ncol(pars)*0.15, limitsize=FALSE)
+    }
+    
+    # summarise mean, sd, quantiles
+    cat('\nCalculating posterior summaries for all parameters...')
+    tmp    <- apply(pars, 2, function(x) quantile(x, p=c((1-control$credibility.interval)/2, 0.5, control$credibility.interval+(1-control$credibility.interval)/2)))
+    tmp    <- data.table(    VAR= colnames(pars),
+    MEAN= apply(pars, 2, mean),
+    SD= apply(pars, 2, sd),
+    MEDIAN=tmp[2,],
+    CI_L=tmp[1,],
+    CI_U=tmp[3,])
+    ans    <- merge(tmp, ans, by='VAR')
+    cat('\nParameters with lowest effective samples')
+    print( ans[order(NEFF)[1:10],] )
+    
+    # write to file
+    cat('\nWriting summary file to',paste0(control$outfile.base,'_summary.csv'))
+    setkey(ans, ID)
+    write.csv(ans, file=paste0(control$outfile.base,'_summary.csv'))
+    
+    # plots for worst case parameters
+    if(control$pdf.plot.n.worst.case.parameters>0)
+    {
+        worst.pars    <- pars[, ans[order(NEFF)[1:control$pdf.plot.n.worst.case.parameters], VAR]]
+        #    traces
+        cat('\nPlotting traces for worst parameters...')
+        p                <- mcmc_trace(worst.pars, pars=colnames(worst.pars), facet_args = list(ncol=1))
+        pdf(file=paste0(control$outfile.base,'_worst_traces.pdf'), w=7, h=control$pdf.height.per.par*ncol(worst.pars))
+        print(p)
+        dev.off()
+        
+        #    histograms
+        cat('\nPlotting marginal posterior densities for worst parameters...')
+        p                <- mcmc_hist(worst.pars, pars=colnames(worst.pars), facet_args = list(ncol=4))
+        pdf(file=paste0(control$outfile.base,'_worst_marginalposteriors.pdf'), w=10, h=control$pdf.height.per.par*ncol(worst.pars)/4)
+        print(p)
+        dev.off()
+        
+        #    autocorrelations
+        cat('\nPlotting autocorrelations for worst parameters...')
+        p                <- mcmc_acf_bar(worst.pars, pars=colnames(worst.pars), facet_args = list(ncol = 1))
+        pdf(file=paste0(control$outfile.base,'_worst_acf.pdf'), w=7, h=control$pdf.height.per.par*ncol(worst.pars))
+        print(p)
+        dev.off()
+        }

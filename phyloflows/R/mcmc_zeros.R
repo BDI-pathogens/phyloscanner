@@ -1,75 +1,23 @@
 # log product of poisson densities with parameter lambda_ab
 lpois_prod <- function(x, llbd){
     # deal with small lambda whose exp is 0
-    c <- min((max(llbd)-min(llbd))/2,500)
-    ans <- - exp(-c) * sum(exp(llbd+c)) + sum(x * llbd) - sum(log(factorial(x)))
+    c <- min((max(llbd)-min(llbd))/2,700)
+    ans <- - exp(-c) * sum(exp(llbd+c)) + sum(x * llbd) - sum(lgamma(x+1))
     ans
 }
 
 # log product of gamma densities with parameter alpha_{ab} and beta
 lgamma_prod <- function(llbd, a, b){
     # deal with small lambda whose exp is 0
-    c <- min((max(llbd)-min(llbd))/2,500)
+    c <- min((max(llbd)-min(llbd))/2,700)
     ans <- sum( a * log(b) ) - sum( lgamma(a) ) +
     sum( (a-1) * llbd ) - b * exp(-c) * sum(exp(llbd + c))
     ans
 }
 
-#' @title Source attribution while adjusting for sampling bias
-#' @export
-#' @import data.table
-#' @importFrom gtools rdirichlet
-#' @author Xiaoyue Xi, Oliver Ratmann
-#' @param dobs Data.table of observed number of transmission events for each transmission pair category.
-#' @param dprior Data.table of draws from the prior distribution of sampling probabilities.
-#' @param control List of input arguments that control the behaviour of the source attribution algorithm:
-#' \itemize{
-#'  \item{"seed"}{Random number seed, for reproducibility.}
-#'  \item{"mcmc.n"}{Guide on the number of MCMC iterations. The actual number of iterations will be slightly larger, and a multiple of the number of iterations needed to complete one MCMC sweep through all free parameters.}
-#'  \item{"verbose"}{Flag to switch on/off verbose output.}
-#'  \item{"outfile"}{Full path name to which the MCMC output is saved to in RDATA format, in an object called \code{mc}.
-#'  \item{'sweep_group'}{Reset mcmc outputs after sweep_groups steps to release memory} }
-#' }
-#' @return If `outfile` is not specified, phyloflows MCMC output is returned, which is a list object. If `outfile` is specified, phyloflows MCMC output is written to an RDA file.
-#' @seealso \link{\code{source.attribution.mcmc.diagnostics}}, \link{\code{source.attribution.mcmc.aggregateToTarget}}, \link{\code{source.attribution.mcmc.getKeyQuantities}}
-#' @examples
-#' require(data.table)
-#' require(phyloflows)
-#' # load input data set
-#' data(twoGroupFlows1, package="phyloflows")
-#' dobs <- twoGroupFlows1$dobs
-#' dprior <- twoGroupFlows1$dprior
-#'
-#' #
-#' # run MCMC and return output to R
-#' # this is usually fine for simple source attribution models
-#' # that don t take long to run
-#' #
-#' \dontrun{
-#' control <- list(seed=42,    # seed for reproducibility
-#'                 mcmc.n=5e4, # guide on the number of MCMC iterations, the actual number of MCMC iterations may be a little bit larger
-#'                 verbose=0   # switch on for output to each MCMC iteration
-#'                 )
-#' mc <- phyloflows:::source.attribution.mcmc(dobs, dprior, control)
-#' }
-#'
-#' #
-#' # run MCMC and save output to file
-#' # this is recommended when the source attribution is more complex
-#' # so you can deploy the MCMC on a high performance cluster
-#' #
-#' \dontrun{
-#' mcmc.file <- 'mcmcm_output.rda'
-#' control <- list(seed=42,    # seed for reproducibility
-#'                 mcmc.n=5e4, # guide on the number of MCMC iterations, the actual number of MCMC iterations may be a little bit larger
-#'                 verbose=0   # switch on for output to each MCMC iteration
-#'                 outfile= mcmc.file # store MCMC output as rda file here
-#'                 )
-#' mc <- phyloflows:::source.attribution.mcmc(dobs, dprior, control)
-#' }
-#'
-source.attribution.mcmc    <- function(dobs, dprior, control=list(seed=42, mcmc.n=1e3, verbose=1, outfile='SAMCMCv190327.rda',sweep_group=1e4L)){
-    library(data.table); library(gtools);
+
+source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=1e3, verbose=1, outfile='SAMCMCv190327.rda',sweep_group=1e4L)){
+    # library(data.table);library(gtools)
     
     source('rgamss.R')
     dmode <- function(x) {
@@ -156,7 +104,7 @@ source.attribution.mcmc    <- function(dobs, dprior, control=list(seed=42, mcmc.
     mc$nsweep            <- ceiling( control$mcmc.n/mc$sweep )
     mc$n                <- mc$nsweep*mc$sweep
     # every 1e4 sweeps, reset mc$pars and mc$it.info
-    mc$sweep_group <- sweep_group
+    mc$sweep_group <- control$sweep_group
     mc$pars            <- list()
     mc$pars$ALPHA   <-   matrix(NA_real_, ncol = nrow(dobs),nrow=1L)
     mc$pars$BETA   <-   NA_real_
@@ -199,22 +147,35 @@ source.attribution.mcmc    <- function(dobs, dprior, control=list(seed=42, mcmc.
     set(mc$it.info, mc$curr.it, 'ACCEPT', 1L)
     #    prior lambda: use the Berger objective prior with minimal loss compared to marginal Beta reference prior
     #    (https://projecteuclid.org/euclid.ba/1422556416)
+    
     mc$pars$ALPHA[1,]    <- 0.8/nrow(dobs)
-    setkey(dobs,TRM_CAT_PAIR_ID)
-    setkey(dobs2,TRM_CAT_PAIR_ID)
-    mc$pars$BETA    <- 0.8/sum(dobs$TRM_OBS/dobs2$EST_SAMPLING_RATE)
+    dobs3 <- merge(subset(dobs,select = c('TRM_OBS','TRM_CAT_PAIR_ID')),
+    subset(dobs2,select = c('EST_SAMPLING_RATE','TRM_CAT_PAIR_ID')),
+    by=c('TRM_CAT_PAIR_ID'))
+    dobs3[,LBD:=TRM_OBS/EST_SAMPLING_RATE]
+    dobs3[TRM_OBS==0,LBD:=(1-EST_SAMPLING_RATE)/EST_SAMPLING_RATE]
+    
+    mc$pars$BETA    <- 0.8/sum(dobs3$LBD)
+    
     # prior for sampling in transmitter categories
+    # tmp                    <- subset(dprior, SAMPLE==sample(mc$nprior,1))
+    # tmp                    <- merge(unique(subset(mc$dl, WHO=='TR_SAMPLING_CATEGORY', c(SAMPLING_CATEGORY, UPDATE_ID))), tmp, by='SAMPLING_CATEGORY')
+    # setkey(tmp, UPDATE_ID)
+    # mc$pars$XI[1, tmp$UPDATE_ID]        <- tmp$P
+    # mc$pars$XI_LP[1, tmp$UPDATE_ID]    <- tmp$LP
+    # # prior for sampling in recipient categories
+    # tmp                    <- subset(dprior, SAMPLE==sample(mc$nprior,1))
+    # tmp                    <- merge(unique(subset(mc$dl, WHO=='REC_SAMPLING_CATEGORY', c(SAMPLING_CATEGORY, UPDATE_ID))), tmp, by='SAMPLING_CATEGORY')
+    # setkey(tmp, UPDATE_ID)
+    # mc$pars$XI[1, tmp$UPDATE_ID]        <- tmp$P
+    # mc$pars$XI_LP[1, tmp$UPDATE_ID]    <- tmp$LP
+    
     tmp                    <- subset(dprior, SAMPLE==sample(mc$nprior,1))
-    tmp                    <- merge(unique(subset(mc$dl, WHO=='TR_SAMPLING_CATEGORY', c(SAMPLING_CATEGORY, UPDATE_ID))), tmp, by='SAMPLING_CATEGORY')
+    tmp                    <- merge(mc$dlu, tmp, by='SAMPLING_CATEGORY')
     setkey(tmp, UPDATE_ID)
     mc$pars$XI[1, tmp$UPDATE_ID]        <- tmp$P
     mc$pars$XI_LP[1, tmp$UPDATE_ID]    <- tmp$LP
-    # prior for sampling in recipient categories
-    tmp                    <- subset(dprior, SAMPLE==sample(mc$nprior,1))
-    tmp                    <- merge(unique(subset(mc$dl, WHO=='REC_SAMPLING_CATEGORY', c(SAMPLING_CATEGORY, UPDATE_ID))), tmp, by='SAMPLING_CATEGORY')
-    setkey(tmp, UPDATE_ID)
-    mc$pars$XI[1, tmp$UPDATE_ID]        <- tmp$P
-    mc$pars$XI_LP[1, tmp$UPDATE_ID]    <- tmp$LP
+    
     # prior for sampling in transmission pair categories
     mc$pars$S[1,]            <- mc$pars$XI[1, mc$dlt$TR_UPDATE_ID] * mc$pars$XI[1, mc$dlt$REC_UPDATE_ID]
     mc$pars$S_LP[1,]        <- mc$pars$XI_LP[1, mc$dlt$TR_UPDATE_ID] + mc$pars$XI_LP[1, mc$dlt$REC_UPDATE_ID]
@@ -224,7 +185,7 @@ source.attribution.mcmc    <- function(dobs, dprior, control=list(seed=42, mcmc.
     1/(mc$pars$S[1,]+mc$pars$BETA))
     
     #    store log likelihood
-    tmp <- lpois_prod( dobs$TRM_OBS, mc$pars$LOG_LAMBDA[1,]*mc$pars$S[1,])
+    tmp <- lpois_prod( dobs$TRM_OBS, mc$pars$LOG_LAMBDA[1,] + log(mc$pars$S[1,]))
     set(mc$it.info, 1L, 'LOG_LKL', tmp)
     #     store log prior
     tmp    <- lgamma_prod( llbd= mc$pars$LOG_LAMBDA[1,], a = mc$pars$ALPHA , b = mc$pars$BETA) +
@@ -274,8 +235,8 @@ source.attribution.mcmc    <- function(dobs, dprior, control=list(seed=42, mcmc.
             S.prop[update.pairs]            <- XI.prop[ mc$dlt$TR_UPDATE_ID[update.pairs] ] * XI.prop[ mc$dlt$REC_UPDATE_ID[update.pairs] ]
             S_LP.prop[update.pairs]        <- XI_LP.prop[ mc$dlt$TR_UPDATE_ID[update.pairs] ] + XI_LP.prop[ mc$dlt$REC_UPDATE_ID[update.pairs] ]
             # calculate MH ratio
-            log.fc            <- lpois_prod( mc$dlt$TRM_OBS[update.pairs], LOG_LAMBDA.curr[update.pairs] * S.curr[update.pairs])
-            log.fc.prop            <- lpois_prod( mc$dlt$TRM_OBS[update.pairs],  LOG_LAMBDA.curr[update.pairs] * S.prop[update.pairs])
+            log.fc            <- lpois_prod( mc$dlt$TRM_OBS[update.pairs], LOG_LAMBDA.curr[update.pairs] + log(S.curr[update.pairs]))
+            log.fc.prop            <- lpois_prod( mc$dlt$TRM_OBS[update.pairs],  LOG_LAMBDA.curr[update.pairs] + log(S.prop[update.pairs]))
             
             log.mh.ratio        <- log.fc.prop - log.fc
             mh.ratio            <- min(1,exp(log.mh.ratio))
@@ -317,6 +278,7 @@ source.attribution.mcmc    <- function(dobs, dprior, control=list(seed=42, mcmc.
             mc$dlt$TRM_OBS[update.pairs] + mc$pars$ALPHA[update.pairs],
             1/(S.curr[update.pairs] + mc$pars$BETA))
             
+            
             #    this is the full conditional of LOG_LAMBDA given S
             #    always accept
             #    update
@@ -346,7 +308,7 @@ source.attribution.mcmc    <- function(dobs, dprior, control=list(seed=42, mcmc.
             mc$curr.it.adj <- mc$curr.it-mc$sweep_group*mc$sweep*update.sweep.group-1L
         }
         
-        tmp <- lpois_prod( dobs$TRM_OBS, LOG_LAMBDA.curr * S.curr)
+        tmp <- lpois_prod( dobs$TRM_OBS, LOG_LAMBDA.curr + log(S.curr))
         set(mc$it.info, mc$curr.it.adj, 'LOG_LKL', tmp)
         #     record log prior
         tmp    <- lgamma_prod( llbd= LOG_LAMBDA.curr, a = mc$pars$ALPHA , b = mc$pars$BETA) +
@@ -384,9 +346,9 @@ source.attribution.mcmc    <- function(dobs, dprior, control=list(seed=42, mcmc.
             if(!'outfile'%in%names(control))
             return(mc)
             if(update.sweep.group!=update.round %/% mc$sweep_group){
-                save(object = mc, file = paste0(control$outfile,update.round %/% mc$sweep_group,".RData"))
+                save(object = mc, file = paste0(control$outfile,update.round %/% mc$sweep_group,".rda"))
             }else{
-                save(object = mc, file = paste0(control$outfile,update.round %/% mc$sweep_group + 1,".RData"))
+                save(object = mc, file = paste0(control$outfile,update.round %/% mc$sweep_group + 1,".rda"))
             }
             update.sweep.group <- update.round %/% mc$sweep_group
             
@@ -410,8 +372,4 @@ source.attribution.mcmc    <- function(dobs, dprior, control=list(seed=42, mcmc.
         
         
     }
-    
-    
-    
-    NULL
 }
