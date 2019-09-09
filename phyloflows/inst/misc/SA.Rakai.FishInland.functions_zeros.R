@@ -590,10 +590,11 @@ Rakai190327.analysispipeline.age3model<- function(infile.inference=NULL, infile.
   rtr[, REC_AGE_AT_MID_C:= as.character(cut(REC_AGE_AT_MID, breaks=c(10,25,35,65), labels=c('15-24','25-34','35+'), right=FALSE))]
   stopifnot( nrow(subset(rtr, is.na(TR_AGE_AT_MID_C)))==0 )
   stopifnot( nrow(subset(rtr, is.na(REC_AGE_AT_MID_C)))==0 )
-  
+
+  #	TODO: please replace with more legible names
+  # inland fishing external
   rtr[,TR_COMM_TYPE_F:=as.integer(TR_COMM_TYPE=='fisherfolk')]
   rtr[,REC_COMM_TYPE_F:=as.integer(REC_COMM_TYPE=='fisherfolk')]
-  
   rtr[,TR_COMM_TYPE_F_MIG:=as.integer(substr(TR_COMM_NUM_A_MIG,1,1)=='f')]
   rtr[substr(TR_COMM_NUM_A_MIG,1,1)=='e',TR_COMM_TYPE_F_MIG:=2]
   
@@ -604,6 +605,33 @@ Rakai190327.analysispipeline.age3model<- function(infile.inference=NULL, infile.
   rtr[, REC_TRM_CATEGORY:= paste0(REC_COMM_TYPE_F,':',REC_SEX,':',REC_AGE_AT_MID_C,':',REC_INMIGRANT)]
   rtr[, TR_TRM_CATEGORY:= paste0(TR_COMM_TYPE_F_MIG,':',TR_SEX,':',TR_AGE_AT_MID_C,':',TR_INMIGRANT)]
   
+  # make all combinations of variables
+  dac <- expand.grid( 	COMM_TYPE_F_MIG= sort(unique(c(rtr$REC_COMM_TYPE_F_MIG, rtr$TR_COMM_TYPE_F_MIG))),
+						SEX=  sort(unique(c(rtr$REC_SEX, rtr$TR_SEX))),
+						AGE_AT_MID_C= sort(unique(c(rtr$REC_AGE_AT_MID_C, rtr$TR_AGE_AT_MID_C))),
+    					INMIGRANT= sort(unique(c(rtr$REC_INMIGRANT, rtr$TR_INMIGRANT)))
+    					)
+  dac <- as.data.table(dac)  				
+  dac[, CATEGORY:= paste0(COMM_TYPE_F_MIG, ':', SEX, ':', AGE_AT_MID_C, ':', INMIGRANT)]  					
+  dac <- as.data.table(expand.grid(TR_CATEGORY= dac$CATEGORY, REC_CATEGORY= dac$CATEGORY))
+  dac <- subset(dac, grepl('^[0|1]\\:.*$',REC_CATEGORY))
+  dac <- subset(dac, !(grepl('F',TR_CATEGORY)&grepl('F',REC_CATEGORY)) &
+  					 !(grepl('M',TR_CATEGORY)&grepl('M',REC_CATEGORY))  
+					  )
+  # add sampling categories. transmitters from external can be sampled 
+  #	either in fishing or inland
+  dac[, REC_SAMPLING_CATEGORY:= REC_CATEGORY]
+  dac[, TR_SAMPLING_CATEGORY:= TR_CATEGORY]
+  tmp <- which(grepl('^2',dac$TR_CATEGORY))
+  set(dac, tmp, 'TR_SAMPLING_CATEGORY', dac[tmp,gsub('^2','0',TR_SAMPLING_CATEGORY)]) 
+  tmp <- dac[tmp,]
+  set(tmp, NULL, 'TR_SAMPLING_CATEGORY', tmp[,gsub('^0','1',TR_SAMPLING_CATEGORY)]) 
+  dac <- rbind(dac, tmp)
+  #	all external transmitters must be inmigrants
+  dac <- subset(dac, !( grepl('^2',TR_CATEGORY) & grepl('0$',TR_CATEGORY) ))
+  
+  subset(dac, ( grepl('^0',TR_CATEGORY) & grepl('1$',TR_CATEGORY) ))
+  
   # # check
   # rtr[TR_INMIGRANT==1,TR_COMM_TYPE_F-TR_COMM_TYPE_F_MIG]
   # rtr[TR_INMIGRANT==0,TR_COMM_TYPE_F-TR_COMM_TYPE_F_MIG]
@@ -612,8 +640,10 @@ Rakai190327.analysispipeline.age3model<- function(infile.inference=NULL, infile.
   #
   dobs	<- rtr[, list( TRM_OBS=length(unique(PAIRID))), by=c('TR_TRM_CATEGORY','REC_TRM_CATEGORY','TR_SAMPLING_CATEGORY','REC_SAMPLING_CATEGORY')]
   
+  # TODO: can we make adding zeros independent of any other files please
+  #	colnames --> setnames
   load(infile.participation.prior.samples)
-  all.comb <- as.data.table(expand.grid(dp$CATEGORY,dp$CATEGORY))
+  all.comb 	<- as.data.table(expand.grid(dp$CATEGORY,dp$CATEGORY))
   colnames(all.comb)<-c('TR_SAMPLING_CATEGORY','REC_SAMPLING_CATEGORY')
   all.comb <- all.comb[gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\2',TR_SAMPLING_CATEGORY)!=gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\2',REC_SAMPLING_CATEGORY),]
   

@@ -15,11 +15,12 @@ lgamma_prod <- function(llbd, a, b){
     ans
 }
 
+#	TODO put the rgamss function here
 
 source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=1e3, verbose=1, outfile='SAMCMCv190327.rda',sweep_group=1e4L)){
     # library(data.table);library(gtools)
     
-    source('rgamss.R')
+    
     dmode <- function(x) {
         den <- density(x, kernel=c("gaussian"))
         (den$x[den$y==max(den$y)])
