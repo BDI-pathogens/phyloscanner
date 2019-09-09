@@ -207,4 +207,5 @@ source.attribution.mcmc.diagnostics    <- function(mcmc.file, mc=NULL, control=l
         pdf(file=paste0(control$outfile.base,'_worst_acf.pdf'), w=7, h=control$pdf.height.per.par*ncol(worst.pars))
         print(p)
         dev.off()
-        }
+    }
+    }
