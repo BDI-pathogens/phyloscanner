@@ -1,5 +1,5 @@
 ---
-title: "02 - Very first example"
+title: "Estimating transmission flows under heterogeneous sampling - a first example"
 date: "2019-04-30"
 output: github_document
 vignette: >
@@ -22,15 +22,13 @@ require(kableExtra)
 require(rmarkdown)
 setwd('/Users/Oliver/git/phyloscanner/phyloflows/vignettes')
 infile <- '02_basic_example.Rmd'
-rmarkdown::render(infile)
-
+#rmarkdown::render(infile)
 rmarkdown::render(infile, output_format='pdf_document')	
 ```
 
 
 This vignette gives a basic first introduction to estimating transmission flows
-with the `phyloflows` package. Please read the sections "Our Job" and "Our
-Solution" on the main page before you go ahead here.
+with the `phyloflows` package.
 
 
 # Input data
@@ -129,8 +127,7 @@ ggplot(dprior, aes(x=P)) +
 		facet_grid(~SAMPLING_CATEGORY)
 ```
 
-# phyloflows MCMC algorithm
-## Statistical model
+# phyloflows Statistical model
 `phyloflows` uses a Bayesian approach to estimate the proportion of
 transmissions between the two population groups,
 $$
@@ -142,49 +139,86 @@ actual transmission counts by
 $$
 z=(z_{11}, z_{12}, z_{21}, z_{22}).
 $$ 
-The likelihood of the actual transmission counts is then given by
+We assume that transmission events occurred independently of each other. Then
+the likelihood of the actual transmission counts can be modelled by
 $$
 p(z|Z,\pi)= Multinomial(z;Z,\pi),
 $$
-where $Z$ is the total number of transmissions, $Z=\sum_{kl} z_{kl}$, if we
-assume that transmission events occurred independently of each other. Next, we
-specify a model for observing one actual transmission event. This is given by
+where $Z$ is the total number of transmissions, $Z=\sum_{kl} z_{kl}$. Next, we
+specify a model for observing one actual transmission event. We assume that
+sampling occurred at random within each of the sampling groups $i$ and $j$. 
+We then obtain
 $$
 p(n_{ij}|z_{ij},s_i,s_j)= Binomial(n_{ij};z_{ij},s_i*s_j),
 $$
 where $s_i$ is the probability of sampling an individual from group $i$, and
-similary for $s_i$. The free parameters of the model are
+similary for $s_i$. 
+
+These equations suggest that one approach to infer the proportion of
+transmissions $\pi$ could be via data augmentation. In data augmentation, we would consider the
+unobserved, actual transmission counts $z$ as latent variables, and then infer
+the joint posterior distribution of the parameters $(z, Z, \pi)$ with a Monte Carlo 
+algorithm. 
+
+However there is a more efficient approach for the particular model above.
+Inference of $\pi$ under the Multinomial likelihood $Multinomial(z;Z,\pi)$ is equivalent to
+inference of Poisson mean rates $\lambda$    
 $$
-\theta= (z, Z, \pi, s),
+\lambda=(\lambda_{11}, \lambda_{12}, \lambda_{21}, \lambda_{22})
+$$ 
+in the system of independent Poisson likelihoods
 $$
-and the posterior distribution of the free parameters is given by 
+p(z_{ij}|\lambda_{ij})= Poisson(z;\lambda_{ij}),
+$$
+where $\lambda_{ij}>0$, $i=1,2$ and $j=1,2$. The proportion of transmissions $\pi$ are recovered via the
+equations
+$$
+\pi_{ij}= \lambda_{ij} / \sum_{k=1,2; l=1,2} \lambda_{kl}.
+$$
+for $i=1,2$ and $j=1,2$. This is known as the Poisson trick. The advantage of this 
+model parameterisation is that sampled Poisson random variables are again
+Poisson random variables, which allows us to integrate out analytically the
+unknown, actual transmission counts $z_{ij}$. We obtain  
+$$
+p(n | \lambda, s)= \prod_{i=1,2;j=1,2} Poisson(n_{ij};\lambda_{ij}*s_i*s_j).
+$$
+
+The free parameters of the model are $(\lambda, s)$, and the posterior distribution of the free parameters is given by 
 $$
 \begin{aligned}
-p(\theta | n) & \propto p(n | \theta) p(\theta) \\
-              & = \prod_{ij} Bin(n_{ij};z_{ij},s_i*s_j)  Multin(z;Z,\pi) p(Z) p(\pi) p(s).
+p(\lambda, s | n) & \propto p(n | \lambda, s) p(\lambda, s) \\
+              & = \prod_{i=1,2;j=1,2} Poisson(n_{ij};\lambda_{ij}*s_i*s_j) p(\lambda_{ij}) p(s_i) p(s_j).
 \end{aligned}
 $$
-In general we specify for 
+For the prior distributions, we specify: 
 
-* $p(\pi)$ an uninformative prior distribution (Dirichlet distribution with parameters $0.8/4$);
-* $p(s)$ a strongly informative prior distribution, based on available data (as illustrated above);
-* $p(Z)$ a strongly informative prior distribution, based on available data (Poisson distribution with mean set to the expected number of actual transmissions).
+* $p(\lambda_{ij})$ an uninformative prior distribution. We use a Gamma distribution with
+parameters $\alpha_i=0.8/4$ and $\beta=0.8/Z$ with $Z= \sum_{ij | n_{ij}>0} n_{ij}/(s_i*s_j) + \sum_{ij | n_{ij}>0}
+(1-s_i*s_j)/(s_i*s_j)$. This choice implies a prior distribution on the $\pi$ that enjoys desirable
+properties.
+* $p(s_i)$ a strongly informative prior distribution, based on available data (as
+illustrated above).
 
+# phyloflows MCMC
 ## MCMC: syntax 
-To sample from the posterior distribution
+We use a Markov Chain Monte Carlo algorithm to sample from the posterior
+distribution
 $$
-p(z, Z, \pi, s | n),
+p(\lambda, s | n) \propto \prod_{i=1,2;j=1,2} Poisson(n_{ij};\lambda_{ij}*s_i*s_j) p(\lambda_{ij}) p(s_i) p(s_j).
 $$
-we use a Markov Chain Monte Carlo algorithm. The syntax for running the
-algorithm is as follows. 
-```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE, message=TRUE}
+Then, we calculate the main quantity of interest, $\pi$, via
+$$
+\pi_{ij}= \lambda_{ij} / \sum_{k=1,2; l=1,2} \lambda_{kl}.
+$$ for $i=1,2$ and
+$j=1,2$. The syntax for running the algorithm is as follows. 
+```{r, include=TRUE, eval=FALSE, echo=TRUE, tidy=FALSE, message=TRUE}
 # specify a list of control variables:
 #	seed  	random number seed
 #	mcmc.n 	number of MCMC iterations
 #	verbose flag for verbose output
 #	outfile output file name if you like to have the results 
 #			written to an *.rda* file
-control <- list(seed=42, mcmc.n=500, verbose=0,sweep_group=125L)
+control <- list(seed=42, mcmc.n=500, verbose=0)
 # run MCMC
 ans <- source.attribution.mcmc(dobs, dprior, control)
 ```
@@ -227,7 +261,7 @@ Let s have a look at the messages first.
 ## MCMC: output
 
 Let us have a look at the output:  
-```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE, message=TRUE}
+```{r, include=TRUE, eval=FALSE, echo=TRUE, tidy=FALSE, message=TRUE}
 str(ans)
 ```
 
@@ -243,7 +277,7 @@ $$
 
 So let us look at just this component in the output, and make a trace
 plot:      
-```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE, message=TRUE, fig.dim = c(8, 6), fig.align="center"}
+```{r, include=TRUE, eval=FALSE, echo=TRUE, tidy=FALSE, message=TRUE, fig.dim = c(8, 6), fig.align="center"}
 post.pi <- ans[['pars']][['PI']]
 colnames(post.pi) <- paste0('PI-',1:ncol(post.pi))
 bayesplot:::mcmc_trace(post.pi, pars=colnames(post.pi), facet_args = list(ncol = 1), n_warmup=0)
@@ -254,7 +288,7 @@ We can do that. But what really are *PI-1*, *PI-2*, *PI-3*, *PI-4*? The numbers
 1-4 are just the values of the transmission pair IDs in
 `dobs`, `dobs$TRM_CAT_PAIR_ID`. So we can associate more interpretable names
 to the output as follows: 
-```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE, message=TRUE, fig.dim = c(8, 6), fig.align="center"} 
+```{r, include=TRUE, eval=FALSE, echo=TRUE, tidy=FALSE, message=TRUE, fig.dim = c(8, 6), fig.align="center"} 
 post.pi <- ans[['pars']][['PI']]
 setkey(dobs, TRM_CAT_PAIR_ID) #order by pair IDs
 post.pi.colnames <- paste0('PI ',dobs$TR_TRM_CATEGORY,'->',dobs$REC_TRM_CATEGORY)
