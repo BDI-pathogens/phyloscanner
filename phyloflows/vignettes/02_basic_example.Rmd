@@ -184,7 +184,7 @@ algorithm is as follows.
 #	verbose flag for verbose output
 #	outfile output file name if you like to have the results 
 #			written to an *.rda* file
-control <- list(seed=42, mcmc.n=500, verbose=0)
+control <- list(seed=42, mcmc.n=500, verbose=0,sweep_group=125L)
 # run MCMC
 ans <- source.attribution.mcmc(dobs, dprior, control)
 ```
