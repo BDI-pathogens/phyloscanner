@@ -18,30 +18,46 @@ knitr::opts_chunk$set(
 require(knitr)
 require(kableExtra)
 ```
+```{r, include=FALSE, eval=FALSE, echo=FALSE}
+require(rmarkdown)
+setwd('/Users/Oliver/git/phyloscanner/phyloflows/vignettes')
+infile <- '02_basic_example.Rmd'
+rmarkdown::render(infile)
+
+rmarkdown::render(infile, output_format='pdf_document')	
+```
 
 
-Here is a very first example data set for you to have a go at. Please read the
-sections "Our Job" and "Our Solution" on the main page before you go ahead here.
+This vignette gives a basic first introduction to estimating transmission flows
+with the `phyloflows` package. Please read the sections "Our Job" and "Our
+Solution" on the main page before you go ahead here.
 
 
 # Input data
-**phyloflows** expects input data in a specific format. First, a data.frame
-of observed transmission counts within and between population groups, which we
-call `dobs`. Second a data.frame that summarises prior information on how
-population groups were sampled, which we call `dprior`. 
+**phyloflows** expects input data in a specific format. 
+
+* `dobs` a data.frame of observed transmission counts within and between
+  population groups. 
+* `dprior` a data.frame that summarises prior information on how
+  population groups were sampled. 
 
 To get you started, **phyloflows** comes with a small simulated example data set
 of transmission counts and sampling information between two population groups,
 denoted by "1" and "2":
 ```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE, message=FALSE, warning=FALSE}
+#	required R packages
 require(phyloflows)
 require(ggplot2)
 require(bayesplot)
 require(data.table)
 require(coda)
 
+#
+#	load transmission flow data "twoGroupFlows1"
 data(twoGroupFlows1, package="phyloflows")
+#	observed transmission counts
 dobs <- twoGroupFlows1$dobs
+#	sampling information
 dprior <- twoGroupFlows1$dprior
 ```
 
@@ -49,19 +65,18 @@ dprior <- twoGroupFlows1$dprior
 ```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE}
 dobs
 ```
-Data.frame `dobs` must contain the columns *TR_TRM_CATEGORY*,
-*REC_TRM_CATEGORY*, *TRM_CAT_PAIR_ID*, and *TRM_OBS*. Each row specifies
-observed counts of transmissions from a transmitter group to a recipient group.
-Each combination of transmission flows is given an ID, and that ID is stored in
-*TRM_CAT_PAIR_ID*. `dobs` also must contain the columns *TR_SAMPLING_CATEGORY*
-and *REC_SAMPLING_CATEGORY*, which associate each transmitter/recipient group
-with a sampling category. We will get to this in a minute. For now, let us look
-at the data.frame. The first row contains counts of transmission flows from
-group "1" to group "1", and there are 139 of them. The next row contains
-counts
-of transmission flows from group "1" to group "2", and there are 15 of
-them. Here is a barplot of our input data: 
+**`dobs` specifies observed counts of transmissions from a
+transmitter group to a recipient group.** It must contain the following columns:
+ 
+* *TR_TRM_CATEGORY* name of transmitter group.
+* *REC_TRM_CATEGORY* name of recipient group.
+* *TRM_CAT_PAIR_ID* identifier of transmitter-recipient pair
+* *TRM_OBS* observed transmission counts
 
+Let us look at the data. The first row contains counts of transmission
+flows from group "1" to group "1", and there are 139 of them. The next row
+contains counts of transmission flows from group "1" to group "2", and there are
+15 of them. Here is a barplot of our input data: 
 ```{r, include=TRUE, eval=TRUE, echo=FALSE, tidy=FALSE, fig.dim = c(8, 3), fig.align="center"}
 ggplot(dobs, aes(x=paste0(TR_TRM_CATEGORY,'->',REC_TRM_CATEGORY), y=TRM_OBS, fill=paste0(TR_TRM_CATEGORY,'->',REC_TRM_CATEGORY))) +
 		geom_bar(stat='identity') +
@@ -72,18 +87,30 @@ ggplot(dobs, aes(x=paste0(TR_TRM_CATEGORY,'->',REC_TRM_CATEGORY), y=TRM_OBS, fil
 ```
 
 ## Input data: sampling information
+**`dobs` also must contain information about how each group was sampled.** This
+is stored in the following columns: 
+  
+* *TR_SAMPLING_CATEGORY* sampling strata of transmitter group
+* *REC_SAMPLING_CATEGORY* sampling strata of recipient group
+
+
 Each transmitter/recipient group is associated to a sampling category. This can
 be "sampling group a" for both "1" and "2", or "a" and "b" respectively for "1"
 and "2". In our little data set, we gave the same name to transmitter/recipient
-and sampling groups. Data.frame `dprior` specifies the probability of sampling
-an individual from each sampling group. To keep this as flexible as possible,
-samples from the sampling distribution, rather than say the mean and standard
-deviation, need to be given. Data.frame `dprior` must contain the columns
-*SAMPLING_CATEGORY*, *SAMPLE*, *P* and *LP*. *SAMPLING_CATEGORY* specifies the
-sampling group; *SAMPLE* is just an ID specifying if it is the first, second,
-... sample; *P* is the value of the sample, and *LP* is the log density of the
-sample.
+and sampling groups. 
 
+**`dprior` specifies the probability of sampling
+an individual from each sampling group.** To keep this as flexible as possible,
+samples from the sampling distribution, rather than say the mean and standard
+deviation, need to be given. This information is stored in the following 
+columns: 
+
+* *SAMPLING_CATEGORY* name of sampling strata
+* *SAMPLE* identifier of sample from the sampling distribution
+* *P* sampling probability
+* *LP* log density of the sampling probability under the sampling distribution.
+
+Let us look at the sampling information: 
 ```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE}
 head(dprior)
 ```
@@ -93,29 +120,73 @@ Here is a histogram of the sampling distribution from sampling groups "1" and
 group "1" is higher than that among individuals in group "2".
 
 
-```{r, include=TRUE, eval=TRUE, echo=FALSE, tidy=FALSE, warning=FALSE,  fig.dim = c(8, 3), fig.align="center"}
+```{r, include=TRUE, eval=TRUE, echo=FALSE, tidy=FALSE, warning=FALSE,  fig.dim = c(8, 5), fig.align="center"}
 ggplot(dprior, aes(x=P)) +
 		geom_histogram(binwidth=0.005, alpha=0.5, fill='deepskyblue4') +
-		theme_classic() +
-		labs(x='\nsampling probabilities per sampling group', y='observed counts\n') +
-		scale_x_continuous(labels=scales:::percent, lim=c(0,1), expand=c(0,0)) +
+		theme_bw() +
+		labs(x='\nsampling distribution in group 1 and 2', y='observed counts\n') +
+		scale_x_continuous(labels=scales:::percent, lim=c(0.4,0.7), expand=c(0,0)) +
 		facet_grid(~SAMPLING_CATEGORY)
 ```
 
 # phyloflows MCMC algorithm
-## MCMC: syntax 
-Now that we understand the input data, we are ready to estimate the
-transmission flows within and between the two population groups,
+## Statistical model
+`phyloflows` uses a Bayesian approach to estimate the proportion of
+transmissions between the two population groups,
 $$
 \pi=(\pi_{11}, \pi_{12}, \pi_{21}, \pi_{22}).
 $$ 
-We just need to specify a seed, number of iterations of the Markov
-Chain Monte Carlo algorithm, a flag for verbose output, and an output file name
-if you like to have the results written to an *.rda* file.
+The model can be motivated as follows. Suppose the actual, unobserved number of
+transmissions from group $i$ to group $j$ are $z_{ij}$. Denote the vector of
+actual transmission counts by
+$$
+z=(z_{11}, z_{12}, z_{21}, z_{22}).
+$$ 
+The likelihood of the actual transmission counts is then given by
+$$
+p(z|Z,\pi)= Multinomial(z;Z,\pi),
+$$
+where $Z$ is the total number of transmissions, $Z=\sum_{kl} z_{kl}$, if we
+assume that transmission events occurred independently of each other. Next, we
+specify a model for observing one actual transmission event. This is given by
+$$
+p(n_{ij}|z_{ij},s_i,s_j)= Binomial(n_{ij};z_{ij},s_i*s_j),
+$$
+where $s_i$ is the probability of sampling an individual from group $i$, and
+similary for $s_i$. The free parameters of the model are
+$$
+\theta= (z, Z, \pi, s),
+$$
+and the posterior distribution of the free parameters is given by 
+$$
+\begin{aligned}
+p(\theta | n) & \propto p(n | \theta) p(\theta) \\
+              & = \prod_{ij} Bin(n_{ij};z_{ij},s_i*s_j)  Multin(z;Z,\pi) p(Z) p(\pi) p(s).
+\end{aligned}
+$$
+In general we specify for 
 
+* $p(\pi)$ an uninformative prior distribution (Dirichlet distribution with parameters $0.8/4$);
+* $p(s)$ a strongly informative prior distribution, based on available data (as illustrated above);
+* $p(Z)$ a strongly informative prior distribution, based on available data (Poisson distribution with mean set to the expected number of actual transmissions).
+
+## MCMC: syntax 
+To sample from the posterior distribution
+$$
+p(z, Z, \pi, s | n),
+$$
+we use a Markov Chain Monte Carlo algorithm. The syntax for running the
+algorithm is as follows. 
 ```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE, message=TRUE}
+# specify a list of control variables:
+#	seed  	random number seed
+#	mcmc.n 	number of MCMC iterations
+#	verbose flag for verbose output
+#	outfile output file name if you like to have the results 
+#			written to an *.rda* file
 control <- list(seed=42, mcmc.n=500, verbose=0)
-ans <- phyloflows:::source.attribution.mcmc(dobs, dprior, control)
+# run MCMC
+ans <- source.attribution.mcmc(dobs, dprior, control)
 ```
 
 ## MCMC: messages
