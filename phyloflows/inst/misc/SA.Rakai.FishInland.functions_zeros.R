@@ -558,6 +558,7 @@ Rakai190327.analysispipeline.age3model<- function(infile.inference=NULL, infile.
   rtr[, TR_INMIGRANT:= as.integer(TR_INMIGRATE!='resident')]
   rtr[, REC_INMIGRANT:= as.integer(grepl('inmigrant',REC_INMIGRATE))]
   set(rtr, NULL, 'TR_COMM_NUM_A_MIG', rtr[, gsub('[0-9]+','',TR_COMM_NUM_A_MIG)])
+  
   #	set unknown origin to either fishing or inland
   tmp	<- rtr[, which(TR_INMIGRATE=='inmigrant_from_unknown')]
   if(opt$set.missing.migloc.to.inland)
@@ -575,28 +576,35 @@ Rakai190327.analysispipeline.age3model<- function(infile.inference=NULL, infile.
   # add age 
   rtr[,TR_AGE_AT_MID:=2013.25-TR_BIRTHDATE]
   rtr[,REC_AGE_AT_MID:=2013.25-REC_BIRTHDATE]
+  
   # impute age
   tmp	<- which(is.na(rtr$TR_AGE_AT_MID))
   set(rtr, tmp, 'TR_AGE_AT_MID', mean(rtr$TR_AGE_AT_MID[which(!is.na(rtr$TR_AGE_AT_MID))]) )
   tmp	<- which(is.na(rtr$REC_AGE_AT_MID))
   set(rtr, tmp, 'REC_AGE_AT_MID', mean(rtr$REC_AGE_AT_MID[which(!is.na(rtr$REC_AGE_AT_MID))]) )
+  
   # fixup from latest surveillance data
   set(rtr, rtr[,which(TR_RID=="C036808")], 'TR_AGE_AT_MID', 39.946)	
   set(rtr, rtr[,which(REC_RID=="G036802")], 'REC_AGE_AT_MID',	44.946)	
   set(rtr, rtr[, which(REC_RID=="H103745")], 'REC_AGE_AT_MID', 20.42)	
   set(rtr, rtr[, which(REC_RID=="C121534")],'REC_AGE_AT_MID', 28.549)
+  
   #	stratify age
   rtr[, TR_AGE_AT_MID_C:= as.character(cut(TR_AGE_AT_MID, breaks=c(10,25,35,65), labels=c('15-24','25-34','35+'), right=FALSE))]
   rtr[, REC_AGE_AT_MID_C:= as.character(cut(REC_AGE_AT_MID, breaks=c(10,25,35,65), labels=c('15-24','25-34','35+'), right=FALSE))]
   stopifnot( nrow(subset(rtr, is.na(TR_AGE_AT_MID_C)))==0 )
   stopifnot( nrow(subset(rtr, is.na(REC_AGE_AT_MID_C)))==0 )
 
-  #	TODO: please replace with more legible names
-  # inland fishing external
-  rtr[,TR_COMM_TYPE_F:=as.integer(TR_COMM_TYPE=='fisherfolk')]
-  rtr[,REC_COMM_TYPE_F:=as.integer(REC_COMM_TYPE=='fisherfolk')]
-  rtr[,TR_COMM_TYPE_F_MIG:=as.integer(substr(TR_COMM_NUM_A_MIG,1,1)=='f')]
-  rtr[substr(TR_COMM_NUM_A_MIG,1,1)=='e',TR_COMM_TYPE_F_MIG:=2]
+  # define TR_COMM_TYPE_F, REC_COMM_TYPE_F (i: inland; f: fishing) 
+  rtr[,TR_COMM_TYPE_F:=substr(TR_COMM_TYPE,1,1)]
+  rtr[substr(TR_COMM_TYPE,1,1)!='f',TR_COMM_TYPE_F:='i']
+  rtr[,REC_COMM_TYPE_F:=substr(REC_COMM_TYPE,1,1)]
+  rtr[substr(REC_COMM_TYPE,1,1)!='f',REC_COMM_TYPE_F:='i']
+  
+  # define TR_COMM_TYPE_F_MIG (i: inland; f: fishing; e: external) 
+  rtr[,TR_COMM_TYPE_F_MIG:=substr(TR_COMM_NUM_A_MIG,1,1)]
+  rtr[substr(TR_COMM_NUM_A_MIG,1,1)=='a' | substr(TR_COMM_NUM_A_MIG,1,1)=='i'|
+        substr(TR_COMM_NUM_A_MIG,1,1)=='t',TR_COMM_TYPE_F_MIG:='i']
   
   #	build category to match with sampling data tables 
   rtr[, REC_SAMPLING_CATEGORY:= paste0(REC_COMM_TYPE_F,':',REC_SEX,':',REC_AGE_AT_MID_C,':',REC_INMIGRANT)]
@@ -606,81 +614,57 @@ Rakai190327.analysispipeline.age3model<- function(infile.inference=NULL, infile.
   rtr[, TR_TRM_CATEGORY:= paste0(TR_COMM_TYPE_F_MIG,':',TR_SEX,':',TR_AGE_AT_MID_C,':',TR_INMIGRANT)]
   
   # make all combinations of variables
-  dac <- expand.grid( 	COMM_TYPE_F_MIG= sort(unique(c(rtr$REC_COMM_TYPE_F_MIG, rtr$TR_COMM_TYPE_F_MIG))),
+  dac <- expand.grid( 	COMM_TYPE_F= sort(unique(c(rtr$REC_COMM_TYPE_F, rtr$TR_COMM_TYPE_F))),
 						SEX=  sort(unique(c(rtr$REC_SEX, rtr$TR_SEX))),
 						AGE_AT_MID_C= sort(unique(c(rtr$REC_AGE_AT_MID_C, rtr$TR_AGE_AT_MID_C))),
     					INMIGRANT= sort(unique(c(rtr$REC_INMIGRANT, rtr$TR_INMIGRANT)))
     					)
   dac <- as.data.table(dac)  				
-  dac[, CATEGORY:= paste0(COMM_TYPE_F_MIG, ':', SEX, ':', AGE_AT_MID_C, ':', INMIGRANT)]  					
+  dac[, CATEGORY:= paste0(COMM_TYPE_F, ':', SEX, ':', AGE_AT_MID_C, ':', INMIGRANT)]  					
   dac <- as.data.table(expand.grid(TR_CATEGORY= dac$CATEGORY, REC_CATEGORY= dac$CATEGORY))
-  dac <- subset(dac, grepl('^[0|1]\\:.*$',REC_CATEGORY))
   dac <- subset(dac, !(grepl('F',TR_CATEGORY)&grepl('F',REC_CATEGORY)) &
   					 !(grepl('M',TR_CATEGORY)&grepl('M',REC_CATEGORY))  
 					  )
-  # add sampling categories. transmitters from external can be sampled 
-  #	either in fishing or inland
-  dac[, REC_SAMPLING_CATEGORY:= REC_CATEGORY]
-  dac[, TR_SAMPLING_CATEGORY:= TR_CATEGORY]
-  tmp <- which(grepl('^2',dac$TR_CATEGORY))
-  set(dac, tmp, 'TR_SAMPLING_CATEGORY', dac[tmp,gsub('^2','0',TR_SAMPLING_CATEGORY)]) 
-  tmp <- dac[tmp,]
-  set(tmp, NULL, 'TR_SAMPLING_CATEGORY', tmp[,gsub('^0','1',TR_SAMPLING_CATEGORY)]) 
+  
+  # add transmission categories
+  
+  # same as sampling categories
+  dac[, REC_TRM_CATEGORY:= REC_CATEGORY]
+  dac[, TR_TRM_CATEGORY:= TR_CATEGORY]
+  
+  # inmigrants from external communities
+  tmp <- dac[grepl('1$',TR_CATEGORY)]
+  set(tmp, NULL, 'TR_TRM_CATEGORY', tmp[,gsub('^[f|i]','e',TR_CATEGORY)]) 
   dac <- rbind(dac, tmp)
-  #	all external transmitters must be inmigrants
-  dac <- subset(dac, !( grepl('^2',TR_CATEGORY) & grepl('0$',TR_CATEGORY) ))
   
-  subset(dac, ( grepl('^0',TR_CATEGORY) & grepl('1$',TR_CATEGORY) ))
+  # inmigrants sampled in inland and migrated from fishing
+  tmp <- dac[grepl('1$',TR_CATEGORY) & grepl('^i',TR_CATEGORY)]
+  set(tmp, NULL, 'TR_TRM_CATEGORY', tmp[,gsub('^i','f',TR_CATEGORY)]) 
+  dac <- rbind(dac, tmp)
   
-  # # check
-  # rtr[TR_INMIGRANT==1,TR_COMM_TYPE_F-TR_COMM_TYPE_F_MIG]
-  # rtr[TR_INMIGRANT==0,TR_COMM_TYPE_F-TR_COMM_TYPE_F_MIG]
-  # #
+  # inmigrants sampled in fishing and migrated from inland
+  tmp <- dac[grepl('1$',TR_CATEGORY) & grepl('^f',TR_CATEGORY)]
+  set(tmp, NULL, 'TR_TRM_CATEGORY', tmp[,gsub('^f','i',TR_CATEGORY)]) 
+  dac <- rbind(dac, tmp)
+  
+  # remove duplicated rows 
+  # TR_SAMPLING_CATEGORY f: F: 15-24: 1 and i: F: 15-24: 1 are all set to e: F: 15-24: 1
+  dac <- unique(dac)
+  setnames(dac, c('TR_CATEGORY', 'REC_CATEGORY'), c('TR_SAMPLING_CATEGORY', 'REC_SAMPLING_CATEGORY'))
+  
   #	calculate observed number of transmissions
   #
   dobs	<- rtr[, list( TRM_OBS=length(unique(PAIRID))), by=c('TR_TRM_CATEGORY','REC_TRM_CATEGORY','TR_SAMPLING_CATEGORY','REC_SAMPLING_CATEGORY')]
   
   # TODO: can we make adding zeros independent of any other files please
   #	colnames --> setnames
-  load(infile.participation.prior.samples)
-  all.comb 	<- as.data.table(expand.grid(dp$CATEGORY,dp$CATEGORY))
-  colnames(all.comb)<-c('TR_SAMPLING_CATEGORY','REC_SAMPLING_CATEGORY')
-  all.comb <- all.comb[gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\2',TR_SAMPLING_CATEGORY)!=gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\2',REC_SAMPLING_CATEGORY),]
-  
-  tmp1 <- all.comb[gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\4',TR_SAMPLING_CATEGORY)=='0',]
-  tmp1[,TR_TRM_CATEGORY:=TR_SAMPLING_CATEGORY]
-  tmp1[,REC_TRM_CATEGORY:=REC_SAMPLING_CATEGORY]
-  tmp2 <- all.comb[gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\4',TR_SAMPLING_CATEGORY)=='1',]
-  tmp2[,TR_TRM_CATEGORY:=TR_SAMPLING_CATEGORY]
-  tmp2[,REC_TRM_CATEGORY:=REC_SAMPLING_CATEGORY]
-  tmp3 <- all.comb[gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\4',TR_SAMPLING_CATEGORY)=='1',]
-  tmp3[,TR_COMM_TYPE_F:=gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\1',TR_SAMPLING_CATEGORY)]
-  tmp3[,TR_SEX:=gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\2',TR_SAMPLING_CATEGORY)]
-  tmp3[,TR_AGE_AT_MID_C:=gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\3',TR_SAMPLING_CATEGORY)]
-  tmp3[,TR_INMIGRANT:=gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\4',TR_SAMPLING_CATEGORY)]
-  tmp3[,TR_COMM_TYPE_F_MIG:=1-as.numeric(TR_COMM_TYPE_F)]
-  tmp3[,TR_TRM_CATEGORY:=paste0(TR_COMM_TYPE_F_MIG,':',TR_SEX,':',TR_AGE_AT_MID_C,':',TR_INMIGRANT)]
-  set(tmp3,NULL,c('TR_COMM_TYPE_F', 'TR_SEX', 'TR_AGE_AT_MID_C', 'TR_INMIGRANT',
-                  'TR_COMM_TYPE_F_MIG'),NULL)
-  tmp3[,REC_TRM_CATEGORY:=REC_SAMPLING_CATEGORY]
-  tmp4 <- all.comb[gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\4',TR_SAMPLING_CATEGORY)=='1',]
-  tmp4[,TR_COMM_TYPE_F:=gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\1',TR_SAMPLING_CATEGORY)]
-  tmp4[,TR_SEX:=gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\2',TR_SAMPLING_CATEGORY)]
-  tmp4[,TR_AGE_AT_MID_C:=gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\3',TR_SAMPLING_CATEGORY)]
-  tmp4[,TR_INMIGRANT:=gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\4',TR_SAMPLING_CATEGORY)]
-  tmp4[,TR_COMM_TYPE_F_MIG:=2]
-  tmp4[,TR_TRM_CATEGORY:= paste0(TR_COMM_TYPE_F_MIG,':',TR_SEX,':',TR_AGE_AT_MID_C,':',TR_INMIGRANT)]
-  set(tmp4,NULL,c('TR_COMM_TYPE_F', 'TR_SEX', 'TR_AGE_AT_MID_C', 'TR_INMIGRANT',
-                  'TR_COMM_TYPE_F_MIG'),NULL)
-  tmp4[,REC_TRM_CATEGORY:=REC_SAMPLING_CATEGORY]
-  
-  all.comb <- rbind(tmp1,tmp2,tmp3,tmp4)
-  
+
   # add TRM_OBS
-  tmp1 <- all.comb[! paste0(TR_SAMPLING_CATEGORY,'-',REC_SAMPLING_CATEGORY, '-', TR_TRM_CATEGORY,'-',REC_TRM_CATEGORY)
+  # zero TRM_OBS
+  tmp1 <- dac[! paste0(TR_SAMPLING_CATEGORY,'-',REC_SAMPLING_CATEGORY, '-', TR_TRM_CATEGORY,'-',REC_TRM_CATEGORY)
                    %in% paste0(dobs$TR_SAMPLING_CATEGORY,'-',dobs$REC_SAMPLING_CATEGORY, '-', dobs$TR_TRM_CATEGORY,'-',dobs$REC_TRM_CATEGORY),]
-  
-  tmp2 <- all.comb[ paste0(TR_SAMPLING_CATEGORY,'-',REC_SAMPLING_CATEGORY, '-', TR_TRM_CATEGORY,'-',REC_TRM_CATEGORY)
+  # non-zero TRM_OBS
+  tmp2 <- dac[ paste0(TR_SAMPLING_CATEGORY,'-',REC_SAMPLING_CATEGORY, '-', TR_TRM_CATEGORY,'-',REC_TRM_CATEGORY)
                     %in% paste0(dobs$TR_SAMPLING_CATEGORY,'-',dobs$REC_SAMPLING_CATEGORY, '-', dobs$TR_TRM_CATEGORY,'-',dobs$REC_TRM_CATEGORY),]
   
   tmp1[, TRM_OBS:=0]
@@ -913,11 +897,18 @@ Rakai190327.analysispipeline.age6model<- function(infile.inference=NULL, infile.
   stopifnot( nrow(subset(rtr, is.na(TR_AGE_AT_MID_C)))==0 )
   stopifnot( nrow(subset(rtr, is.na(REC_AGE_AT_MID_C)))==0 )
   
-  rtr[,TR_COMM_TYPE_F:=as.integer(TR_COMM_TYPE=='fisherfolk')]
-  rtr[,REC_COMM_TYPE_F:=as.integer(REC_COMM_TYPE=='fisherfolk')]
+  # unique(substr(rtr$TR_COMM_TYPE,1,1))
+  # unique(substr(rtr$REC_COMM_TYPE,1,1))
+  rtr[,TR_COMM_TYPE_F:=substr(TR_COMM_TYPE,1,1)]
+  rtr[substr(TR_COMM_TYPE,1,1)!='f',TR_COMM_TYPE_F:='i']
+  rtr[,REC_COMM_TYPE_F:=substr(REC_COMM_TYPE,1,1)]
+  rtr[substr(REC_COMM_TYPE,1,1)!='f',REC_COMM_TYPE_F:='i']
   
-  rtr[,TR_COMM_TYPE_F_MIG:=as.integer(substr(TR_COMM_NUM_A_MIG,1,1)=='f')]
-  rtr[substr(TR_COMM_NUM_A_MIG,1,1)=='e',TR_COMM_TYPE_F_MIG:=2]
+  # unique(substr(rtr$TR_COMM_NUM_A_MIG,1,1))
+  rtr[,TR_COMM_TYPE_F_MIG:=substr(TR_COMM_NUM_A_MIG,1,1)]
+  rtr[substr(TR_COMM_NUM_A_MIG,1,1)=='a' | substr(TR_COMM_NUM_A_MIG,1,1)=='i'|
+        substr(TR_COMM_NUM_A_MIG,1,1)=='t',TR_COMM_TYPE_F_MIG:='i']
+  unique(rtr$TR_COMM_TYPE_F_MIG)
   
   #	build category to match with sampling data tables 
   rtr[, REC_SAMPLING_CATEGORY:= paste0(REC_COMM_TYPE_F,':',REC_SEX,':',REC_AGE_AT_MID_C,':',REC_INMIGRANT)]
@@ -926,54 +917,59 @@ Rakai190327.analysispipeline.age6model<- function(infile.inference=NULL, infile.
   rtr[, REC_TRM_CATEGORY:= paste0(REC_COMM_TYPE_F,':',REC_SEX,':',REC_AGE_AT_MID_C,':',REC_INMIGRANT)]
   rtr[, TR_TRM_CATEGORY:= paste0(TR_COMM_TYPE_F_MIG,':',TR_SEX,':',TR_AGE_AT_MID_C,':',TR_INMIGRANT)]
   
-  # # check
-  # rtr[TR_INMIGRANT==1,TR_COMM_TYPE_F-TR_COMM_TYPE_F_MIG]
-  # rtr[TR_INMIGRANT==0,TR_COMM_TYPE_F-TR_COMM_TYPE_F_MIG]
-  # #
+  # make all combinations of variables
+  dac <- expand.grid( 	COMM_TYPE_F= sort(unique(c(rtr$REC_COMM_TYPE_F, rtr$TR_COMM_TYPE_F))),
+                       SEX=  sort(unique(c(rtr$REC_SEX, rtr$TR_SEX))),
+                       AGE_AT_MID_C= unique(rtr$REC_AGE_AT_MID_C),
+                       INMIGRANT= sort(unique(c(rtr$REC_INMIGRANT, rtr$TR_INMIGRANT)))
+  )
+  dac <- as.data.table(dac)  				
+  dac[, CATEGORY:= paste0(COMM_TYPE_F, ':', SEX, ':', AGE_AT_MID_C, ':', INMIGRANT)]  					
+  dac <- as.data.table(expand.grid(TR_CATEGORY= dac$CATEGORY, REC_CATEGORY= dac$CATEGORY))
+  dac <- subset(dac, !(grepl('F',TR_CATEGORY)&grepl('F',REC_CATEGORY)) &
+                  !(grepl('M',TR_CATEGORY)&grepl('M',REC_CATEGORY))  
+  )
+  
+  # add transmission categories
+  
+  # same as sampling categories
+  dac[, REC_TRM_CATEGORY:= REC_CATEGORY]
+  dac[, TR_TRM_CATEGORY:= TR_CATEGORY]
+  
+  # inmigrants from external communities
+  tmp <- dac[grepl('1$',TR_CATEGORY)]
+  set(tmp, NULL, 'TR_TRM_CATEGORY', tmp[,gsub('^[f|i]','e',TR_CATEGORY)]) 
+  dac <- rbind(dac, tmp)
+  
+  # inmigrants sampled in inland and migrated from fishing
+  tmp <- dac[grepl('1$',TR_CATEGORY) & grepl('^i',TR_CATEGORY)]
+  set(tmp, NULL, 'TR_TRM_CATEGORY', tmp[,gsub('^i','f',TR_CATEGORY)]) 
+  dac <- rbind(dac, tmp)
+  
+  # inmigrants sampled in fishing and migrated from inland
+  tmp <- dac[grepl('1$',TR_CATEGORY) & grepl('^f',TR_CATEGORY)]
+  set(tmp, NULL, 'TR_TRM_CATEGORY', tmp[,gsub('^f','i',TR_CATEGORY)]) 
+  dac <- rbind(dac, tmp)
+  
+  # remove duplicated rows 
+  # TR_SAMPLING_CATEGORY f: F: 15-24: 1 and i: F: 15-24: 1 are all set to e: F: 15-24: 1
+  dac <- unique(dac)
+  setnames(dac, c('TR_CATEGORY', 'REC_CATEGORY'), c('TR_SAMPLING_CATEGORY', 'REC_SAMPLING_CATEGORY'))
+  
   #	calculate observed number of transmissions
   #
   dobs	<- rtr[, list( TRM_OBS=length(unique(PAIRID))), by=c('TR_TRM_CATEGORY','REC_TRM_CATEGORY','TR_SAMPLING_CATEGORY','REC_SAMPLING_CATEGORY')]
   
-  load(infile.participation.prior.samples)
-  all.comb <- as.data.table(expand.grid(dp$CATEGORY,dp$CATEGORY))
-  colnames(all.comb)<-c('TR_SAMPLING_CATEGORY','REC_SAMPLING_CATEGORY')
-  all.comb <- all.comb[gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\2',TR_SAMPLING_CATEGORY)!=gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\2',REC_SAMPLING_CATEGORY),]
-  
-  tmp1 <- all.comb[gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\4',TR_SAMPLING_CATEGORY)=='0',]
-  tmp1[,TR_TRM_CATEGORY:=TR_SAMPLING_CATEGORY]
-  tmp1[,REC_TRM_CATEGORY:=REC_SAMPLING_CATEGORY]
-  tmp2 <- all.comb[gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\4',TR_SAMPLING_CATEGORY)=='1',]
-  tmp2[,TR_TRM_CATEGORY:=TR_SAMPLING_CATEGORY]
-  tmp2[,REC_TRM_CATEGORY:=REC_SAMPLING_CATEGORY]
-  tmp3 <- all.comb[gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\4',TR_SAMPLING_CATEGORY)=='1',]
-  tmp3[,TR_COMM_TYPE_F:=gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\1',TR_SAMPLING_CATEGORY)]
-  tmp3[,TR_SEX:=gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\2',TR_SAMPLING_CATEGORY)]
-  tmp3[,TR_AGE_AT_MID_C:=gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\3',TR_SAMPLING_CATEGORY)]
-  tmp3[,TR_INMIGRANT:=gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\4',TR_SAMPLING_CATEGORY)]
-  tmp3[,TR_COMM_TYPE_F_MIG:=1-as.numeric(TR_COMM_TYPE_F)]
-  tmp3[,TR_TRM_CATEGORY:=paste0(TR_COMM_TYPE_F_MIG,':',TR_SEX,':',TR_AGE_AT_MID_C,':',TR_INMIGRANT)]
-  set(tmp3,NULL,c('TR_COMM_TYPE_F', 'TR_SEX', 'TR_AGE_AT_MID_C', 'TR_INMIGRANT',
-                  'TR_COMM_TYPE_F_MIG'),NULL)
-  tmp3[,REC_TRM_CATEGORY:=REC_SAMPLING_CATEGORY]
-  tmp4 <- all.comb[gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\4',TR_SAMPLING_CATEGORY)=='1',]
-  tmp4[,TR_COMM_TYPE_F:=gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\1',TR_SAMPLING_CATEGORY)]
-  tmp4[,TR_SEX:=gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\2',TR_SAMPLING_CATEGORY)]
-  tmp4[,TR_AGE_AT_MID_C:=gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\3',TR_SAMPLING_CATEGORY)]
-  tmp4[,TR_INMIGRANT:=gsub('^(.)\\:(.)\\:(.+)\\:(.)$','\\4',TR_SAMPLING_CATEGORY)]
-  tmp4[,TR_COMM_TYPE_F_MIG:=2]
-  tmp4[,TR_TRM_CATEGORY:= paste0(TR_COMM_TYPE_F_MIG,':',TR_SEX,':',TR_AGE_AT_MID_C,':',TR_INMIGRANT)]
-  set(tmp4,NULL,c('TR_COMM_TYPE_F', 'TR_SEX', 'TR_AGE_AT_MID_C', 'TR_INMIGRANT',
-                  'TR_COMM_TYPE_F_MIG'),NULL)
-  tmp4[,REC_TRM_CATEGORY:=REC_SAMPLING_CATEGORY]
-  
-  all.comb <- rbind(tmp1,tmp2,tmp3,tmp4)
+  # TODO: can we make adding zeros independent of any other files please
+  #	colnames --> setnames
   
   # add TRM_OBS
-  tmp1 <- all.comb[! paste0(TR_SAMPLING_CATEGORY,'-',REC_SAMPLING_CATEGORY, '-', TR_TRM_CATEGORY,'-',REC_TRM_CATEGORY)
-                   %in% paste0(dobs$TR_SAMPLING_CATEGORY,'-',dobs$REC_SAMPLING_CATEGORY, '-', dobs$TR_TRM_CATEGORY,'-',dobs$REC_TRM_CATEGORY),]
-  
-  tmp2 <- all.comb[ paste0(TR_SAMPLING_CATEGORY,'-',REC_SAMPLING_CATEGORY, '-', TR_TRM_CATEGORY,'-',REC_TRM_CATEGORY)
-                    %in% paste0(dobs$TR_SAMPLING_CATEGORY,'-',dobs$REC_SAMPLING_CATEGORY, '-', dobs$TR_TRM_CATEGORY,'-',dobs$REC_TRM_CATEGORY),]
+  # zero TRM_OBS
+  tmp1 <- dac[! paste0(TR_SAMPLING_CATEGORY,'-',REC_SAMPLING_CATEGORY, '-', TR_TRM_CATEGORY,'-',REC_TRM_CATEGORY)
+              %in% paste0(dobs$TR_SAMPLING_CATEGORY,'-',dobs$REC_SAMPLING_CATEGORY, '-', dobs$TR_TRM_CATEGORY,'-',dobs$REC_TRM_CATEGORY),]
+  # non-zero TRM_OBS
+  tmp2 <- dac[ paste0(TR_SAMPLING_CATEGORY,'-',REC_SAMPLING_CATEGORY, '-', TR_TRM_CATEGORY,'-',REC_TRM_CATEGORY)
+               %in% paste0(dobs$TR_SAMPLING_CATEGORY,'-',dobs$REC_SAMPLING_CATEGORY, '-', dobs$TR_TRM_CATEGORY,'-',dobs$REC_TRM_CATEGORY),]
   
   tmp1[, TRM_OBS:=0]
   dobs <- merge(dobs, tmp2, by = c('TR_TRM_CATEGORY', 'REC_TRM_CATEGORY',
@@ -982,6 +978,7 @@ Rakai190327.analysispipeline.age6model<- function(infile.inference=NULL, infile.
   
   setkey(dobs, TR_TRM_CATEGORY, REC_TRM_CATEGORY,TR_SAMPLING_CATEGORY,REC_SAMPLING_CATEGORY)	
   dobs[, TRM_CAT_PAIR_ID:= seq_len(nrow(dobs))]
+  
   
   
   #	load samples from prior
