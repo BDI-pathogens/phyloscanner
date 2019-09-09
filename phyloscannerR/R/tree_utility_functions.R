@@ -553,3 +553,179 @@ select.windows.by.read.and.tip.count <- function(ptrees, dwin, tip.regex, min.re
   
   dwin
 }
+
+#' @title Cast phyloscanner tree to SIMMAP tree
+#' @export phyloscanner.to.simmap
+#' @author Oliver Ratmann
+#' @importFrom reshape2 dcast
+#' @usage phyloscanner.to.simmap(ph, delete.phyloscanner.structures)
+#' @param ph A \code{phyloscanner.tree} with attributes \code{SPLIT}, \code{INDIVIDUAL}, \code{BRANCH_COLOURS}, \code{SUBGRAPH_MRCA}.
+#' @param delete.phyloscanner.structures Logical value. If true \code{phyloscanner} attributes are removed from the tree.
+#' @return Same tree in \code{SIMMAP} format, with elements \code{maps}, \code{mapped.edge}, \code{node.states}.
+#' @seealso \code{\link{simmap.to.phyloscanner}}, \code{\link{extract.subgraph}}
+#' @example inst/example/ex.cast.to.simmap.R
+phyloscanner.to.simmap<- function(ph, delete.phyloscanner.structures=FALSE)
+{
+	# make maps for each edge
+	# attr(ph, 'SPLIT') specifies state of branch ending in node 
+	edge.state <- as.character( attr(ph, 'SPLIT')[ ph$edge[,2] ] )
+	edge.state[is.na(edge.state)] <- 'Unknown'	
+	edge.maps <- ph$edge.length	
+	# make mapped.edge matrix
+	mapped.edge <- data.frame(STATE= edge.state, LEN=edge.maps, IDX=seq_along(edge.state))
+	mapped.edge <- reshape2:::dcast(mapped.edge, IDX~STATE, value.var='LEN')
+	for(x in colnames(mapped.edge))
+		mapped.edge[[x]][ which(is.na(mapped.edge[[x]])) ] <- 0
+	mapped.edge <- as.matrix(mapped.edge)	
+	rownames(mapped.edge) <- apply(ph$edge,1,paste, collapse=',')	
+	# finalise edge.maps
+	edge.maps <- lapply(seq_along(edge.maps), function(k){ x<- edge.maps[[k]]; names(x)<- edge.state[k]; x})
+	# make node.states	
+	node.states <- as.character( attr(ph, 'SPLIT')[ ph$edge[,1] ] )
+	node.states[is.na(node.states)] <- 'Unknown'
+	node.states <- matrix(node.states, nrow=nrow(ph$edge), ncol=2)	
+	node.states[,2] <- edge.state
+	# set list elements
+	ph[['maps']] <- edge.maps
+	ph[['mapped.edge']] <- mapped.edge
+	ph[['node.states']] <- node.states
+	# set attributes
+	attr(ph,'class') <- c("simmap", "phylo")
+	attr(ph, "map.order") <- "right-to-left"
+	attr(ph, "order") <- "cladewise"
+	# delete attributes
+	if(delete.phyloscanner.structures)
+	{
+		attr(ph, "SPLIT") <- NULL
+		attr(ph, "INDIVIDUAL") <- NULL
+		attr(ph, "BRANCH_COLOURS") <- NULL
+		attr(ph, "SUBGRAPH_MRCA") <- NULL	
+	}	
+	ph
+}
+
+#' @title Cast SIMMAP tree to phyloscanner tree
+#' @export simmap.to.phyloscanner
+#' @importFrom phangorn Ancestors
+#' @author Oliver Ratmann
+#' @usage simmap.to.phyloscanner(ph, delete.simmap.structures)
+#' @param ph A \code{SIMMAP} tree with elements \code{maps}, \code{mapped.edge}, \code{node.states}.
+#' @param delete.simmap.structures Logical value. If true \code{SIMMAP} elements are removed from the tree.
+#' @return Same tree in \code{phyloscanner.tree} format, with attributes \code{SPLIT}, \code{INDIVIDUAL}, \code{BRANCH_COLOURS}, \code{SUBGRAPH_MRCA}.
+#' @seealso \code{\link{phyloscanner.to.simmap}}, \code{\link{extract.subgraph}}
+#' @example inst/example/ex.cast.to.simmap.R
+simmap.to.phyloscanner <- function(ph, delete.simmap.structures=FALSE)
+{
+	stopifnot( any(class(ph)=='simmap') )
+	# state at each node. set root to Unknown by default
+	node.states <- vector('character', Nnode(ph, internal.only=FALSE))
+	node.states[ph$edge[,2]] <- ph$node.states[,2]
+	node.states[Ntip(ph)+1] <- 'Unknown'
+	# find subgraph mrcas
+	subgraphs <- setdiff(sort(unique(node.states)),'Unknown') 
+	# for each subgraph, find one member node
+	subgraph.member <- sapply(subgraphs, function(x) which(node.states==x)[1] )
+	# for each member, descend in tree and find most ancestral member node, which is the mrca of the subgraph
+	subgraph.ancestors <- phangorn:::Ancestors(ph, subgraph.member)
+	subgraph.mrcas <- sapply(seq_along(subgraph.ancestors), function(j){				
+				subgraph.mrca <- subgraph.member[j]
+				subgraph.name <- names(subgraph.member)[j]
+				nodes.in.same.subgraph.idx <- which(node.states[subgraph.ancestors[[j]]]==subgraph.name)
+				if(length(nodes.in.same.subgraph.idx))
+					subgraph.mrca <- subgraph.ancestors[[j]][ tail(nodes.in.same.subgraph.idx,1) ]
+				subgraph.mrca
+			})
+	names(subgraph.mrcas) <- subgraphs
+	#	make phyloscanner attributes
+	attr(ph, 'SPLIT') <- node.states
+	tmp <- rep(FALSE, length(node.states))
+	tmp[subgraph.mrcas] <- TRUE
+	attr(ph, 'SUBGRAPH_MRCA') <- tmp
+	attr(ph, 'INDIVIDUAL') <- gsub('-SPLIT[0-9]+','',node.states)
+	tmp <- t( rbind( node.states[ ph$edge[,1] ], 
+					node.states[ ph$edge[,2] ], 
+					node.states[ ph$edge[,2] ] ) )
+	tmp[tmp[,1]!=tmp[,2], 3] <- 'Unknown'	
+	tmp <- gsub('-SPLIT[0-9]+','',tmp[,3])
+	attr(ph, 'BRANCH_COLOURS') <- rep(NA, Nnode(ph, internal.only=FALSE)) 
+	attr(ph, 'BRANCH_COLOURS')[ ph$edge[,2] ] <- tmp		
+	attr(ph, 'SPLIT')[attr(ph, 'SPLIT')=='Unknown'] <- NA
+	attr(ph, 'INDIVIDUAL')[attr(ph, 'INDIVIDUAL')=='Unknown'] <- NA
+	attr(ph, 'BRANCH_COLOURS')[attr(ph, 'BRANCH_COLOURS')=='Unknown'] <- NA
+	attr(ph, 'SPLIT') <- factor(attr(ph, 'SPLIT'))
+	attr(ph, 'INDIVIDUAL') <- factor(attr(ph, 'INDIVIDUAL'))
+	attr(ph, 'BRANCH_COLOURS') <- factor(attr(ph, 'BRANCH_COLOURS'))
+	if(delete.simmap.structures)
+	{
+		ph[["maps"]] <- NULL
+		ph[["mapped.edge"]] <- NULL
+		ph[["node.states"]] <- NULL
+		attr(ph, 'map.order') <- NULL
+		attr(ph, 'class') <- 'phylo'		
+	}
+	ph
+}
+
+#' @title Extract subgraph from phyloscanner tree
+#' @export extract.subgraph
+#' @importFrom phangorn Ancestors
+#' @author Oliver Ratmann
+#' @usage extract.subgraph(ph, mrca)
+#' @param ph A tree of class \code{SIMMAP} and \code{phyloscanner}, i.e. with elements \code{maps}, \code{mapped.edge}, \code{node.states} and with attributes \code{SPLIT}, \code{INDIVIDUAL}, \code{BRANCH_COLOURS}, \code{SUBGRAPH_MRCA}.
+#' @param mrca Node index of subgraph MRCA
+#' @return Subgraph in ape format, with additional elements \code{subgraph.name} (subgraph name in the phyloscanner SPLIT attribute), \code{subgraph.root.edge} (length of the ancestral edge of the subgraph MRCA), \code{subgraph.parent.state} (ancestral state of the parent of subgraph MRCA).  
+#' @seealso \code{\link{phyloscanner.to.simmap}}
+#' @example inst/example/ex.extract.subgraph.R
+extract.subgraph<- function(ph, mrca)
+{
+	stopifnot( any(class(ph)=='simmap') )
+	stopifnot( c("SPLIT","INDIVIDUAL","BRANCH_COLOURS","SUBGRAPH_MRCA")%in%names(attributes(ph)) )
+	subgraph.name <- as.character(attr(ph, 'SPLIT')[mrca])
+	host <- as.character(attr(ph, "INDIVIDUAL")[mrca])
+	subgraph.root.edge <- ph$edge.length[ which( ph$edge[,2]==mrca ) ]
+	subgraph.parent.state <- as.character(attr(ph, "BRANCH_COLOURS")[ ph$edge[ph$edge[,2]==mrca,1] ])
+	stopifnot( is.na(subgraph.parent.state) || subgraph.parent.state!=host )
+	if(mrca<=Ntip(ph))
+	{
+		subgraph<- list(	edge= matrix(nrow=0, ncol=2), 
+				edge.length=vector('numeric',0),
+				Nnode=0,
+				tip.label=ph$tip.label[mrca],
+				maps= vector('list',0),
+				mapped.edge= matrix(nrow=0, ncol=0),
+				node.states= matrix(nrow=0, ncol=2)
+		)
+		#attr(subgraph,'class') <- c( "phylo")
+		#attr(subgraph, "map.order") <- "right-to-left"
+		#attr(subgraph, "order") <- "cladewise"		
+	}
+	if(mrca>Ntip(ph))
+	{
+		subgraph <- phytools:::extract.clade.simmap(ph, mrca)
+		subgraph.root <- Ntip(subgraph)+1L
+		descendants <- Descendants(subgraph, subgraph.root, type='all')
+		tmp <- sapply(descendants, function(x) which(subgraph$edge[,2]==x))
+		descendants.states <- subgraph[['node.states']][tmp,2]
+		descendants.not.in.subgraph <- descendants[ descendants.states!=subgraph.name ]
+		if(length(descendants.not.in.subgraph))
+		{
+			# find all tips of descendants.not.in.subgraph, and remove the corresponding tips, which will remove the subtree for each descendant
+			tips.not.in.subgraph <- sort(unique(unlist(Descendants(subgraph, descendants.not.in.subgraph, type='tips'))))
+			subgraph <- ape:::drop.tip(subgraph, tips.not.in.subgraph)
+			subgraph[['maps']] <- NULL
+			subgraph[['mapped.edge']] <- NULL
+			subgraph[['node.states']] <- NULL
+			attr(subgraph,'class') <- c( "phylo")
+			attr(subgraph, "map.order") <- NULL
+			attr(subgraph, "order") <- NULL
+			attr(subgraph, "SPLIT") <- NULL
+			attr(subgraph, "INDIVIDUAL") <- NULL
+			attr(subgraph, "BRANCH_COLOURS") <- NULL
+			attr(subgraph, "SUBGRAPH_MRCA") <- NULL			
+		}		
+	}
+	subgraph[['subgraph.name']]<- subgraph.name
+	subgraph[['subgraph.root.edge']]<- subgraph.root.edge
+	subgraph[['subgraph.parent.state']]<- subgraph.parent.state
+	subgraph	
+}
