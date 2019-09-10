@@ -376,7 +376,8 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
             mc$pars$S_LP[update.round.adj,] <- S_LP.curr
             mc$pars$LOG_LAMBDA[update.round.adj,] <- LOG_LAMBDA.curr
         }
-        
+# TODO: priority low 
+#       this says 100 sweeps done, but 125 were specified?        
         if(update.count==mc$sweep & update.round %% 100 == 0)
 		{
             cat('\nSweeps done:\t',update.round)
