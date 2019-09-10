@@ -1,5 +1,5 @@
 ---
-title: "Estimating transmission flows under heterogeneous sampling - a first example"
+title: "phyloflows: Estimating transmission flows under heterogeneous sampling - a first example"
 date: "2019-09-10"
 author: Xiaoyue Xi and Oliver Ratmann 
 output: github_document
@@ -273,7 +273,7 @@ the transmission flows $\pi$ from the log Poisson rates, and make a trace plot:
  
 ```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE, message=TRUE, fig.dim = c(8, 7), fig.align="center"}
 #	transform lambda to pi
-tmp <- ans[['pars']][['LOG_LAMBDA']]
+tmp <- exp(ans[['pars']][['LOG_LAMBDA']])
 posterior.pi <- t(apply(tmp, 1, function(rw) rw/sum(rw))) 
 #	make column names
 setkey(dobs, TRM_CAT_PAIR_ID) #order by pair IDs
@@ -286,6 +286,10 @@ bayesplot:::mcmc_trace(	posterior.pi,
 						n_warmup=0)
 ```
   
+Notice that the posterior estimate for transmissions within group "2" is about
+55\%. This is considerably larger than the raw estimate from the observed
+transmission counts, 129/303=43\%, because individuals in group "2" have lower probability
+of being sampled than those in group "1".
 
 That's it for now. Of course we would like to run the MCMC chain for longer,
 perhaps 10,000 sweeps. We would also like to check for convergence, calculate

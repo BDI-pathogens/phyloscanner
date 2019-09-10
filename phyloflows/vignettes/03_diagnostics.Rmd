@@ -1,6 +1,7 @@
 ---
-title: "03 - Performing MCMC diagnostic checks"
-date: "2019-04-30"
+title: "phyloflows: Performing MCMC diagnostic checks"
+date: "2019-09-10"
+author: Xiaoyue Xi and Oliver Ratmann
 output: github_document
 vignette: >
   %\VignetteIndexEntry{Vignette Title}
@@ -18,11 +19,19 @@ knitr::opts_chunk$set(
 require(knitr)
 require(kableExtra)
 ```
+```{r, include=FALSE, eval=FALSE, echo=FALSE}
+require(rmarkdown)
+setwd('/Users/Oliver/git/phyloscanner/phyloflows/vignettes')
+infile <- '03_diagnostics.Rmd'
+rmarkdown::render(infile, output_format='pdf_document')	
+```
 
 
-Here we show you how to run a number of diagnostics on **phyloflows** MCMC
-output. Please read the sections "Our Job" and "Our Solution" on the main page
-before you go ahead here.
+
+This vignette describes how to run a number of diagnostics on **phyloflows**
+MCMC output, obtained with the function `phyloflows:::source.attribution.mcmc`.
+Please work through the vignette *phyloflows: Estimating transmission flows
+under heterogeneous sampling - a first example* before you go ahead here.
 
 ## Getting started
 
@@ -38,11 +47,11 @@ require(phyloflows)
 data(twoGroupFlows1, package="phyloflows")
 dobs <- twoGroupFlows1$dobs
 dprior <- twoGroupFlows1$dprior
-mcmc.file <- file.path(getwd(),'twoGroupFlows1_mcmc.RData')
 control <- list(seed=42, mcmc.n=5e4, verbose=0)
 mc <- phyloflows:::source.attribution.mcmc(dobs, dprior, control)
 ```
 ```{r, include=TRUE, eval=TRUE, echo=FALSE, tidy=FALSE, message=FALSE, warning=FALSE}
+# save(mc, file='~/git/phyloscanner/phyloflows/data/twoGroupFlows1_mcmc.RData')
 data(twoGroupFlows1_mcmc, package="phyloflows")
 ```
 
@@ -67,13 +76,13 @@ can
    
 The syntax is as follows. Look up the help page for the diagnostics function for
 a full explanation of the control arguments. 
-```{r, include=TRUE, eval=FALSE, echo=TRUE, tidy=FALSE,message=FALSE, warning=FALSE}
+```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE,message=FALSE, warning=FALSE}
 outfile.base <- file.path(getwd(),'twoGroupFlows1_mcmc_') 
 control <- list( burnin.p=0.05, 
                  regex_pars='*', 
 				 credibility.interval=0.95, 
-				 pdf.plot.all.parameters=FALSE, 
-				 pdf.plot.n.worst.case.parameters=10, 
+				 pdf.plot.all.parameters=TRUE, 
+				 pdf.plot.n.worst.case.parameters=1, 
 				 pdf.height.per.par=1.2, 
 				 outfile.base=outfile.base)
 phyloflows:::source.attribution.mcmc.diagnostics(mc=mc, control=control)
