@@ -1,6 +1,7 @@
 ---
-title: "05 - Calculating sources, onward transmissions and flow ratios"
-date: "2019-05-02"
+title: "phyloflows: Calculating sources, onward transmissions and flow ratios"
+date: "2019-09-10"
+author: Xiaoyue Xi and Oliver Ratmann
 output: github_document
 vignette: >
   %\VignetteIndexEntry{Vignette Title}
@@ -18,19 +19,27 @@ knitr::opts_chunk$set(
 require(knitr)
 require(kableExtra)
 ```
+```{r, include=FALSE, eval=FALSE, echo=FALSE}
+require(rmarkdown)
+setwd('/Users/Oliver/git/phyloscanner/phyloflows/vignettes')
+infile <- '05_keyquantities.Rmd'
+rmarkdown::render(infile, output_format='pdf_document')
+rmarkdown::render(infile)
+```
 
 
-Here we explain how a number of key summary statistics of inferred
+This vignette describes how a number of key summary statistics of inferred
 transmission flows can be easily calculated with **phyloflows**
-`source.attribution.mcmc.getKeyQuantities` function. Please read the sections
-"Our Job" and "Our Solution" on the main page before you go ahead here.
+`source.attribution.mcmc.getKeyQuantities` function. Please work through the
+vignette *phyloflows: Estimating transmission flows under heterogeneous sampling
+- a first example* before you go ahead here.
 
 ## Getting started
 
-We continue our Very_First_Example from the vignette with the same name here.
-The following code chunk contains all code needed, up to running **phyloflows**
-MCMC routine. The only change is that the number of iterations is now $50,000$.
-The MCMC should take about 2 minutes to run.
+We continue our "First_Example". The following code chunk contains all code
+needed, up to running **phyloflows** MCMC routine. The only change is that the
+number of iterations is now $50,000$. The MCMC should take about 2 minutes to
+run.
 
 ```{r, include=TRUE, eval=FALSE, echo=TRUE, tidy=FALSE,message=FALSE, warning=FALSE} 
 require(data.table)
@@ -73,21 +82,45 @@ $$
 where $\nu_{ij}= \pi_{ij} / \sum_{s} \pi_{is}$.
 
 ## Transmission flow ratios
-Yes another important summary statistic are ratios of transmission flows,
+Yet another important summary statistic are ratios of transmission flows,
 defined by 
 $$
 \rho_{ij}= \pi_{ij} / \pi_{ji}.
 $$
 
 ## Calculating key quantities
-**phyloflow** has a little function to help you with calculating the above
-summary statistics. The basic syntax is as follows, although it is also possible
-to specify a file name to MCMC output or aggregated MCMC output, and it is
-also possible to input aggregated MCMC output.
+**phyloflow** has a function to calculate the above
+summary statistics. The basic syntax is as follows:
 ```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE,message=TRUE, warning=FALSE}
-control <- list(  quantiles= c('CL'=0.025,'IL'=0.25,'M'=0.5,'IU'=0.75,'CU'=0.975),
+#	specify list of user options
+#
+#	burnin.p: proportion of samples to discard as burn-in 
+#			  (only needed when the burn-in was not already removed)
+#
+#	thin: keep every thin-nth iteration 
+#		  (only needed when thinning was not already performed)
+#
+#	quantiles: quantiles of the marginal posterior distributions 
+#			   that will be computed
+#
+#	flowratios: list of vectors of 3 elements. The 3 elements 
+#				specify the name of the flow ratio (first element),
+#				the enumerator of the flow ratio (second element),
+#				and the denominator of the flow ratio (third element)
+control <- list(  burnin.p=0.05, 
+			      thin=NA_integer_, 
+				  quantiles= c('CL'=0.025,'IL'=0.25,'M'=0.5,'IU'=0.75,'CU'=0.975),
                   flowratios= list( c('1/2', '1 2', '2 1'), c('2/1', '2 1', '1 2'))
                   )
-ans <- phyloflows:::source.attribution.mcmc.getKeyQuantities(mc=mc, dobs=dobs, control=control)
+ans <- phyloflows:::source.attribution.mcmc.getKeyQuantities(mc=mc, 
+		dobs=dobs, control=control)
 ans
+``` 
+
+## Note
+Note it is also possible to specify a file name to MCMC output or
+aggregated MCMC output, and it is also possible to input aggregated MCMC output.
+Please look up the package help for further instructions.
+```{r, include=TRUE, eval=FALSE, echo=TRUE, tidy=FALSE,message=TRUE, warning=FALSE}
+?phyloflows:::source.attribution.mcmc.getKeyQuantities
 ``` 

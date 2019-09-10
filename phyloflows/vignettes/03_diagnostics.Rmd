@@ -35,10 +35,10 @@ under heterogeneous sampling - a first example* before you go ahead here.
 
 ## Getting started
 
-We continue our Very_First_Example from the vignette with the same name here.
-The following code chunk contains all code needed, up to running **phyloflows**
-MCMC routine. The only change is that the number of iterations is now $50,000$.
-The MCMC should take about 2 minutes to run.
+We continue our "First_Example". The following code chunk contains all code
+needed, up to running **phyloflows** MCMC routine. The only change is that the
+number of iterations is now $50,000$. The MCMC should take about 2 minutes to
+run.
 
 ```{r, include=TRUE, eval=FALSE, echo=TRUE, tidy=FALSE,message=FALSE, warning=FALSE} 
 require(data.table)
