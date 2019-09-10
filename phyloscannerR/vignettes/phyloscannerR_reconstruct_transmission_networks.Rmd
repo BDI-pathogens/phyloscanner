@@ -138,7 +138,7 @@ knitr::include_graphics("UVRI.03.reconstruct_transmission_networks_findpairsoutp
 
 Let us have a look at the selected pairs:
 ```{r, out.width="\\linewidth", include=TRUE, fig.align="center", echo=FALSE}
-knitr::include_graphics("UVRI.03.reconstruct_transmission_networks_dpl.png")
+knitr::include_graphics("figures/UVRI.03.reconstruct_transmission_networks_dpl.png")
 ```
 
 Here,
@@ -153,7 +153,7 @@ Here,
    
 Now let us have a look at the relationship stats for all phylogenies:   
 ```{r, out.width="\\linewidth", include=TRUE, fig.align="center", echo=FALSE}
-knitr::include_graphics("UVRI.03.reconstruct_transmission_networks_dw.png")
+knitr::include_graphics("figures/UVRI.03.reconstruct_transmission_networks_dw.png")
 ```
 
 Here,
@@ -171,7 +171,7 @@ Here,
 Now let us have a look at the relationship counts summed over all
 phylogenies:   
 ```{r, out.width="\\linewidth", include=TRUE, fig.align="center", echo=FALSE}
-knitr::include_graphics("UVRI.03.reconstruct_transmission_networks_dc.png")
+knitr::include_graphics("figures/UVRI.03.reconstruct_transmission_networks_dc.png")
 ```
 
 Here,
@@ -204,7 +204,7 @@ tmp	<- produce.pairwise.graphs2(NULL, hosts=hosts, dwin=tmp, inclusion = "both")
 tmp$graph
 ```    
 ```{r, out.width="\\linewidth", include=TRUE, fig.align="center", echo=FALSE, out.width = "100%"}
-knitr::include_graphics("UVRI.03.reconstruct_transmission_networks_phyloscan.pdf")
+knitr::include_graphics("figures/UVRI.03.reconstruct_transmission_networks_phyloscan.pdf")
 ```
 
 
@@ -248,14 +248,14 @@ dconfpairs <- dchain %>%
 <!-- 
 The above should produce the following output or similar (when `verbose=TRUE`):
 ```{r, out.width="\\linewidth", include=TRUE, fig.align="center", echo=FALSE}
-knitr::include_graphics("UVRI.03.reconstruct_transmission_networks_findnetsoutput.png")
+knitr::include_graphics("figures/UVRI.03.reconstruct_transmission_networks_findnetsoutput.png")
 ```
 -->
 
 ## Output from reconstructing transmission networks
 Let us have a look at the transmission networks:
 ```{r, out.width="\\linewidth", include=TRUE, fig.align="center", echo=FALSE}
-knitr::include_graphics("UVRI.03.reconstruct_transmission_networks_dnet.png")
+knitr::include_graphics("figures/UVRI.03.reconstruct_transmission_networks_dnet.png")
 ```
 
 Here,
@@ -318,13 +318,13 @@ pns		<- lapply(seq_along(idclus), function(i)
 pns[[10]]
 ```
 ```{r, out.width="\\linewidth", include=TRUE, fig.align="center", echo=FALSE, out.width = "80%"}
-knitr::include_graphics("UVRI.03.reconstruct_transmission_networks_dnetplot.pdf")
+knitr::include_graphics("figures/UVRI.03.reconstruct_transmission_networks_dnetplot.pdf")
 ```  
 
 ## Output from reconstructing transmission chains   
 Now, let us have a look at the corresponding transmission chains:
 ```{r, out.width="\\linewidth", include=TRUE, fig.align="center", echo=FALSE}
-knitr::include_graphics("UVRI.03.reconstruct_transmission_networks_dchain.png")
+knitr::include_graphics("figures/UVRI.03.reconstruct_transmission_networks_dchain.png")
 ```
 
 Here,
@@ -362,7 +362,7 @@ pcs		<- lapply(seq_along(idclus), function(i)
 pcs[[10]]
 ```  
 ```{r, out.width="\\linewidth", include=TRUE, fig.align="center", echo=FALSE, out.width = "80%"}
-knitr::include_graphics("UVRI.03.reconstruct_transmission_networks_dchainplot.pdf")
+knitr::include_graphics("figures/UVRI.03.reconstruct_transmission_networks_dchainplot.pdf")
 ```  
 
   
