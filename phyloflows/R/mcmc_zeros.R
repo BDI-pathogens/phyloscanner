@@ -70,37 +70,36 @@ rgamss <- function(n, shape, scale=1, do.log=TRUE)
 
 
 source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=1e3, verbose=1, outfile='SAMCMCv190327.rda'))
-{
-    # library(data.table);library(gtools)    
+{        
     dmode <- function(x) 
 	{
         den <- density(x, kernel=c("gaussian"))
         (den$x[den$y==max(den$y)])
     }
-    #
-    # basic checks
-    #
+    # basic checks on inputs
     if(!all(dobs$TR_SAMPLING_CATEGORY %in% dprior$SAMPLING_CATEGORY))
     	stop('Did not find prior samples of a sampling category for TR_SAMPLING_CATEGORY')
     if(!all(dobs$REC_SAMPLING_CATEGORY %in% dprior$SAMPLING_CATEGORY))
     	stop('Did not find prior samples of a sampling category for REC_SAMPLING_CATEGORY')
-    
+	
+    # keep track of runtime
     ptm    <- Sys.time()
+	
+	# set seed if provided
     if('seed'%in%names(control))
     {
         cat('\nSetting seed to',control$seed)
         set.seed(control$seed)
-    }
-    
-    #
+    }    
+	
     # set up mcmc
-    #
     mc <- list()
-    #    determine if the sampling probabilities are <1.
-    # If they are NOT, Z will be the same as TRM_OBS, and the algorithm only updates PI
+    # determine if the sampling probabilities are <1.
+    # If they are NOT, Z will be the same as TRM_OBS, and the algorithm only updates LAMBDA
     mc$with.sampling <- dprior[, list(ALL_ONE=all(P==1)), by='SAMPLING_CATEGORY'][, !all(ALL_ONE)]
     mc$time <- NA_real_
-    # construct look-up table so we know which transmission pair categories need to be updated
+	
+    # for speed: make look-up table so we know which transmission pair categories need to be updated
     # at every MCMC iteration
     tmp <- subset(dobs, select=c(TRM_CAT_PAIR_ID, TR_SAMPLING_CATEGORY, REC_SAMPLING_CATEGORY))
     tmp <- melt(tmp, id.vars='TRM_CAT_PAIR_ID', value.name='SAMPLING_CATEGORY', variable.name='WHO')
@@ -111,8 +110,7 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
     # make data.table that maps UPDATE_IDs to TRM_CAT_PAIR_IDs
     mc$dl <- merge(mc$dlu, tmp, by=c('SAMPLING_CATEGORY'))
     setkey(mc$dl, UPDATE_ID)
-    #    every transmission category pair needs to be updated at least one as we sweep through the sampling categories
-    # I don t think this is guaranteed, hence the check
+    # every transmission category pair needs to be updated at least one as we sweep through the sampling categories    
     if( !all(dobs$TRM_CAT_PAIR_ID %in% sort(unique(mc$dl$TRM_CAT_PAIR_ID))) )
     stop('Fatal error. Contact the package maintainer with your input data.')
     # make data.table that maps TRM_CAT_PAIR_IDs to transmitter UPDATE_IDs and recipient UPDATE_IDs
@@ -120,14 +118,21 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
     setnames(mc$dlt, c('TR_SAMPLING_CATEGORY','REC_SAMPLING_CATEGORY'), c('TR_UPDATE_ID','REC_UPDATE_ID'))
     mc$dlt <- merge(mc$dlt,subset(dobs,select=c('TRM_CAT_PAIR_ID','TRM_OBS')),by='TRM_CAT_PAIR_ID')
     setkey(mc$dlt,TRM_CAT_PAIR_ID)
-    
-    # make indexed lookup table for speed
+	
+    # for speed: make indexed lookup table 
     update.info    <- vector('list', nrow(mc$dlu))
     for (i in 1:nrow(mc$dlu))
     {
-        update.info[[i]]    <- mc$dl[UPDATE_ID==i,TRM_CAT_PAIR_ID]
+# TODO: (priority low)
+#		we removed separate updating of transmitters & recipients
+#		we cannot update the same group twice, hence the unique
+#		to get clean code, please fix mc$dl above
+# TODO: (priority low)
+#		the above code starting at "tmp <- subset(dobs," is hard to follow
+#		can you revisit and make as clean as possible?
+        update.info[[i]]    <- unique( mc$dl[UPDATE_ID==i,TRM_CAT_PAIR_ID] )
     }
-    # make indexed prior samples for speed
+    # for speed: make indexed prior samples
     setkey(dprior, SAMPLING_CATEGORY)
     dprior2 <- vector('list', nrow(mc$dlu))
     for (i in 1:nrow(mc$dlu))
@@ -136,7 +141,7 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
         dprior2[[i]] <- dprior[J(tmp),nomatch=0L]
     }
     
-    # estimate the sampling rate for transmission pairs
+    # estimate the mean sampling probabilities for each transmission group
     if(dprior[, max(SAMPLE)]>10)
     {
         dprior3 <- dprior[, list(EST_SAMPLING_RATE=dmode(P)), by=SAMPLING_CATEGORY]
@@ -145,6 +150,8 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
     {
         dprior3 <- dprior[, list(EST_SAMPLING_RATE=median(P)), by=SAMPLING_CATEGORY]
     }
+	
+	# add estimated sampling probabilities to dobs
     dobs2 <- subset(dobs, select = c('TR_SAMPLING_CATEGORY','REC_SAMPLING_CATEGORY','TRM_CAT_PAIR_ID'))
     setnames(dprior3, colnames(dprior3), paste0('TR_',colnames(dprior3)))
     dobs2 <- merge(dobs2, dprior3, by='TR_SAMPLING_CATEGORY')
@@ -181,14 +188,11 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
 								)
     if(1)
     {
-        cat('\nNumber of parameters:\t', ncol(mc$pars$LAMBDA)+ncol(mc$pars$XI) )
-        cat('\nDimension of PI:\t', ncol(mc$pars$LAMBDA))
+        cat('\nNumber of parameters:\t', ncol(mc$pars$LOG_LAMBDA)+ncol(mc$pars$XI) )
+        cat('\nDimension of PI:\t', ncol(mc$pars$LOG_LAMBDA))
         cat('\nSweep length:\t', mc$sweep)
         cat('\nNumber of sweeps:\t', mc$nsweep)
-        cat('\nNumber of iterations:\t', mc$n)
-        tmp                <- mc$dl[, list(N_PAIRS=length(TRM_CAT_PAIR_ID)), by='UPDATE_ID']
-        cat('\nNumber of transmission pair categories updated per iteration, and their frequencies:\n')
-        print(table(tmp$N_PAIRS))
+        cat('\nNumber of iterations:\t', mc$n)        
     }
     
     
@@ -201,8 +205,10 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
     set(mc$it.info, mc$curr.it, 'PAR_ID', 0L)
     set(mc$it.info, mc$curr.it, 'MHRATIO', 1)
     set(mc$it.info, mc$curr.it, 'ACCEPT', 1L)
-    #    prior lambda: use the Berger objective prior with minimal loss compared to marginal Beta reference prior
-    #    (https://projecteuclid.org/euclid.ba/1422556416)    
+	
+    # initialise prior on lambda (ALPHA, BETA): 
+	# specify prior so that we obtain for PI the Berger objective prior with minimal loss compared to marginal Beta reference prior
+    # (https://projecteuclid.org/euclid.ba/1422556416)    
     mc$pars$ALPHA[1,]    <- 0.8/nrow(dobs)
     dobs3 <- merge(	subset(dobs,select = c('TRM_OBS','TRM_CAT_PAIR_ID')),
     				subset(dobs2,select = c('EST_SAMPLING_RATE','TRM_CAT_PAIR_ID')),
@@ -211,33 +217,24 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
     dobs3[TRM_OBS==0, LBD:=(1-EST_SAMPLING_RATE)/EST_SAMPLING_RATE]    
     mc$pars$BETA <- 0.8/sum(dobs3$LBD)
     
-    # prior for sampling in transmitter categories
-    # tmp                    <- subset(dprior, SAMPLE==sample(mc$nprior,1))
-    # tmp                    <- merge(unique(subset(mc$dl, WHO=='TR_SAMPLING_CATEGORY', c(SAMPLING_CATEGORY, UPDATE_ID))), tmp, by='SAMPLING_CATEGORY')
-    # setkey(tmp, UPDATE_ID)
-    # mc$pars$XI[1, tmp$UPDATE_ID]        <- tmp$P
-    # mc$pars$XI_LP[1, tmp$UPDATE_ID]    <- tmp$LP
-    # # prior for sampling in recipient categories
-    # tmp                    <- subset(dprior, SAMPLE==sample(mc$nprior,1))
-    # tmp                    <- merge(unique(subset(mc$dl, WHO=='REC_SAMPLING_CATEGORY', c(SAMPLING_CATEGORY, UPDATE_ID))), tmp, by='SAMPLING_CATEGORY')
-    # setkey(tmp, UPDATE_ID)
-    # mc$pars$XI[1, tmp$UPDATE_ID]        <- tmp$P
-    # mc$pars$XI_LP[1, tmp$UPDATE_ID]    <- tmp$LP
-    
+    # initialise sampling probabilities for pop strata: random draw from input sampling probabilities
     tmp <- subset(dprior, SAMPLE==sample(mc$nprior,1))
     tmp <- merge(mc$dlu, tmp, by='SAMPLING_CATEGORY')
     setkey(tmp, UPDATE_ID)
     mc$pars$XI[1, tmp$UPDATE_ID] <- tmp$P
     mc$pars$XI_LP[1, tmp$UPDATE_ID] <- tmp$LP
     
-    # prior for sampling in transmission pair categories
+    # initialise sampling probabilities for transmission groups: multiply
     mc$pars$S[1,] <- mc$pars$XI[1, mc$dlt$TR_UPDATE_ID] * mc$pars$XI[1, mc$dlt$REC_UPDATE_ID]
     mc$pars$S_LP[1,] <- mc$pars$XI_LP[1, mc$dlt$TR_UPDATE_ID] + mc$pars$XI_LP[1, mc$dlt$REC_UPDATE_ID]
-    # mean count of transmissions: draw from full conditional
-    mc$pars$LOG_LAMBDA[1,] <- mapply( function(x,y){ rgamss(1,shape=x,scale=y) }, dobs$TRM_OBS+mc$pars$ALPHA, 1/(mc$pars$S[1,]+mc$pars$BETA)	)    
+    
+	# initialise log_lambda: random draw from full conditional
+    mc$pars$LOG_LAMBDA[1,] <- mapply( function(x,y){ rgamss(1,shape=x,scale=y) }, dobs$TRM_OBS+mc$pars$ALPHA, 1/(mc$pars$S[1,]+mc$pars$BETA)	)
+	
     #    store log likelihood
     tmp <- lpois_prod( dobs$TRM_OBS, mc$pars$LOG_LAMBDA[1,] + log(mc$pars$S[1,]))
     set(mc$it.info, 1L, 'LOG_LKL', tmp)
+	
     #     store log prior
     tmp <- lgamma_prod( llbd= mc$pars$LOG_LAMBDA[1,], a = mc$pars$ALPHA , b = mc$pars$BETA) +
     sum(mc$pars$XI_LP[1,])
@@ -259,7 +256,10 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
         # determine the current iteration in a sweep
         update.count <- (i-1L) %% mc$sweep + 1L
         update.round <- (i-1L) %/% mc$sweep + 1L
-                
+#	TODO: 	priority high
+#			you currently for given xi_i, we currently update (s_i* and s_*i) | lambda, and then in a separate step lambda | s 
+#			can you compare this an MCMC where for given xi_i, we update (s_i* and s_*i), lambda jointly, and propose lambda from the full conditional lambda | s*
+#			(make a separate algorithm, "source.attribution.mcmc.jointupdate")
         # update XI first
         if(mc$with.sampling & (update.count %% 2==1))
         {
@@ -335,7 +335,7 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
             }
 			if(update.sweep.group!=0L)
 			{
-                mc$curr.it.adj <- mc$curr.it - mc$sweep_group*mc$sweep*update.sweep.group - 1L
+                mc$curr.it.adj <- as.integer(mc$curr.it - mc$sweep_group*mc$sweep*update.sweep.group - 1L)
             }            
             set(mc$it.info, mc$curr.it.adj, 'BLOCK', 'LOG_LAMBDA')
             set(mc$it.info, mc$curr.it.adj, 'PAR_ID', update.group)
@@ -351,7 +351,7 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
 		}
 		if(update.sweep.group!=0L)
 		{
-            mc$curr.it.adj <- mc$curr.it - mc$sweep_group*mc$sweep*update.sweep.group - 1L
+            mc$curr.it.adj <- as.integer(mc$curr.it - mc$sweep_group*mc$sweep*update.sweep.group - 1L)
         }        
         tmp <- lpois_prod( dobs$TRM_OBS, LOG_LAMBDA.curr + log(S.curr))
         set(mc$it.info, mc$curr.it.adj, 'LOG_LKL', tmp)

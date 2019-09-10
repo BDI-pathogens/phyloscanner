@@ -127,9 +127,9 @@ ggplot(dprior, aes(x=P)) +
 		facet_grid(~SAMPLING_CATEGORY)
 ```
 
-# phyloflows Statistical model
-`phyloflows` uses a Bayesian approach to estimate the proportion of
-transmissions between the two population groups,
+# Statistical model
+`phyloflows` **uses a Bayesian approach to estimate the proportion of
+transmissions** between the two population groups,
 $$
 \pi=(\pi_{11}, \pi_{12}, \pi_{21}, \pi_{22}).
 $$ 
@@ -160,7 +160,7 @@ unobserved, actual transmission counts $z$ as latent variables, and then infer
 the joint posterior distribution of the parameters $(z, Z, \pi)$ with a Monte Carlo 
 algorithm. 
 
-However there is a more efficient approach for the particular model above.
+**However there is a more efficient approach for the particular model above.**
 Inference of $\pi$ under the Multinomial likelihood $Multinomial(z;Z,\pi)$ is equivalent to
 inference of Poisson mean rates $\lambda$    
 $$
@@ -192,15 +192,16 @@ p(\lambda, s | n) & \propto p(n | \lambda, s) p(\lambda, s) \\
 $$
 For the prior distributions, we specify: 
 
-* $p(\lambda_{ij})$ an uninformative prior distribution. We use a Gamma distribution with
-parameters $\alpha_i=0.8/4$ and $\beta=0.8/Z$ with $Z= \sum_{ij | n_{ij}>0} n_{ij}/(s_i*s_j) + \sum_{ij | n_{ij}>0}
-(1-s_i*s_j)/(s_i*s_j)$. This choice implies a prior distribution on the $\pi$ that enjoys desirable
-properties.
-* $p(s_i)$ a strongly informative prior distribution, based on available data (as
+* $p(\lambda_{ij})$: an uninformative prior distribution. We use a Gamma distribution with
+parameters $\alpha_i=0.8/4$ and $\beta=0.8/Z$ with
+  $Z= \sum_{ij | n_{ij}>0} n_{ij}/(s_i*s_j) + \sum_{ij | n_{ij}>0}
+(1-s_i*s_j)/(s_i*s_j)$. This choice implies for $\pi$ a Dirichlet prior distribution with parameters $\alpha_i$, which
+  is considered to be an objective choice.
+* $p(s_i)$: a strongly informative prior distribution, based on available data (as
 illustrated above).
 
-# phyloflows MCMC
-## MCMC: syntax 
+# MCMC
+## MCMC syntax 
 We use a Markov Chain Monte Carlo algorithm to sample from the posterior
 distribution
 $$
