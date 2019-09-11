@@ -1,22 +1,23 @@
-Rakai190327.participitation.differences.betabinomialmodel3<- function()
+Rakai190910.participitation.differences.betabinomialmodel3<- function()
 {
   require(data.table)
   require(rstan)
   require(extraDistr)
   require(bayesplot)
   
-  indir		<- '~/Dropbox (SPH Imperial College)/Rakai Fish Analysis'
-  infile.data	<- file.path(indir,"180322_sampling_by_gender_age.rda")
-  infile.participation.stan.model <- file.path(indir,"180322_glm_participation.stan")
-  outfile.base<- "~/Dropbox (SPH Imperial College)/Rakai Fish Analysis/full_run/"
+  indir <- '~/Dropbox (SPH Imperial College)/Rakai Fish Analysis'
+  infile.data <- file.path(indir,"190327_sampling_by_gender_age.rda")
+  indir.stan <- '~/git/phyloscanner/phyloflows/inst/misc'
+  infile.participation.stan.model <- file.path(indir.stan,"190910_glm_participation.stan")
+  outfile.base <- "~/Dropbox (SPH Imperial College)/Rakai Fish Analysis/full_run/"
   
   #	set up variables for STAN
   load(infile.data)
-  des		<- subset(de, select=c(PARTICIPATED, HIV_1517, SELFREPORTART_AT_FIRST_VISIT, MIN_PNG_OUTPUT, PERM_ID, COMM_NUM_A, AGE_AT_MID, SEX, INMIGRANT))	
+  des <- subset(de, select=c(PARTICIPATED, HIV_1517, SELFREPORTART_AT_FIRST_VISIT, MIN_PNG_OUTPUT, PERM_ID, COMM_NUM_A, AGE_AT_MID, SEX, INMIGRANT))	
   
   # remove individuals in the communities where no sequences were obtained successfully
-  tmp	<- des[, list(COMM_ANY_MIN_PNG_OUTPUT=sum(MIN_PNG_OUTPUT, na.rm=TRUE)), by='COMM_NUM_A']
-  des	<- merge(des, subset(tmp, COMM_ANY_MIN_PNG_OUTPUT>0, COMM_NUM_A), by='COMM_NUM_A')
+  tmp <- des[, list(COMM_ANY_MIN_PNG_OUTPUT=sum(MIN_PNG_OUTPUT, na.rm=TRUE)), by='COMM_NUM_A']
+  des <- merge(des, subset(tmp, COMM_ANY_MIN_PNG_OUTPUT>0, COMM_NUM_A), by='COMM_NUM_A')
   
   # set no INMIGRANT to 0
   set(des, des[, which(is.na(INMIGRANT))], 'INMIGRANT', 0L)
@@ -33,22 +34,19 @@ Rakai190327.participitation.differences.betabinomialmodel3<- function()
   des[, COMM_TYPE_F:= as.integer(substr(COMM_NUM_A,1,1)=='f')]
   
   #	vanilla community IDs
-  tmp		<- data.table(COMM_NUM_A= sort(unique(des$COMM_NUM_A)), COMM_NUM_B= seq_along(unique(des$COMM_NUM_A)))
-  des		<- merge(des, tmp, by='COMM_NUM_A')
+  tmp <- data.table(COMM_NUM_A= sort(unique(des$COMM_NUM_A)), COMM_NUM_B= seq_along(unique(des$COMM_NUM_A)))
+  des <- merge(des, tmp, by='COMM_NUM_A')
   
   #	aggregate participation
-  dp		<- des[, list(TRIAL=length(PERM_ID), SUC=length(which(PARTICIPATED==1))), 
-             by=c('AGE_AT_MID_C','SEX','AGE1','AGE2',
-                  'INMIGRANT','MALE','COMM_TYPE_F')]
+  dp <- des[, 
+		  		list(TRIAL=length(PERM_ID), SUC=length(which(PARTICIPATED==1))), 
+             	by=c('AGE_AT_MID_C','SEX','AGE1','AGE2','INMIGRANT','MALE','COMM_TYPE_F')]
   dp[, CATEGORY:= paste0(COMM_TYPE_F,':',SEX,':',AGE_AT_MID_C,':',INMIGRANT)]
   
   #	run STAN 
-  tmp			<- as.list(subset(dp,select=c('TRIAL','SUC',
-                                      'MALE','AGE1','AGE2',
-                                      'INMIGRANT','COMM_TYPE_F')))
-  tmp$N		<- nrow(dp)
-  
-  fit.par 	<- stan(	file = infile.participation.stan.model, 
+  tmp <- as.list(subset(dp,select=c('TRIAL','SUC','MALE','AGE1','AGE2','INMIGRANT','COMM_TYPE_F')))
+  tmp$N <- nrow(dp)  
+  fit.par <- stan(	file = infile.participation.stan.model, 
                     data = tmp, 
                     iter = 10e3,
                     warmup = 5e2,
@@ -57,60 +55,319 @@ Rakai190327.participitation.differences.betabinomialmodel3<- function()
                     control=list(max_treedepth=15),
                     init = list(list(a=0, dispersion=1, fishing=0, inmigrant=0, male=0,age1=0, age2=0,
                                      age1_female=0, age1_male=0, age3_female=0,
-                                     age3_male=0)))
-  
+                                     age3_male=0)))  
   # assess convergence
-  fit.pars	<- c('fishing', 'inmigrant', 'male', 'age1', 'age2',
+  fit.pars <- c('fishing', 'inmigrant', 'male', 'age1', 'age2',
                 'age1_female', 'age1_male', 'age3_female', 
                 'age3_male','a','dispersion')
   any(rhat(fit.par, pars=fit.pars)>1.02)
   any(neff_ratio(fit.par, pars=fit.pars) * 9.5e3 < 500)
-  po              <- as.matrix(fit.par) 
-  po              <- po[, colnames(po)[!grepl('p_suc|lp__',colnames(po))]]	
-  p   <- mcmc_areas(po, pars=colnames(po), prob = 0.95) + 
-    geom_vline(xintercept = 0)
-  pdf(file=paste0(outfile.base,'190327_participation_model_marginalposteriors.pdf'), w=7, h=20)
+  po <- as.matrix(fit.par) 
+  po <- po[, colnames(po)[!grepl('p_suc|lp__',colnames(po))]]
+  po <- po[, colnames(po)[!grepl('p_part',colnames(po))]]
+  # plot traces
+  p   <- mcmc_trace(po, pars=colnames(po), facet_args = list(ncol = 1)) 
+  pdf(file=paste0(outfile.base,'190910_participation_model_marginaltraces.pdf'), w=7, h=20)
   p
   dev.off()
-  p   <- mcmc_trace(po, pars=colnames(po), facet_args = list(ncol = 1)) 
-  pdf(file=paste0(outfile.base,'190327_participation_model_marginaltraces.pdf'), w=7, h=100)
+  # plot marginal posteriors
+  p <- mcmc_areas(po, pars=colnames(po), prob = 0.95) + geom_vline(xintercept = 0)
+  pdf(file=paste0(outfile.base,'190910_participation_model_marginalposteriors.pdf'), w=7, h=20)
   p
   dev.off()
   
   # summary csv file
-  write.csv(  summary(fit.par, pars= fit.pars, probs = c(0.025, 0.975))$summary,
-              file=paste0(outfile.base,'190327_participation_model_summary.csv')
-  )
+  write.csv(	summary(fit.par, pars= fit.pars, probs = c(0.025, 0.975))$summary,
+              	file=paste0(outfile.base,'190910_participation_model_summary.csv')
+ 				)
   
   
   # extract samples for unique strata levels
-  nprior		<- 1e3
-  dps<-dp
-  
-  fit.e		<- extract(fit.par)
+  nprior <- 1e3
+  dps <-dp  
+  fit.e <- extract(fit.par)
   set.seed(42)
-  tmp			<- sample(length(fit.e$a), nprior)
-  dps			<- dps[,	
+  tmp <- sample(length(fit.e$a), nprior)
+  dps <- dps[,	
                {
                  z<- with(fit.e, a + fishing*COMM_TYPE_F + inmigrant*INMIGRANT + male*MALE + age1*AGE1 + age2*AGE2 +
                             age1_female * AGE1 * (1-MALE) + age1_male * AGE1 * MALE + 
                             age3_female * (1-AGE1-AGE2) * (1-MALE) + age3_male * (1-AGE1-AGE2) * MALE
-                 )
+                 			)
                  list(SAMPLE=1:nprior, ETA=as.numeric(z[tmp]))
                },	
                by=c('CATEGORY')]
   dps[, P:= exp(ETA)/(1+exp(ETA))]
-  
+  # estimate log density
   require(bde)
-  tmp	<- dps[, {
-    bdest<- bde(P, dataPointsCache=sort(P), b=0.001, estimator='betakernel', lower.limit=0, upper.limit=1, options=list(modified=FALSE, normalization='densitywise', mbc='none', c=0.5))
-    list(SAMPLE=SAMPLE, LP=log(density(bdest, P)))
-  }, by='CATEGORY']
+  tmp <- dps[,	{
+    				bdest <- bde(P, dataPointsCache=sort(P), b=0.001, estimator='betakernel', lower.limit=0, upper.limit=1, options=list(modified=FALSE, normalization='densitywise', mbc='none', c=0.5))
+    				list(SAMPLE=SAMPLE, LP=log(density(bdest, P)))
+  				}, 
+				by='CATEGORY']
   
-  dps	<- merge(dps, tmp, by=c('CATEGORY','SAMPLE'))
+  dps <- merge(dps, tmp, by=c('CATEGORY','SAMPLE'))
   set(dps, NULL, c('ETA'), NULL)		
   
-  save(dp, dps, fit.par, file=paste0(outfile.base,'190327_participation_model_samples.rda'))
+  save(dp, dps, fit.par, file=paste0(outfile.base,'190910_participation_model_samples.rda'))
+}
+
+Rakai190910.participitation.differences.modeldev<- function()
+{
+	require(data.table)
+	require(rethinking)
+	require(extraDistr)
+	require(bayesplot)
+	
+	indir <- '~/Dropbox (SPH Imperial College)/Rakai Fish Analysis'
+	infile.data <- file.path(indir,"190327_sampling_by_gender_age.rda")
+	indir.stan <- '~/git/phyloscanner/phyloflows/inst/misc'
+	infile.participation.stan.model <- file.path(indir.stan,"190910_glm_participation.stan")
+	outfile.base <- "~/Dropbox (SPH Imperial College)/Rakai Fish Analysis/full_run/"
+	
+	#	set up variables for STAN
+	load(infile.data)
+	des <- subset(de, select=c(PARTICIPATED, HIV_1517, SELFREPORTART_AT_FIRST_VISIT, MIN_PNG_OUTPUT, PERM_ID, COMM_NUM_A, AGE_AT_MID, SEX, INMIGRANT))	
+	
+	# remove individuals in the communities where no sequences were obtained successfully
+	tmp <- des[, list(COMM_ANY_MIN_PNG_OUTPUT=sum(MIN_PNG_OUTPUT, na.rm=TRUE)), by='COMM_NUM_A']
+	des <- merge(des, subset(tmp, COMM_ANY_MIN_PNG_OUTPUT>0, COMM_NUM_A), by='COMM_NUM_A')
+	
+	# set no INMIGRANT to 0
+	set(des, des[, which(is.na(INMIGRANT))], 'INMIGRANT', 0L)
+	
+	# age group
+	des[, AGE_AT_MID_C:= cut(AGE_AT_MID, breaks = c(0,25,35,60), labels = c("15-24", "25-34","35+"))]
+	
+	#	binarize age, sex
+	des[, AGE1:= as.integer(AGE_AT_MID_C=='15-24')]
+	des[, AGE2:= as.integer(AGE_AT_MID_C=='25-34')]
+	des[, MALE:= as.integer(SEX=='M')]
+	
+	#	binarize community type
+	des[, COMM_TYPE_F:= as.integer(substr(COMM_NUM_A,1,1)=='f')]
+	
+	#	vanilla community IDs
+	tmp <- data.table(COMM_NUM_A= sort(unique(des$COMM_NUM_A)), COMM_NUM_B= seq_along(unique(des$COMM_NUM_A)))
+	des <- merge(des, tmp, by='COMM_NUM_A')
+	
+	#	aggregate participation but keep communities as units
+	#	think of these as replicate observations
+	dp <- des[, 
+			list(TRIAL=length(PERM_ID), SUC=length(which(PARTICIPATED==1))), 
+			by=c('COMM_NUM_A','COMM_NUM_B','AGE_AT_MID_C','SEX','AGE1','AGE2','INMIGRANT','MALE','COMM_TYPE_F')]
+	dp[, CATEGORY:= paste0(COMM_TYPE_F,':',SEX,':',AGE_AT_MID_C,':',INMIGRANT)]
+	
+	# XX model, but Binomial
+	mp1 	<- map2stan(
+			alist(
+					SUC ~ dbinom(TRIAL, p_part),
+					logit(p_part) <- a + fishing * COMM_TYPE_F + inmigrant * INMIGRANT + male * MALE +      
+							age1 * AGE1 + age2 * AGE2 + 
+							age1_female * AGE1 * (1 - MALE) +      
+							age1_male * AGE1 * MALE + 
+							age3_female * (1 - AGE1 - AGE2) * (1 - MALE) + 
+							age3_male * (1 - AGE1 - AGE2) * MALE,
+					
+					a ~ dnorm(0, 100),
+					c(fishing, inmigrant, male, age1, age2, age1_female, age1_male, age3_female, age3_male) ~ dnorm(0,10)
+			),
+			data=as.data.frame(dp),
+			control=list(max_treedepth=15),
+			start=list(	a=0, fishing=0, inmigrant=0, male=0, age1=0, age2=0, age1_female=0, age1_male=0, age3_female=0, age3_male=0),
+			warmup=5e2, iter=15e3, chains=1, cores=1
+		)
+	plot( precis(mp1, depth=2, prob=0.95) )
+	save(mp1, dp, des, file=paste0(outfile.base,'190910_participation_differences_mp1.rda'))
+	#	posterior check
+	sims 	<- sim(mp1, n=1e3)
+	tmp		<- apply(sims, 2, median)
+	dpp 	<- apply(sims, 2, PI, prob=0.95)
+	dpp		<- rbind(tmp, dpp)
+	rownames(dpp)	<-  c('predicted_obs_median','predicted_obs_l95','predicted_obs_u95')
+	dpp		<- as.data.table(t(dpp))
+	dpp		<- cbind(dp, dpp)		
+	dpp[, mean(SUC<predicted_obs_l95 | SUC>predicted_obs_u95)]
+	#	0.26 
+	dpp[, COMM_TYPE_F2:= as.character(factor(COMM_TYPE_F, levels=c(0,1), labels=c('inland','fisherfolk')))]
+	dpp[, INMIGRANT2:= as.character(factor(INMIGRANT, levels=c(0,1), labels=c('resident','inmigrant')))]
+	dpp[, CLASS:= ifelse(SUC<predicted_obs_l95, 'below 95%', ifelse(SUC>predicted_obs_u95, 'above 95%', 'within 95%'))]
+	ggplot(dpp, aes(x=interaction(SEX, AGE_AT_MID_C)) ) +
+			geom_bar(aes(fill=CLASS)) +
+			facet_grid( INMIGRANT2~COMM_TYPE_F2, scales='free', space='free') +
+			theme_bw()
+	ggsave(file=paste0(outfile.base,'190910_participation_differences_mp1_pp.pdf'), w=8, h=8)
+	
+	# basic model, no interactions
+	mp2 	<- map2stan(
+			alist(
+					SUC ~ dbinom(TRIAL, p_part),
+					logit(p_part) <- a + fishing * COMM_TYPE_F + inmigrant * INMIGRANT + male * MALE +      
+							age1 * AGE1 + age2 * AGE2,					
+					a ~ dnorm(0, 100),
+					c(fishing, inmigrant, male, age1, age2) ~ dnorm(0,10)
+			),
+			data=as.data.frame(dp),
+			control=list(max_treedepth=15),
+			start=list(	a=0, fishing=0, inmigrant=0, male=0, age1=0, age2=0),
+			warmup=5e2, iter=15e3, chains=1, cores=1
+		)
+	plot( precis(mp2, depth=2, prob=0.95) )
+	save(mp2, dp, des, file=paste0(outfile.base,'190910_participation_differences_mp2.rda'))
+	#	posterior check
+	sims 	<- sim(mp2, n=1e3)
+	tmp		<- apply(sims, 2, median)
+	dpp 	<- apply(sims, 2, PI, prob=0.95)
+	dpp		<- rbind(tmp, dpp)
+	rownames(dpp)	<-  c('predicted_obs_median','predicted_obs_l95','predicted_obs_u95')
+	dpp		<- as.data.table(t(dpp))
+	dpp		<- cbind(dp, dpp)		
+	dpp[, mean(SUC<predicted_obs_l95 | SUC>predicted_obs_u95)]
+	#	0.28 
+	dpp[, COMM_TYPE_F2:= as.character(factor(COMM_TYPE_F, levels=c(0,1), labels=c('inland','fisherfolk')))]
+	dpp[, INMIGRANT2:= as.character(factor(INMIGRANT, levels=c(0,1), labels=c('resident','inmigrant')))]
+	dpp[, CLASS:= ifelse(SUC<predicted_obs_l95, 'below 95%', ifelse(SUC>predicted_obs_u95, 'above 95%', 'within 95%'))]
+	ggplot(dpp, aes(x=interaction(SEX, AGE_AT_MID_C)) ) +
+			geom_bar(aes(fill=CLASS)) +
+			facet_grid( INMIGRANT2~COMM_TYPE_F2, scales='free', space='free') +
+			theme_bw()
+	ggsave(file=paste0(outfile.base,'190910_participation_differences_mp2_pp.pdf'), w=8, h=8)
+	
+	
+	
+	# model with gender:age interactions
+	mp3 	<- map2stan(
+			alist(
+					SUC ~ dbinom(TRIAL, p_part),
+					logit(p_part) <- a + fishing * COMM_TYPE_F + inmigrant * INMIGRANT + 
+							male_age1*MALE*AGE1 + male_age2*MALE*AGE2 + male_age3*MALE +      
+							female_age1*(1-MALE)*AGE1 + female_age2*(1-MALE)*AGE2,					
+					a ~ dnorm(0, 100),
+					c(fishing, inmigrant, male_age1, male_age2, male_age3, female_age1, female_age2) ~ dnorm(0,10)
+			),
+			data=as.data.frame(dp),
+			control=list(max_treedepth=15),
+			start=list(	a=0, fishing=0, inmigrant=0, male_age1=0, male_age2=0, male_age3=0, female_age1=0, female_age2=0),
+			warmup=5e2, iter=15e3, chains=1, cores=1
+		)
+	plot( precis(mp3, depth=2, prob=0.95) )
+	save(mp3, dp, des, file=paste0(outfile.base,'190910_participation_differences_mp3.rda'))
+	#	posterior check
+	sims 	<- sim(mp3, n=1e3)
+	tmp		<- apply(sims, 2, median)
+	dpp 	<- apply(sims, 2, PI, prob=0.95)
+	dpp		<- rbind(tmp, dpp)
+	rownames(dpp)	<-  c('predicted_obs_median','predicted_obs_l95','predicted_obs_u95')
+	dpp		<- as.data.table(t(dpp))
+	dpp		<- cbind(dp, dpp)		
+	dpp[, mean(SUC<predicted_obs_l95 | SUC>predicted_obs_u95)]
+	#	0.27 
+	dpp[, COMM_TYPE_F2:= as.character(factor(COMM_TYPE_F, levels=c(0,1), labels=c('inland','fisherfolk')))]
+	dpp[, INMIGRANT2:= as.character(factor(INMIGRANT, levels=c(0,1), labels=c('resident','inmigrant')))]
+	dpp[, CLASS:= ifelse(SUC<predicted_obs_l95, 'below 95%', ifelse(SUC>predicted_obs_u95, 'above 95%', 'within 95%'))]
+	ggplot(dpp, aes(x=interaction(SEX, AGE_AT_MID_C)) ) +
+			geom_bar(aes(fill=CLASS)) +
+			facet_grid( INMIGRANT2~COMM_TYPE_F2, scales='free', space='free') +
+			theme_bw()
+	ggsave(file=paste0(outfile.base,'190910_participation_differences_mp3_pp.pdf'), w=8, h=8)
+	
+	
+	
+	# model with gender:age:mig_status interactions
+	mp4 	<- map2stan(
+			alist(
+					SUC ~ dbinom(TRIAL, p_part),
+					logit(p_part) <- a + fishing * COMM_TYPE_F +  
+							male_age1_inmigrant*MALE*AGE1*INMIGRANT + male_age2_inmigrant*MALE*AGE2*INMIGRANT + male_age3_inmigrant*MALE*INMIGRANT +      
+							female_age1_inmigrant*(1-MALE)*AGE1*INMIGRANT + female_age2_inmigrant*(1-MALE)*AGE2*INMIGRANT + female_age3_inmigrant*(1-MALE)*INMIGRANT +
+							male_age1_resident*MALE*AGE1*(1-INMIGRANT) + male_age2_resident*MALE*AGE2*(1-INMIGRANT) + male_age3_resident*MALE*(1-INMIGRANT) +      
+							female_age1_resident*(1-MALE)*AGE1*(1-INMIGRANT) + female_age2_resident*(1-MALE)*AGE2*(1-INMIGRANT),					
+					a ~ dnorm(0, 100),
+					c(fishing, male_age1_inmigrant, male_age2_inmigrant, male_age3_inmigrant, female_age1_inmigrant, 
+						female_age2_inmigrant, female_age3_inmigrant,
+						male_age1_resident, male_age2_resident, male_age3_resident, female_age1_resident, 
+						female_age2_resident) ~ dnorm(0,10)
+			),
+			data=as.data.frame(dp),
+			control=list(max_treedepth=15),
+			start=list(	a=0, fishing=0, male_age1_inmigrant=0, male_age2_inmigrant=0, male_age3_inmigrant=0, female_age1_inmigrant=0, 
+					female_age2_inmigrant=0, female_age3_inmigrant=0,
+					male_age1_resident=0, male_age2_resident=0, male_age3_resident=0, female_age1_resident=0, 
+					female_age2_resident=0),
+			warmup=5e2, iter=15e3, chains=1, cores=1
+		)
+	
+	plot( precis(mp3, depth=2, prob=0.95) )
+	save(mp3, dp, des, file=paste0(outfile.base,'190910_participation_differences_mp3.rda'))
+	
+	
+	#	run STAN 
+	tmp <- as.list(subset(dp,select=c('TRIAL','SUC','MALE','AGE1','AGE2','INMIGRANT','COMM_TYPE_F')))
+	tmp$N <- nrow(dp)  
+	fit.par <- stan(	file = infile.participation.stan.model, 
+			data = tmp, 
+			iter = 10e3,
+			warmup = 5e2,
+			cores = 1,
+			chains = 1,
+			control=list(max_treedepth=15),
+			init = list(list(a=0, dispersion=1, fishing=0, inmigrant=0, male=0,age1=0, age2=0,
+							age1_female=0, age1_male=0, age3_female=0,
+							age3_male=0)))  
+	# assess convergence
+	fit.pars <- c('fishing', 'inmigrant', 'male', 'age1', 'age2',
+			'age1_female', 'age1_male', 'age3_female', 
+			'age3_male','a','dispersion')
+	any(rhat(fit.par, pars=fit.pars)>1.02)
+	any(neff_ratio(fit.par, pars=fit.pars) * 9.5e3 < 500)
+	po <- as.matrix(fit.par) 
+	po <- po[, colnames(po)[!grepl('p_suc|lp__',colnames(po))]]
+	po <- po[, colnames(po)[!grepl('p_part',colnames(po))]]
+	# plot traces
+	p   <- mcmc_trace(po, pars=colnames(po), facet_args = list(ncol = 1)) 
+	pdf(file=paste0(outfile.base,'190910_participation_model_marginaltraces.pdf'), w=7, h=20)
+	p
+	dev.off()
+	# plot marginal posteriors
+	p <- mcmc_areas(po, pars=colnames(po), prob = 0.95) + geom_vline(xintercept = 0)
+	pdf(file=paste0(outfile.base,'190910_participation_model_marginalposteriors.pdf'), w=7, h=20)
+	p
+	dev.off()
+	
+	# summary csv file
+	write.csv(	summary(fit.par, pars= fit.pars, probs = c(0.025, 0.975))$summary,
+			file=paste0(outfile.base,'190910_participation_model_summary.csv')
+	)
+	
+	
+	# extract samples for unique strata levels
+	nprior <- 1e3
+	dps <-dp  
+	fit.e <- extract(fit.par)
+	set.seed(42)
+	tmp <- sample(length(fit.e$a), nprior)
+	dps <- dps[,	
+			{
+				z<- with(fit.e, a + fishing*COMM_TYPE_F + inmigrant*INMIGRANT + male*MALE + age1*AGE1 + age2*AGE2 +
+								age1_female * AGE1 * (1-MALE) + age1_male * AGE1 * MALE + 
+								age3_female * (1-AGE1-AGE2) * (1-MALE) + age3_male * (1-AGE1-AGE2) * MALE
+				)
+				list(SAMPLE=1:nprior, ETA=as.numeric(z[tmp]))
+			},	
+			by=c('CATEGORY')]
+	dps[, P:= exp(ETA)/(1+exp(ETA))]
+	# estimate log density
+	require(bde)
+	tmp <- dps[,	{
+				bdest <- bde(P, dataPointsCache=sort(P), b=0.001, estimator='betakernel', lower.limit=0, upper.limit=1, options=list(modified=FALSE, normalization='densitywise', mbc='none', c=0.5))
+				list(SAMPLE=SAMPLE, LP=log(density(bdest, P)))
+			}, 
+			by='CATEGORY']
+	
+	dps <- merge(dps, tmp, by=c('CATEGORY','SAMPLE'))
+	set(dps, NULL, c('ETA'), NULL)		
+	
+	save(dp, dps, fit.par, file=paste0(outfile.base,'190910_participation_model_samples.rda'))
 }
 
 Rakai190327.participitation.differences.betabinomialmodel7<- function()
