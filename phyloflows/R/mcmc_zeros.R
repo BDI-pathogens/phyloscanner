@@ -427,7 +427,8 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
             mc$pars$LOG_LAMBDA[update.round.adj,] <- LOG_LAMBDA.curr
         }
 # TODO: priority low 
-#       this says 100 sweeps done, but 125 were specified?        
+#       this says 100 sweeps done, but 125 were specified.
+#		also print at the very end how many sweeps were done. 
         if(update.count==mc$sweep & update.round %% 100 == 0)
 		{
             cat('\nSweeps done:\t',update.round)
@@ -441,11 +442,11 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
             	return(mc)
             if(update.sweep.group!=update.round %/% mc$sweep_group)
 			{
-                save(object = mc, file = paste0(control$outfile,update.round %/% mc$sweep_group,".rda"))
+                save(object = mc, file = paste0(control$outfile,'_sweepgrp',update.round %/% mc$sweep_group,".rda"))
             }
 			if(update.sweep.group==update.round %/% mc$sweep_group)
 			{
-                save(object = mc, file = paste0(control$outfile,update.round %/% mc$sweep_group + 1,".rda"))
+                save(object = mc, file = paste0(control$outfile,'_sweepgrp',update.round %/% mc$sweep_group + 1,".rda"))
             }
             update.sweep.group <- update.round %/% mc$sweep_group
             

@@ -80,16 +80,23 @@ source.attribution.mcmc.aggregateToTarget    <- function(mcmc.file=NULL, mc=NULL
     {
         #    load MCMC output
         cat('\nLoading MCMC output from file...')
+		cat('\nLoading ', mcmc.file[1])
         load(mcmc.file[1])
         LOG_LAMBDA <- mc$pars$LOG_LAMBDA
         
-        if (length(mcmc.file)>1){
-            for (k in 2:length(mcmc.file)){
+        if (length(mcmc.file)>1)
+		{
+            for (k in 2:length(mcmc.file))
+			{
+				cat('\nLoading ', mcmc.file[k])
                 load(mcmc.file[k])
                 LOG_LAMBDA <- rbind(LOG_LAMBDA, mc$pars$LOG_LAMBDA)
             }
         }
         mc$pars$LOG_LAMBDA <- LOG_LAMBDA
+		cat('\nTotal number of MCMC iterations loaded from file ', nrow(mc$pars$LOG_LAMBDA))
+		LOG_LAMBDA <- NULL
+		gc()
     }
         
     #    define internal control variables

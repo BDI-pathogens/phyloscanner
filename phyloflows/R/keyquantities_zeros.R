@@ -73,19 +73,22 @@ source.attribution.mcmc.getKeyQuantities<- function(infile=NULL, mc=NULL, pars=N
         }
 # TODO: we need to modify handling a vector of infiles
 #		1) make multiple infiles a separate top level if statement
-#		2) in this case need to check that all files have an "mc" object
-#		3) if one infile, it can be "pars" or "mc".		
+#		2) if there are multiple infiles, they need to end in rda and all need to contain mc objects		
 		if(tmp=='mc' & length(infile)>1)
 		{
 			#    load MCMC output
 			cat('\nLoading MCMC output from file...')
+			cat('\nLoading ', infile[1])
 			load(infile[1])
 			XI <- mc$pars$XI
 			S <- mc$pars$S
 			LOG_LAMBDA <- mc$pars$LOG_LAMBDA
 			
-			if (length(infile)>1){
-				for (k in 2:length(infile)){
+			if (length(infile)>1)
+			{
+				for (k in 2:length(infile))
+				{
+					cat('\nLoading ', infile[k])
 					load(infile[k])
 					XI <- rbind(XI, mc$pars$XI)
 					S <- rbind(S, mc$pars$S)
@@ -94,7 +97,10 @@ source.attribution.mcmc.getKeyQuantities<- function(infile=NULL, mc=NULL, pars=N
 			}
 			mc$pars$XI <- XI
 			mc$pars$S <- S
-			mc$pars$LOG_LAMBDA <- LOG_LAMBDA        
+			mc$pars$LOG_LAMBDA <- LOG_LAMBDA   
+			cat('\nTotal number of MCMC iterations loaded from file ', nrow(mc$pars$LOG_LAMBDA))
+			XI <- S <- LOG_LAMBDA <- NULL
+			gc()
 		}
     }   
     if(is.null(mc) & is.null(pars) & !is.null(infile) && grepl('csv$',infile))
@@ -214,7 +220,12 @@ source.attribution.mcmc.getKeyQuantities<- function(infile=NULL, mc=NULL, pars=N
         #    calculate transmission flow ratios
         z <- copy(pars)
         z[, FLOW:=paste0(TR_TARGETCAT,' ',REC_TARGETCAT)]
-        z <- dcast.data.table(z, SAMPLE~FLOW, value.var='VALUE')
+        z <- dcast.data.table(z, SAMPLE~FLOW, value.var='VALUE')		
+		flowratio.flows <- unique( c(sapply(control$flowratios,'[[',2), sapply(control$flowratios,'[[',3)) )
+		if(!all(flowratio.flows%in%colnames(z)))
+		{
+			stop('Cannot find all requested flow ratios in MCMC output with column names "', paste(colnames(z), collapse='", "'),'"')
+		}				
         set(z, NULL, colnames(z)[!colnames(z)%in%c('SAMPLE',unlist(control$flowratios))], NULL)
         for(ii in seq_along(control$flowratios))
         {

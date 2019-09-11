@@ -495,11 +495,11 @@ Rakai190327.analysispipeline.age3model<- function(infile.inference=NULL, infile.
   }
   if(is.null(infile.participation.prior.samples))
   {
-    infile.participation.prior.samples	<- "~/Dropbox (SPH Imperial College)/Rakai Fish Analysis/full_run/190327_participation_model_samples.rda"	
+    infile.participation.prior.samples	<- "~/Dropbox (SPH Imperial College)/Rakai Fish Analysis/full_run/190910_participation_model_samples.rda"	
   }
   if(is.null(infile.sequencing.prior.samples))
   {
-    infile.sequencing.prior.samples		<- "~/Dropbox (SPH Imperial College)/Rakai Fish Analysis/full_run/190327_sequencing_model_samples.rda"
+    infile.sequencing.prior.samples		<- "~/Dropbox (SPH Imperial College)/Rakai Fish Analysis/full_run/190910_sequencing_model_samples.rda"
   }
   cat('\ninfile.inference=',infile.inference)
   cat('\ninfile.participation.prior.samples=',infile.participation.prior.samples)
@@ -622,31 +622,25 @@ Rakai190327.analysispipeline.age3model<- function(infile.inference=NULL, infile.
   dac <- as.data.table(dac)  				
   dac[, CATEGORY:= paste0(COMM_TYPE_F, ':', SEX, ':', AGE_AT_MID_C, ':', INMIGRANT)]  					
   dac <- as.data.table(expand.grid(TR_CATEGORY= dac$CATEGORY, REC_CATEGORY= dac$CATEGORY))
+  # ignore Male-Male and Female-Female combinations
   dac <- subset(dac, !(grepl('F',TR_CATEGORY)&grepl('F',REC_CATEGORY)) &
   					 !(grepl('M',TR_CATEGORY)&grepl('M',REC_CATEGORY))  
 					  )
-  
   # add transmission categories
-  
-  # same as sampling categories
   dac[, REC_TRM_CATEGORY:= REC_CATEGORY]
-  dac[, TR_TRM_CATEGORY:= TR_CATEGORY]
-  
-  # inmigrants from external communities
+  dac[, TR_TRM_CATEGORY:= TR_CATEGORY]  
+  # add inmigrants from external communities
   tmp <- dac[grepl('1$',TR_CATEGORY)]
   set(tmp, NULL, 'TR_TRM_CATEGORY', tmp[,gsub('^[f|i]','e',TR_CATEGORY)]) 
-  dac <- rbind(dac, tmp)
-  
-  # inmigrants sampled in inland and migrated from fishing
+  dac <- rbind(dac, tmp)  
+  # add inmigrants sampled in inland and migrated from fishing
   tmp <- dac[grepl('1$',TR_CATEGORY) & grepl('^i',TR_CATEGORY)]
   set(tmp, NULL, 'TR_TRM_CATEGORY', tmp[,gsub('^i','f',TR_CATEGORY)]) 
-  dac <- rbind(dac, tmp)
-  
-  # inmigrants sampled in fishing and migrated from inland
+  dac <- rbind(dac, tmp)  
+  # add inmigrants sampled in fishing and migrated from inland
   tmp <- dac[grepl('1$',TR_CATEGORY) & grepl('^f',TR_CATEGORY)]
   set(tmp, NULL, 'TR_TRM_CATEGORY', tmp[,gsub('^f','i',TR_CATEGORY)]) 
-  dac <- rbind(dac, tmp)
-  
+  dac <- rbind(dac, tmp)  
   # remove duplicated rows 
   # TR_SAMPLING_CATEGORY f: F: 15-24: 1 and i: F: 15-24: 1 are all set to e: F: 15-24: 1
   dac <- unique(dac)
@@ -655,23 +649,13 @@ Rakai190327.analysispipeline.age3model<- function(infile.inference=NULL, infile.
   #	calculate observed number of transmissions
   #
   dobs	<- rtr[, list( TRM_OBS=length(unique(PAIRID))), by=c('TR_TRM_CATEGORY','REC_TRM_CATEGORY','TR_SAMPLING_CATEGORY','REC_SAMPLING_CATEGORY')]
+  dac[, DUMMY:= 1]
+  dobs <- merge(dac, dobs, by=c('TR_TRM_CATEGORY', 'REC_TRM_CATEGORY','TR_SAMPLING_CATEGORY', 'REC_SAMPLING_CATEGORY'), all=TRUE)
+  stopifnot( dobs[, !any(is.na(DUMMY))] )
+  set(dobs, NULL, 'DUMMY', NULL)
+  set(dobs, dobs[, which(is.na(TRM_OBS))], 'TRM_OBS', 0L)
   
-  # TODO: can we make adding zeros independent of any other files please
-  #	colnames --> setnames
-
-  # add TRM_OBS
-  # zero TRM_OBS
-  tmp1 <- dac[! paste0(TR_SAMPLING_CATEGORY,'-',REC_SAMPLING_CATEGORY, '-', TR_TRM_CATEGORY,'-',REC_TRM_CATEGORY)
-                   %in% paste0(dobs$TR_SAMPLING_CATEGORY,'-',dobs$REC_SAMPLING_CATEGORY, '-', dobs$TR_TRM_CATEGORY,'-',dobs$REC_TRM_CATEGORY),]
-  # non-zero TRM_OBS
-  tmp2 <- dac[ paste0(TR_SAMPLING_CATEGORY,'-',REC_SAMPLING_CATEGORY, '-', TR_TRM_CATEGORY,'-',REC_TRM_CATEGORY)
-                    %in% paste0(dobs$TR_SAMPLING_CATEGORY,'-',dobs$REC_SAMPLING_CATEGORY, '-', dobs$TR_TRM_CATEGORY,'-',dobs$REC_TRM_CATEGORY),]
-  
-  tmp1[, TRM_OBS:=0]
-  dobs <- merge(dobs, tmp2, by = c('TR_TRM_CATEGORY', 'REC_TRM_CATEGORY',
-                                   'TR_SAMPLING_CATEGORY', 'REC_SAMPLING_CATEGORY'))
-  dobs <- rbind(tmp1, dobs)
-  
+  #	make PAIR_ID
   setkey(dobs, TR_TRM_CATEGORY, REC_TRM_CATEGORY,TR_SAMPLING_CATEGORY,REC_SAMPLING_CATEGORY)	
   dobs[, TRM_CAT_PAIR_ID:= seq_len(nrow(dobs))]
   
@@ -690,43 +674,47 @@ Rakai190327.analysispipeline.age3model<- function(infile.inference=NULL, infile.
     set(dprior, NULL, 'P.x', 1)
     set(dprior, NULL, 'LP.x', 0)
   }
-  dprior[, P:= P.x*P.y]		# multiply participation and sequencing probabilities 
-  dprior[, LP:= LP.x+LP.y]	# add log posterior densities
+  # multiply participation and sequencing probabilities
+  dprior[, P:= P.x*P.y]		
+  # add log posterior densities
+  dprior[, LP:= LP.x+LP.y]	
   set(dprior, NULL, c('P.x','LP.x','P.y','LP.y'), NULL)
   setnames(dprior, 'CATEGORY', 'SAMPLING_CATEGORY')
+  # consolidate names
+  set(dprior, NULL, 'SAMPLING_CATEGORY', dprior[, gsub('^2','e',gsub('^1','f',gsub('^0','i',SAMPLING_CATEGORY)))] )		
   
   #	plot prior densities
   if(0)
   {
-    ggplot(dprior, aes(x=P)) + 
-      geom_histogram(bins=50) +
-      coord_cartesian(xlim=c(0,1)) +
-      labs(x='sampling probability') + 
-      theme_bw() +
-      facet_grid(SAMPLING_CATEGORY~.)
-    ggsave( file=paste0(outfile.base,"saprior190327_samplingprob.pdf"), w=7, h=250, limitsize=FALSE)		
+	  ggplot(dprior, aes(x=SAMPLING_CATEGORY, y=P)) + 
+			  geom_boxplot(bins=50) +
+			  scale_y_continuous(labels=scales:::percent, lim=c(0,1), expand=c(0,0)) +
+			  labs(x='sampling category', y='sampling probability') + 
+			  theme_bw() + 
+			  coord_flip()
+	  ggsave( file=paste0(outfile.base,"saprior190910_samplingprob.pdf"), w=7, h=7, limitsize=FALSE)    		
   }
   
   #	run MCMC
   mcmc.file	<- paste0(outfile.base,"samcmc190327_nsweep1e5_opt",paste0(opt, collapse=''))
   control		<- list(	seed=42, 
-                    mcmc.n=48 * 1e5, 
-                    verbose=0, 
-                    outfile=mcmc.file,
-                    sweep_group=1e4L)
+		                    mcmc.n=48 * 1e5,							
+		                    verbose=0, 
+		                    outfile=mcmc.file,
+		                    sweep_group=1e4L)
   source.attribution.mcmc(dobs, dprior, control=control)
   
   #	run diagnostics
   #mcmc.file	<- "~/Dropbox (SPH Imperial College)/Rakai Fish Analysis/full_run/190327_SAMCMCv190327_mcmc.rda"
-  #mcmc.file	<- '~/Dropbox (SPH Imperial College)/Rakai Fish Analysis/full_run/RakaiAll_output_181006_w250_s20_p25_d50_stagetwo_rerun23_min30_conf60_phylogeography_samcmc190327_nsweep1e5_opt112401.rda'
-  mcmc.file.full <- paste0(mcmc.file,1:(1e5%/%1e4),'.rda')
+  #mcmc.file	<- '~/Dropbox (SPH Imperial College)/Rakai Fish Analysis/full_run/RakaiAll_output_181006_w250_s20_p25_d50_stagetwo_rerun23_min30_conf60_phylogeography_samcmc190327_nsweep1e5_opt112401.rda'  
+  mcmc.file.full <- paste0(mcmc.file,'_sweepgrp',1:(1e5%/%1e4),'.rda')
   control		<- list(	burnin.p=0.05, 
-                    regex_pars='*', 
-                    credibility.interval=0.95, 
-                    pdf.plot.all.parameters=FALSE, 
-                    pdf.plot.n.worst.case.parameters=10, 
-                    pdf.height.per.par=1.2, 
-                    outfile.base=mcmc.file)
+                    		regex_pars='*', 
+                    		credibility.interval=0.95, 
+                    		pdf.plot.all.parameters=FALSE, 
+                    		pdf.plot.n.worst.case.parameters=10, 
+                    		pdf.height.per.par=1.2, 
+                    		outfile.base=mcmc.file)
   source.attribution.mcmc.diagnostics(mcmc.file=mcmc.file.full, control=control)
   
   #	aggregate MCMC output to fish<->inland
@@ -745,8 +733,8 @@ Rakai190327.analysispipeline.age3model<- function(infile.inference=NULL, infile.
   
   #	calculate flows sources WAIFM flow_ratio overall		
   control			<- list(	quantiles= c('CL'=0.025,'IL'=0.25,'M'=0.5,'IU'=0.75,'CU'=0.975),
-                     flowratios= list( c('0/1', '0 1', '1 0')),
-                     outfile=gsub('\\.csv','_flowsetc.csv',aggregate.file))
+                     			flowratios= list( c('i/f', 'i f', 'f i')),
+                     			outfile=gsub('\\.csv','_flowsetc.csv',aggregate.file))
   source.attribution.mcmc.getKeyQuantities(infile=aggregate.file, control=control)
   
   #	aggregate MCMC output to fish<->inland by gender
@@ -771,8 +759,8 @@ Rakai190327.analysispipeline.age3model<- function(infile.inference=NULL, infile.
   
   #	calculate flows sources WAIFM flow_ratio by gender		
   control		<- list(	quantiles= c('CL'=0.025,'IL'=0.25,'M'=0.5,'IU'=0.75,'CU'=0.975),
-                    flowratios= list( c('0:M/1:M', '0:M 1:F', '1:M 0:F'), 
-                                      c('0:F/1:F', '0:F 1:M', '1:F 0:M')),
+                    flowratios= list( c('i:M/f:M', 'i:M f:F', 'f:M i:F'), 
+                                      c('i:F/f:F', 'i:F f:M', 'f:F i:M')),
                     outfile=gsub('\\.csv','_flowsetc.csv',aggregate.file))
   source.attribution.mcmc.getKeyQuantities(infile=aggregate.file, control=control)				
 }

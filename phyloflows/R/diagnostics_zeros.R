@@ -61,26 +61,33 @@ source.attribution.mcmc.diagnostics    <- function(mcmc.file, mc=NULL, control=l
     if(is.null(mc))
     {
         cat('\nLoading MCMC output from file...')
+		cat('\nLoading ', mcmc.file[1])
         load(mcmc.file[1])
         XI <- mc$pars$XI
         S <- mc$pars$S
         LOG_LAMBDA <- mc$pars$LOG_LAMBDA
         it.info <- mc$it.info
         
-        if (length(mcmc.file)>1){
-            for (k in 2:length(mcmc.file)){
+        if (length(mcmc.file)>1)
+		{
+            for (k in 2:length(mcmc.file))
+			{
+				cat('\nLoading ', mcmc.file[k])
                 load(mcmc.file[k])
                 XI <- rbind(XI, mc$pars$XI)
                 S <- rbind(S, mc$pars$S)
                 LOG_LAMBDA <- rbind(LOG_LAMBDA, mc$pars$LOG_LAMBDA)
                 it.info <- rbind(it.info, mc$it.info)
-            }
+            }			
         }
         
         mc$pars$XI <- XI
         mc$pars$S <- S
         mc$pars$LOG_LAMBDA <- LOG_LAMBDA
         mc$it.info <- it.info
+		cat('\nTotal number of MCMC iterations loaded from file ', nrow(mc$pars$LOG_LAMBDA))
+		XI <- S <- LOG_LAMBDA <- NULL
+		gc()
     }
     
     
