@@ -23,7 +23,8 @@ require(kableExtra)
 require(rmarkdown)
 setwd('/Users/Oliver/git/phyloscanner/phyloflows/vignettes')
 infile <- '04_aggregating.Rmd'
-rmarkdown::render(infile, output_format='pdf_document')	
+rmarkdown::render(infile, output_format='pdf_document')
+rmarkdown::render(infile, output_format='md_document')
 ```
 
 

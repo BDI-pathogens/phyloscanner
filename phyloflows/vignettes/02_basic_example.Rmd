@@ -25,6 +25,7 @@ setwd('/Users/Oliver/git/phyloscanner/phyloflows/vignettes')
 infile <- '02_basic_example.Rmd'
 #rmarkdown::render(infile)
 rmarkdown::render(infile, output_format='pdf_document')	
+rmarkdown::render(infile, output_format='md_document')	
 ```
 
 

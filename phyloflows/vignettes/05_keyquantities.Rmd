@@ -24,7 +24,7 @@ require(rmarkdown)
 setwd('/Users/Oliver/git/phyloscanner/phyloflows/vignettes')
 infile <- '05_keyquantities.Rmd'
 rmarkdown::render(infile, output_format='pdf_document')
-rmarkdown::render(infile)
+rmarkdown::render(infile, output_format='md_document')
 ```
 
 
