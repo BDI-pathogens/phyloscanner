@@ -13,6 +13,14 @@ knitr::opts_chunk$set(
   comment = "#>"
 )
 ```
+```{r, include=FALSE, eval=FALSE, echo=FALSE}
+require(rmarkdown)
+setwd('/Users/Oliver/git/phyloscanner/phyloflows')
+infile <- 'README.Rmd'
+rmarkdown::render(infile, output_format='md_document')
+```
+
+
 ```{r, include=TRUE, eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE, tidy=TRUE}
 require(knitr)
 require(kableExtra)

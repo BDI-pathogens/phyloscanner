@@ -1,6 +1,7 @@
 ---
-title: "04 - Aggregating MCMC output to a new set of variables"
-date: "2019-04-30"
+title: "phyloflows: Aggregating MCMC output to a new set of variables"
+date: "2019-09-10"
+author: Xiaoyue Xi and Oliver Ratmann
 output: github_document
 vignette: >
   %\VignetteIndexEntry{Vignette Title}
@@ -18,18 +19,27 @@ knitr::opts_chunk$set(
 require(knitr)
 require(kableExtra)
 ```
+```{r, include=FALSE, eval=FALSE, echo=FALSE}
+require(rmarkdown)
+setwd('/Users/Oliver/git/phyloscanner/phyloflows/vignettes')
+infile <- '04_aggregating.Rmd'
+rmarkdown::render(infile, output_format='pdf_document')
+rmarkdown::render(infile, output_format='md_document')
+```
 
 
-Here we show you how to aggregate estimated transmission flows to a higher
-level. Please read the sections "Our Job" and "Our Solution" on the main page
-before you go ahead here.
+This vignette describes how to aggregate estimated transmission flows to those
+of other (broader) population groups. Please work through the vignette
+*phyloflows: Estimating transmission flows under heterogeneous sampling - a
+first example* before you go ahead here.
+
 
 ## Getting started
 
-We continue our Very_First_Example from the vignette with the same name here.
-The following code chunk contains all code needed, up to running **phyloflows**
-MCMC routine. The only change is that the number of iterations is now $50,000$.
-The MCMC should take about 2 minutes to run.
+We continue our "First_Example". The following code chunk contains all code
+needed, up to running **phyloflows** MCMC routine. The only change is that the
+number of iterations is now $50,000$. The MCMC should take about 2 minutes to
+run.
 
 ```{r, include=TRUE, eval=FALSE, echo=TRUE, tidy=FALSE,message=FALSE, warning=FALSE} 
 require(data.table)
@@ -37,7 +47,6 @@ require(phyloflows)
 data(twoGroupFlows1, package="phyloflows")
 dobs <- twoGroupFlows1$dobs
 dprior <- twoGroupFlows1$dprior
-mcmc.file <- file.path(getwd(),'twoGroupFlows1_mcmc.RData')
 control <- list(seed=42, mcmc.n=5e4, verbose=0)
 mc <- phyloflows:::source.attribution.mcmc(dobs, dprior, control)
 ```
@@ -66,7 +75,7 @@ $$
 \eta= (\eta_{1}, \eta_{2})
 $$
 where $\eta_{1}=\pi_{11}+\pi_{12}$ and $\eta_{2}=\pi_{21}+\pi_{22}$. There are
-many similar scenorios like that, and **phyloflow** has a little function to
+many similar scenarios like that, and **phyloflows** has a little function to
 help you with that task. The syntax is as follows.
 
 ```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE,message=TRUE, warning=FALSE}
@@ -77,14 +86,16 @@ set(daggregateTo, NULL, c('TR_TRM_CATEGORY','REC_TRM_CATEGORY'), NULL)
 control <- list( burnin.p=0.05, 
                  thin=NA_integer_, 
 				 regex_pars='PI')
-mca <- phyloflows:::source.attribution.mcmc.aggregateToTarget(mc=mc, daggregateTo=daggregateTo, control=control)	
+mca <- phyloflows:::source.attribution.mcmc.aggregateToTarget(mc=mc, 
+		daggregateTo=daggregateTo, 
+		control=control)	
 mca
 ```
 
 The output is a data.table that contains the aggregated transmission flows, and
 other aggregated variables depending on the value of `control[['regex_pars]]`.
 In our case, we removed a burnin-period of 5\% of the MCMC chain, and did not
-thin the remaining iterations, yielding about 9500 MCMC samples of the
+thin the remaining iterations, yielding about 12,000 MCMC samples of the
 aggregated flows.
 
 That's it for now. Use your usual R wizadry to process the output further, and

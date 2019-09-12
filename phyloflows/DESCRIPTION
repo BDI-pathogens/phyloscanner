@@ -1,7 +1,7 @@
 Package: phyloflows
 Type: Package
 Title: Estimating transmission flows within and between population groups from deep sequence data
-Version: 1.0.0
+Version: 1.1.0
 Authors@R: c(person("Xiaoyue", "Xi", role = c("aut", "cre"), email = "xiaoyue.xi94@gmail.com"),
 	person("Oliver", "Ratmann", role = c("aut"), email = "oliver.ratmann@imperial.ac.uk"),
 	person("Matthew", "Hall", role = "ctb"),
