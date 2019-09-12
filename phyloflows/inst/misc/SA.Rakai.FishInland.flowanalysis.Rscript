@@ -5,9 +5,9 @@ suppressMessages(library(phyloflows, quietly=TRUE, warn.conflicts=FALSE))
 
 # default arguments
 indir		<- "~/Dropbox (SPH Imperial College)/Rakai Fish Analysis/full_run"
-infileTrm	<- file.path(indir,"todi_pairs_181006_cl25_d50_prior23_min30_phylogeography_data_with_inmigrants.rda")
-infilePar	<- file.path(indir,"190327_participation_model_samples.rda")
-infileSeq	<- file.path(indir,"190327_sequencing_model_samples.rda")		
+infileTrm	<- file.path(indir,"RakaiAll_output_190327_w250_s20_p25_d50_stagetwo_rerun23_min30_conf60_phylogeography_data_with_inmigrants.rda")
+infilePar	<- file.path(indir,"190910_participation_age3_mp5_samples.rda")
+infileSeq	<- file.path(indir,"190910_sequencing_excART1_age3_ms1_samples.rda")		
 opt									<- list()
 opt$adjust.sequencing.bias			<- 1
 opt$adjust.participation.bias		<- 1
@@ -43,9 +43,9 @@ tmp	<- system.file(package="phyloflows", 'misc','SA.Rakai.FishInland.functions.R
 cat('\nloading functions in',tmp)
 source(tmp, echo=FALSE, print.eval=FALSE, verbose=FALSE)
 
-cat('\nstarting Rakai190327.analysispipeline.age3model')
-Rakai190327.analysispipeline.age3model(infile.inference=infileTrm, 
+cat('\nstarting Rakai190910.analysispipeline.age3model')
+Rakai190910.analysispipeline.age3model(infile.inference=infileTrm, 
 		infile.participation.prior.samples=infilePar, 
 		infile.sequencing.prior.samples=infileSeq, 
 		opt=opt)
-cat('\ndone Rakai190327.analysispipeline.age3model')
+cat('\ndone Rakai190910.analysispipeline.age3model')
