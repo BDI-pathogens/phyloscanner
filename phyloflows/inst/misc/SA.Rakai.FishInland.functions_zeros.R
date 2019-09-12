@@ -610,7 +610,7 @@ Rakai190910.sequencing.age3.ms1<- function()
   require(rstan)
   require(bayesplot)
   
-  opt.exclude.onART.from.denominator	<- 1
+  opt.exclude.onART.from.denominator	<- 0
   indir <- '~/Dropbox (SPH Imperial College)/Rakai Fish Analysis'
   infile.data <- file.path(indir,"190327_sampling_by_gender_age.rda")
   indir.stan <- '~/git/phyloscanner/phyloflows/inst/misc'
@@ -710,7 +710,7 @@ Rakai190910.sequencing.age3.ms1<- function()
   				}, by='CATEGORY']
   dss <- merge(dss, tmp, by=c('CATEGORY','SAMPLE'))
   set(dss, NULL, c('ETA'), NULL)		
-  save(ds, dss, fit.seq, file=paste0(outfile.base,'190910_sequencing_excART',opt.exclude.onART.from.denominator,'_age3_ms1samples.rda'))
+  save(ds, dss, fit.seq, file=paste0(outfile.base,'190910_sequencing_excART',opt.exclude.onART.from.denominator,'_age3_ms1_samples.rda'))
 }
 
 Rakai190327.sequencing.differences.binomialmodel7<- function()
