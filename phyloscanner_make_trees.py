@@ -243,6 +243,12 @@ help='Used to specify the number of bootstraps to be calculated for RAxML trees'
 OtherArgs.add_argument('-Ns', '--bootstrap-seed', type=int, default=1, help='''
 Used to specify the random-number seed for running RAxML with bootstraps. The
 default is 1.''')
+OtherArgs.add_argument('--max-gap-frac-for-refs', type=float, default=0.5,
+help='''If --alignment-of-other-refs is used, an external reference sequence
+will be excluded from the current window if its fractional gap content in the
+current window (in the alignment including only the references, not the reads)
+exceeds this threshold. The default value is 0.5; this option allows a different
+value to be specified.''')
 OtherArgs.add_argument('-OD', '--output-dir', help='''Used to specify the name
 of a directory into which output files will be moved.''')
 OtherArgs.add_argument('--time', action='store_true',
@@ -554,6 +560,12 @@ if PairwiseAlign:
     'used at once if the same reference is specified for both. Qutting.',
     file=sys.stderr)
     exit(1)
+
+# Sanity check on --max-gap-frac-for-refs
+if not (0 <= args.max_gap_frac_for_refs < 1):
+  print('The value specified with --max-gap-frac-for-refs should be equal to '
+  'or greater than 0 and less than 1. Quitting.', file=sys.stderr)
+  exit(0)
 
 def CheckMaxCoord(coords, ref):
   '''Check that no coordinate is after the end of the reference with respect to
@@ -1900,15 +1912,21 @@ for window in range(NumCoords / 2):
       ExternalRefRightWindowEdge = ExternalRefWindowCoords[window*2 +1]
       RefAlignmentInWindow = ExternalRefAlignment[:,
       ExternalRefLeftWindowEdge-1:ExternalRefRightWindowEdge]
-      RefsThatAreNotPureGap = []
+      SufficientlyNonGappyRefs = []
       for seq in RefAlignmentInWindow:
-        if len(seq.seq.ungap(GapChar)) != 0:
-          RefsThatAreNotPureGap.append(seq)
-      if len(RefsThatAreNotPureGap) == 0:
+        GapFrac = float(str(seq.seq).count(GapChar)) / len(str(seq.seq))
+        if GapFrac <= args.max_gap_frac_for_refs:
+          SufficientlyNonGappyRefs.append(seq)
+        ## We can't have the analagous info if not PairwiseAlign, because there
+        ## the reference extraction is done in separate code.
+        #elif args.verbose:
+        #  print("Discarding reference seq", seq.id, "in window",
+        #  ThisWindowAsStr, "as is has gap fraction", GapFrac, end=".\n")
+      if len(SufficientlyNonGappyRefs) == 0:
         print('Error: all external references are pure gap in this window;',
         'skipping to the next window.', file=sys.stderr)
         continue
-      AlignIO.write(Align.MultipleSeqAlignment(RefsThatAreNotPureGap),
+      AlignIO.write(Align.MultipleSeqAlignment(SufficientlyNonGappyRefs),
       TempFileForOtherRefsHere, 'fasta')
       TempFiles.add(TempFileForOtherRefsHere)
     else:
@@ -1916,7 +1934,9 @@ for window in range(NumCoords / 2):
         try:
           ExitStatus = subprocess.call([PythonPath, FindSeqsInFastaCode,
           FileForAlignedRefs, '-B', '-W', str(LeftWindowEdge) + ',' + \
-          str(RightWindowEdge), '-v'] + BamAliases, stdout=f)
+          str(RightWindowEdge), "--max-gap-frac", 
+          str(args.max_gap_frac_for_refs), '-v'] + BamAliases, stdout=f,
+          stderr=sys.stderr)
           assert ExitStatus == 0
         except:
           print('Problem calling', FindSeqsInFastaCode+\
