@@ -26,7 +26,7 @@ require(phyloscannerR)
 #	continue Rakai example,
 #	load phyloscanner output from 'phyloscanner.analyse.trees'
 #	
-file	<- system.file(file.path('extdata','ptyr192_phsc_analyse_trees_output.R'),package='phyloscannerR')
+file	<- system.file(file.path('extdata','ptyr192_phsc_analyse_trees_output.Rdata'),package='phyloscannerR')
 load(file)	#loads 'phsc', output from 'phyloscanner.analyse.trees'
 #	use distance thresholds found in analysis of Rakai couples
 close.threshold <- 0.025

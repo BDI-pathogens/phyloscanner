@@ -4,7 +4,7 @@
 \alias{plot.chain}
 \title{Plot transmission chain}
 \usage{
-plot.chain(df, di, control)
+\method{plot}{chain}(df, di, control)
 }
 \arguments{
 \item{df}{tibble with the following columns 'H1', 'H2', 'CATEGORISATION', 'TYPE', 'SCORE'}
