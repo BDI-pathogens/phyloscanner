@@ -164,6 +164,7 @@ source.attribution.mcmc.aggregateToTarget    <- function(mcmc.file=NULL, mc=NULL
 	if(grepl(control$regex_pars,'LAMBDA'))
 	{
 		pars <- rbind(pars, tmp1)
+		pars[, VARIABLE:= 'LAMBDA']
 	}
 	if(grepl(control$regex_pars,'LOG_LAMBDA'))
 	{
@@ -182,7 +183,7 @@ source.attribution.mcmc.aggregateToTarget    <- function(mcmc.file=NULL, mc=NULL
        
     # save or return
     if(!'outfile'%in%names(control))
-    return(pars)
+    	return(pars)
     if(grepl('csv$',control$outfile))
     {
         cat('\nWriting csv file to',control$outfile)
