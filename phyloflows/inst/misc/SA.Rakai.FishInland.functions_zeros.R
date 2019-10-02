@@ -842,7 +842,7 @@ Rakai190910.analysispipeline.age3model<- function(infile.inference=NULL, infile.
   if(is.null(opt))
   {
     opt									<- list()
-    opt$adjust.sequencing.bias			<- 1
+    opt$adjust.sequencing.bias			<- 2
     opt$adjust.participation.bias		<- 1
     opt$migration.def.code				<- '24'
     opt$set.missing.migloc.to.inland	<- 0
@@ -856,10 +856,19 @@ Rakai190910.analysispipeline.age3model<- function(infile.inference=NULL, infile.
   {
     infile.participation.prior.samples	<- "~/Dropbox (SPH Imperial College)/Rakai Fish Analysis/full_run/190910_participation_age3_mp5_samples.rda"	
   }
-  if(is.null(infile.sequencing.prior.samples))
+  if(is.null(infile.sequencing.prior.samples) & opt$adjust.sequencing.bias<2)
   {
     infile.sequencing.prior.samples		<- "~/Dropbox (SPH Imperial College)/Rakai Fish Analysis/full_run/190910_sequencing_excART1_age3_ms1_samples.rda"
   }
+  if(is.null(infile.sequencing.prior.samples) & opt$adjust.sequencing.bias==2)
+  {
+	infile.sequencing.prior.samples		<- "~/Dropbox (SPH Imperial College)/Rakai Fish Analysis/full_run/190910_sequencing_excART0_age3_ms1_samples.rda"
+  }
+  if(opt$adjust.sequencing.bias==2 && !grepl('excART0',infile.sequencing.prior.samples))
+  {
+	stop('unexpected infile.sequencing.prior.samples')
+  }
+  
   cat('\ninfile.inference=',infile.inference)
   cat('\ninfile.participation.prior.samples=',infile.participation.prior.samples)
   cat('\ninfile.sequencing.prior.samples=',infile.sequencing.prior.samples)
