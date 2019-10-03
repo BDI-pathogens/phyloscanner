@@ -123,6 +123,8 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
 {        
     dmode <- function(x) 
 	{
+		if(all(x==x[1])) 
+			return(x[1])
         den <- density(x, kernel=c("gaussian"))
         (den$x[den$y==max(den$y)])
     }
@@ -306,6 +308,12 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
         # determine the current iteration in a sweep
         update.count <- (i-1L) %% mc$sweep + 1L
         update.round <- (i-1L) %/% mc$sweep + 1L
+		# determine the category to update
+		update.group <-  (update.count-1L) %/% 2 + 1L
+		update.cat <- mc$dlu$SAMPLING_CATEGORY[update.group]		
+		# choose the pairs to update
+		update.pairs <- update.info[[update.group]]
+		
 #	TODO: 	priority high
 #			you currently for given xi_i, we currently update (s_i* and s_*i) | lambda, and then in a separate step lambda | s 
 #			can you compare this an MCMC where for given xi_i, we update (s_i* and s_*i), lambda jointly, and propose lambda from the full conditional lambda | s*
@@ -313,12 +321,6 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
         # update XI first
         if(mc$with.sampling & (update.count %% 2==1))
         {
-            # determine the category to update
-            update.group <-  update.count %/% 2 + 1
-            update.cat <- mc$dlu$SAMPLING_CATEGORY[update.group]
-            
-            # choose the pairs to update
-            update.pairs <- update.info[[update.group]]
             
             # propose single XI
             XI.prop <- XI.curr
@@ -369,7 +371,7 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
                 S_LP.curr <- S_LP.prop
             }            
         }        
-        if(mc$with.sampling & (update.count %% 2==0))
+        if(!mc$with.sampling || (mc$with.sampling & (update.count %% 2==0)))
         {            
             # propose
             LOG_LAMBDA.prop <- LOG_LAMBDA.curr

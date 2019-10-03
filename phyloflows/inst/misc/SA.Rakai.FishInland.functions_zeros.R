@@ -842,8 +842,8 @@ Rakai190910.analysispipeline.age3model<- function(infile.inference=NULL, infile.
   if(is.null(opt))
   {
     opt									<- list()
-    opt$adjust.sequencing.bias			<- 2
-    opt$adjust.participation.bias		<- 1
+    opt$adjust.sequencing.bias			<- 0
+    opt$adjust.participation.bias		<- 0
     opt$migration.def.code				<- '24'
     opt$set.missing.migloc.to.inland	<- 0
     opt$set.missing.migloc.to.fishing	<- 1-opt$set.missing.migloc.to.inland		
@@ -854,7 +854,7 @@ Rakai190910.analysispipeline.age3model<- function(infile.inference=NULL, infile.
   }
   if(is.null(infile.participation.prior.samples))
   {
-    infile.participation.prior.samples	<- "~/Dropbox (SPH Imperial College)/Rakai Fish Analysis/full_run/190910_participation_age3_mp5_samples.rda"	
+	  infile.participation.prior.samples	<- "~/Dropbox (SPH Imperial College)/Rakai Fish Analysis/full_run/190910_participation_age3_mp5_samples.rda"	
   }
   if(is.null(infile.sequencing.prior.samples) & opt$adjust.sequencing.bias<2)
   {
