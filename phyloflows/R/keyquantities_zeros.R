@@ -60,9 +60,9 @@
 #'
 source.attribution.mcmc.getKeyQuantities<- function(infile=NULL, mc=NULL, pars=NULL, dobs=NULL, control=NULL)
 {    
-    if(is.null(mc) & is.null(pars) & !is.null(infile) && (grepl('rda$',infile)|grepl('rda$',infile)))
+    if(is.null(mc) & is.null(pars) & !is.null(infile) & length(infile)==1 & grepl('rda$',infile))
     {
-        tmp <- load(infile[1])
+        tmp <- load(infile)
         if(tmp=='pars')
         {
             cat('\nReading aggregated MCMC output...')
@@ -71,10 +71,8 @@ source.attribution.mcmc.getKeyQuantities<- function(infile=NULL, mc=NULL, pars=N
         {
             cat('\nReading MCMC output...')
         }
-# TODO: we need to modify handling a vector of infiles
-#		1) make multiple infiles a separate top level if statement
-#		2) if there are multiple infiles, they need to end in rda and all need to contain mc objects		
-		if(tmp=='mc' & length(infile)>1)
+		if(is.null(mc) & is.null(pars) & !is.null(infile) & length(infile)>1 
+		   & all(grepl('rda$',infile)) & all(unlist(lapply(infile,function(x){load(x)=='mc'}))))
 		{
 			#    load MCMC output
 			cat('\nLoading MCMC output from file...')
