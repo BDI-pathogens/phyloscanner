@@ -63,6 +63,10 @@ help='Sequences whose names begin with one of the strings-to-be-searched for '+\
 parser.add_argument('-B', '--skip-blanks', action='store_true', \
 help='Sequences consisting entirely of gap characters ("-" and "?") are '+\
 'ignored. (By default they are included.)')
+parser.add_argument('--max-gap-frac', type=float, \
+help='Sequences whose fraction of gap characters ("-" and "?") exceeds the '
+'threshold specified with this option will be ignored. (By default they are '
+'included.)')
 
 args = parser.parse_args()
 
@@ -75,6 +79,13 @@ if len(DuplicatedArgs) != 0:
     file=sys.stderr)
   print('All sequence names should be unique. Exiting.', file=sys.stderr)
   exit(1)
+
+# Sanity check of max gap frac
+HaveMaxGapFrac = args.max_gap_frac != None
+if HaveMaxGapFrac and not (0 <= args.max_gap_frac < 1):
+  print('The value specified with --max-grap-frac should be equal to or greater'
+  ' than 0 and less than 1. Quitting.', file=sys.stderr)
+  exit(0)
 
 NumSeqsToSearchFor = len(args.SequenceName)
 
@@ -141,6 +152,16 @@ if args.skip_blanks:
   NewSeqsWeWant = []
   for seq in SeqsWeWant:
     if len(seq.seq.ungap("-").ungap("?")) != 0:
+      NewSeqsWeWant.append(seq)
+  SeqsWeWant = NewSeqsWeWant
+
+# Skip overly gappy seqs if desired
+if HaveMaxGapFrac:
+  NewSeqsWeWant = []
+  for seq in SeqsWeWant:
+    SeqAsStr = str(seq.seq)
+    if float(SeqAsStr.count("-") + SeqAsStr.count("?")) / len(SeqAsStr) <= \
+    args.max_gap_frac:
       NewSeqsWeWant.append(seq)
   SeqsWeWant = NewSeqsWeWant
 
