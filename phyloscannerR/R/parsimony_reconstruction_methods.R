@@ -349,7 +349,7 @@ split.and.annotate <- function(tree, hosts, tip.hosts, host.tips, host.mrcas, bl
     
     if (verbose) cat("Reconstructing...\n")
     
-    full.assocs <- phyloscanner.reconstruct(tree, getRoot(tree), "unassigned", list(), tip.hosts, hosts, cost.matrix, individual.costs, k, p, tip.read.counts, verbose, F)
+    full.assocs <- phyloscanner.reconstruct(tree, getRoot(tree), "unassigned", list(), tip.hosts, hosts, cost.matrix, individual.costs, k, p, tip.read.counts, verbose, F)$node.assocs
     
     temp.ca <- rep(NA, length(tree$tip.label) + tree$Nnode)
     
@@ -547,6 +547,8 @@ count.splits <- function(tree, node, assocs, hosts, counts.vec, first.nodes.list
   
   parent <- Ancestors(tree, node, type="parent")
   change <- F
+
+  
   if(parent == 0){
     change <- T
   } else if (assocs[[parent]]!=assocs[[node]]){
@@ -771,6 +773,7 @@ child.cost <- function(tree, child.index, hosts, top.host.no, bottom.host.no, cu
 #' @export phyloscanner.reconstruct
 
 phyloscanner.reconstruct <- function(tree, node, node.state, node.assocs, tip.hosts, hosts, full.cost.matrix, node.cost.matrix, k, p, tip.read.counts, verbose=F, first.ties.warning.printed = F){
+  
   node.assocs[[node]] <- node.state
   # if(verbose){
   #   cat("Node ",node," reconstructed as ",node.state,"\n", sep="")
@@ -826,10 +829,12 @@ phyloscanner.reconstruct <- function(tree, node, node.state, node.assocs, tip.ho
           
         }
       }
-      node.assocs <- phyloscanner.reconstruct(tree, child, decision, node.assocs, tip.hosts, hosts, full.cost.matrix, node.cost.matrix, k, p, tip.read.counts, verbose, first.ties.warning.printed)
+      down <- phyloscanner.reconstruct(tree, child, decision, node.assocs, tip.hosts, hosts, full.cost.matrix, node.cost.matrix, k, p, tip.read.counts, verbose, first.ties.warning.printed)
+      node.assocs <- down$node.assocs
+      first.ties.warning.printed <- down$first.ties.warning.printed
     }
   }
-  return(node.assocs)
+  return(list(node.assocs = node.assocs, first.ties.warning.printed = first.ties.warning.printed))
 }
 
 # Submethods of the above
