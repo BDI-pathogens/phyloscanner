@@ -606,8 +606,12 @@ if(length(phyloscanner.trees)>1){
         ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, tip.regex, 1, 1, close.sib.only = F, verbosity==2)
       }
       
-      if (verbosity!=0 & output.files) cat('Writing transmission summary to file ', paste0(output.string,"_hostRelationshipSummary", csv.fe),'...\n', sep="")
-      write_csv(ts, file.path(output.dir, paste0(output.string,"_hostRelationshipSummary", csv.fe)))
+      
+      if (output.files){
+        if (verbosity!=0) cat('Writing transmission summary to file ', paste0(output.string,"_hostRelationshipSummary", csv.fe),'...\n', sep="")
+        write_csv(ts, file.path(output.dir, paste0(output.string,"_hostRelationshipSummary", csv.fe)))
+      }
+      
     } else {
       relationship.types	<- c('proximity.3.way',
                               'any.ancestry',
@@ -646,8 +650,10 @@ if(length(phyloscanner.trees)>1){
           
           simplified.graph <- simplify.summary(ts, arrow.threshold, length(phyloscanner.trees), plot = T)
           
-          simplified.graph$simp.diagram
-          ggsave(file = file.path(output.dir, paste0(output.string,"_simplifiedRelationshipGraph.pdf")), width=simp.plot.dim, height=simp.plot.dim)
+          if(output.files){
+            simplified.graph$simp.diagram
+            ggsave(file = file.path(output.dir, paste0(output.string,"_simplifiedRelationshipGraph.pdf")), width=simp.plot.dim, height=simp.plot.dim)
+          }
         }
       } else {
         if (verbosity!=0 & output.files) cat('Drawing simplified summary diagram to file ', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'...\n', sep="")

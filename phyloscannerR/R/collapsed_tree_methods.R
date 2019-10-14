@@ -572,7 +572,7 @@ subgraphs.unblocked <- function(tt, splits, total.pairs, verbose = F, no.progres
           pat.1 <- strsplit(spt.1, "-SPLIT")[[1]][1]
           pat.2 <- strsplit(spt.2, "-SPLIT")[[1]][1]
           
-          if(spt.1 %in%  get.tt.adjacent(tt, spt.2)){
+          if(spt.1 %in% get.tt.adjacent(tt, spt.2)){
             out[spt.1.no, spt.2.no] <- T
             out[spt.2.no, spt.1.no] <- T
           } else {
