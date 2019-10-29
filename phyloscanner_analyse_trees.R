@@ -587,11 +587,10 @@ if(length(phyloscanner.trees)>1){
   
   ss.graphs.fn <- paste0(output.string,"_patStats.pdf")
   
-  if(verbosity!=0 & output.files){
-    cat("Graphing summary statistics to file ",ss.graphs.fn,"...\n", sep="")
-  }
-  
   if(output.files){
+    if(verbosity!=0){
+      cat("Graphing summary statistics to file ",ss.graphs.fn,"...\n", sep="")
+    }
     silent <- multipage.summary.statistics(phyloscanner.trees, summary.stats, file.name = file.path(output.dir, ss.graphs.fn), verbose = verbosity==2)
   }
   
