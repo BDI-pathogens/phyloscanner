@@ -7,7 +7,6 @@ ph.phyloscanner <- readRDS(file=system.file(file.path('extdata','ptyr292_1600_to
 #	cast from phyloscanner format to SIMMAP format
 #	so that the SIMMAP tree still has the phyloscanner attributes
 ph.simmap <- phyloscanner.to.simmap(ph.phyloscanner, delete.phyloscanner.structures=FALSE)
-attr(ph, "SPLIT")
 #	to delete the phyloscanner attributes, use
 ph.simmap <- phyloscanner.to.simmap(ph.phyloscanner, delete.phyloscanner.structures=TRUE)
 #

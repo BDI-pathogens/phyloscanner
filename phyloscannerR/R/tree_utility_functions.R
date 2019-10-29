@@ -684,6 +684,14 @@ extract.subgraph<- function(ph, mrca)
 	host <- as.character(attr(ph, "INDIVIDUAL")[mrca])
 	subgraph.root.edge <- ph$edge.length[ which( ph$edge[,2]==mrca ) ]
 	subgraph.parent.state <- as.character(attr(ph, "BRANCH_COLOURS")[ ph$edge[ph$edge[,2]==mrca,1] ])
+	#	it is possible that:
+	#	the original tree had a subgraph rooted in some state X, but dropping all tips of that subgraph
+	#	gives a tree in which the subgraph of mrca is again rooted in a subgraph of state host
+	if(!is.na(subgraph.parent.state) && subgraph.parent.state==host)
+	{
+		cat('\nFound subgraph.parent.state that is of same state. This may not be an error but check. mrca=',mrca)
+		subgraph.parent.state <- NA
+	}		
 	stopifnot( is.na(subgraph.parent.state) || subgraph.parent.state!=host )
 	if(mrca<=Ntip(ph))
 	{
