@@ -194,3 +194,166 @@ GP1D.Poisson <- function()
 	plot_gp_quantiles(pred_fit, data, true_realization, "Posterior Quantiles")	
 	plot_gp_pred_quantiles(pred_fit, data, true_realization, "Posterior Predictive Quantiles")
 }
+
+GP2D.Poisson<- function()
+{
+	home <- '/Users/apple/Desktop/phyloscanner.utility/gp/'
+	home <- '/Users/xx4515/Desktop/gp/'
+	home <- '~/git/phyloscanner/phyloflows/inst/misc'
+	dir.mb.tutorial <- file.path(home,'MB_gp_tutorial')
+	out.file <-file.path(home,'figure')
+	
+	library(rstan)
+	library(data.table)
+	library(ggplot2)
+	library(metR)
+	rstan_options(auto_write = TRUE)
+	options(mc.cores = parallel::detectCores())
+	
+	alpha_true <- c(3)
+	rho_true <- c(5.5)
+	gp_dim <- 2
+	
+	x_total <- expand.grid(x1= seq(15,50,1), x2=seq(15,50,1))
+	N_total <- nrow(x_total)
+	#x_total <- lapply(seq_len(ncol(x_total)), function(d) x_total[,d])     
+	simu_data <- list( alpha=alpha_true, 
+			rho=rho_true, 
+			N=N_total, x=x_total,
+			D=gp_dim)
+	
+	# simulate data set  
+	simu_fit <- stan( file=file.path(dir.mb.tutorial,'simu_poisson_2d.stan'), 
+			data=simu_data, iter=1,
+			chains=1, seed=494838, algorithm="Fixed_param")
+	
+	f_total <- extract(simu_fit)$f[1,]
+	y_total <- extract(simu_fit)$y[1,] 
+	true_realization <- data.frame(exp(f_total), x_total)
+	names(true_realization) <- c("f_total", "x_total") 
+	sample_idx <- seq(from=1,to=N_total,by=50)
+	N = length(sample_idx)
+	x <- x_total[sample_idx,]
+	y <- y_total[sample_idx] 
+	
+	# plot simulated data
+	df <- data.table(x=x_total[,1],y=x_total[,2],
+			z=f_total)
+	range(df$z)
+	ggplot(df, aes(x, y, z = z))+
+			geom_contour(bins = 10)+
+			geom_raster(aes(fill = z)) +
+			geom_contour(colour = "white")+
+			# geom_text_contour(aes(z = z), stroke = 0.2)+ 
+			scale_fill_gradientn(colours = terrain.colors(10),limits=c(-7,7))+
+			scale_x_continuous(expand = c(0,0), limits = c(15,50))+
+			scale_y_continuous(expand = c(0,0), limits = c(15,50))+
+			theme_classic()
+	ggsave(file=paste0(out.file,'/pos2d/simulated_f.pdf'),width = 7.5, height = 6)
+	
+	df <- data.table(x=x_total[,1],y=x_total[,2],
+			z=y_total)
+	df2 <- data.table(x=x[,1],y=x[,2],z=y)
+	range(df$z)
+	range(df2$z)
+	ggplot(df, aes(x, y, z = z))+
+			geom_contour()+
+			geom_raster(aes(fill = z)) +
+			geom_contour(colour = "white")+
+			# geom_text_contour(aes(z = z), stroke = 0.2)+ 
+			scale_fill_gradientn(colours = terrain.colors(10),limits=c(0,40),
+					name='all the data')+
+			scale_x_continuous(expand = c(0,0), limits = c(15,50))+
+			scale_y_continuous(expand = c(0,0), limits = c(15,50))+
+			theme_classic()+
+			geom_point(df2,mapping = aes(x=x,y=y,colour=z),size=3)+
+			scale_colour_gradient(low = "white", high = "black",
+					limits=c(0,40),name='observed data')
+	ggsave(file=paste0(out.file,'/pos2d/simulated_y.pdf'),width = 7.5, height = 6)
+	
+	# save simulated data and truth
+	N_predict <- N_total
+	x_predict <- x_total
+	y_predict <- y_total 
+	stan_rdump(c("N", "x", "y", "N_predict", "x_predict", "y_predict", "sample_idx"), 
+			file=file.path(dir.mb.tutorial,"gppois.data.2d.R"))
+	data <- read_rdump(file.path(dir.mb.tutorial,"gppois.data.2d.R")) 
+	stan_rdump(c("f_total", "x_total"), file=file.path(dir.mb.tutorial,"gppois.truth.2d.R"))
+	
+	# simulate from GP conditional on observations
+	pred_data <- list( alpha=alpha_true, rho=rho_true,
+			N_predict=N_predict, D=gp_dim, x_predict=x_predict,
+			N_observed=N, y_observed=y, observed_idx=sample_idx)
+	pred_fit <- stan(file=file.path(dir.mb.tutorial,'predict_poisson_2d.stan'), 
+			data=pred_data, seed=5838298, refresh=1000,chains = 1)
+	
+	save(pred_fit,file=file.path(dir.mb.tutorial,'fit_predict_poisson_2d.rda'))
+	params <- extract(pred_fit)
+	cred <- sapply(1:N_total,
+			function(n) quantile(params$y_predict[,n], probs=c(0.025,0.5,0.975)))
+	df <- data.table(x=x_total[,1],y=x_total[,2],
+			z=cred[1,])
+	range(df$z)
+	ggplot(df, aes(x, y, z = z))+
+			geom_contour(bins = 10)+
+			geom_raster(aes(fill = z)) +
+			geom_contour(colour = "white")+
+			# geom_text_contour(aes(z = z), stroke = 0.2)+ 
+			scale_fill_gradientn(colours = terrain.colors(10),limits=c(0,5))+
+			scale_x_continuous(expand = c(0,0), limits = c(15,50))+
+			scale_y_continuous(expand = c(0,0), limits = c(15,50))+
+			theme_classic()
+	ggsave(file=paste0(out.file,'/pos2d/predicted_ylb.pdf'),width = 7.5, height = 6)
+	
+	df <- data.table(x=x_total[,1],y=x_total[,2],
+			z=cred[2,])
+	range(df$z)
+	ggplot(df, aes(x, y, z = z))+
+			geom_contour(bins = 10)+
+			geom_raster(aes(fill = z)) +
+			geom_contour(colour = "white")+
+			# geom_text_contour(aes(z = z), stroke = 0.2)+ 
+			scale_fill_gradientn(colours = terrain.colors(10),limits=c(0,20))+
+			scale_x_continuous(expand = c(0,0), limits = c(15,50))+
+			scale_y_continuous(expand = c(0,0), limits = c(15,50))+
+			theme_classic()
+	ggsave(file=paste0(out.file,'/pos2d/predicted_ym.pdf'),width = 7.5, height = 6)
+	
+	df <- data.table(x=x_total[,1],y=x_total[,2],
+			z=cred[3,])
+	range(df$z)
+	ggplot(df, aes(x, y, z = z))+
+			geom_contour(bins = 10)+
+			geom_raster(aes(fill = z)) +
+			geom_contour(colour = "white")+
+			# geom_text_contour(aes(z = z), stroke = 0.2)+ 
+			scale_fill_gradientn(colours = terrain.colors(10),limits=c(0,460))+
+			scale_x_continuous(expand = c(0,0), limits = c(15,50))+
+			scale_y_continuous(expand = c(0,0), limits = c(15,50))+
+			theme_classic()
+	ggsave(file=paste0(out.file,'/pos2d/predicted_yub.pdf'),width = 7.5, height = 6)
+	
+	cred <- data.table(t(cred))
+	cred[,id:=seq_len(nrow(cred))]
+	cred[,y:=y_predict]
+	cred[,x1:=x_predict[,1]]
+	cred[,x2:=x_predict[,2]]
+	setnames(cred,c('2.5%','50%','97.5%'),c('lb','m','ub'))
+	cred[,observed:=0]
+	cred$observed[sample_idx] <- 1
+	
+	ggplot(cred, aes(x=x1, y=m,color=factor(observed))) + 
+			geom_point(cred,mapping=aes(x=x1,y=y,color=factor(observed)))+
+			facet_grid(x2~.)+
+			geom_errorbar(aes(ymin=lb, ymax=ub, color=factor(observed)), width=.2,
+					position=position_dodge(0.05))+
+			theme_classic()+
+			theme(legend.position = 'none')+
+			scale_color_manual(values=c('black','red'))
+	ggsave(file=paste0(out.file,'/pos2d/prediction.pdf'),
+			width = 50, height=50,limitsize = FALSE)
+	
+	# estimate hyperparameter
+	pred_fit <- stan(file=file.path(dir.mb.tutorial,'predict_poisson2_2d.stan'), 
+			data=pred_data, seed=5838298, refresh=1000,chains = 1)
+}
