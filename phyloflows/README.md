@@ -66,7 +66,7 @@ differences. So what we observe is an expectation
 $(n_{11} = 18, n_{12} = 6, n_{21} = 12, n_{22} = 20)$,
 If we don’t adjust for the sampling, a crude estimate of the true
 proportion of transmission flows would be
-$(\^{\pi}_ {11} = 18/56 = 0.321, \^{\pi}_ {12} = 0.107, \^{\pi}_ {21} = 0.214, \^{\pi}_ {22} = 0.357)$
+$({\^{\pi}}_ {11} = 18/56 = 0.321, \^{\pi}_ {12} = 0.107, \^{\pi}_ {21} = 0.214, \^{\pi}_ {22} = 0.357)$
 and the worst case error is 50%-32.1%=17.9%. That is pretty bad. **The
 job of phyloflow is to return better estimates**, with a worst case
 error lower than 2-3%.
