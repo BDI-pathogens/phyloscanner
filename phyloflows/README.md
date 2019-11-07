@@ -76,7 +76,7 @@ Our solution
 
 One very quick solution to the sampling problem would be to infer the
 actual transmission flows from what we know, i.e. 
-*ẑ*<sub>*i**j*</sub> = *n*<sub>*i**j*</sub>/(*s*<sub>*i*</sub> \* *s*<sub>*j*</sub>),
+$\hat{z}\_{ij} = n_{ij}/(s_i\times s_j)$,
 and then to calculate
 *π̂*<sub>*i**j*</sub> = *ẑ*<sub>*i**j*</sub>/∑<sub>*k**l*</sub>*ẑ*<sub>*k**l*</sub>.
 But this does not address the further problems that the sampling groups
