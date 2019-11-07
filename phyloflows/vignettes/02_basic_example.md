@@ -125,16 +125,16 @@ where $s_i$ is the probability of sampling an individual
 from group $i$.
 
 These equations suggest that one approach to infer the proportion of
-transmissions *π* could be via data augmentation. In data augmentation,
-we would consider the unobserved, actual transmission counts *z* as
+transmissions $\pi$ could be via data augmentation. In data augmentation,
+we would consider the unobserved, actual transmission counts $z$ as
 latent variables, and then infer the joint posterior distribution of the
-parameters (*z*, *Z*, *π*) with a Monte Carlo algorithm.
+parameters $(z, Z, \pi)$ with a Monte Carlo algorithm.
 
 **However there is a more efficient approach for the particular model
-above.** Inference of *π* under the Multinomial likelihood
-*M**u**l**t**i**n**o**m**i**a**l*(*z*; *Z*, *π*) is equivalent to
-inference of Poisson mean rates *λ*  
-*λ* = (*λ*<sub>11</sub>, *λ*<sub>12</sub>, *λ*<sub>21</sub>, *λ*<sub>22</sub>)
+above.** Inference of $\pi$ under the Multinomial likelihood
+$\textrm{Multinomial}(z; Z, \pi)$ is equivalent to
+inference of Poisson mean rates $\lambda$  
+$\lambda = (\lambda_{11}, \lambda_{12}, \lambda_{21}, \lambda_{22})$
 in the system of independent Poisson likelihoods
 *p*(*z*<sub>*i**j*</sub>|*λ*<sub>*i**j*</sub>) = *P**o**i**s**s**o**n*(*z*; *λ*<sub>*i**j*</sub>),
 where *λ*<sub>*i**j*</sub> &gt; 0, *i* = 1, 2 and *j* = 1, 2. The
