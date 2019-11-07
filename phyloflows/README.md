@@ -47,7 +47,7 @@ groups “1” and “2” is
 $(z_{11} = 50, z_{12} = 10, z_{21} = 20, z_{22} = 20)$,
 so that the true proportion of transmission flows within and between
 groups is
-(*π*<sub>11</sub> = 0.5, *π*<sub>12</sub> = 0.1, *π*<sub>21</sub> = 0.2, *π*<sub>22</sub> = 0.2).
+$(\pi_{11} = 0.5, \pi_{12} = 0.1, \pi_{21} = 0.2, \pi_{22} = 0.2)$.
 **The primary aim** is to estimate the vector of proportions
 *π* = (*π*<sub>11</sub>, *π*<sub>12</sub>, *π*<sub>21</sub>, *π*<sub>22</sub>).
 This looks simple. **However in real life one main complication is**
