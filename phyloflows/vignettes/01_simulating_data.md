@@ -3,7 +3,7 @@
 2019-04-30
 
 Here is some code to set up simulated data sets. The main aim of these
-simulations are to test the performance of phyloflows MCMC algorithm.
+simulations are to test the performance of the **phyloflows** MCMC algorithm.
 Please read the sections “Our Job” and “Our Solution” on the main page
 before you go ahead here.
 
