@@ -144,10 +144,10 @@ for $i \in \\{1, 2\\}$ and $j \in \\{1, 2\\}$. This is known as the 
 advantage of this model parameterisation is that sampled Poisson random
 variables are again Poisson random variables, which allows us to
 integrate out analytically the unknown, actual transmission counts
-*z*<sub>*i**j*</sub>. We obtain  
-*p*(*n*|*λ*, *s*) = ∏<sub>*i* = 1, 2; *j* = 1, 2</sub>*P**o**i**s**s**o**n*(*n*<sub>*i**j*</sub>; *λ*<sub>*i**j*</sub> \* *s*<sub>*i*</sub> \* *s*<sub>*j*</sub>).
+$z_{ij}$. We obtain  
+$p(n|\lambda,s) = \prod_{i,j \in\\{1, 2\\}}\mathrm{Poisson}(n_{ij}; \lambda_{ij} \times s_i \times s_j)$.
 
-The free parameters of the model are (*λ*, *s*), and the posterior
+The free parameters of the model are $(\lambda, s)$, and the posterior
 distribution of the free parameters is given by
 $$
 \\begin{aligned}
