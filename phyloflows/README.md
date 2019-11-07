@@ -57,17 +57,16 @@ this situation not only occurs frequently in observational epidemiologic
 studies but also controlled situations (trials). Suppose that population
 “1” is sampled with probability $s_1 = 0.6$ and population “2”
 with probability $s_2 = 1$. On expectation, we then observe
-the transmission flows
-$n_{ij} = z_{ij} \times s_i \times s_j$,
+the transmission flows $n_{ij} = z_{ij} \times s_i \times s_j$, 
 if we assume that sampling within and between the two groups is
 independent of each other, and if we ignore the fact that in reality
-sampling is without replacement. It won t matter much in reasonably
+sampling is without replacement. It won't matter much in reasonably
 large populations anyway, considering the extent of typical sampling
-differences. So what we observe is on expectation
-(*n*<sub>11</sub> = 18, *n*<sub>12</sub> = 6, *n*<sub>21</sub> = 12, *n*<sub>22</sub> = 20),
+differences. So what we observe is an expectation
+$(n_{11} = 18, n_{12} = 6, n_{21} = 12, n_{22} = 20)$,
 If we don’t adjust for the sampling, a crude estimate of the true
 proportion of transmission flows would be
-(*π̂*<sub>11</sub> = 18/56 = 0.321, *π̂*<sub>12</sub> = 0.107, *π̂*<sub>21</sub> = 0.214, *π̂*<sub>22</sub> = 0.357)
+$(\^{\pi}_{11} = 18/56 = 0.321, \^{\pi}_{12} = 0.107, \^{\pi}_{21} = 0.214, \^{\pi}_{22} = 0.357)$
 and the worst case error is 50%-32.1%=17.9%. That is pretty bad. **The
 job of phyloflow is to return better estimates**, with a worst case
 error lower than 2-3%.
