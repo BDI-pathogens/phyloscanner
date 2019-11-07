@@ -86,8 +86,8 @@ known themselves; and that we also want interpretable uncertainty
 estimates for $\hat{\pi}$. So we use a Bayesian approach, and write down the
 likelihood of the complete data,
 $p(z|Z, \pi) = \mathrm{Multinomial}(z; Z, \pi)$,
-where *Z* is the total number of transmissions,
-*Z* = ∑<sub>*k**l*</sub>*z*<sub>*k**l*</sub>. Next, we add the
+where $Z$ is the total number of transmissions,
+$Z = \sum\_{k,l}z\_{kl}$. Next, we add the
 likelihood of the sampling process,
 *p*(*n*<sub>*i**j*</sub>|*z*<sub>*i**j*</sub>, *s*<sub>*i*</sub>, *s*<sub>*j*</sub>) = *B**i**n**o**m**i**a**l*(*n*<sub>*i**j*</sub>; *z*<sub>*i**j*</sub>, *s*<sub>*i*</sub> \* *s*<sub>*j*</sub>).
 Finally, we complete the model with prior distributions on the
