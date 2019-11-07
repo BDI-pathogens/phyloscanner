@@ -114,15 +114,15 @@ $z\_{ij}$. Denote the vector of actual transmission counts by
 $z = (z_{11}, z_{12}, z_{21}, z_{22})$.
 We assume that transmission events occurred independently of each other.
 Then the likelihood of the actual transmission counts can be modelled by
-*p*(*z*|*Z*, *π*) = *M**u**l**t**i**n**o**m**i**a**l*(*z*; *Z*, *π*),
-where *Z* is the total number of transmissions,
-*Z* = ∑<sub>*k**l*</sub>*z*<sub>*k**l*</sub>. Next, we specify a model
+$p(z|Z, \pi) = \textrm{Multinomial}(z; Z, \pi)$,
+where $Z$ is the total number of transmissions,
+$Z = \sum\_{k,l}z_{kl}$. Next, we specify a model
 for observing one actual transmission event. We assume that sampling
-occurred at random within each of the sampling groups *i* and *j*. We
+occurred at random within each of the sampling groups $i$ and $j$. We
 then obtain
-*p*(*n*<sub>*i**j*</sub>|*z*<sub>*i**j*</sub>, *s*<sub>*i*</sub>, *s*<sub>*j*</sub>) = *B**i**n**o**m**i**a**l*(*n*<sub>*i**j*</sub>; *z*<sub>*i**j*</sub>, *s*<sub>*i*</sub> \* *s*<sub>*j*</sub>),
-where *s*<sub>*i*</sub> is the probability of sampling an individual
-from group *i*, and similary for *s*<sub>*i*</sub>.
+$p(n\_{ij}|z\_{ij}, s_i, s_j) = \textrm{Binomial}(n\_{ij}; z\_{ij}, s_i \times s_j)$,
+where $s_i$ is the probability of sampling an individual
+from group $i$.
 
 These equations suggest that one approach to infer the proportion of
 transmissions *π* could be via data augmentation. In data augmentation,
