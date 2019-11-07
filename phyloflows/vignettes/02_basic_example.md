@@ -176,7 +176,7 @@ We use a Markov Chain Monte Carlo algorithm to sample from the posterior
 distribution
 $$
 \begin{aligned}
-p(\lambda, s | n) \prop \prod_{i,j\in\\{1,2\\}}\mathrm{Poisson}(n_{ij}; \lambda_{ij} \times s_i\times s_j)p(\lambda_{ij})p(s_i)p(s_j)
+p(\lambda, s | n) \\propto \prod_{i,j\in\\{1,2\\}}\mathrm{Poisson}(n_{ij}; \lambda_{ij} \times s_i\times s_j)p(\lambda_{ij})p(s_i)p(s_j)
 \end{aligned}
 $$.
 
