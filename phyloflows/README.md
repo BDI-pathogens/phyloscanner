@@ -91,17 +91,17 @@ $Z = \sum\_{k,l}z\_{kl}$. Next, we add the
 likelihood of the sampling process,
 $p(n\_{ij}|z\_{ij}, s_i, s_j) = \mathrm{Binomial}(n\_{ij}; z\_{ij}, s_i \times s_j)$.
 Finally, we complete the model with prior distributions on the
-proportions, *p*(*π*), which we generally choose in an uninformative
+proportions, $p(\pi)$, which we generally choose in an uninformative
 way; prior distributions on the sampling probabilities,
-*p*(*s*<sub>*i*</sub>), which we generally choose based on other
-availabe information; and a prior distribution on the total number of
-transmissions, *p*(*Z*), which we also choose based on available
+$p(s_i)$), which we generally choose based on other
+available information; and a prior distribution on the total number of
+transmissions, $p(Z)$, which we also choose based on available
 information. And then we use Bayes' Theorem.
 
 This looks pretty straightforward. The issue is that in real-world data
 analyses, the total number of unknown parameters is 1,000 or even more.
 And so we also need a nifty computational inference engine.
-**phyloflow** uses a special type of Markov Chain Markov Carlo
+**phyloflows** uses a special type of Markov Chain Markov Carlo
 algorithms for this job. The main feature is that it has zero tuning
 variables, so the blame is 100% on us if it does not work. Just get in
 touch then.
