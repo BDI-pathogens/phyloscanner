@@ -47,7 +47,7 @@ Transmission flow ratios
 
 Yet another important summary statistic are ratios of transmission
 flows, defined by
-*ρ*<sub>*i**j*</sub> = *π*<sub>*i**j*</sub>/*π*<sub>*j**i*</sub>.
+$\rho_{ij} = \pi_{ij}/\pi_{ji}$.
 
 Calculating key quantities
 --------------------------
