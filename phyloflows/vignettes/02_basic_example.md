@@ -152,7 +152,7 @@ distribution of the free parameters is given by
 $$
 \\begin{aligned}
 p(\\lambda, s | n) & \\propto p(n | \\lambda, s) p(\\lambda, s) \\\\
-              & = \\prod\_{i=1,2;j=1,2} Poisson(n\_{ij};\\lambda\_{ij}\*s\_i\*s\_j) p(\\lambda\_{ij}) p(s\_i) p(s\_j).
+              & = \\prod\_{i,j \in \\{1,2\\}} \mathrm{Poisson}(n\_{ij};\\lambda\_{ij}\*s\_i\*s\_j) p(\\lambda\_{ij}) p(s\_i) p(s\_j).
 \\end{aligned}
 $$
 
