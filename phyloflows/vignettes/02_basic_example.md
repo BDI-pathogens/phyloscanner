@@ -157,7 +157,7 @@ p(\\lambda, s | n) & \\propto p(n | \\lambda, s) p(\\lambda, s) \\\\
 $$
 
 **For the prior distributions**, we specify for
-$p\times(\lambda_{ij})$, $i,j \in \\{1,2\\}$ uninformative prior
+$p(\lambda_{ij})$, $i,j \in \\{1,2\\}$ uninformative prior
 distributions. We use a Gamma distribution with parameters
 $\alpha_i = 0.8/4$ and $\beta = 0.8/Z$ with
 $Z = \sum_{i,j | | n_{ij} > 0 }n_{ij}/(s_i \times s_j) + \sum_{i,j | n_{ij} > 0} (1 − s_i\times s_j)/(s_i\times s_j)$.
