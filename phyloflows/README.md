@@ -49,14 +49,14 @@ so that the true proportion of transmission flows within and between
 groups is
 $(\pi_{11} = 0.5, \pi_{12} = 0.1, \pi_{21} = 0.2, \pi_{22} = 0.2)$.
 **The primary aim** is to estimate the vector of proportions
-*π* = (*π*<sub>11</sub>, *π*<sub>12</sub>, *π*<sub>21</sub>, *π*<sub>22</sub>).
+$\pi = (\pi_{11}, \pi_{12}, \pi_{21}, \pi_{22})$.
 This looks simple. **However in real life one main complication is**
 that only a proportion of the true transmission flows are observed (or
 sampled), and that the sampling probabilities differ. In our experience
 this situation not only occurs frequently in observational epidemiologic
 studies but also controlled situations (trials). Suppose that population
-“1” is sampled with probability *s*<sub>1</sub> = 0.6 and population “2”
-with probability *s*<sub>2</sub> = 1. On expectation, we then observe
+“1” is sampled with probability $s_1 = 0.6$ and population “2”
+with probability $s_2 = 1$. On expectation, we then observe
 the transmission flows
 *n*<sub>*ij*</sub> = *z*<sub>*ij*</sub> \* *s*<sub>*i*</sub> \* *s*<sub>*j*</sub>,
 if we assume that sampling within and between the two groups is
