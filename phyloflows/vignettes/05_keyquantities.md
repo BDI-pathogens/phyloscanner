@@ -38,9 +38,9 @@ Onward transmissions from each group
 
 Another important summary statistic are the proportions of transmissions
 that originate from each group, defined by
-*ν* = (*ν*<sub>11</sub>, *ν*<sub>21</sub>, *ν*<sub>12</sub>, *ν*<sub>22</sub>)
+$\nu = (\nu_{11}, \nu_{12}, \nu_{21}, \nu_{22})$
 where
-*ν*<sub>*i**j*</sub> = *π*<sub>*i**j*</sub>/∑<sub>*s*</sub>*π*<sub>*i**s*</sub>.
+$\nu_{ij} = \pi_{ij}/\sum_k\pi_{ik}$.
 
 Transmission flow ratios
 ------------------------
