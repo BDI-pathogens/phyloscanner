@@ -137,10 +137,10 @@ inference of Poisson mean rates $\lambda$
 $\lambda = (\lambda_{11}, \lambda_{12}, \lambda_{21}, \lambda_{22})$
 in the system of independent Poisson likelihoods
 $p(z\_{ij}|\lambda_{ij}) = \mathrm{Poisson}(z; \lambda_{ij})$,
-where $\lambda_{ij} > 0$, $i \in \\{1, 2\\}$ and $j \in \{1, 2\}$. The
+where $\lambda_{ij} > 0$, $i \in \\{1, 2\\}$ and $j \in \\{1, 2\\}$. The
 proportion of transmissions *π* are recovered via the equations
-*π*<sub>*i**j*</sub> = *λ*<sub>*i**j*</sub>/∑<sub>*k* = 1, 2; *l* = 1, 2</sub>*λ*<sub>*k**l*</sub>.
-for *i* = 1, 2 and *j* = 1, 2. This is known as the Poisson trick. The
+$\pi_{ij} = \lambda_{ij}/\sum_{k,l \in \\{1, 2\}}\lambda_{kl}$.
+for $i \in \\{1, 2\\}$ and $j \in \\{1, 2\\}$. This is known as the Poisson trick. The
 advantage of this model parameterisation is that sampled Poisson random
 variables are again Poisson random variables, which allows us to
 integrate out analytically the unknown, actual transmission counts
