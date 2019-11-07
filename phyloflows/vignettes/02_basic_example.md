@@ -181,7 +181,7 @@ p(\lambda, s | n) \\propto \prod_{i,j\in\\{1,2\\}}\mathrm{Poisson}(n_{ij};�
 $$.
 
 Then, we calculate the main quantity of interest, $\pi$, via
-$\pi_{ij} = \lambda_{ij}/\sum_{k,l \in \\{1,2\\}}\lambda_{kl}$.
+$\pi_{ij} = \lambda_{ij}/\sum_{k,l \in \\{1,2\\}}\lambda_{kl}$
 for $i,j \in \\{1,2\\}$. The syntax for running the algorithm is
 as follows.
 
@@ -211,27 +211,26 @@ Let s have a look at the output messages.
 -   `Setting seed to 42`: This tells us the random number seed that was
     used, so we can re-run the algorithm to get identical results.
 -   `Number of parameters: 6`: The total number of unknown parameters in
-    the MCMC is the length of *λ* plus length of the sampling
-    probabilities *s*. Here, the number of flows between the two
+    the MCMC is the length of $\lambda$ plus length of the sampling
+    probabilities $s$. Here, the number of flows between the two
     subpopulation is 4, and sampling was different in each
     subpopulation, adding 2 parameters.
 -   `Dimension of PI: 4`: the number of flows between the two
     subpopulations is 4.
 -   `Sweep length: 4`: the MCMC updates in turn a subset of the sampling
     probabilities of transmission groups
-    *ξ* = (*ξ*<sub>11</sub>, *ξ*<sub>12</sub>, *ξ*<sub>21</sub>, *ξ*<sub>22</sub>),  *ξ*<sub>*i**j*</sub> = *s*<sub>*i*</sub> \* *s*<sub>*j*</sub>,
-      
+    $\xi = (\xi_{11}, \xi_{12}, \xi_{21}, \xi_{22})$, for $\xi_{ij} = s_i\times s_j$,
     which is followed by an update of the entire vector of Poisson
-    transmission rates *λ*. The subset of *ξ* that is updated is
-    specified as follows. For each population group *i*, we determine
-    all components of *ξ* that involve *s*<sub>*i*</sub>. In our
-    example, for *i* = 1, the components of *ξ* to update are
-    (*ξ*<sub>11</sub>, *ξ*<sub>12</sub>, *ξ*<sub>21</sub>); and for
-    *i* = 2, the components of *ξ* to update are
-    (*ξ*<sub>12</sub>, *ξ*<sub>21</sub>, *ξ*<sub>22</sub>). An MCMC
+    transmission rates $\lambda$. The subset of $\xi$ that is updated is
+    specified as follows. For each population group $i$, we determine
+    all components of $\xi$ that involve $s_i$. In our
+    example, for $i = 1$, the components of $\xi$ to update are
+    $\xi_{11}$, $\xi_12$, and $x_{21}$ and for
+    $i = 2$, the components of $\xi$ to update are
+    $\xi_{12}$, $\xi_21$, and $x_{22}$. An MCMC
     sweep counts the number of MCMC iterations needed in order to update
     all parameters at least once. In our case, we have 2 updates on
-    components of *ξ*, and after each we update *λ*, so the sweep length
+    components of $\xi$, and after each we update $\lambda$, so the sweep length
     is 4.
 -   `Number of sweeps: 125`: The total number of sweeps is determined
     from `control[['mcmc.n']]`, by dividing `control[['mcmc.n']]` with
