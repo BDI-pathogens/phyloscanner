@@ -44,7 +44,7 @@ Our job
 
 Suppose the true number of transmission flows between two population
 groups “1” and “2” is
-\[(z_{11} = 50, z_{12} = 10, z_{21} = 20, z_{22} = 20)\],
+$(z_{11} = 50, z_{12} = 10, z_{21} = 20, z_{22} = 20)$,
 so that the true proportion of transmission flows within and between
 groups is
 (*π*<sub>11</sub> = 0.5, *π*<sub>12</sub> = 0.1, *π*<sub>21</sub> = 0.2, *π*<sub>22</sub> = 0.2).
