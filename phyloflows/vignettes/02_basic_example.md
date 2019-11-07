@@ -180,9 +180,9 @@ p(\lambda, s | n) \\propto \prod_{i,j\in\\{1,2\\}}\mathrm{Poisson}(n_{ij};�
 \end{aligned}
 $$.
 
-Then, we calculate the main quantity of interest, *π*, via
-*π*<sub>*i**j*</sub> = *λ*<sub>*i**j*</sub>/∑<sub>*k* = 1, 2; *l* = 1, 2</sub>*λ*<sub>*k**l*</sub>.
-for *i* = 1, 2 and *j* = 1, 2. The syntax for running the algorithm is
+Then, we calculate the main quantity of interest, $\pi$, via
+$\pi_{ij} = \lambda_{ij}/\sum_{k,l \in \\{1,2\\}}\lambda_{kl}$.
+for $i,j \in \\{1,2\\}$. The syntax for running the algorithm is
 as follows.
 
     # specify a list of control variables:
