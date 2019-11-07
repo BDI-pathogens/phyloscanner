@@ -26,12 +26,12 @@ Sources of transmission for each group
 
 OK, so now we have samples from posterior distribution of transmission
 flows within and between the two population groups,
-*π* = (*π*<sub>11</sub>, *π*<sub>12</sub>, *π*<sub>21</sub>, *π*<sub>22</sub>).
+$\pi = (\pi_{11}, \pi_{12}, \pi_{21}, \pi_{22})$.
 One important summary statistic are the sources of transmissions into
 each recipient group, defined by
-*η* = (*η*<sub>11</sub>, *η*<sub>21</sub>, *η*<sub>12</sub>, *η*<sub>22</sub>)
+$\eta = (\eta_{11}, \eta_{12}, \eta_{21}, \eta_{22})$
 where
-*η*<sub>*i**j*</sub> = *π*<sub>*i**j*</sub>/∑<sub>*s*</sub>*π*<sub>*s**j*</sub>.
+$\eta_{ij} = \pi_{ij}/∑_k\pi_{kj}$.
 
 Onward transmissions from each group
 ------------------------------------
