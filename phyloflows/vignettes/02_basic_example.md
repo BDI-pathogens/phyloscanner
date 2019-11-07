@@ -107,11 +107,11 @@ Statistical model
 
 `phyloflows` **uses a Bayesian approach to estimate the proportion of
 transmissions** between the two population groups,
-*π* = (*π*<sub>11</sub>, *π*<sub>12</sub>, *π*<sub>21</sub>, *π*<sub>22</sub>).
+$\pi = (\pi\_{11}, \pi\_{12}, \pi\_{21}, \pi\_{22})$.
 The model can be motivated as follows. Suppose the actual, unobserved
-number of transmissions from group *i* to group *j* are
-*z*<sub>*i**j*</sub>. Denote the vector of actual transmission counts by
-*z* = (*z*<sub>11</sub>, *z*<sub>12</sub>, *z*<sub>21</sub>, *z*<sub>22</sub>).
+number of transmissions from group $i$ to group $j$ are
+$z\_{ij}$. Denote the vector of actual transmission counts by
+$z = (z_{11}, z_{12}, z_{21}, z_{22})$.
 We assume that transmission events occurred independently of each other.
 Then the likelihood of the actual transmission counts can be modelled by
 *p*(*z*|*Z*, *π*) = *M**u**l**t**i**n**o**m**i**a**l*(*z*; *Z*, *π*),
