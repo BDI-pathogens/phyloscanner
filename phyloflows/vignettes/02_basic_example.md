@@ -152,15 +152,15 @@ distribution of the free parameters is given by
 $$
 \\begin{aligned}
 p(\\lambda, s | n) & \\propto p(n | \\lambda, s) p(\\lambda, s) \\\\
-              & = \\prod\_{i,j \in \\{1,2\\}} \mathrm{Poisson}(n\_{ij};\\lambda\_{ij}\*s\_i\*s\_j) p(\\lambda\_{ij}) p(s\_i) p(s\_j).
+              & = \\prod\_{i,j \in \\{1,2\\}} \mathrm{Poisson}(n\_{ij};\\lambda\_{ij}\times s\_i\times s\_j) p(\\lambda\_{ij}) p(s\_i) p(s\_j).
 \\end{aligned}
 $$
 
 **For the prior distributions**, we specify for
-*p*(*λ*<sub>*i**j*</sub>), *i* = 1, 2; *j* = 1, 2 uninformative prior
+$p*(\lambda_{ij})$, $i,j \in \\{1,2\\}$ uninformative prior
 distributions. We use a Gamma distribution with parameters
-*α*<sub>*i*</sub> = 0.8/4 and *β* = 0.8/*Z* with
-*Z* = ∑<sub>*i**j*|*n*<sub>*i**j*</sub> &gt; 0</sub>*n*<sub>*i**j*</sub>/(*s*<sub>*i*</sub> \* *s*<sub>*j*</sub>) + ∑<sub>*i**j*|*n*<sub>*i**j*</sub> &gt; 0</sub>(1 − *s*<sub>*i*</sub> \* *s*<sub>*j*</sub>)/(*s*<sub>*i*</sub> \* *s*<sub>*j*</sub>).
+$\alpha_i = 0.8/4$ and $\beta = 0.8/Z$ with
+$Z = \sum_{i,j | | n_{ij} > 0 }n_{ij}/(s_i \times s_j)$ + \sum_{i,j | n_{ij} > 0} (1 − s_i\times s_j)/(s_i\times s_j)$.
 This choice implies for *π* a Dirichlet prior distribution with
 parameters *α*<sub>*i*</sub>, which is considered to be an objective
 choice. For *p*(*s*<sub>*i*</sub>), we use a strongly informative prior
