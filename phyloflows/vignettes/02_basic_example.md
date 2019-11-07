@@ -120,7 +120,7 @@ $Z = \sum\_{k,l}z_{kl}$. Next, we specify a model
 for observing one actual transmission event. We assume that sampling
 occurred at random within each of the sampling groups $i$ and $j$. We
 then obtain
-$p(n\_{ij}|z\_{ij}, s_i, s_j) = \textrm{Binomial}(n\_{ij}; z\_{ij}, s_i \times s_j)$,
+$p(n\_{ij}|z\_{ij}, s_i, s_j) = \mathrm{Binomial}(n\_{ij}; z\_{ij}, s_i \times s_j)$,
 where $s_i$ is the probability of sampling an individual
 from group $i$.
 
@@ -139,7 +139,7 @@ in the system of independent Poisson likelihoods
 $p(z\_{ij}|\lambda_{ij}) = \mathrm{Poisson}(z; \lambda_{ij})$,
 where $\lambda_{ij} > 0$, $i \in \\{1, 2\\}$ and $j \in \\{1, 2\\}$. The
 proportion of transmissions *π* are recovered via the equations
-$\pi_{ij} = \lambda_{ij}/\sum_{k,l \in \\{1, 2\}}\lambda_{kl}$.
+$\pi_{ij} = \lambda_{ij}/\sum_{k,l \in \\{1, 2\\}}\lambda_{kl}$
 for $i \in \\{1, 2\\}$ and $j \in \\{1, 2\\}$. This is known as the Poisson trick. The
 advantage of this model parameterisation is that sampled Poisson random
 variables are again Poisson random variables, which allows us to
