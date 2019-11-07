@@ -83,9 +83,9 @@ But this does not address the further problems that the sampling groups
 may be different to the population groups between whom we want to infer
 transmission flows; that the sampling probabilities are usually not
 known themselves; and that we also want interpretable uncertainty
-estimates for *π̂*. So we use a Bayesian approach, and write down the
+estimates for $\hat{\pi}$. So we use a Bayesian approach, and write down the
 likelihood of the complete data,
-*p*(*z*|*Z*, *π*) = *M**u**l**t**i**n**o**m**i**a**l*(*z*; *Z*, *π*),
+$p(z|Z, \pi) = \mathrm{Multinomial}(z; Z, \pi)$,
 where *Z* is the total number of transmissions,
 *Z* = ∑<sub>*k**l*</sub>*z*<sub>*k**l*</sub>. Next, we add the
 likelihood of the sampling process,
