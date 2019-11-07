@@ -58,7 +58,7 @@ studies but also controlled situations (trials). Suppose that population
 “1” is sampled with probability $s_1 = 0.6$ and population “2”
 with probability $s_2 = 1$. On expectation, we then observe
 the transmission flows
-*n*<sub>*ij*</sub> = *z*<sub>*ij*</sub> \* *s*<sub>*i*</sub> \* *s*<sub>*j*</sub>,
+$n_{ij} = z_{ij} \times s_i \times s_j$,
 if we assume that sampling within and between the two groups is
 independent of each other, and if we ignore the fact that in reality
 sampling is without replacement. It won t matter much in reasonably
