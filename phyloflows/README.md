@@ -78,7 +78,7 @@ One very quick solution to the sampling problem would be to infer the
 actual transmission flows from what we know, i.e. 
 $\hat{z}\_{ij} = n_{ij}/(s_i\times s_j)$,
 and then to calculate
-*π̂*<sub>*i**j*</sub> = *ẑ*<sub>*i**j*</sub>/∑<sub>*k**l*</sub>*ẑ*<sub>*k**l*</sub>.
+$\hat{\pi}\_{ij} = \hat{z}\_{ij}/\sum\_{k,l}\hat{z}\_{kl}$.
 But this does not address the further problems that the sampling groups
 may be different to the population groups between whom we want to infer
 transmission flows; that the sampling probabilities are usually not
