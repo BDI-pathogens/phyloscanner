@@ -174,7 +174,12 @@ MCMC syntax
 
 We use a Markov Chain Monte Carlo algorithm to sample from the posterior
 distribution
-*p*(*λ*, *s*|*n*) ∝ ∏<sub>*i* = 1, 2; *j* = 1, 2</sub>*P**o**i**s**s**o**n*(*n*<sub>*i**j*</sub>; *λ*<sub>*i**j*</sub> \* *s*<sub>*i*</sub> \* *s*<sub>*j*</sub>)*p*(*λ*<sub>*i**j*</sub>)*p*(*s*<sub>*i*</sub>)*p*(*s*<sub>*j*</sub>).
+$$
+\begin{aligned}
+p(\lambda, s | n) \prop \prod_{i,j\in\\{1,2\\}}\mathrm{Poisson}(n_{ij}; \lambda_{ij} \times s_i\times s_j)p(\lambda_{ij})p(s_i)p(s_j)
+\end{aligned}
+$$.
+
 Then, we calculate the main quantity of interest, *π*, via
 *π*<sub>*i**j*</sub> = *λ*<sub>*i**j*</sub>/∑<sub>*k* = 1, 2; *l* = 1, 2</sub>*λ*<sub>*k**l*</sub>.
 for *i* = 1, 2 and *j* = 1, 2. The syntax for running the algorithm is
