@@ -162,8 +162,8 @@ distributions. We use a Gamma distribution with parameters
 $\alpha_i = 0.8/4$ and $\beta = 0.8/Z$ with
 $Z = \sum_{i,j | | n_{ij} > 0 }n_{ij}/(s_i \times s_j) + \sum_{i,j | n_{ij} > 0} (1 − s_i\times s_j)/(s_i\times s_j)$.
 This choice implies for *π* a Dirichlet prior distribution with
-parameters *α*<sub>*i*</sub>, which is considered to be an objective
-choice. For *p*(*s*<sub>*i*</sub>), we use a strongly informative prior
+parameters $\alpha_i$, which is considered to be an objective
+choice. For $p(s_i)$, we use a strongly informative prior
 distribution, based on the available data as illustrated above.
 
 MCMC
