@@ -136,7 +136,7 @@ $\textrm{Multinomial}(z; Z, \pi)$ is equivalent to
 inference of Poisson mean rates $\lambda$  
 $\lambda = (\lambda_{11}, \lambda_{12}, \lambda_{21}, \lambda_{22})$
 in the system of independent Poisson likelihoods
-*p*(*z*<sub>*i**j*</sub>|*λ*<sub>*i**j*</sub>) = *P**o**i**s**s**o**n*(*z*; *λ*<sub>*i**j*</sub>),
+$p(z\_{ij}|\lambda_{ij}) = \mathrm{Poisson}(z; \lambda_{ij})$,
 where *λ*<sub>*i**j*</sub> &gt; 0, *i* = 1, 2 and *j* = 1, 2. The
 proportion of transmissions *π* are recovered via the equations
 *π*<sub>*i**j*</sub> = *λ*<sub>*i**j*</sub>/∑<sub>*k* = 1, 2; *l* = 1, 2</sub>*λ*<sub>*k**l*</sub>.
