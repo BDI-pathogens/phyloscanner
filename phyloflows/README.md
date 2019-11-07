@@ -89,14 +89,14 @@ $p(z|Z, \pi) = \mathrm{Multinomial}(z; Z, \pi)$,
 where $Z$ is the total number of transmissions,
 $Z = \sum\_{k,l}z\_{kl}$. Next, we add the
 likelihood of the sampling process,
-*p*(*n*<sub>*i**j*</sub>|*z*<sub>*i**j*</sub>, *s*<sub>*i*</sub>, *s*<sub>*j*</sub>) = *B**i**n**o**m**i**a**l*(*n*<sub>*i**j*</sub>; *z*<sub>*i**j*</sub>, *s*<sub>*i*</sub> \* *s*<sub>*j*</sub>).
+$p(n\_{ij}|z\_{ij}, s_i, s_j) = \mathrm{Binomial}(n\_{ij}; z\_{ij}, s_i \times s_j)$.
 Finally, we complete the model with prior distributions on the
 proportions, *p*(*π*), which we generally choose in an uninformative
 way; prior distributions on the sampling probabilities,
 *p*(*s*<sub>*i*</sub>), which we generally choose based on other
 availabe information; and a prior distribution on the total number of
 transmissions, *p*(*Z*), which we also choose based on available
-information. And then we use Bayes Theorem.
+information. And then we use Bayes' Theorem.
 
 This looks pretty straightforward. The issue is that in real-world data
 analyses, the total number of unknown parameters is 1,000 or even more.
