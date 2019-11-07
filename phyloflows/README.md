@@ -93,7 +93,7 @@ $p(n\_{ij}|z\_{ij}, s_i, s_j) = \mathrm{Binomial}(n\_{ij}; z\_{ij}, 
 Finally, we complete the model with prior distributions on the
 proportions, $p(\pi)$, which we generally choose in an uninformative
 way; prior distributions on the sampling probabilities,
-$p(s_i)$), which we generally choose based on other
+$p(s_i)$, which we generally choose based on other
 available information; and a prior distribution on the total number of
 transmissions, $p(Z)$, which we also choose based on available
 information. And then we use Bayes' Theorem.
