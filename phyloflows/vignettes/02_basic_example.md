@@ -225,9 +225,9 @@ Let s have a look at the output messages.
     specified as follows. For each population group $i$, we determine
     all components of $\xi$ that involve $s_i$. In our
     example, for $i = 1$, the components of $\xi$ to update are
-    $\xi_{11}$, $\xi_{12}$, and $x_{21}$ and for
+    $\xi_{11}$, $\xi_{12}$, and $\xi_{21}$ and for
     $i = 2$, the components of $\xi$ to update are
-    $\xi_{12}$, $\xi_{21}$, and $x_{22}$. An MCMC
+    $\xi_{12}$, $\xi_{21}$, and $\xi_{22}$. An MCMC
     sweep counts the number of MCMC iterations needed in order to update
     all parameters at least once. In our case, we have 2 updates on
     components of $\xi$, and after each we update $\lambda$, so the sweep length
