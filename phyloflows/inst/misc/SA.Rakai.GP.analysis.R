@@ -1400,3 +1400,398 @@ Rakai.age.adjustment<- function(  infile.inference=NULL,
               algorithm = "NUTS", verbose = FALSE,
               control = list(adapt_delta = 0.99))
 }
+
+analysis.output <- function(){
+  library(ggplot2)
+  library(rstan)
+  library(data.table)
+  data.dir <- '~/Desktop/gp2/rakai/gpa_nonzero_adj/'
+  out.dir <- '/Users/xx4515/Desktop/gp2/rakai/gpa_nonzero_adj/update/'
+  load(file.path(data.dir,"gpa_ard_nonzero_adj28855175.rda"))
+  load(file.path(data.dir,"gpa_stan_input_data.rda"))
+  
+  # gpa_ard
+  params <- extract(fit)
+  check_all_diagnostics(fit)
+  
+  # diagnose
+  range(summary(fit)$summary[, "n_eff"])
+  # 412.4035 12077.4260
+  range(summary(fit)$summary[, "Rhat"])
+  # 0.999875 1.001220
+  
+  library(akima)
+  # posterior distribution
+  #	plot 1D posteriors
+  pdf(paste0(out.dir,'/gpa_ard_posterior.pdf'),width=6,height=4)
+  par(mfrow=c(2, 2))	
+  hist(params$alpha, main="", xlab="alpha", col=c_dark, border=c_dark_highlight, yaxt='n')
+  hist(params$rho[,1], main="", xlab="rho1", col=c_dark, border=c_dark_highlight, yaxt='n')
+  hist(params$rho[,2], main="", xlab="rho2", col=c_dark, border=c_dark_highlight, yaxt='n')
+  hist(params$mu, main="", xlab="mu", col=c_dark, border=c_dark_highlight, yaxt='n')
+  dev.off()
+  
+  #	plot divergent transitions in 2D posterior
+  partition <- partition_div(fit)
+  div_params <- partition[[1]]
+  nondiv_params <- partition[[2]]	
+  pdf(paste0(out.dir,'/gpa_ard_pairwise_posterior.pdf'),width=6,height=4)
+  par(mfrow=c(2, 3))	
+  par(mar = c(4, 4, 0.5, 0.5))
+  plot(nondiv_params$`rho[1]`, nondiv_params$alpha, col=c_dark_trans, pch=16, cex=0.8, xlab="rho1", ylab="alpha")
+  points(div_params$`rho[1]`, div_params$alpha, col='green', pch=16, cex=0.8)
+  par(mar = c(4, 4, 0.5, 0.5))
+  plot(nondiv_params$`rho[1]`, nondiv_params$`rho[2]`, col=c_dark_trans, pch=16, cex=0.8, xlab="rho1", ylab="rho2")
+  points(div_params$`rho[1]`, div_params$`rho[2]`, col='green', pch=16, cex=0.8)
+  par(mar = c(4, 4, 0.5, 0.5))
+  plot(nondiv_params$`rho[1]`, nondiv_params$mu, col=c_dark_trans, pch=16, cex=0.8, xlab="rho1", ylab="mu")
+  points(div_params$`rho[1]`, div_params$mu, col='green', pch=16, cex=0.8)	
+  par(mar = c(4, 4, 0.5, 0.5))
+  plot(nondiv_params$`rho[2]`, nondiv_params$alpha, col=c_dark_trans, pch=16, cex=0.8, xlab="rho2", ylab="alpha")
+  points(div_params$`rho[2]`, div_params$alpha, col='green', pch=16, cex=0.8)	
+  par(mar = c(4, 4, 0.5, 0.5))
+  plot(nondiv_params$`rho[2]`, nondiv_params$mu, col=c_dark_trans, pch=16, cex=0.8, xlab="rho2", ylab="mu")
+  points(div_params$`rho[2]`, div_params$mu, col='green', pch=16, cex=0.8)	
+  par(mar = c(4, 4, 0.5, 0.5))
+  plot(nondiv_params$alpha, nondiv_params$mu, col=c_dark_trans, pch=16, cex=0.8, xlab="alpha", ylab="mu")
+  points(div_params$alpha, div_params$mu, col='green', pch=16, cex=0.8)	
+  dev.off()
+  
+  # calculate pi
+  dim(params$f)
+  dim(params$mu)
+  log_lambda <- matrix(rep(params$mu,each=ncol(params$f)),ncol=ncol(params$f),byrow=TRUE) + params$f
+  lambda <- exp(log_lambda)
+  lambdas <- apply(lambda,1,sum)
+  lambdas <- matrix(rep(lambdas,each=ncol(params$f)),ncol=ncol(params$f),byrow=TRUE)
+  pi <- lambda/lambdas 
+  
+  #	2D plots of estimated (median) transmission flows
+  df <- data.table(x=standata_bf12$x[,1],y=standata_bf12$x[,2],
+                   z=apply(pi,2,median))
+  range(df$z)
+  
+  ggplot(df, aes(x, y))+
+    geom_tile(aes(fill = z)) +
+    scale_fill_gradientn(colours = terrain.colors(10),limits=c(0,0.005))+
+    scale_x_continuous(expand = c(0,0), limits = c(16.5,50.5))+
+    scale_y_continuous(expand = c(0,0), limits = c(16.5,50.5))+
+    labs(x='\n ages (female transmitters)', y='ages (male recipients) \n', 
+         fill='median \n of \n transmission \n proportion \n posterior')+
+    theme_classic()
+  ggsave(file=paste0(out.dir,'/gpa_ard_median_flow_plot.pdf'),width = 7.5, height = 6)
+  
+  #	2D plots of standard deviation of transmission flows posteriors
+  df <- data.table(x=standata_bf12$x[,1],y=standata_bf12$x[,2],
+                   z=apply(pi,2,sd))
+  range(df$z)
+  ggplot(df, aes(x, y))+
+    geom_tile(aes(fill = z)) +
+    scale_fill_gradientn(colours = terrain.colors(10),limits=c(0,0.0009))+
+    scale_x_continuous(expand = c(0,0), limits = c(16.5,50.5))+
+    scale_y_continuous(expand = c(0,0), limits = c(16.5,50.5))+
+    labs(x='\n ages (female transmitters)', y='ages (male recipients) \n', 
+         fill='standard \n deviation \n of \n transmission \n proportion \n posterior')+
+    theme_classic()
+  ggsave(file=paste0(out.dir,'/gpa_ard_sd_flow_plot.pdf'),width = 7.5, height = 6)
+  
+  df <- data.table(x=standata_bf12$x[,1],y=standata_bf12$x[,2],
+                   z=standata_bf12$y)
+  range(df$z)
+  ggplot(df, aes(x, y))+
+    geom_tile(aes(fill = z)) +
+    scale_fill_gradientn(colours = terrain.colors(10),limits=c(0,2))+
+    scale_x_continuous(expand = c(0,0), limits = c(16.5,50.5))+
+    scale_y_continuous(expand = c(0,0), limits = c(16.5,50.5))+
+    labs(x='\n ages (female transmitters)', y='ages (male recipients) \n', 
+         fill='transmission \n counts')+
+    theme_classic()
+  ggsave(file=paste0(out.dir,'/raw_count_plot.pdf'),width = 7.5, height = 6)
+  
+  
+  
+  load("~/Desktop/gp2/rakai/gpa_nonzero/gpa_ard_nonzero72966328.rda")
+  params1 <- extract(fit) 
+  load("~/Desktop/gp2/rakai/gpa_nonzero_adj/gpa_ard_nonzero_adj28855175.rda")
+  params2 <- extract(fit) 
+  
+  dim(params1$f)
+  dim(params1$mu)
+  log_lambda1 <- matrix(rep(params1$mu,each=ncol(params1$f)),ncol=ncol(params1$f),byrow=TRUE) + params1$f
+  lambda1 <- exp(log_lambda1)
+  lambdas1 <- apply(lambda1,1,sum)
+  lambdas1 <- matrix(rep(lambdas1,each=ncol(params1$f)),ncol=ncol(params1$f),byrow=TRUE)
+  pi1 <- lambda1/lambdas1
+  
+  dim(params2$f)
+  dim(params2$mu)
+  log_lambda2 <- matrix(rep(params2$mu,each=ncol(params2$f)),ncol=ncol(params2$f),byrow=TRUE) + params2$f
+  lambda2 <- exp(log_lambda2)
+  lambdas2 <- apply(lambda2,1,sum)
+  lambdas2 <- matrix(rep(lambdas2,each=ncol(params2$f)),ncol=ncol(params2$f),byrow=TRUE)
+  pi2 <- lambda2/lambdas2
+  
+  
+  diff <- apply(pi2,2,median) -apply(pi1,2,median)
+  #	2D plots of estimated (median) transmission flows
+  df <- data.table(x=standata_bf12$x[,1],y=standata_bf12$x[,2],
+                   z=diff)
+  range(df$z)
+  
+  ggplot(df, aes(x, y))+
+    geom_tile(aes(fill = z)) +
+    scale_fill_gradientn(colours = terrain.colors(10),limits=c(-0.0004,0.0005))+
+    scale_x_continuous(expand = c(0,0), limits = c(16.5,50.5))+
+    scale_y_continuous(expand = c(0,0), limits = c(16.5,50.5))+
+    labs(x='\n ages (female transmitters)', y='ages (male recipients) \n', 
+         fill='differences \n between \n proportion \n estimates \n median')+
+    theme_classic()
+  ggsave(file=paste0(out.dir,'/diff.pdf'),width = 7.5, height = 6)
+  
+  
+  df <- data.table(x=standata_bf12$x[,1],y=standata_bf12$x[,2],
+                   z=diff/apply(pi1,2,median))
+  range(df$z)
+  
+  ggplot(df, aes(x, y))+
+    geom_tile(aes(fill = z)) +
+    scale_fill_gradientn(colours = terrain.colors(10),limits=c(-0.2,0.4))+
+    scale_x_continuous(expand = c(0,0), limits = c(16.5,50.5))+
+    scale_y_continuous(expand = c(0,0), limits = c(16.5,50.5))+
+    labs(x='\n ages (female transmitters)', y='ages (male recipients) \n', 
+         fill='relative \n differences \n between \n proportion \n estimates \n median')+
+    theme_classic()
+  ggsave(file=paste0(out.dir,'/rela_diff.pdf'),width = 7.5, height = 6)
+  
+  
+  load('/Users/xx4515/Desktop/gp2/rakai/part_samples2.rda')
+  load('/Users/xx4515/Desktop/gp2/rakai/seq_samples.rda')
+  #
+  # glm participation
+  setnames(dps, 'CATEGORY', 'SAMPLING_CATEGORY')
+  a <- dps[,list(P=median(P)),by='SAMPLING_CATEGORY']
+  
+  b <- subset(dobs, select = c('TR_SAMPLING_CATEGORY',
+                               'REC_SAMPLING_CATEGORY',
+                               'TRM_CAT_PAIR_ID',
+                               'TR_SMOOTH_CATEGORY',
+                               'REC_SMOOTH_CATEGORY'))
+  setnames(a,colnames(a),paste0('TR_',colnames(a)))
+  b <- merge(b,a,by='TR_SAMPLING_CATEGORY',all.x = TRUE)
+  setnames(a,colnames(a),gsub('TR_','REC_',colnames(a)))
+  b <- merge(b,a,by='REC_SAMPLING_CATEGORY',all.x = TRUE)
+  setkey(b, TRM_CAT_PAIR_ID)
+  b[,P:=TR_P*REC_P]
+  range(b$P)
+  
+  df <- data.table(x=b$TR_SMOOTH_CATEGORY,y=b$REC_SMOOTH_CATEGORY,
+                   z=b$P)
+  range(df$z)
+  
+  ggplot(df, aes(x, y))+
+    geom_tile(aes(fill = z)) +
+    scale_fill_gradientn(colours = terrain.colors(10),limits=c(0.3,0.9))+
+    scale_x_continuous(expand = c(0,0), limits = c(16.5,50.5))+
+    scale_y_continuous(expand = c(0,0), limits = c(16.5,50.5))+
+    labs(x='\n ages (female transmitters)', y='ages (male recipients) \n',
+         fill='median \n of \n participation \n proportions')+
+    theme_classic()
+  ggsave(file=paste0(out.dir,'/dps_plot.pdf'),width = 7.5, height = 6)
+  
+  
+  # glm seq
+  setnames(dss, 'CATEGORY', 'SAMPLING_CATEGORY')
+  a <- dss[,list(P=median(P)),by='SAMPLING_CATEGORY']
+  
+  b <- subset(dobs, select = c('TR_SAMPLING_CATEGORY',
+                               'REC_SAMPLING_CATEGORY',
+                               'TRM_CAT_PAIR_ID',
+                               'TR_SMOOTH_CATEGORY',
+                               'REC_SMOOTH_CATEGORY'))
+  setnames(a,colnames(a),paste0('TR_',colnames(a)))
+  b <- merge(b,a,by='TR_SAMPLING_CATEGORY',all.x = TRUE)
+  setnames(a,colnames(a),gsub('TR_','REC_',colnames(a)))
+  b <- merge(b,a,by='REC_SAMPLING_CATEGORY',all.x = TRUE)
+  setkey(b, TRM_CAT_PAIR_ID)
+  b[,P:=TR_P*REC_P]
+  range(b$P)
+  
+  df <- data.table(x=b$TR_SMOOTH_CATEGORY,y=b$REC_SMOOTH_CATEGORY,
+                   z=b$P)
+  range(df$z)
+  
+  ggplot(df, aes(x, y))+
+    geom_tile(aes(fill = z)) +
+    scale_fill_gradientn(colours = terrain.colors(10),limits=c(0,0.75))+
+    scale_x_continuous(expand = c(0,0), limits = c(16.5,50.5))+
+    scale_y_continuous(expand = c(0,0), limits = c(16.5,50.5))+
+    labs(x='\n ages (female transmitters)', y='ages (male recipients) \n',
+         fill='median \n of \n sequencing \n proportions')+
+    theme_classic()
+  ggsave(file=paste0(out.dir,'/dss_plot.pdf'),width = 7.5, height = 6)
+  
+  
+  # raw participation
+  setnames(dp, 'CATEGORY', 'SAMPLING_CATEGORY')
+  a <- dp[,list(P=SUC/TRIAL),by='SAMPLING_CATEGORY']
+  
+  b <- subset(dobs, select = c('TR_SAMPLING_CATEGORY',
+                               'REC_SAMPLING_CATEGORY',
+                               'TRM_CAT_PAIR_ID',
+                               'TR_SMOOTH_CATEGORY',
+                               'REC_SMOOTH_CATEGORY'))
+  setnames(a,colnames(a),paste0('TR_',colnames(a)))
+  b <- merge(b,a,by='TR_SAMPLING_CATEGORY',all.x = TRUE)
+  setnames(a,colnames(a),gsub('TR_','REC_',colnames(a)))
+  b <- merge(b,a,by='REC_SAMPLING_CATEGORY',all.x = TRUE)
+  setkey(b, TRM_CAT_PAIR_ID)
+  b[,P:=TR_P*REC_P]
+  range(b$P)
+  
+  c<-b[P<0.5,]
+  table(c$TR_SAMPLING_CATEGORY)
+  table(c$REC_SAMPLING_CATEGORY)
+  dp[SAMPLING_CATEGORY=='F:47-48']
+  
+  df <- data.table(x=b$TR_SMOOTH_CATEGORY,y=b$REC_SMOOTH_CATEGORY,
+                   z=b$P)
+  range(df$z)
+  
+  ggplot(df, aes(x, y))+
+    geom_tile(aes(fill = z)) +
+    scale_fill_gradientn(colours = terrain.colors(10),limits=c(0.3,0.9))+
+    scale_x_continuous(expand = c(0,0), limits = c(16.5,50.5))+
+    scale_y_continuous(expand = c(0,0), limits = c(16.5,50.5))+
+    labs(x='\n ages (female transmitters)', y='ages (male recipients) \n',
+         fill='participation \n proportions')+
+    theme_classic()
+  ggsave(file=paste0(out.dir,'/dp_plot.pdf'),width = 7.5, height = 6)
+  
+  
+  # raw seq
+  setnames(ds, 'CATEGORY', 'SAMPLING_CATEGORY')
+  a <- ds[,list(P=SUC/TRIAL),by='SAMPLING_CATEGORY']
+  
+  b <- subset(dobs, select = c('TR_SAMPLING_CATEGORY',
+                               'REC_SAMPLING_CATEGORY',
+                               'TRM_CAT_PAIR_ID',
+                               'TR_SMOOTH_CATEGORY',
+                               'REC_SMOOTH_CATEGORY'))
+  setnames(a,colnames(a),paste0('TR_',colnames(a)))
+  b <- merge(b,a,by='TR_SAMPLING_CATEGORY',all.x = TRUE)
+  setnames(a,colnames(a),gsub('TR_','REC_',colnames(a)))
+  b <- merge(b,a,by='REC_SAMPLING_CATEGORY',all.x = TRUE)
+  setkey(b, TRM_CAT_PAIR_ID)
+  b[,P:=TR_P*REC_P]
+  b[is.na(P),P:=0]
+  range(b$P)
+  
+  df <- data.table(x=b$TR_SMOOTH_CATEGORY,y=b$REC_SMOOTH_CATEGORY,
+                   z=b$P)
+  range(df$z)
+  
+  ggplot(df, aes(x, y))+
+    geom_tile(aes(fill = z)) +
+    scale_fill_gradientn(colours = terrain.colors(10),limits=c(0,0.75))+
+    scale_x_continuous(expand = c(0,0), limits = c(16.5,50.5))+
+    scale_y_continuous(expand = c(0,0), limits = c(16.5,50.5))+
+    labs(x='\n ages (female transmitters)', y='ages (male recipients) \n',
+         fill='sequencing \n proportions')+
+    theme_classic()
+  ggsave(file=paste0(out.dir,'/ds_plot.pdf'),width = 7.5, height = 6)
+  
+  
+  load('/Users/xx4515/Desktop/gp2/rakai/part_samples2.rda')
+  load('/Users/xx4515/Desktop/gp2/rakai/seq_samples.rda')
+  dprior	<- merge(dps, dss, by=c('CATEGORY','SAMPLE'))
+  dprior[, P:= P.x*P.y]		# multiply participation and sequencing probabilities
+  dprior[, LP:= LP.x+LP.y]	# add log posterior densities
+  set(dprior, NULL, c('P.x','LP.x','P.y','LP.y'), NULL)
+  setnames(dprior, 'CATEGORY', 'SAMPLING_CATEGORY')
+  a <- dprior[,list(P=median(P)),by='SAMPLING_CATEGORY']
+  
+  b <- subset(dobs, select = c('TR_SAMPLING_CATEGORY',
+                               'REC_SAMPLING_CATEGORY',
+                               'TRM_CAT_PAIR_ID',
+                               'TR_SMOOTH_CATEGORY',
+                               'REC_SMOOTH_CATEGORY'))
+  setnames(a,colnames(a),paste0('TR_',colnames(a)))
+  b <- merge(b,a,by='TR_SAMPLING_CATEGORY',all.x = TRUE)
+  setnames(a,colnames(a),gsub('TR_','REC_',colnames(a)))
+  b <- merge(b,a,by='REC_SAMPLING_CATEGORY',all.x = TRUE)
+  setkey(b, TRM_CAT_PAIR_ID)
+  b[,P:=TR_P*REC_P]
+  range(b$P)
+  
+  df <- data.table(x=b$TR_SMOOTH_CATEGORY,y=b$REC_SMOOTH_CATEGORY,
+                   z=b$P)
+  range(df$z)
+  
+  ggplot(df, aes(x, y))+
+    geom_tile(aes(fill = z)) +
+    scale_fill_gradientn(colours = terrain.colors(10),limits=c(0.1,0.4))+
+    scale_x_continuous(expand = c(0,0), limits = c(16.5,50.5))+
+    scale_y_continuous(expand = c(0,0), limits = c(16.5,50.5))+
+    labs(x='\n ages (female transmitters)', y='ages (male recipients) \n',
+         fill='median \n of \n sampling \n proportions')+
+    theme_classic()
+  ggsave(file=paste0(out.dir,'/sampling_differences.pdf'),width = 7.5, height = 6)
+  
+  
+  
+  id.rec <- lapply(16.5:50.5,function(x){which(standata_bf12$x[,2]==x)})
+  pis <- matrix(NA,nrow = nrow(pi),ncol=ncol(pi))
+  for (i in 1:35){
+    pis[,id.rec[[i]]] <- matrix(rep(apply(pi[,id.rec[[i]]],1,sum),
+                                    each=lengths(id.rec)[i]),
+                                ncol=lengths(id.rec)[i],byrow=TRUE)
+  }
+  pi_scale <- pi/pis
+  
+  
+  ys <- matrix(NA,nrow = 1,ncol=ncol(pi))
+  for (i in 1:35){
+    ys[id.rec[[i]]] <- rep(sum(standata_bf12$y[id.rec[[i]]]/b$P[id.rec[[i]]]),lengths(id.rec)[i])
+  }
+  y_scale <- standata_bf12$y/b$P/ys
+  y_scale[is.na(y_scale)] <- 0
+  
+  range(pi_scale)
+  
+  probs = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
+  cred <- sapply(1:nrow(standata_bf12$x),
+                 function(n) quantile(pi_scale[,n], probs=probs))
+  
+  dir.create(paste0(out.dir,'/gpa_pi_scale'))
+  folder.name <- '/gpa_pi_scale'
+  for (i in 1:length(16:50)){
+    id <- which(standata_bf12$x[,2]==(i+15.5))
+    pdf(paste0(out.dir,folder.name,'/pi_recipient_age',(i+15),'_5.pdf'),width=12,height=3)
+    plot_gp_fit_quantiles(pi_scale, standata_bf12, y_scale,"posterior quantiles of source of infection of men aged ", id, 1,cred,i) 
+    dev.off()
+  }
+  
+  set.seed(42)
+  params <- extract(fit)
+  y_pred <- do.call(rbind,
+                    lapply(1:nrow(params$f),
+                           function(x){
+                             t(matrix(rpois(100*ncol(params$f),exp(params$f[x,]+params$mu[x])*params$xi1[x,]*params$xi2[x,]),ncol=100))
+                           }
+                    )
+  )
+  # 1000 vector memory exhausted
+  dir.create(paste0(out.dir,'/gpa_y_scale'))
+  folder.name <- '/gpa_y_scale'
+  
+  probs = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
+  cred <- sapply(1:nrow(standata_bf12$x),
+                 function(n) quantile(y_pred[,n], probs=probs))
+  
+  for (i in 1:length(16:50)){
+    id <- which(standata_bf12$x[,2]==(i+15.5))
+    pdf(paste0(out.dir,folder.name,'/y_recipient_age',(i+15),'_5.pdf'),width=12,height=3)
+    plot_gp_fit_quantiles(y_pred, standata_bf12, standata_bf12$y,"posterior predictive quantiles for transmission counts to men aged ", id, 1, cred, i) 
+    dev.off()
+  }
+}
