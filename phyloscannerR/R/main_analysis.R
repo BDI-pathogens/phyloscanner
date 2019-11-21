@@ -1254,7 +1254,7 @@ multipage.summary.statistics <- function(ptrees, sum.stats, hosts = all.hosts.fr
 #' @import ggplot2
 #' @export write.annotated.tree
 
-write.annotated.tree <- function(ptree, file.name, format = c("pdf", "nex"), pdf.scale.bar.width = 0.01, pdf.w = 50, pdf.hm = 0.15, verbose = F){
+write.annotated.tree <- function(ptree, file.name, format = c("pdf", "nex", "ggplot"), tree.colours=NULL, pdf.scale.bar.width = 0.01, pdf.w = 50, pdf.hm = 0.15, verbose = F){
   tree <- ptree$tree
   read.counts <- ptree$read.counts
   
@@ -1267,12 +1267,26 @@ write.annotated.tree <- function(ptree, file.name, format = c("pdf", "nex"), pdf
   
   if(verbose) cat(paste0("Writing .",format," tree to file ",file.name,"\n"))
   
-  if(format == "pdf"){
+  if(!format %in% c("pdf","nex","ggplot")){
+	  stop("Unknown tree output format")
+  }
+  
+  if(format == "nex"){
+	  write.ann.nexus(tree, file=file.name, annotations = c("INDIVIDUAL", "SPLIT", "READ_COUNT"))
+  }
+  
+  if(is.null(tree.colours)){
+	hue.pal <- scales:::hue_pal(h= c(0, 360) + 15, c = 100, l = 65, h.start = 0, direction = 1)	  
+	tree.colours <- hue.pal(length(levels(attr(tree,'INDIVIDUAL'))))
+	names(tree.colours) <- levels(attr(tree,'INDIVIDUAL'))	  
+  }
+  
+  if(format %in% c("pdf","ggplot")){
     
-    tree.display <- ggtree(tree, aes(color=BRANCH_COLOURS)) +
+	tree.display <- ggtree(tree, aes(color=BRANCH_COLOURS)) +
       geom_point2(aes(subset=SUBGRAPH_MRCA, color=INDIVIDUAL), shape = 23, size = 3, fill="white") +
       geom_point2(aes(color=INDIVIDUAL, shape=BLACKLISTED), size=1) +
-      scale_color_hue(na.value = "black", drop=F) +
+      scale_color_manual(values=tree.colours, na.value = "black", drop=F) +
       scale_shape_manual(values=c(16, 4)) +
       theme(legend.position="none") +
       geom_tiplab(aes(col=INDIVIDUAL)) +
@@ -1297,12 +1311,14 @@ write.annotated.tree <- function(ptree, file.name, format = c("pdf", "nex"), pdf
     
     tree.display <- tree.display + ggplot2::xlim(0, 1.1*x.max)
     tree.display
-    ggsave(file.name, device="pdf", height = pdf.hm*length(tree$tip.label), width = pdf.w, limitsize = F)
-    
-  } else if(format == "nex"){
-    write.ann.nexus(tree, file=file.name, annotations = c("INDIVIDUAL", "SPLIT", "READ_COUNT"))
-  } else {
-    stop("Unknown tree output format")
+  }
+  
+  if(format == "pdf"){
+    ggsave(file.name, device="pdf", height = pdf.hm*length(tree$tip.label), width = pdf.w, limitsize = F)    
+  } 
+  
+  if(format == "ggplot"){
+	return(tree.display)
   }
 }
 
