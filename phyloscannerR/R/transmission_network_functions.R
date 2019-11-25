@@ -2,8 +2,8 @@
 #' @author Oliver Ratmann
 #' @import tidyverse 
 #' @title Find pairs of individuals between whom linkage is not excluded phylogenetically
-#' @param indir Full directory path to output of phyloscanner runs
-#' @param batch.regex Regular expression that identifies the batch ID of multiple phyloscanner analyses. Default: '^ptyr([0-9]+)_.*'.
+#' @param dwin A \code{data.frame} describing pairwise relationships between the hosts in each tree; normally output of \code{classify.pairwise.relationships}
+#' @param dc A \code{data.frame} summarising pairwise relationships between the hosts across all trees; normally output of \code{count.pairwise.relationships}
 #' @param control List of control variables:
 #' \itemize{
 #' 		\item{\code{linked.group}} Phyloscanner classification used to identify pairs in networks. Default 'close.and.adjacent.cat'.
@@ -24,7 +24,7 @@
 #' @description This function identifies pairs of individuals between whom linkage is not excluded phylogenetically in a large number of phyloscanner analyses, and provides detailed information on them.
 #' @seealso \code{\link{phyloscanner.analyse.trees}}, \code{\link{cmd.phyloscanner.analyse.trees}}
 #' @example inst/example/ex.transmission.networks.R
-find.pairs.in.networks <- function(indir, batch.regex='^ptyr([0-9]+)_.*', control= list(linked.group='close.and.adjacent.cat',linked.no='not.close.or.nonadjacent',linked.yes='close.and.adjacent', conf.cut=0.6, neff.cut=3), dmeta=NULL, verbose=TRUE)
+find.pairs.in.networks <- function(dwin, dc, control= list(linked.group='close.and.adjacent.cat',linked.no='not.close.or.nonadjacent',linked.yes='close.and.adjacent', conf.cut=0.6, neff.cut=3), dmeta=NULL, verbose=TRUE)
 {	
 	#	check if dmeta in right format
 	if(!is.null(dmeta))
@@ -43,88 +43,44 @@ find.pairs.in.networks <- function(indir, batch.regex='^ptyr([0-9]+)_.*', contro
 	conf.cut <- control$conf.cut
 	neff.cut <- control$neff.cut	
 	
-	infiles	<- tibble(F=list.files(indir, pattern='workspace.rda', full.names=TRUE)) %>%
-			mutate( PTY_RUN:= as.integer(gsub(batch.regex,'\\1',basename(F))) ) %>%
-			arrange(PTY_RUN)	
+	#	ensure IDs are characters
+	if(!all(c( 	class( dc$host.1 )=='character',
+					class( dc$host.2 )=='character',	
+					class( dwin$host.1 )=='character',
+					class( dwin$host.2 )=='character'
+			)))
+		stop('host.1 or host.2 not of character. This is unexpected, contact maintainer.')
+	#	ensure host.1 < host.2		
+	if( dc %>% filter( host.1 < host.2) %>% nrow() != dc %>% nrow() )
+		stop('Not all host.1 < host.2 in "dc". This is unexpected, contact maintainer.')
+	if( dwin %>% filter( host.1 < host.2) %>% nrow() != dwin %>% nrow() )
+		stop('Not all host.1 < host.2 in "dwin". This is unexpected, contact maintainer.')
 	
-	if(verbose) cat('\nFound phylogenetic relationship files, n=', nrow(infiles))
-	if(verbose) cat('\nProcessing files...')
-	
-	dpls <- vector('list', nrow(infiles))
-	dcs <- vector('list', nrow(infiles))
-	dwins <- vector('list', nrow(infiles))
-	for(i in seq_len(nrow(infiles)))
-	{		
-		if(verbose)	cat('\nReading ', infiles$F[i])
-		tmp	<- load( infiles$F[i] )
-		#	ensure we have multinomial output in workspace
-		if(!'dc'%in%tmp)
-			stop('Cannot find object "dc". Check that Analyze.trees was run with multinomial=TRUE.')
-		if(!'dwin'%in%tmp)
-			stop('Cannot find object "dwin". Check that Analyze.trees was run with multinomial=TRUE.')
-		#	ensure IDs are characters
-		if(!all(c( 	class( dc$host.1 )=='character',
-						class( dc$host.2 )=='character',	
-						class( dwin$host.1 )=='character',
-						class( dwin$host.2 )=='character'
-				)))
-			stop('host.1 or host.2 not of character. This is unexpected, contact maintainer.')
-		#	ensure host.1 < host.2		
-		if( dc %>% filter( host.1 < host.2) %>% nrow() != dc %>% nrow() )
-			stop('Not all host.1 < host.2 in "dc". This is unexpected, contact maintainer.')
-		if( dwin %>% filter( host.1 < host.2) %>% nrow() != dwin %>% nrow() )
-			stop('Not all host.1 < host.2 in "dwin". This is unexpected, contact maintainer.')
-		
-		#	get list of pairs that are not ph-unlinked
-		dpl	<- dc %>% 
-				filter(categorisation==linked.group & type==linked.no) %>% 
-				filter(n.eff>=neff.cut & k.eff/n.eff < conf.cut) %>%
-				select(host.1, host.2) %>%
-				mutate(PTY_RUN:= infiles$PTY_RUN[i])
-		dpl	<- dc %>% 
-				filter(categorisation==linked.group & type==linked.yes) %>%
-				right_join(dpl, by=c('host.1','host.2'))	
-		#	gather all classifications counts for these pairs
-		dwin	<- dpl %>%
-				select(PTY_RUN, host.1, host.2) %>%
-				left_join(dwin, by=c('host.1','host.2'))
-		#	gather all classification counts for these pairs
-		dc	<- dpl %>%
-				select(PTY_RUN, host.1, host.2) %>%
-				left_join(dc, by=c('host.1','host.2'))
-		
-		#	save
-		dpls[[i]] <- dpl
-		dwins[[i]] <- dwin
-		dcs[[i]] <- dc		
-	}		
-	dpls <- do.call('rbind', dpls)
-	dcs <- do.call('rbind', dcs)
-	dwins <- do.call('rbind', dwins)
+	#	get list of pairs that are not ph-unlinked
+	dpl	<- dc %>% 
+			filter(categorisation==linked.group & type==linked.no) %>% 
+			filter(n.eff>=neff.cut & k.eff/n.eff < conf.cut) %>%
+			select(host.1, host.2) %>%
+			mutate(PTY_RUN:= infiles$PTY_RUN[i])
+	dpl	<- dc %>% 
+			filter(categorisation==linked.group & type==linked.yes) %>%
+			right_join(dpl, by=c('host.1','host.2'))
 	#	the pairs may just be ambiguous, keep only those with some evidence for linkage	
-	dpls <- dpls %>% filter(k.eff/n.eff > 0)	
-	if(verbose) cat('\nFound (potentially duplicate) pairs between whom linkage is not excluded phylogenetically, n=', nrow(dpls))
-	#	bring dwins into long format
-	#	dwins <- dwins %>% gather('GROUP','TYPE', c('categorical.distance','basic.classification',ends_with('.cat')))
-	
-	#
-	#	select analysis in which each pair has highest neff
-	if(verbose) cat('\nIf pairs are in several batches, select batch with most deep-sequence phylogenies...')
-	tmp <- dcs %>% 
-			filter( categorisation==linked.group & type==linked.yes )	%>%
-			group_by(host.1,host.2) %>%
-			summarise(PTY_RUN= PTY_RUN[which.max(n.eff)]) %>%
-			ungroup()
-	dcs <- tmp %>% left_join(dcs, by=c('host.1','host.2','PTY_RUN'))
-	dwins <- tmp %>% left_join(dwins, by=c('host.1','host.2','PTY_RUN'))
-	dpls <- tmp %>% left_join(dpls, by=c('host.1','host.2','PTY_RUN'))	
-	if(verbose) cat('\nLeft with pairs between whom linkage is not excluded phylogenetically, n=', nrow(dpls))
+	dpl <- dpl %>% filter(k.eff/n.eff > 0)			
+	#	gather all classifications counts for these pairs
+	dwin	<- dpl %>%
+			select(PTY_RUN, host.1, host.2) %>%
+			left_join(dwin, by=c('host.1','host.2'))
+	#	gather all classification counts for these pairs
+	dc	<- dpl %>%
+			select(PTY_RUN, host.1, host.2) %>%
+			left_join(dc, by=c('host.1','host.2'))
 	
 	#
 	#	upper case col names
-	setnames(dpls, colnames(dpls), toupper(gsub('\\.','_',gsub('host\\.','h',colnames(dpls)))))
-	setnames(dcs, colnames(dcs), toupper(gsub('\\.','_',gsub('host\\.','h',colnames(dcs)))))
-	setnames(dwins, colnames(dwins), toupper(gsub('\\.','_',gsub('host\\.','h',colnames(dwins)))))
+	setnames(dpl, colnames(dpl), toupper(gsub('\\.','_',gsub('host\\.','h',colnames(dpl)))))
+	setnames(dc, colnames(dc), toupper(gsub('\\.','_',gsub('host\\.','h',colnames(dc)))))
+	setnames(dwin, colnames(dwin), toupper(gsub('\\.','_',gsub('host\\.','h',colnames(dwin)))))
 	
 	#
 	#	add meta-data if provided
@@ -133,199 +89,18 @@ find.pairs.in.networks <- function(indir, batch.regex='^ptyr([0-9]+)_.*', contro
 		if(verbose) cat('\nAdd meta-data...')
 		tmp			<- unique(dmeta, by='ID')
 		setnames(tmp, colnames(tmp), gsub('H1_ID','H1',paste0('H1_',colnames(tmp))))
-		dpls <- dpls %>% left_join(tmp, by='H1')
-		dcs <- dcs %>% left_join(tmp, by='H1')
-		dwins <- dwins %>% left_join(tmp, by='H1')		
+		dpl <- dpl %>% left_join(tmp, by='H1')
+		dc <- dc %>% left_join(tmp, by='H1')
+		dwin <- dwin %>% left_join(tmp, by='H1')		
 		setnames(tmp, colnames(tmp), gsub('H1','H2',colnames(tmp)))
-		dpls <- dpls %>% left_join(tmp, by='H2')
-		dcs <- dcs %>% left_join(tmp, by='H2')
-		dwins <- dwins %>% left_join(tmp, by='H2')		
+		dpl <- dpl %>% left_join(tmp, by='H2')
+		dc <- dc %>% left_join(tmp, by='H2')
+		dwin <- dwin %>% left_join(tmp, by='H2')		
 	}
 	
-	if(verbose) cat('\nDone. Found pairs, n=', nrow(dpls), '. Found relationship counts, n=', nrow(dcs), '. Found phyloscanner statistics, n=', nrow(dwins), '.')
+	if(verbose) cat('\nDone. Found pairs, n=', nrow(dpl), '. Found relationship counts, n=', nrow(dc), '. Found phyloscanner statistics, n=', nrow(dwin), '.')
 	#	return
-	list(network.pairs=dpls, relationship.counts=dcs, windows=dwins)
-}
-
-#' @export
-#' @author Oliver Ratmann
-#' @import tidyverse glue
-#' @title Find pairs of individuals between whom linkage is not excluded phylogenetically
-#' @param pairwise.relationships.by.window A \code{data.frame} describing pairwise relationships between the hosts in each tree; normally output of \code{classify.pairwise.relationships}
-#' @param pairwise.relationship.summary A \code{data.frame} summarising pairwise relationships between the hosts across all trees; normally output of \code{count.pairwise.relationships}
-#' @param control List of control variables:
-#' \itemize{
-#' 		\item{\code{linked.group}} Phyloscanner classification used to identify pairs in networks. Default 'close.and.adjacent.cat'.
-#' 		\item{\code{linked.no}} Phyloscanner classification type quantifying that pairs are not linked. Default 'not.close.or.nonadjacent'.
-#' 		\item{\code{linked.yes}} Phyloscanner classification type quantifying that pairs are linked. Default 'close.and.adjacent'.
-#' 		\item{\code{conf.cut}} Threshold on the proportion of deep-sequence phylogenies with distant/disconnected subgraphs above which pairs are considered phylogenetically unlinked. Default: 0.6
-#' 		\item{\code{neff.cut}} Threshold on the minimum number of deep-sequence phylogenies with sufficient reads from two individuals to make any phylogenetic inferences. Default: 3.
-#' }
-#' @param verbose Flag to switch on/off verbose mode. Default: TRUE. 
-#' @return 
-#' Three R objects are generated: 
-#' \itemize{
-#' 		\item{\code{network.pairs}} is a tibble that describes pairs of individuals between whom linkage is not excluded phylogenetically.
-#' 		\item{\code{relationship.counts}} is a tibble that summarises the phylogenetic relationship counts for each pair.
-#' 		\item{\code{windows}} is a tibble that describes the basic phyloscanner statistics (distance, adjacency, paths between subgraphs) in each deep-sequence phylogeny for each pair.
-#' }
-#' @description This function identifies pairs of individuals between whom linkage is not excluded phylogenetically in a phyloscanner analysis, and provides detailed information on them.
-#' @seealso \code{\link{phyloscanner.analyse.trees}}, \code{\link{cmd.phyloscanner.analyse.trees}}
-#' @example inst/example/ex.transmission.networks.R
-find.pairs.in.network.mh <- function(pairwise.relationship.summary, 
-                                  pairwise.relationships.by.window, 
-                                  control= list(linked.group='close.and.adjacent.cat',
-                                                linked.no='not.close.or.nonadjacent',
-                                                linked.yes='close.and.adjacent', 
-                                                conf.cut=0.6, 
-                                                neff.cut=3), 
-                                  id=NA, 
-                                  verbose=F){	
-
-	#	internal variables
-	linked.group <- control$linked.group 
-	linked.no <- control$linked.no 
-	linked.yes <- control$linked.yes 
-	conf.cut <- control$conf.cut
-	neff.cut <- control$neff.cut	
-
-	#	ensure IDs are characters
-	if(!all(c( 	class( dc$host.1 )=='character',
-	            class( dc$host.2 )=='character',	
-	            class( dwin$host.1 )=='character',
-	            class( dwin$host.2 )=='character'
-	)))
-	  stop('Columns host.1 and host.2 in pairwise.relationship.summary must be of class character')
-	#	ensure host.1 < host.2		
-	if( dc %>% filter( host.1 < host.2) %>% nrow() != dc %>% nrow() )
-	  stop('Columns host.1 and host.2 in pairwise.relationship.summary are expected to be in alphabetical order.')
-	if( dwin %>% filter( host.1 < host.2) %>% nrow() != dwin %>% nrow() )
-	  stop('NColumns host.1 and host.2 in pairwise.relationships.by.window are expected to be in alphabetical order.')
-	
-	#	get list of pairs that are not ph-unlinked
-	dpl	<- pairwise.relationship.summary %>% 
-	  filter(categorisation==linked.group & type!=linked.no) %>% 
-	  filter(n.eff>=neff.cut & k.eff/n.eff < conf.cut) %>%
-	  select(host.1, host.2) %>%
-	  mutate(run.id = id)
-	dpl	<- pairwise.relationship.summary %>% 
-	  filter(categorisation==linked.group & type==linked.yes) %>%
-	  right_join(dpl, by=c('host.1','host.2'))	
-	#	gather all classifications counts for these pairs
-	dwin	<- dpl %>%
-	  select(run.id, host.1, host.2) %>%
-	  left_join(pairwise.relationships.by.window, by=c('host.1','host.2'))
-	#	gather all classification counts for these pairs
-	dc	<- dpl %>%
-	  select(run.id, host.1, host.2) %>%
-	  left_join(pairwise.relationship.summary, by=c('host.1','host.2'))
-	
-	#	save
-
 	list(network.pairs=dpl, relationship.counts=dc, windows=dwin)
-	
-}
-
-#' @export
-#' @author Oliver Ratmann
-#' @import tidyverse glue
-#' @title Find pairs of individuals between whom linkage is not excluded phylogenetically
-#' @param input.list A list, each element of which corresponds to the input from a single phyloscanner run. If the list is named then the names will be used to identify individual analyses; otherwise they will be identified by number. Each element is itself a list, with two elements: "dc" generated by \code{count.pairwise.relationships} and "dwin" generated by \code{classify.pairwise.relationships}
-#' @param control List of control variables:
-#' \itemize{
-#' 		\item{\code{linked.group}} Phyloscanner classification used to identify pairs in networks. Default 'close.and.adjacent.cat'.
-#' 		\item{\code{linked.no}} Phyloscanner classification type quantifying that pairs are not linked. Default 'not.close.or.nonadjacent'.
-#' 		\item{\code{linked.yes}} Phyloscanner classification type quantifying that pairs are linked. Default 'close.and.adjacent'.
-#' 		\item{\code{conf.cut}} Threshold on the proportion of deep-sequence phylogenies with distant/disconnected subgraphs above which pairs are considered phylogenetically unlinked. Default: 0.6
-#' 		\item{\code{neff.cut}} Threshold on the minimum number of deep-sequence phylogenies with sufficient reads from two individuals to make any phylogenetic inferences. Default: 3.
-#' }
-#' @param verbose Flag to switch on/off verbose mode. Default: TRUE. 
-#' @param dmeta Optional individual-level meta-data that is to be added to output. This requires a character column titled \code{host.id} identifying hosts. Can be NULL.
-#' @return 
-#' Three R objects are returned as a list: 
-#' \itemize{
-#' 		\item{\code{network.pairs}} is a tibble that describes pairs of individuals between whom linkage is not excluded phylogenetically.
-#' 		\item{\code{relationship.counts}} is a tibble that summarises the phylogenetic relationship counts for each pair.
-#' 		\item{\code{windows}} is a tibble that describes the basic phyloscanner statistics (distance, adjacency, paths between subgraphs) in each deep-sequence phylogeny for each pair.
-#' }
-#' @description This function identifies pairs of individuals between whom linkage is not excluded phylogenetically in a large number of phyloscanner analyses, and provides detailed information on them.
-#' @seealso \code{\link{phyloscanner.analyse.trees}}, \code{\link{cmd.phyloscanner.analyse.trees}}
-#' @example inst/example/ex.transmission.networks.R
-
-find.pairs.in.networks.mh <- function(input.list, 
-                                   control= list(linked.group='close.and.adjacent.cat',
-                                                 linked.no='not.close.or.nonadjacent',
-                                                 linked.yes='close.and.adjacent', 
-                                                 conf.cut=0.6, 
-                                                 neff.cut=3), 
-                                   dmeta = NULL, 
-                                   verbose = F){
-#	check if dmeta in right format
-  if(!is.null(dmeta)){		
-    if( !'tbl_df' %in% class(dmeta) )
-      stop('"dmeta" must have class tbl_df (be a tibble)')
-    if( !'host.id'%in% colnames(dmeta) )
-      stop('"dmeta" must have a column "host.id"')
-    if( class(dmeta$host.id)!='character' )
-      stop('"dmeta$host.id" must be a character')		
-  }	
-		
-  processed.tables <- map(1:length(input.list), function(i){
-    if(is.null(names(input.list))){
-      id <- i
-    } else if (is.na(names(input.list)[i])){
-      id <- i
-    } else {
-      
-      id <- names(input.list)[i]
-    }
-    item <- input.list[[i]]
-    
-    find.pairs.in.network(item$dc, item$dwin, control, id, verbose)
-  })
-  
-  dpls <- map(processed.tables, function(x) x$network.pairs)
-	dpls <- do.call('rbind', dpls)
-	dcs <- map(processed.tables, function(x) x$relationship.counts)
-	dcs <- do.call('rbind', dcs)
-	dwins <- map(processed.tables, function(x) x$windows)
-	dwins <- do.call('rbind', dwins)
-	#	the pairs may just be ambiguous, keep only those with some evidence for linkage	
-	dpls <- dpls %>% filter(k.eff/n.eff > 0)	
-	if(verbose) cat(glue('\nFound {nrow(dpls)} (potentially duplicate) pairs between whom linkage is not excluded phylogenetically'))
-	#	bring dwins into long format
-	#	dwins <- dwins %>% gather('GROUP','TYPE', c('categorical.distance','basic.classification',ends_with('.cat')))
-	
-	#
-	#	select analysis in which each pair has highest neff
-	if(verbose) cat('\nFor pairs occuring in multiple runs, keeping runs with the most trees...')
-	tmp <- dcs %>% 
-			filter( categorisation==linked.group & type==linked.yes )	%>%
-			group_by(host.1,host.2) %>%
-			summarise(run.id = run.id[which.max(n.eff)]) %>%
-			ungroup()
-	dcs <- tmp %>% left_join(dcs, by=c('host.1','host.2','run.id'))
-	dwins <- tmp %>% left_join(dwins, by=c('host.1','host.2','run.id'))
-	dpls <- tmp %>% left_join(dpls, by=c('host.1','host.2','run.id'))	
-	if(verbose) cat(glue('\n{nrow(dpls)} pairs remain for whom linkage is not excluded phylogenetically.', ))
-	
-	#
-	#	add meta-data if provided
-	if(!is.null(dmeta))
-	{		
-		if(verbose) cat('\nLinking metadata...')
-		tmp			<- unique(dmeta, by='host.id')
-		dpls <- dpls %>% left_join(tmp, by=c('host.1' = "host.id"), suffix = c(".1", ".2"))
-		dcs <- dcs %>% left_join(tmp, by=c('host.1' = "host.id"), suffix = c(".1", ".2"))
-		dwins <- dwins %>% left_join(tmp, by=c('host.1' = "host.id"), suffix = c(".1", ".2"))		
-		dpls <- dpls %>% left_join(tmp, by=c('host.2' = "host.id"), suffix = c(".1", ".2"))
-		dcs <- dcs %>% left_join(tmp, by=c('host.2' = "host.id"), suffix = c(".1", ".2"))
-		dwins <- dwins %>% left_join(tmp, by=c('host.2' = "host.id"), suffix = c(".1", ".2"))		
-	}
-	
-	if(verbose) cat(glue('\nDone. Found {nrow(dpls)} pairs.'))
-	#	return
-	list(network.pairs=dpls, relationship.counts=dcs, windows=dwins)
 }
 
 
@@ -341,6 +116,7 @@ find.pairs.in.networks.mh <- function(input.list,
 #' 		\item{\code{linked.no}} Phyloscanner classification type quantifying that pairs are not linked. Default 'not.close.or.nonadjacent'.
 #' 		\item{\code{linked.yes}} Phyloscanner classification type quantifying that pairs are linked. Default 'close.and.adjacent'.
 #' 		\item{\code{neff.cut}} Threshold on the minimum number of deep-sequence phylogenies with sufficient reads from two individuals to make any phylogenetic inferences. Default: 3.
+#' 		\item{\code{weight.complex.or.no.ancestry}} Weight given to score complex.or.no.ancestry. Default: 50%.  
 #' } 	
 #' @param verbose Flag to switch on/off verbose mode. Default: TRUE. 
 #' @return list of two R objects 
@@ -374,13 +150,14 @@ find.pairs.in.networks.mh <- function(input.list,
 #'    
 #' @seealso \code{\link{find.pairs.in.networks}}, \code{\link{plot.network}}, \code{\link{plot.chain}}
 #' @example inst/example/ex.transmission.networks.R
-find.networks<- function(dc, control= list(linked.group='close.and.adjacent.cat',linked.no='not.close.or.nonadjacent',linked.yes='close.and.adjacent', neff.cut=3), verbose=TRUE)
+find.networks<- function(dc, control= list(linked.group='close.and.adjacent.cat',linked.no='not.close.or.nonadjacent',linked.yes='close.and.adjacent', neff.cut=3, weight.complex.or.no.ancestry=0.5), verbose=TRUE)
 {	
 	#	internal constants
 	linked.group 	<- control$linked.group 
 	linked.no 		<- control$linked.no 
 	linked.yes 		<- control$linked.yes 	
 	neff.cut 		<- control$neff.cut		
+	weight.complex.or.no.ancestry <- control$weight.complex.or.no.ancestry
 	scores.group	<- 'close.and.adjacent.and.ancestry.cat'
 	scores.nolink	<- 'not.close.or.nonadjacent'
 	scores.ambig	<- 'complex.or.no.ancestry' 
@@ -425,7 +202,7 @@ find.networks<- function(dc, control= list(linked.group='close.and.adjacent.cat'
 	tmp <- dnet %>% 
 			filter(TYPE!=scores.nolink) %>% 
 			select(PTY_RUN,H1,H2,IDCLU,CLU_SIZE,TYPE,SCORE)
-	dchain <- find.most.likely.chains.RBGLedmonds(tmp)
+	dchain <- find.most.likely.chains.RBGLedmonds(tmp, weight.complex.or.no.ancestry=weight.complex.or.no.ancestry)
 	
 	#	merge pw linkage scores to the ML chain representation
 	#	rationale: this describes prob of linkage. here, any 'inconsistent direction' is still considered as prob for linkage
@@ -494,10 +271,11 @@ find.networks<- function(dc, control= list(linked.group='close.and.adjacent.cat'
 #' with direction unclear. The probability of the entire chain is given by the product
 #' of the phyloscanner scores along each edge in the chain.   
 #' Edmonds algorithm is used to solve for the most probable chain.
-#' @param rtnn tibble encoding the three edges of a phyloscanner transmission network. Must have columns 'H1','H2','IDCLU','TYPE','SCORE','K_EFF'.   
+#' @param rtnn tibble encoding the three edges of a phyloscanner transmission network. Must have columns 'H1','H2','IDCLU','TYPE','SCORE','K_EFF'.
+#' @param weight.complex.or.no.ancestry weight given to score complex.or.no.ancestry, default: 50%   
 #' @return tibble encoding the most likely chain. Has columns 'H1','H2','IDCLU', 'LINK_12', 'LINK_21' (either 1 or 0 for a link in the corresponding direction), and 'MX_PROB_12', 'MX_PROB_21' (associated posterior probabilities)
 #' @seealso \code{\link{find.networks}} 
-find.most.likely.chains.RBGLedmonds<- function(rtnn, verbose=0)
+find.most.likely.chains.RBGLedmonds<- function(rtnn, weight.complex.or.no.ancestry=0.5, verbose=0)
 {
 	stopifnot(c('PTY_RUN','H1','H2','IDCLU','CLU_SIZE','TYPE','SCORE')%in%colnames(rtnn))
 	if( length(setdiff(c('complex.or.no.ancestry','21','12'), rtnn %>% distinct(TYPE) %>% pull(TYPE)) ))
@@ -506,10 +284,10 @@ find.most.likely.chains.RBGLedmonds<- function(rtnn, verbose=0)
 	#	and create bi-edges
 	rtm <- rtnn %>% 
 			mutate(	ID1_IN_WEIGHT= case_when(	TYPE=='12' ~ 0,
-							TYPE=='complex.or.no.ancestry' ~ 0.5,
+							TYPE=='complex.or.no.ancestry' ~ weight.complex.or.no.ancestry,
 							TYPE=='21' ~ 1),
 					ID2_IN_WEIGHT= case_when(	TYPE=='21' ~ 0,
-							TYPE=='complex.or.no.ancestry' ~ 0.5,
+							TYPE=='complex.or.no.ancestry' ~ weight.complex.or.no.ancestry,
 							TYPE=='12' ~ 1)															
 			) %>%
 			group_by( PTY_RUN,IDCLU,CLU_SIZE,H1,H2 ) %>%

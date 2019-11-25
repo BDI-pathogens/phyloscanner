@@ -132,13 +132,54 @@ download.file(tmp, destfile=meta.file, method="curl")
 dmeta <- as_tibble(read.csv(meta.file, stringsAsFactors=FALSE))
 #	find network pairs: process analyse_tree output with file names "ptyr[0-9]+_workspace.rda"
 indir <- file.path(workdir,"RakaiPopSample_phyloscanner_analysis_190706")
-control <- list(linked.group='close.and.adjacent.cat',linked.no='not.close.or.nonadjacent',linked.yes='close.and.adjacent', conf.cut=0.6, neff.cut=3)
-tmp <- phyloscannerR:::find.pairs.in.networks(indir, batch.regex='^ptyr([0-9]+)_.*', control=control, verbose=TRUE, dmeta=dmeta)
-dpl <- copy(tmp$linked.pairs)
-dc <- copy(tmp$relationship.counts)
-dw <- copy(tmp$windows)
+control <- list(	linked.group='close.and.adjacent.cat',
+		linked.no='not.close.or.nonadjacent',
+		linked.yes='close.and.adjacent', 
+		conf.cut=0.6, 
+		neff.cut=3,
+		weight.complex.or.no.ancestry=0.5)	
+# process phyloscanner runs
+batch.regex <- '^ptyr([0-9]+)_.*'	
+infiles	<- tibble(F=list.files(indir, pattern='workspace.rda', full.names=TRUE)) %>%
+		mutate( PTY_RUN:= as.integer(gsub(batch.regex,'\\1',basename(F))) ) %>%
+		arrange(PTY_RUN)		
+dpls <- vector('list', nrow(infiles))
+dcs <- vector('list', nrow(infiles))
+dws <- vector('list', nrow(infiles))
+for(i in seq_len(nrow(infiles)))
+{		
+	if(verbose)	cat('\nReading ', infiles$F[i])
+	tmp	<- load( infiles$F[i] )
+	#	ensure we have multinomial output in workspace
+	if(!'dc'%in%tmp)
+		stop('Cannot find object "dc". Check that Analyze.trees was run with multinomial=TRUE.')
+	if(!'dwin'%in%tmp)
+		stop('Cannot find object "dwin". Check that Analyze.trees was run with multinomial=TRUE.')
+	#	find pairs
+	tmp <- phyloscannerR:::find.pairs.in.networks(dwin, dc, control=control, verbose=TRUE)
+	#	store output for each run
+	dpls[[i]] <- copy(tmp$network.pairs)
+	dcs[[i]] <- copy(tmp$relationship.counts)
+	dws[[i]] <- copy(tmp$windows)	
+	gc()
+}
+dpl <- do.call('rbind', dpls)
+dc <- do.call('rbind', dcs)
+dw <- do.call('rbind', dwins)
+dpls <- dcs <- dwins <- NULL
+#	select analysis in which each pair has highest neff
+if(verbose) cat('\nIf pairs are in several batches, select batch with most deep-sequence phylogenies...')
+tmp <- dc %>% 
+		filter( CATEGORISATION==control$linked.group & TYPE==control$linked.yes )	%>%
+		group_by(H1,H2) %>%
+		summarise(PTY_RUN= PTY_RUN[which.max(N_EFF)]) %>%
+		ungroup()
+dc <- tmp %>% left_join(dc, by=c('H1','H2','PTY_RUN'))
+dw <- tmp %>% left_join(dw, by=c('H1','H2','PTY_RUN'))
+dpl <- tmp %>% left_join(dpl, by=c('H1','H2','PTY_RUN'))	
+if(verbose) cat('\nLeft with pairs between whom linkage is not excluded phylogenetically, n=', nrow(dpls))
 #	find network pairs: save
-outfile <- file.path(workdir, "RakaiPopSample_phyloscanner_analysis_190706", "Rakai_phscnetworks_allpairs_190706.rda")
+outfile <- file.path(workdir, "RakaiPopSample_phyloscanner_analysis_190706", "Rakai_phscnetworks_allpairs_190706.RData")
 save(dpl, dc, dw, file=outfile)
 
 

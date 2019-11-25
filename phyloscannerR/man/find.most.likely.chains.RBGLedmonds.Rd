@@ -4,10 +4,13 @@
 \alias{find.most.likely.chains.RBGLedmonds}
 \title{Find most likely transmission chains}
 \usage{
-find.most.likely.chains.RBGLedmonds(rtnn, verbose = 0)
+find.most.likely.chains.RBGLedmonds(rtnn,
+  weight.complex.or.no.ancestry = 0.5, verbose = 0)
 }
 \arguments{
 \item{rtnn}{tibble encoding the three edges of a phyloscanner transmission network. Must have columns 'H1','H2','IDCLU','TYPE','SCORE','K_EFF'.}
+
+\item{weight.complex.or.no.ancestry}{weight given to score complex.or.no.ancestry, default: 50%}
 }
 \value{
 tibble encoding the most likely chain. Has columns 'H1','H2','IDCLU', 'LINK_12', 'LINK_21' (either 1 or 0 for a link in the corresponding direction), and 'MX_PROB_12', 'MX_PROB_21' (associated posterior probabilities)
