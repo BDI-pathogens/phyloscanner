@@ -60,18 +60,17 @@ simu_fit <- stan(   file="simu_poiss.stan",
     ## Chain 1: Iteration: 1 / 1 [100%]  (Sampling)
     ## Chain 1: 
     ## Chain 1:  Elapsed Time: 0 seconds (Warm-up)
-    ## Chain 1:                4.4e-05 seconds (Sampling)
-    ## Chain 1:                4.4e-05 seconds (Total)
+    ## Chain 1:                8e-05 seconds (Sampling)
+    ## Chain 1:                8e-05 seconds (Total)
     ## Chain 1:
 
 ``` r
-# dobs$f <- exp(extract(simu_fit)$f[1,]+mu_true+log(dobs$P))
 dobs$TRM_OBS <- extract(simu_fit)$y[1,] 
 ```
 
 # Input data: observed transmission flows
 
-Input data of the similar format of **phyloflow** is
+Input data of the similar format of **phyloflow** are
 expected.
 
 ``` r
@@ -116,10 +115,10 @@ Here is a heatmap of our input data:
 ggplot(dobs, aes(TR_SMOOTH_CATEGORY, REC_SMOOTH_CATEGORY))+
   geom_tile(aes(fill = TRM_OBS)) +
   scale_fill_viridis() +
-  scale_x_continuous(expand = c(0,0), limits = c(15,50))+
-  scale_y_continuous(expand = c(0,0), limits = c(15,50))+
+  scale_x_continuous(expand = c(0,0), limits = c(14.5,49.5))+
+  scale_y_continuous(expand = c(0,0), limits = c(14.5,49.5))+
   theme_classic()+
-  labs(x='transmitter age group \n', y='\n recipient age group')
+  labs(x='transmitter age group \n', y='\n recipient age group',fill='transmission \n counts')
 ```
 
 ![](07_age_analysis_files/figure-gfm/data-1.png)<!-- -->
@@ -149,7 +148,7 @@ ds[,SUC := round(TRIAL * P)]
 dprior.fit <- copy(ds)
 dprior.fit[,ALPHA := SUC+1]
 dprior.fit[,BETA := TRIAL-SUC+1]
-head(dprior.fit)
+dprior.fit
 ```
 
     ##    CATEGORY    P ID TRIAL  SUC ALPHA BETA
@@ -159,6 +158,7 @@ head(dprior.fit)
     ## 4:    30-34 0.55  4  2500 1375  1376 1126
     ## 5:    35-39 0.50  5  1700  850   851  851
     ## 6:    40-44 0.55  6  1000  550   551  451
+    ## 7:    45-49 0.40  7   500  200   201  301
 
 # Method
 
@@ -203,8 +203,8 @@ fit <- stan(file = 'gp.stan',
     ## 
     ## SAMPLING FOR MODEL 'gp' NOW (CHAIN 1).
     ## Chain 1: 
-    ## Chain 1: Gradient evaluation took 0.001899 seconds
-    ## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 18.99 seconds.
+    ## Chain 1: Gradient evaluation took 0.002391 seconds
+    ## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 23.91 seconds.
     ## Chain 1: Adjust your expectations accordingly!
     ## Chain 1: 
     ## Chain 1: 
@@ -221,9 +221,9 @@ fit <- stan(file = 'gp.stan',
     ## Chain 1: Iteration: 2900 / 3000 [ 96%]  (Sampling)
     ## Chain 1: Iteration: 3000 / 3000 [100%]  (Sampling)
     ## Chain 1: 
-    ## Chain 1:  Elapsed Time: 78.758 seconds (Warm-up)
-    ## Chain 1:                402.329 seconds (Sampling)
-    ## Chain 1:                481.087 seconds (Total)
+    ## Chain 1:  Elapsed Time: 102.461 seconds (Warm-up)
+    ## Chain 1:                588.393 seconds (Sampling)
+    ## Chain 1:                690.855 seconds (Total)
     ## Chain 1:
 
 Finally, we checked the effective sample size and Rhat for the chain.

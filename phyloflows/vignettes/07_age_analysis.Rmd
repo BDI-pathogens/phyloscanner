@@ -69,12 +69,11 @@ simu_fit <- stan(	file="simu_poiss.stan",
                   data=simu_pars, iter=1,
                   chains=1, seed=424838, algorithm="Fixed_param")
 
-# dobs$f <- exp(extract(simu_fit)$f[1,]+mu_true+log(dobs$P))
 dobs$TRM_OBS <- extract(simu_fit)$y[1,]	
 ```
 
 # Input data: observed transmission flows
-Input data of the similar format of **phyloflow** is expected.
+Input data of the similar format of **phyloflow** are expected.
 ```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE, message=FALSE, warning=FALSE}
 dobs <- subset(dobs, select = c('TR_TRM_CATEGORY', 'REC_TRM_CATEGORY','TR_SAMPLING_CATEGORY',
                                 'REC_SAMPLING_CATEGORY', 'TR_SMOOTH_CATEGORY','REC_SMOOTH_CATEGORY',
@@ -100,10 +99,10 @@ Here is a heatmap of our input data:
 ggplot(dobs, aes(TR_SMOOTH_CATEGORY, REC_SMOOTH_CATEGORY))+
   geom_tile(aes(fill = TRM_OBS)) +
   scale_fill_viridis() +
-  scale_x_continuous(expand = c(0,0), limits = c(15,50))+
-  scale_y_continuous(expand = c(0,0), limits = c(15,50))+
+  scale_x_continuous(expand = c(0,0), limits = c(14.5,49.5))+
+  scale_y_continuous(expand = c(0,0), limits = c(14.5,49.5))+
   theme_classic()+
-  labs(x='transmitter age group \n', y='\n recipient age group')
+  labs(x='transmitter age group \n', y='\n recipient age group',fill='transmission \n counts')
 
 ```
 
@@ -129,7 +128,7 @@ ds[,SUC := round(TRIAL * P)]
 dprior.fit <- copy(ds)
 dprior.fit[,ALPHA := SUC+1]
 dprior.fit[,BETA := TRIAL-SUC+1]
-head(dprior.fit)
+dprior.fit
 ```
 
 
