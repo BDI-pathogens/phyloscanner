@@ -67,6 +67,7 @@ source.attribution.mcmc.diagnostics    <- function(mcmc.file, mc=NULL, control=l
         S <- mc$pars$S
         LOG_LAMBDA <- mc$pars$LOG_LAMBDA
         it.info <- mc$it.info
+        PI <-  t(apply(exp(mc$pars$LOG_LAMBDA), 1, function(rw) rw/sum(rw)))
         
         if (length(mcmc.file)>1)
 		{
@@ -78,6 +79,7 @@ source.attribution.mcmc.diagnostics    <- function(mcmc.file, mc=NULL, control=l
                 S <- rbind(S, mc$pars$S)
                 LOG_LAMBDA <- rbind(LOG_LAMBDA, mc$pars$LOG_LAMBDA)
                 it.info <- rbind(it.info, mc$it.info)
+                PI <- rbind(PI, t(apply(exp(mc$pars$LOG_LAMBDA), 1, function(rw) rw/sum(rw)))    )
             }			
         }
         
@@ -85,8 +87,9 @@ source.attribution.mcmc.diagnostics    <- function(mcmc.file, mc=NULL, control=l
         mc$pars$S <- S
         mc$pars$LOG_LAMBDA <- LOG_LAMBDA
         mc$it.info <- it.info
+        mc$pars$PI <- PI
 		cat('\nTotal number of MCMC iterations loaded from file ', nrow(mc$pars$LOG_LAMBDA))
-		XI <- S <- LOG_LAMBDA <- NULL
+		XI <- S <- LOG_LAMBDA <- PI <- NULL
 		gc()
     }
     
@@ -111,8 +114,7 @@ source.attribution.mcmc.diagnostics    <- function(mcmc.file, mc=NULL, control=l
 	if(grepl(control$regex_pars,'PI'))
 	{
 # TODO: is the following too naive?		
-		tmp <- exp(mc$pars$LOG_LAMBDA)
-		tmp <- t(apply(tmp, 1, function(rw) rw/sum(rw)))		
+		tmp <- mc$pars$PI
 		colnames(tmp) <- paste0('PI-',1:ncol(tmp))
 		pars <- cbind(pars, tmp)		
 	}
