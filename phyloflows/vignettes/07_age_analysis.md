@@ -60,8 +60,8 @@ simu_fit <- stan(   file="simu_poiss.stan",
     ## Chain 1: Iteration: 1 / 1 [100%]  (Sampling)
     ## Chain 1: 
     ## Chain 1:  Elapsed Time: 0 seconds (Warm-up)
-    ## Chain 1:                8e-05 seconds (Sampling)
-    ## Chain 1:                8e-05 seconds (Total)
+    ## Chain 1:                5.3e-05 seconds (Sampling)
+    ## Chain 1:                5.3e-05 seconds (Total)
     ## Chain 1:
 
 ``` r
@@ -80,20 +80,20 @@ dobs <- subset(dobs, select = c('TR_TRM_CATEGORY', 'REC_TRM_CATEGORY','TR_SAMPLI
 head(dobs)
 ```
 
-    ##    TR_TRM_CATEGORY REC_TRM_CATEGORY TR_SAMPLING_CATEGORY
-    ## 1:           15-19            15-19                15-19
-    ## 2:           20-24            15-19                20-24
-    ## 3:           25-29            15-19                25-29
-    ## 4:           30-34            15-19                30-34
-    ## 5:           35-39            15-19                35-39
-    ## 6:           40-44            15-19                40-44
-    ##    REC_SAMPLING_CATEGORY TR_SMOOTH_CATEGORY REC_SMOOTH_CATEGORY TRM_OBS
-    ## 1:                 15-19                 17                  17       0
-    ## 2:                 15-19                 22                  17       1
-    ## 3:                 15-19                 27                  17       0
-    ## 4:                 15-19                 32                  17       1
-    ## 5:                 15-19                 37                  17       0
-    ## 6:                 15-19                 42                  17       0
+    ##    TR_TRM_CATEGORY REC_TRM_CATEGORY TR_SAMPLING_CATEGORY REC_SAMPLING_CATEGORY
+    ## 1:           15-19            15-19                15-19                 15-19
+    ## 2:           20-24            15-19                20-24                 15-19
+    ## 3:           25-29            15-19                25-29                 15-19
+    ## 4:           30-34            15-19                30-34                 15-19
+    ## 5:           35-39            15-19                35-39                 15-19
+    ## 6:           40-44            15-19                40-44                 15-19
+    ##    TR_SMOOTH_CATEGORY REC_SMOOTH_CATEGORY TRM_OBS
+    ## 1:                 17                  17       0
+    ## 2:                 22                  17       1
+    ## 3:                 27                  17       0
+    ## 4:                 32                  17       1
+    ## 5:                 37                  17       0
+    ## 6:                 42                  17       0
 
 **`dobs` specifies observed counts of transmissions from a transmitter
 age group to a recipient age group.** It must contain the following
@@ -180,6 +180,15 @@ p(\lambda, s | n) \propto \prod_{i=1,\cdots,7;j=1,\cdots,7} Poisson(n_{ij};\lamb
     }
   }
   
+
+ tmp <- subset(ds,select = c('CATEGORY','ID'))
+ setnames(tmp, colnames(tmp), paste0('TR_TRM_',colnames(tmp)))
+ dobs <- merge(dobs,tmp,by='TR_TRM_CATEGORY')
+ setnames(tmp, colnames(tmp), gsub('TR_TRM_','REC_TRM_',colnames(tmp)))
+ dobs <- merge(dobs,tmp,by='REC_TRM_CATEGORY')
+ setnames(tmp, colnames(tmp), gsub('REC_TRM_','',colnames(tmp)))
+ 
+
   standata_bf12 <- list( M= M, M_nD= M^D, 
                          L= c(3/2*max(dobs$TR_SMOOTH_CATEGORY),3/2*max(dobs$REC_SMOOTH_CATEGORY)), 
                          N = nrow(dobs),
@@ -187,7 +196,7 @@ p(\lambda, s | n) \propto \prod_{i=1,\cdots,7;j=1,\cdots,7} Poisson(n_{ij};\lamb
                          D = D,
                          y = dobs$TRM_OBS,
                          indices= indices,
-                         N_xi = nrow(ds$SAMPLING_CATEGORY),
+                         N_xi = nrow(ds),
                          shape = cbind(dprior.fit$ALPHA,dprior.fit$BETA),
                          xi_id = cbind(dobs$TR_TRM_ID,dobs$REC_TRM_ID))
 ```
@@ -203,8 +212,8 @@ fit <- stan(file = 'gp.stan',
     ## 
     ## SAMPLING FOR MODEL 'gp' NOW (CHAIN 1).
     ## Chain 1: 
-    ## Chain 1: Gradient evaluation took 0.002391 seconds
-    ## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 23.91 seconds.
+    ## Chain 1: Gradient evaluation took 0.002225 seconds
+    ## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 22.25 seconds.
     ## Chain 1: Adjust your expectations accordingly!
     ## Chain 1: 
     ## Chain 1: 
@@ -221,9 +230,9 @@ fit <- stan(file = 'gp.stan',
     ## Chain 1: Iteration: 2900 / 3000 [ 96%]  (Sampling)
     ## Chain 1: Iteration: 3000 / 3000 [100%]  (Sampling)
     ## Chain 1: 
-    ## Chain 1:  Elapsed Time: 102.461 seconds (Warm-up)
-    ## Chain 1:                588.393 seconds (Sampling)
-    ## Chain 1:                690.855 seconds (Total)
+    ## Chain 1:  Elapsed Time: 106.795 seconds (Warm-up)
+    ## Chain 1:                267.115 seconds (Sampling)
+    ## Chain 1:                373.909 seconds (Total)
     ## Chain 1:
 
 Finally, we checked the effective sample size and Rhat for the chain.
@@ -232,13 +241,13 @@ Finally, we checked the effective sample size and Rhat for the chain.
 range(summary(fit)$summary[, "n_eff"])
 ```
 
-    ## [1]   58.43947 5796.85618
+    ## [1]  276.4037 4002.5037
 
 ``` r
 range(summary(fit)$summary[, "Rhat"])
 ```
 
-    ## [1] 0.9995999 1.0263220
+    ## [1] 0.9995999 1.0135090
 
 ``` r
 params <- extract(fit)

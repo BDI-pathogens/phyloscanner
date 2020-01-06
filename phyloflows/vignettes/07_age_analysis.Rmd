@@ -158,6 +158,15 @@ $j=1,,\cdots,7$.
     }
   }
   
+
+ tmp <- subset(ds,select = c('CATEGORY','ID'))
+ setnames(tmp, colnames(tmp), paste0('TR_TRM_',colnames(tmp)))
+ dobs <- merge(dobs,tmp,by='TR_TRM_CATEGORY')
+ setnames(tmp, colnames(tmp), gsub('TR_TRM_','REC_TRM_',colnames(tmp)))
+ dobs <- merge(dobs,tmp,by='REC_TRM_CATEGORY')
+ setnames(tmp, colnames(tmp), gsub('REC_TRM_','',colnames(tmp)))
+ 
+
   standata_bf12 <- list( M= M, M_nD= M^D, 
                          L= c(3/2*max(dobs$TR_SMOOTH_CATEGORY),3/2*max(dobs$REC_SMOOTH_CATEGORY)), 
                          N = nrow(dobs),
@@ -165,7 +174,7 @@ $j=1,,\cdots,7$.
                          D = D,
                          y = dobs$TRM_OBS,
                          indices= indices,
-                         N_xi = nrow(ds$SAMPLING_CATEGORY),
+                         N_xi = nrow(ds),
                          shape = cbind(dprior.fit$ALPHA,dprior.fit$BETA),
                          xi_id = cbind(dobs$TR_TRM_ID,dobs$REC_TRM_ID))
   

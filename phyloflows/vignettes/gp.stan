@@ -28,6 +28,7 @@ functions {
   }
 }
 data {
+  int<lower=1> N_xi;
   int<lower=1> N;
   int<lower=1> D;
   matrix[N,D] x;
@@ -37,6 +38,9 @@ data {
   int<lower=1> M;	
   int<lower=1> M_nD;			
   int indices[M_nD,D];	
+  matrix[N_xi,2] shape;
+  int xi_id[N,2];
+
 }
 
 transformed data {
@@ -49,13 +53,16 @@ transformed data {
 
 parameters {
   row_vector<lower=0>[D] rho;
-  real alpha;
+  real<lower=0> alpha;
   real mu;
   vector[M_nD] beta;
+  vector<lower=0,upper=1>[N_xi] xi;
 }
 
 transformed parameters {
   vector[N] f;
+  vector[N] xi1;
+  vector[N] xi2;
   vector[M_nD] diagSPD;
   vector[M_nD] SPD_beta;
 
@@ -64,15 +71,24 @@ transformed parameters {
   }
   SPD_beta = diagSPD .* beta;
   f= PHI * SPD_beta;
+  for (n in 1:N){
+    xi1[n] = xi[xi_id[n,1]];
+  }
+  for (n in 1:N){
+    xi2[n] = xi[xi_id[n,2]];
+  }
 }
 
 
 model {
+  for (i in 1:N_xi){
+    xi[i] ~ beta(shape[i,1],shape[i,2]);
+  }
   beta ~ normal(0,1);
   rho ~ inv_gamma(2.22121,7.04478);
   alpha ~ normal(0, 10);
   mu ~ normal(0, 10);
-  y ~ poisson_log(f + mu);
+  y ~ poisson_log(f + mu + log(xi1) + log(xi2));
 }
 
 
