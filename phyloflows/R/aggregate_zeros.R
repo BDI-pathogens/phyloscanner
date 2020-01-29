@@ -64,7 +64,6 @@
 #' control <- list( burnin.p=0.05, thin=NA_integer_, regex_pars='PI', outfile=agg.mcmc.file)
 #' pars <- phyloflows:::source.attribution.mcmc.aggregateToTarget(mcmc.file=mcmc.file, daggregateTo=daggregateTo, control=control)
 #' }
-#'
 source.attribution.mcmc.aggregateToTarget    <- function(mcmc.file=NULL, mc=NULL, daggregateTo=NULL, control=list(burnin.p=NA_real_, thin=NA_integer_, regex_pars='*', outfile=gsub('\\.rda','_aggregated.csv',mcmc.file))){
     #    basic checks
     if(!'data.table'%in%class(daggregateTo))
