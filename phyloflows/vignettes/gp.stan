@@ -85,7 +85,7 @@ model {
     xi[i] ~ beta(shape[i,1],shape[i,2]);
   }
   beta ~ normal(0,1);
-  rho ~ inv_gamma(1.78207,3.11324);
+  rho ~ inv_gamma(2.22121,7.04478);
   alpha ~ normal(0, 10);
   mu ~ normal(0, 10);
   y ~ poisson_log(f + mu + log(xi1) + log(xi2));

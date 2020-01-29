@@ -49,7 +49,7 @@ transformed data {
 
 parameters {
   row_vector<lower=0>[D] rho;
-  real alpha;
+  real<lower=0> alpha;
   real mu;
   vector[M_nD] beta;
 }
@@ -69,7 +69,8 @@ transformed parameters {
 
 model {
   beta ~ normal(0,1);
-  rho ~ inv_gamma(1.78207,3.11324);
+  rho[2] ~ inv_gamma(2.60877,7.73394);
+  rho[1] ~ inv_gamma(3.48681,9.21604);
   alpha ~ normal(0, 10);
   mu ~ normal(0, 10);
   y ~ poisson_log(f + mu);
