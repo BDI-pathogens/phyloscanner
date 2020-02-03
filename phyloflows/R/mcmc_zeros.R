@@ -153,7 +153,7 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
   mc <- list()
   # determine if the sampling probabilities are <1.
   # If they are NOT, Z will be the same as TRM_OBS, and the algorithm only updates LAMBDA
-  mc$with.sampling <- dprior[, list(ALL_ONE=all(P==1)), by='SAMPLING_CATEGORY'][, !all(ALL_ONE)]
+  mc$with.sampling <- dprior[, list(ALL_ONE=all(P==1)), by=c('SAMPLING_CATEGORY','WHO')][, !all(ALL_ONE)]
   mc$time <- NA_real_
     
   # for speed: make look-up table so we know which transmission pair categories need to be updated
@@ -270,7 +270,7 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
   
   # initialise sampling probabilities for pop strata: random draw from input sampling probabilities
   tmp <- subset(dprior, SAMPLE==sample(mc$nprior,1))
-  tmp <- merge(mc$dlu, tmp, by='SAMPLING_CATEGORY')
+  tmp <- merge(mc$dlu, tmp, by=c('SAMPLING_CATEGORY','WHO'))
   setkey(tmp, UPDATE_ID)
   mc$pars$XI[1, tmp$UPDATE_ID] <- tmp$P
   mc$pars$XI_LP[1, tmp$UPDATE_ID] <- tmp$LP
