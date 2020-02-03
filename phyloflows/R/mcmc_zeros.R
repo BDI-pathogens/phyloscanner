@@ -15,6 +15,11 @@ lgamma_prod <- function(llbd, a, b){
     ans
 }
 
+lgamma_pdf <- function(llbd, a, b){
+  ans <- a * log(b) - lgamma(a) + (a-1) * llbd -b * exp(llbd)
+  ans
+}
+
 # talen from
 # Goal: Sample small-shape gamma random variables via accept-reject
 # Paper: arXiv:1302.1884
@@ -193,24 +198,24 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
         dprior2[[i]] <- dprior[J(tmp),nomatch=0L]
     }
     
-    # estimate the mean sampling probabilities for each transmission group
-    if(dprior[, max(SAMPLE)]>10)
-    {
-        dprior3 <- dprior[, list(EST_SAMPLING_RATE=dmode(P)), by=SAMPLING_CATEGORY]
-    }
-    if(dprior[, max(SAMPLE)]<=10)
-    {
-        dprior3 <- dprior[, list(EST_SAMPLING_RATE=median(P)), by=SAMPLING_CATEGORY]
-    }
+    # # estimate the mean sampling probabilities for each transmission group
+    # if(dprior[, max(SAMPLE)]>10)
+    # {
+    #     dprior3 <- dprior[, list(EST_SAMPLING_RATE=dmode(P)), by=SAMPLING_CATEGORY]
+    # }
+    # if(dprior[, max(SAMPLE)]<=10)
+    # {
+    #     dprior3 <- dprior[, list(EST_SAMPLING_RATE=median(P)), by=SAMPLING_CATEGORY]
+    # }
 	
-	# add estimated sampling probabilities to dobs
-    dobs2 <- subset(dobs, select = c('TR_SAMPLING_CATEGORY','REC_SAMPLING_CATEGORY','TRM_CAT_PAIR_ID'))
-    setnames(dprior3, colnames(dprior3), paste0('TR_',colnames(dprior3)))
-    dobs2 <- merge(dobs2, dprior3, by='TR_SAMPLING_CATEGORY')
-    setnames(dprior3, colnames(dprior3), gsub('TR_','REC_', colnames(dprior3)))
-    dobs2 <- merge(dobs2,dprior3,by='REC_SAMPLING_CATEGORY')
-    dobs2[, EST_SAMPLING_RATE:= TR_EST_SAMPLING_RATE * REC_EST_SAMPLING_RATE]
-    
+	# # add estimated sampling probabilities to dobs
+    # dobs2 <- subset(dobs, select = c('TR_SAMPLING_CATEGORY','REC_SAMPLING_CATEGORY','TRM_CAT_PAIR_ID'))
+    # setnames(dprior3, colnames(dprior3), paste0('TR_',colnames(dprior3)))
+    # dobs2 <- merge(dobs2, dprior3, by='TR_SAMPLING_CATEGORY')
+    # setnames(dprior3, colnames(dprior3), gsub('TR_','REC_', colnames(dprior3)))
+    # dobs2 <- merge(dobs2,dprior3,by='REC_SAMPLING_CATEGORY')
+    # dobs2[, EST_SAMPLING_RATE:= TR_EST_SAMPLING_RATE * REC_EST_SAMPLING_RATE]
+    # 
     mc$nprior <- max(dprior$SAMPLE)
     mc$sweep <- nrow(mc$dlu)*2L
     mc$nsweep <- ceiling( control$mcmc.n/mc$sweep )
@@ -223,7 +228,8 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
 	}    
     mc$pars <- list()
     mc$pars$ALPHA <- matrix(NA_real_, ncol= nrow(dobs), nrow= 1L)
-    mc$pars$BETA <- NA_real_
+    # mc$pars$BETA <- NA_real_
+    mc$pars$BETA <- matrix(NA_real_, ncol= 1, nrow= mc$sweep_group+1L)
     mc$pars$XI <- matrix(NA_real_, ncol=length(update.info), nrow=min(mc$nsweep+1L,mc$sweep_group+1L)) # prior for sampling in categories
     mc$pars$XI_LP <- matrix(NA_real_, ncol=length(update.info), nrow=min(mc$nsweep+1L,mc$sweep_group+1L)) # log prior density for sampling in transmitter categories and sampling in recipient categories, concatenated
     mc$pars$S <- matrix(NA_integer_, ncol=nrow(dobs), nrow=min(mc$nsweep+1L,mc$sweep_group+1L)) # prior probability of sampling transmission pair categories
@@ -262,12 +268,6 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
 	# specify prior so that we obtain for PI the Berger objective prior with minimal loss compared to marginal Beta reference prior
     # (https://projecteuclid.org/euclid.ba/1422556416)    
     mc$pars$ALPHA[1,]    <- 0.8/nrow(dobs)
-    dobs3 <- merge(	subset(dobs,select = c('TRM_OBS','TRM_CAT_PAIR_ID')),
-    				subset(dobs2,select = c('EST_SAMPLING_RATE','TRM_CAT_PAIR_ID')),
-    				by=c('TRM_CAT_PAIR_ID'))
-    dobs3[, LBD:=TRM_OBS/EST_SAMPLING_RATE]
-    dobs3[TRM_OBS==0, LBD:=(1-EST_SAMPLING_RATE)/EST_SAMPLING_RATE]    
-    mc$pars$BETA <- 0.8/sum(dobs3$LBD)
     
     # initialise sampling probabilities for pop strata: random draw from input sampling probabilities
     tmp <- subset(dprior, SAMPLE==sample(mc$nprior,1))
@@ -280,20 +280,38 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
     mc$pars$S[1,] <- mc$pars$XI[1, mc$dlt$TR_UPDATE_ID] * mc$pars$XI[1, mc$dlt$REC_UPDATE_ID]
     mc$pars$S_LP[1,] <- mc$pars$XI_LP[1, mc$dlt$TR_UPDATE_ID] + mc$pars$XI_LP[1, mc$dlt$REC_UPDATE_ID]
     
+    dprior_cat <- unique(subset(dprior,select = 'SAMPLING_CATEGORY'))
+    setkey(dprior_cat)
+    dprior3 <- dprior_cat
+    dprior3$P <- mc$pars$XI[1,]
+    dobs2 <- subset(dobs, select = c('TR_SAMPLING_CATEGORY','REC_SAMPLING_CATEGORY','TRM_CAT_PAIR_ID'))
+    setnames(dprior3, colnames(dprior3), paste0('TR_',colnames(dprior3)))
+    dobs2 <- merge(dobs2, dprior3, by='TR_SAMPLING_CATEGORY')
+    setnames(dprior3, colnames(dprior3), gsub('TR_','REC_', colnames(dprior3)))
+    dobs2 <- merge(dobs2,dprior3,by='REC_SAMPLING_CATEGORY')
+    dobs2[, P:= TR_P * REC_P]
+    dobs3 <- merge(	subset(dobs,select = c('TRM_OBS','TRM_CAT_PAIR_ID')),
+                    subset(dobs2,select = c('P','TRM_CAT_PAIR_ID')),
+                    by=c('TRM_CAT_PAIR_ID'))
+    dobs3[, LBD:=TRM_OBS/P]
+    dobs3[TRM_OBS==0, LBD:=(1-P)/P]    
+    mc$pars$BETA[1,] <- 0.8/sum(dobs3$LBD)
+    
 	# initialise log_lambda: random draw from full conditional
-    mc$pars$LOG_LAMBDA[1,] <- mapply( function(x,y){ rgamss(1,shape=x,scale=y) }, dobs$TRM_OBS+mc$pars$ALPHA, 1/(mc$pars$S[1,]+mc$pars$BETA)	)
+    mc$pars$LOG_LAMBDA[1,] <- mapply( function(x,y){ rgamss(1,shape=x,scale=y) }, dobs$TRM_OBS+mc$pars$ALPHA, 1/(mc$pars$S[1,]+mc$pars$BETA[1,])	)
 	
     #    store log likelihood
     tmp <- lpois_prod( dobs$TRM_OBS, mc$pars$LOG_LAMBDA[1,] + log(mc$pars$S[1,]))
     set(mc$it.info, 1L, 'LOG_LKL', tmp)
 	
     #     store log prior
-    tmp <- lgamma_prod( llbd= mc$pars$LOG_LAMBDA[1,], a = mc$pars$ALPHA , b = mc$pars$BETA) +
+    tmp <- lgamma_prod( llbd= mc$pars$LOG_LAMBDA[1,], a = mc$pars$ALPHA , b = mc$pars$BETA[1,]) +
     sum(mc$pars$XI_LP[1,])
     set(mc$it.info, 1L, 'LOG_PRIOR', tmp)
     
     
     # parameter value at the current step
+    BETA.curr <- mc$pars$BETA[1,]
     XI.curr <- mc$pars$XI[1,]
     XI_LP.curr <- mc$pars$XI_LP[1,]
     S.curr <- mc$pars$S[1,]
@@ -331,14 +349,33 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
             XI.prop[ update.group ] <- tmp$P
             XI_LP.prop[ update.group ] <- tmp$LP
             
+            
+            dprior3 <- dprior_cat
+            dprior3$P <- XI.prop
+            dobs2 <- subset(dobs, select = c('TR_SAMPLING_CATEGORY','REC_SAMPLING_CATEGORY','TRM_CAT_PAIR_ID'))
+            setnames(dprior3, colnames(dprior3), paste0('TR_',colnames(dprior3)))
+            dobs2 <- merge(dobs2, dprior3, by='TR_SAMPLING_CATEGORY')
+            setnames(dprior3, colnames(dprior3), gsub('TR_','REC_', colnames(dprior3)))
+            dobs2 <- merge(dobs2,dprior3,by='REC_SAMPLING_CATEGORY')
+            dobs2[, P:= TR_P * REC_P]
+            dobs3 <- merge(	subset(dobs,select = c('TRM_OBS','TRM_CAT_PAIR_ID')),
+                            subset(dobs2,select = c('P','TRM_CAT_PAIR_ID')),
+                            by=c('TRM_CAT_PAIR_ID'))
+            dobs3[, LBD:=TRM_OBS/P]
+            dobs3[TRM_OBS==0, LBD:=(1-P)/P]    
+            BETA.prop <- 0.8/sum(dobs3$LBD)
+            
+            
             # propose all S that involve the one XI from above
             S.prop <- S.curr
             S_LP.prop <- S_LP.curr
             S.prop[update.pairs] <- XI.prop[ mc$dlt$TR_UPDATE_ID[update.pairs] ] * XI.prop[ mc$dlt$REC_UPDATE_ID[update.pairs] ]
             S_LP.prop[update.pairs] <- XI_LP.prop[ mc$dlt$TR_UPDATE_ID[update.pairs] ] + XI_LP.prop[ mc$dlt$REC_UPDATE_ID[update.pairs] ]
             # calculate MH ratio
-            log.fc <- lpois_prod( mc$dlt$TRM_OBS[update.pairs], LOG_LAMBDA.curr[update.pairs] + log(S.curr[update.pairs]))
-            log.fc.prop <- lpois_prod( mc$dlt$TRM_OBS[update.pairs],  LOG_LAMBDA.curr[update.pairs] + log(S.prop[update.pairs]))
+            log.fc <- lpois_prod( mc$dlt$TRM_OBS[update.pairs], LOG_LAMBDA.curr[update.pairs] + log(S.curr[update.pairs])) +
+              lgamma_pdf(LOG_LAMBDA.curr, mc$pars$ALPHA, BETA.curr)
+            log.fc.prop <- lpois_prod( mc$dlt$TRM_OBS[update.pairs],  LOG_LAMBDA.curr[update.pairs] + log(S.prop[update.pairs])) +
+              lgamma_pdf(LOG_LAMBDA.curr, mc$pars$ALPHA, BETA.prop)
             
             log.mh.ratio <- log.fc.prop - log.fc
             mh.ratio <- min(1,exp(log.mh.ratio))
@@ -365,6 +402,7 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
             }
             if(accept)
             {
+                BETA.curr <- BETA.prop
                 XI.curr <- XI.prop
                 XI_LP.curr <- XI_LP.prop
                 S.curr <- S.prop
@@ -375,7 +413,7 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
         {            
             # propose
             LOG_LAMBDA.prop <- LOG_LAMBDA.curr
-            LOG_LAMBDA.prop[update.pairs] <- mapply( function(x,y){ rgamss(1,shape=x,scale=y) }, mc$dlt$TRM_OBS[update.pairs] + mc$pars$ALPHA[update.pairs], 1/(S.curr[update.pairs] + mc$pars$BETA))
+            LOG_LAMBDA.prop[update.pairs] <- mapply( function(x,y){ rgamss(1,shape=x,scale=y) }, mc$dlt$TRM_OBS[update.pairs] + mc$pars$ALPHA[update.pairs], 1/(S.curr[update.pairs] + BETA.curr))
                         
             #    this is the full conditional of LOG_LAMBDA given S
             #    always accept
@@ -408,7 +446,7 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
         tmp <- lpois_prod( dobs$TRM_OBS, LOG_LAMBDA.curr + log(S.curr))
         set(mc$it.info, mc$curr.it.adj, 'LOG_LKL', tmp)
         #     record log prior
-        tmp <- lgamma_prod( llbd= LOG_LAMBDA.curr, a = mc$pars$ALPHA , b = mc$pars$BETA) + sum(XI_LP.curr)
+        tmp <- lgamma_prod( llbd= LOG_LAMBDA.curr, a = mc$pars$ALPHA , b = BETA.curr + sum(XI_LP.curr)
         set(mc$it.info, mc$curr.it.adj, 'LOG_PRIOR', tmp)
 
 		if(update.count == mc$sweep)
@@ -427,6 +465,7 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
             mc$pars$S[update.round.adj,] <- S.curr
             mc$pars$S_LP[update.round.adj,] <- S_LP.curr
             mc$pars$LOG_LAMBDA[update.round.adj,] <- LOG_LAMBDA.curr
+            mc$pars$BETA[update.round.adj,] <- BETA.curr
         }
 # TODO: priority low 
 #       this says 100 sweeps done, but 125 were specified.
@@ -458,6 +497,7 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
             mc$pars$S <- matrix(NA_integer_, ncol=nrow(dobs), nrow=mc$sweep_group) # prior probability of sampling transmission pair categories
             mc$pars$S_LP <- matrix(NA_integer_, ncol=nrow(dobs), nrow=mc$sweep_group) # log prior density of sampling transmission pair categories
             mc$pars$LOG_LAMBDA <- matrix(NA_real_, ncol=nrow(dobs), nrow=mc$sweep_group)    #proportions
+            mc$pars$BETA <- matrix(NA_real_, ncol=1, nrow=mc$sweep_group)    #proportions
             
             mc$it.info <- data.table(	IT= seq.int(mc$sweep_group*mc$sweep*(update.round%/%mc$sweep_group)+1,mc$sweep_group*mc$sweep*(1+(update.round%/%mc$sweep_group))),
             							PAR_ID= rep(NA_integer_, mc$sweep_group*mc$sweep),
