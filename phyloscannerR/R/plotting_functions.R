@@ -571,10 +571,23 @@ produce.pairwise.graphs <- function(ptrees,
   
   wrong.dir <- which(t.stats$host.2 < t.stats$host.1)
   t.stats <- t.stats %>% 
-    mutate(ancestry = replace(ancestry, ancestry=="anc" & host.2 < host.1, "desc")) %>% 
-    mutate(ancestry = replace(ancestry, ancestry=="desc" & host.2 < host.1, "anc")) %>% 
-    mutate(ancestry = replace(ancestry, ancestry=="mutltiAnc" & host.2 < host.1, "multiDesc")) %>% 
-    mutate(ancestry = replace(ancestry, ancestry=="multiDesc" & host.2 < host.1, "multiAnc")) 
+    mutate(ancestry = pmap_chr(list(host.1, host.2, ancestry), function(h1,h2,a){
+      if(h1 <= h2){
+        a
+      } else if(!(a %in% c("anc", "desc", "multiAnc", "multiDesc"))){
+        
+        a
+      } else {
+        switch(a, 
+               "anc" = "desc",
+               "desc" = "anc",
+               "multiAnc" = "multiDesc",
+               "multiDesc" = "multiAnc")
+      }
+      
+    })) %>%
+    select(-paths12, -paths21, -nodes1, -nodes2)
+  
   t.stats[wrong.dir,c(1,2)] <- t.stats[wrong.dir,c(2,1)]
   
   hosts.by.tree <- map(1:length(ptrees), function(x){
@@ -621,12 +634,18 @@ produce.pairwise.graphs <- function(ptrees,
     mutate(nondir.ancestry = replace(nondir.ancestry, nondir.ancestry %in% c("multiAnc", "multiDesc"), "multiTrans")) %>%
     mutate(nondir.ancestry = factor(nondir.ancestry, levels = c("trans", "multiTrans", "noAncestry", "complex"))) %>%
     mutate(linked = ((!contiguous.pairs & adjacent) | (contiguous.pairs & contiguous)) & within.distance) %>%
+    mutate(linked = map_chr(linked, function(x)  ifelse(is.na(x), "Member absent", ifelse(x, "Yes", "No")))) %>%
+    mutate(linked = factor(linked, levels = c("Yes", "No", "Member absent"))) %>%
     mutate(adjacent = replace(adjacent, is.na(adjacent), T)) %>%
+    mutate(adjacent = map_chr(adjacent, function(x) ifelse(x, "Yes", "No"))) %>%
+    mutate(adjacent = factor(adjacent, levels = c("Yes", "No"))) %>%
     mutate(contiguous = replace(contiguous, is.na(contiguous), T)) %>%
+    mutate(contiguous = map_chr(contiguous, function(x) ifelse(x, "Yes", "No"))) %>%
+    mutate(contiguous = factor(contiguous, levels = c("Yes", "No"))) %>%
     mutate(fact.within.distance = as.character(within.distance)) %>%
     mutate(fact.within.distance = replace(fact.within.distance, fact.within.distance=="TRUE", "Within threshold")) %>%
     mutate(fact.within.distance = replace(fact.within.distance, fact.within.distance=="FALSE", "Outside threshold")) %>%
-    mutate(fact.within.distance = factor(fact.within.distance)) %>%
+    mutate(fact.within.distance = factor(fact.within.distance, levels = c("Within threshold", "Outside threshold"))) %>%
     mutate(arrow = ancestry) %>%
     mutate(arrow = replace(arrow, arrow %in% c("anc", "multiAnc"), 1)) %>%
     mutate(arrow = replace(arrow, arrow %in% c("desc", "multiDesc"), 2)) %>%
@@ -654,17 +673,7 @@ produce.pairwise.graphs <- function(ptrees,
     stop("No pairs match this vector of hosts")
   }
   
-  if(all(pair.data$within.distance, na.rm = T)){
-    linevals <- "solid"
-  } else if(all(!pair.data$linked, na.rm = T)){
-    linevals <- "dashed"
-  } else {
-    linevals <- c("dashed", "solid")
-  }
-  
-  
   pairwise.plot <- ggplot(pair.data) +
-    geom_point(aes(y=host.2, x = xcoord, alpha = as.numeric(host.2.present), fill=linked), col="black", size=2, shape=21) +
     geom_point(aes(y=host.1, x = xcoord, alpha = as.numeric(host.1.present), fill=linked), col="black", size=2, shape=21) +
     geom_point(aes(y=host.2, x = xcoord, alpha = as.numeric(host.2.present), fill=linked), col="black", size=2, shape=21) +
     geom_segment(data = pair.data %>% filter(!not.present), 
@@ -676,12 +685,9 @@ produce.pairwise.graphs <- function(ptrees,
                  show.legend = FALSE, na.rm=TRUE) +
     geom_point(data = pair.data %>% filter(!host.1.present), aes(y=host.1, x = xcoord), col="black", shape = 4, size=2) +
     geom_point(data = pair.data %>% filter(!host.2.present), aes(y=host.2, x = xcoord), col="black", shape = 4, size=2) +
-    geom_point(aes(x = xcoord, shape = !adjacent), y=1.5, col="red3", size=5) +
-    scale_fill_discrete(name="Linked", labels=c("No", "Yes", "Member\nabsent")) +
-    scale_linetype_manual(values = linevals, drop=F, name="Distance\nthreshold", labels = c("Outside", "Within")) +
-    scale_alpha_continuous(range = c(0.33, 1), guide=FALSE) +
+    scale_fill_manual(drop = F, name="Linked", labels=c("Yes", "No", "Member\nabsent"), values = c("#377eb8", "#e41a1c", "#bdbdbd")) +
+    scale_linetype_manual(drop=F, name="Distance\nthreshold", values = c("solid", "dashed"), labels = c("Within", "Outside")) +
     scale_colour_manual(drop=FALSE, values = c("blue3", "green4", "darkorange2", "orange4"), name="Ancestry", labels = c("Single", "Multiple", "None", "Complex")) +
-    scale_shape_manual(values = c(32, 126), name="Adjacent", labels = c("Yes", "Blocked")) +
     facet_wrap(~paircombo, ncol = 1, scales="free_y") + 
     theme_minimal() + 
     theme(panel.grid.major.y = element_blank(), 
@@ -691,6 +697,24 @@ produce.pairwise.graphs <- function(ptrees,
     guides(col = guide_legend(override.aes = list(shape = 32))) +
     xlab("Window centre") +
     ylab("Host")
+  
+  if(contiguous.pairs & any(pair.data$contiguous == "No")){
+    pairwise.plot <- pairwise.plot +
+      geom_point(aes(x = xcoord, shape = contiguous=="No"), y=1.5, col="red3", size=5) +
+      scale_shape_manual(drop=F, values = c(32, 126), name="Contiguous", labels = c("Yes", "Blocked")) 
+  } else if(!contiguous.pairs & any(pair.data$adjacent == "No")) {
+    pairwise.plot <- pairwise.plot +
+      geom_point(aes(x = xcoord, shape = adjacent=="No"), y=1.5, col="red3", size=5) +
+      scale_shape_manual(drop=F, values = c(32, 126), name="Adjacent", labels = c("Yes", "Blocked")) 
+  }
+  
+  if(any(!pair.data$host.1.present) | any(!pair.data$host.2.present)){
+    pairwise.plot <- pairwise.plot + 
+      scale_alpha_continuous(range = c(0.33, 1), guide=FALSE) 
+  } else {
+    pairwise.plot <- pairwise.plot + 
+      scale_alpha_continuous(range = c(1, 1), guide=FALSE) 
+  }
   
   return(list(graph = pairwise.plot, data = pair.data))
 }
