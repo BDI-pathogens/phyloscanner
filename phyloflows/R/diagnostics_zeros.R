@@ -113,7 +113,7 @@ source.attribution.mcmc.diagnostics    <- function(mcmc.file, mc=NULL, control=l
     }
 	if(grepl(control$regex_pars,'PI'))
 	{
-# TODO: is the following too naive?		
+
 		tmp <- mc$pars$PI
 		colnames(tmp) <- paste0('PI-',1:ncol(tmp))
 		pars <- cbind(pars, tmp)		
