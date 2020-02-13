@@ -167,37 +167,35 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
   
   # for speed: make look-up table so we know which transmission pair categories need to be updated
   # at every MCMC iteration
-  tmp <- subset(dobs, select=c(TRM_CAT_PAIR_ID, TR_SAMPLING_CATEGORY, REC_SAMPLING_CATEGORY))
-  tmp <- melt(tmp, id.vars='TRM_CAT_PAIR_ID', value.name='SAMPLING_CATEGORY', variable.name='WHO')
+  mc$dlu <- melt( subset(dobs, select=c(TRM_CAT_PAIR_ID, TR_SAMPLING_CATEGORY, REC_SAMPLING_CATEGORY)),
+                  id.vars='TRM_CAT_PAIR_ID', value.name='SAMPLING_CATEGORY', variable.name='WHO')
   #    make data.table with unique sampling categories
-  mc$dlu <- unique(subset(tmp, select=c(WHO,SAMPLING_CATEGORY)))
+  mc$dlu <- unique(subset(mc$dlu, select=c(WHO,SAMPLING_CATEGORY)))
   mc$dlu[, UPDATE_ID:= seq_len(nrow(mc$dlu))]
   setkey(mc$dlu, UPDATE_ID)
-  # make data.table that maps UPDATE_IDs to TRM_CAT_PAIR_IDs
-  mc$dl <- merge(mc$dlu, tmp, by=c('SAMPLING_CATEGORY','WHO'))
-  setkey(mc$dl, UPDATE_ID)
-  # every transmission category pair needs to be updated at least one as we sweep through the sampling categories    
-  if( !all(dobs$TRM_CAT_PAIR_ID %in% sort(unique(mc$dl$TRM_CAT_PAIR_ID))) )
-    stop('Fatal error. Contact the package maintainer with your input data.')
+  
   # make data.table that maps TRM_CAT_PAIR_IDs to transmitter UPDATE_IDs and recipient UPDATE_IDs
-  mc$dlt <- dcast.data.table(mc$dl, TRM_CAT_PAIR_ID~WHO, value.var='UPDATE_ID')
-  setnames(mc$dlt, c('TR_SAMPLING_CATEGORY','REC_SAMPLING_CATEGORY'), c('TR_UPDATE_ID','REC_UPDATE_ID'))
-  mc$dlt <- merge(mc$dlt,subset(dobs,select=c('TRM_CAT_PAIR_ID','TRM_OBS')),by='TRM_CAT_PAIR_ID')
+  mc$dlt <- subset(dobs, select = c('TRM_CAT_PAIR_ID','TR_SAMPLING_CATEGORY',
+                                    'REC_SAMPLING_CATEGORY','TRM_OBS'))
+  tmp <- mc$dlu[WHO=='TR_SAMPLING_CATEGORY',c('SAMPLING_CATEGORY','UPDATE_ID')]
+  setnames(tmp, colnames(tmp), paste0('TR_',colnames(tmp)))
+  mc$dlt <- merge(mc$dlt, tmp, by='TR_SAMPLING_CATEGORY')
+  tmp <- mc$dlu[WHO=='REC_SAMPLING_CATEGORY',c('SAMPLING_CATEGORY','UPDATE_ID')]
+  setnames(tmp, colnames(tmp), paste0('REC_',colnames(tmp)))
+  mc$dlt <- merge(mc$dlt, tmp, by='REC_SAMPLING_CATEGORY')
+  setnames(tmp, colnames(tmp), gsub('REC_','',colnames(tmp)))
+  set(mc$dlt,NULL,c('TR_SAMPLING_CATEGORY','REC_SAMPLING_CATEGORY'),NULL)
   setkey(mc$dlt,TRM_CAT_PAIR_ID)
   
   # for speed: make indexed lookup table 
   update.info    <- vector('list', nrow(mc$dlu))
   for (i in 1:nrow(mc$dlu))
   {
-    # TODO: (priority low)
-    #		we removed separate updating of transmitters & recipients
-    #		we cannot update the same group twice, hence the unique
-    #		to get clean code, please fix mc$dl above
-    # TODO: (priority low)
-    #		the above code starting at "tmp <- subset(dobs," is hard to follow
-    #		can you revisit and make as clean as possible?
-    update.info[[i]]    <- unique( mc$dl[UPDATE_ID==i,TRM_CAT_PAIR_ID] )
+    update.info[[i]] <- sort( unique(c(mc$dlt[TR_UPDATE_ID==i,TRM_CAT_PAIR_ID],
+                                       mc$dlt[REC_UPDATE_ID==i,TRM_CAT_PAIR_ID])) )
+    
   }
+  
   # for speed: make indexed prior samples
   setkey(dprior, SAMPLING_CATEGORY, WHO)
   dprior2 <- vector('list', nrow(mc$dlu))
