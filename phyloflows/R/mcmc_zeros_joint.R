@@ -351,7 +351,7 @@ source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=
       XI.prop[ update.count ] <- tmp$P
       XI_LP.prop[ update.count ] <- tmp$LP
       
-      dprior3 <- dprior_cat
+      dprior3 <- mc$dlu
       dprior3$P <- XI.prop
       dobs2 <- subset(dobs, select = c('TR_SAMPLING_CATEGORY','REC_SAMPLING_CATEGORY','TRM_CAT_PAIR_ID'))
       dobs2[,TR_WHO:='TR_SAMPLING_CATEGORY']
