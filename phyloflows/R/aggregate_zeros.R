@@ -143,7 +143,7 @@ source.attribution.mcmc.aggregateToTarget    <- function(mcmc.file=NULL, mc=NULL
     
     # aggregate MCMC samples
     if(!all(sort(unique(pars$TRM_CAT_PAIR_ID))==sort(unique(daggregateTo$TRM_CAT_PAIR_ID))))
-    	stop('The transmission count categories in the MCMC output do not match the transmission count categories in the aggregateTo data table.')
+    	warning('The transmission count categories in the MCMC output do not match the transmission count categories in the aggregateTo data table.')
     pars    <- merge(pars, daggregateTo, by='TRM_CAT_PAIR_ID')
     
     # return aggregated lambda values
