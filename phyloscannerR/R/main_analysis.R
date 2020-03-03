@@ -15,6 +15,7 @@ initialise.phyloscanner <- function(
   recombination.file.regex = "^RecombinantReads_InWindow_([0-9]+_to_[0-9]+).csv$",
   alignment.file.directory = NULL,
   alignment.file.regex = NULL,
+  alignment.format = "fasta",
   tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
   file.name.regex = "^(?:.*\\D)?([0-9]+)_to_([0-9]+).*$",
   seed,
@@ -230,13 +231,13 @@ initialise.phyloscanner <- function(
         warning("Tree file identifiers and alignment file identifiers do not entirely match.")
       }
     }
-    
     # this step won't do anything if input is anything other than phyloscanner standard, and should be safe
     
-    if(match.mode != "coords"){
+    if(match.mode == "coords"){
       full.alignment.file.names <- map_chr(1:length(full.alignment.file.names), function(x){
-        
+
         unexcised.file.name <- full.alignment.file.names[x]
+
         window.coords.string <- alignment.identifiers[x]
         excised.fn <- paste0(unlist(strsplit(unexcised.file.name, window.coords.string))[1], "PositionsExcised_", window.coords.string, ".fasta")
 
@@ -248,9 +249,19 @@ initialise.phyloscanner <- function(
       })
     }
     
+    
+    
     ptrees <- sapply(ptrees, function(ptree) attach.file.names(ptree, full.alignment.file.names, alignment.identifiers, "alignment.file.name"), simplify = F, USE.NAMES = T)
+    
+    if(verbosity!=0){
+      cat("Reading alignments...\n")
+    }
+    
+    ptrees <- sapply(ptrees, function(ptree) attach.alignment(ptree, verbose = verbosity == 2, format=alignment.format), simplify = F, USE.NAMES = T)
+    
   }
-  
+
+
   # Read the trees
   
   if(verbosity!=0){
@@ -560,6 +571,7 @@ blacklist <- function(ptrees,
 #' @param recombination.file.name The path for a single file containing the results of the \code{phyloscanner_make_trees.py} recombination metric analysis.
 #' @param alignment.directory The directory containing the alignments used to construct the phylogenies.
 #' @param alignment.file.regex A regular expression identifying every file in \code{alignment.directory} that is an alignment. If a capture group is specified then its contents will uniquely identify the tree it belongs to, which must matches the IDs found by \code{tree.file.regex}. If these IDs cannot be identified then matching will be attempted using genome window coordinates. 
+#' @param alignment.format The file format for alignment files, as per ape::read.dna. Default is FASTA.
 #' @param tip.regex Regular expression identifying tips from the dataset. This expects up to three capture groups, for host ID, read ID, and read count (in that order). If the latter two groups are missing then read information will not be used. The default matches input from the phyloscanner pipeline where the host ID is the BAM file name.
 #' @param file.name.regex Regular expression identifying window coordinates. Two capture groups: start and end; if the latter is missing then the first group is a single numerical identifier for the window. The default matches input from the phyloscanner pipeline.
 #' @param seed Random number seed; used by the downsampling process, and also ties in some parsimony reconstructions can be broken randomly.
@@ -648,6 +660,7 @@ phyloscanner.analyse.trees <- function(
   recombination.file.regex = "^RecombinantReads_InWindow_([0-9]+_to_[0-9]+).csv$",
   alignment.file.directory = NULL,
   alignment.file.regex = NULL, 
+  alignment.format = "fasta",
   tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
   file.name.regex = "^(?:.*\\D)?([0-9]+)_to_([0-9]+).*$",
   seed = sample(1:10000000,1),
@@ -685,6 +698,7 @@ phyloscanner.analyse.trees <- function(
                                   recombination.file.regex,
                                   alignment.file.directory,
                                   alignment.file.regex,
+                                  alignment.format,
                                   tip.regex,
                                   file.name.regex,
                                   seed,
@@ -905,6 +919,7 @@ phyloscanner.analyse.tree <- function(
   duplicate.file.name = NULL,
   recombination.file.name = NULL,
   alignment.file.name = NULL,
+  alignment.format = "fasta",
   tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
   file.name.regex = "^(?:.*\\D)?([0-9]+)_to_([0-9]+).*$",
   seed = sample(1:10000000,1),
@@ -951,6 +966,7 @@ phyloscanner.analyse.tree <- function(
     recombination.file.regex = basename(recombination.file.name),
     alignment.file.directory = alignment.file.directory, 
     alignment.file.regex = basename(alignment.file.name), 
+    alignment.format = alignment.format,
     tip.regex = tip.regex, 
     file.name.regex = file.name.regex, 
     seed = seed, 
@@ -990,6 +1006,7 @@ phyloscanner.generate.blacklist <- function(
   duplicate.file.regex = "^DuplicateReadCountsProcessed_InWindow_([0-9]+_to_[0-9]+).csv$",
   alignment.file.directory = NULL,
   alignment.file.regex = NULL, 
+  alignment.format = "fasta",
   tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$",
   file.name.regex = "^.*([0-9]+)_to_([0-9]+).*$",
   seed = sample(1:10000000,1),
@@ -1020,6 +1037,7 @@ phyloscanner.generate.blacklist <- function(
                                   NULL,
                                   alignment.file.directory,
                                   alignment.file.regex,
+                                  alignment.format,
                                   tip.regex,
                                   file.name.regex,
                                   seed,
@@ -1081,7 +1099,7 @@ gather.summary.statistics <- function(ptrees, hosts = all.hosts.from.trees(ptree
   
   has.read.counts <- attr(ptrees, 'has.read.counts')
   
-  pat.stats <- ptrees %>% map(function(x) calc.all.stats.in.window(x, hosts, tip.regex, has.read.counts, verbose))
+  pat.stats <- ptrees %>% map(function(x) calc.phylo.stats.in.window(x, hosts, tip.regex, has.read.counts, verbose))
   pat.stats <- pat.stats %>% bind_rows
   
   read.proportions <- ptrees %>% map(function(y) sapply(hosts, function(x) get.read.proportions(x, y$id, y$splits.table), simplify = F, USE.NAMES = T))
@@ -1365,7 +1383,6 @@ attach.tree <- function(ptree, verbose) {
   if(verbose){
     cat("Reading tree file",ptree$tree.file.name,'\n')
   }
-  
   first.line        <- readLines(ptree$tree.file.name, n=1)
   
   if(first.line == "#NEXUS"){
@@ -1379,6 +1396,7 @@ attach.tree <- function(ptree, verbose) {
   ptree
 }
 
+
 #' @export
 #' @keywords internal
 #' @importFrom ape read.dna
@@ -1388,10 +1406,10 @@ attach.alignment <- function(ptree, verbose=F, ...) {
     cat("Reading alignment file",ptree$alignment.file.name,'\n')
   }
   
-  alignment                 <- read.dna(ptree$alignment.file.name, ...)
+  alignment                 <- read.dna(ptree$alignment.file.name, as.matrix = T, ...)
   ptree$alignment           <- alignment
   
-  ptree
+  return(ptree)
 }
 
 

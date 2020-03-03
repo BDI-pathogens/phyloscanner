@@ -4,14 +4,17 @@
 \alias{produce.pairwise.graphs2}
 \title{Draw bar graphs of pairwise topological/distance relationships, version 2}
 \usage{
-produce.pairwise.graphs2(ptrees, hosts = all.hosts.from.trees(ptrees),
-  inclusion = c("both", "either"), dwin = NULL,
-  control = list(yintercept_close = 0.025, yintercept_dist = 1, breaks_x
-  = seq(0, 10000, 500), minor_breaks_x = seq(0, 10000, 100), breaks_y =
-  c(0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25), limits_y =
-  c(0.001, 0.4), fill.topology = c(ancestral = "deepskyblue1", descendant =
-  "deepskyblue4", intermingled = "#FDB863", sibling = "#8073AC", other =
-  "grey80")))
+produce.pairwise.graphs2(
+  ptrees,
+  hosts = all.hosts.from.trees(ptrees),
+  inclusion = c("both", "either"),
+  dwin = NULL,
+  control = list(yintercept_close = 0.025, yintercept_dist = 1, breaks_x = seq(0, 10000,
+    500), minor_breaks_x = seq(0, 10000, 100), breaks_y = c(0.001, 0.0025, 0.005, 0.01,
+    0.025, 0.05, 0.1, 0.25), limits_y = c(0.001, 0.4), fill.topology = c(ancestral =
+    "deepskyblue1", descendant = "deepskyblue4", intermingled = "#FDB863", sibling =
+    "#8073AC", other = "grey80"))
+)
 }
 \arguments{
 \item{ptrees}{A list of class \code{phyloscanner.trees}}
@@ -48,7 +51,7 @@ tmp$graph
 }
 }
 \seealso{
-\link{\code{classify.pairwise.relationships}}
+\code{classify.pairwise.relationships}
 }
 \author{
 Oliver Ratmann

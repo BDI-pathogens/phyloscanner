@@ -30,7 +30,8 @@ arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_
 arg_parser$add_argument("-y", "--fileNameRegex", action="store", default="^(?:.*\\D)?([0-9]+)_to_([0-9]+).*$", help="Regular expression identifying window coordinates in tree file names. Two capture groups: start and end; if the latter is missing then the first group is a single numerical identifier for the window. If absent, input will be assumed to be from the phyloscanner pipeline.")
 arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default=".tree", help="The file extension for tree files (default .tree). This includes the dot; use '' if there is no file extension.")
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default=".csv", help="The file extension for table files (default .csv). This includes the dot; use '' if there is no file extension..")
-arg_parser$add_argument("-afe", "--alignmentFileExtension", action="store", default=".fasta", help="The file extension for nucleotide alignment files (default .fasta). This includes the dot; use '' if there is no file extension..")
+arg_parser$add_argument("-afe", "--alignmentFileExtension", action="store", default=".fasta", help="The file extension for nucleotide alignment files (default .fasta). This includes the dot; use '' if there is no file extension.")
+arg_parser$add_argument("-aft", "--alignmentFormat", action="store", default="fasta", help="File format for alignment files. The options are the same as ape::read.dna.")
 arg_parser$add_argument("-pw", "--pdfWidth", action="store", default=50, help="Width of tree PDF in inches.")
 arg_parser$add_argument("-ph", "--pdfRelHeight", action="store", default=0.15, help="Relative height of tree PDF")
 arg_parser$add_argument("-psb", "--pdfScaleBarWidth", action="store", default=0.01, help="Width of the scale bar in the PDF output (in branch length units)")
@@ -76,6 +77,7 @@ arg_parser$add_argument("-tn", "--outputNexusTree", action="store_true", help="S
 # Summary statistics
 
 arg_parser$add_argument("-R", "--recombinationFiles", action="store", help="Include in the summary plots the recombination metric calculated by phyloscanner_make_trees.py. Use this option to specify a string that begins the file names (including their path) of the recombination data files (for example, 'path/to/RecombinantReads_InWindow_') or a directory containing those files.")
+arg_parser$add_argument("-ast", "--alignmentStatistics", action = "store_true", help = "Adds columns for nucleotide diversity and cumulative minor allele frequency to the summary statistics file. Requires --alignment." )
 
 # Classification
 
@@ -117,6 +119,7 @@ csv.fe                          <- args$csvFileExtension
 re.csv.fe                       <- gsub("\\.", "\\\\.", csv.fe)
 alignment.fe                    <- args$alignmentFileExtension
 re.alignment.fe                 <- gsub("\\.", "\\\\.", alignment.fe)
+alignment.format                <- args$alignmentFormat
 
 # tree input
 tree.input                      <- args$tree
@@ -165,8 +168,21 @@ if(!is.null(alignment.input)){
   } else {
     if(file.info(alignment.input)[['isdir']]){
       alignment.directory       <- alignment.input
-      alignment.file.regex      <- paste0("^(.*)",re.alignment.fe,"$")
-    } 
+      
+      # this is a heinous hack. PMT has two types of alignment and if one exists then it is the right one. If it does not, then the other one is.
+      if(length(list.files(alignment.directory, pattern = "^AlignedReadsInWindow_[0-9].*")) > 0){
+        # this is PMT output, we assume
+        alignment.file.regex      <- paste0("^AlignedReadsInWindow_([0-9]+_to_[0-9]+)",re.alignment.fe,"$")
+      } else {
+        # it isn't, just take the whole folder
+        alignment.file.regex      <- paste0("^(.*)",re.alignment.fe,"$")
+      }
+      
+      
+    } else {
+      alignment.directory         <- dirname(alignment.input)
+      alignment.file.regex        <- alignment.input
+    }
   }
 } else {
   alignment.directory           <- NULL
@@ -349,6 +365,11 @@ if(args$outputNexusTree){
 
 recomb.input                   <- args$recombinationFiles
 do.recomb                      <- !is.null(recomb.input)
+do.alignment.statistics        <- args$alignmentStatistics
+
+if(do.alignment.statistics & is.null(alignment.input)){
+  warning("You must provide alignment files to generate alignment statistics; these will not be produced.")
+}
 
 if(do.recomb){
   if(!file.exists(recomb.input)){
@@ -446,6 +467,7 @@ if(single.tree){
     dup.input.file.name,
     recomb.input,
     alignment.input,
+    alignment.format,
     tip.regex,
     file.name.regex,
     seed,
@@ -486,6 +508,7 @@ if(single.tree){
     recomb.file.regex,
     alignment.directory,
     alignment.file.regex,
+    alignment.format,
     tip.regex,
     file.name.regex,
     seed,

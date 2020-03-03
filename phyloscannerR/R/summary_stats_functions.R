@@ -161,11 +161,75 @@ get.tip.and.read.counts <- function(ptree, hosts, tip.regex, has.read.counts, ve
 }
 
 #' @keywords internal
-#' @export calc.all.stats.in.window
+#' @export calc.alignment.stats.in.window
+#' @importFrom pegas nuc.div
 
-calc.all.stats.in.window <- function(ptree, hosts, tip.regex, has.read.counts, verbose = F){
+calc.alignment.stats.in.window <- function(ptree, hosts, tip.regex, has.read.counts, verbose = FALSE){
+  if(verbose) cat("Calculating alignment host statistics for tree ID ",ptree$id,"\n",sep="")
+  
+  id <- ptree$id
+  
+  
+  if(is.null(alignment)){
+    stop("No alignment found.")
+  }
+  
+  alignment <- ptree$alignment
+  blacklist <- ptree$blacklist
+  
+  alignment <- alignment[which(!(rownames(alignment) %in% blacklist)),]
+  
+  hosts.for.tips <- sapply(rownames(alignment), function(x) host.from.label(x, tip.regex))
+  
+  hosts.present <- intersect(hosts, unique(hosts.for.tips))
+  
+  if(length(hosts.present)==0){
+    warning(paste("No listed hosts appear in tree ",ptree$id,"\n",sep=""))
+  }
+  
+  tips.for.hosts <- lapply(setNames(hosts, hosts), function(x) rownames(alignment)[which(hosts.for.tips==x)])
+  
+  if(has.read.counts){
+    multiplicities <- map_dbl(rownames(alignment), function(x) as.numeric(read.count.from.label(y, tip.regex)))
+  } else {
+    multiplicities <- rep(1, nrow(alignment))
+  }
+    
+  duplicated.alignment <- alignment
+  
+  for(i in 1:nrow(alignment)){
+    if(multiplicities[i] > 1){
+      for(j in 2:multiplicities[i]){
+        duplicated.alignment <- rbind(duplicated.alignment, alignment[i,])
+      }
+    }
+  }
+  
+  window.table <- tibble(host.id = hosts, 
+                         tree.id = id, 
+                         raw.nuc.raw = map_dbl(hosts, function(x){
+                           sub.alignment <- alignment[which(rownames(alignment) %in% tips.for.hosts[[x]]),]
+                           nuc.div(sub.alignment)
+                         } 
+                         ),
+                         raw.nuc.weighted = map_dbl(hosts, function(x){
+                           sub.alignment <- duplicated.alignment[which(rownames(duplicated.alignment) %in% tips.for.hosts[[x]]),]
+                           nuc.div(sub.alignment)
+                         } 
+                         ),
+                         subgraphs =  sapply(hosts, function(x) length(unique(splits.table[which(splits.table$host==x),]$subgraph))),
+                         clades = sapply(hosts, function(x) length(clades.by.host[[x]]))
+  )
+  
+}
 
-  if(verbose) cat("Calculating host statistics for tree ID ",ptree$id,"\n",sep="")
+
+#' @keywords internal
+#' @export calc.phylo.stats.in.window
+
+calc.phylo.stats.in.window <- function(ptree, hosts, tip.regex, has.read.counts, verbose = FALSE){
+
+  if(verbose) cat("Calculating phylogenetic host statistics for tree ID ",ptree$id,"\n",sep="")
   
   id <- ptree$id
   
@@ -200,7 +264,7 @@ calc.all.stats.in.window <- function(ptree, hosts, tip.regex, has.read.counts, v
     warning(paste("No listed hosts appear in tree ",ptree$id,"\n",sep=""))
   }
   
-  # A list of tips for each patient 
+  # A list of tips for each host 
   
   tips.for.hosts <- lapply(setNames(hosts, hosts), function(x) tree$tip.label[which(hosts.for.tips==x)])
   

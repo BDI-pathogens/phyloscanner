@@ -435,7 +435,7 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
 #' @param control List of plotting attributes. 
 #' @return A list whose elements are \code{data}, the underlying data frame for the graph, and \code{graph}, the graph itself.
 #' @export produce.pairwise.graphs2
-#' @seealso \link{\code{classify.pairwise.relationships}}
+#' @seealso \code{classify.pairwise.relationships}
 #' @examples
 #' #
 #' # Example on data from Rakai Community Cohort Study

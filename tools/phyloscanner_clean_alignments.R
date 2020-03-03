@@ -39,6 +39,7 @@ arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default="c
 arg_parser$add_argument("-sd", "--seed", action="store", help="Random number seed; used by the downsampling process, and also ties in some parsimony reconstructions can be broken randomly.")
 arg_parser$add_argument("-ow", "--overwrite", action="store_true", help="Overwrite existing output files with the same names.")
 arg_parser$add_argument("-rda", "--outputRDA", action="store_true", help="Write the final R workspace image to file.")
+arg_parser$add_argument("-aft", "--alignmentFormat", action="store", default="fasta", help="File format for alignment files. The options are the same as ape::read.dna.")
 
 # Normalisation options
 
@@ -82,6 +83,7 @@ tree.directory                <- dirname(tree.input)
 tree.file.regex               <- paste0("^", basename(tree.input), "(.*)\\.",tree.fe,"$")
 
 alignment.input               <- args$alignment
+alignment.format              <- args$alignment.format
 
 alignment.directory           <- dirname(alignment.input)
 alignment.file.regex          <- paste0("^", basename(alignment.input), "([0-9].*)\\.[A-Za-z]+$")
@@ -209,6 +211,7 @@ ptrees <- phyloscanner.generate.blacklist(
   duplicate.file.regex,
   alignment.directory,
   alignment.file.regex,
+  alignment.format,
   tip.regex,
   file.name.regex,
   seed,
@@ -249,9 +252,9 @@ if(output.blacklisting.report){
 
 silent <- sapply(ptrees, function(ptree){
   
-  if(!is.null(ptree$alignment.file.name)){
+  if(!is.null(ptree$alignment)){
     
-    seqs     <- read.dna(ptree$alignment.file.name, format="fasta")
+    seqs     <- ptree$alignment
     
     if(!setequal(labels(seqs), ptree$original.tip.labels)){
       stop(paste0("Sequence labels in ",ptree$alignment.file.name, " and tip labels in ",ptree$tree.file.name," do not match."))
@@ -264,7 +267,7 @@ silent <- sapply(ptrees, function(ptree){
     write.dna(new.seqs, file = file.path(output.dir, new.afn), format="fasta")
 
   } else {
-    if(verbosity!=0) cat("No alignment file found for tree ID ",ptree$suffix, "\n", sep="")
+    if(verbosity!=0) cat("No alignment found for tree ID ",ptree$suffix, "\n", sep="")
   }
   
 })
