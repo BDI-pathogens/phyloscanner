@@ -596,7 +596,7 @@ if(length(phyloscanner.trees)>1){
     cat("Calculating per-host summary statistics...\n", sep="")
   }
   
-  summary.stats <- gather.summary.statistics(phyloscanner.trees, tip.regex = tip.regex, verbose = verbosity==2)
+  summary.stats <- gather.summary.statistics(phyloscanner.trees, tip.regex = tip.regex, do.alignment.stats = do.alignment.statistics, verbose = verbosity==2)
   
   ss.csv.fn <- paste0(output.string,"_patStats", csv.fe)
   

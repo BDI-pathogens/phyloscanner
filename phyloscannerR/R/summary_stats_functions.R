@@ -169,12 +169,12 @@ calc.alignment.stats.in.window <- function(ptree, hosts, tip.regex, has.read.cou
   
   id <- ptree$id
   
+  alignment <- ptree$alignment
   
   if(is.null(alignment)){
     stop("No alignment found.")
   }
   
-  alignment <- ptree$alignment
   blacklist <- ptree$blacklist
   
   alignment <- alignment[which(!(rownames(alignment) %in% blacklist)),]
@@ -190,7 +190,7 @@ calc.alignment.stats.in.window <- function(ptree, hosts, tip.regex, has.read.cou
   tips.for.hosts <- lapply(setNames(hosts, hosts), function(x) rownames(alignment)[which(hosts.for.tips==x)])
   
   if(has.read.counts){
-    multiplicities <- map_dbl(rownames(alignment), function(x) as.numeric(read.count.from.label(y, tip.regex)))
+    multiplicities <- map_dbl(rownames(alignment), function(x) as.numeric(read.count.from.label(x, tip.regex)))
   } else {
     multiplicities <- rep(1, nrow(alignment))
   }
@@ -198,7 +198,7 @@ calc.alignment.stats.in.window <- function(ptree, hosts, tip.regex, has.read.cou
   duplicated.alignment <- alignment
   
   for(i in 1:nrow(alignment)){
-    if(multiplicities[i] > 1){
+    if(!is.na(multiplicities[i]) & multiplicities[i] > 1){
       for(j in 2:multiplicities[i]){
         duplicated.alignment <- rbind(duplicated.alignment, alignment[i,])
       }
@@ -207,22 +207,92 @@ calc.alignment.stats.in.window <- function(ptree, hosts, tip.regex, has.read.cou
   
   window.table <- tibble(host.id = hosts, 
                          tree.id = id, 
-                         raw.nuc.raw = map_dbl(hosts, function(x){
+                         nuc.div.raw = map_dbl(hosts, function(x){
                            sub.alignment <- alignment[which(rownames(alignment) %in% tips.for.hosts[[x]]),]
                            nuc.div(sub.alignment)
-                         } 
-                         ),
-                         raw.nuc.weighted = map_dbl(hosts, function(x){
+                         }),
+                         nuc.div.weighted = map_dbl(hosts, function(x){
                            sub.alignment <- duplicated.alignment[which(rownames(duplicated.alignment) %in% tips.for.hosts[[x]]),]
                            nuc.div(sub.alignment)
-                         } 
-                         ),
-                         subgraphs =  sapply(hosts, function(x) length(unique(splits.table[which(splits.table$host==x),]$subgraph))),
-                         clades = sapply(hosts, function(x) length(clades.by.host[[x]]))
-  )
-  
+                         }),
+                         cumul.maf.raw = map_dbl(hosts, function(x){
+                           sub.alignment <- alignment[which(rownames(alignment) %in% tips.for.hosts[[x]]),]
+                           mean(map_dbl(1:ncol(sub.alignment), function(y) maf(sub.alignment[,y])) , na.rm = T)
+                         }),
+                         cumul.maf.weighted = map_dbl(hosts, function(x){
+                           sub.alignment <- duplicated.alignment[which(rownames(duplicated.alignment) %in% tips.for.hosts[[x]]),]
+                           mean(map_dbl(1:ncol(sub.alignment), function(y) maf(sub.alignment[,y])) , na.rm = T)
+                         })
+                         )
+  window.table
 }
 
+# Minor allele frequency in one column
+
+#' @keywords internal
+#' @export maf
+
+maf <- function(col.vec){
+  col.vec <- as.character(col.vec)
+  # just in case!
+  
+  col.vec[which(toupper(col.vec) == "U")] <- "T"
+  
+  
+  nonmissing <- col.vec[which(col.vec != "-")]
+  if(length(nonmissing)==0){
+    return(NA)
+  }
+  
+  denominator <- length(nonmissing)
+  
+  nucs <- c("A", "C", "G", "T")
+  
+  freqs <- map_dbl(nucs, function(x){
+    sum(map_dbl(nonmissing, function(y){
+      sum(nucleotide.probability(x)*nucleotide.probability(y))
+    }))
+  })
+  
+  if(sum(freqs) != denominator){
+    stop("Your maths is wrong.")
+  }
+  return(1-(freqs[which(freqs == max(freqs))][1]/denominator))
+}
+
+
+# Takes a (potentially ambiguous) nucleotide code and returns a vector of probabilities of being A, C, G or T(/U) in that order
+
+#' @keywords internal
+#' @export nucleotide.probability
+#' @importFrom glue glue
+
+nucleotide.probability <- function(code){
+  if(!(toupper(code) %in% c("A","C","G","T","U","R","Y","S","W","K","M","B","V","D","H","N","?"))){
+    stop(glue("Unknown nucleotide code: {code}"))
+  }
+  
+  switch(
+    toupper(code),
+    "A" = c(1,0,0,0),
+    "C" = c(0,1,0,0),
+    "G" = c(0,0,1,0),
+    "T" = c(0,0,0,1),
+    "U" = c(0,0,0,1),
+    "R" = c(0.5,0,0.5,0),
+    "Y" = c(0,0.5,0,0.5),
+    "S" = c(0,0.5,0.5,0),
+    "W" = c(0.5,0,0,0.5),
+    "K" = c(0,0,0.5,0.5),
+    "M" = c(0.5,0.5,0,0),
+    "B" = c(0,1/3,1/3,1/3),
+    "V" = c(1/3,1/3,1/3,0),
+    "D" = c(1/3,0,1/3,1/3),
+    "H" = c(1/3,1/3,0,1/3),
+    "N" = c(0.25,0.25,0.25,0.25),
+    "?" = c(0.25,0.25,0.25,0.25)
+  )
+}
 
 #' @keywords internal
 #' @export calc.phylo.stats.in.window
@@ -289,8 +359,6 @@ calc.phylo.stats.in.window <- function(ptree, hosts, tip.regex, has.read.counts,
                          subgraphs =  sapply(hosts, function(x) length(unique(splits.table[which(splits.table$host==x),]$subgraph))),
                          clades = sapply(hosts, function(x) length(clades.by.host[[x]]))
   )
-  
-  
   
   new.cols <- map_dfr(hosts, function(x) calc.subtree.stats(x, id, tree, tips.for.hosts, splits.table, tip.regex, !has.read.counts, verbose))
   
