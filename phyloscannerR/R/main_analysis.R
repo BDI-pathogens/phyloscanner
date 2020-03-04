@@ -1143,7 +1143,7 @@ gather.summary.statistics <- function(ptrees, hosts = all.hosts.from.trees(ptree
   if(do.alignment.statistics){
     aln.stats       <- ptrees %>% map(function(x) calc.alignment.stats.in.window(x, hosts, tip.regex, has.read.counts, verbose))
     aln.stats       <- aln.stats %>% bind_rows
-    pat.stats       <- inner_join(aln.stats, read.prop.columns, by=c("host.id", "tree.id"))
+    pat.stats       <- inner_join(pat.stats, read.prop.columns, by=c("host.id", "tree.id"))
   }
   
   pat.stats
