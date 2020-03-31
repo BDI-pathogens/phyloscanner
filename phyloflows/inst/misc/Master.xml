@@ -1,0 +1,154 @@
+<beast version='2.0' namespace='master:master.model:master.conditions:master.outputs'>
+    <run spec='InheritanceTrajectory'
+        samplePopulationSizes="true"
+        verbosity="1"
+        simulationTime='400'>
+        
+        <model spec='Model' id='model'>
+            <population spec='Population' id='S1' populationName='S1'/>
+            <population spec='Population' id='I1' populationName='I1'/>
+            <population spec='Population' id='R1' populationName='R1'/>
+            <population spec='Population' id='S2' populationName='S2'/>
+            <population spec='Population' id='I2' populationName='I2'/>
+            <population spec='Population' id='R2' populationName='R2'/>
+            <population spec='Population' id='S3' populationName='S3'/>
+            <population spec='Population' id='I3' populationName='I3'/>
+            <population spec='Population' id='R3' populationName='R3'/>
+            <population spec='Population' id='S4' populationName='S4'/>
+            <population spec='Population' id='I4' populationName='I4'/>
+            <population spec='Population' id='R4' populationName='R4'/>
+            <reaction spec='Reaction' reactionName="Infection13" rate="0.00001188272">
+                S1:2 + I3:1 -> I1:1 + I3:1
+            </reaction>
+            <reaction spec='Reaction' reactionName="Infection14" rate="0.000001188272">
+                S1:2 + I4:1 -> I1:1 + I4:1
+            </reaction>
+            <reaction spec='Reaction' reactionName="Recovery1" rate="0.0444">
+                I1:1 -> R1:2
+            </reaction>
+            <reaction spec='Reaction' reactionName="Infection23" rate="0.000001358025">
+                S2:2 + I3:1 -> I2:1 + I3:1
+            </reaction>
+            <reaction spec='Reaction' reactionName="Infection24" rate="0.000007921814">
+                S2:2 + I4:1 -> I2:1 + I4:1
+            </reaction>
+            <reaction spec='Reaction' reactionName="Recovery2" rate="0.0444">
+                I2:1 -> R2:2
+            </reaction>
+            <reaction spec='Reaction' reactionName="Infection31" rate="0.00001697532">
+                S3:2 + I1:1 -> I3:1 + I1:1
+            </reaction>
+            <reaction spec='Reaction' reactionName="Infection32" rate="0.000002885804">
+                S3:2 + I2:1 -> I3:1 + I2:1
+            </reaction>
+            <reaction spec='Reaction' reactionName="Recovery3" rate="0.0444">
+                I3:1 -> R3:2
+            </reaction>
+            <reaction spec='Reaction' reactionName="Infection41" rate="0.000002489713">
+                S4:2 + I1:1 -> I4:1 + I1:1
+            </reaction>
+            <reaction spec='Reaction' reactionName="Infection42" rate="0.00001131688">
+                S4:2 + I2:1 -> I4:1 + I2:1
+            </reaction>
+            <reaction spec='Reaction' reactionName="Recovery4" rate="0.0444">
+                I4:1 -> R4:2
+            </reaction>
+            <reaction spec='Reaction' reactionName="BirthS1" rate="0.01667">
+                S1:1 -> S1:1 + S1:2
+            </reaction>
+            <reaction spec='Reaction' reactionName="BirthI1" rate="0.01667">
+                I1:1 -> I1:1 + S1:2
+            </reaction>
+            <reaction spec='Reaction' reactionName="BirthR1" rate="0.01667">
+                R1:1 -> R1:1 + S1:2
+            </reaction>
+            <reaction spec='Reaction' reactionName="DeathS1" rate="0.01667">
+                S1 -> 0
+            </reaction>
+            <reaction spec='Reaction' reactionName="DeathI1" rate="0.01667">
+                I1 -> 0
+            </reaction>
+            <reaction spec='Reaction' reactionName="DeathR1" rate="0.01667">
+                R1 -> 0
+            </reaction>
+            <reaction spec='Reaction' reactionName="BirthS2" rate="0.01667">
+                S2:1 -> S2:1 + S2:2
+            </reaction>
+            <reaction spec='Reaction' reactionName="BirthI2" rate="0.01667">
+                I2:1 -> I2:1 + S2:2
+            </reaction>
+            <reaction spec='Reaction' reactionName="BirthR2" rate="0.01667">
+                R2:1 -> R2:1 + S2:2
+            </reaction>
+            <reaction spec='Reaction' reactionName="DeathS2" rate="0.01667">
+                S2 -> 0
+            </reaction>
+            <reaction spec='Reaction' reactionName="DeathI2" rate="0.01667">
+                I2 -> 0
+            </reaction>
+            <reaction spec='Reaction' reactionName="DeathR2" rate="0.01667">
+                R2 -> 0
+            </reaction>
+            <reaction spec='Reaction' reactionName="BirthS3" rate="0.01667">
+                S3:1 -> S3:1 + S3:2
+            </reaction>
+            <reaction spec='Reaction' reactionName="BirthI3" rate="0.01667">
+                I3:1 -> I3:1 + S3:2
+            </reaction>
+            <reaction spec='Reaction' reactionName="BirthR3" rate="0.01667">
+                R3:1 -> R3:1 + S3:2
+            </reaction>
+            <reaction spec='Reaction' reactionName="DeathS3" rate="0.01667">
+                S3 -> 0
+            </reaction>
+            <reaction spec='Reaction' reactionName="DeathI3" rate="0.01667">
+                I3 -> 0
+            </reaction>
+            <reaction spec='Reaction' reactionName="DeathR3" rate="0.01667">
+                R3 -> 0
+            </reaction>
+            <reaction spec='Reaction' reactionName="BirthS4" rate="0.01667">
+                S4:1 -> S4:1 + S4:2
+            </reaction>
+            <reaction spec='Reaction' reactionName="BirthI4" rate="0.01667">
+                I4:1 -> I4:1 + S4:2
+            </reaction>
+            <reaction spec='Reaction' reactionName="BirthR4" rate="0.01667">
+                R4:1 -> R4:1 +  S4:2
+            </reaction>
+            <reaction spec='Reaction' reactionName="DeathS4" rate="0.01667">
+                S4 -> 0
+            </reaction>
+            <reaction spec='Reaction' reactionName="DeathI4" rate="0.01667">
+                I4 -> 0
+            </reaction>
+            <reaction spec='Reaction' reactionName="DeathR4" rate="0.01667">
+                R4 -> 0
+            </reaction>
+        </model>
+        
+        <initialState spec='InitState'>
+            <populationSize spec='PopulationSize' population='@S1' size='5999'/>
+            <populationSize spec='PopulationSize' population='@R1' size='0'/>
+            <populationSize spec='PopulationSize' population='@S2' size='8999'/>
+            <populationSize spec='PopulationSize' population='@R2' size='0'/>
+            <populationSize spec='PopulationSize' population='@S3' size='5999'/>
+            <populationSize spec='PopulationSize' population='@R3' size='0'/>
+            <populationSize spec='PopulationSize' population='@S4' size='8999'/>
+            <populationSize spec='PopulationSize' population='@R4' size='0'/>
+            <lineageSeed spec='Individual' population='@I1'/>
+            <lineageSeed spec='Individual' population='@I2'/>
+            <lineageSeed spec='Individual' population='@I3'/>
+            <lineageSeed spec='Individual' population='@I4'/>
+        </initialState>
+        
+        <!-- Simulation will terminate when no lineages remain -->
+        <lineageEndCondition spec='LineageEndCondition' nLineages="0"/>
+        
+        <output spec='NewickOutput' fileName='tree.newick'/>
+        <output spec='NexusOutput' fileName='tree.nexus'/>
+        <output spec='JsonOutput' fileName='tree.json'/>
+    </run>
+</beast>
+
+
