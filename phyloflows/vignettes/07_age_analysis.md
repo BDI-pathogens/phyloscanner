@@ -13,6 +13,9 @@ transmission flows.
 
 **We start with simulating transmission counts** between seven age
 groups called “15-19”,“20-24”,“25-29”,“30-34”,“35-39”,“40-44”,“45-49”.
+Note that in practice, it would be good to use this method to
+investigate transmission dynamics between one-year increment age group,
+as the squared exponential kernel is for the continuous input space.
 
 ``` r
 library(rstan)
@@ -60,8 +63,8 @@ simu_fit <- stan(   file="simu_poiss.stan",
     ## Chain 1: Iteration: 1 / 1 [100%]  (Sampling)
     ## Chain 1: 
     ## Chain 1:  Elapsed Time: 0 seconds (Warm-up)
-    ## Chain 1:                5.3e-05 seconds (Sampling)
-    ## Chain 1:                5.3e-05 seconds (Total)
+    ## Chain 1:                5.1e-05 seconds (Sampling)
+    ## Chain 1:                5.1e-05 seconds (Total)
     ## Chain 1:
 
 ``` r
@@ -166,21 +169,13 @@ We use **rstan** to sample from the posterior distribution \[
 p(\lambda, s | n) \propto \prod_{i=1,\cdots,7;j=1,\cdots,7} Poisson(n_{ij};\lambda_{ij}*s_i*s_j) p(\lambda_{ij}) p(s_i) p(s_j).
 \] Then, we calculate the main quantity of interest, \(\pi\), via \[
 \pi_{ij}= \lambda_{ij} / \sum_{k=1,2; l=1,2} \lambda_{kl}.
-\] for \(i=1,,\cdots,7\) and \(j=1,,\cdots,7\).
+\]
+
+for \(i=1,,\cdots,7\) and \(j=1,,\cdots,7\).
+
+# Independent Gamma prior
 
 ``` r
-  M <- 30
-  D <- 2 
-  indices <- matrix(NA, M^D, D)
-  mm=0;
-  for (m1 in 1:M){
-    for (m2 in 1:M){
-      mm = mm+1
-      indices[mm,] = c(m1, m2)
-    }
-  }
-  
-
  tmp <- subset(ds,select = c('CATEGORY','ID'))
  setnames(tmp, colnames(tmp), paste0('TR_TRM_',colnames(tmp)))
  dobs <- merge(dobs,tmp,by='TR_TRM_CATEGORY')
@@ -188,32 +183,31 @@ p(\lambda, s | n) \propto \prod_{i=1,\cdots,7;j=1,\cdots,7} Poisson(n_{ij};\lamb
  dobs <- merge(dobs,tmp,by='REC_TRM_CATEGORY')
  setnames(tmp, colnames(tmp), gsub('REC_TRM_','',colnames(tmp)))
  
-
-  standata_bf12 <- list( M= M, M_nD= M^D, 
-                         L= c(3/2*max(dobs$TR_SMOOTH_CATEGORY),3/2*max(dobs$REC_SMOOTH_CATEGORY)), 
-                         N = nrow(dobs),
-                         x = cbind(dobs$TR_SMOOTH_CATEGORY,dobs$REC_SMOOTH_CATEGORY),
-                         D = D,
-                         y = dobs$TRM_OBS,
-                         indices= indices,
-                         N_xi = nrow(ds),
-                         shape = cbind(dprior.fit$ALPHA,dprior.fit$BETA),
-                         xi_id = cbind(dobs$TR_TRM_ID,dobs$REC_TRM_ID))
+ 
+ data.gamma <- list(N=nrow(dobs),
+                   Y=dobs$TRM_OBS,
+                   N_xi = nrow(dprior.fit),
+                   shape = cbind(dprior.fit$ALPHA,dprior.fit$BETA),
+                   xi_id = cbind(dobs$TR_TRM_ID,dobs$REC_TRM_ID),
+                   alpha = 0.8/nrow(dobs))
 ```
 
+After preparing data, we could estimate flows under independent Gamma
+prior.
+
 ``` r
-fit <- stan(file = 'gp.stan',
-            data = standata_bf12,
-            iter = 3000,  warmup = 500, chains=1, thin=1, seed = 42,
-            algorithm = "NUTS", verbose = FALSE,
-            control = list(adapt_delta = 0.8, max_treedepth=10))
+  fit.gamma <- stan(file = 'gamma.stan',
+              data = data.gamma,
+              iter = 3000,  warmup = 500, chains=1, thin=1, seed = 42,
+              algorithm = "NUTS", verbose = FALSE,
+              control = list(adapt_delta = 0.8, max_treedepth=10))
 ```
 
     ## 
-    ## SAMPLING FOR MODEL 'gp' NOW (CHAIN 1).
+    ## SAMPLING FOR MODEL 'gamma' NOW (CHAIN 1).
     ## Chain 1: 
-    ## Chain 1: Gradient evaluation took 0.002225 seconds
-    ## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 22.25 seconds.
+    ## Chain 1: Gradient evaluation took 6.6e-05 seconds
+    ## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.66 seconds.
     ## Chain 1: Adjust your expectations accordingly!
     ## Chain 1: 
     ## Chain 1: 
@@ -230,44 +224,126 @@ fit <- stan(file = 'gp.stan',
     ## Chain 1: Iteration: 2900 / 3000 [ 96%]  (Sampling)
     ## Chain 1: Iteration: 3000 / 3000 [100%]  (Sampling)
     ## Chain 1: 
-    ## Chain 1:  Elapsed Time: 106.795 seconds (Warm-up)
-    ## Chain 1:                267.115 seconds (Sampling)
-    ## Chain 1:                373.909 seconds (Total)
+    ## Chain 1:  Elapsed Time: 7.2269 seconds (Warm-up)
+    ## Chain 1:                18.8831 seconds (Sampling)
+    ## Chain 1:                26.11 seconds (Total)
     ## Chain 1:
 
-Finally, we checked the effective sample size and Rhat for the chain.
+``` r
+  M <- 30
+  D <- 2 
+  indices <- matrix(NA, M^D, D)
+  mm=0;
+  for (m1 in 1:M){
+    for (m2 in 1:M){
+      mm = mm+1
+      indices[mm,] = c(m1, m2)
+    }
+  }
+  
+ 
+
+  data.gp <- list( M= M, M_nD= M^D, 
+                         L= c(3/2*max(dobs$TR_SMOOTH_CATEGORY),3/2*max(dobs$REC_SMOOTH_CATEGORY)), 
+                         N = nrow(dobs),
+                         x = cbind(dobs$TR_SMOOTH_CATEGORY,dobs$REC_SMOOTH_CATEGORY),
+                         D = D,
+                         y = dobs$TRM_OBS,
+                         indices= indices,
+                         N_xi = nrow(ds),
+                         shape = cbind(dprior.fit$ALPHA,dprior.fit$BETA),
+                         xi_id = cbind(dobs$TR_TRM_ID,dobs$REC_TRM_ID))
+```
+
+After preparing data, we could estimate flows under independent Gaussian
+process prior.
 
 ``` r
-range(summary(fit)$summary[, "n_eff"])
+ fit.gp <- stan(file = 'gp.stan',
+            data = data.gp,
+            iter = 3000,  warmup = 500, chains=1, thin=1, seed = 42,
+            algorithm = "NUTS", verbose = FALSE,
+            control = list(adapt_delta = 0.8, max_treedepth=10))
+```
+
+    ## 
+    ## SAMPLING FOR MODEL 'gp' NOW (CHAIN 1).
+    ## Chain 1: 
+    ## Chain 1: Gradient evaluation took 0.002662 seconds
+    ## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 26.62 seconds.
+    ## Chain 1: Adjust your expectations accordingly!
+    ## Chain 1: 
+    ## Chain 1: 
+    ## Chain 1: Iteration:    1 / 3000 [  0%]  (Warmup)
+    ## Chain 1: Iteration:  300 / 3000 [ 10%]  (Warmup)
+    ## Chain 1: Iteration:  501 / 3000 [ 16%]  (Sampling)
+    ## Chain 1: Iteration:  800 / 3000 [ 26%]  (Sampling)
+    ## Chain 1: Iteration: 1100 / 3000 [ 36%]  (Sampling)
+    ## Chain 1: Iteration: 1400 / 3000 [ 46%]  (Sampling)
+    ## Chain 1: Iteration: 1700 / 3000 [ 56%]  (Sampling)
+    ## Chain 1: Iteration: 2000 / 3000 [ 66%]  (Sampling)
+    ## Chain 1: Iteration: 2300 / 3000 [ 76%]  (Sampling)
+    ## Chain 1: Iteration: 2600 / 3000 [ 86%]  (Sampling)
+    ## Chain 1: Iteration: 2900 / 3000 [ 96%]  (Sampling)
+    ## Chain 1: Iteration: 3000 / 3000 [100%]  (Sampling)
+    ## Chain 1: 
+    ## Chain 1:  Elapsed Time: 93.4892 seconds (Warm-up)
+    ## Chain 1:                209.712 seconds (Sampling)
+    ## Chain 1:                303.201 seconds (Total)
+    ## Chain 1:
+
+Finally, we checked the effective sample size and Rhat for the Gamma
+fit.
+
+``` r
+range(summary(fit.gamma)$summary[, "n_eff"])
+```
+
+    ## [1]  528.7714 3199.4158
+
+``` r
+range(summary(fit.gamma)$summary[, "Rhat"])
+```
+
+    ## [1] 0.9995999 1.0017399
+
+``` r
+params_gamma <- extract(fit.gamma)
+```
+
+Finally, we checked the effective sample size and Rhat for the GP fit.
+
+``` r
+range(summary(fit.gp)$summary[, "n_eff"])
 ```
 
     ## [1]  276.4037 4002.5037
 
 ``` r
-range(summary(fit)$summary[, "Rhat"])
+range(summary(fit.gp)$summary[, "Rhat"])
 ```
 
     ## [1] 0.9995999 1.0135090
 
 ``` r
-params <- extract(fit)
+params_gp <- extract(fit.gp)
 ```
 
 The histograms of hyperparameters are plotted in order to compare with
-true hyperparameter values.
+true hyperparameter values under GP prior.
 
 ``` r
 c_light <- c("#DCBCBC")
 c_dark <- c("#8F2727")
 c_dark_highlight <- c("#7C0000")
 par(mfrow=c(2, 2))  
-hist(params$alpha, main="", xlab="alpha", col=c_dark, border=c_dark_highlight, yaxt='n')
+hist(params_gp$alpha, main="", xlab="alpha", col=c_dark, border=c_dark_highlight, yaxt='n')
 abline(v=2.5, col=c_light, lty=1, lwd=3)
-hist(params$rho[,1], main="", xlab="rho1", col=c_dark, border=c_dark_highlight, yaxt='n')
+hist(params_gp$rho[,1], main="", xlab="rho1", col=c_dark, border=c_dark_highlight, yaxt='n')
 abline(v=12, col=c_light, lty=1, lwd=3)
-hist(params$rho[,2], main="", xlab="rho2", col=c_dark, border=c_dark_highlight, yaxt='n')
+hist(params_gp$rho[,2], main="", xlab="rho2", col=c_dark, border=c_dark_highlight, yaxt='n')
 abline(v=9, col=c_light, lty=1, lwd=3)
-hist(params$mu, main="", xlab="mu", col=c_dark, border=c_dark_highlight, yaxt='n')
+hist(params_gp$mu, main="", xlab="mu", col=c_dark, border=c_dark_highlight, yaxt='n')
 abline(v=-1, col=c_light, lty=1, lwd=3)
 ```
 

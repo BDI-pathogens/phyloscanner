@@ -28,7 +28,9 @@ This vignette provides an extension of the general method of **phyloflow**. The 
 
 
 # Dataset
-**We start with simulating transmission counts** between seven age groups called "15-19","20-24","25-29","30-34","35-39","40-44","45-49".
+**We start with simulating transmission counts** between seven age groups called "15-19","20-24","25-29","30-34","35-39","40-44","45-49". Note that in practice, it would be good to use this method 
+to investigate transmission dynamics between one-year increment age group, as the squared exponential kernel is 
+for the continuous input space.
 ```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE, message=FALSE, warning=FALSE}
 library(rstan)
 library(data.table)
@@ -143,8 +145,39 @@ $$
 Then, we calculate the main quantity of interest, $\pi$, via
 $$
 \pi_{ij}= \lambda_{ij} / \sum_{k=1,2; l=1,2} \lambda_{kl}.
-$$ for $i=1,,\cdots,7$ and
+$$ 
+
+for $i=1,,\cdots,7$ and
 $j=1,,\cdots,7$.
+
+# Independent Gamma prior
+```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE, message=FALSE, warning=FALSE}
+ tmp <- subset(ds,select = c('CATEGORY','ID'))
+ setnames(tmp, colnames(tmp), paste0('TR_TRM_',colnames(tmp)))
+ dobs <- merge(dobs,tmp,by='TR_TRM_CATEGORY')
+ setnames(tmp, colnames(tmp), gsub('TR_TRM_','REC_TRM_',colnames(tmp)))
+ dobs <- merge(dobs,tmp,by='REC_TRM_CATEGORY')
+ setnames(tmp, colnames(tmp), gsub('REC_TRM_','',colnames(tmp)))
+ 
+ 
+ data.gamma <- list(N=nrow(dobs),
+                   Y=dobs$TRM_OBS,
+                   N_xi = nrow(dprior.fit),
+                   shape = cbind(dprior.fit$ALPHA,dprior.fit$BETA),
+                   xi_id = cbind(dobs$TR_TRM_ID,dobs$REC_TRM_ID),
+                   alpha = 0.8/nrow(dobs))
+```
+
+After preparing data, we could estimate flows under independent Gamma prior.
+
+```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE, message=FALSE, warning=FALSE}
+  fit.gamma <- stan(file = 'gamma.stan',
+              data = data.gamma,
+              iter = 3000,  warmup = 500, chains=1, thin=1, seed = 42,
+              algorithm = "NUTS", verbose = FALSE,
+              control = list(adapt_delta = 0.8, max_treedepth=10))
+```  
+
 
 ```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE, message=FALSE, warning=FALSE}
   M <- 30
@@ -158,16 +191,9 @@ $j=1,,\cdots,7$.
     }
   }
   
-
- tmp <- subset(ds,select = c('CATEGORY','ID'))
- setnames(tmp, colnames(tmp), paste0('TR_TRM_',colnames(tmp)))
- dobs <- merge(dobs,tmp,by='TR_TRM_CATEGORY')
- setnames(tmp, colnames(tmp), gsub('TR_TRM_','REC_TRM_',colnames(tmp)))
- dobs <- merge(dobs,tmp,by='REC_TRM_CATEGORY')
- setnames(tmp, colnames(tmp), gsub('REC_TRM_','',colnames(tmp)))
  
 
-  standata_bf12 <- list( M= M, M_nD= M^D, 
+  data.gp <- list( M= M, M_nD= M^D, 
                          L= c(3/2*max(dobs$TR_SMOOTH_CATEGORY),3/2*max(dobs$REC_SMOOTH_CATEGORY)), 
                          N = nrow(dobs),
                          x = cbind(dobs$TR_SMOOTH_CATEGORY,dobs$REC_SMOOTH_CATEGORY),
@@ -179,36 +205,45 @@ $j=1,,\cdots,7$.
                          xi_id = cbind(dobs$TR_TRM_ID,dobs$REC_TRM_ID))
   
 ```
+After preparing data, we could estimate flows under independent Gaussian process prior.
 
 ```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE, message=FALSE, warning=FALSE}
-
-fit <- stan(file = 'gp.stan',
-            data = standata_bf12,
+ fit.gp <- stan(file = 'gp.stan',
+            data = data.gp,
             iter = 3000,  warmup = 500, chains=1, thin=1, seed = 42,
             algorithm = "NUTS", verbose = FALSE,
             control = list(adapt_delta = 0.8, max_treedepth=10))
 
 ```
-Finally, we checked the effective sample size and Rhat for the chain. 
+Finally, we checked the effective sample size and Rhat for the Gamma fit. 
 
 ```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE, message=FALSE, warning=FALSE}
-range(summary(fit)$summary[, "n_eff"])
-range(summary(fit)$summary[, "Rhat"])
-params <- extract(fit)
+range(summary(fit.gamma)$summary[, "n_eff"])
+range(summary(fit.gamma)$summary[, "Rhat"])
+params_gamma <- extract(fit.gamma)
 ```
-The histograms of hyperparameters are plotted in order to compare with true hyperparameter values.
+
+Finally, we checked the effective sample size and Rhat for the GP fit. 
+
+```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE, message=FALSE, warning=FALSE}
+range(summary(fit.gp)$summary[, "n_eff"])
+range(summary(fit.gp)$summary[, "Rhat"])
+params_gp <- extract(fit.gp)
+```
+
+The histograms of hyperparameters are plotted in order to compare with true hyperparameter values under GP prior.
 ```{r posterior, fig.margin=TRUE}
 c_light <- c("#DCBCBC")
 c_dark <- c("#8F2727")
 c_dark_highlight <- c("#7C0000")
 par(mfrow=c(2, 2))	
-hist(params$alpha, main="", xlab="alpha", col=c_dark, border=c_dark_highlight, yaxt='n')
+hist(params_gp$alpha, main="", xlab="alpha", col=c_dark, border=c_dark_highlight, yaxt='n')
 abline(v=2.5, col=c_light, lty=1, lwd=3)
-hist(params$rho[,1], main="", xlab="rho1", col=c_dark, border=c_dark_highlight, yaxt='n')
+hist(params_gp$rho[,1], main="", xlab="rho1", col=c_dark, border=c_dark_highlight, yaxt='n')
 abline(v=12, col=c_light, lty=1, lwd=3)
-hist(params$rho[,2], main="", xlab="rho2", col=c_dark, border=c_dark_highlight, yaxt='n')
+hist(params_gp$rho[,2], main="", xlab="rho2", col=c_dark, border=c_dark_highlight, yaxt='n')
 abline(v=9, col=c_light, lty=1, lwd=3)
-hist(params$mu, main="", xlab="mu", col=c_dark, border=c_dark_highlight, yaxt='n')
+hist(params_gp$mu, main="", xlab="mu", col=c_dark, border=c_dark_highlight, yaxt='n')
 abline(v=-1, col=c_light, lty=1, lwd=3)
 ```
 
