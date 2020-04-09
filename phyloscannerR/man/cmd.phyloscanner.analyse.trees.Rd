@@ -4,9 +4,13 @@
 \alias{cmd.phyloscanner.analyse.trees}
 \title{Make script file for a phyloscanner analysis on a tree or set of trees}
 \usage{
-cmd.phyloscanner.analyse.trees(prog.phyloscanner_analyse_trees, tree.input,
+cmd.phyloscanner.analyse.trees(
+  prog.phyloscanner_analyse_trees,
+  tree.input,
   control,
-  valid.input.args = cmd.phyloscanner.analyse.trees.valid.args(prog.phyloscanner_analyse_trees))
+ 
+    valid.input.args = cmd.phyloscanner.analyse.trees.valid.args(prog.phyloscanner_analyse_trees)
+)
 }
 \arguments{
 \item{prog.phyloscanner_analyse_trees}{The full file name of \code{phyloscanner_analyse_trees.R}.}
@@ -48,7 +52,7 @@ control$distance.threshold <- '0.025 0.05'
 control$do.dual.blacklisting = FALSE					
 control$duplicate.file.directory = NULL
 control$duplicate.file.regex = NULL
-control$file.name.regex = "^\\\\D*([0-9]+)_to_([0-9]+)\\\\D*$"
+control$file.name.regex = "^\\D*([0-9]+)_to_([0-9]+)\\D*$"
 control$guess.multifurcation.threshold = FALSE
 control$max.reads.per.host = 50
 control$min.reads.per.host <- 30
@@ -74,7 +78,7 @@ control$sankoff.unassigned.switch.threshold = 0
 control$seed = 42
 control$splits.rule = 's'
 control$tip.regex = "^(.*)_fq[0-9]+_read_([0-9]+)_count_([0-9]+)$"
-control$tree.file.regex = "^ptyr[0-9]+_InWindow_([0-9]+_to_[0-9]+)\\\\.tree$"
+control$tree.file.regex = "^ptyr[0-9]+_InWindow_([0-9]+_to_[0-9]+)\\.tree$"
 control$use.ff = FALSE
 control$user.blacklist.directory = NULL 
 control$user.blacklist.file.regex = NULL
@@ -104,9 +108,9 @@ untar("Dataset_S1.tar", exdir=tree.dir, extras='-xvf')
 #	list zipped tree files. One zip file contains the viral trees of individuals in one putative transmission network. 
 df <- tibble(F=list.files(tree.dir))
 df <- df \%>\% 
-		mutate(TYPE:= gsub('ptyr([0-9]+)_(.*)','\\\\2', F),
-			RUN:= as.integer(gsub('ptyr([0-9]+)_(.*)','\\\\1', F))) \%>\%
-		mutate(TYPE:= gsub('^([^\\\\.]+)\\\\.[a-z]+$','\\\\1',TYPE)) \%>\%
+		mutate(TYPE:= gsub('ptyr([0-9]+)_(.*)','\\2', F),
+			RUN:= as.integer(gsub('ptyr([0-9]+)_(.*)','\\1', F))) \%>\%
+		mutate(TYPE:= gsub('^([^\\.]+)\\.[a-z]+$','\\1',TYPE)) \%>\%
 		spread(TYPE, F) \%>\%
 		set_names(~ str_to_upper(.))
 #	make one bash script for processing the viral trees of individuals in one putative transmission network.

@@ -4,10 +4,13 @@
 \alias{find.networks}
 \title{Find phylogenetic transmission networks and most likely transmission chain}
 \usage{
-find.networks(dc, control = list(linked.group = "close.and.adjacent.cat",
-  linked.no = "not.close.or.nonadjacent", linked.yes =
-  "close.and.adjacent", neff.cut = 3, weight.complex.or.no.ancestry = 0.5),
-  verbose = TRUE)
+find.networks(
+  dc,
+  control = list(linked.group = "close.and.adjacent.cat", linked.no =
+    "not.close.or.nonadjacent", linked.yes = "close.and.adjacent", neff.cut = 3,
+    weight.complex.or.no.ancestry = 0.5),
+  verbose = TRUE
+)
 }
 \arguments{
 \item{dc}{Summary of phylogenetic relationship counts for each pair, stored as tibble.}
@@ -91,7 +94,7 @@ control$distance.threshold <- '0.025 0.05'
 control$do.dual.blacklisting = FALSE					
 control$duplicate.file.directory = NULL
 control$duplicate.file.regex = NULL
-control$file.name.regex = "^\\\\D*([0-9]+)_to_([0-9]+)\\\\D*$"
+control$file.name.regex = "^\\D*([0-9]+)_to_([0-9]+)\\D*$"
 control$guess.multifurcation.threshold = FALSE
 control$max.reads.per.host = 50
 control$min.reads.per.host <- 30
@@ -117,7 +120,7 @@ control$sankoff.unassigned.switch.threshold = 0
 control$seed = 42
 control$splits.rule = 's'
 control$tip.regex = "^(.*)_fq[0-9]+_read_([0-9]+)_count_([0-9]+)$"
-control$tree.file.regex = "^ptyr[0-9]+_InWindow_([0-9]+_to_[0-9]+)\\\\.tree$"
+control$tree.file.regex = "^ptyr[0-9]+_InWindow_([0-9]+_to_[0-9]+)\\.tree$"
 control$use.ff = FALSE
 control$user.blacklist.directory = NULL 
 control$user.blacklist.file.regex = NULL
@@ -125,9 +128,9 @@ control$verbosity = 1
 #	prepare analysis: list zipped tree files. One zip file contains the viral trees of individuals in one putative transmission network. 
 df <- tibble(F=list.files(tree.dir))
 df <- df \%>\% 
-		mutate(TYPE:= gsub('ptyr([0-9]+)_(.*)','\\\\2', F),
-				RUN:= as.integer(gsub('ptyr([0-9]+)_(.*)','\\\\1', F))) \%>\%
-		mutate(TYPE:= gsub('^([^\\\\.]+)\\\\.[a-z]+$','\\\\1',TYPE)) \%>\%
+		mutate(TYPE:= gsub('ptyr([0-9]+)_(.*)','\\2', F),
+				RUN:= as.integer(gsub('ptyr([0-9]+)_(.*)','\\1', F))) \%>\%
+		mutate(TYPE:= gsub('^([^\\.]+)\\.[a-z]+$','\\1',TYPE)) \%>\%
 		spread(TYPE, F) \%>\%
 		set_names(~ str_to_upper(.))
 #	make bash scripts: one each for processing the viral trees of individuals in one putative transmission network
@@ -152,21 +155,21 @@ hpc.mem <- "6gb" 					# RAM
 hpc.array <- length(cmds)	# number of runs for job array	
 pbshead <- "#!/bin/sh"
 tmp <- paste("#PBS -l walltime=", hpc.walltime, ":59:00,pcput=", hpc.walltime, ":45:00", sep = "")
-pbshead <- paste(pbshead, tmp, sep = "\\n")
+pbshead <- paste(pbshead, tmp, sep = "\n")
 tmp <- paste("#PBS -l select=", hpc.select, ":ncpus=", hpc.nproc,":mem=", hpc.mem, sep = "")
-pbshead <- paste(pbshead, tmp, sep = "\\n")
-pbshead <- paste(pbshead, "#PBS -j oe", sep = "\\n")	
+pbshead <- paste(pbshead, tmp, sep = "\n")
+pbshead <- paste(pbshead, "#PBS -j oe", sep = "\n")	
 if(!is.na(hpc.array))
-	pbshead	<- paste(pbshead, "\\n#PBS -J 1-", hpc.array, sep='')	
+	pbshead	<- paste(pbshead, "\n#PBS -J 1-", hpc.array, sep='')	
 if(!is.na(hpc.q)) 
-	pbshead <- paste(pbshead, paste("#PBS -q", hpc.q), sep = "\\n")
-pbshead <- paste(pbshead, hpc.load, sep = "\\n")	
+	pbshead <- paste(pbshead, paste("#PBS -q", hpc.q), sep = "\n")
+pbshead <- paste(pbshead, hpc.load, sep = "\n")	
 cat(pbshead)
 #	submit bash scripts: make array job
 for(i in 1:length(cmds))
-	cmds[[i]]<- paste0(i,')\\n',cmds[[i]],';;\\n')
-cmd <- paste0('case $PBS_ARRAY_INDEX in\\n',paste0(cmds, collapse=''),'esac')	
-cmd <- paste(pbshead,cmd,sep='\\n')	
+	cmds[[i]]<- paste0(i,')\n',cmds[[i]],';;\n')
+cmd <- paste0('case $PBS_ARRAY_INDEX in\n',paste0(cmds, collapse=''),'esac')	
+cmd <- paste(pbshead,cmd,sep='\n')	
 #	submit bash scripts: submit job
 outfile <- gsub(':','',paste("phsc",paste(strsplit(date(),split=' ')[[1]],collapse='_',sep=''),'sh',sep='.'))
 outfile <- file.path(tmpdir, outfile)
@@ -198,14 +201,14 @@ control <- list(	linked.group='close.and.adjacent.cat',
 # process phyloscanner runs
 batch.regex <- '^ptyr([0-9]+)_.*'	
 infiles	<- tibble(F=list.files(indir, pattern='workspace.rda', full.names=TRUE)) \%>\%
-		mutate( PTY_RUN:= as.integer(gsub(batch.regex,'\\\\1',basename(F))) ) \%>\%
+		mutate( PTY_RUN:= as.integer(gsub(batch.regex,'\\1',basename(F))) ) \%>\%
 		arrange(PTY_RUN)		
 dpls <- vector('list', nrow(infiles))
 dcs <- vector('list', nrow(infiles))
 dws <- vector('list', nrow(infiles))
 for(i in seq_len(nrow(infiles)))
 {		
-	if(verbose)	cat('\\nReading ', infiles$F[i])
+	if(verbose)	cat('\nReading ', infiles$F[i])
 	tmp	<- load( infiles$F[i] )
 	#	ensure we have multinomial output in workspace
 	if(!'dc'\%in\%tmp)
@@ -225,7 +228,7 @@ dc <- do.call('rbind', dcs)
 dw <- do.call('rbind', dwins)
 dpls <- dcs <- dwins <- NULL
 #	select analysis in which each pair has highest neff
-if(verbose) cat('\\nIf pairs are in several batches, select batch with most deep-sequence phylogenies...')
+if(verbose) cat('\nIf pairs are in several batches, select batch with most deep-sequence phylogenies...')
 tmp <- dc \%>\% 
 		filter( CATEGORISATION==control$linked.group & TYPE==control$linked.yes )	\%>\%
 		group_by(H1,H2) \%>\%
@@ -234,7 +237,7 @@ tmp <- dc \%>\%
 dc <- tmp \%>\% left_join(dc, by=c('H1','H2','PTY_RUN'))
 dw <- tmp \%>\% left_join(dw, by=c('H1','H2','PTY_RUN'))
 dpl <- tmp \%>\% left_join(dpl, by=c('H1','H2','PTY_RUN'))	
-if(verbose) cat('\\nLeft with pairs between whom linkage is not excluded phylogenetically, n=', nrow(dpls))
+if(verbose) cat('\nLeft with pairs between whom linkage is not excluded phylogenetically, n=', nrow(dpls))
 #	find network pairs: save
 outfile <- file.path(workdir, "RakaiPopSample_phyloscanner_analysis_190706", "Rakai_phscnetworks_allpairs_190706.RData")
 save(dpl, dc, dw, file=outfile)
