@@ -1256,7 +1256,7 @@ multipage.summary.statistics <- function(ptrees, sum.stats, hosts = all.hosts.fr
 #' @import ggplot2
 #' @export write.annotated.tree
 
-write.annotated.tree <- function(ptree, file.name, format = c("pdf", "nex"), pdf.scale.bar.width = 0.01, pdf.w = 50, pdf.hm = 0.15, verbose = F){
+write.annotated.tree <- function(ptree, file.name, format = c("pdf", "nex"), pdf.scale.bar.width = 0.01, pdf.w = 50, pdf.hm = 0.15, verbose = F){	
   tree <- ptree$tree
   read.counts <- ptree$read.counts
   
