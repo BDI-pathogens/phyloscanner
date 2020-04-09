@@ -604,6 +604,75 @@ phyloscanner.to.simmap<- function(ph, delete.phyloscanner.structures=FALSE)
 	ph
 }
 
+#' @title Cast treeio tree to phyloscanner tree
+#' @export treeio.to.phyloscanner
+#' @importFrom phangorn Ancestors
+#' @author Oliver Ratmann
+#' @usage treeio.to.phyloscanner(ph)
+#' @param ph A \code{treeio} tree with elements \code{phylo}, \code{data}. Element \code{data} is expected to have columns \code{node} and \code{location}.
+#' @return Same tree in \code{phyloscanner.tree} format, with attributes \code{SPLIT}, \code{INDIVIDUAL}, \code{BRANCH_COLOURS}, \code{SUBGRAPH_MRCA}.
+#' @seealso \code{\link{phyloscanner.to.simmap}}, \code{\link{extract.subgraph}}
+treeio.to.phyloscanner <- function(ph)
+{
+	stopifnot( any(class(ph)=='treedata') )
+	
+	#	extract node.states 
+	stopifnot( all(c('node','location') %in% colnames(ph@data)) )
+	phd <- as.data.table( subset(ph@data, select=c(node, location)) )
+	setnames(phd, colnames(phd), toupper(colnames(phd)))
+	set(phd, NULL, 'NODE', phd[, as.integer(NODE)])
+	ph <- ph@phylo
+	tmp <- as.data.table(ph$edge)
+	colnames(tmp) <- c('NODE_FROM','NODE_TO')
+	tmp[, EDGE:= 1:nrow(tmp)]
+	setnames(phd, c('NODE','LOCATION'), c('NODE_FROM','LOCATION_FROM'))
+	tmp <- merge(tmp, phd, by='NODE_FROM')
+	setnames(phd, c('NODE_FROM','LOCATION_FROM'), c('NODE_TO','LOCATION_TO'))
+	phd <- merge(tmp, phd, by='NODE_TO')
+	phd <- phd[order(EDGE),]
+	ph$node.states <- as.matrix(subset(phd, select=c(LOCATION_FROM,LOCATION_TO)))		
+	# state at each node. set root to Unknown by default
+	node.states <- vector('character', Nnode(ph, internal.only=FALSE))
+	node.states[ph$edge[,2]] <- ph$node.states[,2]
+	node.states[Ntip(ph)+1] <- 'Unknown'
+	# find subgraph mrcas
+	subgraphs <- setdiff(sort(unique(node.states)),'Unknown') 
+	# for each subgraph, find one member node
+	subgraph.member <- sapply(subgraphs, function(x) which(node.states==x)[1] )
+	# for each member, descend in tree and find most ancestral member node, which is the mrca of the subgraph
+	subgraph.ancestors <- phangorn:::Ancestors(ph, subgraph.member)
+	subgraph.mrcas <- sapply(seq_along(subgraph.ancestors), function(j){				
+				subgraph.mrca <- subgraph.member[j]
+				subgraph.name <- names(subgraph.member)[j]
+				nodes.in.same.subgraph.idx <- which(node.states[subgraph.ancestors[[j]]]==subgraph.name)
+				if(length(nodes.in.same.subgraph.idx))
+					subgraph.mrca <- subgraph.ancestors[[j]][ tail(nodes.in.same.subgraph.idx,1) ]
+				subgraph.mrca
+			})
+	names(subgraph.mrcas) <- subgraphs
+	#	make phyloscanner attributes
+	attr(ph, 'SPLIT') <- node.states
+	tmp <- rep(FALSE, length(node.states))
+	tmp[subgraph.mrcas] <- TRUE
+	attr(ph, 'SUBGRAPH_MRCA') <- tmp
+	attr(ph, 'INDIVIDUAL') <- gsub('-SPLIT[0-9]+','',node.states)
+	tmp <- t( rbind( node.states[ ph$edge[,1] ], 
+					node.states[ ph$edge[,2] ], 
+					node.states[ ph$edge[,2] ] ) )
+	tmp[tmp[,1]!=tmp[,2], 3] <- 'Unknown'	
+	tmp <- gsub('-SPLIT[0-9]+','',tmp[,3])
+	attr(ph, 'BRANCH_COLOURS') <- rep(NA, Nnode(ph, internal.only=FALSE)) 
+	attr(ph, 'BRANCH_COLOURS')[ ph$edge[,2] ] <- tmp		
+	attr(ph, 'SPLIT')[attr(ph, 'SPLIT')=='Unknown'] <- NA
+	attr(ph, 'INDIVIDUAL')[attr(ph, 'INDIVIDUAL')=='Unknown'] <- NA
+	attr(ph, 'BRANCH_COLOURS')[attr(ph, 'BRANCH_COLOURS')=='Unknown'] <- NA
+	attr(ph, 'SPLIT') <- factor(attr(ph, 'SPLIT'))
+	attr(ph, 'INDIVIDUAL') <- factor(attr(ph, 'INDIVIDUAL'))
+	attr(ph, 'BRANCH_COLOURS') <- factor(attr(ph, 'BRANCH_COLOURS'))
+	ph[["node.states"]] <- NULL
+	ph
+}
+
 #' @title Cast SIMMAP tree to phyloscanner tree
 #' @export simmap.to.phyloscanner
 #' @importFrom phangorn Ancestors
