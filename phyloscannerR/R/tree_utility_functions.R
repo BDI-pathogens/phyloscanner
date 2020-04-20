@@ -792,7 +792,7 @@ extract.subgraph<- function(ph, mrca)
 				subgraph<- list(	edge= matrix(nrow=0, ncol=2), 
 					edge.length=vector('numeric',0),
 					Nnode=0,
-					tip.label=ph$tip.label[mrca],
+					tip.label= vector('character',0),
 					maps= vector('list',0),
 					mapped.edge= matrix(nrow=0, ncol=0),
 					node.states= matrix(nrow=0, ncol=2)
