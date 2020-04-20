@@ -786,19 +786,34 @@ extract.subgraph<- function(ph, mrca)
 		{
 			# find all tips of descendants.not.in.subgraph, and remove the corresponding tips, which will remove the subtree for each descendant
 			tips.not.in.subgraph <- sort(unique(unlist(Descendants(subgraph, descendants.not.in.subgraph, type='tips'))))
-			subgraph <- ape:::drop.tip(subgraph, tips.not.in.subgraph)
-			subgraph[['maps']] <- NULL
-			subgraph[['mapped.edge']] <- NULL
-			subgraph[['node.states']] <- NULL
-			attr(subgraph,'class') <- c( "phylo")
-			attr(subgraph, "map.order") <- NULL
-			attr(subgraph, "order") <- NULL
-			attr(subgraph, "SPLIT") <- NULL
-			attr(subgraph, "INDIVIDUAL") <- NULL
-			attr(subgraph, "BRANCH_COLOURS") <- NULL
-			attr(subgraph, "SUBGRAPH_MRCA") <- NULL			
+			if(length(tips.not.in.subgraph)==Ntip(subgraph))
+			{
+				warning('found all tips in different subgraphs for ',mrca,subgraph.name)
+				subgraph<- list(	edge= matrix(nrow=0, ncol=2), 
+					edge.length=vector('numeric',0),
+					Nnode=0,
+					tip.label=ph$tip.label[mrca],
+					maps= vector('list',0),
+					mapped.edge= matrix(nrow=0, ncol=0),
+					node.states= matrix(nrow=0, ncol=2)
+					)
+			}
+			else
+			{
+				subgraph <- ape:::drop.tip(subgraph, tips.not.in.subgraph)
+				subgraph[['maps']] <- NULL
+				subgraph[['mapped.edge']] <- NULL
+				subgraph[['node.states']] <- NULL
+				attr(subgraph,'class') <- c( "phylo")
+				attr(subgraph, "map.order") <- NULL
+				attr(subgraph, "order") <- NULL
+				attr(subgraph, "SPLIT") <- NULL
+				attr(subgraph, "INDIVIDUAL") <- NULL
+				attr(subgraph, "BRANCH_COLOURS") <- NULL
+				attr(subgraph, "SUBGRAPH_MRCA") <- NULL
+			}						
 		}		
-	}
+	}	
 	subgraph[['subgraph.name']]<- subgraph.name
 	subgraph[['subgraph.root.edge']]<- subgraph.root.edge
 	subgraph[['subgraph.parent.state']]<- subgraph.parent.state
