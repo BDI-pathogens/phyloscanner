@@ -50,7 +50,8 @@ xi <- c(0.35, 0.45, 0.5, 0.55, 0.5, 0.55, 0.4)
 dobs <- data.table(expand.grid(TR_TRM_CATEGORY = c("15-19","20-24","25-29","30-34","35-39","40-44","45-49"),
                                REC_TRM_CATEGORY = c("15-19","20-24","25-29","30-34","35-39","40-44","45-49")))
 
-ds <- data.table(CATEGORY = c("15-19","20-24","25-29","30-34","35-39","40-44","45-49"),
+ds <- data.table(CATEGORY = c("15-19","20-24","25-29",
+                              "30-34","35-39","40-44","45-49"),
                  P = xi,ID = 1:7)
 setnames(ds,colnames(ds),paste0('TR_TRM_',colnames(ds)))
 dobs <- merge(dobs,ds,by='TR_TRM_CATEGORY')
@@ -144,11 +145,11 @@ p(\lambda, s | n) \propto \prod_{i=1,\cdots,7;j=1,\cdots,7} Poisson(n_{ij};\lamb
 $$
 Then, we calculate the main quantity of interest, $\pi$, via
 $$
-\pi_{ij}= \lambda_{ij} / \sum_{k=1,2; l=1,2} \lambda_{kl}.
+\pi_{ij}= \lambda_{ij} / \sum_{k=1,\cdots,7;  l=1,\cdots,7} \lambda_{kl}.
 $$ 
 
-for $i=1,,\cdots,7$ and
-$j=1,,\cdots,7$.
+for $i=1,\cdots,7$ and
+$j=1,\cdots,7$.
 
 # Independent Gamma prior
 ```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE, message=FALSE, warning=FALSE}

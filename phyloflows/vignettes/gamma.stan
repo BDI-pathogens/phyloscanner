@@ -5,9 +5,9 @@ data {
   int<lower=1> N_xi; 
   matrix[N_xi,2] shape;
   int xi_id[N,2];
-  real alpha;
 }
 transformed data {
+  real alpha = 0.8/N;
 }
 parameters {
   vector<lower=0>[N] lambda;
@@ -24,7 +24,7 @@ transformed parameters {
    else{
      betav[i] = Y[i]/(xi[xi_id[i,1]]*xi[xi_id[i,2]]);}
   }
-  beta = sum(betav);
+  beta = 0.8/sum(betav);
 }
 model {
   for (i in 1:N_xi){

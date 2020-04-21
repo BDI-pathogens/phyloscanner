@@ -36,7 +36,8 @@ xi <- c(0.35, 0.45, 0.5, 0.55, 0.5, 0.55, 0.4)
 dobs <- data.table(expand.grid(TR_TRM_CATEGORY = c("15-19","20-24","25-29","30-34","35-39","40-44","45-49"),
                                REC_TRM_CATEGORY = c("15-19","20-24","25-29","30-34","35-39","40-44","45-49")))
 
-ds <- data.table(CATEGORY = c("15-19","20-24","25-29","30-34","35-39","40-44","45-49"),
+ds <- data.table(CATEGORY = c("15-19","20-24","25-29",
+                              "30-34","35-39","40-44","45-49"),
                  P = xi,ID = 1:7)
 setnames(ds,colnames(ds),paste0('TR_TRM_',colnames(ds)))
 dobs <- merge(dobs,ds,by='TR_TRM_CATEGORY')
@@ -63,8 +64,8 @@ simu_fit <- stan(   file="simu_poiss.stan",
     ## Chain 1: Iteration: 1 / 1 [100%]  (Sampling)
     ## Chain 1: 
     ## Chain 1:  Elapsed Time: 0 seconds (Warm-up)
-    ## Chain 1:                5.1e-05 seconds (Sampling)
-    ## Chain 1:                5.1e-05 seconds (Total)
+    ## Chain 1:                4.6e-05 seconds (Sampling)
+    ## Chain 1:                4.6e-05 seconds (Total)
     ## Chain 1:
 
 ``` r
@@ -168,10 +169,10 @@ dprior.fit
 We use **rstan** to sample from the posterior distribution \[
 p(\lambda, s | n) \propto \prod_{i=1,\cdots,7;j=1,\cdots,7} Poisson(n_{ij};\lambda_{ij}*s_i*s_j) p(\lambda_{ij}) p(s_i) p(s_j).
 \] Then, we calculate the main quantity of interest, \(\pi\), via \[
-\pi_{ij}= \lambda_{ij} / \sum_{k=1,2; l=1,2} \lambda_{kl}.
+\pi_{ij}= \lambda_{ij} / \sum_{k=1,\cdots,7;  l=1,\cdots,7} \lambda_{kl}.
 \]
 
-for \(i=1,,\cdots,7\) and \(j=1,,\cdots,7\).
+for \(i=1,\cdots,7\) and \(j=1,\cdots,7\).
 
 # Independent Gamma prior
 
@@ -206,8 +207,8 @@ prior.
     ## 
     ## SAMPLING FOR MODEL 'gamma' NOW (CHAIN 1).
     ## Chain 1: 
-    ## Chain 1: Gradient evaluation took 6.6e-05 seconds
-    ## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.66 seconds.
+    ## Chain 1: Gradient evaluation took 8.7e-05 seconds
+    ## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.87 seconds.
     ## Chain 1: Adjust your expectations accordingly!
     ## Chain 1: 
     ## Chain 1: 
@@ -224,9 +225,9 @@ prior.
     ## Chain 1: Iteration: 2900 / 3000 [ 96%]  (Sampling)
     ## Chain 1: Iteration: 3000 / 3000 [100%]  (Sampling)
     ## Chain 1: 
-    ## Chain 1:  Elapsed Time: 7.2269 seconds (Warm-up)
-    ## Chain 1:                18.8831 seconds (Sampling)
-    ## Chain 1:                26.11 seconds (Total)
+    ## Chain 1:  Elapsed Time: 7.20381 seconds (Warm-up)
+    ## Chain 1:                28.937 seconds (Sampling)
+    ## Chain 1:                36.1408 seconds (Total)
     ## Chain 1:
 
 ``` r
@@ -269,8 +270,8 @@ process prior.
     ## 
     ## SAMPLING FOR MODEL 'gp' NOW (CHAIN 1).
     ## Chain 1: 
-    ## Chain 1: Gradient evaluation took 0.002662 seconds
-    ## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 26.62 seconds.
+    ## Chain 1: Gradient evaluation took 0.001831 seconds
+    ## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 18.31 seconds.
     ## Chain 1: Adjust your expectations accordingly!
     ## Chain 1: 
     ## Chain 1: 
@@ -287,9 +288,9 @@ process prior.
     ## Chain 1: Iteration: 2900 / 3000 [ 96%]  (Sampling)
     ## Chain 1: Iteration: 3000 / 3000 [100%]  (Sampling)
     ## Chain 1: 
-    ## Chain 1:  Elapsed Time: 93.4892 seconds (Warm-up)
-    ## Chain 1:                209.712 seconds (Sampling)
-    ## Chain 1:                303.201 seconds (Total)
+    ## Chain 1:  Elapsed Time: 95.6183 seconds (Warm-up)
+    ## Chain 1:                232.996 seconds (Sampling)
+    ## Chain 1:                328.614 seconds (Total)
     ## Chain 1:
 
 Finally, we checked the effective sample size and Rhat for the Gamma
@@ -299,13 +300,13 @@ fit.
 range(summary(fit.gamma)$summary[, "n_eff"])
 ```
 
-    ## [1]  528.7714 3199.4158
+    ## [1]  437.393 3106.153
 
 ``` r
 range(summary(fit.gamma)$summary[, "Rhat"])
 ```
 
-    ## [1] 0.9995999 1.0017399
+    ## [1] 0.9995999 1.0034373
 
 ``` r
 params_gamma <- extract(fit.gamma)
