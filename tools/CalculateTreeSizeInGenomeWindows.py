@@ -76,6 +76,9 @@ only split up for raxml). If you include a path to your raxml binary, it may not
 include whitespace, since whitespace is interpreted as separating raxml options.
 Do not include options relating to bootstraps or to the naming of files.'''
 parser.add_argument('--x-raxml', help=RaxmlHelp)
+parser.add_argument('--x-iqtree', help="""Use this option if you want to use
+iqtree instead of raxml: specify the name (and path if needed) of your iqtree
+exectubable (binary) file.""")
 parser.add_argument('-Q', '--quiet', action='store_true', help='''Turns off the
 small amount of information printed to the terminal (via stdout). We'll still
 print warnings and errors (via stderr).''')
@@ -99,9 +102,17 @@ if os.path.isfile(OutFileByPosition):
   exit(1)
 
 # Check the code
-TreeSizeCode = pf.FindAndCheckCode('CalculateMedianPatristicDistance.R')
-ToPerPositionCode = \
-pf.FindAndCheckCode('FromPerWindowStatsToPerPositionStats.py')
+PythonPath = sys.executable
+TreeSizeCode = pf.FindAndCheckCode(PythonPath,
+'CalculateMedianPatristicDistance.R', IsPyCode=False)
+ToPerPositionCode = pf.FindAndCheckCode(PythonPath,
+'FromPerWindowStatsToPerPositionStats.py')
+UseIqtree = args.x_iqtree != None
+if UseIqtree:
+  IqtreeCode = pf.FindAndCheckCode(PythonPath, args.x_iqtree,
+  BaseNameIncludesDir=True, IsPyCode=False)
+else:
+  RAxMLargList = pf.TestRAxML(args.x_raxml, RAxMLdefaultOptions, RaxmlHelp)
 
 # Set up multithreading if needed
 multithread = args.threads != None
@@ -120,8 +131,6 @@ if multithread:
       file=sys.stderr)
       exit(1)
 
-# Test RAxML works
-RAxMLargList = pf.TestRAxML(args.x_raxml, RAxMLdefaultOptions, RaxmlHelp)
     
 # Extract the chosen seq
 try:
@@ -224,7 +233,7 @@ for i in range(NumWindows):
 TempFilesSet = set([])
 
 def GetTreeSizeFromWindow(WindowNumber):
-  '''Extracts a window from an alignement, runs RAxML, finds the tree size.'''
+  '''Extracts a window from an alignement, makes a tree, finds the tree size.'''
 
   # Get the start and end. Zero-based indexing for the alignment.
   ChosenSeqStart = WindowStarts[WindowNumber]
@@ -244,18 +253,24 @@ def GetTreeSizeFromWindow(WindowNumber):
   FileForAlnHere = FileForAlignment_basename + WindowSuffix + '.fasta'
   AlignIO.write(SeqAlignmentHere, FileForAlnHere, 'fasta')
 
-  NumTreesMade = pf.RunRAxML(FileForAlnHere, RAxMLargList, WindowSuffix,
-  WindowAsStr, ChosenSeqStart, ChosenSeqEnd, TempFilesSet,
-  TempFileForAllBootstrappedTrees_basename)
+  # Infer the tree
+  if UseIqtree:
+    NumTreesMade = pf.RunIQtree(args.x_iqtree, FileForAlnHere, WindowSuffix,
+    WindowAsStr, ChosenSeqStart, ChosenSeqEnd)
+    MLtreeFile = 'IQtree_' + WindowSuffix + '_.treefile'
+  else:
+    NumTreesMade = pf.RunRAxML(FileForAlnHere, RAxMLargList, WindowSuffix,
+    WindowAsStr, ChosenSeqStart, ChosenSeqEnd, TempFilesSet,
+    TempFileForAllBootstrappedTrees_basename)
+    MLtreeFile = 'RAxML_bestTree.' + WindowSuffix + '.tree'
 
   if NumTreesMade != 1:
-    print('Problem running RAxML in window', str(ChosenSeqStart) + '-' + \
+    print('Problem inferring a tree in window', str(ChosenSeqStart) + '-' + \
     str(ChosenSeqEnd) + '. Quitting', file=sys.stderr)
     exit(1)
 
-  MLtreeFile = 'RAxML_bestTree.' + WindowSuffix + '.tree'
   if not os.path.isfile(MLtreeFile):
-    print('Error: we lost the tree file produced by RAxML -', MLtreeFile + \
+    print('Error: we lost the tree file produced by RAxML or IQtree -', MLtreeFile + \
     '. Please report this to Chris Wymant. Quitting', file=sys.stderr)
     exit(1)
 

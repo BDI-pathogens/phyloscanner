@@ -10,20 +10,32 @@ GapChar = '-'
 
 # Test that we can run code we'll need
 DirectoryOfThisScript = os.path.dirname(os.path.realpath(__file__))
-def FindAndCheckCode(PythonPath, CodeBasename):
-  '''Checks that code exists in the same directory as this script, that it's
-  executable with a -h flag, and returns its path.'''
-  CodeFullPath = os.path.join(DirectoryOfThisScript, CodeBasename)
+def FindAndCheckCode(PythonPath, CodeBasename, BaseNameIncludesDir=False,
+IsPyCode=True):
+  '''Checks that code exists in the same directory as this script (or optionally
+  elsewhere), checks that it's executable with a -h flag, and returns its
+  path.'''
+  if BaseNameIncludesDir:
+    CodeFullPath = CodeBasename
+    MissingCodeErrorMsg = "There is no file " + CodeBasename + \
+    " in directory " + CodeBasename
+  else:
+    CodeFullPath = os.path.join(DirectoryOfThisScript, CodeBasename)
+    MissingCodeErrorMsg = CodeBasename + ' is not in the same directory as ' + \
+    __file__ + '\nQuitting'
   if not os.path.isfile(CodeFullPath):
-    print(CodeBasename, 'is not in the same directory as', __file__ +\
-    '\nQuitting', file=sys.stderr)
+    print(MissingCodeErrorMsg, file=sys.stderr)
     exit(1)
+  if IsPyCode:
+    command = [PythonPath, CodeFullPath, '-h']
+  else:
+    command = [CodeFullPath, '-h']
   FNULL = open(os.devnull, 'w')
   try:
-    ExitStatus = subprocess.call([PythonPath, CodeFullPath, '-h'], stdout=FNULL)
+    ExitStatus = subprocess.call(command, stdout=FNULL)
     assert ExitStatus == 0
   except:
-    print('Problem running', CodeFullPath+'.\nTry running\nchmod u+x ',
+    print('Problem running', ' '.join(command) + '\nTry running\nchmod u+x ',
     CodeFullPath+'\nIt might help...', file=sys.stderr)
     raise
   return CodeFullPath
@@ -334,8 +346,29 @@ BootstrapSeed=None, NumBootstraps=None, TimesList=[]):
       'finished. Number of seconds taken: ', LastStepTime)
   return 1
 
+def RunIQtree(IQtreeExe, alignment, WindowSuffix, WindowAsStr, LeftEdge,
+RightEdge):
+  '''Runs IQtree on aligned sequences in a window.
 
+  Returns 1 if successful, 0 if not.'''
 
+  MLtreeFile = 'IQtree_' + WindowSuffix + '_.treefile'
+  IQtreeCall = [IQtreeExe, '-s', alignment, '-pre', 'IQtree_' + WindowSuffix + '_']
+  proc = subprocess.Popen(IQtreeCall, stdout=subprocess.PIPE,
+  stderr=subprocess.PIPE)
+  out, err = proc.communicate()
+  ExitStatus = proc.returncode
+  if ExitStatus != 0:
+    print('Problem making the ML tree with IQtree in window ', WindowAsStr,
+    '. It returned an exit code of ', ExitStatus, ', printed this to stdout:\n',
+    out, '\nand printed this to stderr:\n', err,
+    '\nSkipping to the next window.', sep='', file=sys.stderr)
+    return 0
+  if not os.path.isfile(MLtreeFile):
+    print(MLtreeFile +', expected to be produced by IQtree, does not exist.'+\
+    '\nSkipping to the next window.', file=sys.stderr)
+    return 0
+  return 1
 
 def TranslateSeqCoordsToAlnCoords(seq, coords):
   '''Takes a sequence that contains gaps (in general), and a set of coordinates
