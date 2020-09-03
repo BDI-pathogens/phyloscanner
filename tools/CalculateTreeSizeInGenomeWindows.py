@@ -78,7 +78,11 @@ Do not include options relating to bootstraps or to the naming of files.'''
 parser.add_argument('--x-raxml', help=RaxmlHelp)
 parser.add_argument('--x-iqtree', help="""Use this option if you want to use
 iqtree instead of raxml: specify the name (and path if needed) of your iqtree
-exectubable (binary) file.""")
+exectubable (binary) file. Optionally, the exectuable can be followed by
+arguments you want to pass to iqtree; if so, the set of things you specify with
+--x-iqtree need to be surrounded with one pair of quotation marks (so that
+they're kept together as one option for this script and only split up for
+iqtree).""")
 parser.add_argument('-Q', '--quiet', action='store_true', help='''Turns off the
 small amount of information printed to the terminal (via stdout). We'll still
 print warnings and errors (via stderr).''')
@@ -108,10 +112,7 @@ TreeSizeCode = pf.FindAndCheckCode(PythonPath,
 ToPerPositionCode = pf.FindAndCheckCode(PythonPath,
 'FromPerWindowStatsToPerPositionStats.py')
 UseIqtree = args.x_iqtree != None
-if UseIqtree:
-  IqtreeCode = pf.FindAndCheckCode(PythonPath, args.x_iqtree,
-  BaseNameIncludesDir=True, IsPyCode=False)
-else:
+if not UseIqtree:
   RAxMLargList = pf.TestRAxML(args.x_raxml, RAxMLdefaultOptions, RaxmlHelp)
 
 # Set up multithreading if needed
