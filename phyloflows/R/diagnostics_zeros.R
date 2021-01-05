@@ -148,7 +148,7 @@ source.attribution.mcmc.diagnostics    <- function(mcmc.file, mc=NULL, control=l
     }
     
     #    acceptance rate per MCMC update ID
-    cat('\nPlotting acceptance rates...')
+    cat('\nCalculating acceptance rates...')
     da <- subset(mc$it.info, BLOCK=='XI' & PAR_ID>0)[, list(ACC_RATE=mean(ACCEPT)), by='PAR_ID']
     setnames(da, 'PAR_ID', 'UPDATE_ID')
     # tmp <- mc$dl[, list(N_TRM_CAT_PAIRS=length(TRM_CAT_PAIR_ID)), by='UPDATE_ID']

@@ -16,7 +16,7 @@ data set of transmission counts and sampling information between two
 population groups, denoted by “1” and “2”:
 
     #   required R packages
-    require(phyloflows)
+    # require(phyloflows)
     require(ggplot2)
     require(bayesplot)
     require(data.table)
@@ -34,16 +34,11 @@ Input data: observed transmission flows
 ---------------------------------------
 
     dobs
-    #>    REC_TRM_CATEGORY TR_TRM_CATEGORY TR_SAMPLING_CATEGORY
-    #> 1:                1               1                    1
-    #> 2:                2               1                    1
-    #> 3:                1               2                    2
-    #> 4:                2               2                    2
-    #>    REC_SAMPLING_CATEGORY TRM_OBS TRM_CAT_PAIR_ID
-    #> 1:                     1     139               1
-    #> 2:                     2      15               2
-    #> 3:                     1      20               3
-    #> 4:                     2     129               4
+    #>    REC_TRM_CATEGORY TR_TRM_CATEGORY TR_SAMPLING_CATEGORY REC_SAMPLING_CATEGORY TRM_OBS TRM_CAT_PAIR_ID
+    #> 1:                1               1                    1                     1     139               1
+    #> 2:                2               1                    1                     2      15               2
+    #> 3:                1               2                    2                     1      20               3
+    #> 4:                2               2                    2                     2     129               4
 
 **`dobs` specifies observed counts of transmissions from a transmitter
 group to a recipient group.** It must contain the following columns:
@@ -101,6 +96,22 @@ individuals in group “1” is higher than that among individuals in group
 “2”.
 
 <img src="02_basic_example_files/figure-markdown_strict/unnamed-chunk-7-1.png" style="display: block; margin: auto;" />
+
+To capture different sampling probabilities for sources and recipients,
+the variable *WHO* can be used.
+
+    tmp= copy(dprior)
+    tmp[,WHO:='REC_SAMPLING_CATEGORY']
+    dprior[,WHO:='TR_SAMPLING_CATEGORY']
+    dprior <- rbind(dprior,tmp)
+    head(dprior)
+    #>    SAMPLING_CATEGORY         P SAMPLE       LP                  WHO
+    #> 1:                 1 0.5824160      1 2.318750 TR_SAMPLING_CATEGORY
+    #> 2:                 1 0.6184042      2 2.168504 TR_SAMPLING_CATEGORY
+    #> 3:                 1 0.6033518      3 3.548540 TR_SAMPLING_CATEGORY
+    #> 4:                 1 0.6015475      4 3.585452 TR_SAMPLING_CATEGORY
+    #> 5:                 1 0.5918721      5 3.321375 TR_SAMPLING_CATEGORY
+    #> 6:                 1 0.6034198      6 3.546614 TR_SAMPLING_CATEGORY
 
 Statistical model
 =================
@@ -191,12 +202,12 @@ as follows.
     ans <- source.attribution.mcmc(dobs, dprior, control)
     #> 
     #> Setting seed to 42
-    #> Number of parameters:     6
+    #> Number of parameters:     8
     #> Dimension of PI:  4
-    #> Sweep length:     4
-    #> Number of sweeps:     125
-    #> Number of iterations:     500
-    #> Sweeps done:  100
+    #> Sweep length:     8
+    #> Number of sweeps:     63
+    #> Number of iterations:     504
+    #> Sweeps done:  63
 
 MCMC messages
 -------------
@@ -214,7 +225,7 @@ Let s have a look at the output messages.
     subpopulations is 4.
 -   `Sweep length: 4`: the MCMC updates in turn a subset of the sampling
     probabilities of transmission groups
-    *ξ* = (*ξ*<sub>11</sub>, *ξ*<sub>12</sub>, *ξ*<sub>21</sub>, *ξ*<sub>22</sub>),  *ξ*<sub>*i**j*</sub> = *s*<sub>*i*</sub> \* *s*<sub>*j*</sub>,
+    *ξ* = (*ξ*<sub>11</sub>, *ξ*<sub>12</sub>, *ξ*<sub>21</sub>, *ξ*<sub>22</sub>),    *ξ*<sub>*i**j*</sub> = *s*<sub>*i*</sub> \* *s*<sub>*j*</sub>,
       
     which is followed by an update of the entire vector of Poisson
     transmission rates *λ*. The subset of *ξ* that is updated is
@@ -242,53 +253,50 @@ MCMC output
 Let us have a look at the output:
 
     str(ans)
-    #> List of 14
+    #> List of 13
     #>  $ with.sampling: logi TRUE
-    #>  $ time         : 'difftime' num 0.154473066329956
+    #>  $ time         : 'difftime' num 4.40296912193298
     #>   ..- attr(*, "units")= chr "secs"
-    #>  $ dlu          :Classes 'data.table' and 'data.frame':  2 obs. of  2 variables:
-    #>   ..$ SAMPLING_CATEGORY: num [1:2] 1 2
-    #>   ..$ UPDATE_ID        : int [1:2] 1 2
-    #>   ..- attr(*, ".internal.selfref")=<externalptr> 
-    #>   ..- attr(*, "sorted")= chr "UPDATE_ID"
-    #>  $ dl           :Classes 'data.table' and 'data.frame':  8 obs. of  4 variables:
-    #>   ..$ SAMPLING_CATEGORY: num [1:8] 1 1 1 1 2 2 2 2
-    #>   ..$ UPDATE_ID        : int [1:8] 1 1 1 1 2 2 2 2
-    #>   ..$ TRM_CAT_PAIR_ID  : int [1:8] 1 2 1 3 3 4 2 4
-    #>   ..$ WHO              : Factor w/ 2 levels "TR_SAMPLING_CATEGORY",..: 1 1 2 2 1 1 2 2
+    #>  $ dlu          :Classes 'data.table' and 'data.frame':  4 obs. of  3 variables:
+    #>   ..$ WHO              : Factor w/ 2 levels "TR_SAMPLING_CATEGORY",..: 1 1 2 2
+    #>   ..$ SAMPLING_CATEGORY: num [1:4] 1 2 1 2
+    #>   ..$ UPDATE_ID        : int [1:4] 1 2 3 4
     #>   ..- attr(*, ".internal.selfref")=<externalptr> 
     #>   ..- attr(*, "sorted")= chr "UPDATE_ID"
     #>  $ dlt          :Classes 'data.table' and 'data.frame':  4 obs. of  4 variables:
     #>   ..$ TRM_CAT_PAIR_ID: int [1:4] 1 2 3 4
-    #>   ..$ TR_UPDATE_ID   : int [1:4] 1 1 2 2
-    #>   ..$ REC_UPDATE_ID  : int [1:4] 1 2 1 2
     #>   ..$ TRM_OBS        : int [1:4] 139 15 20 129
+    #>   ..$ TR_UPDATE_ID   : int [1:4] 1 1 2 2
+    #>   ..$ REC_UPDATE_ID  : int [1:4] 3 4 3 4
     #>   ..- attr(*, ".internal.selfref")=<externalptr> 
     #>   ..- attr(*, "sorted")= chr "TRM_CAT_PAIR_ID"
+    #>   ..- attr(*, "index")= int(0) 
+    #>   .. ..- attr(*, "__TR_UPDATE_ID")= int(0) 
+    #>   .. ..- attr(*, "__REC_UPDATE_ID")= int [1:4] 1 3 2 4
     #>  $ nprior       : int 1000
-    #>  $ sweep        : int 4
-    #>  $ nsweep       : num 125
-    #>  $ n            : num 500
-    #>  $ sweep_group  : num 125
+    #>  $ sweep        : int 8
+    #>  $ nsweep       : num 63
+    #>  $ n            : num 504
+    #>  $ sweep_group  : num 63
     #>  $ pars         :List of 7
     #>   ..$ ALPHA     : num [1, 1:4] 0.2 0.2 0.2 0.2
-    #>   ..$ BETA      : num 0.000692
-    #>   ..$ XI        : num [1:126, 1:2] 0.603 0.588 0.586 0.586 0.602 ...
-    #>   ..$ XI_LP     : num [1:126, 1:2] 3.56 3 2.77 2.77 3.58 ...
-    #>   ..$ S         : num [1:126, 1:4] 0.364 0.346 0.343 0.343 0.362 ...
-    #>   ..$ S_LP      : num [1:126, 1:4] 7.12 6.01 5.53 5.53 7.16 ...
-    #>   ..$ LOG_LAMBDA: num [1:126, 1:4] 6.07 6.12 6.07 6.03 6.02 ...
-    #>  $ it.info      :Classes 'data.table' and 'data.frame':  501 obs. of  7 variables:
-    #>   ..$ IT       : int [1:501] 0 1 2 3 4 5 6 7 8 9 ...
-    #>   ..$ PAR_ID   : int [1:501] 0 1 1 2 2 1 1 2 2 1 ...
-    #>   ..$ BLOCK    : chr [1:501] "INIT" "XI" "LOG_LAMBDA" "XI" ...
-    #>   ..$ MHRATIO  : num [1:501] 1 1 1 1 1 ...
-    #>   ..$ ACCEPT   : int [1:501] 1 1 1 1 1 1 1 1 1 0 ...
-    #>   ..$ LOG_LKL  : num [1:501] -13.6 -12.8 -14 -14 -16.5 ...
-    #>   ..$ LOG_PRIOR: num [1:501] -22.3 -22.8 -22.4 -22.4 -23.3 ...
+    #>   ..$ BETA      : num [1:64, 1] 0.000746 0.000701 0.000668 0.000677 0.0007 ...
+    #>   ..$ XI        : num [1:64, 1:4] 0.612 0.585 0.591 0.602 0.597 ...
+    #>   ..$ XI_LP     : num [1:64, 1:4] 3.04 2.62 3.29 3.58 3.54 ...
+    #>   ..$ S         : num [1:64, 1:4] 0.374 0.342 0.348 0.356 0.362 ...
+    #>   ..$ S_LP      : num [1:64, 1:4] 6.07 5.26 6.28 6.89 6.96 ...
+    #>   ..$ LOG_LAMBDA: num [1:64, 1:4] 6.04 5.98 5.96 6.17 5.97 ...
+    #>  $ it.info      :Classes 'data.table' and 'data.frame':  505 obs. of  7 variables:
+    #>   ..$ IT       : int [1:505] 0 1 2 3 4 5 6 7 8 9 ...
+    #>   ..$ PAR_ID   : int [1:505] 0 1 1 2 2 3 3 4 4 1 ...
+    #>   ..$ BLOCK    : chr [1:505] "INIT" "XI" "LOG_LAMBDA" "XI" ...
+    #>   ..$ MHRATIO  : num [1:505] 1 1 1 0.494 1 ...
+    #>   ..$ ACCEPT   : int [1:505] 1 1 1 1 1 1 1 0 1 1 ...
+    #>   ..$ LOG_LKL  : num [1:505] -13.6 -12.8 -13.2 -13.9 -13.2 ...
+    #>   ..$ LOG_PRIOR: num [1:505] -20.6 -21 -20.9 -18.5 -18.6 ...
     #>   ..- attr(*, ".internal.selfref")=<externalptr> 
-    #>  $ curr.it      : int 501
-    #>  $ curr.it.adj  : int 501
+    #>  $ curr.it      : int 505
+    #>  $ curr.it.adj  : int 505
 
 We are mostly interested in the marginal posterior distribution
 *p*(*π*|*n*),
@@ -309,7 +317,7 @@ plot:
                             facet_args = list(ncol = 1), 
                             n_warmup=0)
 
-<img src="02_basic_example_files/figure-markdown_strict/unnamed-chunk-10-1.png" style="display: block; margin: auto;" />
+<img src="02_basic_example_files/figure-markdown_strict/unnamed-chunk-11-1.png" style="display: block; margin: auto;" />
 
 Notice that the posterior estimate for transmissions within group “2” is
 about 55%. This is considerably larger than the raw estimate from the

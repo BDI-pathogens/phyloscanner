@@ -32,7 +32,7 @@ rmarkdown::render(infile, output_format='md_document')
 This vignette describes how to run a number of diagnostics on **phyloflows**
 MCMC output, obtained with the function `phyloflows:::source.attribution.mcmc`.
 Please work through the vignette *phyloflows: Estimating transmission flows
-under heterogeneous sampling - a first example* before you go ahead here.
+under heterogeneous sampling -- a first example* before you go ahead here.
 
 ## Getting started
 
@@ -43,7 +43,7 @@ run.
 
 ```{r, include=TRUE, eval=FALSE, echo=TRUE, tidy=FALSE,message=FALSE, warning=FALSE} 
 require(data.table)
-require(phyloflows)
+# require(phyloflows)
 
 data(twoGroupFlows1, package="phyloflows")
 dobs <- twoGroupFlows1$dobs

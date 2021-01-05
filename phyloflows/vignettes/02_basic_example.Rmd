@@ -129,6 +129,15 @@ ggplot(dprior, aes(x=P)) +
 		facet_grid(~SAMPLING_CATEGORY)
 ```
 
+To capture different sampling probabilities for sources and recipients, the variable *WHO* can be used. 
+```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE}
+tmp= copy(dprior)
+tmp[,WHO:='REC_SAMPLING_CATEGORY']
+dprior[,WHO:='TR_SAMPLING_CATEGORY']
+dprior <- rbind(dprior,tmp)
+head(dprior)
+```
+
 # Statistical model
 `phyloflows` **uses a Bayesian approach to estimate the proportion of
 transmissions** between the two population groups,
