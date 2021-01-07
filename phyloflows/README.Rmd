@@ -154,13 +154,15 @@ does not work. Just get in touch then.
 2. [A very first example. Always start with
    me.](vignettes/02_basic_example.md)
 
-3. [Performing MCMC diagnostic checks](vignettes/03_diagnostics.md)
+3. [Performing MCMC diagnostic checks.](vignettes/03_diagnostics.md)
 
 4. [Aggregating MCMC output to a new set of
-   variables](vignettes/04_aggregating.md)
+   variables.](vignettes/04_aggregating.md)
    
 5. [Calculating sources, onward transmissions and
-   flow ratios](vignettes/05_keyquantities.md)
+   flow ratios.](vignettes/05_keyquantities.md)
    
 6. [Testing **phyloflows** multi-level model and
-   MCMC](vignettes/06_test_sampling_adjustments.md)
+   MCMC.](vignettes/06_test_sampling_adjustments.md)
+   
+7. [Age analysis example ](vignettes/07_age_analysis.md)

@@ -28,6 +28,6 @@ Suggests:
     rmarkdown,
     rstan    
 VignetteBuilder: knitr
-RoxygenNote: 6.1.1
+RoxygenNote: 7.0.2
 URL: https://github.com/BDI-pathogens/phyloscanner/phyloflows
 BugReports: https://github.com/BDI-pathogens/phyloscanner/phyloflows/issues

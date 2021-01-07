@@ -1,7 +1,7 @@
 This vignette describes how to aggregate estimated transmission flows to
 those of other (broader) population groups. Please work through the
 vignette *phyloflows: Estimating transmission flows under heterogeneous
-sampling - a first example* before you go ahead here.
+sampling – a first example* before you go ahead here.
 
 Getting started
 ---------------

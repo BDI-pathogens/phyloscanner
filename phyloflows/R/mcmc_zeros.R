@@ -118,7 +118,7 @@ rgamss <- function(n, shape, scale=1, do.log=TRUE)
 #' mcmc.file <- 'mcmcm_output.rda'
 #' control <- list(seed=42,    # seed for reproducibility
 #'                 mcmc.n=5e4, # guide on the number of MCMC iterations, the actual number of MCMC iterations may be a little bit larger
-#'                 verbose=0   # switch on for output to each MCMC iteration
+#'                 verbose=0,   # switch on for output to each MCMC iteration
 #'                 outfile= mcmc.file # store MCMC output as rda file here
 #'                 )
 #' mc <- phyloflows:::source.attribution.mcmc(dobs, dprior, control)

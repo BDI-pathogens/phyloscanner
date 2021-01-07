@@ -16,7 +16,7 @@ data set of transmission counts and sampling information between two
 population groups, denoted by “1” and “2”:
 
     #   required R packages
-    # require(phyloflows)
+    require(phyloflows)
     require(ggplot2)
     require(bayesplot)
     require(data.table)

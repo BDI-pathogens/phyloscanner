@@ -43,7 +43,7 @@ run.
 
 ```{r, include=TRUE, eval=FALSE, echo=TRUE, tidy=FALSE,message=FALSE, warning=FALSE} 
 require(data.table)
-# require(phyloflows)
+require(phyloflows)
 
 data(twoGroupFlows1, package="phyloflows")
 dobs <- twoGroupFlows1$dobs

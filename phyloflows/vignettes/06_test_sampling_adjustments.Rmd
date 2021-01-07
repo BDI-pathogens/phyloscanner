@@ -1,6 +1,7 @@
 ---
 title: "06 - Testing phyloflows sampling adjustments"
 date: "2019-04-30"
+author: Xiaoyue Xi and Oliver Ratmann 
 output: github_document
 vignette: >
   %\VignetteIndexEntry{Vignette Title}
@@ -13,6 +14,14 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 ```{r, include=FALSE} 
 library(knitr)
+```
+
+```{r, include=FALSE, eval=FALSE, echo=FALSE}
+require(rmarkdown)
+setwd('/Users/Oliver/git/phyloscanner/phyloflows/vignettes')
+infile <- '06_test_sampling_adjustments.Rmd'
+rmarkdown::render(infile, output_format='pdf_document')
+rmarkdown::render(infile, output_format='md_document')
 ```
 
 To test the performance of **phyloflows** model for estimating transmission
@@ -59,7 +68,7 @@ for (i in 1:100){
 After this, we calculated the mean absolute errors and worst case errors
 between the true transmission flows (`TRUE_PI`) and the corresponding mean
 estimates of the posterior distribution under **phyloflows** Bayesian
-multi-level model to adjust for sampling heterogeneity.
+multi-level model with adjustment for sampling heterogeneity.
 ```{r include=TRUE, eval=FALSE, echo=TRUE, tidy=FALSE} 
 # true PI
 TRUE_PI  <-  c(0.36,0.04,0.06,0.54)
@@ -90,6 +99,11 @@ PI_MAE_SARWS.df  <-  data.table(PI_MAE=PI_MAE_SARWS, REPLICATE=1:100,
 PI_WCE_SARWS.df  <-  data.table(PI_WCE=PI_WCE_SARWS, REPLICATE=1:100, 
                                 SCENARIO=rep(1,100), N=rep(300,100), SAMP_DIFF=rep(0.15,100))
 
+```
+
+Similarly, errors were calculated for the scenario where
+no differences appear in sampling. 
+```{r include=TRUE, eval=FALSE, echo=TRUE, tidy=FALSE} 
 for (i in 1:100){
   load(paste0("sar_mcmc",i,".rda"))
   # remove burnin
@@ -112,6 +126,11 @@ PI_MAE_SAR.df  <-  data.table(PI_MAE=PI_MAE_SAR, REPLICATE=1:100,
 PI_WCE_SAR.df  <-  data.table(PI_WCE=PI_WCE_SAR, REPLICATE=1:100,
                              SCENARIO=rep(1,100), N=rep(300,100), SAMP_DIFF=rep(0.15,100))
 
+```
+
+
+Gathering results together gives data *twoGroupFlows100_mcmcError*.
+```{r include=TRUE, eval=FALSE, echo=TRUE, tidy=FALSE} 
 # combine data tables
 PI_MAE_SARWS.df[,METHOD:='SARWS']
 PI_MAE_SAR.df[,METHOD:='SAR']
@@ -128,7 +147,8 @@ setnames(PI_WCE.df,'PI_WCE','ERROR')
 PI_ERROR.df <- rbind(PI_MAE.df,PI_WCE.df)
 ```
 
-Running the above lines of code should give the following results:
+
+Then we load error data, make plots and compare errors with and without adjustment for sampling heterogeneity.
 ```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE, fig.dim = c(8, 5), fig.align="center"}
 data(twoGroupFlows100_mcmcError)
 de <-  twoGroupFlows100_mcmcError[, list( CL = quantile(ERROR,0.025),
@@ -138,9 +158,9 @@ de <-  twoGroupFlows100_mcmcError[, list( CL = quantile(ERROR,0.025),
 
 de$ERROR_TYPE <- factor(de$ERROR_TYPE,levels = c('MAE', 'WCE'), labels = c('mean absolute error','worst case error'))
 ggplot(de, aes(x=as.factor(SAMP_DIFF), y=M, fill=METHOD)) +
-   geom_bar(stat="identity",position=position_dodge())+
+   geom_bar(stat="identity",position=position_dodge(),width = 0.5)+
    geom_errorbar(aes(ymin=CL, ymax=CU),width=.2,position=position_dodge(.9))+
-   scale_fill_grey()+
+   scale_fill_grey(start = 0.2, end = 0.8)+
    theme_bw() +
    facet_grid(.~ERROR_TYPE)+
    labs(x=' sampling differences \n', y='\n error',fill='method')

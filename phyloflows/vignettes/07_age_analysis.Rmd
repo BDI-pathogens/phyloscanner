@@ -1,6 +1,7 @@
 ---
 title: "07 - Age analysis"
 date: "2019-12-10"
+author: Xiaoyue Xi and Oliver Ratmann 
 output: github_document
 vignette: >
   %\VignetteIndexEntry{Vignette Title}
@@ -24,13 +25,13 @@ rmarkdown::render(infile, output_format='pdf_document')
 rmarkdown::render(infile, output_format='md_document')
 ```
 
-This vignette provides an extension of the general method of **phyloflow**. The aim is to understand the transmission flows between one-year increment age groups. The differences between this example with the general pipeline of **phyloflow** is the correlation between flows. To tackle this problem, we impose a Gaussian process prior on transmission flows. 
+This vignette provides an extension of the general method of **phyloflow**. The aim is to understand the transmission flows between one-year increment age groups. The differences between this example with the general pipeline of **phyloflow** is the correlation between flows. To tackle this problem, we impose a Gaussian process (GP) prior on transmission flows. 
 
 
 # Dataset
 **We start with simulating transmission counts** between seven age groups called "15-19","20-24","25-29","30-34","35-39","40-44","45-49". Note that in practice, it would be good to use this method 
 to investigate transmission dynamics between one-year increment age group, as the squared exponential kernel is 
-for the continuous input space.
+for the continuous input space. We first set up hyperparameters for GP, the baseline and sampling fractions.
 ```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE, message=FALSE, warning=FALSE}
 library(rstan)
 library(data.table)
@@ -39,14 +40,17 @@ library(viridis)
 set.seed(42)
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
-
-set.seed(42)
 alpha_true <- c(2.5)
 rho_true <- c(12,9)
 mu_true <- -1
 gp_dim <- 2
 xi <- c(0.35, 0.45, 0.5, 0.55, 0.5, 0.55, 0.4)
+```
 
+**Next, we calculate the sampling probabilities of transmission flows
+within and between the two groups.**  
+
+```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE, message=FALSE, warning=FALSE}
 dobs <- data.table(expand.grid(TR_TRM_CATEGORY = c("15-19","20-24","25-29","30-34","35-39","40-44","45-49"),
                                REC_TRM_CATEGORY = c("15-19","20-24","25-29","30-34","35-39","40-44","45-49")))
 
@@ -63,7 +67,10 @@ dobs[,TR_SMOOTH_CATEGORY:=as.numeric(substr(TR_TRM_CATEGORY,1,2))+2]
 dobs[,REC_SMOOTH_CATEGORY:=as.numeric(substr(REC_TRM_CATEGORY,1,2))+2]
 dobs[, TR_SAMPLING_CATEGORY:= TR_TRM_CATEGORY]
 dobs[, REC_SAMPLING_CATEGORY:= REC_TRM_CATEGORY]
+```
 
+**Next, we simulate true transmission flows and observed transmission counts.**
+```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE, message=FALSE, warning=FALSE}
 simu_pars <- list(	N=nrow(dobs), D=gp_dim, x=cbind(dobs$TR_SMOOTH_CATEGORY,dobs$REC_SMOOTH_CATEGORY),
                    alpha=alpha_true, rho=rho_true,
                    mu=mu_true,xi=dobs$P)
@@ -94,10 +101,7 @@ transmitter age group to a recipient age group.** It must contain the following 
 * *TRM_OBS* observed transmission counts
 
 Let us look at the data. The first row shows zero counts of transmission
-flows from age group "15-19" to age group "15-19".
-
-
-Here is a heatmap of our input data: 
+flows from age group "15-19" to age group "15-19". We visualise our simulated input data in the heatmap : 
 ```{r data, fig.margin=TRUE}
 ggplot(dobs, aes(TR_SMOOTH_CATEGORY, REC_SMOOTH_CATEGORY))+
   geom_tile(aes(fill = TRM_OBS)) +
@@ -110,20 +114,20 @@ ggplot(dobs, aes(TR_SMOOTH_CATEGORY, REC_SMOOTH_CATEGORY))+
 ```
 
 ## Input data: sampling information
-** `dobs` also must contain information about how each group was sampled. This is stored in the following columns:
+** `dobs` also must contain information about how each group was sampled.** 
+This is stored in the following columns:
 
 * *TR_SAMPLING_CATEGORY* sampling strata of transmitter group
 * *REC_SAMPLING_CATEGORY* sampling strata of recipient group
 
-**`dprior.fit` specifies the distribution of probability of sampling
-an individual from each sampling group.** This is either given by or 
-approximated by beta distribution in SARWS model or GLM model.
-This information is stored in the following columns: 
+**`dprior.fit` specifies the distribution of sampling probability in each sampling group.** 
+The sampling probability is either approximated by beta-binomial model or GLM model (See 01 - Simulating data). and provided by samples. In the tutorial, we opted for a probabilistic programming language Stan, and it cannot take samples as input. Alternatively, it is possible to fit statistical distributions to samples and input distribution parameters. The information is stored in data *dprior.fit* in the following columns: 
 
 * *SAMPLING_CATEGORY* name of sampling strata
 * *ALPHA, BETA* shape parameters of the distribution of sampling probability.
 
-Let us look at the sampling information: 
+Under beta-binomial model, the posterior distribution of the sampling probability is known analytically, i.e. beta. Let us look at the sampling information:
+
 
 ```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE, message=FALSE, warning=FALSE}
 ds$TRIAL <- c(4000, 3700, 3300, 2500, 1700, 1000, 500)
@@ -131,27 +135,46 @@ ds[,SUC := round(TRIAL * P)]
 dprior.fit <- copy(ds)
 dprior.fit[,ALPHA := SUC+1]
 dprior.fit[,BETA := TRIAL-SUC+1]
-dprior.fit
+dprior.fit <- subset(dprior.fit, select = c('CATEGORY','ALPHA','BETA'))
+colnames(dprior.fit) <- c('SAMPLING_CATEGORY','ALPHA','BETA')
+head(dprior.fit)
 ```
 
 
 
 # Method
-
-We use **rstan** to sample from the posterior
-distribution
+Again we use a Bayesian approach to estimate the proportion of
+transmissions between the two population groups. Please see the problem setting in 
+*phyloflows: Estimating transmission flows under heterogeneous sampling -- a first example*.
+Unlike the simple example,
+a probabilistic programming language Stan provides a flexible platform to impose
+different kinds of priors.
+Recall the posterior distribution of the parameters $(\lambda, s)$ is given by 
 $$
-p(\lambda, s | n) \propto \prod_{i=1,\cdots,7;j=1,\cdots,7} Poisson(n_{ij};\lambda_{ij}*s_i*s_j) p(\lambda_{ij}) p(s_i) p(s_j).
+\begin{aligned}
+p(\lambda, s | n) & \propto p(n | \lambda, s) p(\lambda, s) \\
+              & = \prod_{i=1,\cdots,7;j=1\cdots,7} Poisson(n_{ij};\lambda_{ij}*s_i*s_j) p(\lambda_{ij}) p(s_i) p(s_j).
+\end{aligned}
 $$
 Then, we calculate the main quantity of interest, $\pi$, via
 $$
 \pi_{ij}= \lambda_{ij} / \sum_{k=1,\cdots,7;  l=1,\cdots,7} \lambda_{kl}.
 $$ 
-
 for $i=1,\cdots,7$ and
 $j=1,\cdots,7$.
 
-# Independent Gamma prior
+**For the prior distributions**, we specify for $p(\lambda_{ij})$, $i=1,2; j=1,2$ 
+uninformative prior distributions. We use a Gamma distribution with parameters
+$\alpha_i=0.8/7^2$ and $\beta=0.8/Z$ with
+  $Z= \sum_{ij | n_{ij}>0} n_{ij}/(s_i*s_j) + \sum_{ij | n_{ij}>0}
+(1-s_i*s_j)/(s_i*s_j)$. This choice implies for $\pi$ a Dirichlet prior distribution with parameters $\alpha_i$, which
+  is considered to be an objective choice. For $p(s_i)$, we use a strongly informative
+prior distribution, based on the available data as illustrated above.
+
+
+
+
+
 ```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE, message=FALSE, warning=FALSE}
  tmp <- subset(ds,select = c('CATEGORY','ID'))
  setnames(tmp, colnames(tmp), paste0('TR_TRM_',colnames(tmp)))
