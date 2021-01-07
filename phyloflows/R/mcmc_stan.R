@@ -53,12 +53,12 @@ source.attribution.mcmc.stan  <- function(dobs, dprior.fit, control=list(seed=42
 {      
   setkey(dprior.fit,  SAMPLING_CATEGORY)
   dprior.fit[,ID:=seq_len(nrow(dprior.fit))]
-  tmp = subset(dprior.fit,select = c('CATEGORY','ID'))
-  setnames(tmp, colnames(tmp), paste0('TR_TRM_',colnames(tmp)))
-  dobs <- merge(dobs,tmp,by='TR_TRM_CATEGORY')
-  setnames(tmp, colnames(tmp), gsub('TR_TRM_','REC_TRM_',colnames(tmp)))
-  dobs <- merge(dobs,tmp,by='REC_TRM_CATEGORY')
-  setnames(tmp, colnames(tmp), gsub('REC_TRM_','',colnames(tmp)))
+  tmp = subset(dprior.fit,select = c('SAMPLING_CATEGORY','ID'))
+  setnames(tmp, colnames(tmp), paste0('TR_',colnames(tmp)))
+  dobs <- merge(dobs,tmp,by='TR_SAMPLING_CATEGORY')
+  setnames(tmp, colnames(tmp), gsub('TR_','REC_',colnames(tmp)))
+  dobs <- merge(dobs,tmp,by='REC_SAMPLING_CATEGORY')
+  setnames(tmp, colnames(tmp), gsub('REC_','',colnames(tmp)))
   if(is.null(control$method))control$method='gamma'
   if(control$method=='gamma'){
     data.gamma <- list(N=nrow(dobs),
