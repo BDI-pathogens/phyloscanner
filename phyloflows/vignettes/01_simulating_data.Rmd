@@ -25,7 +25,7 @@ rmarkdown::render(infile, output_format='md_document')
 ```
 
 Here is some code to set up simulated data sets. The main aim of these
-simulations are to test the performance of phyloflows MCMC algorithm. Please
+simulations is to test the performance of phyloflows MCMC algorithm. Please
 read the sections "Our Job" and "Our Solution" on the
 main page before you go ahead here.
 
@@ -129,7 +129,7 @@ dprior<-ds[,list(P=rbeta(nprior,SUC+1,TRIAL-SUC+1),
    by='CATEGORY']
 dprior<-merge(dprior,ds,by='CATEGORY')
 dprior[,LP:=dbeta(P,SUC+1,TRIAL-SUC+1,log=TRUE)]
-set(dprior,NULL,c('TRIAL','SUC'),NULL)
+set(dprior,NULL,c('TRIAL','SUC','P_SEQ_EMP'),NULL)
 setnames(dprior, 'CATEGORY', 'SAMPLING_CATEGORY')
 head(dprior)
 ```
@@ -163,7 +163,7 @@ predictive variables. We call this the GLM approach.
 
 To keep things simple at the start, let us assume that sampling
 depends on gender within each group "1" and "2". We consider four 
-population groups, "1M", "1F", "2M" and "2F". Let us assume there are $10,000$ individuals
+population groups, "1M", "1F", "2M" and "2F". Let us assume there are $1,000$ individuals
 in total, $40\%$ individuals are in location 1, $60\%$ individuals are in
 location 2, $60\%$ individuals are women within each location, and that the
 sampling rates are $0.6$ for men in group 1, $0.8$ for women in group 1, $0.3$
@@ -240,7 +240,6 @@ for (i in 1:length(TRUE_PI)){
 	n[i] <- rbinom(1,size=z[i],dobs$S[i])
 }
 dobs[, TRM_OBS:= n]
-dobs<-dobs[TRM_OBS!=0,]
 dobs
 ```
 

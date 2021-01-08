@@ -1,5 +1,5 @@
 Here is some code to set up simulated data sets. The main aim of these
-simulations are to test the performance of phyloflows MCMC algorithm.
+simulations is to test the performance of phyloflows MCMC algorithm.
 Please read the sections “Our Job” and “Our Solution” on the main page
 before you go ahead here.
 
@@ -23,10 +23,9 @@ probabilities:
     ds <- data.table(CATEGORY=c(1,2),TRIAL=c(2000,2500),P_SEQ_EMP=c(0.6,0.45))
     ds[,SUC:=TRIAL*P_SEQ_EMP]
     ds
-
-    ##    CATEGORY TRIAL P_SEQ_EMP  SUC
-    ## 1:        1  2000      0.60 1200
-    ## 2:        2  2500      0.45 1125
+    #>    CATEGORY TRIAL P_SEQ_EMP  SUC
+    #> 1:        1  2000      0.60 1200
+    #> 2:        2  2500      0.45 1125
 
 **Next, we calculate the sampling probabilities of transmission flows
 within and between the two groups.**
@@ -41,12 +40,11 @@ within and between the two groups.**
     set(dobs, NULL, c('TR_TRM_P_SEQ_EMP','REC_TRM_P_SEQ_EMP'), NULL)
     setkey(dobs,TR_TRM_CATEGORY,REC_TRM_CATEGORY)
     dobs
-
-    ##    REC_TRM_CATEGORY TR_TRM_CATEGORY      S
-    ## 1:                1               1 0.3600
-    ## 2:                2               1 0.2700
-    ## 3:                1               2 0.2700
-    ## 4:                2               2 0.2025
+    #>    REC_TRM_CATEGORY TR_TRM_CATEGORY      S
+    #> 1:                1               1 0.3600
+    #> 2:                2               1 0.2700
+    #> 3:                1               2 0.2700
+    #> 4:                2               2 0.2025
 
 **Next, we simulate true transmission flows.** Let us assume 36% and 54%
 transmissions are within group 1 and 2 respectively, and 4% are from
@@ -72,12 +70,11 @@ event from *a* to *b*.
     }
     dobs[, TRM_OBS:= n]
     dobs
-
-    ##    REC_TRM_CATEGORY TR_TRM_CATEGORY      S TRM_OBS
-    ## 1:                1               1 0.3600     139
-    ## 2:                2               1 0.2700      20
-    ## 3:                1               2 0.2700      15
-    ## 4:                2               2 0.2025     129
+    #>    REC_TRM_CATEGORY TR_TRM_CATEGORY      S TRM_OBS
+    #> 1:                1               1 0.3600     139
+    #> 2:                2               1 0.2700      20
+    #> 3:                1               2 0.2700      15
+    #> 4:                2               2 0.2025     129
 
 Corresponding **phyloflows** input data (simple, SARWS)
 -------------------------------------------------------
@@ -94,12 +91,11 @@ groups.
     dobs[, TRM_CAT_PAIR_ID:= seq_len(nrow(dobs))]
     dobs[, S:=NULL]
     dobs
-
-    ##    REC_TRM_CATEGORY TR_TRM_CATEGORY TRM_OBS TR_SAMPLING_CATEGORY REC_SAMPLING_CATEGORY TRM_CAT_PAIR_ID
-    ## 1:                1               1     139                    1                     1               1
-    ## 2:                2               1      20                    1                     2               2
-    ## 3:                1               2      15                    2                     1               3
-    ## 4:                2               2     129                    2                     2               4
+    #>    REC_TRM_CATEGORY TR_TRM_CATEGORY TRM_OBS TR_SAMPLING_CATEGORY REC_SAMPLING_CATEGORY TRM_CAT_PAIR_ID
+    #> 1:                1               1     139                    1                     1               1
+    #> 2:                2               1      20                    1                     2               2
+    #> 3:                1               2      15                    2                     1               3
+    #> 4:                2               2     129                    2                     2               4
 
 **We also need to define the prior distribution on the unknown sampling
 probabilities, and generate samples from it**. At the very top of this
@@ -125,17 +121,16 @@ also need to calculate their log density.
        by='CATEGORY']
     dprior<-merge(dprior,ds,by='CATEGORY')
     dprior[,LP:=dbeta(P,SUC+1,TRIAL-SUC+1,log=TRUE)]
-    set(dprior,NULL,c('TRIAL','SUC'),NULL)
+    set(dprior,NULL,c('TRIAL','SUC','P_SEQ_EMP'),NULL)
     setnames(dprior, 'CATEGORY', 'SAMPLING_CATEGORY')
     head(dprior)
-
-    ##    SAMPLING_CATEGORY         P SAMPLE P_SEQ_EMP       LP
-    ## 1:                 1 0.5824160      1       0.6 2.318750
-    ## 2:                 1 0.6184042      2       0.6 2.168504
-    ## 3:                 1 0.6033518      3       0.6 3.548540
-    ## 4:                 1 0.6015475      4       0.6 3.585452
-    ## 5:                 1 0.5918721      5       0.6 3.321375
-    ## 6:                 1 0.6034198      6       0.6 3.546614
+    #>    SAMPLING_CATEGORY         P SAMPLE       LP
+    #> 1:                 1 0.5824160      1 2.318750
+    #> 2:                 1 0.6184042      2 2.168504
+    #> 3:                 1 0.6033518      3 3.548540
+    #> 4:                 1 0.6015475      4 3.585452
+    #> 5:                 1 0.5918721      5 3.321375
+    #> 6:                 1 0.6034198      6 3.546614
 
 This data set can be loaded through
 
@@ -166,7 +161,7 @@ approach.
 
 To keep things simple at the start, let us assume that sampling depends
 on gender within each group “1” and “2”. We consider four population
-groups, “1M”, “1F”, “2M” and “2F”. Let us assume there are 10, 000
+groups, “1M”, “1F”, “2M” and “2F”. Let us assume there are 1, 000
 individuals in total, 40% individuals are in location 1, 60% individuals
 are in location 2, 60% individuals are women within each location, and
 that the sampling rates are 0.6 for men in group 1, 0.8 for women in
@@ -209,16 +204,15 @@ within and between the two groups.**
     set(dobs, NULL, c('TR_TRM_P_SEQ','REC_TRM_P_SEQ'), NULL)
     setkey(dobs,TRM_CAT_PAIR_ID)
     dobs
-
-    ##    REC_TRM_CATEGORY TR_TRM_CATEGORY TRM_CAT_PAIR_ID    S
-    ## 1:              1:M             1:F               1 0.48
-    ## 2:              1:F             1:M               2 0.48
-    ## 3:              2:M             1:F               3 0.24
-    ## 4:              2:F             1:M               4 0.42
-    ## 5:              1:M             2:F               5 0.42
-    ## 6:              1:F             2:M               6 0.24
-    ## 7:              2:M             2:F               7 0.21
-    ## 8:              2:F             2:M               8 0.21
+    #>    REC_TRM_CATEGORY TR_TRM_CATEGORY TRM_CAT_PAIR_ID    S
+    #> 1:              1:M             1:F               1 0.48
+    #> 2:              1:F             1:M               2 0.48
+    #> 3:              2:M             1:F               3 0.24
+    #> 4:              2:F             1:M               4 0.42
+    #> 5:              1:M             2:F               5 0.42
+    #> 6:              1:F             2:M               6 0.24
+    #> 7:              2:M             2:F               7 0.21
+    #> 8:              2:F             2:M               8 0.21
 
 **Next, we simulate true transmission flows between the sampling
 groups.** Let us assume that 30% and 45% transmissions occur
@@ -244,18 +238,16 @@ event from *a* to *b*.
         n[i] <- rbinom(1,size=z[i],dobs$S[i])
     }
     dobs[, TRM_OBS:= n]
-    dobs<-dobs[TRM_OBS!=0,]
     dobs
-
-    ##    REC_TRM_CATEGORY TR_TRM_CATEGORY TRM_CAT_PAIR_ID    S TRM_OBS
-    ## 1:              1:M             1:F               1 0.48      55
-    ## 2:              1:F             1:M               2 0.48      77
-    ## 3:              2:M             1:F               3 0.24       7
-    ## 4:              2:F             1:M               4 0.42      22
-    ## 5:              1:M             2:F               5 0.42      17
-    ## 6:              1:F             2:M               6 0.24      28
-    ## 7:              2:M             2:F               7 0.21      35
-    ## 8:              2:F             2:M               8 0.21      56
+    #>    REC_TRM_CATEGORY TR_TRM_CATEGORY TRM_CAT_PAIR_ID    S TRM_OBS
+    #> 1:              1:M             1:F               1 0.48      55
+    #> 2:              1:F             1:M               2 0.48      77
+    #> 3:              2:M             1:F               3 0.24       7
+    #> 4:              2:F             1:M               4 0.42      22
+    #> 5:              1:M             2:F               5 0.42      17
+    #> 6:              1:F             2:M               6 0.24      28
+    #> 7:              2:M             2:F               7 0.21      35
+    #> 8:              2:F             2:M               8 0.21      56
 
 Corresponding **phyloflows** input data (more complex, GLM)
 -----------------------------------------------------------
@@ -274,16 +266,15 @@ the flows between groups “1” and “2”.
     dobs[, TRM_CAT_PAIR_ID:= seq_len(nrow(dobs))]
     dobs[, S:=NULL]
     dobs
-
-    ##    REC_TRM_CATEGORY TR_TRM_CATEGORY TRM_CAT_PAIR_ID TRM_OBS TR_SAMPLING_CATEGORY REC_SAMPLING_CATEGORY
-    ## 1:              1:M             1:F               1      55                  1:F                   1:M
-    ## 2:              2:M             1:F               2       7                  1:F                   2:M
-    ## 3:              1:F             1:M               3      77                  1:M                   1:F
-    ## 4:              2:F             1:M               4      22                  1:M                   2:F
-    ## 5:              1:M             2:F               5      17                  2:F                   1:M
-    ## 6:              2:M             2:F               6      35                  2:F                   2:M
-    ## 7:              1:F             2:M               7      28                  2:M                   1:F
-    ## 8:              2:F             2:M               8      56                  2:M                   2:F
+    #>    REC_TRM_CATEGORY TR_TRM_CATEGORY TRM_CAT_PAIR_ID TRM_OBS TR_SAMPLING_CATEGORY REC_SAMPLING_CATEGORY
+    #> 1:              1:M             1:F               1      55                  1:F                   1:M
+    #> 2:              2:M             1:F               2       7                  1:F                   2:M
+    #> 3:              1:F             1:M               3      77                  1:M                   1:F
+    #> 4:              2:F             1:M               4      22                  1:M                   2:F
+    #> 5:              1:M             2:F               5      17                  2:F                   1:M
+    #> 6:              2:M             2:F               6      35                  2:F                   2:M
+    #> 7:              1:F             2:M               7      28                  2:M                   1:F
+    #> 8:              2:F             2:M               8      56                  2:M                   2:F
 
 **We also need to define the prior distribution on the unknown sampling
 probabilities, and generate samples from it**. This final step is where
@@ -343,32 +334,31 @@ posterior distributions, and calculate their log-density values:
                       cores = 1,
                       chains = 1,
                       init = list(list(a=0, grouptwo=0, male=0)))
-
-    ## 
-    ## SAMPLING FOR MODEL 'glm_sex2comm2' NOW (CHAIN 1).
-    ## Chain 1: 
-    ## Chain 1: Gradient evaluation took 9e-06 seconds
-    ## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.09 seconds.
-    ## Chain 1: Adjust your expectations accordingly!
-    ## Chain 1: 
-    ## Chain 1: 
-    ## Chain 1: Iteration:    1 / 2000 [  0%]  (Warmup)
-    ## Chain 1: Iteration:  200 / 2000 [ 10%]  (Warmup)
-    ## Chain 1: Iteration:  400 / 2000 [ 20%]  (Warmup)
-    ## Chain 1: Iteration:  501 / 2000 [ 25%]  (Sampling)
-    ## Chain 1: Iteration:  700 / 2000 [ 35%]  (Sampling)
-    ## Chain 1: Iteration:  900 / 2000 [ 45%]  (Sampling)
-    ## Chain 1: Iteration: 1100 / 2000 [ 55%]  (Sampling)
-    ## Chain 1: Iteration: 1300 / 2000 [ 65%]  (Sampling)
-    ## Chain 1: Iteration: 1500 / 2000 [ 75%]  (Sampling)
-    ## Chain 1: Iteration: 1700 / 2000 [ 85%]  (Sampling)
-    ## Chain 1: Iteration: 1900 / 2000 [ 95%]  (Sampling)
-    ## Chain 1: Iteration: 2000 / 2000 [100%]  (Sampling)
-    ## Chain 1: 
-    ## Chain 1:  Elapsed Time: 0.021098 seconds (Warm-up)
-    ## Chain 1:                0.065921 seconds (Sampling)
-    ## Chain 1:                0.087019 seconds (Total)
-    ## Chain 1:
+    #> 
+    #> SAMPLING FOR MODEL 'glm_sex2comm2' NOW (CHAIN 1).
+    #> Chain 1: 
+    #> Chain 1: Gradient evaluation took 1e-05 seconds
+    #> Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.1 seconds.
+    #> Chain 1: Adjust your expectations accordingly!
+    #> Chain 1: 
+    #> Chain 1: 
+    #> Chain 1: Iteration:    1 / 2000 [  0%]  (Warmup)
+    #> Chain 1: Iteration:  200 / 2000 [ 10%]  (Warmup)
+    #> Chain 1: Iteration:  400 / 2000 [ 20%]  (Warmup)
+    #> Chain 1: Iteration:  501 / 2000 [ 25%]  (Sampling)
+    #> Chain 1: Iteration:  700 / 2000 [ 35%]  (Sampling)
+    #> Chain 1: Iteration:  900 / 2000 [ 45%]  (Sampling)
+    #> Chain 1: Iteration: 1100 / 2000 [ 55%]  (Sampling)
+    #> Chain 1: Iteration: 1300 / 2000 [ 65%]  (Sampling)
+    #> Chain 1: Iteration: 1500 / 2000 [ 75%]  (Sampling)
+    #> Chain 1: Iteration: 1700 / 2000 [ 85%]  (Sampling)
+    #> Chain 1: Iteration: 1900 / 2000 [ 95%]  (Sampling)
+    #> Chain 1: Iteration: 2000 / 2000 [100%]  (Sampling)
+    #> Chain 1: 
+    #> Chain 1:  Elapsed Time: 0.028517 seconds (Warm-up)
+    #> Chain 1:                0.090221 seconds (Sampling)
+    #> Chain 1:                0.118738 seconds (Total)
+    #> Chain 1:
 
     # extract samples from the prior distribution
     fit.e <- extract(fit.par)
@@ -404,14 +394,13 @@ posterior distributions, and calculate their log-density values:
     set(dprior, NULL, c('ETA'), NULL)   
     setnames(dprior, 'CATEGORY', 'SAMPLING_CATEGORY')
     head(dprior)
-
-    ##    SAMPLING_CATEGORY SAMPLE         P       LP
-    ## 1:               1:F      1 0.8078519 2.651191
-    ## 2:               1:F      2 0.8306516 2.780450
-    ## 3:               1:F      3 0.8156518 2.785355
-    ## 4:               1:F      4 0.8289016 2.798152
-    ## 5:               1:F      5 0.8402540 2.583188
-    ## 6:               1:F      6 0.8323180 2.758882
+    #>    SAMPLING_CATEGORY SAMPLE         P       LP
+    #> 1:               1:F      1 0.8078519 2.651191
+    #> 2:               1:F      2 0.8306516 2.780450
+    #> 3:               1:F      3 0.8156518 2.785355
+    #> 4:               1:F      4 0.8289016 2.798152
+    #> 5:               1:F      5 0.8402540 2.583188
+    #> 6:               1:F      6 0.8323180 2.758882
 
 This data set can be loaded through
 

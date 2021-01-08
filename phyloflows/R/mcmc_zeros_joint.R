@@ -115,7 +115,7 @@ rgamss <- function(n, shape, scale=1, do.log=TRUE)
 #'                 mcmc.n=5e4, # guide on the number of MCMC iterations, the actual number of MCMC iterations may be a little bit larger
 #'                 verbose=0   # switch on for output to each MCMC iteration
 #'                 )
-#' mc <- phyloflows:::source.attribution.mcmc(dobs, dprior, control)
+#' mc <- phyloflows:::source.attribution.mcmc.joint(dobs, dprior, control)
 #' }
 #' 
 #' #
@@ -130,10 +130,10 @@ rgamss <- function(n, shape, scale=1, do.log=TRUE)
 #'                 verbose=0   # switch on for output to each MCMC iteration
 #'                 outfile= mcmc.file # store MCMC output as rda file here
 #'                 )
-#' mc <- phyloflows:::source.attribution.mcmc(dobs, dprior, control)
+#' mc <- phyloflows:::source.attribution.mcmc.joint(dobs, dprior, control)
 #' }
 #' 
-source.attribution.mcmc  <- function(dobs, dprior, control=list(seed=42, mcmc.n=1e3, verbose=1, outfile='SAMCMCv190327.rda'))
+source.attribution.mcmc.joint  <- function(dobs, dprior, control=list(seed=42, mcmc.n=1e3, verbose=1, outfile='SAMCMCv190327.rda'))
 {        
   dmode <- function(x) 
   {
