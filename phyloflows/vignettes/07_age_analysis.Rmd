@@ -89,7 +89,7 @@ dobs$TRM_OBS <- extract(simu_fit)$y[1,]
 
 The data can be loaded through
 ```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE, message=FALSE, warning=FALSE}
-data(sevenGroupFlows1)
+data(sevenGroupFlows1,package='phyloflows')
 ```
 
 # Input data: observed transmission flows
