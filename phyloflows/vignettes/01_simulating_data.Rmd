@@ -15,6 +15,15 @@ knitr::opts_chunk$set(echo = TRUE)
 library(knitr)
 ```
 
+```{r, include=FALSE, eval=FALSE, echo=FALSE}
+require(rmarkdown)
+setwd('~/phyloscanner/phyloflows/vignettes')
+infile <- '01_simulating_data.Rmd'
+#rmarkdown::render(infile)
+rmarkdown::render(infile, output_format='pdf_document')	
+rmarkdown::render(infile, output_format='md_document')	
+```
+
 Here is some code to set up simulated data sets. The main aim of these
 simulations are to test the performance of phyloflows MCMC algorithm. Please
 read the sections "Our Job" and "Our Solution" on the

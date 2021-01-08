@@ -218,7 +218,8 @@ data(sevenGroupFlows1_gp_mcmc)
 ## MCMC output
 Let us have a look at the output:  
   ```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE, message=TRUE}
-str(ans)
+str(ans.gamma)
+str(ans.gp)
 ```
 
 We are mostly interested in the marginal posterior distribution 
@@ -232,6 +233,8 @@ from which the transmission flows $\pi$ can be calculated.
 
 In addition, estimated parameters can be compared with the true hyperparameter values.
 ```{r posterior, fig.margin=TRUE}
+params_gamma <- extract(ans.gamma)
+params_gp <- extract(ans.gp)
 c_light <- c("#DCBCBC")
 c_dark <- c("#8F2727")
 c_dark_highlight <- c("#7C0000")
@@ -247,7 +250,8 @@ abline(v=-1, col=c_light, lty=1, lwd=3)
 ```
 
 
-That's it for now. To check for convergence, calculate
+That's it for now. Of course we would like to run the MCMC chain for longer,
+perhaps 10,000 sweeps. To check for convergence, calculate
 effective sample sizes, and quantiles of the posterior distribution, 
 have a look at the other vignettes.
 
@@ -259,8 +263,6 @@ have a look at the other vignettes.
 ```{r, include=FALSE, eval=FALSE, echo=FALSE, tidy=FALSE, message=FALSE, warning=FALSE}
 range(summary(fit.gamma)$summary[, "n_eff"])
 range(summary(fit.gamma)$summary[, "Rhat"])
-params_gamma <- extract(fit.gamma)
 range(summary(fit.gp)$summary[, "n_eff"])
 range(summary(fit.gp)$summary[, "Rhat"])
-params_gp <- extract(fit.gp)
 ```

@@ -78,7 +78,7 @@ can
 The syntax is as follows. Look up the help page for the diagnostics function for
 a full explanation of the control arguments. 
 ```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE,message=FALSE, warning=FALSE}
-outfile.base <- file.path(getwd(),'twoGroupFlows1_mcmc_') 
+outfile.base <- file.path(getwd(),'twoGroupFlows1_mcmc') 
 control <- list( burnin.p=0.05, 
                  regex_pars='*', 
 				 credibility.interval=0.95, 

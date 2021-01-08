@@ -18,7 +18,7 @@ library(knitr)
 
 ```{r, include=FALSE, eval=FALSE, echo=FALSE}
 require(rmarkdown)
-setwd('/Users/Oliver/git/phyloscanner/phyloflows/vignettes')
+setwd('~/phyloscanner/phyloflows/vignettes')
 infile <- '06_test_sampling_adjustments.Rmd'
 rmarkdown::render(infile, output_format='pdf_document')
 rmarkdown::render(infile, output_format='md_document')
