@@ -111,7 +111,7 @@ source.attribution.mcmc.diagnostics    <- function(mcmc.file, mc=NULL, control=l
         pars <- cbind(pars, tmp)
 		
     }
-	if(grepl(control$regex_pars,'PI') & 'PI' %in% names(mc$pars))
+	if(grepl(control$regex_pars,'PI') & ('PI' %in% names(mc$pars)))
 	{
 
 		tmp <- mc$pars$PI
