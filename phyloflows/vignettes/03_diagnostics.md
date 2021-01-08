@@ -46,7 +46,7 @@ diagnostics. You can
 The syntax is as follows. Look up the help page for the diagnostics
 function for a full explanation of the control arguments.
 
-    outfile.base <- file.path(getwd(),'twoGroupFlows1_mcmc_') 
+    outfile.base <- file.path(getwd(),'twoGroupFlows1_mcmc') 
     control <- list( burnin.p=0.05, 
                      regex_pars='*', 
                      credibility.interval=0.95, 
@@ -64,31 +64,26 @@ function for a full explanation of the control arguments.
     #> 
     #> Plotting histograms for log likelihood and log posterior...
     #> 
-    #> Plotting acceptance rates...
-    #> 
+    #> Calculating acceptance rates...
     #> Average acceptance rate=  0.897
-    #> Update IDs with lowest acceptance rates   UPDATE_ID ACC_RATE N_TRM_CAT_PAIRS
-    #> 1:         2  0.77528               4
-    #> 2:         1  0.81440               4
+    #> Update IDs with lowest acceptance rates   UPDATE_ID ACC_RATE
+    #> 1:         2  0.77528
+    #> 2:         1  0.81440
     #> 
     #> Removing burnin in set to  5 % of chain, corresponding to the first iterations= 625
     #> Calculating effective sample size for all parameters...
     #> 
     #> Calculating posterior summaries for all parameters...
     #> Summary of parameters with lowest effective samples
-    #>              VAR       MEAN         SD     MEDIAN       CI_L       CI_U           ID      NEFF
-    #>  1:         XI-2 0.44995864 0.01006440 0.44980794 0.42895635 0.47010807         XI-2  4769.454
-    #>  2:         XI-1 0.59983962 0.01059647 0.59992896 0.57969886 0.61966686         XI-1  5468.961
-    #>  3: LOG_LAMBDA-4 6.45209566 0.09947787 6.45316086 6.25486850 6.64483695 LOG_LAMBDA-4  6824.919
-    #>  4:         PI-4 0.55143756 0.03162361 0.55149555 0.49018444 0.61277277         PI-4  7521.251
-    #>  5:         PI-1 0.33546857 0.02824658 0.33486974 0.28195780 0.39197102         PI-1  7589.843
-    #>  6: LOG_LAMBDA-1 5.95319116 0.09225504 5.95354021 5.77111902 6.13208754 LOG_LAMBDA-1  8859.387
-    #>  7: LOG_LAMBDA-3 4.28444033 0.22661016 4.29196911 3.82144791 4.70727508 LOG_LAMBDA-3 11315.509
-    #>  8:         PI-2 0.04859381 0.01213510 0.04762408 0.02758604 0.07486730         PI-2 11876.000
-    #>  9:         PI-3 0.06450006 0.01390632 0.06347870 0.04018642 0.09412482         PI-3 11876.000
-    #> 10: LOG_LAMBDA-2 3.99308267 0.26076190 4.00238510 3.45173220 4.47650217 LOG_LAMBDA-2 11876.000
+    #>             VAR      MEAN         SD    MEDIAN      CI_L      CI_U           ID      NEFF
+    #> 1:         XI-2 0.4499586 0.01006440 0.4498079 0.4289564 0.4701081         XI-2  4769.454
+    #> 2:         XI-1 0.5998396 0.01059647 0.5999290 0.5796989 0.6196669         XI-1  5468.961
+    #> 3: LOG_LAMBDA-4 6.4520957 0.09947787 6.4531609 6.2548685 6.6448369 LOG_LAMBDA-4  6824.919
+    #> 4: LOG_LAMBDA-1 5.9531912 0.09225504 5.9535402 5.7711190 6.1320875 LOG_LAMBDA-1  8859.387
+    #> 5: LOG_LAMBDA-3 4.2844403 0.22661016 4.2919691 3.8214479 4.7072751 LOG_LAMBDA-3 11315.509
+    #> 6: LOG_LAMBDA-2 3.9930827 0.26076190 4.0023851 3.4517322 4.4765022 LOG_LAMBDA-2 11876.000
     #> 
-    #> Writing summary file to /Users/xx4515/phyloscanner/phyloflows/vignettes/twoGroupFlows1_mcmc__summary.csv
+    #> Writing summary file to /Users/xx4515/phyloscanner/phyloflows/vignettes/twoGroupFlows1_mcmc_summary.csv
     #> Plotting traces for worst parameters...
     #> 
     #> Plotting marginal posterior densities for worst parameters...
