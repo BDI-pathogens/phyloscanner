@@ -199,12 +199,12 @@ The syntax for running the algorithm is as follows.
 #	method "gamma" or "gp"
 #	outfile output file name if you like to have the results 
 #			written to an *.rda* file
-control <- list(seed=42, mcmc.n=3000, method='gamma')
+control <- list(seed=42, mcmc.n=500, method='gamma')
 # run MCMC
 ans.gamma <- source.attribution.mcmc.stan(dobs, dprior.fit, control)
 # save(ans.gamma, file = '~/phyloscanner/phyloflows/data/sevenGroupFlows1_gamma_mcmc.RData')
 
-control <- list(seed=42, mcmc.n=3000, method='gp')
+control <- list(seed=42, mcmc.n=500, method='gp')
 # run MCMC
 ans.gp <- source.attribution.mcmc.stan(dobs, dprior.fit, control)
 # save(ans.gp, file = '~/phyloscanner/phyloflows/data/sevenGroupFlows1_gp_mcmc.RData')

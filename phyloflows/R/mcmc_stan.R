@@ -69,7 +69,7 @@ source.attribution.mcmc.stan  <- function(dobs, dprior.fit, control=list(seed=42
                        xi_id = cbind(dobs$TR_ID,dobs$REC_ID),
                        alpha = 0.8/nrow(dobs))
     
-    fit<- stan(file = file.path(paste0(pkg.dir,'/../R/'),'gamma.stan'),
+    fit<- stan(file = file.path(paste0(pkg.dir,'/misc'),'gamma.stan'),
                       data = data.gamma,
                       iter = control$mcmc.n,  warmup = min(500,floor(control$mcmc.n/2)), chains=1, thin=1, seed = control$seed,
                       algorithm = "NUTS", verbose = FALSE,
@@ -97,7 +97,7 @@ source.attribution.mcmc.stan  <- function(dobs, dprior.fit, control=list(seed=42
                      shape = cbind(dprior.fit$ALPHA,dprior.fit$BETA),
                      xi_id = cbind(dobs$TR_ID,dobs$REC_ID))
     
-    fit <- stan(file =file.path(paste0(pkg.dir,'/../R/'),'gp.stan'),
+    fit <- stan(file =file.path(paste0(pkg.dir,'/misc'),'gp.stan'),
                    data = data.gp,
                    iter = control$mcmc.n,  warmup = min(500,floor(control$mcmc.n/2)), chains=1, thin=1, seed = control$seed,
                    algorithm = "NUTS", verbose = FALSE,
