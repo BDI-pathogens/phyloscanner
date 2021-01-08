@@ -1,13 +1,15 @@
 07 - Age analysis
 ================
+Xiaoyue Xi and Oliver Ratmann
 2019-12-10
 
 This vignette provides an extension of the general method of
 **phyloflow**. The aim is to understand the transmission flows between
 one-year increment age groups. The differences between this example with
 the general pipeline of **phyloflow** is the correlation between flows.
-To tackle this problem, we impose a Gaussian process prior on
-transmission flows.
+To tackle this problem, we impose a Gaussian process (GP) prior on
+transmission flows. Also, a more flexible platform, Stan, is introduced
+to solve the problem.
 
 # Dataset
 
@@ -15,30 +17,41 @@ transmission flows.
 groups called “15-19”,“20-24”,“25-29”,“30-34”,“35-39”,“40-44”,“45-49”.
 Note that in practice, it would be good to use this method to
 investigate transmission dynamics between one-year increment age group,
-as the squared exponential kernel is for the continuous input space.
+as the squared exponential kernel is for the continuous input space. We
+first set up hyperparameters for GP, the baseline and sampling
+fractions.
 
 ``` r
 library(rstan)
 library(data.table)
 library(ggplot2)
 library(viridis)
+library(phyloflows)
 set.seed(42)
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
-
-set.seed(42)
 alpha_true <- c(2.5)
 rho_true <- c(12,9)
 mu_true <- -1
 gp_dim <- 2
 xi <- c(0.35, 0.45, 0.5, 0.55, 0.5, 0.55, 0.4)
+```
 
+**Next, we calculate the sampling probabilities of transmission flows
+within and between the two groups.**
+
+``` r
 dobs <- data.table(expand.grid(TR_TRM_CATEGORY = c("15-19","20-24","25-29","30-34","35-39","40-44","45-49"),
                                REC_TRM_CATEGORY = c("15-19","20-24","25-29","30-34","35-39","40-44","45-49")))
+```
 
+``` r
 ds <- data.table(CATEGORY = c("15-19","20-24","25-29",
                               "30-34","35-39","40-44","45-49"),
                  P = xi,ID = 1:7)
+```
+
+``` r
 setnames(ds,colnames(ds),paste0('TR_TRM_',colnames(ds)))
 dobs <- merge(dobs,ds,by='TR_TRM_CATEGORY')
 setnames(ds,colnames(ds),gsub('TR_','REC_',colnames(ds)))
@@ -49,7 +62,12 @@ dobs[,TR_SMOOTH_CATEGORY:=as.numeric(substr(TR_TRM_CATEGORY,1,2))+2]
 dobs[,REC_SMOOTH_CATEGORY:=as.numeric(substr(REC_TRM_CATEGORY,1,2))+2]
 dobs[, TR_SAMPLING_CATEGORY:= TR_TRM_CATEGORY]
 dobs[, REC_SAMPLING_CATEGORY:= REC_TRM_CATEGORY]
+```
 
+**Then we simulate true transmission flows and observed transmission
+counts.**
+
+``` r
 simu_pars <- list(  N=nrow(dobs), D=gp_dim, x=cbind(dobs$TR_SMOOTH_CATEGORY,dobs$REC_SMOOTH_CATEGORY),
                    alpha=alpha_true, rho=rho_true,
                    mu=mu_true,xi=dobs$P)
@@ -57,25 +75,18 @@ simu_pars <- list(  N=nrow(dobs), D=gp_dim, x=cbind(dobs$TR_SMOOTH_CATEGORY,dobs
 simu_fit <- stan(   file="simu_poiss.stan", 
                   data=simu_pars, iter=1,
                   chains=1, seed=424838, algorithm="Fixed_param")
+dobs$TRM_OBS <- extract(simu_fit)$y[1,] 
 ```
 
-    ## 
-    ## SAMPLING FOR MODEL 'simu_poiss' NOW (CHAIN 1).
-    ## Chain 1: Iteration: 1 / 1 [100%]  (Sampling)
-    ## Chain 1: 
-    ## Chain 1:  Elapsed Time: 0 seconds (Warm-up)
-    ## Chain 1:                4.6e-05 seconds (Sampling)
-    ## Chain 1:                4.6e-05 seconds (Total)
-    ## Chain 1:
+The data can be loaded through
 
 ``` r
-dobs$TRM_OBS <- extract(simu_fit)$y[1,] 
+data(sevenGroupFlows1)
 ```
 
 # Input data: observed transmission flows
 
-Input data of the similar format of **phyloflow** are
-expected.
+Input data of the similar format of **phyloflow** are expected.
 
 ``` r
 dobs <- subset(dobs, select = c('TR_TRM_CATEGORY', 'REC_TRM_CATEGORY','TR_SAMPLING_CATEGORY',
@@ -111,9 +122,8 @@ columns:
   - *TRM\_OBS* observed transmission counts
 
 Let us look at the data. The first row shows zero counts of transmission
-flows from age group “15-19” to age group “15-19”.
-
-Here is a heatmap of our input data:
+flows from age group “15-19” to age group “15-19”. We visualise our
+simulated input data in the heatmap :
 
 ``` r
 ggplot(dobs, aes(TR_SMOOTH_CATEGORY, REC_SMOOTH_CATEGORY))+
@@ -129,22 +139,28 @@ ggplot(dobs, aes(TR_SMOOTH_CATEGORY, REC_SMOOTH_CATEGORY))+
 
 ## Input data: sampling information
 
-\*\* `dobs` also must contain information about how each group was
-sampled. This is stored in the following columns:
+**`dobs` also requires information about how each group was sampled. **
+This is stored in the following columns:
 
   - *TR\_SAMPLING\_CATEGORY* sampling strata of transmitter group
   - *REC\_SAMPLING\_CATEGORY* sampling strata of recipient group
 
-**`dprior.fit` specifies the distribution of probability of sampling an
-individual from each sampling group.** This is either given by or
-approximated by beta distribution in SARWS model or GLM model. This
-information is stored in the following columns:
+**`dprior.fit` specifies the distribution of sampling probability in
+each sampling group.** The sampling probability is either characterised
+by beta-binomial model or GLM model (See 01 - Simulating data). and
+given in the form of samples. In the tutorial, we opted for a
+probabilistic programming language Stan, and it cannot take samples as
+input. However, it is possible to fit statistical distributions to
+samples and input distribution parameters. The information is stored in
+data *dprior.fit* in the following columns:
 
   - *SAMPLING\_CATEGORY* name of sampling strata
   - *ALPHA, BETA* shape parameters of the distribution of sampling
     probability.
 
-Let us look at the sampling information:
+Under beta-binomial model, the posterior distribution of the sampling
+probability is known analytically, i.e. beta. Let us look at the
+sampling information:
 
 ``` r
 ds$TRIAL <- c(4000, 3700, 3300, 2500, 1700, 1000, 500)
@@ -152,200 +168,92 @@ ds[,SUC := round(TRIAL * P)]
 dprior.fit <- copy(ds)
 dprior.fit[,ALPHA := SUC+1]
 dprior.fit[,BETA := TRIAL-SUC+1]
-dprior.fit
+dprior.fit <- subset(dprior.fit, select = c('CATEGORY','ALPHA','BETA'))
+colnames(dprior.fit) <- c('SAMPLING_CATEGORY','ALPHA','BETA')
+head(dprior.fit)
 ```
 
-    ##    CATEGORY    P ID TRIAL  SUC ALPHA BETA
-    ## 1:    15-19 0.35  1  4000 1400  1401 2601
-    ## 2:    20-24 0.45  2  3700 1665  1666 2036
-    ## 3:    25-29 0.50  3  3300 1650  1651 1651
-    ## 4:    30-34 0.55  4  2500 1375  1376 1126
-    ## 5:    35-39 0.50  5  1700  850   851  851
-    ## 6:    40-44 0.55  6  1000  550   551  451
-    ## 7:    45-49 0.40  7   500  200   201  301
+    ##    SAMPLING_CATEGORY ALPHA BETA
+    ## 1:             15-19  1401 2601
+    ## 2:             20-24  1666 2036
+    ## 3:             25-29  1651 1651
+    ## 4:             30-34  1376 1126
+    ## 5:             35-39   851  851
+    ## 6:             40-44   551  451
 
 # Method
 
-We use **rstan** to sample from the posterior distribution \[
-p(\lambda, s | n) \propto \prod_{i=1,\cdots,7;j=1,\cdots,7} Poisson(n_{ij};\lambda_{ij}*s_i*s_j) p(\lambda_{ij}) p(s_i) p(s_j).
+Again we use a Bayesian approach to estimate the proportion of
+transmissions between the two population groups. Please see the problem
+setting in **phyloflows: Estimating transmission flows under
+heterogeneous sampling – a first example**. Unlike the simple example, a
+probabilistic programming language Stan provides a flexible platform to
+impose different kinds of priors. Recall the posterior distribution of
+the parameters \((\lambda, s)\) is given by \[
+\begin{aligned}
+p(\lambda, s | n) & \propto p(n | \lambda, s) p(\lambda, s) \\
+              & = \prod_{i=1,\cdots,7;j=1\cdots,7} Poisson(n_{ij};\lambda_{ij}*s_i*s_j) p(\lambda_{ij}) p(s_i) p(s_j).
+\end{aligned}
 \] Then, we calculate the main quantity of interest, \(\pi\), via \[
 \pi_{ij}= \lambda_{ij} / \sum_{k=1,\cdots,7;  l=1,\cdots,7} \lambda_{kl}.
-\]
+\] for \(i=1,\cdots,7\) and \(j=1,\cdots,7\).
 
-for \(i=1,\cdots,7\) and \(j=1,\cdots,7\).
+**For the prior distributions**, we specify for \(p(\lambda_{ij})\),
+\(i=1,2; j=1,2\) uninformative prior distributions. We use a Gamma
+distribution with parameters \(\alpha_i=0.8/7^2\) and \(\beta=0.8/Z\)
+with
+\(Z= \sum_{ij | n_{ij}>0} n_{ij}/(s_i*s_j) + \sum_{ij | n_{ij}>0} (1-s_i*s_j)/(s_i*s_j)\).
+This choice implies for \(\pi\) a Dirichlet prior distribution with
+parameters \(\alpha_i\), which is considered to be an objective choice.
+For \(p(s_i)\), we use a strongly informative prior distribution, based
+on the available data as illustrated above.
 
-# Independent Gamma prior
+An alternative prior distribution is Gaussian process prior, which
+penalises large changes between neighbouring age groups, and the kernel
+\(k\) is given by
 
-``` r
- tmp <- subset(ds,select = c('CATEGORY','ID'))
- setnames(tmp, colnames(tmp), paste0('TR_TRM_',colnames(tmp)))
- dobs <- merge(dobs,tmp,by='TR_TRM_CATEGORY')
- setnames(tmp, colnames(tmp), gsub('TR_TRM_','REC_TRM_',colnames(tmp)))
- dobs <- merge(dobs,tmp,by='REC_TRM_CATEGORY')
- setnames(tmp, colnames(tmp), gsub('REC_TRM_','',colnames(tmp)))
- 
- 
- data.gamma <- list(N=nrow(dobs),
-                   Y=dobs$TRM_OBS,
-                   N_xi = nrow(dprior.fit),
-                   shape = cbind(dprior.fit$ALPHA,dprior.fit$BETA),
-                   xi_id = cbind(dobs$TR_TRM_ID,dobs$REC_TRM_ID),
-                   alpha = 0.8/nrow(dobs))
-```
+\[
+k((a,b),(a',b'))= \sigma^2 \exp(-0.5 ((\frac{a-a'}{\ell_1})^2 + (\frac{b-b'}{\ell_2})^2 ))
+\] That is, \(\lambda_{i,j} = \mu + f\) where
+\(f\sim \mathcal{GP}(0,k)\).
 
-After preparing data, we could estimate flows under independent Gamma
-prior.
+# MCMC
 
-``` r
-  fit.gamma <- stan(file = 'gamma.stan',
-              data = data.gamma,
-              iter = 3000,  warmup = 500, chains=1, thin=1, seed = 42,
-              algorithm = "NUTS", verbose = FALSE,
-              control = list(adapt_delta = 0.8, max_treedepth=10))
-```
+## MCMC syntax
 
-    ## 
-    ## SAMPLING FOR MODEL 'gamma' NOW (CHAIN 1).
-    ## Chain 1: 
-    ## Chain 1: Gradient evaluation took 8.7e-05 seconds
-    ## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 0.87 seconds.
-    ## Chain 1: Adjust your expectations accordingly!
-    ## Chain 1: 
-    ## Chain 1: 
-    ## Chain 1: Iteration:    1 / 3000 [  0%]  (Warmup)
-    ## Chain 1: Iteration:  300 / 3000 [ 10%]  (Warmup)
-    ## Chain 1: Iteration:  501 / 3000 [ 16%]  (Sampling)
-    ## Chain 1: Iteration:  800 / 3000 [ 26%]  (Sampling)
-    ## Chain 1: Iteration: 1100 / 3000 [ 36%]  (Sampling)
-    ## Chain 1: Iteration: 1400 / 3000 [ 46%]  (Sampling)
-    ## Chain 1: Iteration: 1700 / 3000 [ 56%]  (Sampling)
-    ## Chain 1: Iteration: 2000 / 3000 [ 66%]  (Sampling)
-    ## Chain 1: Iteration: 2300 / 3000 [ 76%]  (Sampling)
-    ## Chain 1: Iteration: 2600 / 3000 [ 86%]  (Sampling)
-    ## Chain 1: Iteration: 2900 / 3000 [ 96%]  (Sampling)
-    ## Chain 1: Iteration: 3000 / 3000 [100%]  (Sampling)
-    ## Chain 1: 
-    ## Chain 1:  Elapsed Time: 7.20381 seconds (Warm-up)
-    ## Chain 1:                28.937 seconds (Sampling)
-    ## Chain 1:                36.1408 seconds (Total)
-    ## Chain 1:
+We use a Markov Chain Monte Carlo algorithm to sample from the posterior
+The syntax for running the algorithm is as follows.
 
 ``` r
-  M <- 30
-  D <- 2 
-  indices <- matrix(NA, M^D, D)
-  mm=0;
-  for (m1 in 1:M){
-    for (m2 in 1:M){
-      mm = mm+1
-      indices[mm,] = c(m1, m2)
-    }
-  }
-  
- 
-
-  data.gp <- list( M= M, M_nD= M^D, 
-                         L= c(3/2*max(dobs$TR_SMOOTH_CATEGORY),3/2*max(dobs$REC_SMOOTH_CATEGORY)), 
-                         N = nrow(dobs),
-                         x = cbind(dobs$TR_SMOOTH_CATEGORY,dobs$REC_SMOOTH_CATEGORY),
-                         D = D,
-                         y = dobs$TRM_OBS,
-                         indices= indices,
-                         N_xi = nrow(ds),
-                         shape = cbind(dprior.fit$ALPHA,dprior.fit$BETA),
-                         xi_id = cbind(dobs$TR_TRM_ID,dobs$REC_TRM_ID))
+# specify a list of control variables:
+#   seed    random number seed
+#   mcmc.n  number of MCMC iterations
+#   method "gamma" or "gp"
+#   outfile output file name if you like to have the results 
+#           written to an *.rda* file
+control <- list(seed=42, mcmc.n=500, method='gamma')
+# run MCMC
+ans.gamma <- source.attribution.mcmc.stan(dobs, dprior.fit, control)
 ```
 
-After preparing data, we could estimate flows under independent Gaussian
-process prior.
+    ## Error in new_CppObject_xp(fields$.module, fields$.pointer, ...) : 
+    ##   Exception: variable does not exist; processing stage=data initialization; variable name=xi_id; base type=int  (in 'model54b1778e3d67_gamma' at line 7)
+
+    ## failed to create the sampler; sampling not done
 
 ``` r
- fit.gp <- stan(file = 'gp.stan',
-            data = data.gp,
-            iter = 3000,  warmup = 500, chains=1, thin=1, seed = 42,
-            algorithm = "NUTS", verbose = FALSE,
-            control = list(adapt_delta = 0.8, max_treedepth=10))
+save(ans.gamma, file = '~/phyloscanner/phyloflows/data/sevenGroupFlows1_gamma_mcmc.RData')
+
+control <- list(seed=42, mcmc.n=500, method='gp')
+# run MCMC
+ans.gp <- source.attribution.mcmc.stan(dobs, dprior.fit, control)
 ```
 
-    ## 
-    ## SAMPLING FOR MODEL 'gp' NOW (CHAIN 1).
-    ## Chain 1: 
-    ## Chain 1: Gradient evaluation took 0.001831 seconds
-    ## Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 18.31 seconds.
-    ## Chain 1: Adjust your expectations accordingly!
-    ## Chain 1: 
-    ## Chain 1: 
-    ## Chain 1: Iteration:    1 / 3000 [  0%]  (Warmup)
-    ## Chain 1: Iteration:  300 / 3000 [ 10%]  (Warmup)
-    ## Chain 1: Iteration:  501 / 3000 [ 16%]  (Sampling)
-    ## Chain 1: Iteration:  800 / 3000 [ 26%]  (Sampling)
-    ## Chain 1: Iteration: 1100 / 3000 [ 36%]  (Sampling)
-    ## Chain 1: Iteration: 1400 / 3000 [ 46%]  (Sampling)
-    ## Chain 1: Iteration: 1700 / 3000 [ 56%]  (Sampling)
-    ## Chain 1: Iteration: 2000 / 3000 [ 66%]  (Sampling)
-    ## Chain 1: Iteration: 2300 / 3000 [ 76%]  (Sampling)
-    ## Chain 1: Iteration: 2600 / 3000 [ 86%]  (Sampling)
-    ## Chain 1: Iteration: 2900 / 3000 [ 96%]  (Sampling)
-    ## Chain 1: Iteration: 3000 / 3000 [100%]  (Sampling)
-    ## Chain 1: 
-    ## Chain 1:  Elapsed Time: 95.6183 seconds (Warm-up)
-    ## Chain 1:                232.996 seconds (Sampling)
-    ## Chain 1:                328.614 seconds (Total)
-    ## Chain 1:
+    ## Error in new_CppObject_xp(fields$.module, fields$.pointer, ...) : 
+    ##   Exception: variable does not exist; processing stage=data initialization; variable name=xi_id; base type=int  (in 'model296e35706ff8_gp' at line 42)
 
-Finally, we checked the effective sample size and Rhat for the Gamma
-fit.
+    ## failed to create the sampler; sampling not done
 
 ``` r
-range(summary(fit.gamma)$summary[, "n_eff"])
+save(ans.gp, file = '~/phyloscanner/phyloflows/data/sevenGroupFlows1_gp_mcmc.RData')
 ```
-
-    ## [1]  437.393 3106.153
-
-``` r
-range(summary(fit.gamma)$summary[, "Rhat"])
-```
-
-    ## [1] 0.9995999 1.0034373
-
-``` r
-params_gamma <- extract(fit.gamma)
-```
-
-Finally, we checked the effective sample size and Rhat for the GP fit.
-
-``` r
-range(summary(fit.gp)$summary[, "n_eff"])
-```
-
-    ## [1]  276.4037 4002.5037
-
-``` r
-range(summary(fit.gp)$summary[, "Rhat"])
-```
-
-    ## [1] 0.9995999 1.0135090
-
-``` r
-params_gp <- extract(fit.gp)
-```
-
-The histograms of hyperparameters are plotted in order to compare with
-true hyperparameter values under GP prior.
-
-``` r
-c_light <- c("#DCBCBC")
-c_dark <- c("#8F2727")
-c_dark_highlight <- c("#7C0000")
-par(mfrow=c(2, 2))  
-hist(params_gp$alpha, main="", xlab="alpha", col=c_dark, border=c_dark_highlight, yaxt='n')
-abline(v=2.5, col=c_light, lty=1, lwd=3)
-hist(params_gp$rho[,1], main="", xlab="rho1", col=c_dark, border=c_dark_highlight, yaxt='n')
-abline(v=12, col=c_light, lty=1, lwd=3)
-hist(params_gp$rho[,2], main="", xlab="rho2", col=c_dark, border=c_dark_highlight, yaxt='n')
-abline(v=9, col=c_light, lty=1, lwd=3)
-hist(params_gp$mu, main="", xlab="mu", col=c_dark, border=c_dark_highlight, yaxt='n')
-abline(v=-1, col=c_light, lty=1, lwd=3)
-```
-
-![](07_age_analysis_files/figure-gfm/posterior-1.png)<!-- -->

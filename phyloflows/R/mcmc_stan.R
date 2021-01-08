@@ -51,6 +51,7 @@
 #' 
 source.attribution.mcmc.stan  <- function(dobs, dprior.fit, control=list(seed=42, mcmc.n=1e3, method='gamma', outfile='StanMCMC.rda'))
 {      
+  pkg.dir <- system.file(package = "phyloflows" )
   setkey(dprior.fit,  SAMPLING_CATEGORY)
   dprior.fit[,ID:=seq_len(nrow(dprior.fit))]
   tmp = subset(dprior.fit,select = c('SAMPLING_CATEGORY','ID'))
@@ -65,10 +66,10 @@ source.attribution.mcmc.stan  <- function(dobs, dprior.fit, control=list(seed=42
                        Y=dobs$TRM_OBS,
                        N_xi = nrow(dprior.fit),
                        shape = cbind(dprior.fit$ALPHA,dprior.fit$BETA),
-                       xi_id = cbind(dobs$TR_TRM_ID,dobs$REC_TRM_ID),
+                       xi_id = cbind(dobs$TR_ID,dobs$REC_ID),
                        alpha = 0.8/nrow(dobs))
     
-    fit<- stan(file = 'gamma.stan',
+    fit<- stan(file = file.path(paste0(pkg.dir,'/../R/'),'gamma.stan'),
                       data = data.gamma,
                       iter = control$mcmc.n,  warmup = min(500,floor(control$mcmc.n/2)), chains=1, thin=1, seed = control$seed,
                       algorithm = "NUTS", verbose = FALSE,
@@ -94,9 +95,9 @@ source.attribution.mcmc.stan  <- function(dobs, dprior.fit, control=list(seed=42
                      indices= indices,
                      N_xi = nrow(dprior.fit),
                      shape = cbind(dprior.fit$ALPHA,dprior.fit$BETA),
-                     xi_id = cbind(dobs$TR_TRM_ID,dobs$REC_TRM_ID))
+                     xi_id = cbind(dobs$TR_ID,dobs$REC_ID))
     
-    fit <- stan(file = 'gp.stan',
+    fit <- stan(file =file.path(paste0(pkg.dir,'/../R/'),'gp.stan'),
                    data = data.gp,
                    iter = control$mcmc.n,  warmup = min(500,floor(control$mcmc.n/2)), chains=1, thin=1, seed = control$seed,
                    algorithm = "NUTS", verbose = FALSE,
