@@ -262,7 +262,7 @@ is $4$.
 * `Number of sweeps: 125`: The total number of sweeps is determined from
   `control[['mcmc.n']]`, by dividing `control[['mcmc.n']]` with the sweep
   length, and possibly rounding up.
-* `Number of iterations: 500`: The total number of iterations is set to the
+* `Number of iterations: 1000`: The total number of iterations is set to the
   number of sweeps (given above), multiplied by the sweep length. This may
   differ slightly from `control[['mcmc.n']]` because we round up the number of
   sweeps to the next integer.

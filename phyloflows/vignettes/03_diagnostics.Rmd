@@ -48,6 +48,10 @@ require(phyloflows)
 data(twoGroupFlows1, package="phyloflows")
 dobs <- twoGroupFlows1$dobs
 dprior <- twoGroupFlows1$dprior
+tmp= copy(dprior)
+tmp[,WHO:='REC_SAMPLING_CATEGORY']
+dprior[,WHO:='TR_SAMPLING_CATEGORY']
+dprior <- rbind(dprior,tmp)
 control <- list(seed=42, mcmc.n=5e4, verbose=0)
 mc <- phyloflows:::source.attribution.mcmc(dobs, dprior, control)
 ```
