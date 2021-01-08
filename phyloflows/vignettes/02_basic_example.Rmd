@@ -252,13 +252,13 @@ $$
 $$  
 which is followed by an update of the entire vector of Poisson transmission
 rates $\lambda$. The subset of $\xi$ that is updated is specified as follows. For each population
-group $i$, we determine all components of $\xi$ that involve $s_i$. In our example, for
-$i=1$, the components of $\xi$ to update are $(\xi_{11},\xi_{12},\xi_{21})$; and
-for $i=2$, the components of $\xi$ to update are
-$(\xi_{12},\xi_{21},\xi_{22})$. An MCMC sweep counts the number of MCMC iterations needed
+group $i$, we determine all components of $\xi$ that involve $s_i$. In our example, for sources where
+$i=1$, the components of $\xi$ to update are $(\xi_{11},\xi_{12})$; and
+for recipients where $i=2$, the components of $\xi$ to update are
+$(\xi_{12},\xi_{22})$. An MCMC sweep counts the number of MCMC iterations needed
 in order to update all parameters at least once. In our case, we have $2$
 updates on components of $\xi$, and after each we update $\lambda$, so the sweep length
-is $4$. 
+is $8$. 
 * `Number of sweeps: 125`: The total number of sweeps is determined from
   `control[['mcmc.n']]`, by dividing `control[['mcmc.n']]` with the sweep
   length, and possibly rounding up.

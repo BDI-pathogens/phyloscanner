@@ -117,7 +117,9 @@ Gathering results together gives data *twoGroupFlows100\_mcmcError*.
     PI_ERROR.df <- rbind(PI_MAE.df,PI_WCE.df)
 
 Then we load error data, make plots and compare errors with and without
-adjustment for sampling heterogeneity.
+adjustment for sampling heterogeneity. It shows 5% reduction in mean
+absolute errors and 10% reduction in worst case errors on average by
+adjusting for sampling differences, when it exists (15%).
 
     data(twoGroupFlows100_mcmcError)
     de <-  twoGroupFlows100_mcmcError[, list( CL = quantile(ERROR,0.025),
@@ -127,7 +129,7 @@ adjustment for sampling heterogeneity.
 
     de$ERROR_TYPE <- factor(de$ERROR_TYPE,levels = c('MAE', 'WCE'), labels = c('mean absolute error','worst case error'))
     ggplot(de, aes(x=as.factor(SAMP_DIFF), y=M, fill=METHOD)) +
-       geom_bar(stat="identity",position=position_dodge(.9),width = 0.1)+
+       geom_bar(stat="identity",position=position_dodge(.9),width = 0.3)+
        geom_errorbar(aes(ymin=CL, ymax=CU),width=.2,position=position_dodge(.9))+
        scale_fill_grey(start = 0.2, end = 0.8)+
        theme_bw() +

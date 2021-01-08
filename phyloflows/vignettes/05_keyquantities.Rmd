@@ -122,5 +122,5 @@ Note it is also possible to specify a file name to MCMC output or
 aggregated MCMC output, and it is also possible to input aggregated MCMC output.
 Please look up the package help for further instructions.
 ```{r, include=TRUE, eval=FALSE, echo=TRUE, tidy=FALSE,message=TRUE, warning=FALSE}
-?phyloflows:::source.attribution.mcmc.getKeyQuantities
+?phyloflows::source.attribution.mcmc.getKeyQuantities
 ``` 

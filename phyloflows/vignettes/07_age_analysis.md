@@ -77,6 +77,20 @@ Input data of the similar format of **phyloflow** are expected.
                                     'REC_SAMPLING_CATEGORY', 'TR_SMOOTH_CATEGORY','REC_SMOOTH_CATEGORY',
                                     'TRM_OBS'))
     head(dobs)
+    #>    TR_TRM_CATEGORY REC_TRM_CATEGORY TR_SAMPLING_CATEGORY REC_SAMPLING_CATEGORY TR_SMOOTH_CATEGORY REC_SMOOTH_CATEGORY
+    #> 1:           15-19            15-19                15-19                 15-19                 17                  17
+    #> 2:           20-24            15-19                20-24                 15-19                 22                  17
+    #> 3:           25-29            15-19                25-29                 15-19                 27                  17
+    #> 4:           30-34            15-19                30-34                 15-19                 32                  17
+    #> 5:           35-39            15-19                35-39                 15-19                 37                  17
+    #> 6:           40-44            15-19                40-44                 15-19                 42                  17
+    #>    TRM_OBS
+    #> 1:       0
+    #> 2:       1
+    #> 3:       0
+    #> 4:       1
+    #> 5:       0
+    #> 6:       0
 
 **`dobs` specifies observed counts of transmissions from a transmitter
 age group to a recipient age group.** It must contain the following
@@ -137,6 +151,13 @@ sampling information:
     dprior.fit <- subset(dprior.fit, select = c('CATEGORY','ALPHA','BETA'))
     colnames(dprior.fit) <- c('SAMPLING_CATEGORY','ALPHA','BETA')
     head(dprior.fit)
+    #>    SAMPLING_CATEGORY ALPHA BETA
+    #> 1:             15-19  1401 2601
+    #> 2:             20-24  1666 2036
+    #> 3:             25-29  1651 1651
+    #> 4:             30-34  1376 1126
+    #> 5:             35-39   851  851
+    #> 6:             40-44   551  451
 
 Method
 ======
@@ -175,7 +196,7 @@ penalises large changes between neighbouring age groups, and the kernel
 $$
 k((a,b),(a',b'))= \\sigma^2 \\exp(-0.5 ((\\frac{a-a'}{\\ell\_1})^2 + (\\frac{b-b'}{\\ell\_2})^2 ))
 $$
-That is, *λ*<sub>*i*, *j*</sub> = *μ* + *f* where *f* ∼ 𝒢𝒫(0, *k*).
+That is, *λ*<sub>*i**j*</sub> = *μ* + *f* where *f* ∼ 𝒢𝒫(0, *k*).
 
 MCMC
 ====
@@ -421,9 +442,9 @@ Let us have a look at the output:
     #>   .. .. .. .. ..@ modulename  : chr "stan_fit4model44d73288805_gamma_mod"
     #>   .. .. .. .. ..@ system      : chr "x86_64, darwin15.6.0"
     #>   .. .. .. .. ..@ cxxflags    : chr "CXXFLAGS=-isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
-    #>   .. .. .. .. ..@ .CXXDSOMISC :<environment: 0x7fc76fb19020> 
+    #>   .. .. .. .. ..@ .CXXDSOMISC :<environment: 0x7fc7608f15e8> 
     #>   ..@ date      : chr "Fri Jan  8 10:22:05 2021"
-    #>   ..@ .MISC     :<environment: 0x7fc7693bfd10>
+    #>   ..@ .MISC     :<environment: 0x7fc750273260>
     str(ans.gp)
     #> Formal class 'stanfit' [package "rstan"] with 10 slots
     #>   ..@ model_name: chr "gp"
@@ -653,9 +674,9 @@ Let us have a look at the output:
     #>   .. .. .. .. ..@ modulename  : chr "stan_fit4model44de1fe86a_gp_mod"
     #>   .. .. .. .. ..@ system      : chr "x86_64, darwin15.6.0"
     #>   .. .. .. .. ..@ cxxflags    : chr "CXXFLAGS=-isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
-    #>   .. .. .. .. ..@ .CXXDSOMISC :<environment: 0x7fc7690c6070> 
+    #>   .. .. .. .. ..@ .CXXDSOMISC :<environment: 0x7fc750221bd8> 
     #>   ..@ date      : chr "Fri Jan  8 10:24:51 2021"
-    #>   ..@ .MISC     :<environment: 0x7fc74d443ea8>
+    #>   ..@ .MISC     :<environment: 0x7fc760ff5318>
 
 We are mostly interested in the marginal posterior distribution
 *p*(*π*|*n*),
@@ -683,6 +704,6 @@ hyperparameter values.
 ![](07_age_analysis_files/figure-markdown_strict/posterior-1.png)
 
 That’s it for now. Of course we would like to run the MCMC chain for
-longer, perhaps 10,000 sweeps. To check for convergence, calculate
+longer, perhaps 10,000 steps. To check for convergence, calculate
 effective sample sizes, and quantiles of the posterior distribution,
 have a look at the other vignettes.

@@ -95,7 +95,7 @@ mca
 The output is a data.table that contains the aggregated transmission flows, and
 other aggregated variables depending on the value of `control[['regex_pars]]`.
 In our case, we removed a burnin-period of 5\% of the MCMC chain, and did not
-thin the remaining iterations, yielding about 12,000 MCMC samples of the
+thin the remaining iterations, yielding about 6,000 MCMC samples of the
 aggregated flows.
 
 That's it for now. Use your usual R wizadry to process the output further, and
