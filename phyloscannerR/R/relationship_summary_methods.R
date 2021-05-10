@@ -590,6 +590,7 @@ summarise.classifications <- function(ptrees, min.threshold, dist.threshold, tip
 #' @importFrom network as.network.matrix
 #' @export simplify.summary
 
+
 simplify.summary <- function(summary, arrow.threshold, total.trees, plot = F){
   
   done <- rep(FALSE, nrow(summary))
@@ -726,7 +727,7 @@ simplify.summary.multinomial <- function(summary, win.threshold, arrow.threshold
            })
     ) %>%
     filter(total > 0) %>%
-    select(host.1, host.2, arrow, label)
+    select(host.1, host.2, total.12, total.21, total, arrow, label)
   
   relevant.lines[which(relevant.lines$arrow=="backwards"),c(1,2)] <- relevant.lines[which(relevant.lines$arrow=="backwards"),c(2,1)] 
   

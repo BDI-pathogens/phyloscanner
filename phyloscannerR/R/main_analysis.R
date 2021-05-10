@@ -449,7 +449,7 @@ blacklist <- function(ptrees,
   
   
   # Read the user blacklists
-  
+
   
   if(any(sapply(ptrees, function(x) !is.null(x$user.blacklist.file.name))) & verbosity!=0){
     cat("Reading user blacklists...\n")
@@ -513,7 +513,7 @@ blacklist <- function(ptrees,
   if(min.tips.per.host > 1){
     if (verbosity!=0) cat("Removing hosts from trees where they have less than ",min.tips.per.host," tips...\n", sep="")
     
-    ptrees <- sapply(ptrees, function(ptree) blacklist.using.min.tips.or.reads(ptree, min.tips.per.host, "tips", tip.regex, verbosity == 2))
+    ptrees <- sapply(ptrees, function(ptree) blacklist.using.min.tips.or.reads(ptree, min.tips.per.host, "tips", tip.regex, verbosity == 2), simplify = F, USE.NAMES = T)
   }
   
   # Min read count blacklisting
@@ -521,16 +521,17 @@ blacklist <- function(ptrees,
   if(min.reads.per.host > 1){
     if (verbosity!=0) cat("Removing hosts from trees where they have less than ",min.reads.per.host," reads...\n", sep="")
   
-    ptrees <- sapply(ptrees, function(ptree) blacklist.using.min.tips.or.reads(ptree, min.reads.per.host, "reads", tip.regex, verbosity == 2))
+    ptrees <- sapply(ptrees, function(ptree) blacklist.using.min.tips.or.reads(ptree, min.reads.per.host, "reads", tip.regex, verbosity == 2), simplify = F, USE.NAMES = T)
   }
   
   # Downsampling
   
   if(max.reads.per.host < Inf){
     if (verbosity!=0) cat("Downsampling to equalise read counts across hosts...\n", sep="")
-    
-    ptrees <- sapply(ptrees, function(ptree) blacklist.from.random.downsample(ptree, max.reads.per.host, blacklist.underrepresented, has.read.counts, tip.regex, NA, verbose = verbosity==2), simplify = F, USE.NAMES = T)
+
+    ptrees <- sapply(ptrees, function(ptree) blacklist.from.random.downsample(ptree, max.reads.per.host, blacklist.underrepresented, has.read.counts, tip.regex, NA, verbose = verbosity==2),  simplify = F, USE.NAMES = T)
   }
+  
   
   ptrees
 }
@@ -1702,21 +1703,22 @@ blacklist.using.min.tips.or.reads <- function(ptree, minimum, type=c("tips", "re
   hosts   <- unique(na.omit(tip.hosts))
   
   if(type == "tips"){
-    newly.blacklisted                           <-blacklist.by.tip.count(ptree, hosts, minimum)
+    newly.blacklisted                           <- blacklist.by.tip.count(ptree, hosts, minimum)
     if(verbose & length(newly.blacklisted)>0) cat(length(newly.blacklisted), " tips blacklisted from hosts with fewer than ",minimum," tips total in tree ID ",ptree$id, "\n", sep="")
-    
   } else {
     newly.blacklisted                           <- blacklist.by.read.count(ptree, hosts, minimum, tip.regex)
     if(verbose & length(newly.blacklisted)>0) cat(length(newly.blacklisted), " tips blacklisted from hosts with fewer than ",minimum," reads total in tree ID ",ptree$id, "\n", sep="")
   }
-  
+
   ptree$hosts.for.tips[newly.blacklisted] <- NA
   
   if(length(newly.blacklisted)>0){
     ptree$tree                                  <- ptree$tree %>% rename.blacklisted.tips(newly.blacklisted, paste0("TOOFEW", toupper(type)))
 
     ptree$bl.report$status[newly.blacklisted]   <- paste0("bl_too_few_", type)
+
     ptree$bl.report$kept[newly.blacklisted]     <- F
+
     
     if(!is.null(ptree$blacklist)){
       ptree$blacklist                             <- newly.blacklisted
@@ -1725,8 +1727,9 @@ blacklist.using.min.tips.or.reads <- function(ptree, minimum, type=c("tips", "re
       ptree$blacklist                             <- unique(c(ptree$blacklist, newly.blacklisted))
       ptree$blacklist                             <- ptree$blacklist[order(ptree$blacklist)]
     }
+    
+
   }
-  
 
   ptree
 }
