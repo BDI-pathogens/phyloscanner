@@ -241,6 +241,11 @@ if(!is.null(norm.ref.file.name) & !is.null(norm.constants.input)){
 
 # Regexes for suffixes and window coordinates
 tip.regex                     <- args$tipRegex
+
+if(!endsWith(tip.regex, "$")){
+  warning("tip regex does not end with an end of line character ('$'). This can cause problems with blacklisting; try adding one if phyloscanner crashes.")
+}
+
 file.name.regex               <- args$fileNameRegex
 
 # What blacklisting to do and how
