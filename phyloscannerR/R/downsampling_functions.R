@@ -13,6 +13,10 @@ downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, e
   if(!no.read.counts){
     read.counts <- as.numeric(sapply(labels.from.host, function(tip) read.count.from.label(tip, tip.regex))) 
     
+    if(any(is.na(read.counts))){
+      stop("Some tips have no read counts despite matching a tip regex which requires them. This sometimes happens when the tip regex does not end with a $")
+    }
+    
   } else {
     read.counts <- rep(1, length(labels.from.host))
   }
