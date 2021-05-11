@@ -1293,11 +1293,6 @@ write.annotated.tree <- function(ptree, file.name, format = c("pdf", "nex"), pdf
       x.max <- ggplot_build(tree.display)$layout$panel_params[[1]]$x.range[2]
     }
     
-    if(is.null(x.max)){
-      x.max <- ggplot_build(tree.display)$layout$panel_ranges[[1]]$x.range[2]
-    }
-    
-    
     tree.display <- tree.display + ggplot2::xlim(0, 1.1*x.max)
     tree.display
     ggsave(file.name, device="pdf", height = pdf.hm*length(tree$tip.label), width = pdf.w, limitsize = F)
