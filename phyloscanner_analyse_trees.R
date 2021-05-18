@@ -86,7 +86,8 @@ arg_parser$add_argument("-ct", "--collapsedTrees", action="store_true", help="If
 
 arg_parser$add_argument("-swt", "--windowThreshold", action="store", default=0.5, type="double", help="Relationships between two hosts will only appear in output if they are within the distance threshold and ajacent to each other in more than this proportion of windows (default 0.5).")
 arg_parser$add_argument("-sdt", "--distanceThreshold", action="store", nargs="+", default=-1, type="double", help="Maximum distance threshold on a window for a relationship to be reconstructed between two hosts on that window. If tree branchs lengths were normalised this will be applied to those normalised lengths. If absent then no such threshold will be applied. If --multinomial is also specified and a second value is given, the two values will be used as the 'close threshold' and 'distant threshold' in that model. Any arguments beyond the first will otherwise be ignored.")
-arg_parser$add_argument("-amt", "--allowMultiTrans", action="store_true", help="If absent, directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative")
+arg_parser$add_argument("-amt", "--allowMultiTrans", action="store_true", help="If absent, directionality is only inferred between pairs of hosts where a single clade from one host is nested in one from the other; this is more conservative. ")
+arg_parser$add_argument("-nmt", "--nMultiTrans", action="store",default=2, help="Directionality is only inferred between pairs of hosts where the number of clade from one host nested in one from the other is less than the value (default 2).")
 arg_parser$add_argument("-rla", "--relaxedAncestry", action="store_true", help="If absent, directionality can be inferred so long as at least one subraph from one host is descended from one from the other, and no pair of subgraphs exist in the opposite direction. Otherwise it is required that every subgraph from one host is descended from one from the other.")
 arg_parser$add_argument("-mlt", "--multinomial", action="store_true", help="Use the adjustment for missing and overlapping windows as described in Ratmann et al., Nature Communications, 2019.")
 
@@ -431,6 +432,7 @@ if(arrow.threshold >= win.threshold){
 }
 
 allow.mt                       <- args$allowMultiTrans
+n.mt                       <- args$nMultiTrans
 relaxed.ancestry               <- args$relaxedAncestry
 
 # Do the simplified plot?
@@ -458,6 +460,7 @@ if(single.tree){
     norm.standardise.gp,
     norm.constants.input,
     allow.mt,
+    n.mt,
     relaxed.ancestry,
     par.blacklisting.k,
     bl.raw.threshold,
@@ -498,6 +501,7 @@ if(single.tree){
     norm.standardise.gp,
     norm.constants.input,
     allow.mt,
+    n.mt,
     relaxed.ancestry,
     par.blacklisting.k,
     bl.raw.threshold,

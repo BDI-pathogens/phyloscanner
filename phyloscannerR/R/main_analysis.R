@@ -656,6 +656,7 @@ phyloscanner.analyse.trees <- function(
   norm.standardise.gag.pol = F,
   norm.constants = NULL,
   allow.mt = F,
+  n.mt = 2,
   relaxed.ancestry = F,
   parsimony.blacklist.k = 0,
   raw.blacklist.threshold = 0,
@@ -875,7 +876,7 @@ phyloscanner.analyse.trees <- function(
       
       if(verbosity==2) cat("Classifying host relationships for tree ID ",ptree$id, ".\n", sep="")
       
-      ptree$classification.results <- classify(ptree, allow.mt, relaxed.ancestry, verbosity==2, no.progress.bars)
+      ptree$classification.results <- classify(ptree, allow.mt, n.mt, relaxed.ancestry, verbosity==2, no.progress.bars)
       
       ptree
     }, simplify = F, USE.NAMES = T)
@@ -913,6 +914,7 @@ phyloscanner.analyse.tree <- function(
   norm.standardise.gag.pol = F,
   norm.constants = NULL,
   allow.mt = F,
+  n.mt = 2,
   relaxed.ancestry = F,
   parsimony.blacklist.k = 0,
   raw.blacklist.threshold = 0,
@@ -959,6 +961,7 @@ phyloscanner.analyse.tree <- function(
     norm.standardise.gag.pol = norm.standardise.gag.pol, 
     norm.constants = norm.constants, 
     allow.mt = allow.mt,
+    n.mt = n.mt,
     relaxed.ancestry = relaxed.ancestry,
     parsimony.blacklist.k = parsimony.blacklist.k, 
     raw.blacklist.threshold = raw.blacklist.threshold, 

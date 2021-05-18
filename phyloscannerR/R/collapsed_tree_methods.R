@@ -652,7 +652,7 @@ check.tt.node.adjacency <- function(tt, label1, label2, allow.unassigned = F){
 #' @keywords internal
 #' @export classify
 
-classify <- function(ptree, allow.mt = F, relaxed.ancestry = F, verbose = F, no.progress.bars = F) {	
+classify <- function(ptree, allow.mt = F, n.mt=2 , relaxed.ancestry = F, verbose = F, no.progress.bars = F) {	
   
   if(is.null(ptree[["tree"]])){
     
@@ -810,7 +810,11 @@ classify <- function(ptree, allow.mt = F, relaxed.ancestry = F, verbose = F, no.
               top.class.matrix[pat.1, pat.2] <- "anc"
             } else {
               if(allow.mt){
-                top.class.matrix[pat.1, pat.2] <- "multiAnc"
+                if(count.12>=n.mt){
+                  top.class.matrix[pat.1, pat.2] <- "complex"
+                }else{
+                  top.class.matrix[pat.1, pat.2] <- "multiAnc"  
+                }
               } else {
                 top.class.matrix[pat.1, pat.2] <- "complex"
               }
@@ -820,7 +824,11 @@ classify <- function(ptree, allow.mt = F, relaxed.ancestry = F, verbose = F, no.
               top.class.matrix[pat.1, pat.2] <- "desc"
             } else {
               if(allow.mt){
-                top.class.matrix[pat.1, pat.2] <- "multiDesc"
+                if(count.21>=n.mt){
+                  top.class.matrix[pat.1, pat.2] <- "complex"
+                }else{
+                  top.class.matrix[pat.1, pat.2] <- "multiDesc"  
+                }
               } else {
                 top.class.matrix[pat.1, pat.2] <- "complex"
               }
