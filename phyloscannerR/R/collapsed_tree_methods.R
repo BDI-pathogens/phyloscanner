@@ -652,7 +652,7 @@ check.tt.node.adjacency <- function(tt, label1, label2, allow.unassigned = F){
 #' @keywords internal
 #' @export classify
 
-classify <- function(ptree, allow.mt = F, n.mt=2 , relaxed.ancestry = F, verbose = F, no.progress.bars = F) {	
+classify <- function(ptree, allow.mt = F, n.mt=Inf , relaxed.ancestry = F, verbose = F, no.progress.bars = F) {	
   
   if(is.null(ptree[["tree"]])){
     
