@@ -63,6 +63,7 @@ cmd.phyloscanner.analyse.trees<- function(prog.phyloscanner_analyse_trees,
 	names(input.args)	<- gsub('use.ff','useff',names(input.args))
 	names(input.args)	<- gsub('do.dual.blacklisting','dual.blacklist',names(input.args))
 	names(input.args)	<- gsub('allow.mt','allow.multi.trans',names(input.args))
+	names(input.args)	<- gsub('n.mt','n.multi.trans',names(input.args))
 	names(input.args)	<- gsub('count.reads.in.parsimony','read.counts.matter.on.zero.length.branches',names(input.args))
 	names(input.args)	<- gsub('verbosity','verbose',names(input.args))
 	#	ignore arguments that are hard coded in the Rscript

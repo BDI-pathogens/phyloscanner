@@ -272,7 +272,7 @@ find.networks<- function(dc, control= list(linked.group='close.and.adjacent.cat'
 #' of the phyloscanner scores along each edge in the chain.
 #' Edmonds algorithm is used to solve for the most probable chain.
 #' @param rtnn tibble encoding the three edges of a phyloscanner transmission network. Must have columns 'H1','H2','IDCLU','TYPE','SCORE','K_EFF'.
-#' @param weight.complex.or.no.ancestry weight given to score complex.or.no.ancestry, default: 50%
+#' @param weight.complex.or.no.ancestry weight given to score complex.or.no.ancestry, default: 50/%
 #' @return tibble encoding the most likely chain. Has columns 'H1','H2','IDCLU', 'LINK_12', 'LINK_21' (either 1 or 0 for a link in the corresponding direction), and 'MX_PROB_12', 'MX_PROB_21' (associated posterior probabilities)
 #' @seealso \code{\link{find.networks}}
 find.most.likely.chains.RBGLedmonds<- function(rtnn, weight.complex.or.no.ancestry=0.5, verbose=0)
