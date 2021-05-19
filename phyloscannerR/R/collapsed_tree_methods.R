@@ -810,11 +810,19 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf , relaxed.ancestry = F, verbo
               top.class.matrix[pat.1, pat.2] <- "anc"
             } else {
               if(allow.mt){
-                if(count.12>=n.mt){
-                  top.class.matrix[pat.1, pat.2] <- "complex"
-                }else{
-                  top.class.matrix[pat.1, pat.2] <- "multiAnc"  
-                }
+                if(n.mt>1){
+                  if(count.12>=n.mt){
+                    top.class.matrix[pat.1, pat.2] <- "complex"
+                  }else{
+                    top.class.matrix[pat.1, pat.2] <- "multiAnc"  
+                  }
+                  }else{
+                    if(prop.12>=n.mt){
+                      top.class.matrix[pat.1, pat.2] <- "complex"
+                    }else{
+                      top.class.matrix[pat.1, pat.2] <- "multiAnc"  
+                    }
+                  }
               } else {
                 top.class.matrix[pat.1, pat.2] <- "complex"
               }
@@ -824,10 +832,18 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf , relaxed.ancestry = F, verbo
               top.class.matrix[pat.1, pat.2] <- "desc"
             } else {
               if(allow.mt){
-                if(count.21>=n.mt){
-                  top.class.matrix[pat.1, pat.2] <- "complex"
+                if(n.mt>1){
+                  if(count.21>=n.mt){
+                    top.class.matrix[pat.1, pat.2] <- "complex"
+                  }else{
+                    top.class.matrix[pat.1, pat.2] <- "multiDesc"  
+                  }
                 }else{
-                  top.class.matrix[pat.1, pat.2] <- "multiDesc"  
+                  if(prop.21>=n.mt){
+                    top.class.matrix[pat.1, pat.2] <- "complex"
+                  }else{
+                    top.class.matrix[pat.1, pat.2] <- "multiDesc"  
+                  }
                 }
               } else {
                 top.class.matrix[pat.1, pat.2] <- "complex"
