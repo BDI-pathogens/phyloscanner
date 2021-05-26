@@ -751,6 +751,9 @@ classify <- function(ptree, allow.mt = F, relaxed.ancestry = F, verbose = F, no.
   dir.21.matrix <- matrix(NA, length(hosts.included), length(hosts.included), dimnames=list(hosts.included, hosts.included))
   min.distance.matrix <- matrix(NA, length(hosts.included), length(hosts.included), dimnames=list(hosts.included, hosts.included))
   
+  
+  n.mt <- 3
+  
   if(total.host.pairs==0 & verbose & !no.progress.bars){
     setTxtProgressBar(progress.bar, 1)
   } else {
@@ -805,7 +808,11 @@ classify <- function(ptree, allow.mt = F, relaxed.ancestry = F, verbose = F, no.
               top.class.matrix[pat.1, pat.2] <- "anc"
             } else {
               if(allow.mt){
-                top.class.matrix[pat.1, pat.2] <- "multiAnc"
+                if(count.12>=n.mt){
+                  top.class.matrix[pat.1, pat.2] <- "complex"
+                }else{
+                  top.class.matrix[pat.1, pat.2] <- "multiAnc"  
+                }
               } else {
                 top.class.matrix[pat.1, pat.2] <- "complex"
               }
@@ -815,7 +822,11 @@ classify <- function(ptree, allow.mt = F, relaxed.ancestry = F, verbose = F, no.
               top.class.matrix[pat.1, pat.2] <- "desc"
             } else {
               if(allow.mt){
-                top.class.matrix[pat.1, pat.2] <- "multiDesc"
+                if(count.21>=n.mt){
+                  top.class.matrix[pat.1, pat.2] <- "complex"
+                }else{
+                  top.class.matrix[pat.1, pat.2] <- "multiDesc"  
+                }
               } else {
                 top.class.matrix[pat.1, pat.2] <- "complex"
               }
