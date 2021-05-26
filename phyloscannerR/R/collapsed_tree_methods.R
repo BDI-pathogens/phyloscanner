@@ -658,7 +658,6 @@ classify <- function(ptree, allow.mt = F, relaxed.ancestry = F, verbose = F, no.
     
     if (verbose) cat("Reading tree file ", ptree$tree.file.name, "...\n", sep = "")
     
-    
     pseudo.beast.import <- read.beast(ptree$tree.file.name)
     
     if (verbose) cat("Reading annotations...\n")
@@ -694,11 +693,7 @@ classify <- function(ptree, allow.mt = F, relaxed.ancestry = F, verbose = F, no.
   
   if (verbose) cat("Collecting tips for each host...\n")
   
-
-  
   hosts <- unique(splits$host)
-  
-
   
   hosts <- hosts[hosts!="unassigned"]
   
