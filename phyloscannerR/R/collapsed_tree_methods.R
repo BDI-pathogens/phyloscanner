@@ -863,10 +863,6 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= 2, relaxed.ancestry = 
           } else {
             top.class.matrix[pat.1, pat.2] <- "complex"
           }
-          cat('host 1: ',pat.1.id,' host.2: ', pat.2.id,'\n',
-              'nodes.1: ',length(nodes.1),' nodes.2: ', length(nodes.2),'\n',
-              'count.12: ',count.12,' count.21: ',count.21,'\n',
-              'p.12: ',p.12, ' p.21: ',p.21,'\n')
           
           pairwise.distances <- vector()
           
@@ -885,6 +881,13 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= 2, relaxed.ancestry = 
           }
         }
       }
+      if(verbose){
+        cat('host 1: ',pat.1.id,' host.2: ', pat.2.id,'\n',
+            'nodes.1: ',length(nodes.1),' nodes.2: ', length(nodes.2),'\n',
+            'count.12: ',count.12,' count.21: ',count.21,'\n',
+            'p.12: ',p.12, ' p.21: ',p.21,'\n')
+      }
+      
     }
   }
   
