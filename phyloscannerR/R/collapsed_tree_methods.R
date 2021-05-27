@@ -652,7 +652,7 @@ check.tt.node.adjacency <- function(tt, label1, label2, allow.unassigned = F){
 #' @keywords internal
 #' @export classify
 
-classify <- function(ptree, allow.mt = F, n.mt=Inf , relaxed.ancestry = F, verbose = F, no.progress.bars = F) {	
+classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= 2, relaxed.ancestry = F, verbose = F, no.progress.bars = F) {	
   
   if(is.null(ptree[["tree"]])){
     
@@ -803,6 +803,12 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf , relaxed.ancestry = F, verbo
           dir.12.matrix[pat.1, pat.2] <- count.12
           dir.21.matrix[pat.1, pat.2] <- count.21
           
+          tmp <- grep('^AID[0-9]+-fq[0-9]+_read_[0-9]+_count_[0-9]+$',tree$tip.label,value = T)
+          count.tip.1 <- length(grep(pat.1.id,tmp,value=T))
+          count.tip.2 <- length(grep(pat.2.id,tmp,value=T))
+          p.12 <- count.12/count.tip.2
+          p.21 <- count.21/count.tip.1
+          
           if(count.12 == 0 & count.21 == 0){
             top.class.matrix[pat.1, pat.2] <- "noAncestry"
           } else if(count.12 != 0 & count.21 == 0 & (relaxed.ancestry | prop.12 == 1)) {
@@ -810,19 +816,22 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf , relaxed.ancestry = F, verbo
               top.class.matrix[pat.1, pat.2] <- "anc"
             } else {
               if(allow.mt){
-                if(n.mt>1){
+                if(p.mt<=1){
+                  if(p.12 >=p.mt){
+                    top.class.matrix[pat.1, pat.2] <- "complex"
+                  }else{
+                    top.class.matrix[pat.1, pat.2] <- "multiAnc"  
+                  }
+                  if(n.mt<=1e5){warning('n.mt and p.mt were all specified. the classification is based on p.mt.')}
+                }else if(n.mt<=1e5){
                   if(count.12>=n.mt){
                     top.class.matrix[pat.1, pat.2] <- "complex"
                   }else{
                     top.class.matrix[pat.1, pat.2] <- "multiAnc"  
                   }
-                  }else{
-                    if(prop.12>=n.mt){
-                      top.class.matrix[pat.1, pat.2] <- "complex"
-                    }else{
-                      top.class.matrix[pat.1, pat.2] <- "multiAnc"  
-                    }
-                  }
+                }else{
+                  top.class.matrix[pat.1, pat.2] <- "multiAnc"  
+                }
               } else {
                 top.class.matrix[pat.1, pat.2] <- "complex"
               }
@@ -832,18 +841,20 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf , relaxed.ancestry = F, verbo
               top.class.matrix[pat.1, pat.2] <- "desc"
             } else {
               if(allow.mt){
-                if(n.mt>1){
+                if(p.mt<=1){
+                  if(p.21 >=p.mt){
+                    top.class.matrix[pat.1, pat.2] <- "complex"
+                  }else{
+                    top.class.matrix[pat.1, pat.2] <- "multiDesc"  
+                  }
+                }else if(n.mt<=1e5){
                   if(count.21>=n.mt){
                     top.class.matrix[pat.1, pat.2] <- "complex"
                   }else{
                     top.class.matrix[pat.1, pat.2] <- "multiDesc"  
                   }
                 }else{
-                  if(prop.21>=n.mt){
-                    top.class.matrix[pat.1, pat.2] <- "complex"
-                  }else{
-                    top.class.matrix[pat.1, pat.2] <- "multiDesc"  
-                  }
+                  top.class.matrix[pat.1, pat.2] <- "multiDesc"  
                 }
               } else {
                 top.class.matrix[pat.1, pat.2] <- "complex"
@@ -852,6 +863,10 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf , relaxed.ancestry = F, verbo
           } else {
             top.class.matrix[pat.1, pat.2] <- "complex"
           }
+          cat('host 1: ',pat.1.id,' host.2: ', pat.2.id,'\n',
+              'nodes.1: ',length(nodes.1),' nodes.2: ', length(nodes.2),'\n',
+              'count.12: ',count.12,' count.21: ',count.21,'\n',
+              'p.12: ',p.12, ' p.21: ',p.21,'\n')
           
           pairwise.distances <- vector()
           
