@@ -4,7 +4,7 @@
 \alias{count.pairwise.relationships}
 \title{Count pairwise relationships across deep-sequence trees}
 \usage{
-count.pairwise.relationships(dwin, w.slide = NA, verbose = TRUE)
+\method{count}{pairwise.relationships}(dwin, w.slide = NA, verbose = TRUE)
 }
 \arguments{
 \item{dwin}{A data frame produced by \code{classify.pairwise.relationships}.}
