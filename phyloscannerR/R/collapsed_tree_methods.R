@@ -883,8 +883,7 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= 2, relaxed.ancestry = 
                 }else{
                   top.class.matrix[pat.1, pat.2] <- "multiAnc"
                 }
-              } else {
-                top.class.matrix[pat.1, pat.2] <- "complex"
+              }
               }
             }
           } else if(count.21 != 0 & count.12 == 0 & (relaxed.ancestry | prop.21 == 1)) {
@@ -897,8 +896,6 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= 2, relaxed.ancestry = 
                 }else{
                   top.class.matrix[pat.1, pat.2] <- "multiDesc"
                 }
-              } else {
-                top.class.matrix[pat.1, pat.2] <- "complex"
               }
             }
           } else {
