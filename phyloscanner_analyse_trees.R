@@ -434,6 +434,7 @@ if(arrow.threshold >= win.threshold){
 
 allow.mt                       <- args$allowMultiTrans
 n.mt                       <- args$nMultiTrans
+p.mt                       <- args$pMultiTrans
 relaxed.ancestry               <- args$relaxedAncestry
 
 # Do the simplified plot?
