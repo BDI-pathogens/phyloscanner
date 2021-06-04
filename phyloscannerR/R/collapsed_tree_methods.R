@@ -652,7 +652,7 @@ check.tt.node.adjacency <- function(tt, label1, label2, allow.unassigned = F){
 #' @keywords internal
 #' @export classify
 
-classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= 2, relaxed.ancestry = F, verbose = F, no.progress.bars = F, mrca = F) {	
+classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, relaxed.ancestry = F, verbose = F, no.progress.bars = F) {	
   
   if(is.null(ptree[["tree"]])){
     
@@ -804,7 +804,7 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= 2, relaxed.ancestry = 
           dir.21.matrix[pat.1, pat.2] <- count.21
         
           
-          if(mrca==F)
+          if(1)
           {   
             tmp <- grep('^AID[0-9]+-fq[0-9]+_read_[0-9]+_count_[0-9]+$',tree$tip.label,value = T)
             count.tip.1 <- length(grep(pat.1.id,tmp,value=T))
@@ -812,7 +812,10 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= 2, relaxed.ancestry = 
             p.12 <- count.12/count.tip.2
             p.21 <- count.21/count.tip.1
             
-            if(n.mt<=1e5 & p.mt>1){warning('n.mt and p.mt were all specified. the classification is based on p.mt.')}
+            if(n.mt<=1e5 & p.mt>1){
+              warning('n.mt and p.mt were all specified. the classification will be based on p.mt.')
+            }
+            
             if(count.12 == 0 & count.21 == 0){
               top.class.matrix[pat.1, pat.2] <- "noAncestry"
             } else if(count.12 != 0 & count.21 == 0 & (relaxed.ancestry | prop.12 == 1)) {
@@ -826,7 +829,6 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= 2, relaxed.ancestry = 
                     }else{
                       top.class.matrix[pat.1, pat.2] <- "multiAnc"
                     }
-                    
                   }else if(n.mt<=1e5){
                     if(count.12>=n.mt){
                       top.class.matrix[pat.1, pat.2] <- "complex"
@@ -867,7 +869,9 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= 2, relaxed.ancestry = 
             } else {
               top.class.matrix[pat.1, pat.2] <- "complex"
             }
-          }else{
+          }
+          
+          if(0){
             tips.1 <- grep(pat.1.id,tree$tip.label, value=T)
             tips.2 <- grep(pat.2.id,tree$tip.label, value=T)
             tips.no.1 <- sapply(tips.1,function(tip){get.tip.no(tree, tip)})
