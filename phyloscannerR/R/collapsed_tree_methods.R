@@ -806,11 +806,13 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, relaxed.ancestry 
           
           if(1)
           {   
-            tmp <- grep('^AID[0-9]+-fq[0-9]+_read_[0-9]+_count_[0-9]+$',tree$tip.label,value = T)
+            # tip counts
+            tmp <- grep('_read_[0-9]+_count_[0-9]+$',tree$tip.label,value = T)
             count.tip.1 <- length(grep(pat.1.id,tmp,value=T))
             count.tip.2 <- length(grep(pat.2.id,tmp,value=T))
             p.12 <- count.12/count.tip.2
             p.21 <- count.21/count.tip.1
+            
             
             if(n.mt<=1e5 & p.mt>1){
               warning('n.mt and p.mt were all specified. the classification will be based on p.mt.')
@@ -823,12 +825,14 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, relaxed.ancestry 
                 top.class.matrix[pat.1, pat.2] <- "anc"
               } else {
                 if(allow.mt){
+                  # p.mt
                   if(p.mt<=1){
                     if(p.12 >=p.mt){
                       top.class.matrix[pat.1, pat.2] <- "complex"
                     }else{
                       top.class.matrix[pat.1, pat.2] <- "multiAnc"
                     }
+                  # n.mt
                   }else if(n.mt<=1e5){
                     if(count.12>=n.mt){
                       top.class.matrix[pat.1, pat.2] <- "complex"
@@ -847,12 +851,14 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, relaxed.ancestry 
                 top.class.matrix[pat.1, pat.2] <- "desc"
               } else {
                 if(allow.mt){
+                  # p.mt
                   if(p.mt<=1){
                     if(p.21 >=p.mt){
                       top.class.matrix[pat.1, pat.2] <- "complex"
                     }else{
                       top.class.matrix[pat.1, pat.2] <- "multiDesc"
                     }
+                     # n.mt
                   }else if(n.mt<=1e5){
                     if(count.21>=n.mt){
                       top.class.matrix[pat.1, pat.2] <- "complex"
@@ -871,6 +877,7 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, relaxed.ancestry 
             }
           }
           
+            
           if(0){
             tips.1 <- grep(pat.1.id,tree$tip.label, value=T)
             tips.2 <- grep(pat.2.id,tree$tip.label, value=T)
