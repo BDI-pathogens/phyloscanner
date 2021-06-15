@@ -652,7 +652,7 @@ check.tt.node.adjacency <- function(tt, label1, label2, allow.unassigned = F){
 #' @keywords internal
 #' @export classify
 
-classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, relaxed.ancestry = F, verbose = F, no.progress.bars = F) {	
+classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, identify.multifurcation=F, relaxed.ancestry = F,verbose = F, no.progress.bars = F) {	
   
   if(is.null(ptree[["tree"]])){
     
@@ -803,6 +803,7 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, relaxed.ancestry 
           dir.12.matrix[pat.1, pat.2] <- count.12
           dir.21.matrix[pat.1, pat.2] <- count.21
         
+          multifurcation.threshold <- 1e-5
           
           if(1)
           {   
@@ -839,6 +840,13 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, relaxed.ancestry 
                     }else{
                       top.class.matrix[pat.1, pat.2] <- "multiAnc"
                     }
+                    # identify.multifurcation
+                  }else if(identify.multifurcation==T){
+                    if(any(split.distances[nodes.1,nodes.2]<multifurcation.threshold)){
+                      top.class.matrix[pat.1, pat.2] <- "complex"
+                    }else{
+                      top.class.matrix[pat.1, pat.2] <- "multiAnc"
+                    }
                   }else{
                     top.class.matrix[pat.1, pat.2] <- "multiAnc"
                   }
@@ -864,6 +872,13 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, relaxed.ancestry 
                       top.class.matrix[pat.1, pat.2] <- "complex"
                     }else{
                       top.class.matrix[pat.1, pat.2] <- "multiDesc"
+                    }
+                    #identify.multifurcation
+                  }else if(identify.multifurcation==T){
+                    if(any(split.distances[nodes.1,nodes.2]<multifurcation.threshold)){
+                      top.class.matrix[pat.1, pat.2] <- "complex"
+                    }else{
+                      top.class.matrix[pat.1, pat.2] <- "multiAnc"
                     }
                   }else{
                     top.class.matrix[pat.1, pat.2] <- "multiDesc"

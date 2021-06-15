@@ -435,6 +435,7 @@ if(arrow.threshold >= win.threshold){
 allow.mt                       <- args$allowMultiTrans
 n.mt                       <- args$nMultiTrans
 p.mt                       <- args$pMultiTrans
+identify.multifurcation  <- args$identyfyMultifurcation
 relaxed.ancestry               <- args$relaxedAncestry
 
 # Do the simplified plot?
@@ -464,6 +465,7 @@ if(single.tree){
     allow.mt,
     n.mt,
     p.mt,
+    identify.multifurcation,
     relaxed.ancestry,
     par.blacklisting.k,
     bl.raw.threshold,
@@ -506,6 +508,7 @@ if(single.tree){
     allow.mt,
     n.mt,
     p.mt,
+    identify.multifurcation,
     relaxed.ancestry,
     par.blacklisting.k,
     bl.raw.threshold,
