@@ -804,6 +804,7 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, identify.multifur
           dir.21.matrix[pat.1, pat.2] <- count.21
         
           multifurcation.threshold <- 1e-5
+          depths <- node.depth.edgelength(tree)
           
           if(1)
           {   
@@ -842,7 +843,10 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, identify.multifur
                     }
                     # identify.multifurcation
                   }else if(identify.multifurcation==T){
-                    if(any(split.distances[nodes.1,nodes.2]<multifurcation.threshold)){
+                    desc.tips <- ptree$tips.for.hosts[[pat.2.id]]
+                    desc.tips.mrca <- mrca.phylo(tree,desc.tips)
+                    desc.tips.mrca.pd <- sapply(desc.tips, function(desc.tip){depths[desc.tip]-depths[desc.tips.mrca]})
+                    if(any(desc.tips.mrca.pd<multifurcation.threshold)){
                       top.class.matrix[pat.1, pat.2] <- "complex"
                     }else{
                       top.class.matrix[pat.1, pat.2] <- "multiAnc"
@@ -875,7 +879,10 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, identify.multifur
                     }
                     #identify.multifurcation
                   }else if(identify.multifurcation==T){
-                    if(any(split.distances[nodes.1,nodes.2]<multifurcation.threshold)){
+                    desc.tips <- ptree$tips.for.hosts[[pat.1.id]]
+                    desc.tips.mrca <- mrca.phylo(tree,desc.tips)
+                    desc.tips.mrca.pd <- sapply(desc.tips, function(desc.tip){depths[desc.tip]-depths[desc.tips.mrca]})
+                    if(any(desc.tips.mrca.pd<multifurcation.threshold)){
                       top.class.matrix[pat.1, pat.2] <- "complex"
                     }else{
                       top.class.matrix[pat.1, pat.2] <- "multiAnc"
