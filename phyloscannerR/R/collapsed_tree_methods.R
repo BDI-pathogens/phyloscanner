@@ -882,7 +882,7 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, identify.multifur
                     }else{
                       top.class.matrix[pat.1, pat.2] <- "multiDesc"
                     }
-                    #identify.multifurcation
+                  #identify.multifurcation
                   }else if(identify.multifurcation==T){
                     desc.tips <- ptree$tips.for.hosts[[pat.1.id]]
                     desc.tips.anc <- sapply(desc.tips,function(desc.tip){
@@ -893,9 +893,8 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, identify.multifur
                     if(any(desc.tips.anc.pd<multifurcation.threshold)){
                       top.class.matrix[pat.1, pat.2] <- "complex"
                     }else{
-                      top.class.matrix[pat.1, pat.2] <- "multiAnc"
+                      top.class.matrix[pat.1, pat.2] <- "multiDesc"
                     }
-                    
                   }else{
                     top.class.matrix[pat.1, pat.2] <- "multiDesc"
                   }
