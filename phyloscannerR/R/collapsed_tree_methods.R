@@ -851,7 +851,7 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, identify.multifur
                                               anc.tips <- Ancestors(tree,desc.tip)
                                               anc.tips[which(individual[anc.tips]==pat.1.id)[1]]})
                     desc.tips.anc.pd <- depths[desc.tips]-depths[desc.tips.anc]
-                    if(any(desc.tips.anc.pd<multifurcation.threshold)){
+                    if(any(desc.tips.anc.pd<multifurcation.threshold, na.rm = T)){
                       top.class.matrix[pat.1, pat.2] <- "complex"
                     }else{
                       top.class.matrix[pat.1, pat.2] <- "multiAnc"
@@ -890,7 +890,7 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, identify.multifur
                                               anc.tips <- Ancestors(tree,desc.tip)
                                               anc.tips[which(individual[anc.tips]==pat.1.id)[1]]})
                     desc.tips.anc.pd <- depths[desc.tips]-depths[desc.tips.anc]
-                    if(any(desc.tips.anc.pd<multifurcation.threshold)){
+                    if(any(desc.tips.anc.pd<multifurcation.threshold, na.rm = T)){
                       top.class.matrix[pat.1, pat.2] <- "complex"
                     }else{
                       top.class.matrix[pat.1, pat.2] <- "multiDesc"
