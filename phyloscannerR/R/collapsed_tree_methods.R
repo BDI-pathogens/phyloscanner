@@ -818,8 +818,8 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, identify.multifur
             p.21 <- count.21/count.tip.1
             
             
-            if(n.mt<=1e5 & p.mt>1){
-              warning('n.mt and p.mt were all specified. the classification will be based on p.mt.')
+            if(n.mt<1e5 & p.mt<=1){
+              warning('n.mt and p.mt were all specified, and only p.mt was used.')
             }
             
             if(count.12 == 0 & count.21 == 0){
