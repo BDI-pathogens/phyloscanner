@@ -837,7 +837,7 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, identify.multifur
                       top.class.matrix[pat.1, pat.2] <- "multiAnc"
                     }
                   # n.mt
-                  }else if(n.mt<=1e5){
+                  }else if(n.mt<1e5){
                     if(count.12>=n.mt){
                       top.class.matrix[pat.1, pat.2] <- "complex"
                     }else{
@@ -876,7 +876,7 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, identify.multifur
                       top.class.matrix[pat.1, pat.2] <- "multiDesc"
                     }
                      # n.mt
-                  }else if(n.mt<=1e5){
+                  }else if(n.mt<1e5){
                     if(count.21>=n.mt){
                       top.class.matrix[pat.1, pat.2] <- "complex"
                     }else{
