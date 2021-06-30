@@ -165,4 +165,6 @@ does not work. Just get in touch then.
 6. [Testing **phyloflows** multi-level model and
    MCMC.](vignettes/06_test_sampling_adjustments.md)
    
-7. [Age analysis example ](vignettes/07_age_analysis.md)
+7. [Age analysis example.](vignettes/07_age_analysis.md)
+
+8. [Real-world example.](vignettes/08_practical_example.md)
