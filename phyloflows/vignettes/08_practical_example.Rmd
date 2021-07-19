@@ -47,7 +47,7 @@ head(df)
 * *COMM_TYPE*: locations (f - fishing sites, i - inland)
 * *INMIG_2YRS_LOC*: inmigration status in 2 years
 
-2. **RCCS_pairs** include reconstructed transmission pairs from [Phyloscanner.R.utilities](https://github.com/olli0601/Phyloscanner.R.utilities).
+2. **RCCS_pairs** includes the transmission pairs reconstructed from [Phyloscanner.R.utilities](https://github.com/olli0601/Phyloscanner.R.utilities).
 
 ```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE,message=FALSE, warning=FALSE} 
 rtr <- read.csv('~/phyloscanner/phyloflows/data/RCCS_pairs.csv')
@@ -62,7 +62,7 @@ head(rtr)
 ## Pre-processing
 
 ### Meta data and reconstructed pairs
-We process the pair data and meta data, in order to groups individuals into sub-populations and count transmissions between sub-populations. In particular, the subpopulation is defined by one-year age bands, genders and locations. Also, we considered the locations of sources to be the origin of inmigrantion, if the reconstructed sources migrated within 2 years.
+We process the pair data and meta data, in order to group individuals into sub-populations and count transmissions between sub-populations. In particular, the subpopulation is defined by one-year age bands, genders and locations. Also, we considered the locations of sources to be the origin of inmigrantion, if the reconstructed sources migrated within 2 years.
 
 ```{r, include=TRUE, eval=FALSE, echo=TRUE, tidy=FALSE,message=FALSE, warning=FALSE} 
 library(data.table)
@@ -180,10 +180,10 @@ head(dprior)
 ```
 
 ## Flow inference
-Pre-processing gives the data needed for flow inference, including **dobs** and **dprior**. Now we use **phyloflows** to estimate transmission flows between subpopulations by MCMC.
+Pre-processing gives the data needed for flow inference, including **dobs** and **dprior**. Now we are ready to use **phyloflows** to estimate transmission flows between subpopulations.
 
 ### Independent models
-The first model considers flows to be independent between sub-populations, and estimate flows from the basic command in **phyloflow** through MCMC.
+The first model considers flows to be independent between sub-populations, and estimates flows from the basic command in **phyloflow** through MCMC.
 ```{r, include=TRUE, eval=FALSE, echo=TRUE, tidy=FALSE,message=FALSE, warning=FALSE} 
 library(phyloflows)
 mcmc.file	<- 'mcmc'

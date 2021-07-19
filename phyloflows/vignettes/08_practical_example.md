@@ -17,6 +17,13 @@ Getting started
     df <- data.table(df)
     df[,X:=NULL]
     head(df)
+    #>           ID SEX AGE_AT_MID COMM_TYPE INMIG_2YRS_LOC
+    #> 1: RkA00001F   F     40.731         i       resident
+    #> 2: RkA00008F   F     48.805         i       resident
+    #> 3: RkA00116M   M     49.990         i       resident
+    #> 4: RkA00118M   M     41.417         i       resident
+    #> 5: RkA00122F   F     42.217         i       resident
+    #> 6: RkA00124F   F     40.111         i       resident
 
 -   *ID*: individual IDs
 -   *SEX*: genders
@@ -24,7 +31,7 @@ Getting started
 -   *COMM\_TYPE*: locations (f - fishing sites, i - inland)
 -   *INMIG\_2YRS\_LOC*: inmigration status in 2 years
 
-1.  **RCCS\_pairs** include reconstructed transmission pairs from
+1.  **RCCS\_pairs** includes the transmission pairs reconstructed from
     [Phyloscanner.R.utilities](https://github.com/olli0601/Phyloscanner.R.utilities).
 
 <!-- -->
@@ -33,6 +40,13 @@ Getting started
     rtr <- data.table(rtr)
     rtr[,X:=NULL]
     head(rtr)
+    #>        TR_ID    REC_ID
+    #> 1: RkA06116M RkA00124F
+    #> 2: RkA02891M RkA00158F
+    #> 3: RkA07616M RkA00204F
+    #> 4: RkA06489M RkA00263F
+    #> 5: RkA06557F RkA00282M
+    #> 6: RkA02324M RkA00324F
 
 -   *TR\_RID*: source IDs
 -   *REC\_RID*: recipient IDs
@@ -42,7 +56,7 @@ Pre-processing
 
 ### Meta data and reconstructed pairs
 
-We process the pair data and meta data, in order to groups individuals
+We process the pair data and meta data, in order to group individuals
 into sub-populations and count transmissions between sub-populations. In
 particular, the subpopulation is defined by one-year age bands, genders
 and locations. Also, we considered the locations of sources to be the
@@ -169,13 +183,13 @@ Flow inference
 --------------
 
 Pre-processing gives the data needed for flow inference, including
-**dobs** and **dprior**. Now we use **phyloflows** to estimate
-transmission flows between subpopulations by MCMC.
+**dobs** and **dprior**. Now we are ready to use **phyloflows** to
+estimate transmission flows between subpopulations.
 
 ### Independent models
 
 The first model considers flows to be independent between
-sub-populations, and estimate flows from the basic command in
+sub-populations, and estimates flows from the basic command in
 **phyloflow** through MCMC.
 
     library(phyloflows)
