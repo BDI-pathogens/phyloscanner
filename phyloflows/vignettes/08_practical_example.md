@@ -229,7 +229,7 @@ file](inst/misc/gpa4.stan).
     tmp <- merge(tmp,subset(dprior.id[REC_WHO=='REC_SAMPLING_CATEGORY',],select=c('REC_ID','REC_SAMPLING_CATEGORY')),by='REC_SAMPLING_CATEGORY',all.x = TRUE)
     setkey(tmp, TRM_CAT_PAIR_ID)
     xi_id <- cbind(tmp$TR_ID, tmp$REC_ID)
-
+    setkey(dprior.fit, SAMPLING_CATEGORY,WHO)
 
     # GP approximation
     M <- 30
