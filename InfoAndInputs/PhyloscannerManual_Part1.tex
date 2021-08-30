@@ -200,10 +200,13 @@ Anecdotally, we found that being trigger-happy with deleting all codons associat
 Note that during both similarity-based merging of reads and excision of positions (which is followed by merging newly identical reads), we lose track of the original identity of reads, i.e. we don't know what the correspondence is between reads before processing and after processing.
 \item \c{DuplicationData/DuplicateReads\_contaminants\_InWindow\_X\_to\_Y.fasta}.
 Only produced if \\\c{--contaminant-count-ratio} is used; see that option's description in section~\ref {sec:DeprecatedArgs}.
-\item \c{ReadNames/ReadNames1\_InWindow\_X\_to\_Y\_InBam\_A.txt}.
-Only produced if \c{--read-names-1} is used; see that option's description in section~\ref{sec:BioinfArgs}.
-\item \c{ReadNames/ReadNames2\_InWindow\_X\_to\_Y\_InBam\_A.csv}.
-Only produced if \c{--read-names-2} is used; see that option's description in section~\ref{sec:BioinfArgs}.
+\item \c{ReadNames/ReadNames\_InWindow\_X\_to\_Y.csv.gz}.
+Not produced if \c{--no-read-names} is used. 
+This csv file shows the correspondence between the name of each sequence present in the \pmt output for window X to Y, and the names of all reads in the input bam files that went into that output sequence.
+In general, a sequence in the output is made from more than one read from the input bam files because identical reads are always collapsed into a single sequence with an associated count, and optionally similar reads can be merged too.
+To save space, these files are automatically gzipped, and have a ragged csv format in which each row generally has a different number of fields.
+The first field is always the name of the sequence in the output, then subsequent fields are the names of the corresponding reads from the input bam files.
+If this file is of interest, you might also like \c{tools/ExtractNamedReadsFromBam.py}, which is run separately from the command line (run it initially with \c{--help} for more information).
 \item \c{RecombinationData/RecombinantReads\_InWindow\_X\_to\_Y.fasta}.
 Only produced if \\\c{--check-recombination} is used; see that option's description in section~\ref{sec:RecArgs}.
 \end{itemize}
@@ -324,6 +327,10 @@ You can save time by only turning it on only after you've settled on the values 
 \item \c{--num-bootstraps}: used to specify the number of bootstraps to be calculated for \c{RAxML} trees (by default, none, i.e. only the maximum-likelihood tree is calculated).
 \item \c{--bootstrap-seed}: used to specify the random-number seed for running \c{RAxML} with bootstraps.
 The default is 1.
+\item \c{--max-gap-frac-for-refs}.
+If \c{--alignment-of-other-refs} is used, an external reference sequence will be excluded from the current window if its fractional gap content in the current window (in the alignment including only the references, not the reads) exceeds this threshold.
+The default value is 0.5; this option allows a different value to be specified.
+The purpose of this option is to exclude references with too much missing information in a given window, to prevent poor imputation of their missing sequence from messing up phylogenetic inference.
 \item \c{--output-dir}: used to specify the name of a directory into which output files will be moved.
 If it does not exist, it will be created; however we cannot create a new directory inside a directory that does not yet exist.
 Temporary and output files are always created in the working directory, i.e. the directory in which the \pmt command was run, but with this option the output files are copied to the specified directory at the end.
@@ -359,10 +366,6 @@ Options for detailed bioinformatic interrogation of the input bam files, not int
 \begin{itemize}
 \item \c{--inspect-disagreeing-overlaps}: with --merge-paired-reads, those pairs that overlap but disagree are discarded.
 With this option, these discarded pairs are written to a bam file (one per patient, with their reference file copied to the working directory) for your inspection.
-\item \c{--read-names-1}: produce a file for each window and each bam, listing the names (as they appear in the input bam file) of the reads that \pmt used.
-If you like this you may also like \c{tools/ExtractNamedReadsFromBam.py}, which is run
-separately from the command line (run it initially with \c{--help} for more information).
-\item \c{--read-names-2}: as \c{--read-names-1}, except the files will show the correspondence between read names and which unique sequence they correspond to.
 \item \c{--exact-window-start}: normally \pmt retrieves all reads that fully overlap a given window, i.e. starting at or anywhere before the window start, and ending at or anywhere after the window end.
 If this option is used {\it without} \c{--exact-window-end}, the reads that are retrieved are those that start at exactly the start of the window, and end anywhere (ignoring all the window end coordinates specified).
 If this option is used {\it with} \c{--exact-window-end}, for a read to be kept it must start at exactly the window start AND end at exactly the window end.
@@ -387,14 +390,14 @@ You should inspect the aligned reads manually before doing anything else (and ho
 \subsection{Partial processing options}
 Options to only partially run \pmt, stopping early or skipping steps.
 \begin{itemize}
- \item \c{--align-refs-only}: align the mapping references used to create the bam files (plus any extra reference sequences specified with \c{--alignment-of-other-refs}), then quit without doing anything
-else.
+ \item \c{--align-refs-only}: align the mapping references used to create the bam files (plus any extra reference sequences specified with \c{--alignment-of-other-refs}), then quit without doing anything else.
 The point of this is to allow inspection of that alignment, whose coordinates are used to interpret window coordinates (unless \c{--pairwise-align-to} is used).
-\item \c{--read-names-only}: to be combined with \c{--read-names-1} or \c{--read-names-2}: quit after writing
-the read names to a file (which means the reads are not aligned).
 \item \c{--no-trees}: process and align the reads from each window, then quit without making trees.
 \item \c{--dont-check-duplicates}: don't compare reads between samples to find duplicates -- a possible indication of contamination.
+\item \c{--read-names-only}: quit after writing the read names to a file (which means the reads are not aligned).
 (By default this check is done.)
+\item \c{--no-read-names}: do not record the correspondence between each unique sequence retained by phyloscanner, and the reads that went into this sequence (as they are named in the bam file), as is done by default.
+\item \c{--coordinate-correspondence-only}: stop straight away after producing \c{WindowCoordinateCorrespondence.csv}, which shows the correspondence in window coordinates.
 \end{itemize}
 
 
@@ -430,6 +433,8 @@ With this option, the gap character counts as a fifth base and so (dis)agreement
 This increases sensitivity of the metric to cases where indels are genuine signals of recombination, but decreases specificity, since misalignment may falsely suggest recombination.
 \item \c{--recombination-norm-diversity}: by default, the normalising constant for the                        recombination metric is half the number of sites in the window; with this option it's half the number of sites in the window that are polymorphic for that bam file.
 Richard Neher thoughtfully suggested this, however anecdotal investigation suggested it was too trigger-happy in flagging totally recombinant sequences -- a metric value of 1 -- in regions with very little diversity.
+\item \c{--read-names-simple}: produce a file for each window and each bam, simply listing the names of the reads that phyloscanner used (but not the correspondence between these and the set of unique sequences retained by phyloscanner after any merging etc.).
+This is not affected by the \c{--no-read-names} option.
 \end{itemize}
 
 
