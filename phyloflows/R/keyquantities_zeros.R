@@ -59,8 +59,8 @@
 #' }
 #'
 source.attribution.mcmc.getKeyQuantities<- function(infile=NULL, mc=NULL, pars=NULL, dobs=NULL, control=NULL)
-{
-    if(is.null(mc) & is.null(pars) & !is.null(infile) & length(infile)==1 & grepl('rda$',infile))
+{    
+    if(is.null(mc) & is.null(pars) & !is.null(infile))
     {
       if(length(infile)==1 & grepl('rda$',infile)){
         tmp <- load(infile)
@@ -76,38 +76,6 @@ source.attribution.mcmc.getKeyQuantities<- function(infile=NULL, mc=NULL, pars=N
       
       if(grepl('csv$',infile))
       {
-		if(is.null(mc) & is.null(pars) & !is.null(infile) & length(infile)>1 
-		   & all(grepl('rda$',infile)) & all(unlist(lapply(infile,function(x){load(x)=='mc'}))))
-		{
-			#    load MCMC output
-			cat('\nLoading MCMC output from file...')
-			cat('\nLoading ', infile[1])
-			load(infile[1])
-			XI <- mc$pars$XI
-			S <- mc$pars$S
-			LOG_LAMBDA <- mc$pars$LOG_LAMBDA
-			
-			if (length(infile)>1)
-			{
-				for (k in 2:length(infile))
-				{
-					cat('\nLoading ', infile[k])
-					load(infile[k])
-					XI <- rbind(XI, mc$pars$XI)
-					S <- rbind(S, mc$pars$S)
-					LOG_LAMBDA <- rbind(LOG_LAMBDA, mc$pars$LOG_LAMBDA)
-				}
-			}
-			mc$pars$XI <- XI
-			mc$pars$S <- S
-			mc$pars$LOG_LAMBDA <- LOG_LAMBDA   
-			cat('\nTotal number of MCMC iterations loaded from file ', nrow(mc$pars$LOG_LAMBDA))
-			XI <- S <- LOG_LAMBDA <- NULL
-			gc()
-		}
-    }   
-    if(is.null(mc) & is.null(pars) & !is.null(infile) && grepl('csv$',infile))
-    {
         cat('\nReading aggregated MCMC output...')
         pars <- as.data.table(read.csv(infile, stringsAsFactors=FALSE))
         pars <- subset(pars, VARIABLE=='PI')
