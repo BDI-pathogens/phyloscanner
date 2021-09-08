@@ -15,19 +15,8 @@ lgamma_prod <- function(llbd, a, b){
     ans
 }
 
-<<<<<<< HEAD
-# log product of gamma densities with parameter alpha_{ab} and beta_{ab}
-lgamma_prod_vb <- function(llbd, a, b){
-  # deal with small lambda whose exp is 0
-  c <- min(
-    (max(llbd + log(b)) - min(llbd + log(b)))/2,
-    700)
-  ans <- sum( a * log(b) ) - sum( lgamma(a) ) +
-    sum( (a-1) * llbd ) - exp(-c) * sum(exp(llbd + log(b) + c))
-=======
 lgamma_pdf <- function(llbd, a, b){
   ans <- a * log(b) - lgamma(a) + (a-1) * llbd -b * exp(llbd)
->>>>>>> phyloflow_v120
   ans
 }
 

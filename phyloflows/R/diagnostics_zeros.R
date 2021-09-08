@@ -113,15 +113,9 @@ source.attribution.mcmc.diagnostics    <- function(mcmc.file, mc=NULL, control=l
     }
 	if(grepl(control$regex_pars,'PI') & ('PI' %in% names(mc$pars)))
 	{
-<<<<<<< HEAD
-		tmp <- exp(mc$pars$LOG_LAMBDA)
-		tmp <- t(apply(tmp, 1, function(rw) rw/sum(rw)))		
-=======
-
-		tmp <- mc$pars$PI
->>>>>>> phyloflow_v120
-		colnames(tmp) <- paste0('PI-',1:ncol(tmp))
-		pars <- cbind(pars, tmp)		
+		 tmp <- mc$pars$PI
+        colnames(tmp) <- paste0("PI-", 1:ncol(tmp))
+        pars <- cbind(pars, tmp)
 	}
 	
     #    traces for parameters
