@@ -32,52 +32,52 @@ lgamma_pdf <- function(llbd, a, b){
 # talen from
 # Goal: Sample small-shape gamma random variables via accept-reject
 # Paper: arXiv:1302.1884
-rgamss <- function(n, shape, scale=1, do.log=TRUE) 
-{  
+rgamss <- function(n, shape, scale=1, do.log=TRUE)
+{
   a <- shape
   if(a > 0.2)
   {
     oo <- ifelse(do.log,log(rgamma(n, a, 1 / scale)),rgamma(n, a, 1 / scale))
   }
-  else 
+  else
   {
     e1 <- 2.71828182845905
     L <- 1 / a - 1
     w <- a / e1 / (1 - a)
     ww <- 1 / (1 + w)
     eta <- function(z)
-    { 
-      ifelse(z >= 0, exp(-z), w * L * exp(L * z)) 
+    {
+      ifelse(z >= 0, exp(-z), w * L * exp(L * z))
     }
     h <- function(z)
     {
       exp(-z - exp(-z / a))
-    } 
+    }
     rh <- function(a)
-    {            
-      repeat 
-      {        
+    {
+      repeat
+      {
         U <- runif(1)
         z <- ifelse(U <= ww, -log(U / ww), log(runif(1)) / L)
-        if(h(z) / eta(z) > runif(1)) 
-          return(z)        
+        if(h(z) / eta(z) > runif(1))
+          return(z)
       }
     }
     Z <- numeric(n)
-    for(i in 1:n) 
+    for(i in 1:n)
       Z[i] <- rh(a)
     o <- log(scale) - Z / a
-    if(!do.log) 
-    {      
+    if(!do.log)
+    {
       oo <- exp(o)
-      if(any(oo == 0)) 
-      {        
+      if(any(oo == 0))
+      {
         oo <- o
-        warning("Output given on log-scale since shape is small")        
-      }      
-    } 
-    else 
-      oo <- o    
+        warning("Output given on log-scale since shape is small")
+      }
+    }
+    else
+      oo <- o
   }
   return(oo)
 }
@@ -104,7 +104,7 @@ rgamss <- function(n, shape, scale=1, do.log=TRUE)
 #' data(twoGroupFlows1, package="phyloflows")
 #' dobs <- twoGroupFlows1$dobs
 #' dprior <- twoGroupFlows1$dprior
-#' 
+#'
 #' #
 #' # run MCMC and return output to R
 #' # this is usually fine for simple source attribution models
@@ -117,7 +117,7 @@ rgamss <- function(n, shape, scale=1, do.log=TRUE)
 #'                 )
 #' mc <- phyloflows:::source.attribution.mcmc.joint(dobs, dprior, control)
 #' }
-#' 
+#'
 #' #
 #' # run MCMC and save output to file
 #' # this is recommended when the source attribution is more complex
@@ -132,12 +132,12 @@ rgamss <- function(n, shape, scale=1, do.log=TRUE)
 #'                 )
 #' mc <- phyloflows:::source.attribution.mcmc.joint(dobs, dprior, control)
 #' }
-#' 
+#'
 source.attribution.mcmc.joint  <- function(dobs, dprior, control=list(seed=42, mcmc.n=1e3, verbose=1, outfile='SAMCMCv190327.rda'))
-{        
-  dmode <- function(x) 
+{
+  dmode <- function(x)
   {
-    if(all(x==x[1])) 
+    if(all(x==x[1]))
       return(x[1])
     den <- density(x, kernel=c("gaussian"))
     (den$x[den$y==max(den$y)])
@@ -156,7 +156,7 @@ source.attribution.mcmc.joint  <- function(dobs, dprior, control=list(seed=42, m
   {
     cat('\nSetting seed to',control$seed)
     set.seed(control$seed)
-  }    
+  }
   
   # set up mcmc
   mc <- list()
@@ -187,7 +187,7 @@ source.attribution.mcmc.joint  <- function(dobs, dprior, control=list(seed=42, m
   set(mc$dlt,NULL,c('TR_SAMPLING_CATEGORY','REC_SAMPLING_CATEGORY'),NULL)
   setkey(mc$dlt,TRM_CAT_PAIR_ID)
   
-  # for speed: make indexed lookup table 
+  # for speed: make indexed lookup table
   update.info    <- vector('list', nrow(mc$dlu))
   for (i in 1:nrow(mc$dlu))
   {
@@ -222,7 +222,7 @@ source.attribution.mcmc.joint  <- function(dobs, dprior, control=list(seed=42, m
   # setnames(dprior3, colnames(dprior3), gsub('TR_','REC_', colnames(dprior3)))
   # dobs2 <- merge(dobs2,dprior3,by='REC_SAMPLING_CATEGORY')
   # dobs2[, EST_SAMPLING_RATE:= TR_EST_SAMPLING_RATE * REC_EST_SAMPLING_RATE]
-  # 
+  #
   mc$nprior <- max(dprior$SAMPLE)
   mc$sweep <- nrow(mc$dlu)
   mc$nsweep <- ceiling( control$mcmc.n/mc$sweep )
@@ -231,8 +231,8 @@ source.attribution.mcmc.joint  <- function(dobs, dprior, control=list(seed=42, m
   mc$sweep_group <- mc$nsweep
   if('sweep_group'%in%names(control))
   {
-    mc$sweep_group <- control$sweep_group	
-  }    
+    mc$sweep_group <- control$sweep_group
+  }
   mc$pars <- list()
   mc$pars$ALPHA <- matrix(NA_real_, ncol= nrow(dobs), nrow= 1L)
   # mc$pars$BETA <- NA_real_
@@ -243,7 +243,7 @@ source.attribution.mcmc.joint  <- function(dobs, dprior, control=list(seed=42, m
   mc$pars$S_LP <- matrix(NA_integer_, ncol=nrow(dobs), nrow=min(mc$nsweep+1L,mc$sweep_group+1L)) # log prior density of sampling transmission pair categories
   mc$pars$LOG_LAMBDA <- matrix(NA_integer_, ncol=nrow(dobs), nrow=min(mc$nsweep+1L,mc$sweep_group+1L)) # mean number of counts on augmented data for transmission pair categories
   
-  mc$it.info <- data.table(	IT= seq.int(0,min(mc$nsweep*mc$sweep,mc$sweep_group*mc$sweep)),
+  mc$it.info <- data.table(    IT= seq.int(0,min(mc$nsweep*mc$sweep,mc$sweep_group*mc$sweep)),
                             PAR_ID= rep(NA_integer_, min(mc$nsweep*mc$sweep+1L,mc$sweep_group*mc$sweep+1L)),
                             BLOCK= rep(NA_character_, min(mc$nsweep*mc$sweep+1L,mc$sweep_group*mc$sweep+1L)),
                             MHRATIO= rep(NA_real_, min(mc$nsweep*mc$sweep+1L,mc$sweep_group*mc$sweep+1L)),
@@ -257,7 +257,7 @@ source.attribution.mcmc.joint  <- function(dobs, dprior, control=list(seed=42, m
     cat('\nDimension of PI:\t', ncol(mc$pars$LOG_LAMBDA))
     cat('\nSweep length:\t', mc$sweep)
     cat('\nNumber of sweeps:\t', mc$nsweep)
-    cat('\nNumber of iterations:\t', mc$n)        
+    cat('\nNumber of iterations:\t', mc$n)
   }
   
   
@@ -271,9 +271,9 @@ source.attribution.mcmc.joint  <- function(dobs, dprior, control=list(seed=42, m
   set(mc$it.info, mc$curr.it, 'MHRATIO', 1)
   set(mc$it.info, mc$curr.it, 'ACCEPT', 1L)
   
-  # initialise prior on lambda (ALPHA, BETA): 
+  # initialise prior on lambda (ALPHA, BETA):
   # specify prior so that we obtain for PI the Berger objective prior with minimal loss compared to marginal Beta reference prior
-  # (https://projecteuclid.org/euclid.ba/1422556416)    
+  # (https://projecteuclid.org/euclid.ba/1422556416)
   mc$pars$ALPHA[1,]    <- 0.8/nrow(dobs)
   
   # initialise sampling probabilities for pop strata: random draw from input sampling probabilities
@@ -298,15 +298,15 @@ source.attribution.mcmc.joint  <- function(dobs, dprior, control=list(seed=42, m
   setnames(dprior3, colnames(dprior3), gsub('TR_','REC_', colnames(dprior3)))
   dobs2 <- merge(dobs2,dprior3,by=c('REC_SAMPLING_CATEGORY','REC_WHO'))
   dobs2[, P:= TR_P * REC_P]
-  dobs3 <- merge(	subset(dobs,select = c('TRM_OBS','TRM_CAT_PAIR_ID')),
+  dobs3 <- merge(    subset(dobs,select = c('TRM_OBS','TRM_CAT_PAIR_ID')),
                   subset(dobs2,select = c('P','TRM_CAT_PAIR_ID')),
                   by=c('TRM_CAT_PAIR_ID'))
   dobs3[, LBD:=TRM_OBS/P]
-  dobs3[TRM_OBS==0, LBD:=(1-P)/P]    
+  dobs3[TRM_OBS==0, LBD:=(1-P)/P]
   mc$pars$BETA[1,] <- 0.8/sum(dobs3$LBD)
   
   # initialise log_lambda: random draw from full conditional
-  mc$pars$LOG_LAMBDA[1,] <- mapply( function(x,y){ rgamss(1,shape=x,scale=y) }, dobs$TRM_OBS+mc$pars$ALPHA, 1/(mc$pars$S[1,]+mc$pars$BETA[1,])	)
+  mc$pars$LOG_LAMBDA[1,] <- mapply( function(x,y){ rgamss(1,shape=x,scale=y) }, dobs$TRM_OBS+mc$pars$ALPHA, 1/(mc$pars$S[1,]+mc$pars$BETA[1,])    )
   
   #    store log likelihood
   tmp <- lpois_prod( dobs$TRM_OBS, mc$pars$LOG_LAMBDA[1,] + log(mc$pars$S[1,]))
@@ -361,11 +361,11 @@ source.attribution.mcmc.joint  <- function(dobs, dprior, control=list(seed=42, m
       setnames(dprior3, colnames(dprior3), gsub('TR_','REC_', colnames(dprior3)))
       dobs2 <- merge(dobs2,dprior3,by=c('REC_SAMPLING_CATEGORY','REC_WHO'))
       dobs2[, P:= TR_P * REC_P]
-      dobs3 <- merge(	subset(dobs,select = c('TRM_OBS','TRM_CAT_PAIR_ID')),
+      dobs3 <- merge(    subset(dobs,select = c('TRM_OBS','TRM_CAT_PAIR_ID')),
                       subset(dobs2,select = c('P','TRM_CAT_PAIR_ID')),
                       by=c('TRM_CAT_PAIR_ID'))
       dobs3[, LBD:=TRM_OBS/P]
-      dobs3[TRM_OBS==0, LBD:=(1-P)/P]    
+      dobs3[TRM_OBS==0, LBD:=(1-P)/P]
       BETA.prop <- 0.8/sum(dobs3$LBD)
       
       # propose all S that involve the one XI from above
@@ -380,18 +380,18 @@ source.attribution.mcmc.joint  <- function(dobs, dprior, control=list(seed=42, m
       
       
       # calculate MH ratio
-      log.fc <- lpois_prod( mc$dlt$TRM_OBS[update.pairs], 
+      log.fc <- lpois_prod( mc$dlt$TRM_OBS[update.pairs],
                             LOG_LAMBDA.curr[update.pairs] + log(S.curr[update.pairs]))+
-        lgamma_prod(LOG_LAMBDA.curr[update.pairs], 
+        lgamma_prod(LOG_LAMBDA.curr[update.pairs],
                     mc$pars$ALPHA[update.pairs],
-                    BETA.curr) 
+                    BETA.curr)
       
       
-      log.fc.prop <- lpois_prod( mc$dlt$TRM_OBS[update.pairs],  
+      log.fc.prop <- lpois_prod( mc$dlt$TRM_OBS[update.pairs],
                                  LOG_LAMBDA.prop[update.pairs] + log(S.prop[update.pairs]))+
-        lgamma_prod(LOG_LAMBDA.prop[update.pairs], 
+        lgamma_prod(LOG_LAMBDA.prop[update.pairs],
                     mc$pars$ALPHA[update.pairs],
-                    BETA.prop) 
+                    BETA.prop)
       
       log.prop.ratio <- lgamma_prod_vb(LOG_LAMBDA.curr[update.pairs],
                                        mc$dlt$TRM_OBS[update.pairs] + mc$pars$ALPHA[update.pairs],
@@ -412,7 +412,7 @@ source.attribution.mcmc.joint  <- function(dobs, dprior, control=list(seed=42, m
       if(update.sweep.group!=0L)
       {
         mc$curr.it.adj <- mc$curr.it - mc$sweep_group*mc$sweep*update.sweep.group - 1L
-      }            
+      }
       set(mc$it.info, mc$curr.it.adj, 'BLOCK', 'XI-LAMBDA')
       set(mc$it.info, mc$curr.it.adj, 'PAR_ID', update.count)
       set(mc$it.info, mc$curr.it.adj, 'MHRATIO', mh.ratio)
@@ -430,9 +430,9 @@ source.attribution.mcmc.joint  <- function(dobs, dprior, control=list(seed=42, m
         XI_LP.curr <- XI_LP.prop
         S.curr <- S.prop
         S_LP.curr <- S_LP.prop
-        LOG_LAMBDA.curr        <- LOG_LAMBDA.prop  
-      }            
-    }        
+        LOG_LAMBDA.curr        <- LOG_LAMBDA.prop
+      }
+    }
     
     #     record log likelihood
     if(update.sweep.group==0L)
@@ -442,7 +442,7 @@ source.attribution.mcmc.joint  <- function(dobs, dprior, control=list(seed=42, m
     if(update.sweep.group!=0L)
     {
       mc$curr.it.adj <- as.integer(mc$curr.it - mc$sweep_group*mc$sweep*update.sweep.group - 1L)
-    }        
+    }
     tmp <- lpois_prod( dobs$TRM_OBS, LOG_LAMBDA.curr + log(S.curr))
     set(mc$it.info, mc$curr.it.adj, 'LOG_LKL', tmp)
     #     record log prior
@@ -459,7 +459,7 @@ source.attribution.mcmc.joint  <- function(dobs, dprior, control=list(seed=42, m
       if(update.sweep.group!=0L)
       {
         update.round.adj <- update.round + 1L - mc$sweep_group*update.sweep.group - 1L
-      }       
+      }
       mc$pars$XI[update.round.adj,] <- XI.curr
       mc$pars$XI_LP[update.round.adj,] <- XI_LP.curr
       mc$pars$S[update.round.adj,] <- S.curr
@@ -496,14 +496,14 @@ source.attribution.mcmc.joint  <- function(dobs, dprior, control=list(seed=42, m
       mc$pars$S_LP <- matrix(NA_integer_, ncol=nrow(dobs), nrow=mc$sweep_group) # log prior density of sampling transmission pair categories
       mc$pars$LOG_LAMBDA <- matrix(NA_real_, ncol=nrow(dobs), nrow=mc$sweep_group)    #proportions
       mc$pars$BETA <- matrix(NA_real_, ncol=1, nrow=mc$sweep_group)    #proportions
-      mc$it.info <- data.table(	IT= seq.int(mc$sweep_group*mc$sweep*(update.round%/%mc$sweep_group)+1,mc$sweep_group*mc$sweep*(1+(update.round%/%mc$sweep_group))),
+      mc$it.info <- data.table(    IT= seq.int(mc$sweep_group*mc$sweep*(update.round%/%mc$sweep_group)+1,mc$sweep_group*mc$sweep*(1+(update.round%/%mc$sweep_group))),
                                 PAR_ID= rep(NA_integer_, mc$sweep_group*mc$sweep),
                                 BLOCK= rep(NA_character_, mc$sweep_group*mc$sweep),
                                 MHRATIO= rep(NA_real_, mc$sweep_group*mc$sweep),
                                 ACCEPT=rep(NA_integer_, mc$sweep_group*mc$sweep),
                                 LOG_LKL=rep(NA_real_, mc$sweep_group*mc$sweep),
                                 LOG_PRIOR=rep(NA_real_, mc$sweep_group*mc$sweep)
-      )            
-    }                
+      )
+    }
   }
 }

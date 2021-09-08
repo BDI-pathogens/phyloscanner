@@ -20,7 +20,7 @@
 #' data(twoGroupFlows1, package="phyloflows")
 #' dobs <- twoGroupFlows1$dobs
 #' dprior <- twoGroupFlows1$dprior
-#' 
+#'
 #' #
 #' # run MCMC and return output to R
 #' # this is usually fine for simple source attribution models
@@ -33,7 +33,7 @@
 #'                 )
 #' mc <- phyloflows:::source.attribution.mcmc.stan(dobs, dprior, control)
 #' }
-#' 
+#'
 #' #
 #' # run MCMC and save output to file
 #' # this is recommended when the source attribution is more complex
@@ -48,9 +48,9 @@
 #'                 )
 #' mc <- phyloflows:::source.attribution.mcmc.stan(dobs, dprior, control)
 #' }
-#' 
+#'
 source.attribution.mcmc.stan  <- function(dobs, dprior.fit, control=list(seed=42, mcmc.n=1e3, method='gamma', outfile='StanMCMC.rda'))
-{      
+{
   pkg.dir <- system.file(package = "phyloflows" )
   setkey(dprior.fit,  SAMPLING_CATEGORY)
   dprior.fit[,ID:=seq_len(nrow(dprior.fit))]
@@ -76,7 +76,7 @@ source.attribution.mcmc.stan  <- function(dobs, dprior.fit, control=list(seed=42
                       control = list(adapt_delta = 0.8, max_treedepth=10))
   }else if(control$method=='gp'){
     M <- 30
-    D <- 2 
+    D <- 2
     indices <- matrix(NA, M^D, D)
     mm=0;
     for (m1 in 1:M){
@@ -86,8 +86,8 @@ source.attribution.mcmc.stan  <- function(dobs, dprior.fit, control=list(seed=42
       }
     }
     
-    data.gp <- list( M= M, M_nD= M^D, 
-                     L= c(3/2*max(dobs$TR_SMOOTH_CATEGORY),3/2*max(dobs$REC_SMOOTH_CATEGORY)), 
+    data.gp <- list( M= M, M_nD= M^D,
+                     L= c(3/2*max(dobs$TR_SMOOTH_CATEGORY),3/2*max(dobs$REC_SMOOTH_CATEGORY)),
                      N = nrow(dobs),
                      x = cbind(dobs$TR_SMOOTH_CATEGORY,dobs$REC_SMOOTH_CATEGORY),
                      D = D,

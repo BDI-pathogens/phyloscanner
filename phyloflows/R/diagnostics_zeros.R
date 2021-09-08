@@ -61,7 +61,7 @@ source.attribution.mcmc.diagnostics    <- function(mcmc.file, mc=NULL, control=l
     if(is.null(mc))
     {
         cat('\nLoading MCMC output from file...')
-		cat('\nLoading ', mcmc.file[1])
+        cat('\nLoading ', mcmc.file[1])
         load(mcmc.file[1])
         XI <- mc$pars$XI
         S <- mc$pars$S
@@ -70,17 +70,17 @@ source.attribution.mcmc.diagnostics    <- function(mcmc.file, mc=NULL, control=l
         PI <-  t(apply(exp(mc$pars$LOG_LAMBDA), 1, function(rw) rw/sum(rw)))
         
         if (length(mcmc.file)>1)
-		{
+        {
             for (k in 2:length(mcmc.file))
-			{
-				cat('\nLoading ', mcmc.file[k])
+            {
+                cat('\nLoading ', mcmc.file[k])
                 load(mcmc.file[k])
                 XI <- rbind(XI, mc$pars$XI)
                 S <- rbind(S, mc$pars$S)
                 LOG_LAMBDA <- rbind(LOG_LAMBDA, mc$pars$LOG_LAMBDA)
                 it.info <- rbind(it.info, mc$it.info)
                 PI <- rbind(PI, t(apply(exp(mc$pars$LOG_LAMBDA), 1, function(rw) rw/sum(rw)))    )
-            }			
+            }
         }
         
         mc$pars$XI <- XI
@@ -88,9 +88,9 @@ source.attribution.mcmc.diagnostics    <- function(mcmc.file, mc=NULL, control=l
         mc$pars$LOG_LAMBDA <- LOG_LAMBDA
         mc$it.info <- it.info
         mc$pars$PI <- PI
-		cat('\nTotal number of MCMC iterations loaded from file ', nrow(mc$pars$LOG_LAMBDA))
-		XI <- S <- LOG_LAMBDA <- PI <- NULL
-		gc()
+        cat('\nTotal number of MCMC iterations loaded from file ', nrow(mc$pars$LOG_LAMBDA))
+        XI <- S <- LOG_LAMBDA <- PI <- NULL
+        gc()
     }
     
     
@@ -109,15 +109,16 @@ source.attribution.mcmc.diagnostics    <- function(mcmc.file, mc=NULL, control=l
         tmp <- mc$pars$LOG_LAMBDA
         colnames(tmp) <- paste0('LOG_LAMBDA-',1:ncol(tmp))
         pars <- cbind(pars, tmp)
-		
+        
     }
-	if(grepl(control$regex_pars,'PI') & ('PI' %in% names(mc$pars)))
-	{
-		 tmp <- mc$pars$PI
-        colnames(tmp) <- paste0("PI-", 1:ncol(tmp))
+    if(grepl(control$regex_pars,'PI') & ('PI' %in% names(mc$pars)))
+    {
+
+        tmp <- mc$pars$PI
+        colnames(tmp) <- paste0('PI-',1:ncol(tmp))
         pars <- cbind(pars, tmp)
-	}
-	
+    }
+    
     #    traces for parameters
     if(control$pdf.plot.all.parameters)
     {
@@ -139,10 +140,10 @@ source.attribution.mcmc.diagnostics    <- function(mcmc.file, mc=NULL, control=l
         pdf(file=paste0(control$outfile.base,'_loglklpotrace.pdf'), w=10, h=control$pdf.height.per.par*ncol(pars2)*2)
         print(p)
         dev.off()
-		cat('\nPlotting histograms for log likelihood and log posterior...')
+        cat('\nPlotting histograms for log likelihood and log posterior...')
         p <- mcmc_hist(pars2, pars=colnames(pars2), facet_args = list(ncol=4))
         pdf(file=paste0(control$outfile.base,'_loglklpohist.pdf'), w=10, h=control$pdf.height.per.par*ncol(pars2))
-		suppressMessages(print(p))
+        suppressMessages(print(p))
         dev.off()
     }
     
@@ -153,11 +154,11 @@ source.attribution.mcmc.diagnostics    <- function(mcmc.file, mc=NULL, control=l
     # tmp <- mc$dl[, list(N_TRM_CAT_PAIRS=length(TRM_CAT_PAIR_ID)), by='UPDATE_ID']
     # da <- merge(da, tmp, by='UPDATE_ID')
     # ggplot(da, aes(x=N_TRM_CAT_PAIRS, y=ACC_RATE)) +
-    # 	geom_point() +
-    # 	theme_bw() +
-    # 	scale_y_continuous(label=scales::percent) +
-    # 	labs(    x='\nNumber of transmission pair categories updated per sampling category',
-    # 	y='Acceptance rate\n')
+    #     geom_point() +
+    #     theme_bw() +
+    #     scale_y_continuous(label=scales::percent) +
+    #     labs(    x='\nNumber of transmission pair categories updated per sampling category',
+    #     y='Acceptance rate\n')
     # ggsave(file=paste0(control$outfile.base,'_acceptance_per_updateID.pdf'), w=6, h=6)
     cat('\nAverage acceptance rate= ',subset(mc$it.info, !is.na(PAR_ID) & PAR_ID>0)[, round(mean(ACCEPT), d=3)])
     cat('\nUpdate IDs with lowest acceptance rates')
@@ -186,11 +187,11 @@ source.attribution.mcmc.diagnostics    <- function(mcmc.file, mc=NULL, control=l
     cat('\nCalculating posterior summaries for all parameters...')
     tmp    <- apply(pars, 2, function(x) quantile(x, p=c((1-control$credibility.interval)/2, 0.5, control$credibility.interval+(1-control$credibility.interval)/2)))
     tmp    <- data.table(   VAR= colnames(pars),
-    						MEAN= apply(pars, 2, mean),
-    						SD= apply(pars, 2, sd),
-    						MEDIAN=tmp[2,],
-    						CI_L=tmp[1,],
-    						CI_U=tmp[3,])
+                            MEAN= apply(pars, 2, mean),
+                            SD= apply(pars, 2, sd),
+                            MEDIAN=tmp[2,],
+                            CI_L=tmp[1,],
+                            CI_U=tmp[3,])
     ans    <- merge(tmp, ans, by='VAR')
     cat('\nSummary of parameters with lowest effective samples\n')
     print( ans[order(NEFF)[1:min(10, nrow(ans))],] )
@@ -203,8 +204,8 @@ source.attribution.mcmc.diagnostics    <- function(mcmc.file, mc=NULL, control=l
     # plots for worst case parameters
     if(control$pdf.plot.n.worst.case.parameters>0)
     {
-		control$pdf.plot.n.worst.case.parameters <- min(control$pdf.plot.n.worst.case.parameters, nrow(ans))
-		control$pdf.plot.n.worst.case.parameters <- max(control$pdf.plot.n.worst.case.parameters, 2)
+        control$pdf.plot.n.worst.case.parameters <- min(control$pdf.plot.n.worst.case.parameters, nrow(ans))
+        control$pdf.plot.n.worst.case.parameters <- max(control$pdf.plot.n.worst.case.parameters, 2)
         worst.pars <- pars[, ans[order(NEFF)[1:control$pdf.plot.n.worst.case.parameters], VAR]]
         #    traces
         cat('\nPlotting traces for worst parameters...')
@@ -217,7 +218,7 @@ source.attribution.mcmc.diagnostics    <- function(mcmc.file, mc=NULL, control=l
         cat('\nPlotting marginal posterior densities for worst parameters...')
         p <- mcmc_hist(worst.pars, pars=colnames(worst.pars), facet_args = list(ncol=4))
         pdf(file=paste0(control$outfile.base,'_worst_marginalposteriors.pdf'), w=10, h=control$pdf.height.per.par*ncol(worst.pars)/4)
-		suppressMessages(print(p))
+        suppressMessages(print(p))
         dev.off()
         
         #    autocorrelations
@@ -228,4 +229,3 @@ source.attribution.mcmc.diagnostics    <- function(mcmc.file, mc=NULL, control=l
         dev.off()
     }
 }
-
