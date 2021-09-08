@@ -102,63 +102,63 @@ Statistical model
 
 `phyloflows` **uses a Bayesian approach to estimate the proportion of
 transmissions** between the two population groups,
-*π* = (*π*<sub>11</sub>, *π*<sub>12</sub>, *π*<sub>21</sub>, *π*<sub>22</sub>).
+$\pi = (\pi\_{11}, \pi\_{12}, \pi\_{21}, \pi\_{22})$.
 The model can be motivated as follows. Suppose the actual, unobserved
-number of transmissions from group *i* to group *j* are
-*z*<sub>*i**j*</sub>. Denote the vector of actual transmission counts by
-*z* = (*z*<sub>11</sub>, *z*<sub>12</sub>, *z*<sub>21</sub>, *z*<sub>22</sub>).
+number of transmissions from group $i$ to group $j$ are
+$z\_{ij}$. Denote the vector of actual transmission counts by
+$z = (z_{11}, z_{12}, z_{21}, z_{22})$.
 We assume that transmission events occurred independently of each other.
 Then the likelihood of the actual transmission counts can be modelled by
-*p*(*z*|*Z*, *π*) = *M**u**l**t**i**n**o**m**i**a**l*(*z*; *Z*, *π*),
-where *Z* is the total number of transmissions,
-*Z* = ∑<sub>*k**l*</sub>*z*<sub>*k**l*</sub>. Next, we specify a model
+$p(z|Z, \pi) = \textrm{Multinomial}(z; Z, \pi)$,
+where $Z$ is the total number of transmissions,
+$Z = \sum\_{k,l}z_{kl}$. Next, we specify a model
 for observing one actual transmission event. We assume that sampling
-occurred at random within each of the sampling groups *i* and *j*. We
+occurred at random within each of the sampling groups $i$ and $j$. We
 then obtain
-*p*(*n*<sub>*i**j*</sub>|*z*<sub>*i**j*</sub>, *s*<sub>*i*</sub>, *s*<sub>*j*</sub>) = *B**i**n**o**m**i**a**l*(*n*<sub>*i**j*</sub>; *z*<sub>*i**j*</sub>, *s*<sub>*i*</sub> \* *s*<sub>*j*</sub>),
-where *s*<sub>*i*</sub> is the probability of sampling an individual
-from group *i*, and similary for *s*<sub>*i*</sub>.
+$p(n\_{ij}|z\_{ij}, s_i, s_j) = \mathrm{Binomial}(n\_{ij}; z\_{ij}, s_i \times s_j)$,
+where $s_i$ is the probability of sampling an individual
+from group $i$.
 
 These equations suggest that one approach to infer the proportion of
-transmissions *π* could be via data augmentation. In data augmentation,
-we would consider the unobserved, actual transmission counts *z* as
+transmissions $\pi$ could be via data augmentation. In data augmentation,
+we would consider the unobserved, actual transmission counts $z$ as
 latent variables, and then infer the joint posterior distribution of the
-parameters (*z*, *Z*, *π*) with a Monte Carlo algorithm.
+parameters $(z, Z, \pi)$ with a Monte Carlo algorithm.
 
 **However there is a more efficient approach for the particular model
-above.** Inference of *π* under the Multinomial likelihood
-*M**u**l**t**i**n**o**m**i**a**l*(*z*; *Z*, *π*) is equivalent to
-inference of Poisson mean rates *λ*  
-*λ* = (*λ*<sub>11</sub>, *λ*<sub>12</sub>, *λ*<sub>21</sub>, *λ*<sub>22</sub>)
+above.** Inference of $\pi$ under the Multinomial likelihood
+$\textrm{Multinomial}(z; Z, \pi)$ is equivalent to
+inference of Poisson mean rates $\lambda$  
+$\lambda = (\lambda_{11}, \lambda_{12}, \lambda_{21}, \lambda_{22})$
 in the system of independent Poisson likelihoods
-*p*(*z*<sub>*i**j*</sub>|*λ*<sub>*i**j*</sub>) = *P**o**i**s**s**o**n*(*z*; *λ*<sub>*i**j*</sub>),
-where *λ*<sub>*i**j*</sub> &gt; 0, *i* = 1, 2 and *j* = 1, 2. The
+$p(z\_{ij}|\lambda_{ij}) = \mathrm{Poisson}(z; \lambda_{ij})$,
+where $\lambda_{ij} > 0$, $i \in \\{1, 2\\}$ and $j \in \\{1, 2\\}$. The
 proportion of transmissions *π* are recovered via the equations
-*π*<sub>*i**j*</sub> = *λ*<sub>*i**j*</sub>/∑<sub>*k* = 1, 2; *l* = 1, 2</sub>*λ*<sub>*k**l*</sub>.
-for *i* = 1, 2 and *j* = 1, 2. This is known as the Poisson trick. The
+$\pi_{ij} = \lambda_{ij}/\sum_{k,l \in \\{1, 2\\}}\lambda_{kl}$
+for $i \in \\{1, 2\\}$ and $j \in \\{1, 2\\}$. This is known as the Poisson trick. The
 advantage of this model parameterisation is that sampled Poisson random
 variables are again Poisson random variables, which allows us to
 integrate out analytically the unknown, actual transmission counts
-*z*<sub>*i**j*</sub>. We obtain  
-*p*(*n*|*λ*, *s*) = ∏<sub>*i* = 1, 2; *j* = 1, 2</sub>*P**o**i**s**s**o**n*(*n*<sub>*i**j*</sub>; *λ*<sub>*i**j*</sub> \* *s*<sub>*i*</sub> \* *s*<sub>*j*</sub>).
+$z_{ij}$. We obtain  
+$p(n|\lambda,s) = \prod_{i,j \in\\{1, 2\\}}\mathrm{Poisson}(n_{ij}; \lambda_{ij} \times s_i \times s_j)$.
 
-The free parameters of the model are (*λ*, *s*), and the posterior
+The free parameters of the model are $(\lambda, s)$, and the posterior
 distribution of the free parameters is given by
 $$
 \\begin{aligned}
 p(\\lambda, s | n) & \\propto p(n | \\lambda, s) p(\\lambda, s) \\\\
-              & = \\prod\_{i=1,2;j=1,2} Poisson(n\_{ij};\\lambda\_{ij}\*s\_i\*s\_j) p(\\lambda\_{ij}) p(s\_i) p(s\_j).
+              & = \\prod\_{i,j \in \\{1,2\\}} \mathrm{Poisson}(n\_{ij};\\lambda\_{ij}\times s\_i\times s\_j) p(\\lambda\_{ij}) p(s\_i) p(s\_j).
 \\end{aligned}
 $$
 
 **For the prior distributions**, we specify for
-*p*(*λ*<sub>*i**j*</sub>), *i* = 1, 2; *j* = 1, 2 uninformative prior
+$p(\lambda_{ij})$, $i,j \in \\{1,2\\}$ uninformative prior
 distributions. We use a Gamma distribution with parameters
-*α*<sub>*i*</sub> = 0.8/4 and *β* = 0.8/*Z* with
-*Z* = ∑<sub>*i**j*|*n*<sub>*i**j*</sub> &gt; 0</sub>*n*<sub>*i**j*</sub>/(*s*<sub>*i*</sub> \* *s*<sub>*j*</sub>) + ∑<sub>*i**j*|*n*<sub>*i**j*</sub> &gt; 0</sub>(1 − *s*<sub>*i*</sub> \* *s*<sub>*j*</sub>)/(*s*<sub>*i*</sub> \* *s*<sub>*j*</sub>).
+$\alpha_i = 0.8/4$ and $\beta = 0.8/Z$ with
+$Z = \sum_{i,j | | n_{ij} > 0 }n_{ij}/(s_i \times s_j) + \sum_{i,j | n_{ij} > 0} (1 − s_i\times s_j)/(s_i\times s_j)$.
 This choice implies for *π* a Dirichlet prior distribution with
-parameters *α*<sub>*i*</sub>, which is considered to be an objective
-choice. For *p*(*s*<sub>*i*</sub>), we use a strongly informative prior
+parameters $\alpha_i$, which is considered to be an objective
+choice. For $p(s_i)$, we use a strongly informative prior
 distribution, based on the available data as illustrated above.
 
 MCMC
@@ -169,10 +169,15 @@ MCMC syntax
 
 We use a Markov Chain Monte Carlo algorithm to sample from the posterior
 distribution
-*p*(*λ*, *s*|*n*) ∝ ∏<sub>*i* = 1, 2; *j* = 1, 2</sub>*P**o**i**s**s**o**n*(*n*<sub>*i**j*</sub>; *λ*<sub>*i**j*</sub> \* *s*<sub>*i*</sub> \* *s*<sub>*j*</sub>)*p*(*λ*<sub>*i**j*</sub>)*p*(*s*<sub>*i*</sub>)*p*(*s*<sub>*j*</sub>).
-Then, we calculate the main quantity of interest, *π*, via
-*π*<sub>*i**j*</sub> = *λ*<sub>*i**j*</sub>/∑<sub>*k* = 1, 2; *l* = 1, 2</sub>*λ*<sub>*k**l*</sub>.
-for *i* = 1, 2 and *j* = 1, 2. The syntax for running the algorithm is
+$$
+\begin{aligned}
+p(\lambda, s | n) \\propto \prod_{i,j\in\\{1,2\\}}\mathrm{Poisson}(n_{ij}; \lambda_{ij} \times s_i\times s_j)p(\lambda_{ij})p(s_i)p(s_j)
+\end{aligned}
+$$.
+
+Then, we calculate the main quantity of interest, $\pi$, via
+$\pi_{ij} = \lambda_{ij}/\sum_{k,l \in \\{1,2\\}}\lambda_{kl}$
+for $i,j \in \\{1,2\\}$. The syntax for running the algorithm is
 as follows.
 
     # specify a list of control variables:
@@ -206,23 +211,28 @@ Let s have a look at the output messages.
     probabilities *s*. Here, the number of flows between the two
     subpopulation is 4, and sampling was different in each subpopulation
     and by source recipient status, adding 4 parameters.
+-   `Number of parameters: 6`: The total number of unknown parameters in
+    the MCMC is the length of $\lambda$ plus length of the sampling
+    probabilities $s$. Here, the number of flows between the two
+    subpopulation is 4, and sampling was different in each
+    subpopulation, adding 2 parameters.
 -   `Dimension of PI: 4`: the number of flows between the two
     subpopulations is 4.
 -   `Sweep length: 8`: the MCMC updates in turn a subset of the sampling
     probabilities of transmission groups
     *ξ* = (*ξ*<sub>11</sub>, *ξ*<sub>12</sub>, *ξ*<sub>21</sub>, *ξ*<sub>22</sub>),    *ξ*<sub>*i**j*</sub> = *s*<sub>*i*</sub> \* *s*<sub>*j*</sub>,
-      
+    $\xi = (\xi_{11}, \xi_{12}, \xi_{21}, \xi_{22})$, for $\xi_{ij} = s_i\times s_j$,
     which is followed by an update of the entire vector of Poisson
-    transmission rates *λ*. The subset of *ξ* that is updated is
-    specified as follows. For each population group *i*, we determine
-    all components of *ξ* that involve *s*<sub>*i*</sub>. In our
-    example, for *i* = 1, the components of *ξ* to update are
-    (*ξ*<sub>11</sub>, *ξ*<sub>12</sub>, *ξ*<sub>21</sub>); and for
-    *i* = 2, the components of *ξ* to update are
-    (*ξ*<sub>12</sub>, *ξ*<sub>21</sub>, *ξ*<sub>22</sub>). An MCMC
+    transmission rates $\lambda$. The subset of $\xi$ that is updated is
+    specified as follows. For each population group $i$, we determine
+    all components of $\xi$ that involve $s_i$. In our
+    example, for $i = 1$, the components of $\xi$ to update are
+    $\xi_{11}$, $\xi_{12}$, and $\xi_{21}$ and for
+    $i = 2$, the components of $\xi$ to update are
+    $\xi_{12}$, $\xi_{21}$, and $\xi_{22}$. An MCMC
     sweep counts the number of MCMC iterations needed in order to update
     all parameters at least once. In our case, we have 2 updates on
-    components of *ξ*, and after each we update *λ*, so the sweep length
+    components of $\xi$, and after each we update $\lambda$, so the sweep length
     is 4.
 -   `Number of sweeps: 125`: The total number of sweeps is determined
     from `control[['mcmc.n']]`, by dividing `control[['mcmc.n']]` with

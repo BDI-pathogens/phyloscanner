@@ -16,7 +16,7 @@ blacklist.exact.duplicates <- function(ptree, raw.threshold, ratio.threshold, ti
       # get rid of anything that doesn't match the regexp (outgroup etc)
       tmp <-  x[!is.na(sapply(x, read.count.from.label, regexp = tip.regex))]
       if(length(tmp)>1){
-        tmp <- as.tibble(t(combn(tmp,2)))
+        tmp <- as_tibble(t(combn(tmp,2)))
         names(tmp) <- c('tip.1','tip.2')
         
         tmp

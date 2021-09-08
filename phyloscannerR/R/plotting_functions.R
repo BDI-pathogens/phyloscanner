@@ -140,6 +140,7 @@ produce.pdf.graphs <- function(file.name, sum.stats, hosts, xcoords, x.limits, m
   #     })
   # }
   # 
+
   invisible(dev.off())
 }
 
@@ -158,7 +159,8 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
     
     plot.list <- list()
     
-    if (verbose) cat("Drawing graphs for host ",host,"\n", sep="")
+
+    if (verbose) cat("Drawing graphs for host ",host,"...\n", sep="")
     
     # The coordinates for windows missing from all patients are known. These are those missing for this patient, but not all patients.
     
@@ -167,6 +169,8 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
     if(regular.gaps & length(which(host.stats$reads==0))){
       missing.read.rects <- form.rectangles(host.stats$xcoord[which(host.stats$reads==0)], xcoords, "grey")
     }
+    
+
     
     # rbind on two NULLs still makes a NULL
     
@@ -185,7 +189,7 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
     
     log.scale <- max(host.stats.gd.1$value - min(host.stats.gd.1$value) >= 10)
     y.limits <- NULL
-    
+  
     graph.1 <- ggplot(host.stats.gd.1, aes(x=xcoord, y=value, col=variable))
     
     graph.1 <- graph.1 + geom_point(na.rm=TRUE) +
@@ -210,7 +214,7 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
     }
     
     plot.list[["reads.and.tips"]] <- graph.1
-    
+
     # Graph 2: subgraph and clade counts
     
     host.stats.gd.2 <- host.stats %>% 
@@ -261,7 +265,7 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
     
     host.stats.gd.3 <- host.stats %>% 
       select(xcoord, overall.rtt, largest.rtt) %>% 
-      gather(variable, value, overall.rtt, largest.rtt) %>%
+      pivot_longer(2:3, names_to = "variable") %>%
       mutate(variable = factor(variable, levels=c("overall.rtt", "largest.rtt")))
     
     graph.3 <- ggplot(host.stats.gd.3, aes(x=xcoord, y=value))
@@ -284,6 +288,7 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
     }
     
     plot.list[["root.to.tip"]] <- graph.3
+
     
     # Graph 4: largest patristic distances overall and in largest subgraph
     
@@ -335,7 +340,7 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
       mutate(ngroup = map_int(variable, function(x) which(unique(host.stats.gd.5$variable)==x))) %>%
       mutate_at("ngroup", as.factor)
     
-    graph.5 <- ggplot(host.stats.gd.5, aes(x=xcoord, weight=value, fill=reorder(ngroup, rev(order(host.stats.gd.5$ngroup)))))
+    graph.5 <- ggplot(host.stats.gd.5, aes(x=xcoord, weight=value, fill=reorder(ngroup, rev(order(ngroup)))))
     
     graph.5 <- graph.5 +
       geom_bar(width=bar.width, colour="black", lty="blank") +
@@ -352,7 +357,7 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
     }
     
     plot.list[["subgraph.read.proportions"]] <- graph.5
-    
+  
     # graph 6: recombination metric
     
     if("recombination.metric" %in% names(host.stats)) {     
@@ -376,7 +381,6 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
     }
     
     if("solo.dual.count" %in% names(host.stats)) {
-      
       
       graph.7 <- ggplot(host.stats, aes(x=xcoord, y=solo.dual.count))
       y.label <- "Multiplicity of infection"
@@ -571,10 +575,23 @@ produce.pairwise.graphs <- function(ptrees,
   
   wrong.dir <- which(t.stats$host.2 < t.stats$host.1)
   t.stats <- t.stats %>% 
-    mutate(ancestry = replace(ancestry, ancestry=="anc" & host.2 < host.1, "desc")) %>% 
-    mutate(ancestry = replace(ancestry, ancestry=="desc" & host.2 < host.1, "anc")) %>% 
-    mutate(ancestry = replace(ancestry, ancestry=="mutltiAnc" & host.2 < host.1, "multiDesc")) %>% 
-    mutate(ancestry = replace(ancestry, ancestry=="multiDesc" & host.2 < host.1, "multiAnc")) 
+    mutate(ancestry = pmap_chr(list(host.1, host.2, ancestry), function(h1,h2,a){
+      if(h1 <= h2){
+        a
+      } else if(!(a %in% c("anc", "desc", "multiAnc", "multiDesc"))){
+        
+        a
+      } else {
+        switch(a, 
+               "anc" = "desc",
+               "desc" = "anc",
+               "multiAnc" = "multiDesc",
+               "multiDesc" = "multiAnc")
+      }
+      
+    })) %>%
+    select(-paths12, -paths21, -nodes1, -nodes2)
+  
   t.stats[wrong.dir,c(1,2)] <- t.stats[wrong.dir,c(2,1)]
   
   hosts.by.tree <- map(1:length(ptrees), function(x){
@@ -621,12 +638,18 @@ produce.pairwise.graphs <- function(ptrees,
     mutate(nondir.ancestry = replace(nondir.ancestry, nondir.ancestry %in% c("multiAnc", "multiDesc"), "multiTrans")) %>%
     mutate(nondir.ancestry = factor(nondir.ancestry, levels = c("trans", "multiTrans", "noAncestry", "complex"))) %>%
     mutate(linked = ((!contiguous.pairs & adjacent) | (contiguous.pairs & contiguous)) & within.distance) %>%
+    mutate(linked = map_chr(linked, function(x)  ifelse(is.na(x), "Member absent", ifelse(x, "Yes", "No")))) %>%
+    mutate(linked = factor(linked, levels = c("Yes", "No", "Member absent"))) %>%
     mutate(adjacent = replace(adjacent, is.na(adjacent), T)) %>%
+    mutate(adjacent = map_chr(adjacent, function(x) ifelse(x, "Yes", "No"))) %>%
+    mutate(adjacent = factor(adjacent, levels = c("Yes", "No"))) %>%
     mutate(contiguous = replace(contiguous, is.na(contiguous), T)) %>%
+    mutate(contiguous = map_chr(contiguous, function(x) ifelse(x, "Yes", "No"))) %>%
+    mutate(contiguous = factor(contiguous, levels = c("Yes", "No"))) %>%
     mutate(fact.within.distance = as.character(within.distance)) %>%
     mutate(fact.within.distance = replace(fact.within.distance, fact.within.distance=="TRUE", "Within threshold")) %>%
     mutate(fact.within.distance = replace(fact.within.distance, fact.within.distance=="FALSE", "Outside threshold")) %>%
-    mutate(fact.within.distance = factor(fact.within.distance)) %>%
+    mutate(fact.within.distance = factor(fact.within.distance, levels = c("Within threshold", "Outside threshold"))) %>%
     mutate(arrow = ancestry) %>%
     mutate(arrow = replace(arrow, arrow %in% c("anc", "multiAnc"), 1)) %>%
     mutate(arrow = replace(arrow, arrow %in% c("desc", "multiDesc"), 2)) %>%
@@ -654,17 +677,7 @@ produce.pairwise.graphs <- function(ptrees,
     stop("No pairs match this vector of hosts")
   }
   
-  if(all(pair.data$within.distance, na.rm = T)){
-    linevals <- "solid"
-  } else if(all(!pair.data$linked, na.rm = T)){
-    linevals <- "dashed"
-  } else {
-    linevals <- c("dashed", "solid")
-  }
-  
-  
   pairwise.plot <- ggplot(pair.data) +
-    geom_point(aes(y=host.2, x = xcoord, alpha = as.numeric(host.2.present), fill=linked), col="black", size=2, shape=21) +
     geom_point(aes(y=host.1, x = xcoord, alpha = as.numeric(host.1.present), fill=linked), col="black", size=2, shape=21) +
     geom_point(aes(y=host.2, x = xcoord, alpha = as.numeric(host.2.present), fill=linked), col="black", size=2, shape=21) +
     geom_segment(data = pair.data %>% filter(!not.present), 
@@ -676,12 +689,9 @@ produce.pairwise.graphs <- function(ptrees,
                  show.legend = FALSE, na.rm=TRUE) +
     geom_point(data = pair.data %>% filter(!host.1.present), aes(y=host.1, x = xcoord), col="black", shape = 4, size=2) +
     geom_point(data = pair.data %>% filter(!host.2.present), aes(y=host.2, x = xcoord), col="black", shape = 4, size=2) +
-    geom_point(aes(x = xcoord, shape = !adjacent), y=1.5, col="red3", size=5) +
-    scale_fill_discrete(name="Linked", labels=c("No", "Yes", "Member\nabsent")) +
-    scale_linetype_manual(values = linevals, drop=F, name="Distance\nthreshold", labels = c("Outside", "Within")) +
-    scale_alpha_continuous(range = c(0.33, 1), guide=FALSE) +
+    scale_fill_manual(drop = F, name="Linked", labels=c("Yes", "No", "Member\nabsent"), values = c("#377eb8", "#e41a1c", "#bdbdbd")) +
+    scale_linetype_manual(drop=F, name="Distance\nthreshold", values = c("solid", "dashed"), labels = c("Within", "Outside")) +
     scale_colour_manual(drop=FALSE, values = c("blue3", "green4", "darkorange2", "orange4"), name="Ancestry", labels = c("Single", "Multiple", "None", "Complex")) +
-    scale_shape_manual(values = c(32, 126), name="Adjacent", labels = c("Yes", "Blocked")) +
     facet_wrap(~paircombo, ncol = 1, scales="free_y") + 
     theme_minimal() + 
     theme(panel.grid.major.y = element_blank(), 
@@ -691,6 +701,24 @@ produce.pairwise.graphs <- function(ptrees,
     guides(col = guide_legend(override.aes = list(shape = 32))) +
     xlab("Window centre") +
     ylab("Host")
+  
+  if(contiguous.pairs & any(pair.data$contiguous == "No")){
+    pairwise.plot <- pairwise.plot +
+      geom_point(aes(x = xcoord, shape = contiguous=="No"), y=1.5, col="red3", size=5) +
+      scale_shape_manual(drop=F, values = c(32, 126), name="Contiguous", labels = c("Yes", "Blocked")) 
+  } else if(!contiguous.pairs & any(pair.data$adjacent == "No")) {
+    pairwise.plot <- pairwise.plot +
+      geom_point(aes(x = xcoord, shape = adjacent=="No"), y=1.5, col="red3", size=5) +
+      scale_shape_manual(drop=F, values = c(32, 126), name="Adjacent", labels = c("Yes", "Blocked")) 
+  }
+  
+  if(any(!pair.data$host.1.present) | any(!pair.data$host.2.present)){
+    pairwise.plot <- pairwise.plot + 
+      scale_alpha_continuous(range = c(0.33, 1), guide=FALSE) 
+  } else {
+    pairwise.plot <- pairwise.plot + 
+      scale_alpha_continuous(range = c(1, 1), guide=FALSE) 
+  }
   
   return(list(graph = pairwise.plot, data = pair.data))
 }

@@ -4,7 +4,7 @@
 #' @importFrom extraDistr rmvhyper
 #' @export downsample.host
 
-downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, exclude.underrepresented = F, no.read.counts = T, name = NA, verbose=F){
+downsample.host <- function(host, tree, number, tip.regex, host.ids, rename = F , exclude.underrepresented = F, no.read.counts = T, name = NA, verbose=F){
   if(verbose) cat("Downsampling tips for host ", host, "...\n", sep="")
   
   tips.from.host <- which(host.ids==host)
@@ -12,6 +12,11 @@ downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, e
   
   if(!no.read.counts){
     read.counts <- as.numeric(sapply(labels.from.host, function(tip) read.count.from.label(tip, tip.regex))) 
+    
+    if(any(is.na(read.counts))){
+      stop("Some tips have no read counts despite matching a tip regex which requires them. This sometimes happens when the tip regex does not end with a $")
+    }
+    
   } else {
     read.counts <- rep(1, length(labels.from.host))
   }
@@ -111,16 +116,18 @@ downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, e
 #' @export downsample.tree
 
 downsample.tree <- function(ptree, hosts.to.include, max.reads, rename = F, exclude.underrepresented = F, no.read.counts = T, tip.regex, seed=NA, verbose=F) {
-  
+
   if(verbose){
     cat("Downsampling reads on tree ",ptree$id," to ",max.reads," per host...\n",sep = "")
   }
 
+
   if(!is.na(seed)){
     set.seed(seed)
   }
-  
+
   if(is.null(ptree$tree)){
+    
     if(verbose){
       cat("Loading tree...\n",sep = "")
     }
@@ -130,6 +137,7 @@ downsample.tree <- function(ptree, hosts.to.include, max.reads, rename = F, excl
   } else {
     tree <- ptree$tree
   }
+  
   
   if(!is.null(ptree$blacklist)){
     blacklist <- ptree$blacklist
@@ -151,9 +159,11 @@ downsample.tree <- function(ptree, hosts.to.include, max.reads, rename = F, excl
   }
 
   
-  tree.1 <- drop.tip(tree, blacklist)
   
+  tree.1 <- drop.tip(tree, blacklist)
+
   host.ids      <- sapply(tree.1$tip.label, function(tip) host.from.label(tip, tip.regex))
+  
   hosts.present <- host.ids[!is.na(host.ids)]
   hosts.present <- unique(hosts.present)
   

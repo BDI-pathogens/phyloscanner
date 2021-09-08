@@ -449,7 +449,7 @@ blacklist <- function(ptrees,
   
   
   # Read the user blacklists
-  
+
   
   if(any(sapply(ptrees, function(x) !is.null(x$user.blacklist.file.name))) & verbosity!=0){
     cat("Reading user blacklists...\n")
@@ -513,7 +513,7 @@ blacklist <- function(ptrees,
   if(min.tips.per.host > 1){
     if (verbosity!=0) cat("Removing hosts from trees where they have less than ",min.tips.per.host," tips...\n", sep="")
     
-    ptrees <- sapply(ptrees, function(ptree) blacklist.using.min.tips.or.reads(ptree, min.tips.per.host, "tips", tip.regex, verbosity == 2))
+    ptrees <- sapply(ptrees, function(ptree) blacklist.using.min.tips.or.reads(ptree, min.tips.per.host, "tips", tip.regex, verbosity == 2), simplify = F, USE.NAMES = T)
   }
   
   # Min read count blacklisting
@@ -521,16 +521,17 @@ blacklist <- function(ptrees,
   if(min.reads.per.host > 1){
     if (verbosity!=0) cat("Removing hosts from trees where they have less than ",min.reads.per.host," reads...\n", sep="")
   
-    ptrees <- sapply(ptrees, function(ptree) blacklist.using.min.tips.or.reads(ptree, min.reads.per.host, "reads", tip.regex, verbosity == 2))
+    ptrees <- sapply(ptrees, function(ptree) blacklist.using.min.tips.or.reads(ptree, min.reads.per.host, "reads", tip.regex, verbosity == 2), simplify = F, USE.NAMES = T)
   }
   
   # Downsampling
   
   if(max.reads.per.host < Inf){
     if (verbosity!=0) cat("Downsampling to equalise read counts across hosts...\n", sep="")
-    
-    ptrees <- sapply(ptrees, function(ptree) blacklist.from.random.downsample(ptree, max.reads.per.host, blacklist.underrepresented, has.read.counts, tip.regex, NA, verbose = verbosity==2), simplify = F, USE.NAMES = T)
+
+    ptrees <- sapply(ptrees, function(ptree) blacklist.from.random.downsample(ptree, max.reads.per.host, blacklist.underrepresented, has.read.counts, tip.regex, NA, verbose = verbosity==2),  simplify = F, USE.NAMES = T)
   }
+  
   
   ptrees
 }
@@ -619,7 +620,7 @@ blacklist <- function(ptrees,
 #' \item{\code{outgroup.name}}{ The tip label of the outgroup.}
 #' }
 #' @importFrom ape read.tree read.nexus di2multi root node.depth.edgelength
-#' @importFrom tibble tibble as.tibble
+#' @importFrom tibble tibble as_tibble
 #' @importFrom readr read_csv
 #' @import purrr
 #' @import viridis
@@ -1078,20 +1079,21 @@ phyloscanner.generate.blacklist <- function(
 #' @export gather.summary.statistics
 
 gather.summary.statistics <- function(ptrees, hosts = all.hosts.from.trees(ptrees), tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$", verbose = F){
-  
+
   has.read.counts <- attr(ptrees, 'has.read.counts')
   
   pat.stats <- ptrees %>% map(function(x) calc.all.stats.in.window(x, hosts, tip.regex, has.read.counts, verbose))
   pat.stats <- pat.stats %>% bind_rows
-  
+
   read.proportions <- ptrees %>% map(function(y) sapply(hosts, function(x) get.read.proportions(x, y$id, y$splits.table), simplify = F, USE.NAMES = T))
-  
+
   # Get the max split count over every window and host (the exact number of columns depends on this)
   
   max.splits <- max(map_int(read.proportions, function(x) max(sapply(x, function(y) length(y)))))
-  
+
   read.prop.columns <- map(ptrees, function(x){
     window.props <- read.proportions[[x$id]]
+
     out <- hosts %>% map(function(y){
       
       result <- window.props[[y]]
@@ -1105,14 +1107,16 @@ gather.summary.statistics <- function(ptrees, hosts = all.hosts.from.trees(ptree
         }
       }
       
-      result
-    })
+      temp <- result %>% t %>% as_tibble(.name_repair = "minimal")
+
+      colnames(temp) <- paste("prop.gp.",seq(1,max.splits),sep="")
+      temp
+    }) %>% bind_rows()
+
     
-    out <- as_tibble(do.call(rbind, out))
+
     out$host.id <- hosts
     out$tree.id <- x$id
-    
-    names(out) <- c(paste("prop.gp.",seq(1,max.splits),sep=""), "host.id", "tree.id")
     
     out
   })
@@ -1239,7 +1243,6 @@ multipage.summary.statistics <- function(ptrees, sum.stats, hosts = all.hosts.fr
   regular.gaps <- missing.window.data$regular.gaps
   rectangles.for.missing.windows <- missing.window.data$rectangles.for.missing.windows
   bar.width <- missing.window.data$bar.width
-  
   produce.pdf.graphs(file.name, sum.stats, hosts, xcoords, x.limits, rectangles.for.missing.windows, bar.width, regular.gaps, width, height, readable.coords, verbose)
 }
 
@@ -1256,7 +1259,8 @@ multipage.summary.statistics <- function(ptrees, sum.stats, hosts = all.hosts.fr
 #' @import ggplot2
 #' @export write.annotated.tree
 
-write.annotated.tree <- function(ptree, file.name, format = c("pdf", "nex"), pdf.scale.bar.width = 0.01, pdf.w = 50, pdf.hm = 0.15, verbose = F){	
+
+write.annotated.tree <- function(ptree, file.name, format = c("pdf", "nex"), pdf.scale.bar.width = 0.01, pdf.w = 50, pdf.hm = 0.15, verbose = F){
   tree <- ptree$tree
   read.counts <- ptree$read.counts
   
@@ -1270,6 +1274,8 @@ write.annotated.tree <- function(ptree, file.name, format = c("pdf", "nex"), pdf
   if(verbose) cat(paste0("Writing .",format," tree to file ",file.name,"\n"))
   
   if(format == "pdf"){
+    
+
     
     tree.display <- ggtree(tree, aes(color=BRANCH_COLOURS)) +
       geom_point2(aes(subset=SUBGRAPH_MRCA, color=INDIVIDUAL), shape = 23, size = 3, fill="white") +
@@ -1291,11 +1297,6 @@ write.annotated.tree <- function(ptree, file.name, format = c("pdf", "nex"), pdf
     if(is.null(x.max)){
       x.max <- ggplot_build(tree.display)$layout$panel_params[[1]]$x.range[2]
     }
-    
-    if(is.null(x.max)){
-      x.max <- ggplot_build(tree.display)$layout$panel_ranges[[1]]$x.range[2]
-    }
-    
     
     tree.display <- tree.display + ggplot2::xlim(0, 1.1*x.max)
     tree.display
@@ -1702,21 +1703,22 @@ blacklist.using.min.tips.or.reads <- function(ptree, minimum, type=c("tips", "re
   hosts   <- unique(na.omit(tip.hosts))
   
   if(type == "tips"){
-    newly.blacklisted                           <-blacklist.by.tip.count(ptree, hosts, minimum)
+    newly.blacklisted                           <- blacklist.by.tip.count(ptree, hosts, minimum)
     if(verbose & length(newly.blacklisted)>0) cat(length(newly.blacklisted), " tips blacklisted from hosts with fewer than ",minimum," tips total in tree ID ",ptree$id, "\n", sep="")
-    
   } else {
     newly.blacklisted                           <- blacklist.by.read.count(ptree, hosts, minimum, tip.regex)
     if(verbose & length(newly.blacklisted)>0) cat(length(newly.blacklisted), " tips blacklisted from hosts with fewer than ",minimum," reads total in tree ID ",ptree$id, "\n", sep="")
   }
-  
+
   ptree$hosts.for.tips[newly.blacklisted] <- NA
   
   if(length(newly.blacklisted)>0){
     ptree$tree                                  <- ptree$tree %>% rename.blacklisted.tips(newly.blacklisted, paste0("TOOFEW", toupper(type)))
 
     ptree$bl.report$status[newly.blacklisted]   <- paste0("bl_too_few_", type)
+
     ptree$bl.report$kept[newly.blacklisted]     <- F
+
     
     if(!is.null(ptree$blacklist)){
       ptree$blacklist                             <- newly.blacklisted
@@ -1725,8 +1727,9 @@ blacklist.using.min.tips.or.reads <- function(ptree, minimum, type=c("tips", "re
       ptree$blacklist                             <- unique(c(ptree$blacklist, newly.blacklisted))
       ptree$blacklist                             <- ptree$blacklist[order(ptree$blacklist)]
     }
+    
+
   }
-  
 
   ptree
 }

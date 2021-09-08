@@ -241,6 +241,11 @@ if(!is.null(norm.ref.file.name) & !is.null(norm.constants.input)){
 
 # Regexes for suffixes and window coordinates
 tip.regex                     <- args$tipRegex
+
+if(!endsWith(tip.regex, "$")){
+  warning("tip regex does not end with an end of line character ('$'). This can cause problems with blacklisting; try adding one if phyloscanner crashes.")
+}
+
 file.name.regex               <- args$fileNameRegex
 
 # What blacklisting to do and how
@@ -574,7 +579,7 @@ if(length(phyloscanner.trees)>1){
   }
   
   summary.stats <- gather.summary.statistics(phyloscanner.trees, tip.regex = tip.regex, verbose = verbosity==2)
-  
+
   ss.csv.fn <- paste0(output.string,"_patStats", csv.fe)
   
   if(verbosity!=0 & output.files){
@@ -587,27 +592,32 @@ if(length(phyloscanner.trees)>1){
   
   ss.graphs.fn <- paste0(output.string,"_patStats.pdf")
   
-  if(verbosity!=0 & output.files){
-    cat("Graphing summary statistics to file ",ss.graphs.fn,"...\n", sep="")
-  }
-  
   if(output.files){
+    if(verbosity!=0){
+      cat("Graphing summary statistics to file ",ss.graphs.fn,"...\n", sep="")
+    }
     silent <- multipage.summary.statistics(phyloscanner.trees, summary.stats, file.name = file.path(output.dir, ss.graphs.fn), verbose = verbosity==2)
   }
-  
+
   hosts <- all.hosts.from.trees(phyloscanner.trees)
   
+
   if(length(hosts)>1){
     
     if(!multinomial){
+
+      
       if(post.hoc.min.counts){
         ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, tip.regex, min.tips.per.host, min.reads.per.host, close.sib.only = F, verbosity==2)
       } else {
         ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, tip.regex, 1, 1, close.sib.only = F, verbosity==2)
       }
       
-      if (verbosity!=0 & output.files) cat('Writing transmission summary to file ', paste0(output.string,"_hostRelationshipSummary", csv.fe),'...\n', sep="")
-      write_csv(ts, file.path(output.dir, paste0(output.string,"_hostRelationshipSummary", csv.fe)))
+      if (output.files){
+        if (verbosity!=0) cat('Writing transmission summary to file ', paste0(output.string,"_hostRelationshipSummary", csv.fe),'...\n', sep="")
+        write_csv(ts, file.path(output.dir, paste0(output.string,"_hostRelationshipSummary", csv.fe)))
+      }
+      
     } else {
       relationship.types	<- c('proximity.3.way',
                               'any.ancestry',
@@ -646,8 +656,10 @@ if(length(phyloscanner.trees)>1){
           
           simplified.graph <- simplify.summary(ts, arrow.threshold, length(phyloscanner.trees), plot = T)
           
-          simplified.graph$simp.diagram
-          ggsave(file = file.path(output.dir, paste0(output.string,"_simplifiedRelationshipGraph.pdf")), width=simp.plot.dim, height=simp.plot.dim)
+          if(output.files){
+            simplified.graph$simp.diagram
+            ggsave(file = file.path(output.dir, paste0(output.string,"_simplifiedRelationshipGraph.pdf")), width=simp.plot.dim, height=simp.plot.dim)
+          }
         }
       } else {
         if (verbosity!=0 & output.files) cat('Drawing simplified summary diagram to file ', paste0(output.string,"_simplifiedRelationshipGraph.pdf"),'...\n', sep="")

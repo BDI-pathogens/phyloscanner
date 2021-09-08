@@ -514,9 +514,9 @@ get.pairwise.relationships.close.and.contiguous.and.ancestry.cat <- function(all
 #' @export summarise.classifications
 
 summarise.classifications <- function(ptrees, min.threshold, dist.threshold, tip.regex, min.reads = 1, min.tips = 1, close.sib.only = F, verbose = F, contiguous = F){
-  
+
   tt <- merge.classifications(ptrees, verbose)
-  
+
   if(min.reads > 1 | min.tips > 1){
     tt <- select.windows.by.read.and.tip.count(ptrees, tt, tip.regex, min.reads, min.tips, verbose)
     tt <- tt %>% select(-reads.1, -reads.2, -tips.1, -tips.2)
@@ -589,6 +589,7 @@ summarise.classifications <- function(ptrees, min.threshold, dist.threshold, tip
 #' @keywords internal
 #' @importFrom network as.network.matrix
 #' @export simplify.summary
+
 
 simplify.summary <- function(summary, arrow.threshold, total.trees, plot = F){
   
@@ -726,7 +727,7 @@ simplify.summary.multinomial <- function(summary, win.threshold, arrow.threshold
            })
     ) %>%
     filter(total > 0) %>%
-    select(host.1, host.2, arrow, label)
+    select(host.1, host.2, total.12, total.21, total, arrow, label)
   
   relevant.lines[which(relevant.lines$arrow=="backwards"),c(1,2)] <- relevant.lines[which(relevant.lines$arrow=="backwards"),c(2,1)] 
   

@@ -26,28 +26,28 @@ Sources of transmission for each group
 
 OK, so now we have samples from posterior distribution of transmission
 flows within and between the two population groups,
-*π* = (*π*<sub>11</sub>, *π*<sub>12</sub>, *π*<sub>21</sub>, *π*<sub>22</sub>).
+$\pi = (\pi_{11}, \pi_{12}, \pi_{21}, \pi_{22})$.
 One important summary statistic are the sources of transmissions into
 each recipient group, defined by
-*η* = (*η*<sub>11</sub>, *η*<sub>21</sub>, *η*<sub>12</sub>, *η*<sub>22</sub>)
+$\eta = (\eta_{11}, \eta_{12}, \eta_{21}, \eta_{22})$
 where
-*η*<sub>*i**j*</sub> = *π*<sub>*i**j*</sub>/∑<sub>*s*</sub>*π*<sub>*s**j*</sub>.
+$\eta_{ij} = \pi_{ij}/∑_k\pi_{kj}$.
 
 Onward transmissions from each group
 ------------------------------------
 
 Another important summary statistic are the proportions of transmissions
 that originate from each group, defined by
-*ν* = (*ν*<sub>11</sub>, *ν*<sub>21</sub>, *ν*<sub>12</sub>, *ν*<sub>22</sub>)
+$\nu = (\nu_{11}, \nu_{12}, \nu_{21}, \nu_{22})$
 where
-*ν*<sub>*i**j*</sub> = *π*<sub>*i**j*</sub>/∑<sub>*s*</sub>*π*<sub>*i**s*</sub>.
+$\nu_{ij} = \pi_{ij}/\sum_k\pi_{ik}$.
 
 Transmission flow ratios
 ------------------------
 
 Yet another important summary statistic are ratios of transmission
 flows, defined by
-*ρ*<sub>*i**j*</sub> = *π*<sub>*i**j*</sub>/*π*<sub>*j**i*</sub>.
+$\rho_{ij} = \pi_{ij}/\pi_{ji}$.
 
 Calculating key quantities
 --------------------------

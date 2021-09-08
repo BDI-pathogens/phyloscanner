@@ -25,6 +25,7 @@ sudo R
 # Inside the interactive R console, run
 install.packages("devtools")
 library(devtools)
-source("https://bioconductor.org/biocLite.R")
-biocLite("ggtree")
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("ggtree")
 install(".", dependencies = T)
