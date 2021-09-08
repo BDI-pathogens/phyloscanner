@@ -4,7 +4,7 @@
 #' @importFrom extraDistr rmvhyper
 #' @export downsample.host
 
-downsample.host <- function(host, tree, number, tip.regex, host.ids, rename=F, exclude.underrepresented = F, no.read.counts = T, name = NA, verbose=F){
+downsample.host <- function(host, tree, number, tip.regex, host.ids, rename = F , exclude.underrepresented = F, no.read.counts = T, name = NA, verbose=F){
   if(verbose) cat("Downsampling tips for host ", host, "...\n", sep="")
   
   tips.from.host <- which(host.ids==host)

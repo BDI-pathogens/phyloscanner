@@ -658,7 +658,6 @@ classify <- function(ptree, allow.mt = F, relaxed.ancestry = F, verbose = F, no.
     
     if (verbose) cat("Reading tree file ", ptree$tree.file.name, "...\n", sep = "")
     
-    
     pseudo.beast.import <- read.beast(ptree$tree.file.name)
     
     if (verbose) cat("Reading annotations...\n")
@@ -694,11 +693,7 @@ classify <- function(ptree, allow.mt = F, relaxed.ancestry = F, verbose = F, no.
   
   if (verbose) cat("Collecting tips for each host...\n")
   
-
-  
   hosts <- unique(splits$host)
-  
-
   
   hosts <- hosts[hosts!="unassigned"]
   
@@ -897,7 +892,6 @@ classify <- function(ptree, allow.mt = F, relaxed.ancestry = F, verbose = F, no.
 
 
 merge.classifications <- function(ptrees, verbose = F){
-  
   classification.rows	<- ptrees %>% map(function(ptree) {
     
     if(is.null(ptree$classification.results$classification) & is.null(ptree$classification.file.name)){
@@ -907,7 +901,7 @@ merge.classifications <- function(ptrees, verbose = F){
     if(!is.null(ptree$classification.results$classification)){
       # TODO this doesn't need to be coerced to a tibble in the end - it should be already
       
-      tt <- as.tibble(ptree$classification.results$classification)
+      tt <- as_tibble(ptree$classification.results$classification)
       
       # TODO remove this hack
       if("path.classification" %in% names(tt)) tt <- tt %>% rename(ancestry = path.classification)
@@ -924,7 +918,6 @@ merge.classifications <- function(ptrees, verbose = F){
     
     tt
   })	
-  
   if(length(classification.rows)==0){
     stop("No classification results present in any window; cannot continue.\n")
   }
@@ -951,11 +944,11 @@ merge.classifications <- function(ptrees, verbose = F){
   #
   # rbind consolidated files
   #
-  
+
   if(verbose) cat("Consolidating file contents...\n")
-  
+
   classification.rows <- bind_rows(classification.rows)
-  
+
   if(verbose) cat("Finding patristic distance columns...\n")
   
   # reset names depending on which classify script was used

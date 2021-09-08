@@ -4,8 +4,7 @@
 \alias{select.windows.by.read.and.tip.count}
 \title{Select for further analysis relationship classifications by read and tip counts}
 \usage{
-\method{select}{windows.by.read.and.tip.count}(ptrees, dwin, tip.regex,
-  min.reads, min.tips, verbose = F)
+\method{select}{windows.by.read.and.tip.count}(ptrees, dwin, tip.regex, min.reads, min.tips, verbose = F)
 }
 \arguments{
 \item{ptrees}{A list of class \code{phyloscanner.trees} produced by \code{phyloscanner.analyse.trees}.}

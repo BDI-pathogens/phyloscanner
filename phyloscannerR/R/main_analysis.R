@@ -620,7 +620,7 @@ blacklist <- function(ptrees,
 #' \item{\code{outgroup.name}}{ The tip label of the outgroup.}
 #' }
 #' @importFrom ape read.tree read.nexus di2multi root node.depth.edgelength
-#' @importFrom tibble tibble as.tibble
+#' @importFrom tibble tibble as_tibble
 #' @importFrom readr read_csv
 #' @import purrr
 #' @import viridis
@@ -1079,20 +1079,21 @@ phyloscanner.generate.blacklist <- function(
 #' @export gather.summary.statistics
 
 gather.summary.statistics <- function(ptrees, hosts = all.hosts.from.trees(ptrees), tip.regex = "^(.*)_read_([0-9]+)_count_([0-9]+)$", verbose = F){
-  
+
   has.read.counts <- attr(ptrees, 'has.read.counts')
   
   pat.stats <- ptrees %>% map(function(x) calc.all.stats.in.window(x, hosts, tip.regex, has.read.counts, verbose))
   pat.stats <- pat.stats %>% bind_rows
-  
+
   read.proportions <- ptrees %>% map(function(y) sapply(hosts, function(x) get.read.proportions(x, y$id, y$splits.table), simplify = F, USE.NAMES = T))
-  
+
   # Get the max split count over every window and host (the exact number of columns depends on this)
   
   max.splits <- max(map_int(read.proportions, function(x) max(sapply(x, function(y) length(y)))))
-  
+
   read.prop.columns <- map(ptrees, function(x){
     window.props <- read.proportions[[x$id]]
+
     out <- hosts %>% map(function(y){
       
       result <- window.props[[y]]
@@ -1106,14 +1107,16 @@ gather.summary.statistics <- function(ptrees, hosts = all.hosts.from.trees(ptree
         }
       }
       
-      result
-    })
+      temp <- result %>% t %>% as_tibble(.name_repair = "minimal")
+
+      colnames(temp) <- paste("prop.gp.",seq(1,max.splits),sep="")
+      temp
+    }) %>% bind_rows()
+
     
-    out <- as_tibble(do.call(rbind, out))
+
     out$host.id <- hosts
     out$tree.id <- x$id
-    
-    names(out) <- c(paste("prop.gp.",seq(1,max.splits),sep=""), "host.id", "tree.id")
     
     out
   })
@@ -1240,7 +1243,6 @@ multipage.summary.statistics <- function(ptrees, sum.stats, hosts = all.hosts.fr
   regular.gaps <- missing.window.data$regular.gaps
   rectangles.for.missing.windows <- missing.window.data$rectangles.for.missing.windows
   bar.width <- missing.window.data$bar.width
-  
   produce.pdf.graphs(file.name, sum.stats, hosts, xcoords, x.limits, rectangles.for.missing.windows, bar.width, regular.gaps, width, height, readable.coords, verbose)
 }
 
@@ -1271,6 +1273,8 @@ write.annotated.tree <- function(ptree, file.name, format = c("pdf", "nex"), pdf
   if(verbose) cat(paste0("Writing .",format," tree to file ",file.name,"\n"))
   
   if(format == "pdf"){
+    
+
     
     tree.display <- ggtree(tree, aes(color=BRANCH_COLOURS)) +
       geom_point2(aes(subset=SUBGRAPH_MRCA, color=INDIVIDUAL), shape = 23, size = 3, fill="white") +
