@@ -1,7 +1,7 @@
 This vignette describes how to aggregate estimated transmission flows to
 those of other (broader) population groups. Please work through the
 vignette *phyloflows: Estimating transmission flows under heterogeneous
-sampling - a first example* before you go ahead here.
+sampling – a first example* before you go ahead here.
 
 Getting started
 ---------------
@@ -9,7 +9,7 @@ Getting started
 We continue our “First\_Example”. The following code chunk contains all
 code needed, up to running **phyloflows** MCMC routine. The only change
 is that the number of iterations is now 50, 000. The MCMC should take
-about 2 minutes to run.
+about 5 minutes to run.
 
     require(data.table)
     require(phyloflows)
@@ -50,27 +50,15 @@ help you with that task. The syntax is as follows.
     #> 
     #> Using MCMC output specified as input...
     #> Collecting parameters...
-    #> Removing burnin in set to  5 % of chain, total iterations= 625
+    #> Removing burnin in set to  5 % of chain, total iterations= 312
     #> Making aggregated MCMC output...
     mca
-    #>        VARIABLE TR_TARGETCAT REC_TARGETCAT SAMPLE     VALUE
-    #>     1:       PI            1           Any      1 0.3590633
-    #>     2:       PI            2           Any      1 0.6409367
-    #>     3:       PI            1           Any      2 0.4151095
-    #>     4:       PI            2           Any      2 0.5848905
-    #>     5:       PI            1           Any      3 0.3511756
-    #>    ---                                                     
-    #> 23750:       PI            2           Any  11875 0.5775169
-    #> 23751:       PI            1           Any  11876 0.3961713
-    #> 23752:       PI            2           Any  11876 0.6038287
-    #> 23753:       PI            1           Any  11877 0.3923836
-    #> 23754:       PI            2           Any  11877 0.6076164
 
 The output is a data.table that contains the aggregated transmission
 flows, and other aggregated variables depending on the value of
 `control[['regex_pars]]`. In our case, we removed a burnin-period of 5%
 of the MCMC chain, and did not thin the remaining iterations, yielding
-about 12,000 MCMC samples of the aggregated flows.
+about 6,000 MCMC samples of the aggregated flows.
 
 That’s it for now. Use your usual R wizadry to process the output
 further, and have a look at the other vignettes.

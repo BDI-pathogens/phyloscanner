@@ -4,8 +4,13 @@
 \alias{source.attribution.mcmc.getKeyQuantities}
 \title{Estimate Flows, Sources, WAIFM, Flow ratios}
 \usage{
-source.attribution.mcmc.getKeyQuantities(infile = NULL, mc = NULL,
-  pars = NULL, dobs = NULL, control = NULL)
+source.attribution.mcmc.getKeyQuantities(
+  infile = NULL,
+  mc = NULL,
+  pars = NULL,
+  dobs = NULL,
+  control = NULL
+)
 }
 \arguments{
 \item{infile}{Full file name to MCMC output or aggregated MCMC output from function \code{source.attribution.mcmc}}

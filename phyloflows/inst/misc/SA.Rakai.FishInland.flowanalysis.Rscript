@@ -39,7 +39,7 @@ cat('\ninfileSeq=',infileSeq)
 cat('\nopt=',unlist(opt))
 
 # load misc analysis functions
-tmp	<- system.file(package="phyloflows", 'misc','SA.Rakai.FishInland.functions.R')
+tmp	<- system.file(package="phyloflows", 'misc','SA.Rakai.FishInland.functions_zeros.R')
 cat('\nloading functions in',tmp)
 source(tmp, echo=FALSE, print.eval=FALSE, verbose=FALSE)
 

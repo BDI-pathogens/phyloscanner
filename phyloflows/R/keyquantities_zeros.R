@@ -60,17 +60,20 @@
 #'
 source.attribution.mcmc.getKeyQuantities<- function(infile=NULL, mc=NULL, pars=NULL, dobs=NULL, control=NULL)
 {    
+<<<<<<< HEAD
     if(is.null(mc) & is.null(pars) & !is.null(infile) & length(infile)==1 & grepl('rda$',infile))
     {
+      if(length(infile)==1 & grepl('rda$',infile)){
         tmp <- load(infile)
         if(tmp=='pars')
         {
-            cat('\nReading aggregated MCMC output...')
+          cat('\nReading aggregated MCMC output...')
         }
         if(tmp=='mc')
         {
-            cat('\nReading MCMC output...')
+          cat('\nReading MCMC output...')
         }
+<<<<<<< HEAD
 		if(is.null(mc) & is.null(pars) & !is.null(infile) & length(infile)>1 
 		   & all(grepl('rda$',infile)) & all(unlist(lapply(infile,function(x){load(x)=='mc'}))))
 		{
@@ -103,10 +106,52 @@ source.attribution.mcmc.getKeyQuantities<- function(infile=NULL, mc=NULL, pars=N
     }   
     if(is.null(mc) & is.null(pars) & !is.null(infile) && grepl('csv$',infile))
     {
+=======
+      }
+      
+      if(grepl('csv$',infile))
+      {
+>>>>>>> phyloflow_v120
         cat('\nReading aggregated MCMC output...')
         pars <- as.data.table(read.csv(infile, stringsAsFactors=FALSE))
-		pars <- subset(pars, VARIABLE=='PI')
-    }
+        pars <- subset(pars, VARIABLE=='PI')
+      }
+      
+      
+      # TODO: we need to modify handling a vector of infiles
+      #		1) make multiple infiles a separate top level if statement
+      #		2) if there are multiple infiles, they need to end in rda and all need to contain mc objects		
+      if(tmp=='mc' & length(infile)>1)
+      {
+        #    load MCMC output
+        cat('\nLoading MCMC output from file...')
+        cat('\nLoading ', infile[1])
+        load(infile[1])
+        XI <- mc$pars$XI
+        S <- mc$pars$S
+        LOG_LAMBDA <- mc$pars$LOG_LAMBDA
+        
+        if(is.null(mc) & is.null(pars) & !is.null(infile) & length(infile)>1 
+           & all(grepl('rda$',infile)) & all(unlist(lapply(infile,function(x){load(x)=='mc'})))){
+          for (k in 2:length(infile))
+          {
+            cat('\nLoading ', infile[k])
+            load(infile[k])
+            XI <- rbind(XI, mc$pars$XI)
+            S <- rbind(S, mc$pars$S)
+            LOG_LAMBDA <- rbind(LOG_LAMBDA, mc$pars$LOG_LAMBDA)
+          }
+        }
+        mc$pars$XI <- XI
+        mc$pars$S <- S
+        mc$pars$LOG_LAMBDA <- LOG_LAMBDA   
+        cat('\nTotal number of MCMC iterations loaded from file ', nrow(mc$pars$LOG_LAMBDA))
+        XI <- S <- LOG_LAMBDA <- NULL
+        gc()
+      }
+    }   
+  
+
     if(!is.null(mc))
     {
         if(is.null(dobs))

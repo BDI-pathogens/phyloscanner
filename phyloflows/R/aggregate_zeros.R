@@ -64,7 +64,6 @@
 #' control <- list( burnin.p=0.05, thin=NA_integer_, regex_pars='PI', outfile=agg.mcmc.file)
 #' pars <- phyloflows:::source.attribution.mcmc.aggregateToTarget(mcmc.file=mcmc.file, daggregateTo=daggregateTo, control=control)
 #' }
-#'
 source.attribution.mcmc.aggregateToTarget    <- function(mcmc.file=NULL, mc=NULL, daggregateTo=NULL, control=list(burnin.p=NA_real_, thin=NA_integer_, regex_pars='*', outfile=gsub('\\.rda','_aggregated.csv',mcmc.file))){
     #    basic checks
     if(!'data.table'%in%class(daggregateTo))
@@ -144,7 +143,7 @@ source.attribution.mcmc.aggregateToTarget    <- function(mcmc.file=NULL, mc=NULL
     
     # aggregate MCMC samples
     if(!all(sort(unique(pars$TRM_CAT_PAIR_ID))==sort(unique(daggregateTo$TRM_CAT_PAIR_ID))))
-    	stop('The transmission count categories in the MCMC output do not match the transmission count categories in the aggregateTo data table.')
+    	warning('The transmission count categories in the MCMC output do not match the transmission count categories in the aggregateTo data table.')
     pars    <- merge(pars, daggregateTo, by='TRM_CAT_PAIR_ID')
     
     # return aggregated lambda values
@@ -164,6 +163,7 @@ source.attribution.mcmc.aggregateToTarget    <- function(mcmc.file=NULL, mc=NULL
 	if(grepl(control$regex_pars,'LAMBDA'))
 	{
 		pars <- rbind(pars, tmp1)
+		pars[, VARIABLE:= 'LAMBDA']
 	}
 	if(grepl(control$regex_pars,'LOG_LAMBDA'))
 	{
@@ -182,7 +182,7 @@ source.attribution.mcmc.aggregateToTarget    <- function(mcmc.file=NULL, mc=NULL
        
     # save or return
     if(!'outfile'%in%names(control))
-    return(pars)
+    	return(pars)
     if(grepl('csv$',control$outfile))
     {
         cat('\nWriting csv file to',control$outfile)

@@ -67,6 +67,7 @@ source.attribution.mcmc.diagnostics    <- function(mcmc.file, mc=NULL, control=l
         S <- mc$pars$S
         LOG_LAMBDA <- mc$pars$LOG_LAMBDA
         it.info <- mc$it.info
+        PI <-  t(apply(exp(mc$pars$LOG_LAMBDA), 1, function(rw) rw/sum(rw)))
         
         if (length(mcmc.file)>1)
 		{
@@ -78,6 +79,7 @@ source.attribution.mcmc.diagnostics    <- function(mcmc.file, mc=NULL, control=l
                 S <- rbind(S, mc$pars$S)
                 LOG_LAMBDA <- rbind(LOG_LAMBDA, mc$pars$LOG_LAMBDA)
                 it.info <- rbind(it.info, mc$it.info)
+                PI <- rbind(PI, t(apply(exp(mc$pars$LOG_LAMBDA), 1, function(rw) rw/sum(rw)))    )
             }			
         }
         
@@ -85,8 +87,9 @@ source.attribution.mcmc.diagnostics    <- function(mcmc.file, mc=NULL, control=l
         mc$pars$S <- S
         mc$pars$LOG_LAMBDA <- LOG_LAMBDA
         mc$it.info <- it.info
+        mc$pars$PI <- PI
 		cat('\nTotal number of MCMC iterations loaded from file ', nrow(mc$pars$LOG_LAMBDA))
-		XI <- S <- LOG_LAMBDA <- NULL
+		XI <- S <- LOG_LAMBDA <- PI <- NULL
 		gc()
     }
     
@@ -108,10 +111,15 @@ source.attribution.mcmc.diagnostics    <- function(mcmc.file, mc=NULL, control=l
         pars <- cbind(pars, tmp)
 		
     }
-	if(grepl(control$regex_pars,'PI'))
+	if(grepl(control$regex_pars,'PI') & ('PI' %in% names(mc$pars)))
 	{
+<<<<<<< HEAD
 		tmp <- exp(mc$pars$LOG_LAMBDA)
 		tmp <- t(apply(tmp, 1, function(rw) rw/sum(rw)))		
+=======
+
+		tmp <- mc$pars$PI
+>>>>>>> phyloflow_v120
 		colnames(tmp) <- paste0('PI-',1:ncol(tmp))
 		pars <- cbind(pars, tmp)		
 	}
@@ -145,18 +153,18 @@ source.attribution.mcmc.diagnostics    <- function(mcmc.file, mc=NULL, control=l
     }
     
     #    acceptance rate per MCMC update ID
-    cat('\nPlotting acceptance rates...')
+    cat('\nCalculating acceptance rates...')
     da <- subset(mc$it.info, BLOCK=='XI' & PAR_ID>0)[, list(ACC_RATE=mean(ACCEPT)), by='PAR_ID']
     setnames(da, 'PAR_ID', 'UPDATE_ID')
-    tmp <- mc$dl[, list(N_TRM_CAT_PAIRS=length(TRM_CAT_PAIR_ID)), by='UPDATE_ID']
-    da <- merge(da, tmp, by='UPDATE_ID')
-    ggplot(da, aes(x=N_TRM_CAT_PAIRS, y=ACC_RATE)) +
-    	geom_point() +
-    	theme_bw() +
-    	scale_y_continuous(label=scales::percent) +
-    	labs(    x='\nNumber of transmission pair categories updated per sampling category',
-    	y='Acceptance rate\n')
-    ggsave(file=paste0(control$outfile.base,'_acceptance_per_updateID.pdf'), w=6, h=6)
+    # tmp <- mc$dl[, list(N_TRM_CAT_PAIRS=length(TRM_CAT_PAIR_ID)), by='UPDATE_ID']
+    # da <- merge(da, tmp, by='UPDATE_ID')
+    # ggplot(da, aes(x=N_TRM_CAT_PAIRS, y=ACC_RATE)) +
+    # 	geom_point() +
+    # 	theme_bw() +
+    # 	scale_y_continuous(label=scales::percent) +
+    # 	labs(    x='\nNumber of transmission pair categories updated per sampling category',
+    # 	y='Acceptance rate\n')
+    # ggsave(file=paste0(control$outfile.base,'_acceptance_per_updateID.pdf'), w=6, h=6)
     cat('\nAverage acceptance rate= ',subset(mc$it.info, !is.na(PAR_ID) & PAR_ID>0)[, round(mean(ACCEPT), d=3)])
     cat('\nUpdate IDs with lowest acceptance rates')
     print( da[order(ACC_RATE)[1:min(10, nrow(da))],] )
@@ -226,3 +234,4 @@ source.attribution.mcmc.diagnostics    <- function(mcmc.file, mc=NULL, control=l
         dev.off()
     }
 }
+

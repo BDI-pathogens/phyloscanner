@@ -30,7 +30,7 @@ rmarkdown::render(infile, output_format='md_document')
 
 This vignette describes how to aggregate estimated transmission flows to those
 of other (broader) population groups. Please work through the vignette
-*phyloflows: Estimating transmission flows under heterogeneous sampling - a
+*phyloflows: Estimating transmission flows under heterogeneous sampling -- a
 first example* before you go ahead here.
 
 
@@ -38,7 +38,7 @@ first example* before you go ahead here.
 
 We continue our "First_Example". The following code chunk contains all code
 needed, up to running **phyloflows** MCMC routine. The only change is that the
-number of iterations is now $50,000$. The MCMC should take about 2 minutes to
+number of iterations is now $50,000$. The MCMC should take about 5 minutes to
 run.
 
 ```{r, include=TRUE, eval=FALSE, echo=TRUE, tidy=FALSE,message=FALSE, warning=FALSE} 
@@ -95,7 +95,7 @@ mca
 The output is a data.table that contains the aggregated transmission flows, and
 other aggregated variables depending on the value of `control[['regex_pars]]`.
 In our case, we removed a burnin-period of 5\% of the MCMC chain, and did not
-thin the remaining iterations, yielding about 12,000 MCMC samples of the
+thin the remaining iterations, yielding about 6,000 MCMC samples of the
 aggregated flows.
 
 That's it for now. Use your usual R wizadry to process the output further, and
