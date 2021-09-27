@@ -120,13 +120,14 @@ simulated input data in the heatmap :
 Input data: sampling information
 --------------------------------
 
-**`dobs` also requires information about how each group was sampled. **
+**`dobs` also requires information about how each group was 
+sampled.**
 This is stored in the following columns:
 
 -   *TR\_SAMPLING\_CATEGORY* sampling strata of transmitter group
 -   *REC\_SAMPLING\_CATEGORY* sampling strata of recipient group
 
-**`dprior.fit` specifies the distribution of sampling probability in
+**`dprior.fit` specifies the distribution of sampling probability in 
 each sampling group.** The sampling probability is either characterised
 by beta-binomial model or GLM model (See 01 - Simulating data). and
 given in the form of samples. In the tutorial, we opted for a
@@ -706,4 +707,5 @@ hyperparameter values.
 That’s it for now. Of course we would like to run the MCMC chain for
 longer, perhaps 10,000 steps. To check for convergence, calculate
 effective sample sizes, and quantiles of the posterior distribution,
-have a look at the other vignettes.
+have a look at the other vignettes. To extend the age model, please adapt the 
+stan files as you need.
