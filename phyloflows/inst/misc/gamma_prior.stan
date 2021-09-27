@@ -19,10 +19,10 @@ transformed parameters {
   real beta;
   for (i in 1:L){
    xi_pair[i] = xi[xi_id_src[i]] * xi[xi_id_rec[i]];
-   if (Y[i]==0){
+   if (n[i]==0){
      betav[i] = 1/xi_pair[i]-1;}
    else{
-     betav[i] = Y[i]/xi_pair[i];}
+     betav[i] = n[i]/xi_pair[i];}
   }
   beta = 0.8/sum(betav); //  gamma prior parameter
 }

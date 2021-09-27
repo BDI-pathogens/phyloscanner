@@ -3,7 +3,7 @@
 #' @import data.table rstan
 #' @author Xiaoyue Xi, Oliver Ratmann
 #' @param dobs Data.table of observed number of transmission events for each transmission pair category.
-#' @param dprior Data.table of parameters from the prior distribution of sampling probabilities.
+#' @param dprior.fit Data.table of parameters from the prior distribution of sampling probabilities.
 #' @param control List of input arguments that control the behaviour of the source attribution algorithm:
 #' \itemize{
 #'  \item{"seed"}{Random number seed, for reproducibility.}
