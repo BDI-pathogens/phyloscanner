@@ -4,9 +4,16 @@
 \alias{transmission.summary}
 \title{Summarise the pairwise host relationships across all trees}
 \usage{
-transmission.summary(ptrees, win.threshold = 0, dist.threshold = Inf,
-  tip.regex, min.tips = 1, min.reads = 1, close.sib.only = F,
-  verbose = F)
+transmission.summary(
+  ptrees,
+  win.threshold = 0,
+  dist.threshold = Inf,
+  tip.regex,
+  min.tips = 1,
+  min.reads = 1,
+  close.sib.only = F,
+  verbose = F
+)
 }
 \arguments{
 \item{win.threshold}{The proportion of windows that a pair of hosts need to be related (adjacent and within \code{dist.threshold} of each other) in order for them to appear in the summary.}

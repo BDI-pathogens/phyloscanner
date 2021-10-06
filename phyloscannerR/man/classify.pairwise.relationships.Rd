@@ -4,13 +4,16 @@
 \alias{classify.pairwise.relationships}
 \title{Classify pairwise host relationships in deep sequence phylogenies}
 \usage{
-classify.pairwise.relationships(ptrees, close.threshold = 0.025,
-  distant.threshold = 0.05, relationship.types = c("proximity.3.way",
-  "any.ancestry", "close.x.contiguous", "close.and.contiguous",
-  "close.and.adjacent", "close.and.contiguous.and.directed",
-  "close.and.adjacent.and.directed",
-  "close.and.contiguous.and.ancestry.cat",
-  "close.and.adjacent.and.ancestry.cat"), verbose = FALSE)
+classify.pairwise.relationships(
+  ptrees,
+  close.threshold = 0.025,
+  distant.threshold = 0.05,
+  relationship.types = c("proximity.3.way", "any.ancestry", "close.x.contiguous",
+    "close.and.contiguous", "close.and.adjacent", "close.and.contiguous.and.directed",
+    "close.and.adjacent.and.directed", "close.and.contiguous.and.ancestry.cat",
+    "close.and.adjacent.and.ancestry.cat"),
+  verbose = FALSE
+)
 }
 \arguments{
 \item{ptrees}{A list of class \code{phyloscanner.trees} produced by \code{phyloscanner.analyse.trees}.}

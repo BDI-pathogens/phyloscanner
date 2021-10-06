@@ -4,8 +4,9 @@
 \alias{get.pairwise.relationships.close.and.contiguous.and.directed.cat}
 \title{Group to determine direction of transmission in likely pairs based on contiguous subgraphs}
 \usage{
-
-  get.pairwise.relationships.close.and.contiguous.and.directed.cat(all.classifications)
+get.pairwise.relationships.close.and.contiguous.and.directed.cat(
+  all.classifications
+)
 }
 \description{
 Group to determine direction of transmission in likely pairs based on contiguous subgraphs

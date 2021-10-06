@@ -4,8 +4,9 @@
 \alias{get.pairwise.relationships.close.and.adjacent.and.ancestry.cat}
 \title{Group to determine probabilities for transmission networks based on adjacent subgraphs}
 \usage{
-
-  get.pairwise.relationships.close.and.adjacent.and.ancestry.cat(all.classifications)
+get.pairwise.relationships.close.and.adjacent.and.ancestry.cat(
+  all.classifications
+)
 }
 \description{
 Define basic topological relationships 'close and 12', 'close and 21', 'close and ambiguous direction', 'not close or not adjacent'

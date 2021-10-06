@@ -4,9 +4,15 @@
 \alias{multipage.summary.statistics}
 \title{Draw summary statistics to file for many hosts as a multipage file}
 \usage{
-multipage.summary.statistics(ptrees, sum.stats,
-  hosts = all.hosts.from.trees(phyloscanner.trees), file.name,
-  height = 11.6929, width = 8.26772, verbose = F)
+multipage.summary.statistics(
+  ptrees,
+  sum.stats,
+  hosts = all.hosts.from.trees(phyloscanner.trees),
+  file.name,
+  height = 11.6929,
+  width = 8.26772,
+  verbose = F
+)
 }
 \arguments{
 \item{ptrees}{A list of class \code{phyloscanner.trees}}
