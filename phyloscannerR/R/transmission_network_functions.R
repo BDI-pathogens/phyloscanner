@@ -309,6 +309,7 @@ find.most.likely.chains.RBGLedmonds<- function(rtnn, weight.complex.or.no.ancest
             filter(CLU_SIZE>2) %>%
             group_by(IDCLU) %>%
             group_split()
+    rtm2 <- list()
     for(i in seq_along(rtm))
     {
         #
@@ -339,10 +340,11 @@ find.most.likely.chains.RBGLedmonds<- function(rtnn, weight.complex.or.no.ancest
         edgelist <- edgelist %>%
                 rename(H1:= H2, H2:=H1, LINK_12:=LINK_21, LINK_21:=LINK_12) %>%
                 bind_rows(edgelist)
-        rtm[[i]] <- rtm[[i]] %>% inner_join(edgelist, by=c('H1','H2'))
+        # rtm[[i]] <- rtm[[i]] %>% inner_join(edgelist, by=c('H1','H2'))
+        rtm2[[i]] <- rtm[[i]] %>% inner_join(edgelist, by=c('H1','H2'))
     }
-    rtm        <- do.call('rbind',rtm)
-    ans        <- rbind(ans, rtm)
+    rtm2        <- do.call('rbind',rtm2)
+    ans        <- rbind(ans, rtm2)
     ans        <- ans %>%
             select(IDCLU, CLU_SIZE, PTY_RUN, H1, H2, LINK_12, LINK_21)
             #mutate(    PROB_21= replace(PROB_21, LINK_12==1, 0),
