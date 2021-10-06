@@ -69,11 +69,13 @@ find.pairs.in.networks <- function(dwin, dc, control= list(linked.group='close.a
     dpl <- dpl %>% filter(k.eff/n.eff > 0)
     #    gather all classifications counts for these pairs
     dwin    <- dpl %>%
-            select(PTY_RUN, host.1, host.2) %>%
+           # select(PTY_RUN, host.1, host.2) %>%
+            select(host.1, host.2) %>%
             left_join(dwin, by=c('host.1','host.2'))
     #    gather all classification counts for these pairs
     dc    <- dpl %>%
-            select(PTY_RUN, host.1, host.2) %>%
+            # select(PTY_RUN, host.1, host.2) %>%
+            select(host.1, host.2) %>%
             left_join(dc, by=c('host.1','host.2'))
     
     #
