@@ -915,49 +915,6 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, identify.multifur
           }
           
             
-          if(0){
-            tips.1 <- grep(pat.1.id,tree$tip.label, value=T)
-            tips.2 <- grep(pat.2.id,tree$tip.label, value=T)
-            tips.no.1 <- sapply(tips.1,function(tip){get.tip.no(tree, tip)})
-            tips.no.2 <- sapply(tips.2,function(tip){get.tip.no(tree, tip)})
-            tips.mrca.1 <- mrca.phylo(tree,tips.no.1)
-            tips.mrca.2 <- mrca.phylo(tree,tips.no.2)
-            
-            if(count.12 == 0 & count.21 == 0){
-              top.class.matrix[pat.1, pat.2] <- "noAncestry"
-            } else if(count.12 != 0 & count.21 == 0 & (relaxed.ancestry | prop.12 == 1)) {
-              if(count.12 == 1){
-                top.class.matrix[pat.1, pat.2] <- "anc"
-              } else {
-                if(allow.mt){
-                  if(tips.mrca.1==tips.mrca.2){
-                    top.class.matrix[pat.1, pat.2] <- "complex"  
-                  }else{
-                    top.class.matrix[pat.1, pat.2] <- "multiAnc"
-                  }
-                }else{
-                  top.class.matrix[pat.1, pat.2] <- "complex" 
-                }
-              }
-            } else if(count.21 != 0 & count.12 == 0 & (relaxed.ancestry | prop.21 == 1)) {
-              if(count.21 == 1){
-                top.class.matrix[pat.1, pat.2] <- "desc"
-              } else {
-                if(allow.mt){
-                  if(tips.mrca.1==tips.mrca.2){
-                    top.class.matrix[pat.1, pat.2] <- "complex"  
-                  }else{
-                    top.class.matrix[pat.1, pat.2] <- "multiDesc"
-                  }
-                }else{
-                  top.class.matrix[pat.1, pat.2] <- "complex" 
-                }
-              }
-            } else {
-              top.class.matrix[pat.1, pat.2] <- "complex"
-            }
-          }
-          
   
           
           pairwise.distances <- vector()
