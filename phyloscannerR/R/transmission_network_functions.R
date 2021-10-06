@@ -60,8 +60,8 @@ find.pairs.in.networks <- function(dwin, dc, control= list(linked.group='close.a
     dpl    <- dc %>%
             filter(categorisation==linked.group & type==linked.no) %>%
             filter(n.eff>=neff.cut & k.eff/n.eff < conf.cut) %>%
-            select(host.1, host.2) %>%
-            mutate(PTY_RUN:= infiles$PTY_RUN[i])
+            select(host.1, host.2)
+    # %>%        mutate(PTY_RUN:= infiles$PTY_RUN[i])
     dpl    <- dc %>%
             filter(categorisation==linked.group & type==linked.yes) %>%
             right_join(dpl, by=c('host.1','host.2'))
