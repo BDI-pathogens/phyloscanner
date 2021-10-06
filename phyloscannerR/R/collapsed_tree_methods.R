@@ -846,11 +846,15 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, identify.multifur
                     # identify.multifurcation
                   }else if(identify.multifurcation==T){
                     desc.tips <- ptree$tips.for.hosts[[pat.2.id]]
-                    desc.tips.anc <- sapply(desc.tips,
-                                            function(desc.tip){
-                                              anc.tips <- Ancestors(tree,desc.tip)
-                                              anc.tips[which(individual[anc.tips]==pat.1.id)[1]]})
-                    desc.tips.anc.pd <- depths[desc.tips]-depths[desc.tips.anc]
+                    anc.tips <- ptree$tips.for.hosts[[pat.1.id]]
+                    # desc.tips.anc <- sapply(desc.tips,
+                    #                         function(desc.tip){
+                    #                           anc.tips <- Ancestors(tree,desc.tip)
+                    #                           anc.tips[which(individual[anc.tips]==pat.1.id)[1]]})
+                    # desc.tips.anc.pd <- depths[desc.tips]-depths[desc.tips.anc]
+                    anc.tips.mrca <- getMRCA(tree,anc.tips)
+                    desc.tips.anc.pd <- depths[desc.tips]-depths[anc.tips.mrca]
+                    
                     if(any(desc.tips.anc.pd<multifurcation.threshold, na.rm = T)){
                       top.class.matrix[pat.1, pat.2] <- "complex"
                     }else{
@@ -885,11 +889,14 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, identify.multifur
                   #identify.multifurcation
                   }else if(identify.multifurcation==T){
                     desc.tips <- ptree$tips.for.hosts[[pat.1.id]]
-                    desc.tips.anc <- sapply(desc.tips,
-                                            function(desc.tip){
-                                              anc.tips <- Ancestors(tree,desc.tip)
-                                              anc.tips[which(individual[anc.tips]==pat.2.id)[1]]})
-                    desc.tips.anc.pd <- depths[desc.tips]-depths[desc.tips.anc]
+                    anc.tips <- ptree$tips.for.hosts[[pat.2.id]]
+                    # desc.tips.anc <- sapply(desc.tips,
+                    #                         function(desc.tip){
+                    #                           anc.tips <- Ancestors(tree,desc.tip)
+                    #                           anc.tips[which(individual[anc.tips]==pat.2.id)[1]]})
+                    # desc.tips.anc.pd <- depths[desc.tips]-depths[desc.tips.anc]
+                    anc.tips.mrca <- getMRCA(tree,anc.tips)
+                    desc.tips.anc.pd <- depths[desc.tips]-depths[anc.tips.mrca]
                     if(any(desc.tips.anc.pd<multifurcation.threshold, na.rm = T)){
                       top.class.matrix[pat.1, pat.2] <- "complex"
                     }else{
