@@ -889,7 +889,9 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, identify.multifur
                     desc.nodes <- which(attr(ptree$tree,"INDIVIDUAL")==pat.1.id & attr(ptree$tree, "SUBGRAPH_MRCA")==T)
                     anc.tips <- ptree$tips.for.hosts[[pat.2.id]]
                     anc.mrca.node <- anc.nodes[!(anc.nodes %in% anc.tips)]
-                    desc.anc.pd <- depths[desc.nodes] - depths[anc.mrca.node] 
+                    cb <- expand.grid(anc.mrca.node,desc.nodes)
+                    desc.anc.pd <- sapply(1:nrow(cb),
+                                          function(x)pat.dist(tree, depths, cb$Var1[x], cb$Var2[x]))
                     if(any(desc.anc.pd<multifurcation.threshold, na.rm = T)){
                       top.class.matrix[pat.1, pat.2] <- "complex"
                     }else{
