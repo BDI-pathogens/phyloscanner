@@ -658,7 +658,7 @@ phyloscanner.analyse.trees <- function(
   allow.mt = F,
   n.mt = Inf,
   p.mt = Inf,
-  identify.multifurcation=F,
+  zero.length.adjustment=F,
   relaxed.ancestry = F,
   parsimony.blacklist.k = 0,
   raw.blacklist.threshold = 0,
@@ -878,7 +878,7 @@ phyloscanner.analyse.trees <- function(
       
       if(verbosity==2) cat("Classifying host relationships for tree ID ",ptree$id, ".\n", sep="")
       
-      ptree$classification.results <- classify(ptree, allow.mt, n.mt, p.mt, identify.multifurcation, relaxed.ancestry,verbosity==2, no.progress.bars)
+      ptree$classification.results <- classify(ptree, allow.mt, n.mt, p.mt, zero.length.adjustment, relaxed.ancestry,verbosity==2, no.progress.bars)
       
       ptree
     }, simplify = F, USE.NAMES = T)
@@ -918,7 +918,7 @@ phyloscanner.analyse.tree <- function(
   allow.mt = F,
   n.mt = Inf,
   p.mt = Inf,  
-  identify.multifurcation=F,
+  zero.length.adjustment=F,
   relaxed.ancestry = F,
   parsimony.blacklist.k = 0,
   raw.blacklist.threshold = 0,
@@ -967,7 +967,7 @@ phyloscanner.analyse.tree <- function(
     allow.mt = allow.mt,
     n.mt = n.mt,
     p.mt = p.mt,
-    identify.multifurcation = identify.multifurcation,
+    zero.length.adjustment = zero.length.adjustment,
     relaxed.ancestry = relaxed.ancestry,
     parsimony.blacklist.k = parsimony.blacklist.k, 
     raw.blacklist.threshold = raw.blacklist.threshold, 

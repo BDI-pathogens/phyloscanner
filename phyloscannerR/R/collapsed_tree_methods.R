@@ -652,7 +652,7 @@ check.tt.node.adjacency <- function(tt, label1, label2, allow.unassigned = F){
 #' @keywords internal
 #' @export classify
 
-classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, identify.multifurcation=F, relaxed.ancestry = F,verbose = F, no.progress.bars = F) {	
+classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, zero.length.adjustment=F, relaxed.ancestry = F,verbose = F, no.progress.bars = F) {	
   
   if(is.null(ptree[["tree"]])){
     
@@ -843,8 +843,8 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, identify.multifur
                     }else{
                       top.class.matrix[pat.1, pat.2] <- "multiAnc"
                     }
-                    # identify.multifurcation
-                  }else if(identify.multifurcation==T){
+                  # zero length adjustment
+                  }else if(zero.length.adjustment==T){
                     anc.nodes <- which(attr(ptree$tree,"INDIVIDUAL")==pat.1.id & attr(ptree$tree, "SUBGRAPH_MRCA")==T)
                     desc.nodes <- which(attr(ptree$tree,"INDIVIDUAL")==pat.2.id & attr(ptree$tree, "SUBGRAPH_MRCA")==T)
                     anc.tips <- ptree$tips.for.hosts[[pat.1.id]]
@@ -876,15 +876,15 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, identify.multifur
                     }else{
                       top.class.matrix[pat.1, pat.2] <- "multiDesc"
                     }
-                     # n.mt
+                  # n.mt
                   }else if(n.mt<1e5){
                     if(count.21>=n.mt){
                       top.class.matrix[pat.1, pat.2] <- "complex"
                     }else{
                       top.class.matrix[pat.1, pat.2] <- "multiDesc"
                     }
-                  #identify.multifurcation
-                  }else if(identify.multifurcation==T){
+                  # zero length adjustment
+                  }else if(zero.length.adjustment==T){
                     anc.nodes <- which(attr(ptree$tree,"INDIVIDUAL")==pat.2.id & attr(ptree$tree, "SUBGRAPH_MRCA")==T)
                     desc.nodes <- which(attr(ptree$tree,"INDIVIDUAL")==pat.1.id & attr(ptree$tree, "SUBGRAPH_MRCA")==T)
                     anc.tips <- ptree$tips.for.hosts[[pat.2.id]]
@@ -908,9 +908,6 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, identify.multifur
               top.class.matrix[pat.1, pat.2] <- "complex"
             }
           }
-          
-            
-  
           
           pairwise.distances <- vector()
           
