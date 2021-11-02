@@ -91,7 +91,7 @@ arg_parser$add_argument("-nmt", "--nMultiTrans", action="store",default=1e5, hel
 arg_parser$add_argument("-pmt", "--pMultiTrans", action="store",default=1e5, help="Directionality is only inferred between pairs of hosts where the number of descendant subtrees/the number of unique tips is less than the value (default infinity).")
 arg_parser$add_argument("-rla", "--relaxedAncestry", action="store_true", help="If absent, directionality can be inferred so long as at least one subraph from one host is descended from one from the other, and no pair of subgraphs exist in the opposite direction. Otherwise it is required that every subgraph from one host is descended from one from the other.")
 arg_parser$add_argument("-mlt", "--multinomial", action="store_true", help="Use the adjustment for missing and overlapping windows as described in Ratmann et al., Nature Communications, 2019.")
-arg_parser$add_argument("-im", "--zerolengthAdjustment", action="store_true", default=FALSE, help="If present when allowMultiTrans is switched on, two hosts are classified as complex if their MRCAs are in the same multifurcation.")
+arg_parser$add_argument("-zla", "--zerolengthAdjustment", action="store_true", default=FALSE, help="If present when allowMultiTrans is switched on, two hosts are classified as complex if their MRCAs are in the same multifurcation.")
 
 # Classification simplification
 
