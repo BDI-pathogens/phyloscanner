@@ -129,6 +129,15 @@ ggplot(dprior, aes(x=P)) +
 		facet_grid(~SAMPLING_CATEGORY)
 ```
 
+To capture different sampling probabilities for sources and recipients, the variable *WHO* can be used in our algorithm. As we don't distinguish sampling probabilities for sources and recipients in the simple example, we would set fractions to be the same regardless of source recipient status.
+```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE}
+tmp= copy(dprior)
+tmp[,WHO:='REC_SAMPLING_CATEGORY']
+dprior[,WHO:='TR_SAMPLING_CATEGORY']
+dprior <- rbind(dprior,tmp)
+head(dprior)
+```
+
 # Statistical model
 `phyloflows` **uses a Bayesian approach to estimate the proportion of
 transmissions** between the two population groups,
@@ -220,7 +229,7 @@ $j=1,2$. The syntax for running the algorithm is as follows.
 #	verbose flag for verbose output
 #	outfile output file name if you like to have the results 
 #			written to an *.rda* file
-control <- list(seed=42, mcmc.n=500, verbose=0)
+control <- list(seed=42, mcmc.n=1000, verbose=0)
 # run MCMC
 ans <- source.attribution.mcmc(dobs, dprior, control)
 ```
@@ -230,30 +239,30 @@ Let s have a look at the output messages.
 
 * `Setting seed to 42`: This tells us the random number seed that was used, so
   we can re-run the algorithm to get identical results.
-* `Number of parameters: 6`: The total number of unknown parameters in
+* `Number of parameters: 8`: The total number of unknown parameters in
   the MCMC is the length of $\lambda$ plus length of the sampling probabilities $s$. 
   Here, the number of flows between the two subpopulation is $4$, and sampling was different in 
-  each subpopulation, adding $2$ parameters.
+  each subpopulation and by source recipient status, adding $4$ parameters.
 * `Dimension of PI: 4`: the number of flows between the two subpopulations is
   $4$.
-* `Sweep length: 4`: the MCMC updates in turn a subset of the
+* `Sweep length: 8`: the MCMC updates in turn a subset of the
   sampling probabilities of transmission groups
 $$
 \xi= (\xi_{11}, \xi_{12}, \xi_{21}, \xi_{22}), \quad\quad \xi_{ij} = s_i * s_j,
 $$  
 which is followed by an update of the entire vector of Poisson transmission
 rates $\lambda$. The subset of $\xi$ that is updated is specified as follows. For each population
-group $i$, we determine all components of $\xi$ that involve $s_i$. In our example, for
-$i=1$, the components of $\xi$ to update are $(\xi_{11},\xi_{12},\xi_{21})$; and
-for $i=2$, the components of $\xi$ to update are
-$(\xi_{12},\xi_{21},\xi_{22})$. An MCMC sweep counts the number of MCMC iterations needed
+group $i$, we determine all components of $\xi$ that involve $s_i$. In our example, for sources where
+$i=1$, the components of $\xi$ to update are $(\xi_{11},\xi_{12})$; and
+for recipients where $i=2$, the components of $\xi$ to update are
+$(\xi_{12},\xi_{22})$. An MCMC sweep counts the number of MCMC iterations needed
 in order to update all parameters at least once. In our case, we have $2$
 updates on components of $\xi$, and after each we update $\lambda$, so the sweep length
-is $4$. 
+is $8$. 
 * `Number of sweeps: 125`: The total number of sweeps is determined from
   `control[['mcmc.n']]`, by dividing `control[['mcmc.n']]` with the sweep
   length, and possibly rounding up.
-* `Number of iterations: 500`: The total number of iterations is set to the
+* `Number of iterations: 1000`: The total number of iterations is set to the
   number of sweeps (given above), multiplied by the sweep length. This may
   differ slightly from `control[['mcmc.n']]` because we round up the number of
   sweeps to the next integer.

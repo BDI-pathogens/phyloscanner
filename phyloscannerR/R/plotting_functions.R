@@ -140,6 +140,7 @@ produce.pdf.graphs <- function(file.name, sum.stats, hosts, xcoords, x.limits, m
   #     })
   # }
   # 
+
   invisible(dev.off())
 }
 
@@ -158,7 +159,8 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
     
     plot.list <- list()
     
-    if (verbose) cat("Drawing graphs for host ",host,"\n", sep="")
+
+    if (verbose) cat("Drawing graphs for host ",host,"...\n", sep="")
     
     # The coordinates for windows missing from all patients are known. These are those missing for this patient, but not all patients.
     
@@ -167,6 +169,8 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
     if(regular.gaps & length(which(host.stats$reads==0))){
       missing.read.rects <- form.rectangles(host.stats$xcoord[which(host.stats$reads==0)], xcoords, "grey")
     }
+    
+
     
     # rbind on two NULLs still makes a NULL
     
@@ -185,7 +189,7 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
     
     log.scale <- max(host.stats.gd.1$value - min(host.stats.gd.1$value) >= 10)
     y.limits <- NULL
-    
+  
     graph.1 <- ggplot(host.stats.gd.1, aes(x=xcoord, y=value, col=variable))
     
     graph.1 <- graph.1 + geom_point(na.rm=TRUE) +
@@ -210,7 +214,7 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
     }
     
     plot.list[["reads.and.tips"]] <- graph.1
-    
+
     # Graph 2: subgraph and clade counts
     
     host.stats.gd.2 <- host.stats %>% 
@@ -261,7 +265,7 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
     
     host.stats.gd.3 <- host.stats %>% 
       select(xcoord, overall.rtt, largest.rtt) %>% 
-      gather(variable, value, overall.rtt, largest.rtt) %>%
+      pivot_longer(2:3, names_to = "variable") %>%
       mutate(variable = factor(variable, levels=c("overall.rtt", "largest.rtt")))
     
     graph.3 <- ggplot(host.stats.gd.3, aes(x=xcoord, y=value))
@@ -284,6 +288,7 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
     }
     
     plot.list[["root.to.tip"]] <- graph.3
+
     
     # Graph 4: largest patristic distances overall and in largest subgraph
     
@@ -335,7 +340,7 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
       mutate(ngroup = map_int(variable, function(x) which(unique(host.stats.gd.5$variable)==x))) %>%
       mutate_at("ngroup", as.factor)
     
-    graph.5 <- ggplot(host.stats.gd.5, aes(x=xcoord, weight=value, fill=reorder(ngroup, rev(order(host.stats.gd.5$ngroup)))))
+    graph.5 <- ggplot(host.stats.gd.5, aes(x=xcoord, weight=value, fill=reorder(ngroup, rev(order(ngroup)))))
     
     graph.5 <- graph.5 +
       geom_bar(width=bar.width, colour="black", lty="blank") +
@@ -352,7 +357,7 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
     }
     
     plot.list[["subgraph.read.proportions"]] <- graph.5
-    
+  
     # graph 6: recombination metric
     
     if("recombination.metric" %in% names(host.stats)) {     
@@ -376,7 +381,6 @@ produce.host.graphs <- function(sum.stats, host, xcoords, x.limits, missing.wind
     }
     
     if("solo.dual.count" %in% names(host.stats)) {
-      
       
       graph.7 <- ggplot(host.stats, aes(x=xcoord, y=solo.dual.count))
       y.label <- "Multiplicity of infection"

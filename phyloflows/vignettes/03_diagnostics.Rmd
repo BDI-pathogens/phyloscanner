@@ -32,13 +32,13 @@ rmarkdown::render(infile, output_format='md_document')
 This vignette describes how to run a number of diagnostics on **phyloflows**
 MCMC output, obtained with the function `phyloflows:::source.attribution.mcmc`.
 Please work through the vignette *phyloflows: Estimating transmission flows
-under heterogeneous sampling - a first example* before you go ahead here.
+under heterogeneous sampling -- a first example* before you go ahead here.
 
 ## Getting started
 
 We continue our "First_Example". The following code chunk contains all code
 needed, up to running **phyloflows** MCMC routine. The only change is that the
-number of iterations is now $50,000$. The MCMC should take about 2 minutes to
+number of iterations is now $50,000$. The MCMC should take about 5 minutes to
 run.
 
 ```{r, include=TRUE, eval=FALSE, echo=TRUE, tidy=FALSE,message=FALSE, warning=FALSE} 
@@ -48,6 +48,10 @@ require(phyloflows)
 data(twoGroupFlows1, package="phyloflows")
 dobs <- twoGroupFlows1$dobs
 dprior <- twoGroupFlows1$dprior
+tmp= copy(dprior)
+tmp[,WHO:='REC_SAMPLING_CATEGORY']
+dprior[,WHO:='TR_SAMPLING_CATEGORY']
+dprior <- rbind(dprior,tmp)
 control <- list(seed=42, mcmc.n=5e4, verbose=0)
 mc <- phyloflows:::source.attribution.mcmc(dobs, dprior, control)
 ```
@@ -78,7 +82,7 @@ can
 The syntax is as follows. Look up the help page for the diagnostics function for
 a full explanation of the control arguments. 
 ```{r, include=TRUE, eval=TRUE, echo=TRUE, tidy=FALSE,message=FALSE, warning=FALSE}
-outfile.base <- file.path(getwd(),'twoGroupFlows1_mcmc_') 
+outfile.base <- file.path(getwd(),'twoGroupFlows1_mcmc') 
 control <- list( burnin.p=0.05, 
                  regex_pars='*', 
 				 credibility.interval=0.95, 

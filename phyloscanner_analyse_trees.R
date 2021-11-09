@@ -591,7 +591,7 @@ if(length(phyloscanner.trees)>1){
   }
   
   summary.stats <- gather.summary.statistics(phyloscanner.trees, tip.regex = tip.regex, verbose = verbosity==2)
-  
+
   ss.csv.fn <- paste0(output.string,"_patStats", csv.fe)
   
   if(verbosity!=0 & output.files){
@@ -610,18 +610,20 @@ if(length(phyloscanner.trees)>1){
     }
     silent <- multipage.summary.statistics(phyloscanner.trees, summary.stats, file.name = file.path(output.dir, ss.graphs.fn), verbose = verbosity==2)
   }
-  
+
   hosts <- all.hosts.from.trees(phyloscanner.trees)
   
+
   if(length(hosts)>1){
     
     if(!multinomial){
+
+      
       if(post.hoc.min.counts){
         ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, tip.regex, min.tips.per.host, min.reads.per.host, close.sib.only = F, verbosity==2)
       } else {
         ts <- transmission.summary(phyloscanner.trees, win.threshold, dist.threshold, tip.regex, 1, 1, close.sib.only = F, verbosity==2)
       }
-      
       
       if (output.files){
         if (verbosity!=0) cat('Writing transmission summary to file ', paste0(output.string,"_hostRelationshipSummary", csv.fe),'...\n', sep="")

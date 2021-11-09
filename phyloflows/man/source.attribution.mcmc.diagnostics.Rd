@@ -4,11 +4,13 @@
 \alias{source.attribution.mcmc.diagnostics}
 \title{MCMC diagnostics for the source attribution algorithm}
 \usage{
-source.attribution.mcmc.diagnostics(mcmc.file, mc = NULL,
-  control = list(burnin.p = 0.2, regex_pars = "*", credibility.interval =
-  0.95, pdf.plot.n.worst.case.parameters = 10, pdf.plot.all.parameters =
-  FALSE, pdf.height.per.par = 1.2, outfile.base = gsub("\\\\.rda", "",
-  mcmc.file)))
+source.attribution.mcmc.diagnostics(
+  mcmc.file,
+  mc = NULL,
+  control = list(burnin.p = 0.2, regex_pars = "*", credibility.interval = 0.95,
+    pdf.plot.n.worst.case.parameters = 10, pdf.plot.all.parameters = FALSE,
+    pdf.height.per.par = 1.2, outfile.base = gsub("\\\\.rda", "", mcmc.file))
+)
 }
 \arguments{
 \item{mcmc.file}{Full file name to MCMC output from function \code{source.attribution.mcmc}}
@@ -56,7 +58,7 @@ outfile.base <- 'mcmc_diagnostics_'
 control <- list( burnin.p=0.05,                # percentage of chain to remove as burn-in
                  regex_pars='*',                # '*' for all parameters, 'PI' for the transmission flow proportions
                  credibility.interval=0.95,     # width of credibility intervals
-                 pdf.plot.all.parameters=FALSE, # plot traces for all parameters selected with \\code{regex_pars}
+                 pdf.plot.all.parameters=FALSE, # plot traces for all parameters selected with \code{regex_pars}
                  pdf.plot.n.worst.case.parameters=10, # plot traces, histograms, autocorellation plots for the 10 parameters with lowest effective sample size. Set this to 0 if you don t want to plot these.
                  pdf.height.per.par=1.2,        # change this to adjust the height of pdf figures
                  outfile.base=outfile.base      # file name base for all output

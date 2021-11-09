@@ -32,13 +32,13 @@ This vignette describes how a number of key summary statistics of inferred
 transmission flows can be easily calculated with **phyloflows**
 `source.attribution.mcmc.getKeyQuantities` function. Please work through the
 vignette *phyloflows: Estimating transmission flows under heterogeneous sampling
-- a first example* before you go ahead here.
+-- a first example* before you go ahead here.
 
 ## Getting started
 
 We continue our "First_Example". The following code chunk contains all code
 needed, up to running **phyloflows** MCMC routine. The only change is that the
-number of iterations is now $50,000$. The MCMC should take about 2 minutes to
+number of iterations is now $50,000$. The MCMC should take about 5 minutes to
 run.
 
 ```{r, include=TRUE, eval=FALSE, echo=TRUE, tidy=FALSE,message=FALSE, warning=FALSE} 
@@ -53,7 +53,7 @@ mc <- phyloflows:::source.attribution.mcmc(dobs, dprior, control)
 ```
 ```{r, include=TRUE, eval=TRUE, echo=FALSE, tidy=FALSE, message=FALSE, warning=FALSE}
 require(data.table)
-require(phyloflows)
+# require(phyloflows)
 data(twoGroupFlows1, package="phyloflows")
 dobs <- twoGroupFlows1$dobs
 dprior <- twoGroupFlows1$dprior
@@ -112,7 +112,7 @@ control <- list(  burnin.p=0.05,
 				  quantiles= c('CL'=0.025,'IL'=0.25,'M'=0.5,'IU'=0.75,'CU'=0.975),
                   flowratios= list( c('1/2', '1 2', '2 1'), c('2/1', '2 1', '1 2'))
                   )
-ans <- phyloflows:::source.attribution.mcmc.getKeyQuantities(mc=mc, 
+ans <- source.attribution.mcmc.getKeyQuantities(mc=mc, 
 		dobs=dobs, control=control)
 ans
 ``` 
@@ -122,5 +122,5 @@ Note it is also possible to specify a file name to MCMC output or
 aggregated MCMC output, and it is also possible to input aggregated MCMC output.
 Please look up the package help for further instructions.
 ```{r, include=TRUE, eval=FALSE, echo=TRUE, tidy=FALSE,message=TRUE, warning=FALSE}
-?phyloflows:::source.attribution.mcmc.getKeyQuantities
+?phyloflows::source.attribution.mcmc.getKeyQuantities
 ``` 

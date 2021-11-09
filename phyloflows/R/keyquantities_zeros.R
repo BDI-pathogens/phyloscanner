@@ -59,67 +59,76 @@
 #' }
 #'
 source.attribution.mcmc.getKeyQuantities<- function(infile=NULL, mc=NULL, pars=NULL, dobs=NULL, control=NULL)
-{    
-    if(is.null(mc) & is.null(pars) & !is.null(infile) & length(infile)==1 & grepl('rda$',infile))
+{
+    if(is.null(mc) & is.null(pars) & !is.null(infile))
     {
+      if(length(infile)==1 & grepl('rda$',infile)){
         tmp <- load(infile)
         if(tmp=='pars')
         {
-            cat('\nReading aggregated MCMC output...')
+          cat('\nReading aggregated MCMC output...')
         }
         if(tmp=='mc')
         {
-            cat('\nReading MCMC output...')
+          cat('\nReading MCMC output...')
         }
-		if(is.null(mc) & is.null(pars) & !is.null(infile) & length(infile)>1 
-		   & all(grepl('rda$',infile)) & all(unlist(lapply(infile,function(x){load(x)=='mc'}))))
-		{
-			#    load MCMC output
-			cat('\nLoading MCMC output from file...')
-			cat('\nLoading ', infile[1])
-			load(infile[1])
-			XI <- mc$pars$XI
-			S <- mc$pars$S
-			LOG_LAMBDA <- mc$pars$LOG_LAMBDA
-			
-			if (length(infile)>1)
-			{
-				for (k in 2:length(infile))
-				{
-					cat('\nLoading ', infile[k])
-					load(infile[k])
-					XI <- rbind(XI, mc$pars$XI)
-					S <- rbind(S, mc$pars$S)
-					LOG_LAMBDA <- rbind(LOG_LAMBDA, mc$pars$LOG_LAMBDA)
-				}
-			}
-			mc$pars$XI <- XI
-			mc$pars$S <- S
-			mc$pars$LOG_LAMBDA <- LOG_LAMBDA   
-			cat('\nTotal number of MCMC iterations loaded from file ', nrow(mc$pars$LOG_LAMBDA))
-			XI <- S <- LOG_LAMBDA <- NULL
-			gc()
-		}
-    }   
-    if(is.null(mc) & is.null(pars) & !is.null(infile) && grepl('csv$',infile))
-    {
+      }
+      
+      if(grepl('csv$',infile))
+      {
         cat('\nReading aggregated MCMC output...')
         pars <- as.data.table(read.csv(infile, stringsAsFactors=FALSE))
-		pars <- subset(pars, VARIABLE=='PI')
+        pars <- subset(pars, VARIABLE=='PI')
+      }
+      
+      
+      # TODO: we need to modify handling a vector of infiles
+      #        1) make multiple infiles a separate top level if statement
+      #        2) if there are multiple infiles, they need to end in rda and all need to contain mc objects
+      if(tmp=='mc' & length(infile)>1)
+      {
+        #    load MCMC output
+        cat('\nLoading MCMC output from file...')
+        cat('\nLoading ', infile[1])
+        load(infile[1])
+        XI <- mc$pars$XI
+        S <- mc$pars$S
+        LOG_LAMBDA <- mc$pars$LOG_LAMBDA
+        
+        if(is.null(mc) & is.null(pars) & !is.null(infile) & length(infile)>1
+           & all(grepl('rda$',infile)) & all(unlist(lapply(infile,function(x){load(x)=='mc'})))){
+          for (k in 2:length(infile))
+          {
+            cat('\nLoading ', infile[k])
+            load(infile[k])
+            XI <- rbind(XI, mc$pars$XI)
+            S <- rbind(S, mc$pars$S)
+            LOG_LAMBDA <- rbind(LOG_LAMBDA, mc$pars$LOG_LAMBDA)
+          }
+        }
+        mc$pars$XI <- XI
+        mc$pars$S <- S
+        mc$pars$LOG_LAMBDA <- LOG_LAMBDA
+        cat('\nTotal number of MCMC iterations loaded from file ', nrow(mc$pars$LOG_LAMBDA))
+        XI <- S <- LOG_LAMBDA <- NULL
+        gc()
+      }
     }
+  
+
     if(!is.null(mc))
     {
         if(is.null(dobs))
-        	stop('Found unaggregated MCMC output, need dobs to continue')
+            stop('Found unaggregated MCMC output, need dobs to continue')
         
-		#    define internal control variables
+        #    define internal control variables
         burnin.p <- control$burnin.p
         if(is.na(burnin.p))
-        	burnin.p<- 0
+            burnin.p<- 0
         burnin.n <- floor(burnin.p*nrow(mc$pars$LOG_LAMBDA))
         thin <- control$thin
         if(is.na(thin))
-        	thin <- 1
+            thin <- 1
         
         # remove burn-in
         if(burnin.n>0)
@@ -146,28 +155,28 @@ source.attribution.mcmc.getKeyQuantities<- function(infile=NULL, mc=NULL, pars=N
         pars[, VARIABLE:= pars[, gsub('([A-Z_]+)-([0-9]+)','\\1',variable)]]
         pars[, TRM_CAT_PAIR_ID:= pars[, as.integer(gsub('([A-Z_]+)-([0-9]+)','\\2',variable))]]
         if(!all(sort(unique(pars$TRM_CAT_PAIR_ID))==sort(unique(dobs$TRM_CAT_PAIR_ID))))
-        	stop('The transmission count categories in the MCMC output do not match the transmission count categories in the aggregateTo data table.')
+            stop('The transmission count categories in the MCMC output do not match the transmission count categories in the aggregateTo data table.')
         pars <- merge(pars, dobs, by='TRM_CAT_PAIR_ID')
         setnames(pars, c('TR_TRM_CATEGORY','REC_TRM_CATEGORY'), c('TR_TARGETCAT','REC_TARGETCAT'))
         
         # return aggregated lambda values
         tmp1 <- pars[, {
-            	tmp <- min((max(value) - min(value))/2, 700)
-            	list(VALUE=exp(-tmp)*sum(exp(tmp+value)))
-        	},
-        	by=c('VARIABLE','TR_TARGETCAT','REC_TARGETCAT','SAMPLE')]
+                tmp <- min((max(value) - min(value))/2, 700)
+                list(VALUE=exp(-tmp)*sum(exp(tmp+value)))
+            },
+            by=c('VARIABLE','TR_TARGETCAT','REC_TARGETCAT','SAMPLE')]
         
         # return sum of all lambda values
         tmp2 <- pars[, {
-           		tmp <- min((max(value) - min(value))/2, 700)
-            	list(SUM=exp(-tmp)*sum(exp(tmp+value)))
-        	},
-        	by=c('VARIABLE','SAMPLE')]
+                   tmp <- min((max(value) - min(value))/2, 700)
+                list(SUM=exp(-tmp)*sum(exp(tmp+value)))
+            },
+            by=c('VARIABLE','SAMPLE')]
         # calculate PI
         pars <- merge(tmp1, tmp2, by=c('VARIABLE','SAMPLE'))
         pars <- pars[,VALUE:=VALUE/SUM]
         pars[, VARIABLE:='PI']
-		set(pars, NULL, 'SUM', NULL)          
+        set(pars, NULL, 'SUM', NULL)
     }
     
     
@@ -218,12 +227,12 @@ source.attribution.mcmc.getKeyQuantities<- function(infile=NULL, mc=NULL, pars=N
         #    calculate transmission flow ratios
         z <- copy(pars)
         z[, FLOW:=paste0(TR_TARGETCAT,' ',REC_TARGETCAT)]
-        z <- dcast.data.table(z, SAMPLE~FLOW, value.var='VALUE')		
-		flowratio.flows <- unique( c(sapply(control$flowratios,'[[',2), sapply(control$flowratios,'[[',3)) )
-		if(!all(flowratio.flows%in%colnames(z)))
-		{
-			stop('Cannot find all requested flow ratios in MCMC output with column names "', paste(colnames(z), collapse='", "'),'"')
-		}				
+        z <- dcast.data.table(z, SAMPLE~FLOW, value.var='VALUE')
+        flowratio.flows <- unique( c(sapply(control$flowratios,'[[',2), sapply(control$flowratios,'[[',3)) )
+        if(!all(flowratio.flows%in%colnames(z)))
+        {
+            stop('Cannot find all requested flow ratios in MCMC output with column names "', paste(colnames(z), collapse='", "'),'"')
+        }
         set(z, NULL, colnames(z)[!colnames(z)%in%c('SAMPLE',unlist(control$flowratios))], NULL)
         for(ii in seq_along(control$flowratios))
         {
@@ -243,10 +252,10 @@ source.attribution.mcmc.getKeyQuantities<- function(infile=NULL, mc=NULL, pars=N
         }
         for(ii in seq_along(control$flowratios))
         {
-			if(control$flowratios[[ii]][2] %in% names(z))
-            	set(z, NULL, control$flowratios[[ii]][2], NULL)
-			if(control$flowratios[[ii]][3] %in% names(z))
-				set(z, NULL, control$flowratios[[ii]][3], NULL)
+            if(control$flowratios[[ii]][2] %in% names(z))
+                set(z, NULL, control$flowratios[[ii]][2], NULL)
+            if(control$flowratios[[ii]][3] %in% names(z))
+                set(z, NULL, control$flowratios[[ii]][3], NULL)
         }
         z <- melt(z, id.vars='SAMPLE', value.name='VALUE', variable.name='FLOWRATIO_CAT')
         z <- z[, list(P=names(control$quantiles), Q=unname(quantile(VALUE, p=control$quantiles))), by=c('FLOWRATIO_CAT')]
@@ -259,7 +268,7 @@ source.attribution.mcmc.getKeyQuantities<- function(infile=NULL, mc=NULL, pars=N
     }
     
     if(!'outfile'%in%names(control))
-    	return(ans)
+        return(ans)
     cat('\nWriting output to',control$outfile)
     write.csv(ans, row.names=FALSE,file=control$outfile)
 }
