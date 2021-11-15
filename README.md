@@ -16,7 +16,7 @@ To set up the part of phyloscanner that analyses these phylogenies (or others), 
 Info and help:
 * The phyloscanner publication, discussing the method and its scientific context, is [here](https://academic.oup.com/mbe/advance-article/doi/10.1093/molbev/msx304/4653772).  
 * The code's manual is [here](InfoAndInputs/PhyloscannerManual.pdf).  
-* Instructions and example data for a practical on using phyloscanner are [here](https://tinyurl.com/PhyloscannerPractical).
+* Instructions and example data for a practical on using phyloscanner are [here](https://drive.google.com/drive/folders/0BwygWUC73hnxbGtHSFpWdzYzVkk?resourcekey=0-Zjt4kVHja6Djo7qKsN3r5Q&usp=sharing).
 * Problem with the code? Create a [New Issue](https://github.com/BDI-pathogens/phyloscanner/issues).  
 * Query? Ask it publicly at the [google group](https://groups.google.com/forum/#!forum/phyloscanner-users).  
 
