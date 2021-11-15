@@ -652,7 +652,7 @@ check.tt.node.adjacency <- function(tt, label1, label2, allow.unassigned = F){
 #' @keywords internal
 #' @export classify
 
-classify <- function(ptree, allow.mt = F, relaxed.ancestry = F, verbose = F, no.progress.bars = F) {	
+classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, zero.length.adjustment=F, relaxed.ancestry = F,verbose = F, no.progress.bars = F) {	
   
   if(is.null(ptree[["tree"]])){
     
@@ -717,6 +717,8 @@ classify <- function(ptree, allow.mt = F, relaxed.ancestry = F, verbose = F, no.
   
   total.split.pairs <- (length(all.splits)^2 - length(all.splits))/2
   total.host.pairs <- (length(hosts)^2 - length(hosts))/2
+  
+  individual <- attr(tree, 'INDIVIDUAL')
   
   if (verbose) cat("Collapsing subgraphs...\n")
   
@@ -800,39 +802,110 @@ classify <- function(ptree, allow.mt = F, relaxed.ancestry = F, verbose = F, no.
           
           dir.12.matrix[pat.1, pat.2] <- count.12
           dir.21.matrix[pat.1, pat.2] <- count.21
+        
+          multifurcation.threshold <- 1e-5
+          depths <- node.depth.edgelength(tree)
           
-          if(count.12 == 0 & count.21 == 0){
-            top.class.matrix[pat.1, pat.2] <- "noAncestry"
-          } else if(count.12 != 0 & count.21 == 0 & (relaxed.ancestry | prop.12 == 1)) {
-            if(count.12 == 1){
-              top.class.matrix[pat.1, pat.2] <- "anc"
-            } else {
-              if(allow.mt){
-                if(count.12>=n.mt){
-                  top.class.matrix[pat.1, pat.2] <- "complex"
-                }else{
-                  top.class.matrix[pat.1, pat.2] <- "multiAnc"  
-                }
-              } else {
-                top.class.matrix[pat.1, pat.2] <- "complex"
-              }
+
+          if(1)
+          {   
+            # tip counts
+            tmp <- grep('_read_[0-9]+_count_[0-9]+$',tree$tip.label,value = T)
+            count.tip.1 <- length(grep(pat.1.id,tmp,value=T))
+            count.tip.2 <- length(grep(pat.2.id,tmp,value=T))
+            p.12 <- count.12/count.tip.2
+            p.21 <- count.21/count.tip.1
+            
+            
+            if(n.mt<1e5 & p.mt<=1){
+              warning('n.mt and p.mt were all specified, and only p.mt was used.')
             }
-          } else if(count.21 != 0 & count.12 == 0 & (relaxed.ancestry | prop.21 == 1)) {
-            if(count.21 == 1){
-              top.class.matrix[pat.1, pat.2] <- "desc"
-            } else {
-              if(allow.mt){
-                if(count.21>=n.mt){
-                  top.class.matrix[pat.1, pat.2] <- "complex"
-                }else{
-                  top.class.matrix[pat.1, pat.2] <- "multiDesc"  
-                }
+            
+            if(count.12 == 0 & count.21 == 0){
+              top.class.matrix[pat.1, pat.2] <- "noAncestry"
+            } else if(count.12 != 0 & count.21 == 0 & (relaxed.ancestry | prop.12 == 1)) {
+              if(count.12 == 1){
+                top.class.matrix[pat.1, pat.2] <- "anc"
               } else {
-                top.class.matrix[pat.1, pat.2] <- "complex"
+                if(allow.mt){
+                  # p.mt
+                  if(p.mt<=1){
+                    if(p.12 >=p.mt){
+                      top.class.matrix[pat.1, pat.2] <- "complex"
+                    }else{
+                      top.class.matrix[pat.1, pat.2] <- "multiAnc"
+                    }
+                  # n.mt
+                  }else if(n.mt<1e5){
+                    if(count.12>=n.mt){
+                      top.class.matrix[pat.1, pat.2] <- "complex"
+                    }else{
+                      top.class.matrix[pat.1, pat.2] <- "multiAnc"
+                    }
+                  # zero length adjustment
+                  }else if(zero.length.adjustment==T){
+                    anc.nodes <- which(attr(ptree$tree,"INDIVIDUAL")==pat.1.id & attr(ptree$tree, "SUBGRAPH_MRCA")==T)
+                    desc.nodes <- which(attr(ptree$tree,"INDIVIDUAL")==pat.2.id & attr(ptree$tree, "SUBGRAPH_MRCA")==T)
+                    anc.tips <- ptree$tips.for.hosts[[pat.1.id]]
+                    anc.mrca.node <- anc.nodes[!(anc.nodes %in% anc.tips)]
+                    cb <- expand.grid(anc.mrca.node,desc.nodes)
+                    desc.anc.pd <- sapply(1:nrow(cb),
+                                          function(x)pat.dist(tree, depths, cb$Var1[x], cb$Var2[x]))
+                    if(any(desc.anc.pd<multifurcation.threshold, na.rm = T)){
+                      top.class.matrix[pat.1, pat.2] <- "complex"
+                    }else{
+                      top.class.matrix[pat.1, pat.2] <- "multiAnc"
+                    }
+                  }else{
+                    top.class.matrix[pat.1, pat.2] <- "multiAnc"
+                  }
+                } else {
+                  top.class.matrix[pat.1, pat.2] <- "complex"
+                }
               }
+            } else if(count.21 != 0 & count.12 == 0 & (relaxed.ancestry | prop.21 == 1)) {
+              if(count.21 == 1){
+                top.class.matrix[pat.1, pat.2] <- "desc"
+              } else {
+                if(allow.mt){
+                  # p.mt
+                  if(p.mt<=1){
+                    if(p.21 >=p.mt){
+                      top.class.matrix[pat.1, pat.2] <- "complex"
+                    }else{
+                      top.class.matrix[pat.1, pat.2] <- "multiDesc"
+                    }
+                  # n.mt
+                  }else if(n.mt<1e5){
+                    if(count.21>=n.mt){
+                      top.class.matrix[pat.1, pat.2] <- "complex"
+                    }else{
+                      top.class.matrix[pat.1, pat.2] <- "multiDesc"
+                    }
+                  # zero length adjustment
+                  }else if(zero.length.adjustment==T){
+                    anc.nodes <- which(attr(ptree$tree,"INDIVIDUAL")==pat.2.id & attr(ptree$tree, "SUBGRAPH_MRCA")==T)
+                    desc.nodes <- which(attr(ptree$tree,"INDIVIDUAL")==pat.1.id & attr(ptree$tree, "SUBGRAPH_MRCA")==T)
+                    anc.tips <- ptree$tips.for.hosts[[pat.2.id]]
+                    anc.mrca.node <- anc.nodes[!(anc.nodes %in% anc.tips)]
+                    cb <- expand.grid(anc.mrca.node,desc.nodes)
+                    desc.anc.pd <- sapply(1:nrow(cb),
+                                          function(x)pat.dist(tree, depths, cb$Var1[x], cb$Var2[x]))
+                    if(any(desc.anc.pd<multifurcation.threshold, na.rm = T)){
+                      top.class.matrix[pat.1, pat.2] <- "complex"
+                    }else{
+                      top.class.matrix[pat.1, pat.2] <- "multiDesc"
+                    }
+                  }else{
+                    top.class.matrix[pat.1, pat.2] <- "multiDesc"
+                  }
+                } else {
+                  top.class.matrix[pat.1, pat.2] <- "complex"
+                }
+              }
+            } else {
+              top.class.matrix[pat.1, pat.2] <- "complex"
             }
-          } else {
-            top.class.matrix[pat.1, pat.2] <- "complex"
           }
           
           pairwise.distances <- vector()

@@ -511,8 +511,8 @@ produce.pairwise.graphs2 <- function(	ptrees,
 	}
 	# set min patristic distance for plotting, make factors, etc
 	pair.data <- pair.data %>%
-			mutate(	patristic.distance:= pmax(1e-3,patristic.distance), 
-					basic.topology:= factor(basic.topology, levels=c("ancestral","descendant","intermingled",'sibling','other')),
+			mutate(	patristic.distance:= pmax(1e-3,patristic.distance),
+			                basic.topology:= factor(basic.topology),
 					panel:= paste0(host.1,'\n->\n',host.2),
 					y:= 1e-3)			
 	# make plot
