@@ -1,6 +1,5 @@
-ageanalysis <- function(infile.inference=NULL,infile.prior.samples=NULL,opt=NULL,M=30,D=2){
+ageanalysis <- function(infile.inference=NULL,infile.prior.samples=NULL,opt=NULL,M=30,D=2, outdir){
   
-  require(data.table)	
   #
   #	input args
   #
@@ -15,11 +14,11 @@ ageanalysis <- function(infile.inference=NULL,infile.prior.samples=NULL,opt=NULL
   }
   if(is.null(infile.inference))
   {
-    infile.inference	<- "~/ageanalysis/RakaiAll_output_190327_w250_s20_p25_d50_stagetwo_rerun23_min30_conf60_phylogeography_data_with_inmigrants.rda"
+    infile.inference	<- file.path(outdir, "RakaiAll_output_190327_w250_s20_p25_d50_stagetwo_rerun23_min30_conf60_phylogeography_data_with_inmigrants.rda")
   }
   if(is.null(infile.prior.samples))
   {
-    infile.prior.samples <- "~/ageanalysis/samples_fit.rda"
+    infile.prior.samples <- file.path(outdir, "samples_fit.rda")
   }
 
   cat('\ninfile.inference=',infile.inference)
@@ -257,9 +256,31 @@ ageanalysis <- function(infile.inference=NULL,infile.prior.samples=NULL,opt=NULL
                    id_sl =  dobs[grepl('i:',TR_TRM_CATEGORY),unique(OUTPUT_ID)],
                    id_se =  dobs[grepl('e:',TR_TRM_CATEGORY),unique(OUTPUT_ID)])
   
-  save(data.fit,file='~/ageanalysis/input.rda')
-
+  save(data.fit,file=file.path(outdir, 'input.rda'))
+  
+  return(data.fit)
 }
 
-
+add_2D_splines_stan_data = function(stan_data, spline_degree = 3, n_knots_rows = 8, n_knots_columns = 8)
+{
+  AGES <- floor(sort(unique(stan_data$x[,1])))
+  stan_data$A <- length(AGES)
+  
+  knots_rows = AGES[seq(1, length(AGES), length.out = n_knots_rows)] 
+  knots_columns = AGES[seq(1, length(AGES), length.out = n_knots_columns)]
+  
+  stan_data$num_basis_rows = length(knots_rows) + spline_degree - 1
+  stan_data$num_basis_columns = length(knots_columns) + spline_degree - 1
+  
+  stan_data$IDX_BASIS_ROWS = 1:stan_data$num_basis_rows
+  stan_data$IDX_BASIS_COLUMNS = 1:stan_data$num_basis_columns
+  
+  stan_data$BASIS_ROWS = bsplines(AGES, knots_rows, spline_degree)
+  stan_data$BASIS_COLUMNS = bsplines(AGES, knots_columns, spline_degree)
+  
+  stopifnot(all( apply(stan_data$BASIS_ROWS, 1, sum) > 0  ))
+  stopifnot(all( apply(stan_data$BASIS_COLUMNS, 1, sum) > 0  ))
+  
+  return(stan_data)
+}
 
