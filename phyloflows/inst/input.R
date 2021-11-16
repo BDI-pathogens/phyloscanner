@@ -1,4 +1,4 @@
-ageanalysis <- function(infile.inference=NULL,infile.prior.samples=NULL,opt=NULL,M=30,D=2){
+ageanalysis <- function(infile.inference=NULL,infile.prior.samples=NULL,opt=NULL,M=30,D=2,outdir){
   
   require(data.table)	
   #
@@ -265,9 +265,11 @@ ageanalysis <- function(infile.inference=NULL,infile.prior.samples=NULL,opt=NULL
                    id_se =  dobs[grepl('e:',TR_TRM_CATEGORY),unique(OUTPUT_ID)]
   )
   
-  save(data.fit,file='~/ageanalysis/input.rda')
+  save(data.fit,file=file.path(outdir, 'input.rda'))
   
+  return(data.fit)
 }
+
 
 add_2D_splines_stan_data = function(stan_data, spline_degree = 3, n_knots_rows = 8, n_knots_columns = 8)
 {
