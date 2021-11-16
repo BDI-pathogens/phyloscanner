@@ -15,11 +15,11 @@ ageanalysis <- function(infile.inference=NULL,infile.prior.samples=NULL,opt=NULL
   }
   if(is.null(infile.inference))
   {
-    infile.inference	<- "~/ageanalysis/RakaiAll_output_190327_w250_s20_p25_d50_stagetwo_rerun23_min30_conf60_phylogeography_data_with_inmigrants.rda"
+    infile.inference	<- file.path(outdir, "RakaiAll_output_190327_w250_s20_p25_d50_stagetwo_rerun23_min30_conf60_phylogeography_data_with_inmigrants.rda")
   }
   if(is.null(infile.prior.samples))
   {
-    infile.prior.samples <- "~/ageanalysis/samples_fit.rda"
+    infile.prior.samples <- file.path(outdir,"samples_fit.rda")
   }
   
   cat('\ninfile.inference=',infile.inference)
