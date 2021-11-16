@@ -1,5 +1,6 @@
-ageanalysis <- function(infile.inference=NULL,infile.prior.samples=NULL,opt=NULL,M=30,D=2, outdir){
+ageanalysis <- function(infile.inference=NULL,infile.prior.samples=NULL,opt=NULL,M=30,D=2){
   
+  require(data.table)	
   #
   #	input args
   #
@@ -14,16 +15,16 @@ ageanalysis <- function(infile.inference=NULL,infile.prior.samples=NULL,opt=NULL
   }
   if(is.null(infile.inference))
   {
-    infile.inference	<- file.path(outdir, "RakaiAll_output_190327_w250_s20_p25_d50_stagetwo_rerun23_min30_conf60_phylogeography_data_with_inmigrants.rda")
+    infile.inference	<- "~/ageanalysis/RakaiAll_output_190327_w250_s20_p25_d50_stagetwo_rerun23_min30_conf60_phylogeography_data_with_inmigrants.rda"
   }
   if(is.null(infile.prior.samples))
   {
-    infile.prior.samples <- file.path(outdir, "samples_fit.rda")
+    infile.prior.samples <- "~/ageanalysis/samples_fit.rda"
   }
-
+  
   cat('\ninfile.inference=',infile.inference)
   cat('\ninfile.prior.samples=',infile.prior.samples)
-
+  
   cat('\nopt=',unlist(opt))			
   indir					<- dirname(infile.inference)	
   outfile.base			<- '~/ageanalysis/'
@@ -194,7 +195,7 @@ ageanalysis <- function(infile.inference=NULL,infile.prior.samples=NULL,opt=NULL
   setkey(dobs,OUTPUT_ID,TR_SMOOTH_CATEGORY,REC_SMOOTH_CATEGORY)	
   dobs[, TRM_CAT_PAIR_ID:= seq_len(nrow(dobs))]
   setkey(dobs, TRM_CAT_PAIR_ID)
-
+  
   # sampling prior
   load(infile.prior.samples)
   set(dprior.fit, NULL, 'SAMPLING_CATEGORY', dprior.fit[, gsub('^2','e',gsub('^1','f',gsub('^0','i',SAMPLING_CATEGORY)))] )		
@@ -213,10 +214,10 @@ ageanalysis <- function(infile.inference=NULL,infile.prior.samples=NULL,opt=NULL
   tmp <- merge(tmp,subset(dprior.id[REC_WHO=='REC_SAMPLING_CATEGORY',],select=c('REC_ID','REC_SAMPLING_CATEGORY')),by='REC_SAMPLING_CATEGORY',all.x = TRUE)
   setkey(tmp, TRM_CAT_PAIR_ID)
   xi_id <- cbind(tmp$TR_ID, tmp$REC_ID)
-
+  
   setkey(dprior.fit,SAMPLING_CATEGORY,WHO)
   
-
+  
   indices <- matrix(NA, M^D, D)
   mm=0;
   for (m1 in 1:M){
@@ -225,7 +226,7 @@ ageanalysis <- function(infile.inference=NULL,infile.prior.samples=NULL,opt=NULL
       indices[mm,] = c(m1, m2)
     }
   }
-
+  
   B1 <- max(dobs$TR_SMOOTH_CATEGORY)
   B2 <- max(dobs$REC_SMOOTH_CATEGORY)
   L <-  matrix(rep(c(B1, B2) * 5/4,each=nrow(indices)),nrow=nrow(indices))
@@ -250,15 +251,22 @@ ageanalysis <- function(infile.inference=NULL,infile.prior.samples=NULL,opt=NULL
                    xi_id_rec = matrix(xi_id[,2],nrow=ns,ncol=max(dobs$OUTPUT_ID)),
                    id_mf =   dobs[grepl(':M:',TR_TRM_CATEGORY),unique(OUTPUT_ID)],
                    id_fm =   dobs[grepl(':F:',TR_TRM_CATEGORY),unique(OUTPUT_ID)],
-                   id_rh =  dobs[grepl('f:',REC_TRM_CATEGORY),unique(OUTPUT_ID)],
-                   id_rl =  dobs[grepl('i:',REC_TRM_CATEGORY),unique(OUTPUT_ID)],
+                   id_eh = dobs[grepl('e:',TR_TRM_CATEGORY) & grepl('f:',REC_TRM_CATEGORY),unique(OUTPUT_ID)],
+                   id_el = dobs[grepl('e:',TR_TRM_CATEGORY) & grepl('i:',REC_TRM_CATEGORY),unique(OUTPUT_ID)],
+                   id_hh = dobs[grepl('f:',TR_TRM_CATEGORY) & grepl('f:',REC_TRM_CATEGORY),unique(OUTPUT_ID)],
+                   id_hl = dobs[grepl('f:',TR_TRM_CATEGORY) & grepl('i:',REC_TRM_CATEGORY),unique(OUTPUT_ID)],
+                   id_lh = dobs[grepl('i:',TR_TRM_CATEGORY) & grepl('f:',REC_TRM_CATEGORY),unique(OUTPUT_ID)],
+                   id_mf_h =  dobs[grepl(':M:',TR_TRM_CATEGORY) & grepl('f:',REC_TRM_CATEGORY),unique(OUTPUT_ID)],
+                   id_mf_l =  dobs[grepl(':M:',TR_TRM_CATEGORY) & grepl('i:',REC_TRM_CATEGORY),unique(OUTPUT_ID)],
+                   id_fm_h =  dobs[grepl(':F:',TR_TRM_CATEGORY) & grepl('f:',REC_TRM_CATEGORY),unique(OUTPUT_ID)],
+                   id_fm_l =  dobs[grepl(':F:',TR_TRM_CATEGORY) & grepl('i:',REC_TRM_CATEGORY),unique(OUTPUT_ID)],
                    id_sh =  dobs[grepl('f:',TR_TRM_CATEGORY),unique(OUTPUT_ID)],
                    id_sl =  dobs[grepl('i:',TR_TRM_CATEGORY),unique(OUTPUT_ID)],
-                   id_se =  dobs[grepl('e:',TR_TRM_CATEGORY),unique(OUTPUT_ID)])
+                   id_se =  dobs[grepl('e:',TR_TRM_CATEGORY),unique(OUTPUT_ID)]
+  )
   
-  save(data.fit,file=file.path(outdir, 'input.rda'))
+  save(data.fit,file='~/ageanalysis/input.rda')
   
-  return(data.fit)
 }
 
 add_2D_splines_stan_data = function(stan_data, spline_degree = 3, n_knots_rows = 8, n_knots_columns = 8)
