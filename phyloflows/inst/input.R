@@ -251,11 +251,19 @@ ageanalysis <- function(infile.inference=NULL,infile.prior.samples=NULL,opt=NULL
                    xi_id_rec = matrix(xi_id[,2],nrow=ns,ncol=max(dobs$OUTPUT_ID)),
                    id_mf =   dobs[grepl(':M:',TR_TRM_CATEGORY),unique(OUTPUT_ID)],
                    id_fm =   dobs[grepl(':F:',TR_TRM_CATEGORY),unique(OUTPUT_ID)],
-                   id_rh =  dobs[grepl('f:',REC_TRM_CATEGORY),unique(OUTPUT_ID)],
-                   id_rl =  dobs[grepl('i:',REC_TRM_CATEGORY),unique(OUTPUT_ID)],
+                   id_eh = dobs[grepl('e:',TR_TRM_CATEGORY) & grepl('f:',REC_TRM_CATEGORY),unique(OUTPUT_ID)],
+                   id_el = dobs[grepl('e:',TR_TRM_CATEGORY) & grepl('i:',REC_TRM_CATEGORY),unique(OUTPUT_ID)],
+                   id_hh = dobs[grepl('f:',TR_TRM_CATEGORY) & grepl('f:',REC_TRM_CATEGORY),unique(OUTPUT_ID)],
+                   id_hl = dobs[grepl('f:',TR_TRM_CATEGORY) & grepl('i:',REC_TRM_CATEGORY),unique(OUTPUT_ID)],
+                   id_lh = dobs[grepl('i:',TR_TRM_CATEGORY) & grepl('f:',REC_TRM_CATEGORY),unique(OUTPUT_ID)],
+                   id_mf_h =  dobs[grepl(':M:',TR_TRM_CATEGORY) & grepl('f:',REC_TRM_CATEGORY),unique(OUTPUT_ID)],
+                   id_mf_l =  dobs[grepl(':M:',TR_TRM_CATEGORY) & grepl('i:',REC_TRM_CATEGORY),unique(OUTPUT_ID)],
+                   id_fm_h =  dobs[grepl(':F:',TR_TRM_CATEGORY) & grepl('f:',REC_TRM_CATEGORY),unique(OUTPUT_ID)],
+                   id_fm_l =  dobs[grepl(':F:',TR_TRM_CATEGORY) & grepl('i:',REC_TRM_CATEGORY),unique(OUTPUT_ID)],
                    id_sh =  dobs[grepl('f:',TR_TRM_CATEGORY),unique(OUTPUT_ID)],
                    id_sl =  dobs[grepl('i:',TR_TRM_CATEGORY),unique(OUTPUT_ID)],
-                   id_se =  dobs[grepl('e:',TR_TRM_CATEGORY),unique(OUTPUT_ID)])
+                   id_se =  dobs[grepl('e:',TR_TRM_CATEGORY),unique(OUTPUT_ID)]
+  )
   
   save(data.fit,file='~/ageanalysis/input.rda')
 
