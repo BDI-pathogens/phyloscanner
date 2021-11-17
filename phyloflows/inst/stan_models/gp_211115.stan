@@ -88,7 +88,6 @@ parameters {
 
 transformed parameters {
   vector[N_per_group] lxi_pair[N_group];
-  vector[M_nD] coefficient[4];  
   vector[N_per_group] llbd[N_group];  
   vector[N_group] muv;
   vector[N_per_group] f_mf_h;
