@@ -10,7 +10,7 @@ library(knitr)
 indir.repository <- '~/git/phyloscanner/phyloflows/inst'
 indir.deepsequence_analyses <- '~/Box\ Sync/2021/ratmann_deepseq_analyses/live/PANGEA2_RCCS1519_UVRI/'
 indir.deepsequencedata <- '~/Box\ Sync/2019/ratmann_pangea_deepsequencedata/live/'
-outdir <- '~/Box\ Sync/2021/RCCS/outputs'
+outdir <- '~/Box\ Sync/2021/phyloflows/'
 
 # indicators 
 include.mrc <- F
