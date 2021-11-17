@@ -66,9 +66,6 @@ parameters {
 
 transformed parameters {
   vector[N_per_group] log_lambda[N_group];  
-  vector[N_group] muv;
-  vector[N_per_group] f_mf;
-  vector[N_per_group] f_fm;
   vector[N_per_group] f[N_group];
   matrix[num_basis_rows,num_basis_columns] beta[N_group]; 
 
