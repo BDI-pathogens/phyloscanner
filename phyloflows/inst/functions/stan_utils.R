@@ -270,10 +270,42 @@ ageanalysis <- function(infile.inference=NULL,infile.prior.samples=NULL,opt=NULL
   return(data.fit)
 }
 
+prepare_stan_data <- function(pairs, age_map){
+  stan_data = list()
+  
+  # number of directions
+  stan_data[['N_group']] = 2
+  
+  # f -> M
+  tmp <- pairs[sex.SOURCE == 'F' & sex.RECIPIENT == 'M']
+  tmp <- tmp[, list(age_infection.SOURCE = floor(age_infection.SOURCE), age_infection.RECIPIENT = floor(age_infection.RECIPIENT))]
+  tmp <- tmp[, list(count = .N), by = c('age_infection.SOURCE', 'age_infection.RECIPIENT')]
+  tmp <- merge(age_map, tmp, by = c('age_infection.SOURCE', 'age_infection.RECIPIENT'), all.x = T)
+  tmp[is.na(count), count := 0]
+  stopifnot(sum(tmp$count) == nrow(pairs[sex.SOURCE == 'F' & sex.RECIPIENT == 'M']))
+  stan_data[['y']] = matrix(tmp$count, ncol = 1)
+  stan_data[['is_mf']] = 0
+  
+  # M -> F
+  tmp <- pairs[sex.SOURCE == 'M' & sex.RECIPIENT == 'F']
+  tmp <- tmp[, list(age_infection.SOURCE = floor(age_infection.SOURCE), age_infection.RECIPIENT = floor(age_infection.RECIPIENT))]
+  tmp <- tmp[, list(count = .N), by = c('age_infection.SOURCE', 'age_infection.RECIPIENT')]
+  tmp <- merge(age_map, tmp, by = c('age_infection.SOURCE', 'age_infection.RECIPIENT'), all.x = T)
+  tmp[is.na(count), count := 0]
+  stopifnot(sum(tmp$count) == nrow(pairs[sex.SOURCE == 'M' & sex.RECIPIENT == 'F']))
+  stan_data[['y']] = cbind(stan_data[['y']], matrix(tmp$count, ncol = 1))
+  stan_data[['is_mf']] = c(stan_data[['is_mf']], 1)
+  
+  # age age entries
+  stan_data[['N_per_group']] = nrow(age_map)
 
-add_2D_splines_stan_data = function(stan_data, spline_degree = 3, n_knots_rows = 8, n_knots_columns = 8)
+  return(stan_data)
+}
+
+
+add_2D_splines_stan_data = function(stan_data, spline_degree = 3, n_knots_rows = 8, n_knots_columns = 8, AGES)
 {
-  AGES <- floor(sort(unique(stan_data$x[,1])))
+  
   stan_data$A <- length(AGES)
   
   knots_rows = AGES[seq(1, length(AGES), length.out = n_knots_rows)] 
@@ -356,3 +388,4 @@ bsplines = function(data, knots, degree)
   
   return(m)
 }
+

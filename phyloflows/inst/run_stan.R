@@ -6,19 +6,16 @@ outdir <- '/rds/general/user/mm3218/home/projects/2021/phyloflows'
 
 if(0){
   indir <- '~/git/phyloscanner/phyloflows/inst'
-  outdir <- '~/Box\ Sync/2021/phyloflows'
+  outdir <- '~/Box\ Sync/2021/RCCS/outputs'
 }
 
+lab <- "MRC_FALSE_OnlyHTX_TRUE_threshold_0.6"
+stan_model <- 'gp_211117.stan'
 DEBUG <- F
-path.to.stan.data <- file.path(outdir, 'input.rda')
-path.to.stan.model <- file.path(indir, 'stan_models', 'gp_211115.stan')
+path.to.stan.data <- file.path(outdir, paste0("stanin_",lab,".RData"))
+path.to.stan.model <- file.path(indir, 'stan_models', stan_model)
 
 load(path.to.stan.data)
-source(file.path(indir, 'functions', 'stan_utils.R'))
-
-# stan data
-stan_data <- ageanalysis(outdir = outdir)
-stan_data <- add_2D_splines_stan_data(stan_data, spline_degree = 3, n_knots_rows = 15, n_knots_columns = 15, AGES = floor(sort(unique(stan_data$x[,1]))))
 
 # run stan model
 options(mc.cores = parallel::detectCores())
@@ -33,7 +30,4 @@ if(DEBUG){
                   verbose = FALSE, control = list(adapt_delta = 0.999,max_treedepth=15))
 }
 
-save(fit,file = file.path(outdir, 'gp_211115.rda'))
-
-
-
+save(fit,file = file.path(outdir, paste0(stan_model, '_', lab, '.rda'))
