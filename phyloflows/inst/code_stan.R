@@ -33,6 +33,9 @@ if(DEBUG){
                   verbose = FALSE, control = list(adapt_delta = 0.999,max_treedepth=15))
 }
 
+sum = summary(fit)
+sum$summary[which(sum$summary[,9] < 100),]
+
 save(fit,file = file.path(outdir, 'gp_211115.rda'))
 
 
