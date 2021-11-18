@@ -1,21 +1,24 @@
 library(rstan)
 library(data.table)	
 
-indir <- '/rds/general/user/mm3218/home/git/phyloscanner/phyloflows/inst'
-outdir <- '/rds/general/user/mm3218/home/projects/2021/phyloflows'
+.indir <- '/rds/general/user/mm3218/home/git/phyloscanner/phyloflows/inst'
+.outdir <- '/rds/general/user/mm3218/home/projects/2021/phyloflows'
 
 if(0){
-  indir <- '~/git/phyloscanner/phyloflows/inst'
-  outdir <- '~/Box\ Sync/2021/RCCS/outputs'
+  .indir <- '~/git/phyloscanner/phyloflows/inst'
+  .outdir <- '~/Box\ Sync/2021/RCCS/outputs'
 }
 
 lab <- "MRC_FALSE_OnlyHTX_TRUE_threshold_0.6"
 stan_model <- 'gp_211117.stan'
 DEBUG <- F
-path.to.stan.data <- file.path(outdir, paste0("stanin_",lab,".RData"))
-path.to.stan.model <- file.path(indir, 'stan_models', stan_model)
+
+path.to.stan.data <- file.path(.outdir, paste0("stanin_",lab,".RData"))
+path.to.stan.model <- file.path(.indir, 'stan_models', stan_model)
+outdir.lab <- file.path(outdir, lab)
 
 load(path.to.stan.data)
+indir <- .indir; outdir <- .outdir
 
 # run stan model
 options(mc.cores = parallel::detectCores())
@@ -33,4 +36,6 @@ if(DEBUG){
 sum = summary(fit)
 sum$summary[which(sum$summary[,9] < 100),]
 
-save(fit,file = file.path(outdir, paste0(stan_model, '_', lab, '.rda'))
+file = file.path(outdir.lab, paste0(stan_model, '_', lab, '.rds'))
+saveRDS(fit,file = file)
+     
