@@ -156,6 +156,7 @@ get.age.map <- function(pairs){
     max_age = floor(max(c(age_infection.SOURCE, age_infection.RECIPIENT)))
     list(age = min_age:max_age)}]
   
-  data.table(expand.grid(age_infection.SOURCE = ages$age, age_infection.RECIPIENT = ages$age))
   
+  age_map <- data.table(expand.grid(age_infection.SOURCE = ages$age, age_infection.RECIPIENT = ages$age))
+  age_map <- age_map[order(age_infection.SOURCE, age_infection.RECIPIENT)]
 }

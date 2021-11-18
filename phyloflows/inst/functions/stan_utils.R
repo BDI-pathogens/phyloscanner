@@ -283,6 +283,8 @@ prepare_stan_data <- function(pairs, age_map){
   tmp <- merge(age_map, tmp, by = c('age_infection.SOURCE', 'age_infection.RECIPIENT'), all.x = T)
   tmp[is.na(count), count := 0]
   stopifnot(sum(tmp$count) == nrow(pairs[sex.SOURCE == 'F' & sex.RECIPIENT == 'M']))
+  stopifnot(all(tmp$age_infection.SOURCE == age_map$age_infection.SOURCE))
+  stopifnot(all(tmp$age_infection.RECIPIENT == age_map$age_infection.RECIPIENT))
   stan_data[['y']] = matrix(tmp$count, ncol = 1)
   stan_data[['is_mf']] = 0
   
@@ -293,6 +295,8 @@ prepare_stan_data <- function(pairs, age_map){
   tmp <- merge(age_map, tmp, by = c('age_infection.SOURCE', 'age_infection.RECIPIENT'), all.x = T)
   tmp[is.na(count), count := 0]
   stopifnot(sum(tmp$count) == nrow(pairs[sex.SOURCE == 'M' & sex.RECIPIENT == 'F']))
+  stopifnot(all(tmp$age_infection.SOURCE == age_map$age_infection.SOURCE))
+  stopifnot(all(tmp$age_infection.RECIPIENT == age_map$age_infection.RECIPIENT))
   stan_data[['y']] = cbind(stan_data[['y']], matrix(tmp$count, ncol = 1))
   stan_data[['is_mf']] = c(stan_data[['is_mf']], 1)
   
