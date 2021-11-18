@@ -10,15 +10,14 @@ if(0){
 }
 
 lab <- "MRC_FALSE_OnlyHTX_TRUE_threshold_0.6"
-stan_model <- 'gp_211117.stan'
+stan_model <- 'gp_211117'
 DEBUG <- F
 
 path.to.stan.data <- file.path(.outdir, paste0("stanin_",lab,".RData"))
-path.to.stan.model <- file.path(.indir, 'stan_models', stan_model)
-outdir.lab <- file.path(outdir, lab)
+path.to.stan.model <- file.path(indir, 'stan_models', paste0(stan_model, '.stan'))
 
 load(path.to.stan.data)
-indir <- .indir; outdir <- .outdir
+indir <- .indir; outdir <- .outdir; outdir.lab <- file.path(outdir, lab)
 
 # run stan model
 options(mc.cores = parallel::detectCores())
