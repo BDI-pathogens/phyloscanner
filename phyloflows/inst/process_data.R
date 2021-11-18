@@ -26,7 +26,8 @@ file.path.meta.data.mrc <- file.path(indir.deepsequencedata, 'PANGEA2_MRC','2003
 file.anonymisation.keys <- file.path(indir.deepsequence_analyses,'important_anonymisation_keys_210119.csv')
 file.community.keys <- file.path(indir.deepsequence_analyses,'community_names.csv')
 file.time.first.positive <- file.path(indir.deepsequencedata, 'PANGEA2_RCCS', '211111_pangea_db_sharing_extract_rakai_age_firstpos_lastneg.csv')
-
+outdir.lab <- file.path(outdir, lab); dir.create(outdir.lab)
+  
 # load functions
 source(file.path(indir.repository, 'functions', 'summary_functions.R'))
 source(file.path(indir.repository, 'functions', 'plotting_functions.R'))
@@ -62,22 +63,22 @@ if(include.only.heterosexual.pairs){
   pairs <- pairs[(sex.RECIPIENT == 'M' & sex.SOURCE == 'F') | (sex.RECIPIENT == 'F' & sex.SOURCE == 'M')]
 }
 
-print.statements.about.pairs(copy(pairs), outdir)
+print.statements.about.pairs(copy(pairs), outdir.lab)
 
 # keep only pairs with source-recipient with proxy for the time of infection
 pairs <- pairs[!is.na(age_infection.SOURCE) & !is.na(age_infection.RECIPIENT)]
   
 # prepare age map
-age_map <- get.age.map(pairs)
+df_age <- get.age.map(pairs)
 
 # prepare stan data
-stan_data <- prepare_stan_data(pairs, age_map)
-stan_data <- add_2D_splines_stan_data(stan_data, spline_degree = 3, n_knots_rows = 15, n_knots_columns = 15, unique(age_map$age_infection.SOURCE))
+stan_data <- prepare_stan_data(pairs, df_age)
+stan_data <- add_2D_splines_stan_data(stan_data, spline_degree = 3, n_knots_rows = 15, n_knots_columns = 15, unique(df_age$age_infection.SOURCE))
 
 ## save image before running Stan
 tmp <- names(.GlobalEnv)
 tmp <- tmp[!grepl('^.__|^\\.|^model$',tmp)]
-save(list=tmp, file=file.path(outdir, paste0("stanin_",lab,".RData")) )
+save(list=tmp, file=file.path(outdir.lab, paste0("stanin_",lab,".RData")) )
 
 
 
