@@ -67,7 +67,9 @@ print.statements.about.pairs(copy(pairs), outdir.lab)
 
 # keep only pairs with source-recipient with proxy for the time of infection
 pairs <- pairs[!is.na(age_infection.SOURCE) & !is.na(age_infection.RECIPIENT)]
-  
+plot_age_source_recipient(pairs[sex.SOURCE == 'M' & sex.RECIPIENT == 'F'], 'Male -> Female', 'MF', outdir.lab)
+plot_age_source_recipient(pairs[sex.SOURCE == 'F' & sex.RECIPIENT == 'M'], 'Female -> Male', 'FM', outdir.lab)
+
 # prepare age map
 df_age <- get.age.map(pairs)
 
