@@ -20,6 +20,8 @@ load(path.to.stan.data)
 indir <- .indir; outdir <- .outdir
 outdir.lab <- file.path(outdir, lab)
 
+source(file.path(indir, 'functions', 'postprocessing_functions.R'))
+
 # table
 df_direction <- data.table(index_direction = 1:2, is_mf = stan_data$is_mf)
 df_direction[, label_direction := ifelse(is_mf == 1, 'Male -> Female', 'Female -> Male')]
@@ -37,5 +39,4 @@ intensity_PP <- summarise_var_by_age_direction(samples, 'log_lambda', df_directi
 count_data <- prepare_count_data(stan_data)
 plot_intensity_PP(intensity_PP, count_data, outdir.lab)
   
-
 
