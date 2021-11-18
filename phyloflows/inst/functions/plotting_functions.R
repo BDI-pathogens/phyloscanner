@@ -9,7 +9,7 @@ plot_age_source_recipient <- function(data, title, lab, outdir){
   # all pairs
   p <- ggplot(data, aes(x = age_infection.SOURCE, y = age_infection.RECIPIENT)) + 
     geom_point() + 
-    labs(x = 'Age at first positive source', y = 'Age at first positive recipient') +
+    labs(x = 'Age at infection source', y = 'Age at infection recipient') +
     geom_abline(intercept = 0, slope = 1, linetype = 'dashed', col = 'grey50') + 
     theme_bw() + 
     coord_fixed() +
@@ -21,7 +21,7 @@ plot_age_source_recipient <- function(data, title, lab, outdir){
   # by cohort round
   p <- ggplot(data, aes(x = age_infection.SOURCE, y = age_infection.RECIPIENT)) + 
     geom_point() + 
-    labs(x = 'Age at first positive source', y = 'Age at first positive recipient') +
+    labs(x = 'Age at infection source', y = 'Age at infection recipient') +
     geom_abline(intercept = 0, slope = 1, linetype = 'dashed', col = 'grey50') + 
     theme_bw() + 
     coord_fixed() +
@@ -33,7 +33,7 @@ plot_age_source_recipient <- function(data, title, lab, outdir){
   
   p <- ggplot(data, aes(x = age_infection.SOURCE, y = age_infection.RECIPIENT)) + 
     geom_point() + 
-    labs(x = 'Age at first positive source', y = 'Age at first positive recipient') +
+    labs(x = 'Age at infection source', y = 'Age at infection recipient') +
     geom_abline(intercept = 0, slope = 1, linetype = 'dashed', col = 'grey50') + 
     theme_bw() + 
     coord_fixed() +
@@ -46,7 +46,7 @@ plot_age_source_recipient <- function(data, title, lab, outdir){
   # by community
   p <- ggplot(data, aes(x = age_infection.SOURCE, y = age_infection.RECIPIENT)) + 
     geom_point() + 
-    labs(x = 'Age at first positive source', y = 'Age at first positive recipient') +
+    labs(x = 'Age at infection source', y = 'Age at infection recipient') +
     geom_abline(intercept = 0, slope = 1, linetype = 'dashed', col = 'grey50') + 
     theme_bw() + 
     coord_fixed() +
@@ -58,7 +58,7 @@ plot_age_source_recipient <- function(data, title, lab, outdir){
   
   p <- ggplot(data, aes(x = age_infection.SOURCE, y = age_infection.RECIPIENT)) + 
     geom_point() + 
-    labs(x = 'Age at first positive source', y = 'Age at first positive recipient') +
+    labs(x = 'Age at infection source', y = 'Age at infection recipient') +
     geom_abline(intercept = 0, slope = 1, linetype = 'dashed', col = 'grey50') + 
     theme_bw() + 
     coord_fixed() +
@@ -77,7 +77,7 @@ plot_hist_age_infection <- function(pairs, outdir){
     geom_histogram(bins = 30) + 
     facet_wrap(~Sex, ncol = 1, label = 'label_both') + 
     theme_bw() + 
-    labs(x = 'Age at first positive source') +
+    labs(x = 'Age at infection source') +
     scale_x_continuous(limits = range(c(pairs$age_infection.SOURCE, pairs$age_infection.RECIPIENT)))
   
   pairs[, Sex := sex.SOURCE]
@@ -85,7 +85,7 @@ plot_hist_age_infection <- function(pairs, outdir){
     geom_histogram(bins = 30) + 
     facet_wrap(~Sex, ncol = 1, label = 'label_both') + 
     theme_bw() + 
-    labs(x = 'Age at first positive recipient')  +
+    labs(x = 'Age at infection recipient')  +
     scale_x_continuous(limits = range(c(pairs$age_infection.SOURCE, pairs$age_infection.RECIPIENT)))
   
   p <- ggarrange(p1, p2, ncol = 2)
@@ -123,7 +123,7 @@ plot_hist_age_infection_diff_threshold <- function(pairs, outdir){
     geom_density(aes( group = threshold, fill = threshold), alpha = 0.5) + 
     facet_wrap(~Sex, ncol = 1, label = 'label_both') + 
     theme_bw() + 
-    labs(x = 'Age at first positive source') +
+    labs(x = 'Age at infection source') +
     scale_x_continuous(limits = range(c(pairs$age_infection.SOURCE, pairs$age_infection.RECIPIENT)))
   
   pairs[, Sex := sex.SOURCE]
@@ -131,7 +131,7 @@ plot_hist_age_infection_diff_threshold <- function(pairs, outdir){
     geom_density(aes( group = threshold, fill = threshold), alpha = 0.5) + 
     facet_wrap(~Sex, ncol = 1, label = 'label_both') + 
     theme_bw() + 
-    labs(x = 'Age at first positive recipient')  +
+    labs(x = 'Age at infection recipient')  +
     scale_x_continuous(limits = range(c(pairs$age_infection.SOURCE, pairs$age_infection.RECIPIENT)))
   
   p <- ggarrange(p1, p2, ncol = 2, common.legend = T, legend = 'bottom')
