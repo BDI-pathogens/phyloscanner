@@ -152,7 +152,7 @@ find.pairs.in.networks <- function(dwin, dc, control= list(linked.group='close.a
 #'
 #' @seealso \code{\link{find.pairs.in.networks}}, \code{\link{plot.network}}, \code{\link{plot.chain}}
 #' @example inst/example/ex.transmission.networks.R
-find.networks<- function(dc, control= list(linked.group='close.and.adjacent.cat',linked.no='not.close.or.nonadjacent',linked.yes='close.and.adjacent', neff.cut=3, weight.complex.or.no.ancestry=0.5), verbose=TRUE)
+find.networks<- function(dc, control= list(linked.group='close.and.adjacent.cat',linked.no='not.close.or.nonadjacent',linked.yes='close.and.adjacent', dir.group="close.and.adjacent.and.directed.cat", neff.cut=3, weight.complex.or.no.ancestry=0.5), verbose=TRUE)
 {
     #    internal constants
     linked.group     <- control$linked.group
@@ -163,7 +163,7 @@ find.networks<- function(dc, control= list(linked.group='close.and.adjacent.cat'
     scores.group    <- 'close.and.adjacent.and.ancestry.cat'
     scores.nolink    <- 'not.close.or.nonadjacent'
     scores.ambig    <- 'complex.or.no.ancestry'
-    dir.group        <- "close.and.adjacent.and.directed.cat"
+    dir.group        <- control$dir.group
     
     #
     #    construct tri-edge transmission network
