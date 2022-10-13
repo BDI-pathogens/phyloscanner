@@ -15,7 +15,7 @@
 
 ############################################################
 # INSTALLING UP-TO-DATE R ON MAC OS
-???? TODO
+# Visit https://cran.r-project.org/bin/macosx/
 ############################################################
 
 # Next, install the packages needed for phyloscanner_analyse_trees.R
