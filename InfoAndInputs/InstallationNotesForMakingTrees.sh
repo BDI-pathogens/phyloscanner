@@ -99,8 +99,13 @@ cd ..
 echo 'PATH=$PATH:~/standard-RAxML/' >> ~/.bashrc
 source ~/.bashrc
 
+# home brew: 
+/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+
 # MAFFT can be installed in different ways from http://mafft.cbrc.jp/alignment/software/linux.html
-# Here follows one way to install version 7.407 directly from the command line.
+# Here is one easy way:
+brew install mafft
+# Here is another way to install e.g. version 7.407:
 curl http://mafft.cbrc.jp/alignment/software/mafft-7.407-without-extensions-src.tgz > mafft-7.407-without-extensions-src.tgz 
 tar -xzf mafft-7.407-without-extensions-src.tgz
 cd mafft-7.407-without-extensions/core/
@@ -109,28 +114,27 @@ make
 sudo make install
 cd ../..
 
-# home brew: 
-/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-
 # samtools
 brew tap homebrew/science
 brew install samtools
 # Test it works by running the command 'samtools'
 
-# Install up-to-date python
-brew install python
+# Newer MacOS versions do not contain python2, which phyloscanner_make_trees.py requires.
+# It can be installed from here: https://www.python.org/downloads/release/python-2718/
 
-# pip
+# If you don't have pip installed already
 sudo easy_install pip
 
-# biopython
-pip install biopython
-# Test it works by running the command 'python' to start an interactive python
+# biopython needs to be installed into your python2.
+# version 1.76 is the latest version for which that was supported.
+python2 -m pip install biopython==1.76
+
+# Test it works by running the command 'python2' to start an interactive python
 # session, then typing 'import Bio'.
 
 # pysam (we need version 0.8.1 or later)
-pip install pysam --upgrade
-# Test it works by running the command 'python' to start an interactive python
+python2 -m pip install pysam --upgrade
+# Test it works by running the command 'python2' to start an interactive python
 # session, then typing 'import pysam'. If you get an error, try closing your terminal,
 # reopening it and trying again: bizzarely this has worked for me for one error.
 ################################################################################
