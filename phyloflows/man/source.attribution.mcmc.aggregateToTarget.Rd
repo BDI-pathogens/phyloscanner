@@ -86,5 +86,5 @@ pars <- phyloflows:::source.attribution.mcmc.aggregateToTarget(mcmc.file=mcmc.fi
 }
 }
 \seealso{
-\link{\code{source.attribution.mcmc}}, \link{\code{source.attribution.mcmc.getKeyQuantities}}
+[source.attribution.mcmc()], [source.attribution.mcmc.getKeyQuantities()]
 }

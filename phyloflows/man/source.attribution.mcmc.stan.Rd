@@ -13,6 +13,8 @@ source.attribution.mcmc.stan(
 \arguments{
 \item{dobs}{Data.table of observed number of transmission events for each transmission pair category.}
 
+\item{dprior.fit}{Data.table of parameters from the prior distribution of sampling probabilities.}
+
 \item{control}{List of input arguments that control the behaviour of the source attribution algorithm:
 \itemize{
  \item{"seed"}{Random number seed, for reproducibility.}
@@ -20,8 +22,6 @@ source.attribution.mcmc.stan(
  \item{"method"}{Choose flow prior among 'gamma'(default) and 'gp'.}
  \item{"outfile"}{Full path name to which the MCMC output is saved to in RDA format, in an object called \code{fit}.}
 }}
-
-\item{dprior}{Data.table of parameters from the prior distribution of sampling probabilities.}
 }
 \value{
 If `outfile` is not specified, phyloflows MCMC output is returned, which is a list object. If `outfile` is specified, phyloflows MCMC output is written to an RDA file.
@@ -67,7 +67,7 @@ mc <- phyloflows:::source.attribution.mcmc.stan(dobs, dprior, control)
 
 }
 \seealso{
-\link{\code{source.attribution.mcmc.diagnostics}}, \link{\code{source.attribution.mcmc.aggregateToTarget}}, \link{\code{source.attribution.mcmc.getKeyQuantities}}
+[source.attribution.mcmc.diagnostics()], [source.attribution.mcmc.aggregateToTarget()], [source.attribution.mcmc.getKeyQuantities()]
 }
 \author{
 Xiaoyue Xi, Oliver Ratmann

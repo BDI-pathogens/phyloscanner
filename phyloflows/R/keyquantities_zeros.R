@@ -10,7 +10,7 @@
 #'  \item{"outfile"}{Full file name for output csv file.}
 #' }
 #' @return If `outfile` is not specified, the output is returned as a data.table. If `outfile` is specified, the output is written to a csv file.
-#' @seealso \link{\code{source.attribution.mcmc}}, \link{\code{source.attribution.mcmc.aggregateToTarget}}
+#' @seealso [source.attribution.mcmc()], [source.attribution.mcmc.aggregateToTarget()]
 #' @examples
 #' require(data.table)
 #' require(phyloflows)

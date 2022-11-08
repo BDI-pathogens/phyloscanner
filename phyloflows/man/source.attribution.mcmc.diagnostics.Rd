@@ -68,7 +68,7 @@ phyloflows:::source.attribution.mcmc.diagnostics(mc=mc, control=control)
 
 }
 \seealso{
-\link{\code{source.attribution.mcmc}}
+[source.attribution.mcmc()]
 }
 \author{
 Xiaoyue Xi, Oliver Ratmann

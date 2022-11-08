@@ -18,7 +18,7 @@
 #'  \item{"outfile.base"}{Start of the full file name for all output files.}
 #' }
 #' @return Nothing. Diagnostic plots and csv files are written to disk.
-#' @seealso \link{\code{source.attribution.mcmc}}
+#' @seealso [source.attribution.mcmc()]
 #' @examples
 #' require(data.table)
 #' require(phyloflows)

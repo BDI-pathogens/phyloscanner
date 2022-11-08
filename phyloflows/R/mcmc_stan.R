@@ -12,7 +12,7 @@
 #'  \item{"outfile"}{Full path name to which the MCMC output is saved to in RDA format, in an object called \code{fit}.}
 #' }
 #' @return If `outfile` is not specified, phyloflows MCMC output is returned, which is a list object. If `outfile` is specified, phyloflows MCMC output is written to an RDA file.
-#' @seealso \link{\code{source.attribution.mcmc.diagnostics}}, \link{\code{source.attribution.mcmc.aggregateToTarget}}, \link{\code{source.attribution.mcmc.getKeyQuantities}}
+#' @seealso [source.attribution.mcmc.diagnostics()], [source.attribution.mcmc.aggregateToTarget()], [source.attribution.mcmc.getKeyQuantities()]
 #' @examples
 #' require(data.table)
 #' require(phyloflows)

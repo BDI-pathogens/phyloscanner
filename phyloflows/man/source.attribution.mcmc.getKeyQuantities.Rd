@@ -77,7 +77,7 @@ ans <- phyloflows:::source.attribution.mcmc.getKeyQuantities(infile=infile, dobs
 
 }
 \seealso{
-\link{\code{source.attribution.mcmc}}, \link{\code{source.attribution.mcmc.aggregateToTarget}}
+[source.attribution.mcmc()], [source.attribution.mcmc.aggregateToTarget()]
 }
 \author{
 Xiaoyue Xi, Oliver Ratmann

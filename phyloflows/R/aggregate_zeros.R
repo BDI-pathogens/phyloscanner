@@ -12,7 +12,7 @@
 #'  \item{"outfile"}{Full file name of the output csv file.}
 #' }
 #' @return If `outfile` is not specified, aggregated Monte Carlo samples are returned, as a data.table. If `outfile` is specified and ends in `csv`, the output is written to a csv file. If `outfile` is specified and ends in `rda`, the output is written to a rda file.
-#' @seealso \link{\code{source.attribution.mcmc}}, \link{\code{source.attribution.mcmc.getKeyQuantities}}
+#' @seealso [source.attribution.mcmc()], [source.attribution.mcmc.getKeyQuantities()]
 #' @examples
 #' require(data.table)
 #' require(phyloflows)

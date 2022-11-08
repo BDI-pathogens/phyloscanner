@@ -67,7 +67,7 @@ mc <- phyloflows:::source.attribution.mcmc.joint(dobs, dprior, control)
 
 }
 \seealso{
-\link{\code{source.attribution.mcmc.diagnostics}}, \link{\code{source.attribution.mcmc.aggregateToTarget}}, \link{\code{source.attribution.mcmc.getKeyQuantities}}
+[source.attribution.mcmc.diagnostics()],[source.attribution.mcmc.aggregateToTarget()], [source.attribution.mcmc.getKeyQuantities()]
 }
 \author{
 Xiaoyue Xi, Oliver Ratmann
