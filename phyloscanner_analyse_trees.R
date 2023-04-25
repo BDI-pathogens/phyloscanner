@@ -433,11 +433,11 @@ if(arrow.threshold >= win.threshold){
   stop("Direction threshold cannot be larger than window threshold")
 }
 
-allow.mt                       <- args$allowMultiTrans
+allow.mt                   <- args$allowMultiTrans
 n.mt                       <- args$nMultiTrans
 p.mt                       <- args$pMultiTrans
-zero.length.adjustment  <- args$zerolengthAdjustment
-relaxed.ancestry               <- args$relaxedAncestry
+zero.length.adjustment     <- args$zerolengthAdjustment
+relaxed.ancestry           <- args$relaxedAncestry
 
 # Do the simplified plot?
 do.simplified.graph            <- !args$skipSummaryGraph
