@@ -1,12 +1,14 @@
 Package: phyloscannerR
 Title: Phylogenetics between and within hosts at once, all along the genome
-Version: 1.8.0
-Authors@R: c(person("Matthew", "Hall", email = "matthew.hall@bdi.ox.ac.uk", role = c("aut", "cre")), person("Chris", "Wymant", email = "matthew.hall@bdi.ox.ac.uk", role = c("aut")), person("Oliver", "Ratmann", email = "matthew.hall@bdi.ox.ac.uk", role = c("aut")))
+Version: 1.8.1
+Authors@R: c(person("Matthew", "Hall", email = "matthew.hall@bdi.ox.ac.uk", role = c("aut", "cre")), person("Oliver", "Ratmann", email = "oliver.ratmann05@imperial.ac.uk", role = c("aut")))
+Author: Matthew Hall [aut, cre],
+  Oliver Ratmann [aut]
+Maintainer: Matthew Hall <matthew.hall@bdi.ox.ac.uk>
 Description: An R package for the second half of phyloscanner (tree analysis).
 Depends: R (>= 4.0.0)
-Imports: ape, argparse, extraDistr, ff, GGally, ggtree, grid, gtable, kimisc, network, pegas, phangorn, phytools, prodlim, RColorBrewer, reshape2, scales, sna, tidyverse, treeio (>= 1.6.2), viridis
+Imports: ape, argparse, dplyr, extraDistr, ff, GGally, ggtree, glue, ggplot2, grid, gtable, igraph, kimisc, magrittr,network, pegas, phangorn, phytools, prodlim, purrr, RColorBrewer, RBGL, readr, reshape2, scales, sna, tibble, tidyr, treeio (>= 1.6.2), viridis
 License: GPL
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.1.1
-
+RoxygenNote: 7.2.3

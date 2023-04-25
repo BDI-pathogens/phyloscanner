@@ -7,8 +7,9 @@
 find.networks(
   dc,
   control = list(linked.group = "close.and.adjacent.cat", linked.no =
-    "not.close.or.nonadjacent", linked.yes = "close.and.adjacent", neff.cut = 3,
-    weight.complex.or.no.ancestry = 0.5),
+    "not.close.or.nonadjacent", linked.yes = "close.and.adjacent", dir.group =
+    "close.and.adjacent.and.directed.cat", neff.cut = 3, weight.complex.or.no.ancestry =
+    0.5),
   verbose = TRUE
 )
 }

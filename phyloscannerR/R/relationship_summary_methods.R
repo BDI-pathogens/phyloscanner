@@ -1,6 +1,5 @@
 #' @title Count pairwise relationships across deep-sequence trees 
 #' @export 
-#' @import tidyverse 
 #' @author Oliver Ratmann, Matthew Hall
 #' @param dwin A data frame produced by \code{classify.pairwise.relationships}.
 #' @param w.slide Increment between genomic windows. Default: NA.
@@ -150,7 +149,6 @@ count.pairwise.relationships<- function(dwin, w.slide=NA, verbose=TRUE)
 
 #' @title Classify pairwise host relationships in deep sequence phylogenies 
 #' @export
-#' @import tidyverse 
 #' @author Oliver Ratmann, Matthew Hall
 #' @param ptrees A list of class \code{phyloscanner.trees} produced by \code{phyloscanner.analyse.trees}.
 #' @param close.threshold The (potentially normalised) patristic threshold used to determine if two patients' subgraphs are "close".

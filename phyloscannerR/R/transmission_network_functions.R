@@ -1,6 +1,5 @@
 #' @export
 #' @author Oliver Ratmann
-#' @import tidyverse
 #' @title Find pairs of individuals between whom linkage is not excluded phylogenetically
 #' @param dwin A \code{data.frame} describing pairwise relationships between the hosts in each tree; normally output of \code{classify.pairwise.relationships}
 #' @param dc A \code{data.frame} summarising pairwise relationships between the hosts across all trees; normally output of \code{count.pairwise.relationships}
@@ -108,7 +107,7 @@ find.pairs.in.networks <- function(dwin, dc, control= list(linked.group='close.a
 
 #' @export
 #' @author Oliver Ratmann
-#' @import tidyverse glue
+#' @import glue
 #' @importFrom igraph graph.data.frame clusters
 #' @title Find phylogenetic transmission networks and most likely transmission chain
 #' @param dc Summary of phylogenetic relationship counts for each pair, stored as tibble.

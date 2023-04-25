@@ -8,8 +8,8 @@ cmd.phyloscanner.analyse.trees(
   prog.phyloscanner_analyse_trees,
   tree.input,
   control,
- 
-    valid.input.args = cmd.phyloscanner.analyse.trees.valid.args(prog.phyloscanner_analyse_trees)
+  valid.input.args =
+    cmd.phyloscanner.analyse.trees.valid.args(prog.phyloscanner_analyse_trees)
 )
 }
 \arguments{

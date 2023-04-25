@@ -493,7 +493,6 @@ process.tree <- function(tree, root.name=NULL, m.thresh=-1, blacklist.for.prunin
 
 #' @title Select for further analysis relationship classifications by read and tip counts 
 #' @export select.windows.by.read.and.tip.count
-#' @import tidyverse 
 #' @author Oliver Ratmann, Matthew Hall
 #' @param ptrees A list of class \code{phyloscanner.trees} produced by \code{phyloscanner.analyse.trees}.
 #' @param dwin A data frame produced by \code{classify.pairwise.relationships}.

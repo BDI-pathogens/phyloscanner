@@ -301,7 +301,6 @@ multinomial.calculations <- function(ptrees,
 #' @keywords internal
 #' @param df tibble with basic relationship types for paired individuals across windows. Must contain columns 'ID1','ID2','W_FROM','W_TO','TYPE_BASIC'. 
 #' @param relationship.types names of relationship groups
-#' @import tidyverse  
 #' @return new tibble with columns host.1 host.2 GROUP TYPE K KEFF N NEFF.
 #'  
 get.keff.and.neff <- function(df, relationship.types, w.slide=NA){
