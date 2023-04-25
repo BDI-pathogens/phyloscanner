@@ -11,14 +11,15 @@ In order, the following steps are performed:
 \item Summarise these pairwise relationships over all trees (if more than one tree was given).
 \end{enumerate}
 
-The code forms an \c{R} package entitled \c{phyloscannerR} which appears as a subfolder in the \p directory. The package manual can also be found in this directory and it is suggested that advanced perform the analysis within \c{R} itself and consult consult that. This package and its dependencies must be installed prior to use, whether within \c{R} or at the UNIX command line; all dependencies are available in \href{http://cran.r-project.org/}{CRAN} except for \c{ggtree}~\cite{MEE3:MEE312628}, which is part of \href{http://bioconductor.org/}{Bioconductor}. At present \c{phyloscannerR} itself is not listed on CRAN but we intend to submit it in the fullness of time.
+The code forms an \c{R} package entitled \c{phyloscannerR} which appears as a subfolder in the \p directory. The package manual can also be found in this directory and it is suggested that advanced perform the analysis within \c{R} itself and consult consult that. This package and its dependencies must be installed prior to use, whether within \c{R} or at the UNIX command line; all dependencies are available in \href{http://cran.r-project.org/}{CRAN} except for \c{ggtree}~\cite{MEE3:MEE312628}, \c{treeio}, and \c{RBGL}, which are part of \href{http://bioconductor.org/}{Bioconductor}. At present \c{phyloscannerR} itself is not listed on CRAN but we intend to submit it in the fullness of time.
 
-To install \c{phyloscannerR} (and \c{ggtree}), use the command line to navigate to the ``phyloscannerR'' subdirectory of the ``phyloscanner'' directory, then start \c{R} and enter the following commands:
+To install \c{phyloscannerR} (and the Bioconductor packages), use the command line to navigate to the ``phyloscannerR'' subdirectory of the ``phyloscanner'' directory, then start \c{R} and enter the following commands:
 \begin{verbatim}
 > install.packages("devtools")
+> install.packages("BiocManager")
 > library(devtools)
-> source("https://bioconductor.org/biocLite.R")
-> biocLite("ggtree")
+> BiocManager::install("ggtree")
+> BiocManager::install("RBGL")
 > install("../phyloscannerR", dependencies = T)
 \end{verbatim}
 (Obviously if you have already installed \c{ggtree} then the second and third lines can be skipped.) 
@@ -252,7 +253,7 @@ For full details, see the supplementary information of the \p paper.
 \item A fast, non-rigorous (for more than two hosts) adaptation of the procedure outlined in Romero-Severson et al. (PNAS 2016).
 This is specified by using the option ``\c{r}''. It will not reliably reconstruct multiple infections.
 \item A parsimony reconstruction using the Sankoff algorithm that allows for an additional ``unassigned'' state and can be configured to penalise the reconstruction of single infections to hosts which imply unreasonable amounts of diversity.
-This is specified by two, separated by commas.
+This is specified by two arguments, separated by commas.
 The first is ``\c{s}''.
 The second is the value of the $k$ parameter that penalises within-host diversity; if this is set to 0 then no penalty is applied and the procedure is equivalent to standard parsimony with the unassigned state.
 It is recommended that users explore their data to pick suitable values of $k$, as it is likely to be pathogen- and sequencing method-dependent. As a rule of thumb, it should be the reciprocal of a patristic distance so large that it would be surprising to encounter a host with an infection so diverse that a phylogeny built from pathogen sequences from just that host had a branch that long or longer, if the host was infected only once.
