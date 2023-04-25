@@ -230,7 +230,7 @@ calc.all.stats.in.window <- function(ptree, hosts, tip.regex, has.read.counts, v
   
   new.cols <- map_dfr(hosts, function(x) calc.subtree.stats(x, id, tree, tips.for.hosts, splits.table, tip.regex, !has.read.counts, verbose))
 
-  normalised.new.cols <- new.cols %>% transmute(across(.fns = function(x) x/ptree$normalisation.constant))
+  normalised.new.cols <- new.cols %>% transmute(across(.cols = 1:6, .fns = function(x) x/ptree$normalisation.constant))
   
   colnames(normalised.new.cols) <- paste0("normalised.", colnames(new.cols))
   
