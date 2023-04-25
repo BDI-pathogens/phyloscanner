@@ -4,28 +4,28 @@
 #' @export write.ann.tree
 
 write.ann.tree <- function(phy, file = "", annotations = NULL, append = FALSE, digits = 10, tree.names = FALSE){
-    if (!(inherits(phy, c("phylo", "multiPhylo"))))
-      stop("object \"phy\" has no trees")
-    
-    if (inherits(phy, "phylo")) phy <- c(phy)
-    N <- length(phy)
-    res <- character(N)
-    
-    if (is.logical(tree.names)) {
-      if (tree.names) {
-        tree.names <-
-          if (is.null(names(phy))) character(N)
-        else names(phy)
-      } else tree.names <- character(N)
-    }
-    
-    for (i in 1:N)
-      res[i] <- .write.ann.tree2(phy[[i]], annotations, digits = digits,
-                                 tree.prefix = tree.names[i])
-    
-    if (file == "") return(res)
-    else cat(res, file = file, append = append, sep = "\n")
+  if (!(inherits(phy, c("phylo", "multiPhylo"))))
+    stop("object \"phy\" has no trees")
+  
+  if (inherits(phy, "phylo")) phy <- c(phy)
+  N <- length(phy)
+  res <- character(N)
+  
+  if (is.logical(tree.names)) {
+    if (tree.names) {
+      tree.names <-
+        if (is.null(names(phy))) character(N)
+      else names(phy)
+    } else tree.names <- character(N)
   }
+  
+  for (i in 1:N)
+    res[i] <- .write.ann.tree2(phy[[i]], annotations, digits = digits,
+                               tree.prefix = tree.names[i])
+  
+  if (file == "") return(res)
+  else cat(res, file = file, append = append, sep = "\n")
+}
 
 #' @keywords internal
 #' @export .write.ann.tree2
