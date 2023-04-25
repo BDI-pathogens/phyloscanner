@@ -51,7 +51,7 @@ tmp$graph
 }
 }
 \seealso{
-\link{\code{classify.pairwise.relationships}}
+\code{\link{classify.pairwise.relationships}}
 }
 \author{
 Oliver Ratmann

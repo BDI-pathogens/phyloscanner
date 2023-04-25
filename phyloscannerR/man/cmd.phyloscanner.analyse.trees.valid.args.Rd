@@ -13,5 +13,5 @@ cmd.phyloscanner.analyse.trees.valid.args(prog.phyloscanner_analyse_trees)
 Obtain valid input arguments for a phyloscanner analysis on a tree or set of trees
 }
 \seealso{
-\link{\code{cmd.phyloscanner.analyse.trees}}
+\code{\link{cmd.phyloscanner.analyse.trees}}
 }

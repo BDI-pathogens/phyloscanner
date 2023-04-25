@@ -1,7 +1,7 @@
 #' Obtain valid input arguments for a phyloscanner analysis on a tree or set of trees
 #' @param prog.phyloscanner_analyse_trees The full file name of \code{phyloscanner_analyse_trees.R}.
 #' @export
-#' @seealso \link{\code{cmd.phyloscanner.analyse.trees}}
+#' @seealso \code{\link{cmd.phyloscanner.analyse.trees}}
 cmd.phyloscanner.analyse.trees.valid.args<- function(prog.phyloscanner_analyse_trees)
 {
 	tmp	<- system2(command=prog.phyloscanner_analyse_trees, args='-h', stdout=TRUE)
@@ -17,10 +17,10 @@ cmd.phyloscanner.analyse.trees.valid.args<- function(prog.phyloscanner_analyse_t
 #' This function makes a UNIX script file to call \code{phyloscanner_analyse_trees.R}. Usually, this is useful to parallelise computations; see the Examples. 
 #' @param prog.phyloscanner_analyse_trees The full file name of \code{phyloscanner_analyse_trees.R}.
 #' @param tree.input One of the following: the name of a single tree file (Newick or NEXUS format); the directory containing all input trees; a zip file containing input trees.
-#' @param control List of input arguments to \link{\code{phyloscanner_analyse_trees}}.
+#' @param control List of input arguments to \code{\link{phyloscanner.analyse.trees}}.
 #' @param valid.input.args Vector of valid input arguments.
 #' @return A character string of UNIX commands.
-#' @seealso \link{\code{phyloscanner.analyse.trees}}, \link{\code{cmd.phyloscanner.analyse.trees.valid.args}}
+#' @seealso \code{\link{phyloscanner.analyse.trees}}, \code{\link{cmd.phyloscanner.analyse.trees.valid.args}}
 #' @author Oliver Ratmann
 #' @export
 #' @example /inst/example/ex.cmd.phyloscanner_analyse_trees.R

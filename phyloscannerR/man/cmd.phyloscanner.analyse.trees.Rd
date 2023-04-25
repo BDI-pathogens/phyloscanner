@@ -17,7 +17,7 @@ cmd.phyloscanner.analyse.trees(
 
 \item{tree.input}{One of the following: the name of a single tree file (Newick or NEXUS format); the directory containing all input trees; a zip file containing input trees.}
 
-\item{control}{List of input arguments to \link{\code{phyloscanner_analyse_trees}}.}
+\item{control}{List of input arguments to \code{\link{phyloscanner.analyse.trees}}.}
 
 \item{valid.input.args}{Vector of valid input arguments.}
 }
@@ -130,7 +130,7 @@ cat(cmds[[100]])
 }
 }
 \seealso{
-\link{\code{phyloscanner.analyse.trees}}, \link{\code{cmd.phyloscanner.analyse.trees.valid.args}}
+\code{\link{phyloscanner.analyse.trees}}, \code{\link{cmd.phyloscanner.analyse.trees.valid.args}}
 }
 \author{
 Oliver Ratmann
