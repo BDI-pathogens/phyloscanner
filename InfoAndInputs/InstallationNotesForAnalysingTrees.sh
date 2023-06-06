@@ -20,12 +20,12 @@
 
 # Next, install the packages needed for phyloscanner_analyse_trees.R
 # Change directory to the 'phyloscannerR' subdirectory of the main phyloscanner code directory,
-# e.g. cd ~/phyloscanner/phyloscannerR/, then run
-sudo R
-# Inside the interactive R console, run
+# e.g. cd ~/phyloscanner/phyloscannerR/, then start an an interactive R session by running
+R
+# Then inside the interactive R session, run
 install.packages("devtools")
+install.packages("BiocManager")
 library(devtools)
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
 BiocManager::install("ggtree")
-install(".", dependencies = T)
+BiocManager::install("RBGL")
+install("../phyloscannerR", dependencies = T)
