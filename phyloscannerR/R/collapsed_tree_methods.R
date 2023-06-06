@@ -686,7 +686,7 @@ classify <- function(ptree, allow.mt = F, n.mt=Inf, p.mt= Inf, zero.length.adjus
   if(is.null(ptree$splits.table)){
     if (verbose) cat("Reading splits file", ptree$splits.file.name, "...\n")
     
-    splits <- read_csv(ptree$splits.file.name)
+    splits <- read_csv(ptree$splits.file.name, show_col_types = FALSE)
   } else {
     splits <- ptree$splits.table
   }
@@ -980,7 +980,7 @@ merge.classifications <- function(ptrees, verbose = F){
       if("path.classification" %in% names(tt)) tt <- tt %>% rename(ancestry = path.classification)
     } else {
       if (verbose) cat("Reading window input file ", ptree$classification.file.name,"\n", sep="")
-      tt <- read_csv(ptree$classification.file.name, col_names = TRUE)
+      tt <- read_csv(ptree$classification.file.name, col_names = TRUE, show_col_types = FALSE)
       
       if(nrow(tt)==0){
         stop(paste0("No lines in window input file ",ptree$classification.file.name))

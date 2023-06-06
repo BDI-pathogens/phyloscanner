@@ -317,7 +317,7 @@ initialise.phyloscanner <- function(
       if (verbosity!=0) cat('Normalising branch lengths using contents of file ', norm.constants, "...\n", sep="")
       
       
-      nc.df   <- read_csv(norm.constants, col_names = F)
+      nc.df   <- read_csv(norm.constants, col_names = F, show_col_types = FALSE)
       ptrees <- sapply(ptrees, function(ptree) {
         rows  <- which(nc.df[,1]==basename(ptree$tree.file.name))
         
@@ -351,7 +351,7 @@ initialise.phyloscanner <- function(
       if (verbosity!=0) cat('Calculating normalisation constants from file ', norm.ref.file.name, "...\n", sep="")
       
       if(grepl(paste0("csv", "$"), norm.ref.file.name)){
-        norm.table	<- read_csv(norm.ref.file.name)
+        norm.table	<- read_csv(norm.ref.file.name, show_col_types = FALSE)
 
         
         if(ncol(norm.table)!=2){
@@ -1485,7 +1485,7 @@ read.blacklist <- function(ptree, verbose = F) {
   if(!is.null(ptree$user.blacklist.file.name)){
     if(file.exists(ptree$user.blacklist.file.name)){
       if (verbose) cat("Reading blacklist file ",ptree$user.blacklist.file.name,'\n',sep="")
-      blacklisted.tips                    <- read_csv(ptree$user.blacklist.file.name, col_names="read")
+      blacklisted.tips                    <- read_csv(ptree$user.blacklist.file.name, col_names="read", show_col_types = FALSE)
       
       blacklist                           <- vector()
       if(nrow(blacklisted.tips)>0){

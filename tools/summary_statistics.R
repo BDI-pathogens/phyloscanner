@@ -252,7 +252,7 @@ for(suffix in suffixes){
     quit(save="no", status=1)
   }
   
-  splits.table <- read_csv(splits.file.name)
+  splits.table <- read_csv(splits.file.name, show_col_types = FALSE)
   
   colnames(splits.table) <- c("host", "subgraph", "tip")
   

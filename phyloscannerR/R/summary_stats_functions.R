@@ -243,7 +243,7 @@ calc.all.stats.in.window <- function(ptree, hosts, tip.regex, has.read.counts, v
   
   if (!is.null(recomb.file.name)) {
     
-    recomb.df <- read_csv(recomb.file.name)
+    recomb.df <- read_csv(recomb.file.name, show_col_types = FALSE)
     col.names <- colnames(recomb.df)
     for (expected.col.name in c("Bam file","Recombination metric")) {
       if (! expected.col.name %in% col.names) {

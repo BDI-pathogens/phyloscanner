@@ -6,7 +6,7 @@ regex.finder <- "(.*)_keptReads_[0-9]*_to_[0-9]*_(.*)\\.txt"
 
 setwd(args[1])
 
-bam.reference <- read_csv(args[2], col_names = F)
+bam.reference <- read_csv(args[2], col_names = F, show_col_types = FALSE)
 
 final.dir = args[3]
 
@@ -22,7 +22,7 @@ for(uid in unique.ids){
   relevant.names <- bams.tbl %>% filter(V3 == uid) %>% pull("V1")
   
   to.keep <- relevant.names %>% map(function(a.file){
-    hi <- read_csv(a.file, col_names = F, col_types = cols())
+    hi <- read_csv(a.file, col_names = F, col_types = cols(), show_col_types = FALSE)
     if(nrow(hi) > 0){
       hi
     } else {
