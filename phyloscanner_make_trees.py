@@ -764,7 +764,7 @@ if ExcisePositions:
 PythonPath = sys.executable
 
 TranslateCoordsCode = pf.FindAndCheckCode(PythonPath, 'TranslateCoords.py')
-FindSeqsInFastaCode = pf.FindAndCheckCode(PythonPath, 'FindSeqsInFasta.py')
+FindSeqsInFastaCode = pf.FindAndCheckCode(PythonPath, 'FindSeqsInFasta_phyloscanner.py')
 FindWindowsCode     = pf.FindAndCheckCode(PythonPath,
 'FindInformativeWindowsInFasta.py')
 
