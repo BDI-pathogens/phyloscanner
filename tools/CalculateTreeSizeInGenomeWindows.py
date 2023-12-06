@@ -6,7 +6,7 @@ from __future__ import print_function
 ##
 ## Overview:
 ExplanatoryMessage = '''Splits an alignment of sequences up into (potentially
-overlapping) windows, calculates a tree for each with RAxML, and characterises
+overlapping) windows, calculates a tree for each with RAxML (or IQtree), and characterises
 the size of the tree by the median of patristic distances between all possible
 pairs of tips. As output, tree sizes are reported by window, and also by
 individual position in the genome (by taking the mean value of all trees
@@ -62,27 +62,39 @@ use. See the phyloscanner manual chapter 'Branch length normalisation' for an
 explanation of an alternative way of parallelising this script that is suitable
 for massive parallelisation (as opposed to just using multiple cores on a single
 machine, which this option does).''')
-RAxMLdefaultOptions = "-m GTRCAT -p 1 --no-seq-check"
-RaxmlHelp ='''Use this option to specify how RAxML is to be run, including
-both the executable (with the path to it if needed), and the options. If you do
-not specify anything, we will try to find the fastest RAxML exectuable available
-(assuming its path is in your PATH environment variable) and use the
-options''' + RAxMLdefaultOptions + '''. -m tells RAxML which evolutionary model
+RAxMLdefaultOptions = "--model GTR+F+R6 --seed 1"
+RaxmlHelp ='''Use this option to specify the run options for RAxML. If you do
+not specify anything, we will use the
+options ''' + RAxMLdefaultOptions + '''. --model tells RAxML which evolutionary model
+to use, and --seed specifies a random number seed for the parsimony inferences. You 
+may include any other RAxML options in this command. The set
+of things you specify with --x-raxml need to be surrounded with one pair of
+quotation marks (so that they're kept together as one option for phyloscanner
+and only split up for raxml). If you include a path to your raxml binary, it may
+not include whitespace, since whitespace is interpreted as separating raxml
+options.'''
+parser.add_argument('--x-raxml', help=RaxmlHelp)
+RAxMLOlddefaultOptions = "-m GTRCAT -p 1 --no-seq-check"
+RaxmlOldHelp ='''Use this option to specify the run options for old RAxML (RAxML-standard). If you do
+not specify anything, we will use the
+options ''' + RAxMLOlddefaultOptions + '''. -m tells RAxML which evolutionary model
 to use, and -p specifies a random number seed for the parsimony inferences; both
 are compulsory. You may include any other RAxML options in this command. The set
-of things you specify with --x-raxml need to be surrounded with one pair of
-quotation marks (so that they're kept together as one option for this script and
-only split up for raxml). If you include a path to your raxml binary, it may not
-include whitespace, since whitespace is interpreted as separating raxml options.
-Do not include options relating to bootstraps or to the naming of files.'''
-parser.add_argument('--x-raxml', help=RaxmlHelp)
-parser.add_argument('--x-iqtree', help="""Use this option if you want to use
+of things you specify with --x-raxml-old need to be surrounded with one pair of
+quotation marks (so that they're kept together as one option for phyloscanner
+and only split up for raxml). If you include a path to your raxml binary, it may
+not include whitespace, since whitespace is interpreted as separating raxml
+options.'''
+RecommendedArgs.add_argument('--x-raxml-old', help=RaxmlOldHelp)
+IQtreeHelp =''''Use this option if you want to use
 iqtree instead of raxml: specify the name (and path if needed) of your iqtree
 exectubable (binary) file. Optionally, the exectuable can be followed by
 arguments you want to pass to iqtree; if so, the set of things you specify with
 --x-iqtree need to be surrounded with one pair of quotation marks (so that
 they're kept together as one option for this script and only split up for
-iqtree).""")
+iqtree). If you do not specify anything, we will use the options ''' + IQtreedefaultOptions +
+'''. -m tells IQtree which evolutionary model to use, and -seed specifies a random number seed to use for the run.'''
+parser.add_argument('--x-iqtree', help=IQtreeHelp)
 parser.add_argument('-Q', '--quiet', action='store_true', help='''Turns off the
 small amount of information printed to the terminal (via stdout). We'll still
 print warnings and errors (via stderr).''')
@@ -91,7 +103,6 @@ args = parser.parse_args()
 
 # For files we'll create
 FileForAlignment_basename = 'Alignment'
-TempFileForAllBootstrappedTrees_basename = 'temp_AllBootstrappedTrees'
 
 # Check output files don't exist
 OutFileByWindow = args.OutFileBaseName + '_ByWindow.csv'
@@ -111,9 +122,21 @@ TreeSizeCode = pf.FindAndCheckCode(PythonPath,
 'CalculateMedianPatristicDistance.R', IsPyCode=False)
 ToPerPositionCode = pf.FindAndCheckCode(PythonPath,
 'FromPerWindowStatsToPerPositionStats.py')
-UseIqtree = args.x_iqtree != None
-if not UseIqtree:
-  RAxMLargList = pf.TestRAxML(args.x_raxml, RAxMLdefaultOptions, RaxmlHelp)
+Use_raxml_old = args.x_raxml_old != None
+Use_iqtree = args.x_iqtree != None
+Use_raxml_ng = args.x_raxml != None
+
+if Use_raxml_old + Use_iqtree + Use_raxml_ng > 1:
+  print('Arguments for multiple tree inference tools detected. Quitting.')
+  exit(1)
+
+if Use_raxml_old:
+  TreeArgList = pf.TestRAxML_old(args.x_raxml_old, RAxMLOlddefaultOptions, RaxmlOldHelp)
+else:
+  if Use_iqtree:
+   TreeArgList = pf.TestIQtree(args.x_iqtree, IQtreeDefaultOptions, IQtreeHelp)
+  else:
+    TreeArgList = pf.TestRAxML(args.x_raxml, RAxMLdefaultOptions, RaxmlHelp)
 
 # Set up multithreading if needed
 multithread = args.threads != None
@@ -255,15 +278,19 @@ def GetTreeSizeFromWindow(WindowNumber):
   AlignIO.write(SeqAlignmentHere, FileForAlnHere, 'fasta')
 
   # Infer the tree
-  if UseIqtree:
-    NumTreesMade = pf.RunIQtree(args.x_iqtree, FileForAlnHere, WindowSuffix,
-    WindowAsStr, ChosenSeqStart, ChosenSeqEnd)
-    MLtreeFile = 'IQtree_' + WindowSuffix + '_.treefile'
+  if Use_raxml_old:
+    NumTreesMade = pf.RunRAxMLOld(FileForAlnHere, TreeArgList, WindowSuffix,
+    WindowAsStr, ChosenSeqStart, ChosenSeqEnd, TempFilesSet,)
+    MLTreeFile = 'RAxML_bestTree.' + WindowSuffix + '.tree'
   else:
-    NumTreesMade = pf.RunRAxML(FileForAlnHere, RAxMLargList, WindowSuffix,
-    WindowAsStr, ChosenSeqStart, ChosenSeqEnd, TempFilesSet,
-    TempFileForAllBootstrappedTrees_basename)
-    MLtreeFile = 'RAxML_bestTree.' + WindowSuffix + '.tree'
+    if Use_iqtree:
+      NumTreesMade = pf.RunIQtree(TreeArgList, FileForAlnHere, WindowSuffix, WindowAsStr,
+                                  ChosenSeqStart, ChosenSeqEnd)
+      MLtreeFile = 'IQtree_' + WindowSuffix + '_.treefile'
+    else:
+      NumTreesMade = pf.RunRAxML(FileForAlnHere, TreeArgList, WindowSuffix, WindowAsStr,
+                                 ChosenSeqStart, ChosenSeqEnd, TempFilesSet)
+      MLtreeFile = WindowSuffix + '.raxml.bestTree'
 
   if NumTreesMade != 1:
     print('Problem inferring a tree in window', str(ChosenSeqStart) + '-' + \
@@ -271,9 +298,14 @@ def GetTreeSizeFromWindow(WindowNumber):
     exit(1)
 
   if not os.path.isfile(MLtreeFile):
-    print('Error: we lost the tree file produced by RAxML or IQtree -', MLtreeFile + \
-    '. Please report this to Chris Wymant. Quitting', file=sys.stderr)
-    exit(1)
+    if Use_iqtree:
+      print('Error: we lost the tree file produced by IQtree -', MLtreeFile + \
+            '. Please report this to Chris Wymant. Quitting', file=sys.stderr)
+      exit(1)
+    else:
+      print('Error: we lost the tree file produced by RAxML -', MLtreeFile + \
+           '. Please report this to Chris Wymant. Quitting', file=sys.stderr)
+      exit(1)
 
   proc = subprocess.Popen([TreeSizeCode, MLtreeFile], stdout=subprocess.PIPE,
   stderr=subprocess.PIPE)

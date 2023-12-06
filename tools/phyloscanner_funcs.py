@@ -168,81 +168,219 @@ def ReadInputCSVfile(TheFile):
 
 
 def TestRAxML(ArgString, DefaultFlags, HelpMessage):
-  '''Runs RAxML with the desired options and --flag-check.'''
-
-  # The user has specified how to call RAxML. Try it.
-  if ArgString != None:
+  '''Runs RAxML-NG with the desired options'''
+  RAxML_exe = 'raxml-ng'
+  Contains_executable = RAxML_exe in ArgString if ArgString is not None else False
+  # Different ArgLists for specified/unspecified RAxML
+  if Contains_executable and len(ArgString.split()) > 1:
     ArgList = ArgString.split()
-    out = None
-    err = None
-    try:
-      proc = subprocess.Popen(ArgList + ['--flag-check'],
-      stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    except:
-      success = False
-      raise
-    else:
-      out, err = proc.communicate()
-      success = proc.returncode == 0
-    finally:
-      if not success:
-        print('Error: could not run the command "', ArgString,
-        ' --flag-check".', sep='', file=sys.stderr)
-        if out != None and err != None:
-          print('RAxML produced the error messages: ', out + '\n' + err, sep='',
-          file=sys.stderr)
-        else:
-          print('If RAxML is not installed, please install it first. If it is',
-          'installed, it seems you need to specify a different executable',
-          'and/or set of options. Quitting.', file=sys.stderr)
-        print('Quitting.', file=sys.stderr)
-        exit(1)
-
-  # The user has not specified how to call RAxML. Try different executables.
+  elif not Contains_executable and ArgString:
+    ArgList = ['raxml-ng'] + ArgString.split()
   else:
-    FlagList = DefaultFlags.split()
+    ArgList = ['raxml-ng'] + DefaultFlags.split()
+  out = None
+  err = None
+  try:
+    proc = subprocess.Popen(["raxml-ng", "--help"],
+    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+  except:
     success = False
+    raise
+  else:
+    out, err = proc.communicate()
+    success = proc.returncode == 0
+  finally:
+    if not success:
+      print('Error: could not successfully call RAxML-NG',
+        sep='', file=sys.stderr)
+      if out != None and err != None:
+        print('RAxML-NG produced the error messages: ', out + '\n' + err, sep='',
+        file=sys.stderr)
+      else:
+        print('If RAxML-NG is not installed, please install it first. If it is ',
+        'installed, try adding the path containing its executable files to the ',
+        'PATH environment variable of your terminal, or use another set of options ',
+        'specified with --x-raxml:\n', HelpMessage, sep='',
+        file=sys.stderr)
+      print('Quitting.', file=sys.stderr)
+      exit(1)
+      
+  return ArgList
+
+
+def TestRAxML_old(ArgString, DefaultFlags, HelpMessage):
+  '''Runs the RAxML-old executables with the --help command'''
+
+  #Check if ArgString contains one of the RAxML executables
+  RAxML_old_exe = ['raxmlHPC-AVX', 'raxmlHPC-SSE3', 'raxmlHPC']
+  Contains_executable = any(exe in ArgString for exe in RAxML_old_exe)
+
+  #Test function using a specified executable
+  if Contains_executable:
+    # The user has specified RAxML executable and specified flags:
+    if Contains_executable and len(ArgString.split()) > 1:
+      ArgList = ArgString.split()
+    #The user has specified executable but not flags:
+    elif Contains_executable and len(ArgString.split()) == 1:
+      ArgList = ArgString.split() + DefaultFlags.split()
     out = None
     err = None
+    for exe in RAxML_old_exe:
+      if exe in ArgString:
+        try:
+          proc = subprocess.Popen([exe] + ['-h'],
+          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except:
+          success = False
+          raise
+        else:
+          out, err = proc.communicate()
+          success = proc.returncode == 0
+        finally:
+          if not success:
+            print('Error: could not run the test help command for the chosen executable',
+            '', sep='', file=sys.stderr)
+            if out != None and err != None:
+              print('RAxML produced the error messages: ', out + '\n' + err, sep='',
+              file=sys.stderr)
+            else:
+              print('If RAxML-old (RAxML-standard) is not installed, please install it first. If it is ',
+              'installed, you may need to specify a different executable',
+              'and/or set of options. If the executable is not specified then different ',
+              'executables will be tried. If only the executable is specified ',
+              'then default options will be used. Options can be specified using --x-raxml-old:\n', HelpMessage, sep='',
+              file=sys.stderr)
+            print('Quitting.', file=sys.stderr)
+            exit(1)
+ 
+  #Test function using unspecified executable
+  else:
+    if ArgString:
+      FlagList = ArgString.split()
+    out = None
+    err = None
+    success = False
     ExesToTry = ['raxmlHPC-AVX', 'raxmlHPC-SSE3', 'raxmlHPC']
     for exe in ExesToTry:
-      ArgList = [exe] + FlagList
       try:
-        proc = subprocess.Popen(ArgList + ['--flag-check'],
+        proc = subprocess.Popen([exe] + ['-h'],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
       except:
+        print([exe], 'was not able to be called.')
         continue
       else:
+        ArgList = [exe] + FlagList
         out, err = proc.communicate()
         if proc.returncode != 0:
           continue
       success = True
-      break
     if not success:
       print("Error: could not successfully call RAxML using any of the ",
-      "commands ", ', '.join(ExesToTry), ', with the options "', DefaultFlags,
-      '".', sep='', file=sys.stderr)
+      "executables", sep='', file=sys.stderr)
       if out != None and err != None:
         print('RAxML produced the error messages: ', out + '\n' + err, sep='',
         file=sys.stderr)
       else:
-        print('If RAxML is not installed, please install it first. If it is ',
-        'installed, try adding the path containing its executable files to the',
-        ' PATH environment variable of your terminal, or rerunning',
-        ' using the --x-raxml option:\n', HelpMessage, sep='',
+        print('If RAxML-old is not installed, please install it first. If it is ',
+        'installed, try adding the path containing its executable files to the ',
+        'PATH environment variable of your terminal, or use a different ',
+        'set of options specified with --x-raxml-old:\n', HelpMessage, sep='',
         file=sys.stderr)
       print('Quitting.', file=sys.stderr)
       exit(1)
+      
+  return ArgList
+
+def TestIQtree(ArgString, DefaultFlags, HelpMessage):
+  '''Runs IQtree with the desired options'''
+  IQtree_exe = 'iqtree'
+  Contains_executable = IQtree_exe in ArgString
+
+  # Different ArgLists based on how the user specified using --x-iqtree
+  if Contains_executable and len(ArgString.split()) > 1:
+    ArgList = ArgString.split()
+  elif not Contains_executable and ArgString:
+    ArgList = ['iqtree'] + ArgString.split()
+  else:
+    ArgList = ['iqtree'] + DefaultFlags.split()
+  out = None
+  err = None
+  try:
+    proc = subprocess.Popen(["iqtree", "-h"],
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+  except:
+    success = False
+    raise
+  else:
+    out, err = proc.communicate()
+    success = proc.returncode == 0
+  finally:
+    if not success:
+      print("Error: could not successfully call IQtree",
+            sep='', file=sys.stderr)
+      if out != None and err != None:
+        print('IQtree produced the error messages: ', out + '\n' + err, sep='',
+              file=sys.stderr)
+      else:
+        print('If IQtree is not installed, please install it first. If it is ',
+              'installed, try adding the path containing its executable files to the',
+              ' PATH environment variable of your terminal, or use',
+              ' a different set of options specified with --x-iqtree:\n', HelpMessage, sep='',
+              file=sys.stderr)
+      print('Quitting.', file=sys.stderr)
+      exit()
 
   return ArgList
 
 def RunRAxML(alignment, RAxMLargList, WindowSuffix, WindowAsStr, LeftEdge,
-RightEdge, TempFilesSet, TempFileForAllBootstrappedTrees_basename,
-BootstrapSeed=None, NumBootstraps=None, TimesList=[]):
-  '''Runs RAxML on aligned sequences in a window, with bootstraps if desired.
+RightEdge, TempFilesSet, TimesList=[]):
+  '''Runs RAxML on aligned sequences in a window.
 
-  Returns 1 if an ML tree was produced (regardless of whether any subsequent
-  bootstrapping worked), 0 if not.'''
+  Returns 1 if an ML tree was produced, 0 if not.'''
+
+  # Update on times if we weren't given an empty list
+  UpdateTimes = TimesList != []
+
+  MLtreeFile = WindowSuffix + '.raxml.bestTree'
+  RAxMLcall = RAxMLargList + ['--msa', alignment, '--prefix',
+  WindowSuffix]
+  proc = subprocess.Popen(RAxMLcall, stdout=subprocess.PIPE,
+  stderr=subprocess.PIPE)
+  out, err = proc.communicate()
+  ExitStatus = proc.returncode
+  if ExitStatus != 0:
+    print('Problem making the ML tree with RAxML in window ', WindowAsStr,
+          '. It returned an exit code of', ExitStatus, end='')
+
+    # Print stdout only if it's not empty
+    if out.strip():
+        print(' and printed this to stdout:\n', out)
+    else:
+        print(' and nothing was printed to stdout.')
+
+    # Print stderr only if it's not empty
+    if err.strip():
+        print('and printed this to stderr:\n', err)
+    else:
+        print('and nothing was printed to stderr.')
+
+    print('\nSkipping to the next window.', sep='', file=sys.stderr)
+    return 0
+
+  # Update on time taken if desired
+  if UpdateTimes:
+    TimesList.append(time.time())
+    LastStepTime = TimesList[-1] - TimesList[-2]
+    print('ML tree in window', WindowAsStr,
+    'finished. Number of seconds taken: ', LastStepTime)
+
+  return 1
+
+def RunRAxMLOld(alignment, RAxMLargList, WindowSuffix, WindowAsStr, LeftEdge,
+RightEdge, TempFilesSet, TimesList=[]):
+  '''Runs RAxML on aligned sequences in a window.
+
+  Returns 1 if an ML tree was produced, 0 if not.'''
 
   # Update on times if we weren't given an empty list
   UpdateTimes = TimesList != []
@@ -256,9 +394,22 @@ BootstrapSeed=None, NumBootstraps=None, TimesList=[]):
   ExitStatus = proc.returncode
   if ExitStatus != 0:
     print('Problem making the ML tree with RAxML in window ', WindowAsStr,
-    '. It returned an exit code of ', ExitStatus, ', printed this to stdout:\n',
-    out, '\nand printed this to stderr:\n', err,
-    '\nSkipping to the next window.', sep='', file=sys.stderr)
+          '. It returned an exit code of', ExitStatus, end='')
+
+    # Print stdout only if it's not empty
+    if out.strip():
+        print(' and printed this to stdout:\n', out)
+    else:
+        print(' and nothing was printed to stdout.')
+
+    # Print stderr only if it's not empty
+    if err.strip():
+        print('and printed this to stderr:\n', err)
+    else:
+        print('and nothing was printed to stderr.')
+
+    print('\nSkipping to the next window.', sep='', file=sys.stderr)
+    return 0
     return 0
   if not os.path.isfile(MLtreeFile):
     print(MLtreeFile +', expected to be produced by RAxML, does not exist.'+\
@@ -272,78 +423,6 @@ BootstrapSeed=None, NumBootstraps=None, TimesList=[]):
     print('ML tree in window', WindowAsStr,
     'finished. Number of seconds taken: ', LastStepTime)
 
-  # If desired, make bootstrapped alignments
-  if NumBootstraps != None:
-    try:
-      ExitStatus = subprocess.call(RAxMLargList + ['-b',
-      str(BootstrapSeed), '-f', 'j', '-#', str(NumBootstraps), '-s',
-      alignment, '-n', WindowSuffix + '_bootstraps'])
-      assert ExitStatus == 0
-    except:
-      print('Problem generating bootstrapped alignments with RAxML in window ',
-      WindowAsStr, '. Skipping to the next window.', sep='', file=sys.stderr)
-      return 1
-    BootstrappedAlignments = [alignment+'.BS'+str(bootstrap) for \
-    bootstrap in range(NumBootstraps)]
-    if not all(os.path.isfile(BootstrappedAlignment) \
-    for BootstrappedAlignment in BootstrappedAlignments):
-      print('At least one of the following files, expected to be produced by'+\
-      ' RAxML, is missing:\n', ' '.join(BootstrappedAlignments)+\
-      '\nSkipping to the next window.', file=sys.stderr)
-      return 1
-
-    # Make a tree for each bootstrap
-    for bootstrap,BootstrappedAlignment in enumerate(BootstrappedAlignments):
-      try:
-        ExitStatus = subprocess.call(RAxMLargList + ['-s',
-        BootstrappedAlignment, '-n', WindowSuffix + '_bootstrap_' + \
-        str(bootstrap)+'.tree'])
-        assert ExitStatus == 0
-      except:
-        print('Problem generating a tree with RAxML for bootstrap',
-        str(bootstrap), '. Skipping subsequent bootstraps.', file=sys.stderr)
-        break
-    BootstrappedTrees = ['RAxML_bestTree.' +WindowSuffix +'_bootstrap_' +\
-    str(bootstrap) +'.tree' for bootstrap in range(NumBootstraps)]
-    if not all(os.path.isfile(BootstrappedTree) \
-    for BootstrappedTree in BootstrappedTrees):
-      print('At least one of the following files, expected to be produced by'+\
-      ' RAxML, is missing:\n', ' '.join(BootstrappedTrees)+\
-      '\nSkipping to the next window.', file=sys.stderr)
-      return 1
-
-    # Collect the trees from all bootstraps into one file
-    TempAllBootstrappedTreesFile = TempFileForAllBootstrappedTrees_basename +\
-    WindowSuffix+'.tree'
-    with open(TempAllBootstrappedTreesFile, 'w') as outfile:
-      for BootstrappedTree in BootstrappedTrees:
-        with open(BootstrappedTree, 'r') as infile:
-          outfile.write(infile.read())
-    TempFilesSet.add(TempAllBootstrappedTreesFile)
-
-    # Collect the trees from all bootstraps onto the ML tree
-    MainTreeFile = 'MLtreeWbootstraps' +WindowSuffix +'.tree'
-    try:
-      ExitStatus = subprocess.call(RAxMLargList + ['-f', 'b', '-t', MLtreeFile,
-       '-z', TempAllBootstrappedTreesFile, '-n', MainTreeFile])
-      assert ExitStatus == 0
-    except:
-      print('Problem in window', WindowAsStr, 'trying to collect all the',
-      'bootstrapped trees onto the ML tree with RAxML. Skipping to the next',
-      'window.', file=sys.stderr)
-      return 1
-    MainTreeFile = 'RAxML_bipartitions.' +MainTreeFile
-    if not os.path.isfile(MainTreeFile):
-      print(MainTreeFile +', expected to be produced by RAxML, does not '+\
-      'exist.\nSkipping to the next window.', file=sys.stderr)
-      return 1
-
-    # Update on time taken if desired
-    if UpdateTimes:
-      TimesList.append(time.time())
-      LastStepTime = TimesList[-1] - TimesList[-2]
-      print('Bootstrapped trees in window', WindowAsStr,
-      'finished. Number of seconds taken: ', LastStepTime)
   return 1
 
 def RunIQtree(IQtreeString, alignment, WindowSuffix, WindowAsStr, LeftEdge,
@@ -352,13 +431,12 @@ RightEdge):
 
   Returns 1 if successful, 0 if not.'''
 
-  ArgList = IQtreeString.split()
-  if len(ArgList) == 0:
+  if len(IQtreeString) == 0:
     print('Nothing but whitespace specified for the manner of calling IQtree.',
     file=sys.stderr)
     return 0
 
-  IQtreeExe = ArgList[0] 
+  IQtreeExe = IQtreeString[0] 
   FNULL = open(os.devnull, 'w')
   try:
     ExitStatus = subprocess.call([IQtreeExe, '-h'], stdout=FNULL)
@@ -371,16 +449,29 @@ RightEdge):
     return 0
 
   MLtreeFile = 'IQtree_' + WindowSuffix + '_.treefile'
-  IQtreeCall = ArgList + ['-s', alignment, '-pre', 'IQtree_' + WindowSuffix + '_']
+  IQtreeCall = IQtreeString + ['-s', alignment, '-pre', 'IQtree_' + WindowSuffix + '_']
   proc = subprocess.Popen(IQtreeCall, stdout=subprocess.PIPE,
   stderr=subprocess.PIPE)
   out, err = proc.communicate()
   ExitStatus = proc.returncode
   if ExitStatus != 0:
-    print('Problem making the ML tree with IQtree in window ', WindowAsStr,
-    '. It returned an exit code of ', ExitStatus, ', printed this to stdout:\n',
-    out, '\nand printed this to stderr:\n', err,
-    '\nSkipping to the next window.', sep='', file=sys.stderr)
+    print('Problem making the ML tree with RAxML in window ', WindowAsStr,
+          '. It returned an exit code of', ExitStatus, end='')
+
+    # Print stdout only if it's not empty
+    if out.strip():
+        print(' and printed this to stdout:\n', out)
+    else:
+        print(' and nothing was printed to stdout.')
+
+    # Print stderr only if it's not empty
+    if err.strip():
+        print('and printed this to stderr:\n', err)
+    else:
+        print('and nothing was printed to stderr.')
+
+    print('\nSkipping to the next window.', sep='', file=sys.stderr)
+    return 0
     return 0
   if not os.path.isfile(MLtreeFile):
     print(MLtreeFile +', expected to be produced by IQtree, does not exist.'+\
