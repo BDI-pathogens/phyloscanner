@@ -20,6 +20,7 @@ import sys
 import subprocess
 from Bio import AlignIO
 import phyloscanner_funcs as pf
+from DefaultVariables import RAxMLdefaultOptions, RAxMLOlddefaultOptions, IQtreedefaultOptions
 
 # Define a function to check files exist, as a type for the argparse.
 def File(MyFile):
@@ -32,7 +33,7 @@ parser = argparse.ArgumentParser(description=ExplanatoryMessage)
 parser.add_argument('alignment', type=File)
 parser.add_argument('ChosenSeqName', help='''The sequence whose coordinates
 we'll use to define windows (it must be present in the
-alignment). Assuming you are using this script to provide input for
+alignment). Assuming you are using this script to provfide input for
 phyloscanner_analyse_trees.R, you must use the same sequence here as you used
 for phyloscanner_make_trees.py's --pairwise-align-to option: then the genome
 positions will mean the same thing.''')
@@ -62,7 +63,6 @@ use. See the phyloscanner manual chapter 'Branch length normalisation' for an
 explanation of an alternative way of parallelising this script that is suitable
 for massive parallelisation (as opposed to just using multiple cores on a single
 machine, which this option does).''')
-RAxMLdefaultOptions = "--model GTR+F+R6 --seed 1"
 RaxmlHelp ='''Use this option to specify the run options for RAxML. If you do
 not specify anything, we will use the
 options ''' + RAxMLdefaultOptions + '''. --model tells RAxML which evolutionary model
@@ -74,7 +74,6 @@ and only split up for raxml). If you include a path to your raxml binary, it may
 not include whitespace, since whitespace is interpreted as separating raxml
 options.'''
 parser.add_argument('--x-raxml', help=RaxmlHelp)
-RAxMLOlddefaultOptions = "-m GTRCAT -p 1 --no-seq-check"
 RaxmlOldHelp ='''Use this option to specify the run options for old RAxML (RAxML-standard). If you do
 not specify anything, we will use the
 options ''' + RAxMLOlddefaultOptions + '''. -m tells RAxML which evolutionary model
@@ -85,15 +84,16 @@ quotation marks (so that they're kept together as one option for phyloscanner
 and only split up for raxml). If you include a path to your raxml binary, it may
 not include whitespace, since whitespace is interpreted as separating raxml
 options.'''
-RecommendedArgs.add_argument('--x-raxml-old', help=RaxmlOldHelp)
+parser.add_argument('--x-raxml-old', help=RaxmlOldHelp)
 IQtreeHelp =''''Use this option if you want to use
 iqtree instead of raxml: specify the name (and path if needed) of your iqtree
 exectubable (binary) file. Optionally, the exectuable can be followed by
 arguments you want to pass to iqtree; if so, the set of things you specify with
 --x-iqtree need to be surrounded with one pair of quotation marks (so that
 they're kept together as one option for this script and only split up for
-iqtree). If you do not specify anything, we will use the options ''' + IQtreedefaultOptions +
-'''. -m tells IQtree which evolutionary model to use, and -seed specifies a random number seed to use for the run.'''
+iqtree). If you do not specify anything, we will use the options 
+''' + IQtreedefaultOptions + '''. -m tells IQtree which evolutionary model to use, 
+and -seed specifies a random number seed to use for the run.'''
 parser.add_argument('--x-iqtree', help=IQtreeHelp)
 parser.add_argument('-Q', '--quiet', action='store_true', help='''Turns off the
 small amount of information printed to the terminal (via stdout). We'll still
@@ -132,11 +132,10 @@ if Use_raxml_old + Use_iqtree + Use_raxml_ng > 1:
 
 if Use_raxml_old:
   TreeArgList = pf.TestRAxML_old(args.x_raxml_old, RAxMLOlddefaultOptions, RaxmlOldHelp)
+elif Use_iqtree:
+  TreeArgList = pf.TestIQtree(args.x_iqtree, IQtreedefaultOptions, IQtreeHelp)
 else:
-  if Use_iqtree:
-   TreeArgList = pf.TestIQtree(args.x_iqtree, IQtreeDefaultOptions, IQtreeHelp)
-  else:
-    TreeArgList = pf.TestRAxML(args.x_raxml, RAxMLdefaultOptions, RaxmlHelp)
+  TreeArgList = pf.TestRAxML(args.x_raxml, RAxMLdefaultOptions, RaxmlHelp)
 
 # Set up multithreading if needed
 multithread = args.threads != None
@@ -279,18 +278,20 @@ def GetTreeSizeFromWindow(WindowNumber):
 
   # Infer the tree
   if Use_raxml_old:
+    print('Running RAxML-old')
     NumTreesMade = pf.RunRAxMLOld(FileForAlnHere, TreeArgList, WindowSuffix,
     WindowAsStr, ChosenSeqStart, ChosenSeqEnd, TempFilesSet,)
-    MLTreeFile = 'RAxML_bestTree.' + WindowSuffix + '.tree'
+    MLtreeFile = 'RAxML_bestTree.' + WindowSuffix + '.tree'
+  elif Use_iqtree:
+    print('Running IQtree')
+    NumTreesMade = pf.RunIQtree(TreeArgList, FileForAlnHere, WindowSuffix, WindowAsStr,
+                                ChosenSeqStart, ChosenSeqEnd)
+    MLtreeFile = 'IQtree_' + WindowSuffix + '_.treefile'
   else:
-    if Use_iqtree:
-      NumTreesMade = pf.RunIQtree(TreeArgList, FileForAlnHere, WindowSuffix, WindowAsStr,
-                                  ChosenSeqStart, ChosenSeqEnd)
-      MLtreeFile = 'IQtree_' + WindowSuffix + '_.treefile'
-    else:
-      NumTreesMade = pf.RunRAxML(FileForAlnHere, TreeArgList, WindowSuffix, WindowAsStr,
-                                 ChosenSeqStart, ChosenSeqEnd, TempFilesSet)
-      MLtreeFile = WindowSuffix + '.raxml.bestTree'
+    print('Running RAxML-NG')
+    NumTreesMade = pf.RunRAxML(FileForAlnHere, TreeArgList, WindowSuffix, WindowAsStr,
+                                ChosenSeqStart, ChosenSeqEnd, TempFilesSet)
+    MLtreeFile = WindowSuffix + '.raxml.bestTree'
 
   if NumTreesMade != 1:
     print('Problem inferring a tree in window', str(ChosenSeqStart) + '-' + \

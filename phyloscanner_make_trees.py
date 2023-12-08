@@ -62,6 +62,7 @@ from Bio import AlignIO
 from Bio import Align
 from distutils.version import LooseVersion
 import tools.phyloscanner_funcs as pf
+from tools.DefaultVariables import RAxMLdefaultOptions, RAxMLOlddefaultOptions, IQtreedefaultOptions
 
 
 # Define a function to check files exist, as a type for the argparse.
@@ -169,7 +170,6 @@ this option is necessary if you want to run the
 tools/CalculateTreeSizeInGenomeWindows.py script and feed its output into
 phyloscanner_analyse_trees.R via its --normRefFileName option (see the manual
 for more details).''')
-RAxMLdefaultOptions = "--model GTR+F+R6 --seed 1"
 RaxmlHelp ='''Use this option to specify the run options for RAxML. If you do
 not specify anything, we will use the
 options ''' + RAxMLdefaultOptions + '''. --model tells RAxML which evolutionary model
@@ -179,9 +179,8 @@ of things you specify with --x-raxml need to be surrounded with one pair of
 quotation marks (so that they're kept together as one option for phyloscanner
 and only split up for raxml). If you include a path to your raxml binary, it may
 not include whitespace, since whitespace is interpreted as separating raxml
-options.'''
+options. Do not include options relating to bootstraps or to the naming of files.'''
 RecommendedArgs.add_argument('--x-raxml', help=RaxmlHelp)
-RAxMLOlddefaultOptions = "-m GTRCAT -p 1 --no-seq-check"
 RaxmlOldHelp ='''Use this option to specify the run options for old RAxML (RAxML-standard). If you do
 not specify anything, we will use the
 options ''' + RAxMLOlddefaultOptions + '''. -m tells RAxML which evolutionary model
@@ -191,17 +190,18 @@ of things you specify with --x-raxml-old need to be surrounded with one pair of
 quotation marks (so that they're kept together as one option for phyloscanner
 and only split up for raxml). If you include a path to your raxml binary, it may
 not include whitespace, since whitespace is interpreted as separating raxml
-options.'''
+options. Do not include options relating to bootstraps or to the naming of files.'''
 RecommendedArgs.add_argument('--x-raxml-old', help=RaxmlOldHelp)
-IQtreedefaultOptions = "-m GTR+F+R6 -seed 1"
 IQtreeHelp =('''Use this option if you want to use
 iqtree instead of raxml: specify the name (and path if needed) of your iqtree
 exectubable (binary) file. Optionally, the exectuable can be followed by
 arguments you want to pass to iqtree; if so, the set of things you specify with
 --x-iqtree need to be surrounded with one pair of quotation marks (so that
 they're kept together as one option for this script and only split up for
-iqtree). If you do not specify anything, we will use the options ''' + IQtreedefaultOptions +
-'''. -m tells IQtree which evolutionary model to use, and -seed specifies a random number seed to use for the run.''')
+iqtree). Do not include options relating to bootstraps or to the naming of files. 
+If you do not specify anything, we will use the options ''' + IQtreedefaultOptions +
+'''. -m tells IQtree which evolutionary model to use, and -seed specifies a random number 
+seed to use for the run. ''')
 RecommendedArgs.add_argument('--x-iqtree', help=IQtreeHelp)
 RecommendedArgs.add_argument('-P', '--merge-paired-reads', action='store_true',
 help='''Relevant only for paired-read data for which the mates in a pair
@@ -436,16 +436,15 @@ if not args.no_trees:
     print('Warning: RAxML-old files are present in the working directory. If their',
           'names clash with those that phyloscanner will try to create, RAxML will',
           'fail to run. Continuing.', file=sys.stderr)
-  else:
-    if Use_iqtree and glob.glob('IQtree_*'):
+  elif Use_iqtree and glob.glob('IQtree_*'):
       print('Warning: IQtree files are present in the working directory. If their',
           'names clash with those that phyloscanner will try to create, IQtree will',
           'fail to run. Continuing.', file=sys.stderr)
-    else:
-      if not args.no_trees and glob.glob('*.raxml.*'):
-        print('Warning: RAxML files are present in the working directory. If their',
-            'names clash with those that phyloscanner will try to create, RAxML will',
-            'fail to run. Continuing.', file=sys.stderr)
+  else:
+    if not args.no_trees and glob.glob('*.raxml.*'):
+      print('Warning: RAxML files are present in the working directory. If their',
+          'names clash with those that phyloscanner will try to create, RAxML will',
+          'fail to run. Continuing.', file=sys.stderr)
 
 ## Quit if the FileForCoords exists already.
 #if os.path.isfile(FileForCoords):
@@ -804,11 +803,10 @@ FindWindowsCode     = pf.FindAndCheckCode(PythonPath,
 if not args.no_trees:
   if Use_raxml_old:
     TreeArgList = pf.TestRAxML_old(args.x_raxml_old, RAxMLOlddefaultOptions, RaxmlOldHelp)
+  elif Use_iqtree:
+    TreeArgList = pf.TestIQtree(args.x_iqtree, IQtreedefaultOptions, IQtreeHelp)
   else:
-    if Use_iqtree:
-      TreeArgList = pf.TestIQtree(args.x_iqtree, IQtreedefaultOptions, IQtreeHelp)
-    else:
-      TreeArgList = pf.TestRAxML(args.x_raxml, RAxMLdefaultOptions, RaxmlHelp)
+    TreeArgList = pf.TestRAxML(args.x_raxml, RAxMLdefaultOptions, RaxmlHelp)
 
 # Set up the mafft commands
 if '--add' in args.x_mafft or \
@@ -1439,11 +1437,10 @@ OutputDirs = {}
 OutputFilesByDestinationDir = {}
 if Use_raxml_old:
   OutputDirs['raxml_old'] = 'RAxMLOldfiles'
+elif Use_iqtree:
+  OutputDirs['iqtree'] = 'IQtreefiles'
 else:
-  if Use_iqtree:
-    OutputDirs['iqtree'] = 'IQtreefiles'
-  else:
-    OutputDirs['raxml'] = 'RAxMLfiles'
+  OutputDirs['raxml'] = 'RAxMLfiles'
 
 FileForAlignedReads_basename = 'AlignedReads'
 FileForAlignedReads_PositionsExcised_basename = \
@@ -2317,24 +2314,22 @@ for window in range(NumCoords / 2):
     if PrintInfo:
       print('Running RAxML-old on the processed & aligned reads in window',
             ThisWindowAsStr)
-    print(FileForTrees)
     NumMLtreesMade += pf.RunRAxMLOld(FileForTrees, TreeArgList, ThisWindowSuffix,
                                    ThisWindowAsStr, UserLeftWindowEdge, UserRightWindowEdge, TempFiles,
                                     times)
+  elif Use_iqtree:
+    if PrintInfo:
+      print('Running IQ-Tree on the processed & aligned reads in window',
+            ThisWindowAsStr)
+    NumMLtreesMade += pf.RunIQtree(TreeArgList, FileForTrees, ThisWindowSuffix, ThisWindowAsStr,
+                                UserLeftWindowEdge, UserRightWindowEdge)
   else:
-    if Use_iqtree:
-      if PrintInfo:
-        print('Running IQ-Tree on the processed & aligned reads in window',
-              ThisWindowAsStr)
-      NumMLtreesMade += pf.RunIQtree(TreeArgList, FileForTrees, ThisWindowSuffix, ThisWindowAsStr,
-                                  UserLeftWindowEdge, UserRightWindowEdge)
-    else:
-      if PrintInfo:
-        print('Running RAxML-NG on the processed & aligned reads in window',
-              ThisWindowAsStr)
-      NumMLtreesMade += pf.RunRAxML(FileForTrees, TreeArgList, ThisWindowSuffix,
-                                 ThisWindowAsStr, UserLeftWindowEdge, UserRightWindowEdge, TempFiles,
-                                  times)
+    if PrintInfo:
+      print('Running RAxML-NG on the processed & aligned reads in window',
+            ThisWindowAsStr)
+    NumMLtreesMade += pf.RunRAxML(FileForTrees, TreeArgList, ThisWindowSuffix,
+                                ThisWindowAsStr, UserLeftWindowEdge, UserRightWindowEdge, TempFiles,
+                                times)
 
 if ExploreWindowWidths:
   TableHeaders = 'Window start,' + ','.join(sorted(BamAliases))
@@ -2407,11 +2402,10 @@ if args.inspect_disagreeing_overlaps:
 
 if Use_raxml_old:
   OutputFilesByDestinationDir['raxml_old'] = glob.glob('RAxML_*')
+elif Use_iqtree:
+  OutputFilesByDestinationDir['iqtree'] = glob.glob('IQtree_*')
 else:
-  if Use_iqtree:
-    OutputFilesByDestinationDir['iqtree'] = glob.glob('IQtree_*')
-  else:
-    OutputFilesByDestinationDir['raxml'] = glob.glob('*.raxml.*')
+  OutputFilesByDestinationDir['raxml'] = glob.glob('*.raxml.*')
 
 # Try to create different directories for each kind of output file we've made.
 # Move files if desired.
@@ -2498,34 +2492,22 @@ ExtraText=None):
 
 if Use_raxml_old:
   FindFilesForRcode("tree", 'RAxML_bestTree.', 'raxml_old', 'tree')
-  if CheckDuplicates:
-    FindFilesForRcode("between-bam duplication data",
-                      FileForDuplicateReadCountsProcessed_basename, 'DupData',
-                      "--duplicateBlacklist", " (be sure to also specify a raw and/or relative "
-                                              "threshold for blacklisting duplicates).")
-  if args.check_recombination:
-    FindFilesForRcode("recombination data", FileForRecombinantReads_basename,
-                      'RecombFiles', '--recombinationFiles')
+
+elif Use_iqtree:
+  FindFilesForRcode("tree", 'IQtree_', 'iqtree', 'tree')
+
 else:
-  if Use_iqtree:
-    FindFilesForRcode("tree", 'IQtree_', 'iqtree', 'tree')
-    if CheckDuplicates:
-      FindFilesForRcode("between-bam duplication data",
-                        FileForDuplicateReadCountsProcessed_basename, 'DupData',
-                        "--duplicateBlacklist", " (be sure to also specify a raw and/or relative "
-                                                "threshold for blacklisting duplicates).")
-    if args.check_recombination:
-      FindFilesForRcode("recombination data", FileForRecombinantReads_basename,
-                        'RecombFiles', '--recombinationFiles')
-  else:
-    FindFilesForRcode("tree", '*.raxml.bestTree', 'raxml', 'tree')
-    if CheckDuplicates:
-      FindFilesForRcode("between-bam duplication data",
-                        FileForDuplicateReadCountsProcessed_basename, 'DupData',
-                        "--duplicateBlacklist", " (be sure to also specify a raw and/or relative "
-                                                "threshold for blacklisting duplicates).")
-    if args.check_recombination:
-      FindFilesForRcode("recombination data", FileForRecombinantReads_basename,
-                        'RecombFiles', '--recombinationFiles')
+  FindFilesForRcode("tree", '*.raxml.bestTree', 'raxml', 'tree')
+
+
+if CheckDuplicates:
+  FindFilesForRcode("between-bam duplication data",
+                    FileForDuplicateReadCountsProcessed_basename, 'DupData',
+                    "--duplicateBlacklist", " (be sure to also specify a raw and/or relative "
+                                            "threshold for blacklisting duplicates).")
+
+if args.check_recombination:
+  FindFilesForRcode("recombination data", FileForRecombinantReads_basename,
+                    'RecombFiles', '--recombinationFiles')
 
 

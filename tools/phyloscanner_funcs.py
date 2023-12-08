@@ -222,7 +222,7 @@ def TestRAxML_old(ArgString, DefaultFlags, HelpMessage):
       ArgList = ArgString.split()
     #The user has specified executable but not flags:
     elif Contains_executable and len(ArgString.split()) == 1:
-      ArgList = ArgString.split() + DefaultFlags.split()
+      ArgList = [ArgString] + DefaultFlags.split()
     out = None
     err = None
     for exe in RAxML_old_exe:
@@ -354,15 +354,15 @@ RightEdge, TempFilesSet, TimesList=[]):
 
     # Print stdout only if it's not empty
     if out.strip():
-        print(' and printed this to stdout:\n', out)
+      print(' and printed this to stdout:\n', out)
     else:
-        print(' and nothing was printed to stdout.')
+      print(' and nothing was printed to stdout.')
 
     # Print stderr only if it's not empty
     if err.strip():
-        print('and printed this to stderr:\n', err)
+      print('and printed this to stderr:\n', err)
     else:
-        print('and nothing was printed to stderr.')
+      print('and nothing was printed to stderr.')
 
     print('\nSkipping to the next window.', sep='', file=sys.stderr)
     return 0
@@ -398,15 +398,15 @@ RightEdge, TempFilesSet, TimesList=[]):
 
     # Print stdout only if it's not empty
     if out.strip():
-        print(' and printed this to stdout:\n', out)
+      print(' and printed this to stdout:\n', out)
     else:
-        print(' and nothing was printed to stdout.')
+      print(' and nothing was printed to stdout.')
 
     # Print stderr only if it's not empty
     if err.strip():
-        print('and printed this to stderr:\n', err)
+      print('and printed this to stderr:\n', err)
     else:
-        print('and nothing was printed to stderr.')
+      print('and nothing was printed to stderr.')
 
     print('\nSkipping to the next window.', sep='', file=sys.stderr)
     return 0
@@ -460,15 +460,15 @@ RightEdge):
 
     # Print stdout only if it's not empty
     if out.strip():
-        print(' and printed this to stdout:\n', out)
+      print(' and printed this to stdout:\n', out)
     else:
-        print(' and nothing was printed to stdout.')
+      print(' and nothing was printed to stdout.')
 
     # Print stderr only if it's not empty
     if err.strip():
-        print('and printed this to stderr:\n', err)
+      print('and printed this to stderr:\n', err)
     else:
-        print('and nothing was printed to stderr.')
+      print('and nothing was printed to stderr.')
 
     print('\nSkipping to the next window.', sep='', file=sys.stderr)
     return 0
