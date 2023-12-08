@@ -8,6 +8,11 @@ import time
 
 GapChar = '-'
 
+#Default options for phyloscanner_make_trees.py and CalculateTreeSizeInGenomeWindows.py
+RAxMLdefaultOptions = "--model GTR+F+R6 --seed 1"
+RAxMLOlddefaultOptions = "-m GTRCAT -p 1 --no-seq-check"
+IQtreedefaultOptions = "-m GTR+F+R6 -seed 1"
+
 # Test that we can run code we'll need
 DirectoryOfThisScript = os.path.dirname(os.path.realpath(__file__))
 def FindAndCheckCode(PythonPath, CodeBasename, BaseNameIncludesDir=False,

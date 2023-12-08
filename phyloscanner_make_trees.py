@@ -62,7 +62,7 @@ from Bio import AlignIO
 from Bio import Align
 from distutils.version import LooseVersion
 import tools.phyloscanner_funcs as pf
-from tools.DefaultVariables import RAxMLdefaultOptions, RAxMLOlddefaultOptions, IQtreedefaultOptions
+from tools.phyloscanner_funcs import RAxMLdefaultOptions, RAxMLOlddefaultOptions, IQtreedefaultOptions
 
 
 # Define a function to check files exist, as a type for the argparse.

@@ -20,7 +20,7 @@ import sys
 import subprocess
 from Bio import AlignIO
 import phyloscanner_funcs as pf
-from DefaultVariables import RAxMLdefaultOptions, RAxMLOlddefaultOptions, IQtreedefaultOptions
+from phyloscanner_funcs import RAxMLdefaultOptions, RAxMLOlddefaultOptions, IQtreedefaultOptions
 
 # Define a function to check files exist, as a type for the argparse.
 def File(MyFile):
