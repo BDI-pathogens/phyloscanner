@@ -323,15 +323,17 @@ def TestIQtree(ArgString, DefaultFlags, HelpMessage):
     if not success:
       print("Error: could not successfully call IQtree",
             sep='', file=sys.stderr)
-      if out != None and err != None:
-        print('IQtree produced the error messages: ', out + '\n' + err, sep='',
-              file=sys.stderr)
-      else:
-        print('If IQtree is not installed, please install it first. If it is ',
-              'installed, try adding the path containing its executable files to the',
-              ' PATH environment variable of your terminal, or use',
-              ' a different set of options specified with --x-iqtree:\n', HelpMessage, sep='',
-              file=sys.stderr)
+      if not out is None:
+        print('The following error message was printed to stdout: ',
+        out, sep='', file=sys.stderr)
+      if not err is None:
+        print('The following error message was printed to stderr: ',
+        err, sep='', file=sys.stderr)
+      print('If IQtree is not installed, please install it first. If it is ',
+            'installed, try adding the path containing its executable files to the',
+            ' PATH environment variable of your terminal, or use',
+            ' a different set of options specified with --x-iqtree:\n', HelpMessage, sep='',
+            file=sys.stderr)
       print('Quitting.', file=sys.stderr)
       exit()
 

@@ -200,8 +200,9 @@ arguments you want to pass to iqtree; if so, the set of things you specify with
 they're kept together as one option for this script and only split up for
 iqtree). Do not include options relating to bootstraps or to the naming of files. 
 If you do not specify anything, we will use the options ''' + IQtreedefaultOptions +
-'''. -m tells IQtree which evolutionary model to use, and -seed specifies a random number 
-seed to use for the run. ''')
+'''.
+-m tells IQtree which evolutionary model to use, and -seed specifies a random
+number seed to use for the run. ''')
 RecommendedArgs.add_argument('--x-iqtree', help=IQtreeHelp)
 RecommendedArgs.add_argument('-P', '--merge-paired-reads', action='store_true',
 help='''Relevant only for paired-read data for which the mates in a pair
@@ -2463,7 +2464,7 @@ print("\nphyloscanner_make_trees.py successfully produced some trees! If",
 "giving them as input to phyloscanner_analyse_trees.R.\n")
 
 def FindFilesForRcode(DescriptionOfFiles, FileBasename, DirKey, ROption,
-ExtraText=None):
+ExtraText=None, TreeFileSuffix=None):
   '''TODO'''
   if args.keep_output_together:
     if HaveMadeOutputDir:
@@ -2474,11 +2475,14 @@ ExtraText=None):
     Dir = OutputDirs[DirKey]
   Dir = os.path.abspath(Dir)
   FileStart = os.path.join(Dir, FileBasename)
-  files = glob.glob(FileStart + '*')
+  FileRegex = FileStart + '*'
+  if not TreeFileSuffix is None:
+    FileRegex = FileRegex + TreeFileSuffix
+  files = glob.glob(FileRegex)
   if not files:
     print("Oops, internally we've lost track of the location of the",
     DescriptionOfFiles, "files we produced. "
-    "Expected to find files matching", FileStart + '*\nSorry about that.',
+    "Expected to find files matching", FileRegex + '\nSorry about that.',
     file=sys.stderr)
   else:
     if ExtraText != None:
@@ -2488,16 +2492,19 @@ ExtraText=None):
     print("The", DescriptionOfFiles, "files we've produced can be given to",
     'phyloscanner_analyse_trees.R, via its "' + ROption + '" option, as',
     FileStart, end=end)
+    if not TreeFileSuffix is None:
+      print("also specifying --treeFileExtension", TreeFileSuffix)
+
 
 
 if Use_raxml_old:
-  FindFilesForRcode("tree", 'RAxML_bestTree.', 'raxml_old', 'tree')
-
+  FindFilesForRcode("tree", 'RAxML_bestTree.InWindow_', 'raxml_old', 'tree',
+  TreeFileSuffix = ".tree")
 elif Use_iqtree:
   FindFilesForRcode("tree", 'IQtree_', 'iqtree', 'tree')
-
 else:
-  FindFilesForRcode("tree", '*.raxml.bestTree', 'raxml', 'tree')
+  FindFilesForRcode("tree", 'InWindow_', 'raxml', 'tree',
+  TreeFileSuffix = ".raxml.bestTree")
 
 
 if CheckDuplicates:
