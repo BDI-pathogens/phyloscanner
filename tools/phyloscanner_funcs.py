@@ -212,13 +212,11 @@ def TestRAxML(ArgString, DefaultFlags, HelpMessage):
       
   return ArgList
 
-
 def TestRAxML_old(ArgString, DefaultFlags, HelpMessage):
   '''Runs the RAxML-old executables with the --help command'''
-
-  #Check if ArgString contains one of the RAxML executables
-  RAxML_old_exe = ['raxmlHPC-AVX', 'raxmlHPC-SSE3', 'raxmlHPC']
-  Contains_executable = any(exe in ArgString for exe in RAxML_old_exe)
+  # Check for RAxML-old executables
+  ExesToTry = ['raxmlHPC-AVX', 'raxmlHPC-SSE3', 'raxmlHPC']
+  Contains_executable = any(exe in ArgString for exe in ExesToTry)
 
   #Test function using a specified executable
   if Contains_executable:
@@ -230,7 +228,7 @@ def TestRAxML_old(ArgString, DefaultFlags, HelpMessage):
       ArgList = [ArgString] + DefaultFlags.split()
     out = None
     err = None
-    for exe in RAxML_old_exe:
+    for exe in ExesToTry:
       if exe in ArgString:
         try:
           proc = subprocess.Popen([exe] + ['-h'],
@@ -265,7 +263,6 @@ def TestRAxML_old(ArgString, DefaultFlags, HelpMessage):
     out = None
     err = None
     success = False
-    ExesToTry = ['raxmlHPC-AVX', 'raxmlHPC-SSE3', 'raxmlHPC']
     for exe in ExesToTry:
       try:
         proc = subprocess.Popen([exe] + ['-h'],
@@ -298,44 +295,83 @@ def TestRAxML_old(ArgString, DefaultFlags, HelpMessage):
 
 def TestIQtree(ArgString, DefaultFlags, HelpMessage):
   '''Runs IQtree with the desired options'''
-  IQtree_exe = 'iqtree'
-  Contains_executable = IQtree_exe in ArgString
+  # Check for IQtree executables
+  ExesToTry = ['iqtree', 'iqtree2']
+  Contains_executable = any(exe in ArgString for exe in ExesToTry)
 
-  # Different ArgLists based on how the user specified using --x-iqtree
-  if Contains_executable and len(ArgString.split()) > 1:
-    ArgList = ArgString.split()
-  elif not Contains_executable and ArgString:
-    ArgList = ['iqtree'] + ArgString.split()
+  # Test function using a specified executable
+  if Contains_executable:
+    # The user has specified IQtree executable and specified flags:
+    if Contains_executable and len(ArgString.split()) > 1:
+      ArgList = ArgString.split()
+    # The user has specified executable but not flags:
+    elif Contains_executable and len(ArgString.split()) == 1:
+      ArgList = [ArgString] + DefaultFlags.split()
+    out = None
+    err = None
+    for exe in ExesToTry:
+      if exe in ArgString:
+        try:
+          proc = subprocess.Popen([exe] + ['-h'],
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except:
+          success = False
+          raise
+        else:
+          out, err = proc.communicate()
+          success = proc.returncode == 0
+        finally:
+          if not success:
+            print('Error: could not run the test help command for the chosen executable',
+                  '', sep='', file=sys.stderr)
+            if out != None and err != None:
+              print('IQtree produced the error messages: ', out + '\n' + err, sep='',
+                    file=sys.stderr)
+            else:
+              print('If IQtree is not installed, please install it first. If it is ',
+                    'installed, you may need to specify a different executable',
+                    'and/or set of options. If the executable is not specified then different ',
+                    'executables will be tried. If only the executable is specified ',
+                    'then default options will be used. Options can be specified using --x-iqtree:\n',
+                    HelpMessage, sep='',
+                    file=sys.stderr)
+            print('Quitting.', file=sys.stderr)
+            exit(1)
+
+  # Test function using unspecified executable
   else:
-    ArgList = ['iqtree'] + DefaultFlags.split()
-  out = None
-  err = None
-  try:
-    proc = subprocess.Popen(["iqtree", "-h"],
-                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-  except:
+    if ArgString:
+      FlagList = ArgString.split()
+    out = None
+    err = None
     success = False
-    raise
-  else:
-    out, err = proc.communicate()
-    success = proc.returncode == 0
-  finally:
+    for exe in ExesToTry:
+      try:
+        proc = subprocess.Popen([exe] + ['-h'],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+      except:
+        print([exe], 'was not able to be called.')
+        continue
+      else:
+        ArgList = [exe] + FlagList
+        out, err = proc.communicate()
+        if proc.returncode != 0:
+          continue
+      success = True
     if not success:
-      print("Error: could not successfully call IQtree",
-            sep='', file=sys.stderr)
-      if not out is None:
-        print('The following error message was printed to stdout: ',
-        out, sep='', file=sys.stderr)
-      if not err is None:
-        print('The following error message was printed to stderr: ',
-        err, sep='', file=sys.stderr)
-      print('If IQtree is not installed, please install it first. If it is ',
-            'installed, try adding the path containing its executable files to the',
-            ' PATH environment variable of your terminal, or use',
-            ' a different set of options specified with --x-iqtree:\n', HelpMessage, sep='',
-            file=sys.stderr)
+      print("Error: could not successfully call IQtree using any of the ",
+            "executables", sep='', file=sys.stderr)
+      if out != None and err != None:
+        print('IQtree produced the error messages: ', out + '\n' + err, sep='',
+              file=sys.stderr)
+      else:
+        print('If IQtree is not installed, please install it first. If it is ',
+              'installed, try adding the path containing its executable files to the ',
+              'PATH environment variable of your terminal, or use a different ',
+              'set of options specified with --x-iqtree:\n', HelpMessage, sep='',
+              file=sys.stderr)
       print('Quitting.', file=sys.stderr)
-      exit()
+      exit(1)
 
   return ArgList
 

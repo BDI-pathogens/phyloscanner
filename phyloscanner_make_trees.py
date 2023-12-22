@@ -2501,7 +2501,8 @@ if Use_raxml_old:
   FindFilesForRcode("tree", 'RAxML_bestTree.InWindow_', 'raxml_old', 'tree',
   TreeFileSuffix = ".tree")
 elif Use_iqtree:
-  FindFilesForRcode("tree", 'IQtree_', 'iqtree', 'tree')
+  FindFilesForRcode("tree", 'IQtree_InWindow_', 'iqtree', 'tree',
+  TreeFileSuffix = ".treefile")
 else:
   FindFilesForRcode("tree", 'InWindow_', 'raxml', 'tree',
   TreeFileSuffix = ".raxml.bestTree")
