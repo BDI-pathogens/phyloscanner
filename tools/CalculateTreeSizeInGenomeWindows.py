@@ -20,7 +20,6 @@ import sys
 import subprocess
 from Bio import AlignIO
 import phyloscanner_funcs as pf
-from phyloscanner_funcs import RAxMLdefaultOptions, RAxMLOlddefaultOptions, IQtreedefaultOptions
 
 # Define a function to check files exist, as a type for the argparse.
 def File(MyFile):
@@ -63,38 +62,9 @@ use. See the phyloscanner manual chapter 'Branch length normalisation' for an
 explanation of an alternative way of parallelising this script that is suitable
 for massive parallelisation (as opposed to just using multiple cores on a single
 machine, which this option does).''')
-RaxmlHelp ='''Use this option to specify the run options for RAxML. If you do
-not specify anything, we will use the
-options ''' + RAxMLdefaultOptions + '''. --model tells RAxML which evolutionary model
-to use, and --seed specifies a random number seed for the parsimony inferences. You 
-may include any other RAxML options in this command. The set
-of things you specify with --x-raxml need to be surrounded with one pair of
-quotation marks (so that they're kept together as one option for phyloscanner
-and only split up for raxml). If you include a path to your raxml binary, it may
-not include whitespace, since whitespace is interpreted as separating raxml
-options.'''
-parser.add_argument('--x-raxml', help=RaxmlHelp)
-RaxmlOldHelp ='''Use this option to specify the run options for old RAxML (RAxML-standard). If you do
-not specify anything, we will use the
-options ''' + RAxMLOlddefaultOptions + '''. -m tells RAxML which evolutionary model
-to use, and -p specifies a random number seed for the parsimony inferences; both
-are compulsory. You may include any other RAxML options in this command. The set
-of things you specify with --x-raxml-old need to be surrounded with one pair of
-quotation marks (so that they're kept together as one option for phyloscanner
-and only split up for raxml). If you include a path to your raxml binary, it may
-not include whitespace, since whitespace is interpreted as separating raxml
-options.'''
-parser.add_argument('--x-raxml-old', help=RaxmlOldHelp)
-IQtreeHelp =''''Use this option if you want to use
-iqtree instead of raxml: specify the name (and path if needed) of your iqtree
-exectubable (binary) file. Optionally, the exectuable can be followed by
-arguments you want to pass to iqtree; if so, the set of things you specify with
---x-iqtree need to be surrounded with one pair of quotation marks (so that
-they're kept together as one option for this script and only split up for
-iqtree). If you do not specify anything, we will use the options 
-''' + IQtreedefaultOptions + '''. -m tells IQtree which evolutionary model to use, 
-and -seed specifies a random number seed to use for the run.'''
-parser.add_argument('--x-iqtree', help=IQtreeHelp)
+parser.add_argument('--x-raxml', help=pf.RaxmlHelp)
+parser.add_argument('--x-raxml-old', help=pf.RaxmlOldHelp)
+parser.add_argument('--x-iqtree', help=pf.IQtreeHelp)
 parser.add_argument('-Q', '--quiet', action='store_true', help='''Turns off the
 small amount of information printed to the terminal (via stdout). We'll still
 print warnings and errors (via stderr).''')
@@ -129,13 +99,14 @@ Use_raxml_ng = args.x_raxml != None
 if Use_raxml_old + Use_iqtree + Use_raxml_ng > 1:
   print('Arguments for multiple tree inference tools detected. Quitting.')
   exit(1)
-
+  
+# Select a Test function depending on chosen tree inference program
 if Use_raxml_old:
-  TreeArgList = pf.TestRAxML_old(args.x_raxml_old, RAxMLOlddefaultOptions, RaxmlOldHelp)
+  TreeArgList = pf.TestTreeInference(args.x_raxml_old, "RAxML-standard")
 elif Use_iqtree:
-  TreeArgList = pf.TestIQtree(args.x_iqtree, IQtreedefaultOptions, IQtreeHelp)
+  TreeArgList = pf.TestTreeInference(args.x_iqtree, "IQtree")
 else:
-  TreeArgList = pf.TestRAxML(args.x_raxml, RAxMLdefaultOptions, RaxmlHelp)
+  TreeArgList = pf.TestTreeInference(args.x_raxml, "RAxML-NG")
 
 # Set up multithreading if needed
 multithread = args.threads != None
