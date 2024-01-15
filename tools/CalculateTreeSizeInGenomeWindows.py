@@ -33,7 +33,7 @@ parser = argparse.ArgumentParser(description=ExplanatoryMessage)
 parser.add_argument('alignment', type=File)
 parser.add_argument('ChosenSeqName', help='''The sequence whose coordinates
 we'll use to define windows (it must be present in the
-alignment). Assuming you are using this script to provfide input for
+alignment). Assuming you are using this script to provide input for
 phyloscanner_analyse_trees.R, you must use the same sequence here as you used
 for phyloscanner_make_trees.py's --pairwise-align-to option: then the genome
 positions will mean the same thing.''')

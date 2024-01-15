@@ -12,6 +12,7 @@ GapChar = '-'
 RAxMLdefaultOptions = "--model GTR+F+R6 --seed 1"
 RAxMLOlddefaultOptions = "-m GTRCAT -p 1 --no-seq-check"
 IQtreedefaultOptions = "-m GTR+F+R6 -seed 1"
+RAxMLdefaultExe = 'raxml-ng'
 
 # Test that we can run code we'll need
 DirectoryOfThisScript = os.path.dirname(os.path.realpath(__file__))
@@ -171,80 +172,28 @@ def ReadInputCSVfile(TheFile):
 
   return BamFiles, RefFiles, aliases, BamBaseNames
 
-
-def TestRAxML(ArgString, DefaultFlags, HelpMessage):
-  '''Runs RAxML-NG with the desired options'''
-  # The user has specified executable and options
-  if ArgString != None:
+def TestTreeInference(ArgString, method):
+  '''Tests that we can call RAxML-NG, RAxML-standard or IQtree'''
+  assert(method in ["RAxML-NG", "RAxML-standard", "IQtree"])
+  # Only RAxML-NG has a default, and so can have a None ArgString
+  assert(not (ArgString is None and not method == "RAxML-NG"))
+  if ArgString is None:
+    ArgList = [RAxMLdefaultExe] + RAxMLdefaultOptions.split()
+  else:
     ArgList = ArgString.split()
-    out = None
-    err = None
-    RAxMLNGExe = ArgList[0]
-    try:
-      proc = subprocess.Popen([RAxMLNGExe] + ['-h'],
-      stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    except:
-      success = False
-      raise
-    else:
-      out, err = proc.communicate()
-      success = proc.returncode == 0
-    finally:
-      if not success:
-        print('Error: could not run the test help command for the chosen executable',
-              '', sep='', file=sys.stderr)
-        if out != None and err != None:
-          print('RAxML-NG produced the error messages: ', out + '\n' + err, sep='',
-                file=sys.stderr)
-        else:
-          print('If RAxML-NG is not installed, please install it first. If it is ',
-                'installed, you may need to specify a different executable',
-                'and/or set of options. Check that the path to the executable',
-                'is specified or in the PATH environment variable of your terminal.\n',
-                HelpMessage, sep='',
-                file=sys.stderr)
-        print('Quitting.', file=sys.stderr)
-        exit(1)
-  
+  if method == "RAxML-standard":
+    TestOption = "--flag-check"
+    option = "--x-raxml-old"
   else:
-    # The user has not specified how to call RAxML
-    RAxMLNGExe = 'raxml-ng'
-    ArgList = [RAxMLNGExe] + DefaultFlags.split()
-    out = None
-    err = None
-    try:
-      proc = subprocess.Popen([RAxMLNGExe] + ['--help'],
-      stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    except:
-      success = False
-      raise
+    TestOption = "--help"
+    if method == "RAxML-NG":
+      option = "--x-raxml"
     else:
-      out, err = proc.communicate()
-      success = proc.returncode == 0
-    finally:
-      if not success:
-        print('Error: could not successfully call RAxML-NG',
-          sep='', file=sys.stderr)
-        if out != None and err != None:
-          print('RAxML-NG produced the error messages: ', out + '\n' + err, sep='',
-          file=sys.stderr)
-        else:
-          print('If RAxML-NG is not installed, please install it first. If it is ',
-          'installed, try adding the path containing its executable files to the ',
-          'PATH environment variable of your terminal.\n', HelpMessage, sep='',
-          file=sys.stderr)
-        print('Quitting.', file=sys.stderr)
-        exit(1)
-
-  return ArgList
-
-def TestRAxML_old(ArgString, HelpMessage):
-  '''Runs the specified RAxML-old executables and options with the --flag-check command'''
-  ArgList = ArgString.split()
+      option = "--x-iqtree"
   out = None
   err = None
   try:
-    proc = subprocess.Popen(ArgList + ['--flag-check'],
+    proc = subprocess.Popen(ArgList + [TestOption],
     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
   except:
     success = False
@@ -254,54 +203,20 @@ def TestRAxML_old(ArgString, HelpMessage):
     success = proc.returncode == 0
   finally:
     if not success:
-      print('Error: could not run the command "', ArgString, '--flag-check".'
-      , sep='', file=sys.stderr)
+      print('Error: could not run the following test command:\n',
+      " ".join(ArgList), TestOption, file=sys.stderr)
       if out != None and err != None:
-        print('RAxML produced the error messages: ', out + '\n' + err, sep='',
-        file=sys.stderr)
-      else:
-        print('If RAxML-old (RAxML-standard) is not installed, please install it first.',
-        'If it is installed, you may need to specify a different executable',
-        'and/or set of options. Check that the path to the executable',
-        'is specified or in the PATH environment variable of your terminal.\n', HelpMessage, sep='',
-        file=sys.stderr)
-      print('Quitting.', file=sys.stderr)
-      exit(1)
-      
-  return ArgList
-
-def TestIQtree(ArgString, HelpMessage):
-  '''Runs IQtree with the desired options. Executable and options must be specified.'''
-  ArgList = ArgString.split()
-  out = None
-  err = None
-  IQtreeExe = ArgList[0]
-  try:
-    proc = subprocess.Popen([IQtreeExe] + ['-h'],
-    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-  except:
-    success = False
-    raise
-  else:
-    out, err = proc.communicate()
-    success = proc.returncode == 0
-  finally:
-    if not success:
-      print('Error: could not run the test help command for the chosen executable',
-            '', sep='', file=sys.stderr)
-      if out != None and err != None:
-        print('IQtree produced the error messages: ', out + '\n' + err, sep='',
+        print('The following error messages resulted: ', out + '\n' + err, sep='',
               file=sys.stderr)
-      else:
-        print('If IQtree is not installed, please install it first. If it is ',
-              'installed, you may need to specify a different executable',
-              'and/or set of options. Check that the path to the executable',
-              'is specified or in the PATH environment variable of your terminal.\n',
-              HelpMessage, sep='',
-              file=sys.stderr)
-      print('Quitting.', file=sys.stderr)
+      print("If", method, "is not installed, please install it first. If it",
+      'is installed, you may need to specify a different executable',
+      "and/or set of options. You can tell phyloscaner how to run",
+      "RAxML-NG using the", option, "option; check that what you",
+      "specify with this option includes the path to the", method,
+      "executable, or that this path is included in the PATH",
+      "environment variable of your terminal.\nQuitting.",
+      file=sys.stderr)
       exit(1)
-
   return ArgList
 
 def RunRAxML(alignment, RAxMLargList, WindowSuffix, WindowAsStr, LeftEdge,

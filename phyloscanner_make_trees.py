@@ -181,30 +181,6 @@ and only split up for raxml). If you include a path to your raxml binary, it may
 not include whitespace, since whitespace is interpreted as separating raxml
 options. Do not include options relating to bootstraps or to the naming of files.'''
 RecommendedArgs.add_argument('--x-raxml', help=RaxmlHelp)
-RaxmlOldHelp ='''Use this option if you want to use old RAxML (RAxML-standard). Instead
-of the default RAxML-NG. First specify the name (and path if needed) of your chosen RAxML
-executable followed by the chosen options. 
-The recommended default options are "''' + RAxMLOlddefaultOptions + '''". -m tells 
-RAxML which evolutionary model to use, and -p specifies a random number seed for the 
-parsimony inferences; both are compulsory. You may include any other RAxML options 
-in this command. 
-The set of things you specify with --x-raxml-old need to be surrounded with one pair of
-quotation marks (so that they're kept together as one option for phyloscanner
-and only split up for raxml). If you include a path to your raxml binary, it may
-not include whitespace, since whitespace is interpreted as separating raxml
-options. Do not include options relating to bootstraps or to the naming of files.'''
-RecommendedArgs.add_argument('--x-raxml-old', help=RaxmlOldHelp)
-IQtreeHelp =('''Use this option if you want to use iqtree instead of RAxML-NG. specify 
-the name (and path if needed) of your iqtree exectubable (binary) file, followed by the
-arguments you want to pass to iqtree. The set of things you specify with
---x-iqtree need to be surrounded with one pair of quotation marks (so that
-they're kept together as one option for this script and only split up for
-iqtree). Do not include options relating to bootstraps or to the naming of files. 
-The recommended default options are "''' + IQtreedefaultOptions +
-'''". -m tells IQtree which evolutionary model to use, and -seed specifies a random
-number seed to use for the run. You may include any other IQtree options 
-in this command. ''')
-RecommendedArgs.add_argument('--x-iqtree', help=IQtreeHelp)
 RecommendedArgs.add_argument('-P', '--merge-paired-reads', action='store_true',
 help='''Relevant only for paired-read data for which the mates in a pair
 (sometimes) overlap with each other: with this option we merge overlapping mates
@@ -229,6 +205,30 @@ after merging if merging is being done) less than this value are discarded.
 The default value of 1 means all reads are kept.''')
 
 OtherArgs = parser.add_argument_group('Other assorted options')
+RaxmlOldHelp ='''Use this option if you want to use old RAxML (RAxML-standard) instead
+of the default RAxML-NG. First specify the name (and path if needed) of your chosen RAxML
+executable followed by the chosen options. 
+The recommended default options are "''' + RAxMLOlddefaultOptions + '''". -m tells 
+RAxML which evolutionary model to use, and -p specifies a random number seed for the 
+parsimony inferences; both are compulsory. You may include any other RAxML options 
+in this command. 
+The set of things you specify with --x-raxml-old need to be surrounded with one pair of
+quotation marks (so that they're kept together as one option for phyloscanner
+and only split up for raxml). If you include a path to your raxml binary, it may
+not include whitespace, since whitespace is interpreted as separating raxml
+options. Do not include options relating to bootstraps or to the naming of files.'''
+OtherArgs.add_argument('--x-raxml-old', help=RaxmlOldHelp)
+IQtreeHelp =('''Use this option if you want to use iqtree instead of RAxML-NG. specify 
+the name (and path if needed) of your iqtree exectubable (binary) file, followed by the
+arguments you want to pass to iqtree. The set of things you specify with
+--x-iqtree need to be surrounded with one pair of quotation marks (so that
+they're kept together as one option for this script and only split up for
+iqtree). Do not include options relating to bootstraps or to the naming of files. 
+The recommended default options are "''' + IQtreedefaultOptions +
+'''". -m tells IQtree which evolutionary model to use, and -seed specifies a random
+number seed to use for the run. You may include any other IQtree options 
+in this command. ''')
+OtherArgs.add_argument('--x-iqtree', help=IQtreeHelp)
 OtherArgs.add_argument('-XC', '--excision-coords', type=CommaSeparatedInts,
 help='Used to specify a comma-separated set of integer coordinates that will '
 'be excised from the aligned reads. Requires the -XR flag.')
@@ -425,7 +425,8 @@ Use_iqtree = args.x_iqtree != None
 Use_raxml_ng = args.x_raxml != None
 
 if Use_raxml_old + Use_iqtree + Use_raxml_ng > 1:
-  print('Arguments for multiple tree inference tools detected. Quitting.')
+  print("You may not specify more than one of these options: --x-raxml,",
+  "--x-raxml-old,--x-iqtree. Quitting.")
   exit(1)
 
 # Some options make trees unnecessary
@@ -804,11 +805,11 @@ FindWindowsCode     = pf.FindAndCheckCode(PythonPath,
 # Select a Test function depending on chosen tree inference program
 if not args.no_trees:
   if Use_raxml_old:
-    TreeArgList = pf.TestRAxML_old(args.x_raxml_old, RaxmlOldHelp)
+    TreeArgList = pf.TestTreeInference(args.x_raxml_old, "RAxML-standard")
   elif Use_iqtree:
-    TreeArgList = pf.TestIQtree(args.x_iqtree, IQtreeHelp)
+    TreeArgList = pf.TestTreeInference(args.x_iqtree, "IQtree")
   else:
-    TreeArgList = pf.TestRAxML(args.x_raxml, RAxMLdefaultOptions, RaxmlHelp)
+    TreeArgList = pf.TestTreeInference(args.x_raxml, "RAxML-NG")
 
 # Set up the mafft commands
 if '--add' in args.x_mafft or \
