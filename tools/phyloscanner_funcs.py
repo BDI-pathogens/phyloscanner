@@ -331,7 +331,6 @@ RightEdge, TempFilesSet, TimesList=[]):
 
     print('\nSkipping to the next window.', sep='', file=sys.stderr)
     return 0
-    return 0
   if not os.path.isfile(MLtreeFile):
     print(MLtreeFile +', expected to be produced by RAxML, does not exist.'+\
     '\nSkipping to the next window.', file=sys.stderr)
@@ -346,31 +345,14 @@ RightEdge, TempFilesSet, TimesList=[]):
 
   return 1
 
-def RunIQtree(IQtreeString, alignment, WindowSuffix, WindowAsStr, LeftEdge,
+def RunIQtree(alignment, IQtreeArgList, WindowSuffix, WindowAsStr, LeftEdge,
 RightEdge):
   '''Runs IQtree on aligned sequences in a window.
 
   Returns 1 if successful, 0 if not.'''
 
-  if len(IQtreeString) == 0:
-    print('Nothing but whitespace specified for the manner of calling IQtree.',
-    file=sys.stderr)
-    return 0
-
-  IQtreeExe = IQtreeString[0] 
-  FNULL = open(os.devnull, 'w')
-  try:
-    ExitStatus = subprocess.call([IQtreeExe, '-h'], stdout=FNULL)
-    assert ExitStatus == 0
-  except:
-    print('Problem running', IQtreeExe + " -h\nTry running this command",
-    "yourself to check it works. If it does, perhaps it includes something",
-    "with special meaning inside the terminal, such as ~ or $HOME; in this",
-    "case, try replacing these with a more explicit path.", file=sys.stderr)
-    return 0
-
   MLtreeFile = 'IQtree_' + WindowSuffix + '_.treefile'
-  IQtreeCall = IQtreeString + ['-s', alignment, '-pre', 'IQtree_' + WindowSuffix + '_']
+  IQtreeCall = IQtreeArgList + ['-s', alignment, '-pre', 'IQtree_' + WindowSuffix + '_']
   proc = subprocess.Popen(IQtreeCall, stdout=subprocess.PIPE,
   stderr=subprocess.PIPE)
   out, err = proc.communicate()
@@ -392,7 +374,6 @@ RightEdge):
       print('and nothing was printed to stderr.')
 
     print('\nSkipping to the next window.', sep='', file=sys.stderr)
-    return 0
     return 0
   if not os.path.isfile(MLtreeFile):
     print(MLtreeFile +', expected to be produced by IQtree, does not exist.'+\

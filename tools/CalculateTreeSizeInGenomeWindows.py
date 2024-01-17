@@ -255,7 +255,7 @@ def GetTreeSizeFromWindow(WindowNumber):
     MLtreeFile = 'RAxML_bestTree.' + WindowSuffix + '.tree'
   elif Use_iqtree:
     print('Running IQtree')
-    NumTreesMade = pf.RunIQtree(TreeArgList, FileForAlnHere, WindowSuffix, WindowAsStr,
+    NumTreesMade = pf.RunIQtree(FileForAlnHere, TreeArgList, WindowSuffix, WindowAsStr,
                                 ChosenSeqStart, ChosenSeqEnd)
     MLtreeFile = 'IQtree_' + WindowSuffix + '_.treefile'
   else:

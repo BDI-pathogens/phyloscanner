@@ -294,8 +294,7 @@ help="Don't compare reads between samples to find duplicates - a possible "+\
 "indication of contamination. (By default this check is done.)")
 StopEarlyArgs.add_argument('-RNO', '--read-names-only', action='store_true',
 help='''Stop analysing each window as soon as possible after writing the read
-names to a file. This option will not make trees if a tree inference program is 
-specified.''')
+names to a file.''')
 StopEarlyArgs.add_argument('-NRN', '--no-read-names', action='store_true',
 help='''Do not record the correspondence between each unique sequence retained
 by phyloscanner, and the reads that went into this sequence (as they are named
@@ -2299,7 +2298,7 @@ for window in range(NumCoords / 2):
     if PrintInfo:
       print('Running IQ-Tree on the processed & aligned reads in window',
             ThisWindowAsStr)
-    NumMLtreesMade += pf.RunIQtree(TreeArgList, FileForTrees, ThisWindowSuffix, ThisWindowAsStr,
+    NumMLtreesMade += pf.RunIQtree(FileForTrees, TreeArgList, ThisWindowSuffix, ThisWindowAsStr,
                                 UserLeftWindowEdge, UserRightWindowEdge)
   else:
     if PrintInfo:
