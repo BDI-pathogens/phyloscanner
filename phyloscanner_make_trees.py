@@ -294,7 +294,8 @@ help="Don't compare reads between samples to find duplicates - a possible "+\
 "indication of contamination. (By default this check is done.)")
 StopEarlyArgs.add_argument('-RNO', '--read-names-only', action='store_true',
 help='''Stop analysing each window as soon as possible after writing the read
-names to a file.''')
+names to a file. This option will not make trees if a tree inference program is 
+specified.''')
 StopEarlyArgs.add_argument('-NRN', '--no-read-names', action='store_true',
 help='''Do not record the correspondence between each unique sequence retained
 by phyloscanner, and the reads that went into this sequence (as they are named
@@ -390,11 +391,19 @@ Use_raxml_old = args.x_raxml_old != None
 Use_iqtree = args.x_iqtree != None
 Use_raxml_ng = args.x_raxml != None
 
+# Limit to one tree inference program
 if Use_raxml_old + Use_iqtree + Use_raxml_ng > 1:
   print("You may not specify more than one of these options: --x-raxml,",
-  "--x-raxml-old,--x-iqtree. Quitting.")
+  "--x-raxml-old,--x-iqtree. Quitting.", file=sys.stderr)
   exit(1)
-
+  
+# Exit if options that prevent making trees are used alongside tree inference programs
+if (ExploreWindowWidths or ExploreWindowWidthsFast or args.read_names_only or args.no_trees) and \
+((not args.x_raxml is None) or (not args.x_raxml_old is None) or (not args.x_iqtree is None)):
+  print('Options are specified that prevent trees being produced alongside specified tree inference',
+  'programs. Remove these options to infer trees', file=sys.stderr)
+  exit(1)
+  
 # Some options make trees unnecessary
 if ExploreWindowWidths or ExploreWindowWidthsFast or args.read_names_only:
   args.no_trees = True
