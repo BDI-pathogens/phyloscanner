@@ -11,6 +11,7 @@
 \let\c\texttt
 \newcommand{\www}{\color{blue} \underline}
 \newcommand{\R}{\c{RAxML}\xspace}
+\newcommand{\iq}{\c{IQtree}\xspace}
 
 \title{\p\\available from \href{https://github.com/BDI-pathogens/phyloscanner}{\www{github.com/BDI-pathogens/phyloscanner}}}
 \date{This manual last updated \today}
@@ -44,7 +45,7 @@ Isolate the problem to the relevant \p command.
 
 \vspace*{5mm}
 
-If you use \p, please cite it~\cite{Wymant157768} and its dependencies: \c{SAMtools}~\cite{Li08062009}, \c{MAFFT}~\cite{Katoh15072002}, \c{RAxML}~\cite{doi:10.1093/bioinformatics/btu033} and \c{ggtree}~\cite{MEE3:MEE312628}.
+If you use \p, please cite it~\cite{Wymant157768} and its dependencies: \c{SAMtools}~\cite{Li08062009}, \c{MAFFT}~\cite{Katoh15072002}, \R~\cite{doi:10.1093/bioinformatics/btu033} and \c{ggtree}~\cite{MEE3:MEE312628}.
 Details of these are found in the file \c{CitationDetails.bib} in \p's \c{InfoAndInputs} subdirectory.
 
 \vspace*{5mm}
@@ -69,7 +70,7 @@ For example if you don't have mapped reads, but have sequence data in another fo
 We presented an example of this in the \p paper: a dataset consisting of multiple whole genomes of {\it Streptococcus pneumoniae} for each person carrying the bacterium, obtained by separately sequencing multiple colonies.
 \item For some uses, step two may not be needed.
 Having extracted the within- and between-host diversity information in each window (first as a multiple sequence alignment and then as a phylogeny), you might want to do your own totally different analysis of it.
-%Step one consists of extracting the right reads from all samples for each window, processing them, aligning them, then running \c{RAxML} on the aligned reads.
+%Step one consists of extracting the right reads from all samples for each window, processing them, aligning them, then running \R on the aligned reads.
 \item Each step is controlled by parameters and options to tailor its usage to different kinds of data, and we don't (yet) have a way to automatically optimise these for each data set, so you will need to have a little play to explore what's appropriate in your case.
 If you are running both steps, it's best to think first about getting step one right first, and then getting step two right.
 Step one is primarily about bioinformatics, step two about phylogenetic analysis.

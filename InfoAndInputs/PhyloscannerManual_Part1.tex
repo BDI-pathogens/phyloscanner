@@ -1,5 +1,7 @@
 \part{Inferring within- and between-host phylogenies in windows along the genome, using mapped reads}
 
+At many places we refer to \R as the method \pmt uses to infer phylogenies, but note that as of version 1.9 of \p an alternative to \R is \iq (see the \c{--x-iqtree} option in section~\ref{sec:other_options}). For simplicity we continue just saying \R rather than \R or \iq.
+
 \section{The basic command} \label{sec:The basic command}
 
 As input to \pmt, you need to have generated files of mapped reads in bam format -- bam files henceforth.
@@ -261,15 +263,18 @@ The full set of processed, unaligned reads extracted from each window are aligne
 However using this option, the mapping references used to create the bam files are each separately pairwise aligned to one of the extra references included with \c{--alignment-of-other-refs}, and window coordinates are interpreted with respect to this reference.
 The reference to use should be specified after this option.
 Using this option is necessary if you want to run the \c{tools/CalculateTreeSizeInGenomeWindows.py} script and feed its output into \\\pat via its \c{--normRefFileName} option (see section~\ref{sec:normalisation}).
+
 \item \c{--x-raxml}: use this option to tell \pmt how to run \R, including both the executable (with the path to it if needed), and the options.
-If you do not specify anything, we will try to find the fastest \R executable available (first \c{raxmlHPC-AVX}, then \c{raxmlHPC-SSE3}, then \c{raxmlHPC}) and use the options \c{-m GTRCAT -p 1 --no-seq-check}.
 You will need to specify something if the path to your \R executable is not contained in your \c{PATH} environment variable (i.e. if you need to specify the path to the executable in order to run it), or if you want to use different \R options.
-\c{-m} tells \R which evolutionary model to use, and \c{-p} specifies a random number seed for the parsimony inferences; both are compulsory.
-You may include any other \R options in this command (including multi-threading, provided you use one of the multi-threaded executables).
+If you do not specify anything, we will use the options \c{--model GTR+F+R6 --seed 1}.
+\c{--model} tells \R which evolutionary model to use, and \c{--seed} specifies a random number seed for the parsimony inferences; both are compulsory.
+You may include any other \R options in this command.
 The set of things you specify with \c{--x-raxml} need to be surrounded with one pair of quotation marks (so that they're kept together as one option for \pmt and only split up for \R).
+You may include any other \R options in this command.
 If you include a path to your \R executable, it may not include whitespace, since whitespace is interpreted as separating \R options.
-Do not include options relating to bootstraps: use \pmt's \c{--num-bootstraps} and \c{--bootstrap-seed} options instead.
+Do not include options relating to bootstraps: 
 Do not include options relating to the naming of files.
+
 \item \c{--merge-paired-reads}: this is only relevant for paired-read data for which the mates in a pair (sometimes) overlap with each other, but is very useful for such data.
 With this option, overlapping mates in a pair are merged into a single (longer) read.
 This allows wider windows to be used, enhancing the phylogenetic resolution in a single window.
@@ -294,8 +299,23 @@ You might want to discard rare reads to protect against sequencing error.
 Retaining fewer reads will also speed up all subsequent processing and analysis of the reads.
 \end{itemize}
 
-\subsection{Other assorted options}
+\subsection{Other assorted options} \label{sec:other_options}
 \begin{itemize}
+\item \c{--x-raxml-old}: use this option if you want to use old \R (\c{RAxML-standard}) instead of the default \c{RAxML-NG}.
+First specify the name (and path if needed) of your chosen \R executable followed by the chosen options.
+The recommended default options are \c{-m GTRCAT -p 1 --no-seq-check}.
+\c{-m} tells \R which evolutionary model to use, and \c{-p} specifies a random number seed for the parsimony inferences; both are compulsory.
+You may include any other \R options in this command.
+The set of things you specify with \c{--x-raxml-old} need to be surrounded with one pair of quotation marks (so that they're kept together as one option for \pmt and only split up for \R).
+If you include a path to your \R binary, it may not include whitespace, since whitespace is interpreted as separating \R options.
+Do not include options relating to bootstraps or to the naming of files.
+\item \c{--x-iqtree}: Use this option if you want to use \iq instead of \c{RAxML-NG}.
+Specify the name (and path if needed) of your \iq exectubable (binary) file, followed by the arguments you want to pass to \iq.
+The set of things you specify with \c{--x-iqtree} need to be surrounded with one pair of quotation marks (so that they're kept together as one option for this script and only split up for \iq).
+Do not include options relating to bootstraps or to the naming of files.
+The recommended default options are \c{-m GTR+F+R6 -seed 1}.
+\c{-m} tells \iq which evolutionary model to use, and \c{-seed} specifies a random number seed to use for the run.
+You may include any other \iq options in this command.
 \item \c{--excision-coords}: used to specify a comma-separated set of integer coordinates that will be excised from the aligned reads before phylogenies are made.
 Useful for sites of non-neutral evolution, which distort phylogenies.
 Requires the \c{--excision-ref} flag.
@@ -324,8 +344,8 @@ AAAACCC\\
 CCCCCCC\\
 Calculation time scales cubically with the number of unique sequences each sample has per window, and so the option is turned off by default.
 You can save time by only turning it on only after you've settled on the values of other parameters that affect the number of unique sequences per window (notably window width, a merging threshold and a minimum read count).
-\item \c{--num-bootstraps}: used to specify the number of bootstraps to be calculated for \c{RAxML} trees (by default, none, i.e. only the maximum-likelihood tree is calculated).
-\item \c{--bootstrap-seed}: used to specify the random-number seed for running \c{RAxML} with bootstraps.
+\item \c{--num-bootstraps}: used to specify the number of bootstraps to be calculated for \R trees (by default, none, i.e. only the maximum-likelihood tree is calculated).
+\item \c{--bootstrap-seed}: used to specify the random-number seed for running \R with bootstraps.
 The default is 1.
 \item \c{--max-gap-frac-for-refs}.
 If \c{--alignment-of-other-refs} is used, an external reference sequence will be excluded from the current window if its fractional gap content in the current window (in the alignment including only the references, not the reads) exceeds this threshold.
