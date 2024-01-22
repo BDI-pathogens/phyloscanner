@@ -1,3 +1,4 @@
+% Cite this if you use phyloscanner:
 @article {Wymant157768,
 author = {Wymant, Chris and Hall, Matthew and Ratmann, Oliver and Bonsall, David and Golubchik, Tanya and de Cesare, Mariateresa and Gall, Astrid and Cornelissen, Marion and Fraser, Christophe and STOP-HCV Consortium and The Maela Pneumococcal Collaboration and The BEEHIVE Collaboration},
 title = {PHYLOSCANNER: Inferring Transmission from Within- and Between-Host Pathogen Genetic Diversity},
@@ -11,7 +12,7 @@ URL = {http://dx.doi.org/10.1093/molbev/msx304},
 eprint = {/oup/backfile/content_public/journal/mbe/35/3/10.1093_molbev_msx304/3/msx304.pdf}
 }
 
-
+% Cite this if you use phyloscanner_make_trees.py 
 @article{Li08062009,
 author = {Li, Heng and Handsaker, Bob and Wysoker, Alec and Fennell, Tim and Ruan, Jue and Homer, Nils and Marth, Gabor and Abecasis, Goncalo and Durbin, Richard and {1000 Genome Project Data Processing Subgroup}}, 
 title = {The Sequence Alignment/Map (SAM) Format and SAMtools},
@@ -21,7 +22,7 @@ URL = {http://bioinformatics.oxfordjournals.org/content/early/2009/06/08/bioinfo
 journal = {Bioinformatics} 
 }
 
-
+% Cite this if you use phyloscanner_make_trees.py 
 @article{Katoh15072002,
 author = {Katoh, Kazutaka and Misawa, Kazuharu and Kuma, Kei‐ichi and Miyata, Takashi}, 
 title = {MAFFT: a novel method for rapid multiple sequence alignment based on fast Fourier transform},
@@ -34,6 +35,24 @@ URL = {http://nar.oxfordjournals.org/content/30/14/3059.abstract},
 journal = {Nucleic Acids Research} 
 }
 
+% Cite this if you use RAxML NG as part of phyloscanner_make_trees.py:
+@article{10.1093/bioinformatics/btz305,
+    author = {Kozlov, Alexey M and Darriba, Diego and Flouri, Tomáš and Morel, Benoit and Stamatakis, Alexandros},
+    title = "{RAxML-NG: a fast, scalable and user-friendly tool for maximum likelihood phylogenetic inference}",
+    journal = {Bioinformatics},
+    volume = {35},
+    number = {21},
+    pages = {4453-4455},
+    year = {2019},
+    month = {05},
+    abstract = "{Phylogenies are important for fundamental biological research, but also have numerous applications in biotechnology, agriculture and medicine. Finding the optimal tree under the popular maximum likelihood (ML) criterion is known to be NP-hard. Thus, highly optimized and scalable codes are needed to analyze constantly growing empirical datasets.We present RAxML-NG, a from-scratch re-implementation of the established greedy tree search algorithm of RAxML/ExaML. RAxML-NG offers improved accuracy, flexibility, speed, scalability, and usability compared with RAxML/ExaML. On taxon-rich datasets, RAxML-NG typically finds higher-scoring trees than IQTree, an increasingly popular recent tool for ML-based phylogenetic inference (although IQ-Tree shows better stability). Finally, RAxML-NG introduces several new features, such as the detection of terraces in tree space and the recently introduced transfer bootstrap support metric.The code is available under GNU GPL at https://github.com/amkozlov/raxml-ng. RAxML-NG web service (maintained by Vital-IT) is available at https://raxml-ng.vital-it.ch/.Supplementary data are available at Bioinformatics online.}",
+    issn = {1367-4803},
+    doi = {10.1093/bioinformatics/btz305},
+    url = {https://doi.org/10.1093/bioinformatics/btz305},
+    eprint = {https://academic.oup.com/bioinformatics/article-pdf/35/21/4453/50721688/bioinformatics\_35\_21\_4453.pdf},
+}
+
+% Cite this if you use RAxML-standard as part of phyloscanner_make_trees.py:
 @article{doi:10.1093/bioinformatics/btu033,
 author = {Stamatakis, Alexandros},
 title = {RAxML version 8: a tool for phylogenetic analysis and post-analysis of large phylogenies},
@@ -47,6 +66,27 @@ URL = { + http://dx.doi.org/10.1093/bioinformatics/btu033},
 eprint = {/oup/backfile/content_public/journal/bioinformatics/30/9/10.1093_bioinformatics_btu033/3/btu033.pdf}
 }
 
+% Cite this if you use IQtree as part of phyloscanner_make_trees.py:
+@article{10.1093/molbev/msu300,
+    author = {Nguyen, Lam-Tung and Schmidt, Heiko A. and von Haeseler, Arndt and Minh, Bui Quang},
+    title = "{IQ-TREE: A Fast and Effective Stochastic Algorithm for Estimating Maximum-Likelihood Phylogenies}",
+    journal = {Molecular Biology and Evolution},
+    volume = {32},
+    number = {1},
+    pages = {268-274},
+    year = {2014},
+    month = {11},
+    abstract = "{Large phylogenomics data sets require fast tree inference methods, especially for maximum-likelihood (ML) phylogenies. Fast programs exist, but due to inherent heuristics to find optimal trees, it is not clear whether the best tree is found. Thus, there is need for additional approaches that employ different search strategies to find ML trees and that are at the same time as fast as currently available ML programs. We show that a combination of hill-climbing approaches and a stochastic perturbation method can be time-efficiently implemented. If we allow the same CPU time as RAxML and PhyML, then our software IQ-TREE found higher likelihoods between 62.2\\% and 87.1\\% of the studied alignments, thus efficiently exploring the tree-space. If we use the IQ-TREE stopping rule, RAxML and PhyML are faster in 75.7\\% and 47.1\\% of the DNA alignments and 42.2\\% and 100\\% of the protein alignments, respectively. However, the range of obtaining higher likelihoods with IQ-TREE improves to 73.3–97.1\\%. IQ-TREE is freely available at http://www.cibiv.at/software/iqtree.}",
+    issn = {0737-4038},
+    doi = {10.1093/molbev/msu300},
+    url = {https://doi.org/10.1093/molbev/msu300},
+    eprint = {https://academic.oup.com/mbe/article-pdf/32/1/268/13171186/msu300.pdf},
+}
+
+
+
+
+% Cite this if you make pdf tree images using phyloscanner_analyse_trees.R:
 @article {MEE3:MEE312628,
 author = {Yu, Guangchuang and Smith, David K. and Zhu, Huachen and Guan, Yi and Lam, Tommy Tsan-Yuk},
 title = {ggtree: an r package for visualization and annotation of phylogenetic trees with their covariates and other associated data},
@@ -61,6 +101,7 @@ keywords = {annotation, bioconductor, evolution, phylogeny, r package, visualiza
 year = {2017},
 }
 
+% Cite this if you use the --multinomial option of phyloscanner_analyse_trees.R:
  @ARTICLE{Ratmann2019-eg,
    title    = "Inferring {HIV-1} transmission networks and sources of epidemic
                spread in Africa with deep-sequence phylogenetic analysis",
