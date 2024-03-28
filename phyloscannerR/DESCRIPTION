@@ -1,6 +1,6 @@
 Package: phyloscannerR
 Title: Phylogenetics between and within hosts at once, all along the genome
-Version: 1.8.2
+Version: 1.9.0
 Authors@R: c(person("Matthew", "Hall", email = "matthew.hall@bdi.ox.ac.uk", role = c("aut", "cre")), person("Oliver", "Ratmann", email = "oliver.ratmann05@imperial.ac.uk", role = c("aut")))
 Author: Matthew Hall [aut, cre],
   Oliver Ratmann [aut]
@@ -11,4 +11,4 @@ Imports: ape, argparse, dplyr, extraDistr, ff, GGally, ggtree, glue, ggplot2, gr
 License: GPL
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.1
