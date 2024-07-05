@@ -469,6 +469,7 @@ blacklist <- function(ptrees,
     ptrees <- sapply(ptrees, find.duplicate.tips, simplify = F, USE.NAMES = T)
     
     ptrees <- sapply(ptrees, function(ptree) blacklist.from.duplicates.vector(ptree, raw.blacklist.threshold, ratio.blacklist.threshold, tip.regex, verbosity==2), simplify = F, USE.NAMES = T)
+  
   }
   
   # Parsimony blacklisting
@@ -1573,7 +1574,6 @@ blacklist.from.duplicates.vector <- function(ptree, raw.blacklist.threshold, rat
   tree <- ptree$tree
   
   if(!is.null(ptree$duplicate.tips)){
-    
     duplicated                                     <- blacklist.exact.duplicates(ptree, raw.blacklist.threshold, ratio.blacklist.threshold, tip.regex, verbose)
     
     if(nrow(duplicated) > 0){

@@ -6,7 +6,6 @@
 list.files.mod <- function(path = ".", pattern = NULL, all.files = FALSE,
                            full.names = FALSE, recursive = FALSE,
                            ignore.case = FALSE, include.dirs = FALSE, no.. = FALSE){
-  
   original <- list.files(path, pattern, all.files, full.names, recursive, ignore.case, include.dirs, no..)
   sapply(original, function(x) if(substr(x, 1, 2)=="./") {substr(x, 3, nchar(x))} else {x})
 }
@@ -26,6 +25,7 @@ get.suffix <- function(file.name, prefix, extension){
 #' @export get.window.coords
 
 get.window.coords <- function(string, regex = "^.*(?:.*\\D)?([0-9]+)_to_([0-9]+).*$"){
+
   start <- if(length(grep(regex, string))>0) as.numeric(sub(regex, "\\1", string)) else NA
   end   <- if(length(grep(regex, string))>0) as.numeric(sub(regex, "\\2", string)) else NA
 
