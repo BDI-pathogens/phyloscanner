@@ -44,7 +44,7 @@ To make some within- & between-host phylogenies, run the following command:
 (Those window parameters make best use of this simulated data, the `-A` option includes an alignment of extra reference sequences along with the reads, see the manual for the `--pairwise-align-to` option.)  
 Now let's analyse those phylogenies:
 ```bash
-~/phyloscanner/phyloscanner_analyse_trees.R RAxMLfiles/RAxML_bestTree. MyOutput s,12.5 --outgroupName C.BW.00.00BW07621.AF443088 --multifurcationThreshold g
+~/phyloscanner/phyloscanner_analyse_trees.R RAxMLfiles/InWindow MyOutput s,12.5 --outgroupName C.BW.00.00BW07621.AF443088 --multifurcationThreshold g
 ```
 In the output you'll see trees and summary information indicating that these samples constitute:
 * a straightforward, singly infected individual, 
