@@ -8,7 +8,8 @@ We wrote phyloscanner to analyse bam files that each represent a pathogen popula
 
 phyloscanner is freely available under the GNU General Public License version 3, described [here](LICENSE).  
 phyloscanner runs natively on Linux and Mac OS, but not Windows.
-However on any operating system (including Windows), if you have [VirtualBox](https://www.virtualbox.org/wiki/Downloads) installed, you can run [this](https://www.dropbox.com/sh/j3pmmunhxlc7g1w/AABddPfc5dN9oVnP9vQfAZOta?dl=0) image of Ubuntu Linux 16.04.3 which contains phyloscanner and our separate tool [shiver](https://github.com/ChrisHIV/shiver) (which allows you to process raw sequence data into mapped reads suitable as input for phyloscanner), with all of their dependencies.  
+However on any operating system (including Windows), if you have [VirtualBox](https://www.virtualbox.org/wiki/Downloads) installed, you can run [this](https://drive.google.com/file/d/1MohIOgJxcFVRv9v0aG2vyvEVgtm8lcyc/view?usp=sharing) image of Ubuntu Linux 22.04 which contains phyloscanner and our separate tool [shiver](https://github.com/ChrisHIV/shiver) (which allows you to process raw sequence data into mapped reads suitable as input for phyloscanner), with all of their dependencies.
+Instructions for the image (and full steps for how everything was installed) are [here](https://docs.google.com/document/d/1tX1juaiBhEZ5aW740ME05zaMm480Aj1eFvyY-H3Aor8/edit?usp=sharing).  
 To make phylogenies from mapped reads, phyloscanner requires [samtools](http://www.htslib.org/), [pysam](https://github.com/pysam-developers/pysam) (0.8.1 or later), [biopython](http://biopython.org/wiki/Download), [mafft](http://mafft.cbrc.jp/alignment/software/), and one of [RAxML Next Generation](https://github.com/amkozlov/raxml-ng) or [RAxML-standard](https://github.com/stamatak/standard-RAxML) or [IQtree](http://www.iqtree.org/); notes on installing these are [here](InfoAndInputs/InstallationNotesForMakingTrees.sh).
 To set up the part of phyloscanner that analyses these phylogenies (or others), follow [these instructions](InfoAndInputs/InstallationNotesForAnalysingTrees.sh).
 [This](InfoAndInputs/UpdatingPhyloscanner.sh) tells you how to update your phyloscanner code, if it has changed since you installed it.
@@ -43,7 +44,7 @@ To make some within- & between-host phylogenies, run the following command:
 (Those window parameters make best use of this simulated data, the `-A` option includes an alignment of extra reference sequences along with the reads, see the manual for the `--pairwise-align-to` option.)  
 Now let's analyse those phylogenies:
 ```bash
-~/phyloscanner/phyloscanner_analyse_trees.R RAxMLfiles/RAxML_bestTree. MyOutput s,12.5 --outgroupName C.BW.00.00BW07621.AF443088 --multifurcationThreshold g
+~/phyloscanner/phyloscanner_analyse_trees.R RAxMLfiles/InWindow MyOutput s,12.5 --outgroupName C.BW.00.00BW07621.AF443088 --multifurcationThreshold g
 ```
 In the output you'll see trees and summary information indicating that these samples constitute:
 * a straightforward, singly infected individual, 

@@ -10,21 +10,24 @@ blacklist.exact.duplicates <- function(ptree, raw.threshold, ratio.threshold, ti
   }
   
   entries <- ptree$duplicate.tips
-  
+   
   pairs.table <- entries %>%
     map(function(x){
       # get rid of anything that doesn't match the regexp (outgroup etc)
       tmp <-  x[!is.na(sapply(x, read.count.from.label, regexp = tip.regex))]
       if(length(tmp)>1){
-        tmp <- as_tibble(t(combn(tmp,2)))
-        names(tmp) <- c('tip.1','tip.2')
         
+        tmp <- t(combn(tmp,2))
+        colnames(tmp) <- c("tip.1", "tip.2")
+        tmp <- as_tibble(tmp)
+
         tmp
       } else {
         NULL
       }
     }) %>% 
     bind_rows()
+  
   
   if(nrow(pairs.table) > 0){
     

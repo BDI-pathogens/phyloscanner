@@ -22,7 +22,6 @@
 #' }
 #' @description This function identifies pairs of individuals between whom linkage is not excluded phylogenetically in a large number of phyloscanner analyses, and provides detailed information on them.
 #' @seealso \code{\link{phyloscanner.analyse.trees}}, \code{\link{cmd.phyloscanner.analyse.trees}}
-#' @example inst/example/ex.transmission.networks.R
 find.pairs.in.networks <- function(dwin, dc, control= list(linked.group='close.and.adjacent.cat',linked.no='not.close.or.nonadjacent',linked.yes='close.and.adjacent', conf.cut=0.6, neff.cut=3), dmeta=NULL, verbose=TRUE)
 {
     #    check if dmeta in right format
@@ -150,7 +149,6 @@ find.pairs.in.networks <- function(dwin, dc, control= list(linked.group='close.a
 #' of the phyloscanner scores along each edge in the chain.
 #'
 #' @seealso \code{\link{find.pairs.in.networks}}, \code{\link{plot.network}}, \code{\link{plot.chain}}
-#' @example inst/example/ex.transmission.networks.R
 find.networks<- function(dc, control= list(linked.group='close.and.adjacent.cat',linked.no='not.close.or.nonadjacent',linked.yes='close.and.adjacent', dir.group="close.and.adjacent.and.directed.cat", neff.cut=3, weight.complex.or.no.ancestry=0.5), verbose=TRUE)
 {
     #    internal constants
