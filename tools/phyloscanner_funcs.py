@@ -351,8 +351,8 @@ RightEdge):
 
   Returns 1 if successful, 0 if not.'''
 
-  MLtreeFile = 'IQtree_' + WindowSuffix + '_.treefile'
-  IQtreeCall = IQtreeArgList + ['-s', alignment, '-pre', 'IQtree_' + WindowSuffix + '_']
+  MLtreeFile = 'IQtree_' + WindowSuffix + '.treefile'
+  IQtreeCall = IQtreeArgList + ['-s', alignment, '-pre', 'IQtree_' + WindowSuffix]
   proc = subprocess.Popen(IQtreeCall, stdout=subprocess.PIPE,
   stderr=subprocess.PIPE)
   out, err = proc.communicate()
