@@ -19,6 +19,7 @@ import os
 import sys
 import subprocess
 from Bio import AlignIO
+from Bio.Align import MultipleSeqAlignment
 import phyloscanner_funcs as pf
 
 # Define a function to check files exist, as a type for the argparse.
@@ -124,6 +125,10 @@ if multithread:
       print('The number of threads must be positive. Quitting.',
       file=sys.stderr)
       exit(1)
+  print("\nWARNING: the multithreading option is supported in this script (via",
+  "Python's multiprocessing.dummy module), but anecdotal testing by the",
+  "developer suggested that multithreading is *slower*. Perhaps test this",
+  "yourself, and consider turning off multithreading.\n", file=sys.stderr)
 
     
 # Extract the chosen seq
@@ -146,6 +151,24 @@ if not ChosenSeqFound:
 GappyChosenSeq = str(ChosenSeq.seq)
 UngappedChosenSeq = str(ChosenSeq.seq.ungap('-'))
 ChosenSeqLen = len(UngappedChosenSeq)
+
+# Check we have at least 4 seqs: needed for a tree
+NumSeqs = len(alignment)
+if NumSeqs < 4:
+  print(args.alignment, 'contains', NumSeqs,
+  "seqs; at least 4 are required to make a tree. Quitting.", file=sys.stderr)
+  exit(1)  
+
+# Remove any seqs that are nothing but gap characters. Check again that we have
+# at least 4 seqs.
+alignment = AlignIO.MultipleSeqAlignment(
+  [seq for seq in alignment if seq.seq != ("-" * len(seq.seq))])
+NumSeqs = len(alignment)
+if NumSeqs < 4:
+  print("After removing sequences containing only the gap character '-',",
+  args.alignment, 'contains', NumSeqs,
+  "seqs; at least 4 are required to make a tree. Quitting.", file=sys.stderr)
+  exit(1)  
 
 # Check it contains some bases
 if ChosenSeqLen == 0:
@@ -244,6 +267,18 @@ def GetTreeSizeFromWindow(WindowNumber):
   WindowAsStr = str(ChosenSeqStart) + '-' + str(ChosenSeqEnd)
 
   SeqAlignmentHere = alignment[:, start:end+1]
+  
+  # Remove any seqs that are nothing but gap characters. Check that we have
+  # at least 4 seqs.
+  SeqAlignmentHere = AlignIO.MultipleSeqAlignment(
+    [seq for seq in SeqAlignmentHere if seq.seq != ("-" * len(seq.seq))])
+  NumSeqsHere = len(SeqAlignmentHere)
+  if NumSeqsHere < 4:
+    print("Warning: skipping window", WindowAsStr, "which contains fewer than",
+    "4 sequences after removing those containing only the gap character '-'.",
+    file=sys.stderr)
+    return float('nan') 
+  
   FileForAlnHere = FileForAlignment_basename + WindowSuffix + '.fasta'
   AlignIO.write(SeqAlignmentHere, FileForAlnHere, 'fasta')
 
@@ -257,7 +292,7 @@ def GetTreeSizeFromWindow(WindowNumber):
     print('Running IQtree')
     NumTreesMade = pf.RunIQtree(FileForAlnHere, TreeArgList, WindowSuffix, WindowAsStr,
                                 ChosenSeqStart, ChosenSeqEnd)
-    MLtreeFile = 'IQtree_' + WindowSuffix + '_.treefile'
+    MLtreeFile = 'IQtree_' + WindowSuffix + '.treefile'
   else:
     print('Running RAxML-NG')
     NumTreesMade = pf.RunRAxML(FileForAlnHere, TreeArgList, WindowSuffix, WindowAsStr,

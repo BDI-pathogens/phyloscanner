@@ -9,13 +9,14 @@ ExplanatoryMessage = '''Takes a csv where the first column is the start position
 of the window, the second column is the end position of the window, and all
 subsequent columns are values associated with that window; it converts these
 per-window values to per-position values, by taking the mean of all values
-overlapping a particular position. Output is printed to stdout, suitable for
-redirection to a new csv file.'''
+overlapping a particular position. 'nan' values are ignored when taking the mean.
+Output is printed to stdout, suitable for redirection to a new csv file.'''
 
 import os
 import copy
 import sys
 import argparse
+import math
 
 # Define a function to check files exist, as a type for the argparse.
 def File(MyFile):
@@ -25,7 +26,7 @@ def File(MyFile):
 
 # Set up the arguments for this script
 parser = argparse.ArgumentParser(description=ExplanatoryMessage)
-parser.add_argument('CsvFile', type=File)
+parser.add_argument('CsvFile', help='The first line should be header', type=File)
 args = parser.parse_args()
 
 StatTotalsByPosition = {}
@@ -71,14 +72,19 @@ with open(args.CsvFile) as f:
       file=sys.stderr)
       exit(1)
 
+    # For each position in this window and for each stat: increment the total
+    # for this stat (obtained when summing over all windows) by its value here,
+    # and increment by 1 the count for how many times we've done this.
+    # Except for stats with a nan value, then we do neither of these things.
     for pos in range(WindowStart, WindowEnd+1):
       if pos in StatTotalsByPosition:
         for i in range(NumStats):
-          StatTotalsByPosition[pos][i] += stats[i]
-        StatCountsByPosition[pos] += 1
+          if not math.isnan(stats[i]):
+            StatTotalsByPosition[pos][i] += stats[i]
+            StatCountsByPosition[pos][i] += 1
       else:
-        StatTotalsByPosition[pos] = copy.deepcopy(stats)
-        StatCountsByPosition[pos] = 1
+        StatTotalsByPosition[pos] = [0 if math.isnan(stat) else stat for stat in stats]
+        StatCountsByPosition[pos] = [0 if math.isnan(stat) else 1    for stat in stats]
 
 # Check we have data
 if not StatTotalsByPosition:
@@ -87,9 +93,10 @@ if not StatTotalsByPosition:
 
 # Print the output
 print(header.rstrip())
-for position, StatsTotals in sorted(StatTotalsByPosition.items(),
+for position, StatTotals in sorted(StatTotalsByPosition.items(),
 key=lambda x: x[0]):
-  count = StatCountsByPosition[position]
-  MeanStats = [float(stat) / count for stat in StatsTotals]
+  StatCounts = StatCountsByPosition[position]
+  MeanStats = [float('nan') if count == 0 else float(StatTotals[index]) / count
+  for index,count in enumerate(StatCounts)]
   print(position, ','.join(map(str,MeanStats)), sep=',')
 
