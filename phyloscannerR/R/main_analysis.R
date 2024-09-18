@@ -33,7 +33,7 @@ initialise.phyloscanner <- function(
   tree.file.names <- list.files.mod(tree.file.directory, pattern=tree.file.regex)
   
   if(length(tree.file.names)==0){
-    stop("No tree files found.")
+    stop(glue("No tree files found. Search was in the directory {tree.file.directory} for files matching the regex {tree.file.regex}. Please consult the --help options for phyloscanner for further details."))
   }
   
   if(!is.null(norm.ref.file.name) & !is.null(norm.constants)){
