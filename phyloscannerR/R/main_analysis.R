@@ -376,7 +376,7 @@ initialise.phyloscanner <- function(
             mean.nc <- mean(tmp$NORM_CONST, na.rm =TRUE)
             
             if(!is.finite(mean.nc)){
-              stop(paste0("Normalisation standardising constant is not finite"))
+              stop(paste0("Normalisation standardising constant is NaN"))
             }
             
             norm.table <- norm.table %>% mutate(NORM_CONST = NORM_CONST/mean.nc)
@@ -387,7 +387,7 @@ initialise.phyloscanner <- function(
             mean.nc <- mean(norm.table$NORM_CONST, na.rm =TRUE)
             
             if(!is.finite(mean.nc)){
-              stop(paste0("Normalisation standardising constant is not finite"))
+              stop(paste0("Normalisation standardising constant is NaN"))
             }
             
             norm.table <- norm.table %>% mutate(NORM_CONST = NORM_CONST/mean.nc)
