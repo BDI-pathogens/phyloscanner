@@ -351,7 +351,7 @@ initialise.phyloscanner <- function(
       if (verbosity!=0) cat('Calculating normalisation constants from file ', norm.ref.file.name, "...\n", sep="")
       
       if(grepl(paste0("csv", "$"), norm.ref.file.name)){
-        norm.table	<- read_csv(norm.ref.file.name, show_col_types = FALSE)
+        norm.table	<- read_csv(norm.ref.file.name, show_col_types = FALSE, na=c("","NA","nan"))
 
         
         if(ncol(norm.table)!=2){
@@ -373,7 +373,7 @@ initialise.phyloscanner <- function(
               stop(paste0("No positions from gag+pol present in file ",norm.ref.file.name,"; unable to standardise"))
             }
             
-            mean.nc <- mean(tmp$NORM_CONST)
+            mean.nc <- mean(tmp$NORM_CONST, na.rm =TRUE)
             
             if(!is.finite(mean.nc)){
               stop(paste0("Normalisation standardising constant is not finite"))
@@ -384,7 +384,7 @@ initialise.phyloscanner <- function(
           } else {
             if (verbosity==2) cat('Standardising normalising constants to 1 on the whole genome\n')
             
-            mean.nc <- mean(norm.table$NORM_CONST)
+            mean.nc <- mean(norm.table$NORM_CONST, na.rm =TRUE)
             
             if(!is.finite(mean.nc)){
               stop(paste0("Normalisation standardising constant is not finite"))
