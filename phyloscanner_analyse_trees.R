@@ -10,7 +10,7 @@ suppressMessages(require(sna, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(scales, quietly=TRUE, warn.conflicts=FALSE))
 suppressMessages(require(readr, quietly=TRUE, warn.conflicts=FALSE))
 
-arg_parser		     <- ArgumentParser()
+arg_parser <- ArgumentParser()
 
 
 arg_parser$add_argument("tree", action="store", help="A string that begins the file names (including the path) of all input trees. e.g. path/to/RAxML_bestTree.InWindow_, a directory containing all trees, or a single input tree file.")
@@ -28,7 +28,7 @@ arg_parser$add_argument("-v", "--verbose", action="store", type="integer", defau
 arg_parser$add_argument("-npb", "--noProgressBars", action="store_true", default=FALSE, help="If --verbose, do not display progress bars")
 arg_parser$add_argument("-x", "--tipRegex", action="store", default="^(.*)_read_([0-9]+)_count_([0-9]+)$", help="Regular expression identifying tips from the dataset. This expects up to three capture groups, for host ID, read ID, and read count (in that order). If the latter two groups are missing then read information will not be used. If absent, the default is '^(.*)_read_([0-9]+)_count_([0-9]+)$', which matches input from the phyloscanner pipeline where the host ID is the BAM file name.")
 arg_parser$add_argument("-y", "--fileNameRegex", action="store", default="^(?:.*\\D)?([0-9]+)_to_([0-9]+).*$", help="Regular expression identifying window coordinates in tree file names. Two capture groups: start and end; if the latter is missing then the first group is a single numerical identifier for the window. If absent, input will be assumed to be from the phyloscanner pipeline.")
-arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default=".bestTree", help="The file extension for tree files (default .tree). This includes the dot; use '' if there is no file extension.")
+arg_parser$add_argument("-tfe", "--treeFileExtension", action="store", default=".tree", help="The file extension for tree files (default .tree). This includes the dot; use '' if there is no file extension.")
 arg_parser$add_argument("-cfe", "--csvFileExtension", action="store", default=".csv", help="The file extension for table files (default .csv). This includes the dot; use '' if there is no file extension.")
 arg_parser$add_argument("-afe", "--alignmentFileExtension", action="store", default=".fasta", help="The file extension for nucleotide alignment files (default .fasta). This includes the dot; use '' if there is no file extension.")
 arg_parser$add_argument("-pw", "--pdfWidth", action="store", default=50, help="Width of tree PDF in inches.")
